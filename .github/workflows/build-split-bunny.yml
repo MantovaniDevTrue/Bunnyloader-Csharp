@@ -36,7 +36,7 @@ jobs:
           fi
           echo "Using $SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER"             "platforms;android-34"             "build-tools;34.0.0"             "ndk;30.0.16248370"             "cmake;3.22.1"
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "ndk;30.0.16248370" "cmake;3.22.1"
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
@@ -52,19 +52,31 @@ jobs:
       - name: Fetch QuickJS
         shell: bash
         run: |
-          git clone --depth 1 --branch v0.17.0             https://github.com/quickjs-ng/quickjs.git             Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+          git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+
+      - name: Configure Maven Central mirror
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Split/Bunny-Loader/settings.gradle.kts")
+          s = p.read_text()
+          s = s.replace("mavenCentral()", 'maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2") }')
+          p.write_text(s)
+          PY
+          cat Split/Bunny-Loader/settings.gradle.kts
 
       - name: Build native UI-only APK
         working-directory: Split/Bunny-Loader
         shell: bash
         run: |
-          gradle :app:assembleDebug             -Pbl.uiOnly=true             --stacktrace             --no-daemon
+          gradle :app:assembleDebug -Pbl.uiOnly=true --stacktrace --no-daemon
 
       - name: Collect APK
         shell: bash
         run: |
           mkdir -p Split/build/output
-          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-debug.apk
+          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk Split/build/output/Split-BunnyLoader-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
