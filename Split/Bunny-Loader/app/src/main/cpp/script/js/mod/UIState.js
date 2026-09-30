@@ -3,6 +3,7 @@ class UIState {
         this.IsInitialized = false;
         this.IsActive = false;
         this.CapturesMouse = false;
+        this.InputRegion = null;
     }
 
     OnInitialize() {}
@@ -12,6 +13,10 @@ class UIState {
     Draw(spriteBatch, gameTime) {}
     Recalculate() {}
     ContainsPoint(x, y) { return false; }
+
+    GetInputRegion() {
+        return typeof this.InputRegion === 'function' ? this.InputRegion() : this.InputRegion;
+    }
 
     Activate() {
         if (!this.IsInitialized) {
