@@ -21,6 +21,7 @@ class ModSystem {
     PreUpdateTime() {}
     PostUpdateTime() {}
     PostUpdateEverything() {}
+    ModifyInterfaceLayers(layers) {}
 
     // A contagem de blocos em volta do jogador local (a cada 5 quadros, a do
     // jogo): Reset antes de contar, TileCountsAvailable no fim. O Reset vem
