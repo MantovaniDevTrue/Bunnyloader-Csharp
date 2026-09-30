@@ -1,10 +1,17 @@
 class GameInterfaceLayer {
-    constructor(name, drawMethod, scaleType = InterfaceScaleType.UI) {
+    constructor(name, drawMethod, scaleType = InterfaceScaleType.UI, reserveInput = null) {
         this.Name = String(name || '');
         this.ScaleType = scaleType;
         this.Active = true;
         this.IsVanilla = false;
         this._drawMethod = typeof drawMethod === 'function' ? drawMethod : null;
+        this._reserveInput = typeof reserveInput === 'function' ? reserveInput : null;
+    }
+
+    ReserveInput() {
+        if (!this.Active || !this._reserveInput) return false;
+
+        return Safe.Run(this.Name || 'InterfaceLayer', () => this._reserveInput()) === true;
     }
 
     Draw() {
