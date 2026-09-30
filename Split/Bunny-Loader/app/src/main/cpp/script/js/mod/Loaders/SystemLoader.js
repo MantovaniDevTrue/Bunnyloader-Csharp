@@ -26,6 +26,7 @@ class SystemLoader {
         const WorldFile = Terraria.IO.WorldFile;
 
         if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
+        if (has('ModifyInterfaceLayers')) InterfaceLoader.Install();
 
         // No cliente de multijogador o mundo chega pela rede, sem LoadWorld: o
         // clearWorld marca a entrada.
