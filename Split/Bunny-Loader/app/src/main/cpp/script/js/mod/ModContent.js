@@ -4,6 +4,7 @@ class ModContent {
     static NPCType(which) { return ContentLookup.TypeOf(NPCLoader.ByType, which); }
     static BuffType(which) { return ContentLookup.TypeOf(BuffLoader.ByType, which); }
     static TileType(which) { return ContentLookup.TypeOf(TileLoader.ByType, which); }
+    static TileEntityType(which) { return ContentLookup.TypeOf(TileEntityLoader.ByType, which); }
     static PrefixType(which) { return ContentLookup.TypeOf(PrefixLoader.ByType, which); }
 
     static GetInstance(cls) { return Templates.Get(cls); }
@@ -27,6 +28,7 @@ class ModContent {
     static GetModNPC(type) { return NPCLoader.ByType.get(type); }
     static GetModBuff(type) { return BuffLoader.ByType.get(type); }
     static GetModTile(type) { return TileLoader.ByType.get(type); }
+    static GetModTileEntity(type) { return TileEntityLoader.ByType.get(type); }
     static GetModPrefix(type) { return PrefixLoader.ByType.get(type); }
 
     // Carregada uma vez, só na thread do jogo com ele rodando (num hook, no
