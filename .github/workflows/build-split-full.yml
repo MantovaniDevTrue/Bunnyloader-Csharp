@@ -2,15 +2,6 @@ name: Build Split Bunny Full Runtime
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/build-split-full.yml"
-      - "Split/Bunny-Loader/**"
-      - "Split/patches/**"
-      - "Split/mod/**"
-      - "Split/runtime/**"
 
 permissions:
   contents: read
