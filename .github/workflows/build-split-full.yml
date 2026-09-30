@@ -1,12 +1,6 @@
 name: Build Split Bunny Full Runtime
 
 on:
-  push:
-    branches:
-      - bunny-ui-tileentity-phase1
-    paths:
-      - ".github/workflows/build-split-full.yml"
-      - "Split/Bunny-Loader/**"
   workflow_dispatch:
   release:
     types:
@@ -17,7 +11,7 @@ permissions:
 
 jobs:
   build-full:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'runtime-1.4.5.8.6'
+    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'runtime-1.4.5.8.6'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
