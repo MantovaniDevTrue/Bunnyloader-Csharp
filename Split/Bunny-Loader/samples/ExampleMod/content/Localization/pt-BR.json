@@ -1,0 +1,227 @@
+{
+  "ItemName": {
+    "ExampleItem": "Exemplo de Item",
+    "ExampleMeleeWeapon": "Espada",
+    "ExampleGun": "Arma de Exemplo",
+    "ExampleBullet": "Bala de Exemplo",
+    "ExampleSoul": "Alma de Exemplo",
+    "ExamplePickaxe": "Picareta de Exemplo",
+    "ExampleHamaxe": "Martelo-Machado de Exemplo",
+    "ExampleGolfBall": "Bola de Golfe de Exemplo",
+    "ExampleShotgun": "Espingarda de Exemplo",
+    "ExampleRocketLauncher": "Lança-Foguetes de Exemplo",
+    "ExampleSpear": "Lança de Exemplo",
+    "ExampleFlail": "Mangual de Exemplo",
+    "ExampleYoyo": "Ioiô de Exemplo",
+    "ExampleWhip": "Chicote de Exemplo",
+    "ExampleSwingingEnergySword": "Espada de Energia de Exemplo",
+    "ExampleDrill": "Broca de Exemplo",
+    "ExampleMagicWeapon": "Cajado de Exemplo",
+    "ExampleLaserWeapon": "Prisma de Exemplo",
+    "ExampleHookItem": "Gancho de Exemplo",
+    "ExampleFishingRod": "Vara de Pesca de Exemplo",
+    "ExampleBuffPotion": "Poção de Buff",
+    "ExampleShield": "Escudo de Exemplo",
+    "ExampleStatAccessory": "Acessório de Estatísticas",
+    "ExampleBoots": "Botas de Exemplo",
+    "WaspNest": "Ninho de Vespas",
+    "ExampleTooltipItem": "Exemplo de Tooltip",
+    "ExampleTileItem": "Bloco de Exemplo",
+    "ExampleOreItem": "Minério de Exemplo",
+    "ExampleSinkItem": "Pia de Exemplo",
+    "ExamplePetItem": "Aviãozinho",
+    "ExampleLightPetItem": "Luz Irritante",
+    "ExampleMinionItem": "Cajado do Lacaio de Exemplo",
+    "ExampleSentryItem": "Cajado da Sentinela de Exemplo",
+    "ExampleBossSummonItem": "Olho de ???",
+    "ExampleWorkbench": "Bancada de Exemplo",
+    "ExampleTable": "Mesa de Exemplo",
+    "ExampleChair": "Cadeira de Exemplo",
+    "ExampleToilet": "Vaso Sanitário de Exemplo",
+    "ExampleBed": "Cama de Exemplo",
+    "ExampleDoor": "Porta de Exemplo",
+    "ExampleChest": "Baú de Exemplo",
+    "ExampleChestKey": "Chave do Baú de Exemplo",
+    "ExampleDresser": "Cômoda de Exemplo",
+    "ExampleClock": "Relógio de Exemplo",
+    "ExamplePlatform": "Plataforma de Exemplo",
+    "ExampleChandelier": "Lustre de Exemplo",
+    "ExampleWideBanner": "Estandarte Largo de Exemplo",
+    "MinionBossTrophy": "Troféu do Olho de ???",
+    "MinionBossRelic": "Relíquia do Olho de ???",
+    "ExampleTorch": "Tocha de Exemplo",
+    "ExampleLamp": "Luminária de Exemplo",
+    "ExampleCampfire": "Fogueira de Exemplo",
+    "ExampleLivingFire": "Bloco de Fogo Vivo de Exemplo",
+    "ExampleStatue": "Estátua de Exemplo",
+    "ExampleTrapIchorBullet": "Armadilha de Ícor de Exemplo",
+    "ExampleTrapChlorophyteBullet": "Armadilha de Clorofita de Exemplo",
+    "ExampleMusicBox": "Caixa de Música (Olho de ???)",
+    "ExampleBar": "Barra de Exemplo",
+    "ExampleCutTile": "Pedra Pendurada de Exemplo",
+    "ExampleGemsparkBlock": "Bloco de Gemas de Exemplo",
+    "ExampleHerbSeeds": "Sementes de Erva de Exemplo",
+    "ExampleSignItem": "Placa de Exemplo",
+    "ExampleAnimatedTileItem": "Pote de Vaga-lume de Exemplo",
+    "ExampleAnimatedGlowmaskTileItem": "Monólito de Exemplo",
+    "ExampleTransparentShapedTileItem": "Vidro Derretido de Exemplo",
+    "ExampleHelmet": "Capacete de Exemplo",
+    "ExampleBreastplate": "Peitoral de Exemplo",
+    "ExampleLeggings": "Calças de Exemplo",
+    "ExampleBossMask": "Máscara do Chefe de Exemplo",
+    "ExampleWings": "Asas de Exemplo",
+    "ExampleBeard": "Barba de Exemplo",
+    "ExampleCostume": "Fantasia de Exemplo",
+    "ExampleRobe": "Manto de Exemplo",
+    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias"
+  },
+  "MapObject": {
+    "ExampleTile": "Bloco de Exemplo",
+    "ExampleOre": "Minério de Exemplo",
+    "ExampleSink": "Pia de Exemplo",
+    "ExampleAnimatedTile": "Pote de Vaga-lume de Exemplo",
+    "ExampleHerb": "Erva de Exemplo",
+    "ExampleSign": "Placa de Exemplo"
+  },
+  "ProjectileName": {
+    "ExampleBulletProjectile": "Bala de Exemplo",
+    "ExampleGolfBallProjectile": "Bola de Golfe de Exemplo",
+    "ExampleSpearProjectile": "Lança de Exemplo",
+    "ExampleFlailProjectile": "Mangual de Exemplo",
+    "ExampleYoyoProjectile": "Ioiô de Exemplo",
+    "ExampleWhipProjectile": "Chicote de Exemplo",
+    "ExampleSwingingEnergySwordProjectile": "Espada de Energia de Exemplo",
+    "ExampleDrillProjectile": "Broca de Exemplo",
+    "ExampleAdvancedAnimatedProjectile": "Onda Mágica de Exemplo",
+    "ExampleLaserHoldout": "Prisma de Exemplo",
+    "ExampleLaserBeam": "Raio de Exemplo",
+    "ExampleHookProjectile": "Gancho de Exemplo",
+    "ExampleBobber": "Boia de Exemplo",
+    "ExamplePetProjectile": "Aviãozinho",
+    "ExampleLightPetProjectile": "Luz Irritante",
+    "ExampleMinion": "Lacaio de Exemplo",
+    "ExampleSentry": "Sentinela de Exemplo",
+    "ExampleSentryShot": "Tiro da Sentinela"
+  },
+  "NPCName": {
+    "ExampleSlimeNPC": "Slime de Exemplo",
+    "ExamplePerson": "Pessoa",
+    "ExampleBoss": "Olho de ???"
+  },
+  "ItemTooltip": {
+    "ExampleItem": "Descrição do item",
+    "ExampleShotgun": "Dispara oito balas de uma vez",
+    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n5 de dano de marcação",
+    "ExampleHookItem": "Agarra também em troncos de árvore",
+    "ExampleFishingRod": "Pesca na lava",
+    "ExampleShield": "Toque duas vezes numa direção para dar um impulso",
+    "ExampleStatAccessory": "{0}% de aumento nos danos",
+    "ExampleBoots": "Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo\nProporciona a habilidade de andar sobre água, mel, lava e brilho\nConcede imunidade a blocos de fogo e {0} segundos de imunidade à lava\nReduz o dano causado pelo contato com lava\nPrevine dano por queda\nDeixa um rastro de chamas por onde você passar",
+    "WaspNest": "As abelhas ficam mais fortes",
+    "ExampleTooltipItem": "Acima, uma cor por letra. Esta linha, em dourado",
+    "ExamplePetItem": "Invoca um aviãozinho de papel que te segue sem rumo",
+    "ExampleLightPetItem": "Invoca uma luz irritante",
+    "ExampleMinionItem": "Invoca um lacaio de exemplo que luta por você",
+    "ExampleSentryItem": "Invoca uma sentinela de exemplo que luta por você",
+    "ExampleBossSummonItem": "???",
+    "ExampleWorkbench": "Conta como bancada nas receitas",
+    "ExampleChestKey": "Abre o baú de exemplo trancado, de noite",
+    "ExampleClock": "Toque para ver a hora",
+    "ExampleChandelier": "Ligue num fio para acender e apagar",
+    "ExampleLamp": "Ligue num fio para acender e apagar",
+    "ExampleCampfire": "Toque para acender; acesa, dá Fogo Aconchegante",
+    "ExampleStatue": "Ligada num fio, solta moedas (e às vezes um peixinho dourado)",
+    "ExampleTrapIchorBullet": "Atira balas de ícor quando ligada num fio\nO martelo gira a armadilha",
+    "ExampleTrapChlorophyteBullet": "Atira balas de clorofita quando ligada num fio\nO martelo gira a armadilha",
+    "ExampleMusicBox": "Toque para tocar a música do Olho de ???",
+    "ExampleGemsparkBlock": "Ligue num fio para acender e apagar",
+    "ExampleHerbSeeds": "Cresce na grama e no bloco de exemplo",
+    "ExampleHelmet": "Um capacete de mod.",
+    "ExampleBreastplate": "Uma armadura de mod para o corpo.\nImunidade a 'Em Chamas!'\n+{0} de mana máxima e +{1} de lacaio máximo",
+    "ExampleLeggings": "Uma armadura de mod para as pernas.\n{0}% de aumento na velocidade de movimento",
+    "ExampleWings": "Asas de mod.",
+    "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
+    "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado",
+    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia"
+  },
+  "Bestiary": {
+    "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
+    "ExamplePerson": "Texto de Pessoa para o bestiário",
+    "ExampleBoss": "Um olho de alguma coisa"
+  },
+  "RecipeGroups": {
+    "ExampleItem": "Item de Exemplo"
+  },
+  "BuffName": {
+    "ExampleDefenseBuff": "Defesa",
+    "ExampleDefenseDebuff": "Defesa Reduzida",
+    "ExamplePetBuff": "Aviãozinho",
+    "ExampleLightPetBuff": "Luz Irritante",
+    "ExampleMinionBuff": "Lacaio de Exemplo",
+    "Blocky": "Quadrado"
+  },
+  "BuffDescription": {
+    "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
+    "ExampleDefenseDebuff": "Reduz a defesa do jogador em {0}%",
+    "ExamplePetBuff": "\"Que este pet sirva de exemplo para você!\"",
+    "ExampleLightPetBuff": "Argh, muuuito irritante",
+    "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você",
+    "Blocky": "Pulo mais alto"
+  },
+  "CustomText": {
+    "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
+  },
+  "NPCChat": {
+    "ExamplePerson_1": "Olá, como vai?",
+    "ExamplePerson_2": "Olá!"
+  },
+  "TownNPCMood": {
+    "ExamplePerson": {
+      "Content": "Estou bem, obrigado.",
+      "DislikeBiome": "Não gosto de {0}.",
+      "DislikeCrowded": "Está ficando muito cheio aqui.",
+      "DislikeNPC": "Não gosto do {0}.",
+      "HateBiome": "Odeio {0}.",
+      "HateCrowded": "Tem muita gente aqui.",
+      "HateNPC": "Odeio o {0}.",
+      "LikeBiome": "Gosto de {0}.",
+      "LikeNPC": "Gosto de {0}.",
+      "LoveBiome": "Gosto muito de {0}.",
+      "LoveNPC": "Gosto muito de {0}.",
+      "LoveSpace": "Eu gosto daqui.",
+      "NoHome": "Preciso de uma casa.",
+      "FarFromHome": "Estou muito longe de casa.",
+      "ExampleSpecialMoodText": "Não gosto de vender produtos durante a noite."
+    }
+  },
+  "CustomCurrency": {
+    "ExampleItemCurrency": "créditos"
+  },
+  "ArmorSetBonus": {
+    "ExampleArmor": "Aumenta o dano causado em {0}%"
+  },
+  "PrefixName": {
+    "ExamplePrefix": "de Exemplo",
+    "ExampleDerivedPrefix": "de Exemplo Derivado",
+    "ExampleAccessoryPrefix": "Resistente de Exemplo"
+  },
+  "Prefixes": {
+    "PowerTooltip": "{0} de Poder",
+    "ExamplePrefix": {
+      "AdditionalTooltip": "Mais Poder"
+    },
+    "ExampleDerivedPrefix": {
+      "AdditionalTooltip": "Ainda Mais Poder"
+    }
+  },
+  "Biomes": {
+    "ExampleSurfaceBiome": {
+      "DisplayName": "Superfície de Exemplo",
+      "TownNPCDialogueName": "o Bioma de Superfície de Exemplo"
+    },
+    "ExampleUndergroundBiome": {
+      "DisplayName": "Subsolo de Exemplo",
+      "TownNPCDialogueName": "o Bioma Subterrâneo de Exemplo"
+    }
+  }
+}

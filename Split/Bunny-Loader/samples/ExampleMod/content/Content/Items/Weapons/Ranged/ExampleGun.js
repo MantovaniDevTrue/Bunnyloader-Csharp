@@ -1,0 +1,30 @@
+const { AmmoID, ProjectileID } = Terraria.ID;
+
+// ExampleGun: a arma. O `shoot` dela e o de qualquer arma de fogo do jogo (o
+// tModLoader poe PurificationPowder); com municao, vale o da municao.
+export class ExampleGun extends ModItem {
+    SetDefaults() {
+        this.Item.ranged = true;
+        this.Item.shoot = ProjectileID.PurificationPowder;
+        this.Item.shootSpeed = 10;
+        this.Item.useAmmo = AmmoID.Bullet;
+
+        // (dano, repulsao, critico)
+        this.SetWeaponValues(20, 5, 0);
+        // (useTime, autoReuse)
+        this.SetDefaultWeaponStyle(10, true);
+
+        this.Item.noMelee = true;   // o corpo da arma nao bate, so o tiro
+        this.Item.value = Terraria.Item.sellPrice(0, 10, 0, 0);
+        this.Item.rare = ItemRarityID.Green;
+        this.Item.UseSound = new SoundStyle('Sounds/Items/Guns/ExampleGun', {
+            Volume: 0.9,
+            PitchVariance: 0.2,
+            MaxInstances: 3,
+        });
+    }
+
+    HoldoutOffset(item, player) {
+        return { X: -18, Y: 0 };
+    }
+}

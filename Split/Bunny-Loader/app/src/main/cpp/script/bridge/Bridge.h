@@ -1,0 +1,83 @@
+#pragma once
+#include "il2cpp/Types.h"
+
+#if BL_HAVE_QUICKJS
+#include "quickjs.h"
+
+#include <atomic>
+#include <cstdint>
+#include <string>
+#endif
+
+namespace bl::script {
+
+#if BL_HAVE_QUICKJS
+
+// Fabricas dos objetos JS que embrulham coisas do jogo. Ficam em Bindings.cpp,
+// que detem os JSClassID; Value.cpp e JsHook.cpp chamam por aqui.
+JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj);
+JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr);
+JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m);
+
+/** Um valor como o bl.log o escreve: objeto e array JS em JSON, o resto pelo toString. */
+std::string valueToLogText(JSContext* ctx, JSValueConst v);
+
+// Inverso: o valor JS e um objeto/array do jogo? nullptr se nao for.
+Il2CppObject* objectFromJS(JSValueConst v);
+Il2CppArray* arrayFromJS(JSValueConst v);
+/** A classe de um valor como `Terraria.Item`; nullptr se nao for classe. */
+Il2CppClass* classFromJS(JSValueConst v);
+/** O objeto e um array (de qualquer tipo de elemento)? */
+bool isArrayObject(Il2CppObject* o);
+
+/**
+ * Filtro NATIVO de um hook JS: so vai ao JS a chamada em que o objeto `on`
+ * (o self, ou o parametro de indice `on`) tem o campo int `field` >= minType.
+ * As outras vao direto ao original, sem trava nem JS — o NPC.AI roda por
+ * NPC por quadro, e so os de mod interessam ao mod.
+ */
+// Com o motor JS noutra thread, o que o hook faz em vez de esperar (ate 3 s).
+// Para hook de todo quadro que pode ficar um quadro sem o mod.
+enum class IfBusy : uint8_t {
+    Wait,       // espera ate 3 s e, se nao der, roda sem o mod (com aviso)
+    Original,   // roda na hora o metodo do jogo, sem o mod
+    Skip,       // nao roda nada (so metodo void): fica valendo o quadro anterior
+};
+
+struct HookFilter {
+    int on = -2;              // -2 = sem filtro, -1 = self, >= 0 = parametro
+    std::string field = "type";
+    int32_t minType = 0;
+    // So chama o JS enquanto esta thread esta dentro do hook JS deste outro
+    // metodo (que precisa ja ter um). Ex.: SpriteBatch.DrawString so durante
+    // o desenho do tooltip, sem pagar o JS nos outros milhares de textos.
+    const MethodInfo* whileIn = nullptr;
+    // Filtro pelo TIPO DO TILE (>= minType, e tile ativo), lido direto do
+    // mundo: `tileParam` e o indice de um parametro `Tile` (struct);
+    // `tileAtI`/`tileAtJ`, os indices dos parametros int da posicao.
+    int tileParam = -1;
+    int tileAtI = -1, tileAtJ = -1;
+    // `arg`: o indice de um parametro int que JA e o tipo (o `ushort typeCache`
+    // do desenho). Mesmo minType.
+    int argParam = -1;
+    // `marks`: o tipo lido por um dos filtros acima tambem tem de estar marcado
+    // na tabela de marcas com este nome (bl.hookMarks.set). O ModifyLight so
+    // entra no JS para os tiles que sobrescrevem o ModifyLight.
+    std::string marks;
+    IfBusy ifBusy = IfBusy::Wait;
+};
+
+/** A tabela de marcas `name` (criada na primeira vez; nunca liberada). kMarkTypes entradas. */
+constexpr int kMarkTypes = 65536;
+std::atomic<uint8_t>* hookMarks(const std::string& name);
+
+// Instala um hook JS num metodo do jogo. O callback recebe
+// (original, self, ...args). Retorna false (com excecao posta no ctx) se nao
+// houver slot livre, se o hook nativo falhar ou se a assinatura do metodo nao
+// couber na convencao de chamada que sabemos reproduzir. Ver JsHook.cpp.
+bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
+                   bool isInstance, JSValueConst callback, const HookFilter* filter = nullptr);
+
+#endif
+
+} // namespace bl::script
