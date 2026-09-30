@@ -104,6 +104,17 @@ jobs:
         run: |
           gradle :app:assembleDebug --stacktrace --no-daemon
 
+      - name: Validate APK
+        shell: bash
+        run: |
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 "$APK"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunny.so"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libunity.so"
+          unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
+
       - name: Collect APK
         shell: bash
         run: |
