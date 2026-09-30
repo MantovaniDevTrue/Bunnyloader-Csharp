@@ -12,12 +12,36 @@ class InterfaceLoader {
 
                 SystemLoader.Each('ModifyInterfaceLayers', (system) => system.ModifyInterfaceLayers(layers));
 
+                let captureInput = false;
                 for (const layer of layers) {
                     if (!layer || layer.IsVanilla || layer.Active === false || typeof layer.ReserveInput !== 'function') continue;
-                    Safe.Run((layer.Name || 'InterfaceLayer') + '.ReserveInput', () => layer.ReserveInput());
+                    if (Safe.Run((layer.Name || 'InterfaceLayer') + '.ReserveInput', () => layer.ReserveInput()) === true) captureInput = true;
                 }
 
-                original(self, gameTime);
+                if (captureInput) {
+                    const x = Main.mouseX;
+                    const y = Main.mouseY;
+                    const left = Main.mouseLeft;
+                    const leftRelease = Main.mouseLeftRelease;
+                    const right = Main.mouseRight;
+                    const rightRelease = Main.mouseRightRelease;
+                    Main.mouseX = -100000;
+                    Main.mouseY = -100000;
+                    Main.mouseLeft = false;
+                    Main.mouseRight = false;
+                    try {
+                        original(self, gameTime);
+                    } finally {
+                        Main.mouseX = x;
+                        Main.mouseY = y;
+                        Main.mouseLeft = left;
+                        Main.mouseLeftRelease = leftRelease;
+                        Main.mouseRight = right;
+                        Main.mouseRightRelease = rightRelease;
+                    }
+                } else {
+                    original(self, gameTime);
+                }
 
                 for (const layer of layers) {
                     if (!layer || layer.IsVanilla || layer.Active === false) continue;
