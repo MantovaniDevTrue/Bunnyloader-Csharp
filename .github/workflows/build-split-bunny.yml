@@ -27,14 +27,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android toolchain
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager             "platforms;android-34"             "build-tools;34.0.0"             "ndk;30.0.16248370"             "cmake;3.22.1"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          fi
+          echo "Using $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER"             "platforms;android-34"             "build-tools;34.0.0"             "ndk;30.0.16248370"             "cmake;3.22.1"
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
