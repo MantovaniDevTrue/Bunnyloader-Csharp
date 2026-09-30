@@ -45,9 +45,8 @@ class UserInterface {
         const height = Math.max(0, Number(region.Height !== undefined ? region.Height : region.height || 0) | 0);
         if (width <= 0 || height <= 0) return false;
 
-        let accepted = true;
         try {
-            accepted = GUIInputRegionManager.Instance['bool RegisterInputRegion(Rectangle rect)'](
+            GUIInputRegionManager.Instance['bool RegisterInputRegion(Rectangle rect)'](
                 Rectangle.new(x, y, width, height));
         } catch (e) {
             Safe.Once('UserInterface.RegisterInputRegion',
@@ -56,7 +55,7 @@ class UserInterface {
 
         const mx = Main.mouseX;
         const my = Main.mouseY;
-        const over = accepted && mx >= x && mx < x + width && my >= y && my < y + height;
+        const over = mx >= x && mx < x + width && my >= y && my < y + height;
         if (over && Main.LocalPlayer) Main.LocalPlayer.mouseInterface = true;
         return over;
     }
