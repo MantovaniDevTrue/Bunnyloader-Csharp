@@ -3,7 +3,7 @@
 // Content/ e Common/ é registrada sozinha. `static Autoload = false` deixa uma
 // classe de fora. O núcleo (ScriptEngine.cpp) importa os arquivos e chama o Load.
 class ContentAutoload {
-    static #ORDER = [ModBuff, ModPrefix, ModPlayer, ModNPC, ModProjectile, ModItem, ModTile, ModSystem,
+    static #ORDER = [ModBuff, ModPrefix, ModPlayer, ModNPC, ModProjectile, ModItem, ModTileEntity, ModTile, ModSystem,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot];
     static #fileOf = new Map();
