@@ -50,8 +50,9 @@ configure_file(
 set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
-    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
+    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory Enums/InterfaceScaleType
     Mod ModLoader
+    GameInterfaceLayer UIState UserInterface Loaders/InterfaceLoader
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
@@ -65,6 +66,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/MapBackgroundLoader Loaders/SceneEffectLoader Loaders/BiomeLoader Loaders/BiomeShoppingLoader
     Loaders/BiomeBestiaryLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
+    Loaders/TileEntityLoader ModTileEntity
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile
