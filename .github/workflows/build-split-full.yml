@@ -438,60 +438,9 @@ jobs:
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libunity.so"
           unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
-          ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png
-      - name: Collect APK
-        shell: bash
-        run: |
-          mkdir -p Split/build/output
-          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
-          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-
-      - name: Upload full APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Split-BunnyLoader-full-debug
-          path: |
-            Split/build/output/Split-BunnyLoader-full-debug.apk
-            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
-)"
-          NPC_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/npc/[0-9]+[.]png
-      - name: Collect APK
-        shell: bash
-        run: |
-          mkdir -p Split/build/output
-          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
-          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-
-      - name: Upload full APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Split-BunnyLoader-full-debug
-          path: |
-            Split/build/output/Split-BunnyLoader-full-debug.apk
-            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
-)"
-          BUFF_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/buff/[0-9]+[.]png
-      - name: Collect APK
-        shell: bash
-        run: |
-          mkdir -p Split/build/output
-          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
-          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-
-      - name: Upload full APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Split-BunnyLoader-full-debug
-          path: |
-            Split/build/output/Split-BunnyLoader-full-debug.apk
-            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
-)"
+          ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png$')"
+          NPC_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/npc/[0-9]+[.]png$')"
+          BUFF_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/buff/[0-9]+[.]png$')"
           test "$ITEM_SPRITES" -ge 6100
           test "$NPC_SPRITES" -ge 697
           test "$BUFF_SPRITES" -ge 400
