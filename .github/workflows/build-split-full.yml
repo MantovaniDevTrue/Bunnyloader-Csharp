@@ -147,16 +147,16 @@ jobs:
           test -f "$JNI/libunity.so"
           test -f "$ASSETS/bin/Data/Managed/Metadata/global-metadata.dat"
 
-      - name: Restore vanilla item sprites
+      - name: Restore vanilla cheat sprites
         shell: bash
         run: |
           python3 -m pip install --disable-pip-version-check --quiet requests beautifulsoup4 pillow
 
-          SPRITES="Split/Bunny-Loader/_sprites/item"
-          rm -rf "$SPRITES"
-          mkdir -p "$SPRITES"
+          ROOT="Split/Bunny-Loader/_sprites"
+          rm -rf "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
+          mkdir -p "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
 
-          SRC="$RUNNER_TEMP/terraria-item-sprites"
+          SRC="$RUNNER_TEMP/terraria-legacy-sprites"
           rm -rf "$SRC"
           git clone --depth 1 --filter=blob:none --sparse https://github.com/JevonLee/Stardew.git "$SRC"
           git -C "$SRC" sparse-checkout set Art/Terraria/images
@@ -165,6 +165,7 @@ jobs:
           from pathlib import Path
           from concurrent.futures import ThreadPoolExecutor, as_completed
           from io import BytesIO
+          from urllib.parse import unquote
           import os
           import re
           import unicodedata
@@ -173,16 +174,24 @@ jobs:
           from bs4 import BeautifulSoup
           from PIL import Image
 
-          out = Path("Split/Bunny-Loader/_sprites/item")
-          old = Path(os.environ["RUNNER_TEMP"]) / "terraria-item-sprites" / "Art" / "Terraria" / "images"
+          root = Path("Split/Bunny-Loader/_sprites")
+          item_out = root / "item"
+          npc_out = root / "npc"
+          buff_out = root / "buff"
+          old = Path(os.environ["RUNNER_TEMP"]) / "terraria-legacy-sprites" / "Art" / "Terraria" / "images"
 
-          for src in old.glob("Item_*.png"):
-              match = re.fullmatch(r"Item_(\d+)\.png", src.name)
-              if not match:
-                  continue
-              item_id = int(match.group(1))
-              if 1 <= item_id <= 6195:
-                  (out / f"{item_id}.png").write_bytes(src.read_bytes())
+          for prefix, out, minimum, maximum in (
+              ("Item", item_out, 1, 6195),
+              ("NPC", npc_out, 0, 696),
+              ("Buff", buff_out, 1, 400),
+          ):
+              for src in old.glob(f"{prefix}_*.png"):
+                  match = re.fullmatch(rf"{prefix}_(\d+)\.png", src.name)
+                  if not match:
+                      continue
+                  content_id = int(match.group(1))
+                  if minimum <= content_id <= maximum:
+                      (out / f"{content_id}.png").write_bytes(src.read_bytes())
 
           session = requests.Session()
           session.headers.update({
@@ -246,7 +255,7 @@ jobs:
           for stem, url in files.items():
               by_norm.setdefault(norm(stem), []).append((stem, url))
 
-          def find_url(name):
+          def find_item_url(name):
               for candidate in (name, name + " (item)", name + " item"):
                   values = by_norm.get(norm(candidate))
                   if values:
@@ -259,45 +268,159 @@ jobs:
                       candidates.extend(values)
               return candidates[0][1] if len(candidates) == 1 else None
 
-          missing = [item_id for item_id in sorted(names) if not (out / f"{item_id}.png").is_file()]
+          missing_items = [item_id for item_id in sorted(names) if not (item_out / f"{item_id}.png").is_file()]
 
-          def fetch(item_id):
+          def fetch_item(item_id):
               name = names[item_id]
-              url = find_url(name)
+              url = find_item_url(name)
               if not url:
                   return item_id, name, "sem URL"
               try:
-                  response = requests.get(
-                      url,
-                      timeout=45,
-                      headers={"User-Agent": session.headers["User-Agent"]},
-                  )
+                  response = requests.get(url, timeout=45, headers={"User-Agent": session.headers["User-Agent"]})
                   response.raise_for_status()
                   with Image.open(BytesIO(response.content)) as image:
                       image.seek(0)
-                      image.convert("RGBA").save(out / f"{item_id}.png", "PNG", optimize=True)
+                      image.convert("RGBA").save(item_out / f"{item_id}.png", "PNG", optimize=True)
                   return item_id, name, None
               except Exception as exc:
                   return item_id, name, str(exc)
 
-          failures = []
+          item_failures = []
           with ThreadPoolExecutor(max_workers=16) as pool:
-              futures = [pool.submit(fetch, item_id) for item_id in missing]
+              futures = [pool.submit(fetch_item, item_id) for item_id in missing_items]
               for future in as_completed(futures):
                   item_id, name, error = future.result()
                   if error:
-                      failures.append((item_id, name, error))
+                      item_failures.append((item_id, name, error))
 
-          count = len(list(out.glob("*.png")))
-          print(f"sprites vanilla de item: {count}")
-          if failures:
-              print(f"falhas: {len(failures)}")
-              for item_id, name, error in failures[:80]:
-                  print(f"  {item_id}: {name}: {error}")
+          def table_file_titles(url, minimum, maximum):
+              response = session.get(url, timeout=60)
+              response.raise_for_status()
+              page_soup = BeautifulSoup(response.text, "html.parser")
+              result = {}
+              for tr in page_soup.find_all("tr"):
+                  cells = tr.find_all(["td", "th"])
+                  if not cells:
+                      continue
+                  match = re.fullmatch(r"(-?\d+)", cells[0].get_text(" ", strip=True))
+                  if not match:
+                      continue
+                  content_id = int(match.group(1))
+                  if content_id < minimum or content_id > maximum:
+                      continue
+                  link = tr.find("a", href=lambda value: value and "/wiki/File:" in value)
+                  if not link:
+                      continue
+                  href = link.get("href", "")
+                  title = unquote(href.split("/wiki/", 1)[1]).replace("_", " ")
+                  result[content_id] = title
+              return result
 
-          if count < 6100:
-              raise SystemExit(f"pacote de sprites incompleto: {count} < 6100")
+          def file_url(title):
+              response = session.get(
+                  "https://terraria.wiki.gg/api.php",
+                  params={
+                      "action": "query",
+                      "titles": title,
+                      "prop": "imageinfo",
+                      "iiprop": "url",
+                      "format": "json",
+                      "formatversion": "2",
+                  },
+                  timeout=60,
+              )
+              response.raise_for_status()
+              pages = response.json().get("query", {}).get("pages", [])
+              if not pages:
+                  return None
+              info = pages[0].get("imageinfo") or []
+              return info[0].get("url") if info else None
+
+          def fetch_table_images(page_url, out, minimum, maximum):
+              titles = table_file_titles(page_url, minimum, maximum)
+              failures = []
+              for content_id in range(minimum, maximum + 1):
+                  dest = out / f"{content_id}.png"
+                  if dest.is_file():
+                      continue
+                  title = titles.get(content_id)
+                  if not title:
+                      failures.append((content_id, "sem arquivo na tabela"))
+                      continue
+                  try:
+                      url = file_url(title)
+                      if not url:
+                          raise RuntimeError("sem URL")
+                      response = session.get(url, timeout=45)
+                      response.raise_for_status()
+                      with Image.open(BytesIO(response.content)) as image:
+                          image.seek(0)
+                          image.convert("RGBA").save(dest, "PNG", optimize=True)
+                  except Exception as exc:
+                      failures.append((content_id, str(exc)))
+              return failures
+
+          npc_failures = fetch_table_images(
+              "https://terraria.wiki.gg/wiki/NPC_IDs",
+              npc_out,
+              688,
+              696,
+          )
+          buff_failures = fetch_table_images(
+              "https://terraria.wiki.gg/wiki/Buff_IDs",
+              buff_out,
+              355,
+              400,
+          )
+
+          item_count = len(list(item_out.glob("*.png")))
+          npc_count = len(list(npc_out.glob("*.png")))
+          buff_count = len(list(buff_out.glob("*.png")))
+          print(f"sprites vanilla: item={item_count} npc={npc_count} buff={buff_count}")
+
+          for label, failures in (
+              ("item", item_failures),
+              ("npc", npc_failures),
+              ("buff", buff_failures),
+          ):
+              if failures:
+                  print(f"falhas {label}: {len(failures)}")
+                  for failure in failures[:80]:
+                      print(" ", failure)
+
+          if item_count < 6100:
+              raise SystemExit(f"pacote de itens incompleto: {item_count}")
+          if npc_count < 697:
+              raise SystemExit(f"pacote de NPCs incompleto: {npc_count}")
+          if buff_count < 400:
+              raise SystemExit(f"pacote de buffs incompleto: {buff_count}")
           PY
+
+      - name: Rebuild CheatBridge dex
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        run: |
+          OUT=".cheatbridge"
+          AJAR="$ANDROID_HOME/platforms/android-34/android.jar"
+          D8="$ANDROID_HOME/build-tools/34.0.0/d8"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/classes"
+
+          javac -source 8 -target 8 -nowarn -encoding UTF-8 \
+            -classpath "$AJAR" \
+            -d "$OUT/classes" \
+            tools/cheatbridge/bunny/CheatBridge.java \
+            tools/cheatbridge/bunny/CheatData.java \
+            tools/cheatbridge/bunny/DevTools.java
+
+          mapfile -t CLASSES < <(find "$OUT/classes" -name "*.class" -type f)
+          "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
+
+          python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex \
+            > app/src/main/cpp/menu/CheatBridgeDex.h
+
+          test -s app/src/main/cpp/menu/CheatBridgeDex.h
+          echo "CheatBridge rebuilt: $(stat -c%s "$OUT/classes.dex") bytes"
 
       - name: Build full Bunny APK
         working-directory: Split/Bunny-Loader
@@ -315,9 +438,64 @@ jobs:
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libunity.so"
           unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
-          ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png$')"
+          ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p Split/build/output
+          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
+          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+
+      - name: Upload full APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Split-BunnyLoader-full-debug
+          path: |
+            Split/build/output/Split-BunnyLoader-full-debug.apk
+            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+)"
+          NPC_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/npc/[0-9]+[.]png
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p Split/build/output
+          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
+          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+
+      - name: Upload full APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Split-BunnyLoader-full-debug
+          path: |
+            Split/build/output/Split-BunnyLoader-full-debug.apk
+            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+)"
+          BUFF_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/buff/[0-9]+[.]png
+      - name: Collect APK
+        shell: bash
+        run: |
+          mkdir -p Split/build/output
+          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
+          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+
+      - name: Upload full APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Split-BunnyLoader-full-debug
+          path: |
+            Split/build/output/Split-BunnyLoader-full-debug.apk
+            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+)"
           test "$ITEM_SPRITES" -ge 6100
-          echo "Vanilla item sprites in APK: $ITEM_SPRITES"
+          test "$NPC_SPRITES" -ge 697
+          test "$BUFF_SPRITES" -ge 400
+          echo "Vanilla cheat sprites in APK: item=$ITEM_SPRITES npc=$NPC_SPRITES buff=$BUFF_SPRITES"
 
       - name: Collect APK
         shell: bash
