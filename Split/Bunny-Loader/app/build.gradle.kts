@@ -124,10 +124,24 @@ android {
         )
     }
 
+    val signingStorePath = System.getenv("BUNNY_SIGNING_STORE")
+    val stableSigning = if (!signingStorePath.isNullOrBlank()) {
+        signingConfigs.create("bunnyStable") {
+            storeFile = file(signingStorePath)
+            storePassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+            keyAlias = System.getenv("BUNNY_SIGNING_ALIAS")
+            keyPassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+        }
+    } else null
+
     buildTypes {
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            if (stableSigning != null) signingConfig = stableSigning
+        }
         release {
             isMinifyEnabled = false
+            if (stableSigning != null) signingConfig = stableSigning
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
