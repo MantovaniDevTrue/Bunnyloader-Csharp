@@ -1,5 +1,5 @@
 #pragma once
-// GERADO por tools/bin2header.py Â— NAO editar a mao.
+// GERADO por tools/bin2header.py — NAO editar a mao.
 #include <cstddef>
 static const unsigned char bl_cheatbridge_dex[] = {
     0x64, 0x65, 0x78, 0x0a, 0x30, 0x33, 0x38, 0x00, 0x11, 0x66, 0x28, 0x94,
