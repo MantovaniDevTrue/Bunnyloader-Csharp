@@ -14,7 +14,7 @@ on:
       - published
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-full:
@@ -68,6 +68,42 @@ jobs:
           s = s.replace("mavenCentral()", 'maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2") }')
           p.write_text(s)
           PY
+
+      - name: Setup persistent APK signing
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="bunny-signing-key-v1"
+          ASSET="bunny-release.jks"
+          DIR="$RUNNER_TEMP/bunny-signing"
+          KEY="$DIR/$ASSET"
+          PASS="BunnyLoaderStable2026"
+          ALIAS="bunnyrelease"
+          mkdir -p "$DIR"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release download "$TAG" --repo "${{ github.repository }}" --pattern "$ASSET" --dir "$DIR"
+          else
+            keytool -genkeypair -noprompt \
+              -keystore "$KEY" \
+              -storepass "$PASS" \
+              -keypass "$PASS" \
+              -alias "$ALIAS" \
+              -keyalg RSA \
+              -keysize 4096 \
+              -validity 36500 \
+              -dname "CN=Bunny Loader Update Key,O=MantovaniDevTrue"
+            gh release create "$TAG" "$KEY#$ASSET" \
+              --repo "${{ github.repository }}" \
+              --title "Bunny Loader signing key v1" \
+              --notes "Private APK update signing key. Keep this repository private." \
+              --prerelease
+          fi
+
+          echo "BUNNY_SIGNING_STORE=$KEY" >> "$GITHUB_ENV"
+          echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
+          echo "BUNNY_SIGNING_ALIAS=$ALIAS" >> "$GITHUB_ENV"
 
       - name: Download private Terraria runtime
         shell: bash
