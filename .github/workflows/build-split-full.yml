@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - bunny-ui-tileentity-phase1
+      - bunny-upstream-2026-10-01
     paths:
       - ".github/workflows/build-split-full.yml"
       - "Split/Bunny-Loader/**"
