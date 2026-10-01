@@ -23,12 +23,33 @@ class ModItem {
     PostSetupContent() {}
     ModifyTooltipLines() {}
     ModifyTooltips(item, tooltips) {}
+    // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
+    // x, y e yOffset são Ref; false no Pre não desenha.
+    PreDrawTooltip(item, lines, x, y) { return true; }
+    PostDrawTooltip(item, lines) {}
+    PreDrawTooltipLine(item, line, yOffset) { return true; }
+    PostDrawTooltipLine(item, line) {}
     AddRecipeGroups() {}
     AddRecipes() {}
     OnCraft(item, player, recipe) {}
 
     CanUseItem(item, player) { return true; }
+    // true: o item conta como usado (tempo de uso; o consumível é gasto).
     UseItem(item, player) {}
+    // Abrir o item no inventário (bolsa de chefe, caixa): true deixa abrir. O
+    // que sai: as regras do ModifyItemLoot (e o RightClick, para o resto).
+    // ConsumeItem false não gasta o item.
+    CanRightClick(item) { return false; }
+    RightClick(item, player) {}
+    ModifyItemLoot(itemLoot) {}
+    ConsumeItem(item, player) { return true; }
+
+    // Peixe de missão do Pescador: ItemID.Sets.IsQuestFish[Type] no
+    // SetStaticDefaults (ou IsQuestFish true, do ExMod). description e
+    // catchLocation são Ref: a fala do Pescador e onde pescar.
+    IsQuestFish() { return false; }
+    IsAnglerQuestAvailable() { return true; }
+    AnglerQuestChat(description, catchLocation) {}
     HoldItem(item, player) {}
     UseStyle(item, player, mountOffset, heldItemFrame) {}
     HoldStyle(item, player, mountOffset, heldItemFrame) {}
@@ -295,6 +316,7 @@ class ModItem {
 
         ItemLoader.Hook(cls);
         Hooks.Once('item.Clone', ItemLoader.HookClone);
+        Hooks.Once('item.anglerQuest', () => AnglerQuestLoader.Watch());
         PrefixLoader.WantRollable();
         return type;
     }
