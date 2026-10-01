@@ -69,11 +69,15 @@
     "ExampleBreastplate": "Example Breastplate",
     "ExampleLeggings": "Example Leggings",
     "ExampleBossMask": "Example Boss Mask",
+    "ExampleBossBag": "Treasure Bag (Example Boss)",
     "ExampleWings": "Example Wings",
     "ExampleBeard": "Example Beard",
     "ExampleCostume": "Example Costume",
     "ExampleRobe": "Example Robe",
-    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon"
+    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon",
+    "ExampleMountItem": "ExampleMount Car Key",
+    "ExampleMinecart": "Example Minecart",
+    "ExampleQuestFish": "Upside-down Fish"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -81,7 +85,11 @@
     "ExampleSink": "Example Sink",
     "ExampleAnimatedTile": "Example Firefly Jar",
     "ExampleHerb": "Example Herb",
-    "ExampleSign": "Example Sign"
+    "ExampleSign": "Example Sign",
+    "ExampleWorkbench": "Example Workbench",
+    "ExampleDresser": "Example Dresser",
+    "ExampleChest": "Example Chest",
+    "ExampleChestLocked": "Locked Example Chest"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -109,6 +117,7 @@
     "ExampleBoss": "Eye of ???"
   },
   "ItemTooltip": {
+    "ExampleBossBag": "{$CommonItemTooltip.RightClickToOpen}",
     "ExampleItem": "Item description",
     "ExampleShotgun": "Fires eight bullets at once",
     "ExampleWhip": "Your summons will focus struck enemies\n5 summon tag damage",
@@ -142,7 +151,8 @@
     "ExampleWings": "This is a modded wing.",
     "ExampleBeard": "This is a modded beard which matches your hair color.",
     "ExampleCostume": "Turns the holder into a blocky figure near town NPCs",
-    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes"
+    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes",
+    "ExampleMountItem": "This summons a modded mount."
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -158,7 +168,9 @@
     "ExamplePetBuff": "Paper Airplane",
     "ExampleLightPetBuff": "Annoying Light",
     "ExampleMinionBuff": "Example Minion",
-    "Blocky": "Blocky"
+    "Blocky": "Blocky",
+    "ExampleMountBuff": "ExampleMount",
+    "ExampleMinecartBuff": "Example Minecart"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Increases the player's defense by {0}",
@@ -166,7 +178,9 @@
     "ExamplePetBuff": "\"Let this pet be an example to you!\"",
     "ExampleLightPetBuff": "Ugh, soooo annoying",
     "ExampleMinionBuff": "The example minion will fight for you",
-    "Blocky": "Jumping power is increased"
+    "Blocky": "Jumping power is increased",
+    "ExampleMountBuff": "Leather seats, 4 cup holders",
+    "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
     "WelcomeMessage": "Welcome to {WorldName}!"
@@ -222,6 +236,39 @@
     "ExampleUndergroundBiome": {
       "DisplayName": "Example Underground",
       "TownNPCDialogueName": "the Example Underground Biome"
+    }
+  },
+  "Commands": {
+    "Common": {
+      "NoParameters": "At least one argument was expected.",
+      "NotInteger": "{0} is not a correct integer value."
+    },
+    "HealCommand": {
+      "Usage": "/heal amount",
+      "Description": "Heals you by the amount",
+      "Error": "Use /heal and a positive amount",
+      "Full": "Your life is already full",
+      "Healed": "You recovered {0} health"
+    },
+    "ExampleTimeCommand": {
+      "Usage": "/addTime numTicks\nnumTicks: positive or negative number in ticks (1 second = 60 ticks).",
+      "Description": "Adds numTicks to fast forward or rewind world time"
+    }
+  },
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Example Boss Killed",
+      "Description": "Defeat the Example Boss"
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Many Worms Killed",
+      "Description": "Okay... we get it, now please stop murdering these poor worms."
+    }
+  },
+  "AnglerQuest": {
+    "ExampleQuestFish": {
+      "Description": "I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!",
+      "CatchLocation": "Caught anywhere while standing upside-down."
     }
   }
 }

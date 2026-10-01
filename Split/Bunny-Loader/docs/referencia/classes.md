@@ -30,6 +30,13 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModNPC`](#modnpc) | NPC, chefe ou morador novo. | [7](../mods/07-npcs.md) |
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModBuff`](#modbuff) | Buff ou debuff novo. | [8](../mods/08-jogador-e-buffs.md) |
+| [`ModMount`](#modmount) | Montaria nova (carro, carrinho de mina). | — |
+| [`ModCommand`](#modcommand) | Comando de chat (`/nome args`). | — |
+| [`ModHair`](#modhair) | Penteado novo (criação de personagem e Cabeleireiro). | — |
+| [`ModCloud`](#modcloud) | Nuvem nova no céu (comum ou rara). | — |
+| [`ModEmoteBubble`](#modemotebubble) | Emote novo (bolha e menu de emotes). | — |
+| [`ModAchievement`](#modachievement) | Conquista nova. | — |
+| [`ModRarity`](#modrarity) | Raridade nova (a cor do nome do item). | [5](../mods/05-itens.md#raridade-de-mod) |
 | [`ModTile`](#modtile) | Bloco novo, ou móvel com `TileObjectData`. | [9](../mods/09-blocos.md) |
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
@@ -37,13 +44,14 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música, os fundos, a água e o fundo do mapa por prioridade). | — |
 | [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
 | [`ModWaterStyle`, `ModWaterfallStyle`](#água-de-mod) | A água e a cachoeira de um bioma. | — |
+| [`ModMenu`](#modmenu) | Tema da tela de título: logo, sol, lua, música e fundo. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
 | [`ModContent`](#modcontent) | Tipo, modelo e textura pelo nome ou pela classe. | [4](../mods/04-conteudo-novo.md#modcontent) |
 | [`ModRecipe`](#modrecipe) | Receitas e grupos de receita. | [5](../mods/05-itens.md#receitas) |
 | [`NPCLoot`, `NPCSpawnInfo`, `NPCShop`, `NPCHappiness`, `ModGore`](#ajudantes-de-npc) | Drops, spawn, loja, felicidade, gore. | [7](../mods/07-npcs.md) |
-| [`TooltipLine`](#tooltipline) | Linha de tooltip. | [5](../mods/05-itens.md#tooltip-colorido) |
+| [`TooltipLine`, `DrawableTooltipLine`](#tooltipline) | Linha de tooltip, e a linha no desenho. | [5](../mods/05-itens.md#tooltip) |
 | [`ModLocalization`](#modlocalization) | Textos traduzidos. | [4](../mods/04-conteudo-novo.md#tradução) |
 | [`SoundStyle`, `SoundEngine`, `MusicLoader`](#som-e-música) | Som e música. | [10](../mods/10-sons-e-musica.md) |
 | [Ajudantes](#ajudantes) | `Vector2`, `Color`, `Rand`, `Ref`... | [4](../mods/04-conteudo-novo.md#ajudantes) |
@@ -62,7 +70,7 @@ própria instância, com `this.Item` apontando para ele.
 | `Item` | `Item` do jogo | O item desta instância. No molde, `undefined`. |
 | `Type` | número | O tipo (`ItemID`) deste item, depois do `register`. |
 | `Mod` | `Mod` | O mod que registrou. |
-| `Texture` | texto | Caminho em `Assets/Textures/`, sem `.png`. Padrão: o caminho do arquivo da classe (`Content/Items/X.js` -> `Items/X`), ou o primeiro PNG com o nome dela. |
+| `Texture` | texto | O caminho no mod, sem `.png` (também `get Texture()`). Padrão: o arquivo da classe (`Content/Items/X.js` -> `Content/Items/X`). Nos mods de antes, o espelho em `Assets/Textures/`. |
 | `DisplayName` | texto ou `{ cultura: texto }` | O nome. Vazio: `ItemName.<Classe>` em `Localization/*.json`, e sem isso o nome da classe. |
 | `Tooltip` | texto ou `{ cultura: texto }` | A descrição, linhas por `\n`. Vazio: `ItemTooltip.<Classe>`. |
 | `TooltipLines` | array de texto | As linhas, para o `ModifyTooltipLines` mexer. |
@@ -81,10 +89,21 @@ própria instância, com `this.Item` apontando para ele.
 | `AddRecipes()` | Uma vez, com as receitas do jogo prontas. | conteúdo pronto |
 | `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. | conteúdo pronto |
 | `ModifyTooltipLines()` | Uma vez por idioma, com `this.TooltipLines` preenchido. | no `register` |
-| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece. | `Main.MouseText_DrawItemTooltip_GetLinesInfo` (+ `DrawString` com `whileIn`) |
+| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece, e no popup do guia de criação (sem cor). | `Main.MouseText_DrawItemTooltip` (porte em JS, só para o item que pede; + `DrawString` com `whileIn`); `GetLinesInfo` com `whileIn` no `GUICraftGuidePopup.UpdateText` |
+| `PreDrawTooltip(item, lines, x, y)` | Antes das linhas; `x`, `y` são `Ref`; `false` não desenha as linhas. | idem |
+| `PostDrawTooltip(item, lines)` | Depois de todas as linhas (`DrawableTooltipLine`). | idem |
+| `PreDrawTooltipLine(item, line, yOffset)` | Antes de cada linha; `yOffset` (`Ref`) soma depois de cada linha seguinte; `false` não desenha a linha. | idem |
+| `PostDrawTooltipLine(item, line)` | Depois de cada linha (também a não desenhada). | idem |
 | `OnCraft(item, player, recipe)` | Ao criar o item no menu de criação. | `Main.CraftItem_GrantItem`, filtro `tipo` |
 | `CanUseItem(item, player)` | Antes de usar; `false` impede. | `Player.ItemCheck_CheckCanUse_Inner`, filtro `tipo` |
-| `UseItem(item, player)` | No quadro em que o uso começa. | `Player.ItemCheck_StartActualUse`, filtro `tipo` |
+| `UseItem(item, player)` | No quadro em que o uso começa. `true`: o item conta como usado (tempo de uso aplicado, como o `ApplyItemTime` do tModLoader), e o consumível é gasto. | `Player.ItemCheck_StartActualUse`, filtro `tipo`; o tempo, logo depois do `ItemCheck_OwnerOnlyCode` |
+| `CanRightClick(item)` | `true`: o item abre no inventário (bolsa, caixa); entra em `ItemID.Sets.OpenableBag`. No toque, ganha o botão "Abrir" e os botões de usar ficam travados, como nas bolsas do jogo. | `ItemSlot.TryOpenContainer_GrantItems`, `GUIPageOptions.CanBeOpened`, `VirtualControllerInputState.GetItemCategory`, filtro `tipo` |
+| `RightClick(item, player)` | Ao abrir, antes do `ItemLoot`. | idem |
+| `ModifyItemLoot(itemLoot)` | Uma vez, na primeira abertura: o que sai do item (`itemLoot.Add(regra)`). As regras do jogo e `ItemDropRule.CoinsBasedOnNPCValue(npc)` / `ItemDropRule.Coins(valor)`; o que cairia no NPC vai para o jogador (`QuickSpawnItem`). | idem |
+| `ConsumeItem(item, player)` | `false`: abrir não gasta o item. | idem |
+| `IsQuestFish()` | `true`: peixe de missão do Pescador (o mesmo que `ItemID.Sets.IsQuestFish[this.Type] = true` no `SetStaticDefaults`). Entra no fim de `Main.anglerQuestItemNetIDs`. | no `Ready` |
+| `IsAnglerQuestAvailable()` | `false`: o sorteio do dia não cai nele (sorteia de novo). | `Main.AnglerQuestSwap` |
+| `AnglerQuestChat(description, catchLocation)` | A fala do Pescador (`Ref`): `description.value` e `catchLocation.value` (sai entre parênteses embaixo). Sem ela, o nome do item. | `Lang.AnglerQuestChat` |
 | `HoldItem(item, player)` | Todo quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, filtro `tipo` |
 | `UseStyle(item, player, mountOffset, frame)` | Todo quadro de uso, depois do estilo do jogo. | idem |
 | `HoldStyle(item, player, mountOffset, frame)` | Todo quadro segurando, depois do estilo do jogo. | idem |
@@ -240,7 +259,7 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 |---|---|---|
 | `Projectile` | `Projectile` do jogo | O projétil desta instância. |
 | `Type`, `Mod` | | O tipo e o mod. |
-| `Texture` | texto | Em `Assets/Textures/`, sem `.png`. |
+| `Texture` | texto | O caminho no mod, sem `.png`; padrão, ao lado do arquivo da classe. |
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `ProjectileName.<Classe>`. |
 | `AIType` | número | Usa a IA deste projétil do jogo (o tipo é trocado só durante a IA). |
 
@@ -267,8 +286,9 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 | `ModifyDamageHitbox(proj, hitbox)` | Mude o `Rectangle` da área de dano. | `Projectile.Damage_GetHitbox`, filtro `tipo` |
 | `CanCutTiles(proj)`, `CutTiles(proj)` | Cortar grama e teia. | `Projectile.CanCutTiles`/`CutTiles`, filtro `tipo` |
 | `GetAlpha(proj, lightColor)` | A cor final; `undefined`, a do jogo. | `Projectile.GetAlpha`, filtro `tipo` |
-| `PreDraw(proj, lightColor)` | Antes do desenho; `false` não desenha o do jogo. | `Main.DrawProjDirect`, filtro `tipo` |
-| `PostDraw(proj, lightColor)` | Depois do desenho do jogo. | idem |
+| `PreDrawExtras(proj)` | Antes do `PreDraw`; `false` tira o que o jogo desenha antes do sprite: a corrente do gancho, a linha de pesca, o fio do ioiô, a corrente do mangual. O gancho com corrente própria desenha a dele aqui. | `Main.DrawProjDirect` (no celular a corrente fica dentro dele: até o primeiro desenho com a textura do projétil, os outros não saem) |
+| `PreDraw(proj, lightColor)` | Antes do desenho; `false` não desenha o sprite do jogo (os extras do `PreDrawExtras` continuam). | `Main.DrawProjDirect`, filtro `tipo` |
+| `PostDraw(proj, lightColor)` | Depois do desenho, mesmo com o `PreDraw` `false` (como no tModLoader). | idem |
 | `CanUseGrapple(player, type)` | No **molde**, antes de lançar o gancho; `false` impede. | `Player.FireGrapple`, filtro pelo `item.shoot` |
 | `UseGrapple(player, type)` | No molde: devolva o tipo a lançar. | idem |
 | `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: agarra neste bloco. | `Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo`, filtro `tipo` |
@@ -289,7 +309,7 @@ de lacaio e sentinela) vem do item que criou o projétil
 
 `ModifyHitNPC`, `CanHitNPC`, `OnHitNPC` com as informações do golpe,
 `TileCollideStyle` (use `decidesManualFallThrough`/`shouldFallThrough`),
-`PreDrawExtras`, `SendExtraAI`/`ReceiveExtraAI`.
+`SendExtraAI`/`ReceiveExtraAI` (ver Rede).
 
 ---
 
@@ -303,7 +323,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | Campo | Tipo | Para quê |
 |---|---|---|
 | `NPC`, `Type`, `Mod` | | O NPC desta instância, o tipo, o mod. |
-| `Texture` | texto | Em `Assets/Textures/`, sem `.png`. Tira vertical de quadros. |
+| `Texture` | texto | O caminho no mod, sem `.png`; padrão, ao lado do arquivo da classe. Tira vertical de quadros. |
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `NPCName.<Classe>`. |
 | `AnimationType` | número | Anima como este NPC do jogo (0 = não). Vale no `SetDefaults`. |
 | `HideFromBestiary` | `boolean` | Sem entrada no Bestiário. |
@@ -411,6 +431,7 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `PostHurt(player, source, damage, ...)` | Depois do golpe, se sobreviveu. | idem |
 | `PreKill(player, source, damage, direction, pvp)` | `false` impede a morte. | `Player.KillMe` |
 | `Kill(player, source, damage, direction, pvp)` | Morreu. | idem |
+| `CatchFish(attempt, itemDrop, npcSpawn, sonar, sonarPosition)` | Pescou, depois do sorteio do jogo: `itemDrop.value` e `npcSpawn.value` (`Ref`, 0 = nada) decidem o que sai; `attempt` tem `questFish`, `common`/`uncommon`/`rare`..., `inLava`... `sonar`/`sonarPosition` ainda não fazem nada. | `Projectile.FishingCheck_RollItemDrop` |
 | `SaveData(data)` | A cada save: ponha o que lembrar em `data`. | `Player.InternalSavePlayerFile` |
 | `LoadData(data)` | Ao carregar o personagem. | `Player.LoadPlayer` |
 
@@ -429,7 +450,7 @@ quadro, o que é barato.
 ### Ainda não
 
 `ModifyHitNPC`/`OnHitNPC` do jogador, `ProcessTriggers` (teclas),
-`CatchFish`, `ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
+`ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
 sincronização pela rede.
 
 ---
@@ -444,7 +465,7 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 | Campo | Para quê |
 |---|---|
 | `Type`, `Mod` | |
-| `Texture` | 32x32, em `Assets/Textures/`, sem `.png`. |
+| `Texture` | 32x32; o caminho no mod, sem `.png` (padrão: ao lado do arquivo da classe). |
 | `DisplayName`, `Description` | Texto ou `{ cultura: texto }`. Vazios: `BuffName.<Classe>`, `BuffDescription.<Classe>`. |
 | `HideFromModMenu` | Fora do Mod Menu. |
 
@@ -469,6 +490,179 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 ### Ainda não
 
 `ModifyBuffText`, `PreDraw`/`PostDraw` do ícone, `RightClick`.
+
+---
+
+## ModMount
+
+Uma montaria nova, como o `ModMount` do tModLoader. **Uma instância por
+tipo**: o estado de cada jogador fica no `Mount` dele (`player.mount`). O
+tipo sai no registro, antes do buff e do item que o pedem
+(`ModContent.MountType`); o `MountData` e o `SetStaticDefaults` vêm com o jogo
+pronto, quando os tipos de buff e de poeira também existem.
+
+### Campos
+
+| Campo | Para quê |
+|---|---|
+| `Type`, `Mod` | |
+| `MountData` | O `Mount.MountData` do jogo: velocidade, pulo, quadros, deslocamentos, `buff`, `spawnDust`, texturas. Mexa no `SetStaticDefaults`. |
+| `Texture` | A base das camadas: `<Texture>_Back`, `_BackGlow`, `_BackExtra`, `_BackExtraGlow`, `_Front`, `_FrontGlow`, `_FrontExtra`, `_FrontExtraGlow` (`MountTextureType`), só as que existirem. Padrão: o espelho do arquivo da classe (`Content/Mounts/X.js` → `Assets/Textures/Mounts/X_Back.png`). |
+
+### Métodos que você escreve
+
+Os `ref` do tModLoader chegam como `Ref` (`.value`).
+
+| Método | Quando roda | Por trás |
+|---|---|---|
+| `SetStaticDefaults()` | Uma vez, com as texturas já no `MountData`. | no `Ready` |
+| `SetMount(player, skipDust)` | Ao montar, depois do `FinalizeMountData`; `skipDust.value = true` pula a poeira do jogo. | `Mount.SetMount`/`DoSpawnDust` |
+| `Dismount(player, skipDust)` | Ao desmontar, antes do jogo. | `Mount.Dismount` |
+| `UpdateEffects(player)` | Todo quadro montado, antes dos efeitos do jogo. | `Mount.UpdateEffects` |
+| `UpdateFrame(player, state, velocity)` | A animação; `false` pula a do jogo. | `Mount.UpdateFrame` |
+| `JumpHeight(player, jumpHeight, xVelocity)`, `JumpSpeed(player, jumpSpeed, xVelocity)` | O pulo, com o valor do jogo no `Ref`. | `Mount.JumpHeight`/`JumpSpeed` |
+| `UseAbility(player, mouse, toggleOn)`, `AimAbility(player, mouse)` | Habilidade da montaria. | `Mount.UseAbility`/`AimAbility` |
+| `Draw(playerDrawData, drawType, player, texture, glowTexture, drawPosition, frame, drawColor, glowColor, rotation, spriteEffects, drawOrigin, drawScale, shadow)` | Uma vez por camada com textura (0 Back, 1 BackExtra, 2 Front, 3 FrontExtra). Os `Ref` trazem o que o jogo desenharia; mudados, desenha-se com os novos. `false`: a camada não é desenhada. | `Mount.Draw` |
+
+### Estáticos
+
+| | |
+|---|---|
+| `ModMount.GetSpecificData(player)`, `SetSpecificData(player, valor)` | O dado do jogador nesta montaria (o `_mountSpecificData` do tModLoader, que no C# é `object`). Apagado ao montar outra e ao desmontar. |
+| `ModMount.NewDrawData(texture, position, sourceRect, color, rotation, origin, scale, effect)` | Um `DrawData`. |
+| `ModMount.AddDrawData(playerDrawData, data)` | O `playerDrawData.Add` do tModLoader, dentro do `Draw`. |
+
+Buff com `BuffID.Sets.MountType[this.Type] = tipo` monta o jogador sozinho
+(o jogo faz isso no `UpdateBuffs`) e fica sem tempo na tela e sem salvar. O
+item aponta a montaria em `Item.mountType`.
+
+### Diferenças do tModLoader
+
+- `MountData.MinecartUpgrade*` não existe no celular: o kit de melhoria do
+  carrinho usa os valores do jogo.
+- `DelegateMethods.Minecart.SparksMeow` e os sons do Meowmere são privados no
+  celular: copie os `delegations` de um carrinho do jogo
+  (`Terraria.Mount.mounts[MountID.MeowmereMinecart].delegations`).
+- `ModDust` ainda não existe: `spawnDust` com poeira do jogo.
+
+---
+
+## ModCommand
+
+Um comando de chat, como o `ModCommand` do tModLoader. Uma instância por
+comando. O texto digitado passa pelo processador do jogo; o que ele não
+conhece chega com a barra, e o de mod roda no lugar.
+
+| | |
+|---|---|
+| `Command` | O nome, sem a barra (getter). |
+| `Aliases` | Outros nomes (do ExMod): `get Aliases() { return ['curar']; }`. |
+| `Type` | `CommandType.Chat` (no aparelho de quem digitou), `Server` (no servidor, pedido por um jogador), `World` (sozinho no chat; no multijogador, no servidor). `Console` não existe no celular. |
+| `Usage`, `Description` | Padrão: `Commands.<Classe>.Usage`/`.Description` do `Localization` (o `/help` mostra). |
+| `IsCaseSensitive` | `false`: o texto chega em minúsculas. |
+| `Action(caller, input, args)` | O comando. `caller.Player`, `caller.CommandType`, `caller.Reply(texto, cor)`. `throw new UsageException(texto, cor)` responde o erro; `return false` (do ExMod) responde o `Usage`. |
+
+`/mod:nome` escolhe o mod quando dois têm o mesmo nome. O `/help` do jogo
+lista os de mod no fim.
+
+---
+
+## ModRarity
+
+Uma raridade, como o `ModRarity` do tModLoader. Tipo depois das 12 do jogo (`ModContent.RarityType(Classe)`); vai em `item.rare`.
+
+| | |
+|---|---|
+| `get RarityColor()` | A cor do nome (lida a cada desenho: pode piscar). |
+| `GetPrefixedRarity(offset, valueMult)` | A raridade quando um prefixo sobe (1, 2) ou desce (-1, -2) o item; padrão `this.Type`. |
+| `SetStaticDefaults()` | Uma vez, com o jogo pronto. |
+
+Hooks: `ItemRarity.Initialize` (a tabela das cores), `Item.GetPopupRarityColor`, `Item.Prefix` (filtro `rare`) e
+`Main.MouseTextInner` (o item no chão). `ModContent.GetModRarity(tipo)` devolve a instância.
+
+---
+
+## ModHair
+
+Um penteado, como o `ModHair` do tModLoader. Tipo depois dos 228 do jogo.
+
+| | |
+|---|---|
+| `Texture`, `AltTexture` | A do penteado e a com chapéu (`<Texture>_Alt`; sem ela, a mesma). Padrão: ao lado do arquivo (`Content/Hairs/X.js` → `Content/Hairs/X.png`). |
+| `AvailableDuringCharacterCreation` | Na criação de personagem (getter; padrão `true`). |
+| `GetUnlockConditions()` | No Cabeleireiro quando todas valem: objetos com `IsMet()` ou funções. |
+| `IsUnlocked(naCriacao, noCabeleireiro)` | Decide tudo sozinho (do ExMod), se escrito. |
+
+Save: o arquivo do jogo leva o cabelo 0 e o de mod vai pelo nome no
+`<personagem>.plr.bl.json` (`bunny:hair`); sem o mod, o personagem abre com
+o cabelo 0. O `HairID.Sets` e o `RandomizedCharacterCreationGender` do
+tModLoader não existem no celular.
+
+---
+
+## ModCloud
+
+Uma nuvem, como o `ModCloud` do tModLoader. Tipo depois do `CloudID.Count`.
+
+| | |
+|---|---|
+| `Texture` | Padrão: ao lado do arquivo (`Content/Clouds/X.js` → `Content/Clouds/X.png`). |
+| `RareCloud` | `true`: sorteada entre as raras (getter). |
+| `SpawnChance()` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. |
+| `OnSpawn(cloud)` | A nuvem nasceu (o `Cloud` do jogo: `spriteDir`, `scale`...). |
+
+`CloudLoader.AddCloudFromTexture('Clouds/X', peso, rara)`, no `Mod.Load`,
+cria uma nuvem só de textura. Todo PNG numa pasta `Clouds/` do mod sem nuvem
+com o mesmo nome vira nuvem comum de peso 1 sozinho. O `Draw` do tModLoader
+ainda não existe.
+
+---
+
+## ModEmoteBubble
+
+> **Desligado por ora** (`EmoteBubbleLoader.Enabled = false`): no celular do
+> usuário os emotes de mod não funcionaram. A classe é ignorada, sem tipo e sem
+> hook; o texto abaixo vale quando voltar.
+
+Um emote, como o `ModEmoteBubble` do tModLoader. Tipo depois dos 151 do jogo.
+A textura tem os quadros de 34 x 28 lado a lado (dois, no padrão), só o
+ícone: a bolha branca vem da folha do jogo. Durante cada método,
+`this.EmoteBubble` é a bolha.
+
+| | |
+|---|---|
+| `AddToCategory(EmoteID.Category.X)` | No menu de emotes (`General`, `RockPaperScissors`, `Items`, `BiomesAndEvents`, `Town`, `CrittersAndMonsters`, `Dangers`). No `SetStaticDefaults`. |
+| `IsUnlocked()` | No menu só se liberado. |
+| `OnSpawn()` | A bolha nasceu (`EmoteBubble.NewBubble`). |
+| `UpdateFrame()` | `false`: a animação é do mod (`this.EmoteBubble.frame`, `frameCounter`). |
+| `GetFrame()` | O quadro na textura; `null`, o do jogo (metade da textura). |
+| `GetFrameInEmoteMenu(frame, frameCounter)` | O quadro no menu (a animação do menu tem dois). |
+| `PreDraw(sb, texture, position, frame, origin, effects)`, `PostDraw(...)` | Em volta do desenho da bolha; `false` não desenha. |
+
+Multijogador: o emote que o jogador manda é recusado pelo jogo acima de 150
+(msg 120); o de mod não chega aos outros.
+
+---
+
+## ModAchievement
+
+Uma conquista, como o `ModAchievement` do tModLoader, no gerenciador do jogo
+(`Main.Achievements`), com o nome `<mod>/<Classe>`. O progresso fica no
+arquivo de conquistas do jogo.
+
+| | |
+|---|---|
+| `Texture` | Uma folha de 592 x 64: o ícone desbloqueado em x = 0 e o bloqueado em x = 528 (onde o menu do celular procura). A do tModLoader (130 x 64) não serve. |
+| `Index` | A posição na folha (colunas de 66). |
+| `Category` | `Terraria.Achievements.AchievementCategory.Slayer` (padrão), `Collector`, `Explorer`, `Challenger`. |
+| `Hidden` | Nome e descrição viram "???" no menu enquanto não completa. |
+| `SetStaticDefaults()` | As condições: `AddCondition(chave)`, `AddIntCondition(chave, máx)`, `AddFloatCondition`, `AddItemCraftCondition(id ou [ids])`, `AddItemPickupCondition`, `AddNPCKilledCondition`, `AddTileDestroyedCondition([ids])`. Devolvem a condição do jogo (`.Value` nas de número, `.Complete()`). |
+| `OnCompleted(achievement)` | Completou. |
+| `OnNPCKilled(player, npcId)`, `OnItemPickup(player, tipo, qtd)`, `OnItemCraft(tipo, qtd)`, `OnTileDestroyed(player, tile)` | Os avisos do jogo, enquanto não completa (do ExMod; o tModLoader usa os eventos do `AchievementsHelper`). |
+
+Nome e descrição: `Achievements.<Classe>.FriendlyName` (ou `.Name`) e
+`.Description` do `Localization`. As posições no menu (`GetDefaultPosition`)
+do tModLoader não existem.
 
 ---
 
@@ -563,7 +757,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 |---|---|---|
 | `SetDefaults(item)` | O item nasce ou troca de tipo. | `Item.SetDefaults` |
 | `CanUseItem(item, player)` | Antes de usar; `false` impede. | `Player.ItemCheck_CheckCanUse_Inner` |
-| `UseItem(item, player)` | O uso começa. | `Player.ItemCheck_StartActualUse` |
+| `UseItem(item, player)` | O uso começa; `true` como no `ModItem`. | `Player.ItemCheck_StartActualUse` |
 | `UseStyle`, `HoldStyle(item, player, mountOffset, heldItemFrame)`, `HoldItem(item, player)` | A cada quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle` |
 | `ModifyWeaponDamage(item, player, damage)` | O dano da arma; devolva o novo. | `Player.GetWeaponDamage` |
 | `CanShoot(item, player)` | Antes do tiro; `false` não atira. | `Player.ItemCheck_Shoot` |
@@ -574,7 +768,8 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `UpdateEquip(item, player)` | Equipado (acessório ou armadura). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Acessório equipado (também de vaidade). | `Player.ApplyEquipFunctional`/`ApplyEquipVanity` |
 | `OnCraft(item, player, recipe)` | Criado numa receita. | `Main.CraftItem_GrantItem` |
-| `ModifyTooltips(item, tooltips)` | O tooltip; depois do `ModItem`. | `Main.MouseText_DrawItemTooltip_GetLinesInfo` |
+| `ModifyTooltips(item, tooltips)` | O tooltip; depois do `ModItem`. | `Main.MouseText_DrawItemTooltip` (porte em JS) |
+| `PreDrawTooltip`, `PostDrawTooltip`, `PreDrawTooltipLine`, `PostDrawTooltipLine` | Os do `ModItem`, com `item` na frente, para qualquer item; depois do `ModItem`. | idem |
 | `IsArmorSet(head, body, legs)` → nome, `UpdateArmorSet(player, nome)` | Conjunto de qualquer item (`''` = nenhum). | `Player.UpdateArmorSets` |
 | `IsVanitySet(head, body, legs)` → nome, `PreUpdateVanitySet`/`UpdateVanitySet`/`ArmorSetShadows(player, nome)` | Vaidade pelos slots desenhados. | `Player.PlayerFrame`, `SetArmorEffectVisuals` |
 | `SetMatch(armorSlot, type, male, equipSlot, robes)` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | `Player.SetMatch` |
@@ -730,7 +925,7 @@ export class MeuBioma extends ModBiome {
 | `player.InModBiome(Classe)` | Se o jogador está no bioma. Aceita a classe, a instância (`ModContent.GetInstance`) ou o `Type`. |
 | `Type` | A posição entre os biomas (a mesma classe em dois mods são dois biomas). |
 | `DisplayName`, `TownNPCDialogueName` | Os nomes, como no tModLoader: `Biomes.<Classe>.DisplayName` e `.TownNPCDialogueName` no `Localization/<cultura>.json` do mod (chaves `Mods.<id>.Biomes.<Classe>...`). Sem eles, o nome da classe separado ("My Biome") e "the My Biome". Um `DisplayName` escrito na classe (texto ou `{ cultura: texto }`) ganha do arquivo. Depois do registro, os dois são `{ Key, Value }`. |
-| `BestiaryIcon`, `BackgroundPath` | Caminhos em `Assets/Textures`: o da classe + `_Icon` (30 x 30, o ícone do filtro) e + `_Background` (115 x 65, o fundo do retrato no Bestiário), como no tModLoader. Sem o arquivo, ou em outro tamanho, os do jogo. O fundo do mapa pode reusar o `BackgroundPath`. |
+| `BestiaryIcon`, `BackgroundPath` | Caminhos no mod: o da classe + `_Icon` (30 x 30, o ícone do filtro) e + `_Background` (115 x 65, o fundo do retrato no Bestiário), como no tModLoader. Sem o arquivo, ou em outro tamanho, os do jogo. O fundo do mapa pode reusar o `BackgroundPath`. |
 | `BackgroundColor` | A cor do fundo do retrato no Bestiário (`Color`), ou `null`. |
 | No Bestiário | O bioma aparece na entrada de cada NPC com ele no `SpawnModBiomes`, e como filtro (se algum NPC o usa). |
 | Na felicidade | `this.Happiness.SetBiomeAffection(MeuBioma, AffectionLevel.Love)` num morador: o preço e a fala dele mudam com o jogador no bioma (a fala usa o `TownNPCDialogueName`). |
@@ -769,7 +964,7 @@ export class MeuBioma extends ModBiome {
 
 | `ModSceneEffect` (mapa) | |
 |---|---|
-| `MapBackground` | O caminho de uma textura em `Assets/Textures` do mod, ou `null`. Cobre a tela do mapa no lugar do fundo do jogo. O caminho é lido a cada desenho (pode mudar); a textura carrega na primeira vez. |
+| `MapBackground` | O caminho de uma textura do mod, ou `null`. Cobre a tela do mapa no lugar do fundo do jogo. O caminho é lido a cada desenho (pode mudar); a textura carrega na primeira vez. |
 | `MapBackgroundFullbright` | `true`: sempre branco. O padrão (`false`) é a cor do céu com a tela do mapa na superfície e branco abaixo dela. |
 | `MapBackgroundColor(color)` | `Ref` (`.value`, uma `Color`): a cor final, depois das duas acima. |
 
@@ -777,7 +972,7 @@ export class MeuBioma extends ModBiome {
 
 ### Fundos de mod
 
-Como no tModLoader. Todo PNG em `Assets/Textures/Backgrounds` ganha um número
+Como no tModLoader. Todo PNG numa pasta `Backgrounds/` do mod (no Example Mod, `Assets/Textures/Backgrounds`) ganha um número
 de textura depois dos 344 do jogo (`TextureAssets.Background`,
 `Main.backgroundWidth`/`Height` crescem):
 
@@ -785,7 +980,7 @@ de textura depois dos 344 do jogo (`TextureAssets.Background`,
 |---|---|
 | `GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Nome')` | O número. Também `GetBackgroundSlot('Assets/...')` (o mod de quem chama) e `GetBackgroundSlot('examplemod/Assets/...')` (o id ou o nome da classe do mod na frente). Lança se não existe. |
 | `TryGetBackgroundSlot(caminho, ref)` | `true` e o número em `ref.value`, ou `false`. |
-| `AddBackgroundTexture(mod, caminho)` | Um PNG fora de `Assets/Textures/Backgrounds`; só na carga do mod. |
+| `AddBackgroundTexture(mod, caminho)` | Um PNG fora de uma pasta `Backgrounds/`; só na carga do mod. |
 
 ```js
 export class MeuFundo extends ModSurfaceBackgroundStyle {
@@ -827,12 +1022,13 @@ O fundo entra pela `Priority` da cena, nos degraus do tModLoader. Na superfície
 tem a transição do jogo, e ao sair da cena o fundo volta ao do jogo.
 
 Com o fundo desligado nas opções, o subsolo usa o desenho antigo do jogo e fica
-com o estilo do jogo. **Ainda não**: `GlobalBackgroundStyle` e o fundo do menu.
+com o estilo do jogo. O fundo da tela de título vem do [`ModMenu`](#modmenu).
+**Ainda não**: `GlobalBackgroundStyle`.
 
 ### Água de mod
 
 Como no tModLoader. A textura vem do caminho do arquivo da classe
-(`Content/Biomes/MinhaAgua.js` -> `Assets/Textures/Biomes/MinhaAgua.png`, a
+(`Content/Biomes/MinhaAgua.js` -> `Content/Biomes/MinhaAgua.png`, a
 superfície da água, 48x1360 como a do jogo), mais `MinhaAgua_Block.png` (o
 bloco, 306x16) e `MinhaAgua_Slope.png` (a rampa, 72x16; sem ela, o bloco). A
 cachoeira é um PNG de 512x40 com o nome da classe dela.
@@ -859,10 +1055,10 @@ export class MeuBioma extends ModBiome {
 | `Slot` | O número do estilo, depois dos 15 do jogo (`Main.waterStyle` vira ele). |
 | `ChooseWaterfallStyle()` | O `Slot` de uma `ModWaterfallStyle`, ou uma cachoeira do jogo (0 é a da floresta). |
 | `GetSplashDust()` | O pó do respingo (quem cai na água). Padrão: o do jogo. |
-| `GetDropletGore()` | A gota que pinga do bloco. Uma de mod (`Assets/Textures/Gores`) se comporta como a gota d'água do jogo. |
+| `GetDropletGore()` | A gota que pinga do bloco. Uma de mod (numa pasta `Gores/`) se comporta como a gota d'água do jogo. |
 | `LightColorMultiplier(r, g, b)` | `Ref` (`.value`): quanto da luz atravessa a água. `1, 1, 1` não perde luz. |
 | `GetRainVariant()` | A variante da chuva: a coluna da textura ÷ 4 (na do jogo, 0 a 2 é a da floresta; na do mod, 0 a 7). |
-| `GetRainTexture()` | A textura da chuva: o caminho de um PNG em `Assets/Textures` do mod (colunas de 4 px, 40 de altura, como a do jogo), ou `null` (a do jogo, o padrão). |
+| `GetRainTexture()` | A textura da chuva: o caminho de um PNG no mod (colunas de 4 px, 40 de altura, como a do jogo), ou `null` (a do jogo, o padrão). |
 | `BiomeHairColor()` | A cor da tintura de bioma no cabelo com esta água (uma `Color`). Padrão: a da floresta. |
 
 | `ModWaterfallStyle` | |
@@ -874,9 +1070,58 @@ export class MeuBioma extends ModBiome {
 A água entra com `Priority` `BiomeLow` ou maior e só onde o jogo usaria a do
 fundo comum, como no tModLoader: uma fonte de água ligada, a lua de sangue e os
 fundos de bioma do jogo (selva, deserto, neve...) ganham. A troca tem o fade do
-jogo, e ao sair a água volta à do jogo. **Ainda não**: a textura de chuva
-própria (`GetRainTexture`), a cor da cachoeira (`ColorMultiplier`) e a cor de
-cabelo do bioma (`BiomeHairColor`).
+jogo, e ao sair a água volta à do jogo.
+
+---
+
+## ModMenu
+
+Um tema da tela de título, como no tModLoader: o logo, o sol, a lua, a música e
+o fundo enquanto o jogo está nos menus. No rodapé do título aparece
+"Tema do menu: <nome>"; cada toque passa para o próximo tema, e "Terraria" é o
+título do jogo sem mudança. O escolhido fica salvo em `BunnyLoader.menu.json`,
+na pasta de saves do jogo. Sem esse arquivo, fica o tema do jogo; um tema
+que chega com um mod novo só aparece como "(1 novo)" no rodapé.
+
+```js
+export class MeuTema extends ModMenu {
+    get SunTexture() { return 'Assets/Textures/Menu/MeuSol'; }
+    get MoonTexture() { return 'Assets/Textures/Menu/MinhaLua'; }
+    get MenuBackgroundStyle() { return ModContent.GetInstance(MeuFundo); }
+    get DisplayName() { return 'Meu tema'; }
+
+    SetStaticDefaults() {
+        this.Music = MusicLoader.GetMusicSlot('Music/Titulo');
+    }
+
+    PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor) {
+        drawColor.value = Color.new(255, 120, 120, 255);
+        return true;
+    }
+}
+```
+
+| `ModMenu` | |
+|---|---|
+| `Logo` | A textura do logo: o caminho no mod (`'Assets/Textures/Menu/Logo'`, ou `'outromod/...'`) ou um `Asset` (`ModContent.Request`). `null` (o padrão): o logo do jogo, o de dia e o de noite. |
+| `SunTexture`, `MoonTexture` | O sol e a lua, do mesmo jeito. A lua é um quadro só (sem as fases). `null`: os do jogo. |
+| `Music` | `MusicLoader.GetMusicSlot(...)` ou um `MusicID` do jogo. `-1` (o padrão): a do jogo. |
+| `MenuBackgroundStyle` | Um `ModSurfaceBackgroundStyle` (`ModContent.GetInstance(Classe)`), ou `null`: o fundo do jogo. |
+| `DisplayName` | O nome no rodapé. Padrão: o nome do mod. |
+| `IsAvailable` | `false` tira o tema da troca. Pode ser `get IsAvailable()`, para um tema que só vale em certas datas. |
+| `IsSelected` | Se é o tema escolhido (só leitura). |
+| `OnSelected()`, `OnDeselected()` | Na troca de tema, e na abertura do jogo com o tema salvo. |
+| `Update(isOnTitleScreen)` | Todo quadro nos menus; `isOnTitleScreen` na tela de título (`menuMode` 0). |
+| `PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Antes do logo. Os quatro últimos são `Ref` (`.value`): o centro, a rotação, a escala e a cor do logo do jogo neste quadro. `false` não desenha o logo. |
+| `PostDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Depois do logo, com os valores com que ele foi desenhado. |
+
+Os valores podem ser campos (`this.Music = ...`) ou `get` (como no
+tModLoader), e são lidos a cada quadro. A música e o fundo do tema ficam de fora
+na geração de mundo com semente especial, como no tModLoader. No celular, o
+logo, o sol e a lua do tema só entram no desenho do título; no mundo fica tudo
+como é no jogo. **Diferenças do tModLoader**: sem o logo do tModLoader, o
+padrão é o do jogo, e não há os temas prontos do jogo antigo (1.3.5.3, Bigger
+and Boulder). Também não há o `UserInterface` do tema.
 
 ---
 
@@ -952,11 +1197,11 @@ mod, pela **classe**, pelo **nome** ou por `'mod/Nome'`.
 
 | | |
 |---|---|
-| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
+| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)`, `MountType(x)`, `RarityType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
 | `GetInstance(Classe)` | O modelo (a instância do `register`). |
 | `Find(ModItem, 'mod/Nome')` | O modelo pelo nome; lança se não há. |
 | `TryFind(ModItem, 'mod/Nome', ref)` | O mesmo, no `ref.value`; devolve `true`/`false`. |
-| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)` | O modelo pelo tipo. |
+| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)`, `GetModMount(tipo)`, `GetModRarity(tipo)` | O modelo pelo tipo. |
 | `Request(caminho)` | `Asset<Texture2D>` do jogo, carregado uma vez (`.Value` é a textura). Thread do jogo. |
 | `Texture(caminho)` | A `Texture2D` (o `.Value` do `Request`). |
 | `HasAsset(caminho)` | A textura existe? |
@@ -991,12 +1236,13 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | Classe | |
 |---|---|
 | `NPCLoot` | Recebido no `ModifyNPCLoot`: `npcLoot.Add(regra)`, com as regras do jogo (`ItemDropRule...`). |
+| `ItemLoot` | Recebido no `ModifyItemLoot` do `ModItem`: `itemLoot.Add(regra)`, `Remove`, `Get()`, `RemoveWhere`. Guardado pelo Bunny Loader (o jogo não tem drops por item). |
 | `NPCSpawnInfo` | Recebido no `SpawnChance`, no `EditSpawnPool` e no `EditSpawnInfo`, como o `NPC.Spawner` do tModLoader: `SpawnTileX`, `SpawnTileY`, `GroundTileY`, `SpawnTileType` e `SpawnWallType` (o bloco e a parede do chão), `SafeRangeX`, `Player` (o jogador-alvo), `Spawner` (o do jogo) e os campos dele, que se leem e escrevem (`waterTile`, `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...); altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
 | `SpawnPool` | O sorteio do `EditSpawnPool`: `pool[tipo] = peso`, `delete pool[tipo]`, ou `Add`, `Remove`, `ContainsKey`, `Clear`, `Keys`, `Count`. O `0` é o spawn do jogo (peso 1). Com o total 0, nada nasce. |
 | `NPCShop` | `new NPCShop(tipoDoNPC, 'Shop').Add(item, { condition, price, currency }).Register()`; `NPCShop.get(tipo, nome)`, `shop.Open()`. |
 | `NPCHappiness` | `this.Happiness.SetNPCAffection(npc, nivel)`, `.SetBiomeAffection('Desert', nivel)` (do jogo) ou `.SetBiomeAffection(MeuBioma, nivel)` (a classe de um `ModBiome`), com `AffectionLevel.Love`, `Like`, `Dislike`, `Hate`. |
 | `SpawnCondition` | As condições do spawn do jogo em objetos, como no tModLoader: `SpawnCondition.OverworldNightMonster.Chance` é a fatia (0 a 1) do sorteio do jogo que cairia ali no ponto do spawn atual; `.Active` diz se foi avaliada. Para o `SpawnChance`: `return SpawnCondition.OverworldDaySlime.Chance * 0.1`. Avaliadas uma vez por sorteio, só se lidas. |
-| `ModGore` | `ModGore.getTypeByName('Nome')`: o gore de `Assets/Textures/Gores/Nome.png`. |
+| `ModGore` | `ModGore.getTypeByName('Nome')`: o gore `Nome.png` de uma pasta `Gores/` do mod. |
 
 ---
 
@@ -1005,11 +1251,23 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | | |
 |---|---|
 | `new TooltipLine(nome, texto)` | (também `new TooltipLine(mod, nome, texto)`, como no tModLoader). |
-| `Name`, `Text` | O nome da linha e o texto. |
+| `Mod`, `Name`, `Text` | O mod da linha (`'Terraria'` nas do jogo), o nome (os do tModLoader: `ItemName`, `Damage`, `Tooltip0`...) e o texto. |
 | `OverrideColor` | Uma `Color` para a linha inteira. |
 | `IsModifier`, `IsModifierBad` | Linha de prefixo: boa, ou ruim. |
 | `OneDropLogo` | `true`: a linha é o logo da One Drop. |
 | `TooltipLine.colorTag(texto, cor)` | `'[c/RRGGBB:texto]'` para pintar um trecho. |
+| `Visible`, `Hide()` | `Hide()` tira a linha do tooltip. |
+
+`DrawableTooltipLine` (nos `Pre/PostDrawTooltipLine` e no `PostDrawTooltip`): tudo da `TooltipLine`, mais
+
+| | |
+|---|---|
+| `Index` | A posição da linha. |
+| `X`, `Y`, `OriginalX`, `OriginalY` | Onde a linha é desenhada (mude `X`, `Y` no `PreDrawTooltipLine`). |
+| `Color` | A cor final, com a transparência do tooltip. |
+| `Font`, `Rotation`, `Origin` | Como o texto é desenhado. |
+| `BaseScale` | A escala; já com a do tooltip do celular (`Settings.Tooltips.Scale`). |
+| `Spread` | A distância das quatro sombras (2). |
 
 ---
 

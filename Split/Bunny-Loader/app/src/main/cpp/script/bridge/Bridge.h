@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <vector>
 #endif
 
 namespace bl::script {
@@ -17,7 +18,7 @@ namespace bl::script {
 // que detem os JSClassID; Value.cpp e JsHook.cpp chamam por aqui.
 JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj);
 JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr);
-JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m);
+JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m, JSValueConst owner = JS_UNDEFINED);
 
 /** Um valor como o bl.log o escreve: objeto e array JS em JSON, o resto pelo toString. */
 std::string valueToLogText(JSContext* ctx, JSValueConst v);
@@ -77,6 +78,16 @@ std::atomic<uint8_t>* hookMarks(const std::string& name);
 // couber na convencao de chamada que sabemos reproduzir. Ver JsHook.cpp.
 bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
                    bool isInstance, JSValueConst callback, const HookFilter* filter = nullptr);
+
+// Quantas chamadas cada hook JS recebeu desde a instalacao: `calls` no
+// despacho (inclusive as que o filtro devolve direto ao jogo), `js` no callback.
+struct HookStat {
+    std::string name;
+    uint64_t calls = 0;
+    uint64_t js = 0;
+    uint64_t jsNs = 0;   // tempo no callback, sem o original()
+};
+std::vector<HookStat> hookStats();
 
 #endif
 

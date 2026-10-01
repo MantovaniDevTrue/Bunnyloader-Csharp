@@ -69,11 +69,15 @@
     "ExampleBreastplate": "Peitoral de Exemplo",
     "ExampleLeggings": "Calças de Exemplo",
     "ExampleBossMask": "Máscara do Chefe de Exemplo",
+    "ExampleBossBag": "Bolsa do Tesouro (Chefe de Exemplo)",
     "ExampleWings": "Asas de Exemplo",
     "ExampleBeard": "Barba de Exemplo",
     "ExampleCostume": "Fantasia de Exemplo",
     "ExampleRobe": "Manto de Exemplo",
-    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias"
+    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias",
+    "ExampleMountItem": "Chave do Carro de Exemplo",
+    "ExampleMinecart": "Carrinho de Mina de Exemplo",
+    "ExampleQuestFish": "Peixe de Ponta-Cabeça"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -81,7 +85,11 @@
     "ExampleSink": "Pia de Exemplo",
     "ExampleAnimatedTile": "Pote de Vaga-lume de Exemplo",
     "ExampleHerb": "Erva de Exemplo",
-    "ExampleSign": "Placa de Exemplo"
+    "ExampleSign": "Placa de Exemplo",
+    "ExampleWorkbench": "Bancada de Exemplo",
+    "ExampleDresser": "Cômoda de Exemplo",
+    "ExampleChest": "Baú de Exemplo",
+    "ExampleChestLocked": "Baú de Exemplo Trancado"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -109,6 +117,7 @@
     "ExampleBoss": "Olho de ???"
   },
   "ItemTooltip": {
+    "ExampleBossBag": "{$CommonItemTooltip.RightClickToOpen}",
     "ExampleItem": "Descrição do item",
     "ExampleShotgun": "Dispara oito balas de uma vez",
     "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n5 de dano de marcação",
@@ -142,7 +151,8 @@
     "ExampleWings": "Asas de mod.",
     "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
     "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado",
-    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia"
+    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia",
+    "ExampleMountItem": "Invoca uma montaria de mod."
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -158,7 +168,9 @@
     "ExamplePetBuff": "Aviãozinho",
     "ExampleLightPetBuff": "Luz Irritante",
     "ExampleMinionBuff": "Lacaio de Exemplo",
-    "Blocky": "Quadrado"
+    "Blocky": "Quadrado",
+    "ExampleMountBuff": "Carro de Exemplo",
+    "ExampleMinecartBuff": "Carrinho de Mina de Exemplo"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
@@ -166,7 +178,9 @@
     "ExamplePetBuff": "\"Que este pet sirva de exemplo para você!\"",
     "ExampleLightPetBuff": "Argh, muuuito irritante",
     "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você",
-    "Blocky": "Pulo mais alto"
+    "Blocky": "Pulo mais alto",
+    "ExampleMountBuff": "Bancos de couro, 4 porta-copos",
+    "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
@@ -222,6 +236,39 @@
     "ExampleUndergroundBiome": {
       "DisplayName": "Subsolo de Exemplo",
       "TownNPCDialogueName": "o Bioma Subterrâneo de Exemplo"
+    }
+  },
+  "Commands": {
+    "Common": {
+      "NoParameters": "Faltou pelo menos um argumento.",
+      "NotInteger": "{0} não é um número inteiro válido."
+    },
+    "HealCommand": {
+      "Usage": "/curar quantidade",
+      "Description": "Cura você na quantidade",
+      "Error": "Use /curar e uma quantidade positiva",
+      "Full": "Sua vida já está cheia",
+      "Healed": "Você recuperou {0} de vida"
+    },
+    "ExampleTimeCommand": {
+      "Usage": "/addTime ticks\nticks: número positivo ou negativo, em ticks (1 segundo = 60 ticks).",
+      "Description": "Avança ou volta a hora do mundo em ticks"
+    }
+  },
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Chefe de Exemplo Derrotado",
+      "Description": "Derrote o Chefe de Exemplo"
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Muitos Vermes",
+      "Description": "Tá bom... já entendemos. Agora pare de matar esses pobres vermes."
+    }
+  },
+  "AnglerQuest": {
+    "ExampleQuestFish": {
+      "Description": "Ouvi histórias de um peixe que nada de ponta-cabeça. Dizem que você mesmo precisa estar de ponta-cabeça para achar um. Um desses ficaria ótimo no meu teto. Vai buscar!",
+      "CatchLocation": "Pescado em qualquer lugar, de ponta-cabeça."
     }
   }
 }

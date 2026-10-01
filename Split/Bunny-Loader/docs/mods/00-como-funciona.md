@@ -249,7 +249,7 @@ O que acontece quando o `ContentAutoload` acha `export class ExampleSword extend
 ```mermaid
 flowchart TB
     A["ContentAutoload acha<br/>class ExampleSword extends ModItem"] --> R["ModItem.register(ExampleSword)<br/>(ModItem.js)"]
-    R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Assets/Textures/Items/ExampleSword.png)"]
+    R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Content/Items/ExampleSword.png)"]
     R --> N["bl.items.register({ name, texture, setDefaults, setStaticDefaults })<br/>(C++: script/api/Items.cpp)"]
     N --> ID["reserva o tipo: 6196 + ordem de registro<br/>(o tipo já existe; dá para usar no topo do arquivo)"]
     R --> H["ItemLoader.Hook(ExampleSword)<br/>(Loaders/ItemLoader.js)"]
@@ -346,7 +346,7 @@ vai em arquivos ao lado, pelo nome (`<uid do mod>/<Classe>`), não pelo número:
 
 | Arquivo | O que guarda |
 |---|---|
-| `<personagem>.plr.bl` | Os itens de mod do inventário, equipamento, tinturas, baús pessoais e lixeira, e os buffs de mod ativos. |
+| `<personagem>.plr.bl` | Os itens de mod do inventário, equipamento, tinturas e baús pessoais, e os buffs de mod ativos. A lixeira não é salva. |
 | `<personagem>.plr.bl.json` | O `SaveData` de cada `ModPlayer`. |
 | `<mundo>.wld.bl` | Os itens de mod nos baús do mundo. |
 | `<mundo>.wld.tiles.bl` | Os tiles de mod (posição, quadro). |

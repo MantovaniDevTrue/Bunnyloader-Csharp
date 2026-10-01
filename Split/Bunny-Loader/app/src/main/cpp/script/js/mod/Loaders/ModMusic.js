@@ -1,4 +1,5 @@
-// Música de mod pelo Android (bl.music, MediaPlayer). Candidatos: o ModNPC com
+// Música de mod pelo Android (bl.music, MediaPlayer). Nos menus, a do tema
+// (ModMenu). No mundo, os candidatos: o ModNPC com
 // Music mais prioritário perto da tela e a cena do jogador local (ModBiome,
 // ModSceneEffect), que só troca o do NPC com prioridade maior, como no
 // tModLoader. O candidato ganha da escolha do jogo se a prioridade dele chegar
@@ -13,6 +14,12 @@ class ModMusic {
 
     static #npcs = new Set();         // NPCs de mod vivos (o Music pode mudar na IA)
     static #wanted = -1;
+    // A escolha (caixas na tela, NPCs, o degrau do jogo) custa dezenas de
+    // leituras pela ponte: a cada CHOOSE_EVERY quadros; nos outros, a anterior.
+    // A troca de faixa leva segundos (o fade); 10 quadros não se notam.
+    static CHOOSE_EVERY = 10;
+    static #chooseIn = 0;
+    static #chosenTow = null;
     static #hooked = false;
     static #savedSilenceFade = null;  // o musicFade[0] do jogo enquanto a nossa manda
     static #base = 0;
@@ -59,7 +66,7 @@ class ModMusic {
     // O slot que a música de mod pede, ou -1 (fica a do jogo).
     static #Choose(tow) {
         const Main = Terraria.Main;
-        if (Main.gameMenu) return -1;
+        if (Main.gameMenu) return MenuLoader.MenuMusic();
 
         const box = ModMusic.#MusicBox();
         if (box > 0) return box;
@@ -160,7 +167,12 @@ class ModMusic {
     // A nossa só cala o jogo quando já se ouve; até lá segura o que tocava.
     static #Decide(tow) {
         const Main = Terraria.Main;
-        const wanted = ModMusic.#wanted = ModMusic.#Choose(tow);
+        if (--ModMusic.#chooseIn <= 0 || ModMusic.#chosenTow !== tow || Main.gameMenu) {
+            ModMusic.#wanted = ModMusic.#Choose(tow);
+            ModMusic.#chooseIn = ModMusic.CHOOSE_EVERY;
+            ModMusic.#chosenTow = tow;
+        }
+        const wanted = ModMusic.#wanted;
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         if (track && track.fade > ModMusic.AUDIBLE) return ModMusic.#SilenceGame(true);
 
@@ -171,7 +183,7 @@ class ModMusic {
 
     static #Step() {
         const Main = Terraria.Main;
-        const target = Main.gameMenu ? -1 : ModMusic.#wanted;
+        const target = Main.gameMenu ? MenuLoader.MenuMusic() : ModMusic.#wanted;
         const main = target >= ModMusic.Base() ? ModMusic.Track(target) : null;
         const current = Main.curMusic;
         const mainAudible = main

@@ -10,12 +10,17 @@
 //   - a camada de longe depois do Step1 das montanhas, a do meio depois do
 //     Step2 e a da frente antes do GetFogPower (logo depois das árvores do
 //     fundo do jogo). Desenho direto no SpriteBatch, com o lote já aberto.
+// Nos menus, só o fundo do tema da tela de título (ModMenu.MenuBackgroundStyle).
 class SurfaceBackgroundLoader {
     static List = [];
     static #step1 = null;       // { top, push } do Step1 deste quadro
     static #draw = null;
 
-    static get VanillaCount() { return Terraria.ID.SurfaceBackgroundID.Count; }
+    // Lido uma vez: o getter atravessava a ponte a cada Get (vários por quadro).
+    static #vanillaCount = 0;
+    static get VanillaCount() {
+        return SurfaceBackgroundLoader.#vanillaCount || (SurfaceBackgroundLoader.#vanillaCount = Terraria.ID.SurfaceBackgroundID.Count);
+    }
 
     static Add(inst) {
         inst.Slot = SurfaceBackgroundLoader.VanillaCount + SurfaceBackgroundLoader.List.length;
@@ -59,21 +64,34 @@ class SurfaceBackgroundLoader {
         Hooks.Once('bg.surface', () => {
             const Main = Terraria.Main;
 
+            // Os arrays só precisam crescer com um estilo de mod em uso (o
+            // escolhido agora ou o que ainda está na tela).
             Main['int GetPreferredBGStyleForPlayer()'].hook((original) => {
                 const vanilla = original();
-                Safe.Run('fundo: arrays', () => SurfaceBackgroundLoader.#Ensure());
-                return Safe.Run('fundo: escolha', () => SurfaceBackgroundLoader.#Choose(vanilla)) ?? vanilla;
+                const style = Safe.Run('fundo: escolha', () => SurfaceBackgroundLoader.#Choose(vanilla)) ?? vanilla;
+                const count = SurfaceBackgroundLoader.VanillaCount;
+                if (style >= count || Main.bgStyle >= count) Safe.Run('fundo: arrays', () => SurfaceBackgroundLoader.#Ensure());
+                return style;
             });
 
             const MODIFY = 'void DrawBG_ModifyBGFarBackLayerAlpha(int desiredBG, Nullable`1 desiredBG2, Nullable`1 transitionAmountOverride)';
             Main['void UpdateBGVisibility_BackLayer(Nullable`1 targetBiomeOverride, Nullable`1 transitionAmountOverride)'].hook((original, self, target, amount) => {
+                // Nos menus, o fundo do tema (ModMenu), como o tModLoader faz
+                // depois da escolha do fundo do título.
+                if (Main.gameMenu && target === null) {
+                    const menu = Safe.Run('fundo: tema do menu', () => MenuLoader.BackgroundSlot());
+                    if (menu >= 0) {
+                        Safe.Run('fundo: arrays', () => SurfaceBackgroundLoader.#Ensure());
+                        Main.bgStyle = menu;
+                    }
+                }
                 const style = target !== null ? target : Main.bgStyle;
                 if (SurfaceBackgroundLoader.Get(style)) self[MODIFY](style, null, amount);
                 else original(self, target, amount);
             });
             Main['void UpdateBGVisibility_FrontLayer(Nullable`1 targetBiomeOverride, Nullable`1 transitionAmountOverride)'].hook((original, self, target, amount) => {
                 original(self, target, amount);
-                if (Main.gameMenu) return;
+                if (Main.gameMenu && !SurfaceBackgroundLoader.#InMenu()) return;
                 const style = SurfaceBackgroundLoader.Get(target !== null ? target : Main.bgStyle);
                 if (style) {
                     const fades = Main.bgAlphaFrontLayer;
@@ -100,6 +118,11 @@ class SurfaceBackgroundLoader {
         });
     }
 
+    // Nos menus, só com o fundo de um tema (ModMenu).
+    static #InMenu() {
+        return (Safe.Run('fundo: tema do menu', () => MenuLoader.BackgroundSlot()) ?? -1) >= 0;
+    }
+
     static #Texture(slot) {
         const Textures = Terraria.GameContent.TextureAssets;
         if (!Number.isInteger(slot) || slot < 0 || slot >= Textures.Background.length) return null;
@@ -118,7 +141,7 @@ class SurfaceBackgroundLoader {
     // trás do estilo.
     static #DrawBack(self, choose) {
         const Main = Terraria.Main;
-        if (Main.gameMenu || SurfaceBackgroundLoader.List.length === 0) return;
+        if (SurfaceBackgroundLoader.List.length === 0 || (Main.gameMenu && !SurfaceBackgroundLoader.#InMenu())) return;
 
         const fades = Main.bgAlphaFarBackLayer;
         for (const style of SurfaceBackgroundLoader.List) {
@@ -145,7 +168,7 @@ class SurfaceBackgroundLoader {
     // das árvores do fundo do jogo: a × (posição da tela) + b + ajuste.
     static #DrawClose(self, step1) {
         const Main = Terraria.Main;
-        if (Main.gameMenu || SurfaceBackgroundLoader.List.length === 0) return;
+        if (SurfaceBackgroundLoader.List.length === 0 || (Main.gameMenu && !SurfaceBackgroundLoader.#InMenu())) return;
 
         const fades = Main.bgAlphaFrontLayer;
         for (const style of SurfaceBackgroundLoader.List) {

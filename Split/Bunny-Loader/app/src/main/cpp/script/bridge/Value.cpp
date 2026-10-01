@@ -205,7 +205,7 @@ JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 
     if (m.proto) return protoGet(ctx, g_structId, atom);
     if (m.field) return readAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, obj);
-    if (m.method) return makeGameMethod(ctx, m.method);
+    if (m.method) return makeGameMethod(ctx, m.method, obj);
     // Propriedade C# do struct: o `this` de um value type sao os dados.
     if (m.getter) return invokeMethod(ctx, m.getter, r->data, 0, nullptr);
     if (m.signature) return missingSignature(ctx, r->cls, atom);
@@ -456,6 +456,19 @@ int hfaOf(Il2CppClass* cls, bool* isDouble) {
     if (count == 0 || (sawFloat && sawDouble)) return 0;
     if (isDouble) *isDouble = sawDouble;
     return count;
+}
+
+bool isOptionalParam(const Il2CppType* t) {
+    if (!t) return false;
+    constexpr uint32_t kOptional = 0x0010;     // PARAM_ATTRIBUTE_OPTIONAL
+    constexpr uint32_t kHasDefault = 0x1000;   // PARAM_ATTRIBUTE_HAS_DEFAULT
+    auto& a = il2cpp::api();
+    // Sem a exportacao: os atributos sao os 16 bits baixos depois do `data`
+    // (refs/il2cpp.h: { void* data; unsigned int bits; }).
+    const uint32_t attrs = a.type_get_attrs
+        ? a.type_get_attrs(t)
+        : *reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(t) + sizeof(void*)) & 0xFFFFu;
+    return (attrs & (kOptional | kHasDefault)) != 0;
 }
 
 // ============================ ler / escrever ============================
