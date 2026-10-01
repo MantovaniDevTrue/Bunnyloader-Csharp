@@ -50,13 +50,15 @@ configure_file(
 set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
-    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory Enums/InterfaceScaleType
+    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
+    Enums/CommandType Enums/InterfaceScaleType
     Mod ModLoader
     GameInterfaceLayer UIState UserInterface Loaders/InterfaceLoader
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
-    Loaders/TooltipLoader TooltipLine EquipTexture ModItem
+    Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
+    EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer
@@ -66,6 +68,9 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/MapBackgroundLoader Loaders/SceneEffectLoader Loaders/BiomeLoader Loaders/BiomeShoppingLoader
     Loaders/BiomeBestiaryLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
+    Loaders/MountLoader ModMount
+    Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
+    Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileEntityLoader ModTileEntity
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
@@ -78,6 +83,7 @@ set(BL_MOD_CLASSES_PARTS
     GlobalLoot Loaders/GlobalLootLoader
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
+    Loaders/MenuLoader ModMenu
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")

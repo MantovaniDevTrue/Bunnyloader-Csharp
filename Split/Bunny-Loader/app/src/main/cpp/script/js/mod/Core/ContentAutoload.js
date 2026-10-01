@@ -3,9 +3,17 @@
 // Content/ e Common/ é registrada sozinha. `static Autoload = false` deixa uma
 // classe de fora. O núcleo (ScriptEngine.cpp) importa os arquivos e chama o Load.
 class ContentAutoload {
-    static #ORDER = [ModBuff, ModPrefix, ModPlayer, ModNPC, ModProjectile, ModItem, ModTileEntity, ModTile, ModSystem,
+    // Fundos, água e biomas antes do NPC: o SetStaticDefaults dele roda no
+    // registro, e o Happiness.SetBiomeAffection(ModBiome) do morador pede o
+    // bioma já registrado. A raridade primeiro: o SetDefaults dos itens pede o
+    // RarityType. A montaria antes do buff e do item, que pedem o
+    // MountType (o SetStaticDefaults dela roda depois, com tudo carregado).
+    static #ORDER = [ModRarity, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
-                     ModBiome, ModSceneEffect, GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot];
+                     ModBiome, ModSceneEffect, ModMenu,
+                     ModNPC, ModProjectile, ModItem, ModTileEntity, ModTile, ModSystem,
+                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
+                     ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();
 
     static FileOf(cls) {
@@ -34,6 +42,8 @@ class ContentAutoload {
         });
 
         ModRegistry.Adopt(mod, main);
+        // Depois do Mod.Load, que pode ter chamado o AddCloudFromTexture.
+        CloudLoader.Autoload();
     }
 
     // As classes exportadas, por tipo de conteúdo, na ordem de #ORDER.
