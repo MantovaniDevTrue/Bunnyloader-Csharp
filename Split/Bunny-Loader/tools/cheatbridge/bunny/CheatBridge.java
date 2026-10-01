@@ -1155,24 +1155,21 @@ public class CheatBridge {
     private static Bitmap decode(Activity a, String key) {
         final boolean npc = key.startsWith("npc/");
         final int kind = npc ? SPR_NPC : key.startsWith("buff/") ? SPR_BUFF : SPR_ITEM;
+        final int contentId = Integer.parseInt(key.substring(SPR_DIR[kind].length()));
         Bitmap bmp = null;
         InputStream in = null;
         try {
-            // Item, NPC e buff de mod nao tem sprite no APK: vem do PNG do proprio mod.
-            String file = modTexture(kind, Integer.parseInt(key.substring(SPR_DIR[kind].length())));
+            String file = modTexture(kind, contentId);
             BitmapFactory.Options o = new BitmapFactory.Options();
-            o.inScaled = false;   // pixel art nao escala no decode
+            o.inScaled = false;
             if (file != null) {
                 bmp = BitmapFactory.decodeFile(file, o);
             } else {
                 in = a.getAssets().open("sprites/" + key + ".png");
                 bmp = BitmapFactory.decodeStream(in, null, o);
             }
-            // O PNG de NPC e uma TIRA VERTICAL de quadros. Mostrar a tira
-            // inteira espremida num quadradinho deixava a Geleia Azul com duas
-            // cabecas. Fica so o primeiro quadro.
-            if (bmp != null && npc) {
-                int q = framesOf(Integer.parseInt(key.substring(4)));
+            if (bmp != null && npc && contentId < 688) {
+                int q = framesOf(contentId);
                 int frameH = bmp.getHeight() / q;
                 if (q > 1 && frameH > 0) {
                     Bitmap frame = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), frameH);
@@ -1181,7 +1178,7 @@ public class CheatBridge {
                 }
             }
         } catch (Throwable t) {
-            bmp = null;           // id sem sprite: a linha fica so com o nome
+            bmp = null;
         } finally {
             if (in != null) try { in.close(); } catch (Throwable ignored) { }
         }
