@@ -1,13 +1,10 @@
-// Os ModConfig carregados: as opções de cada um (conferidas no registro), o
-// valor atual e o arquivo. A tela é o ModConfigMenu.
-//
-// Cada config grava em <dados do mod>/<Classe>.json só o que difere do
-// padrão. Um valor do arquivo que não serve mais (a opção sumiu, o Radio
-// perdeu a escolha, o número saiu da faixa) volta ao padrão em vez de travar o
-// mod: a config de uma versão velha do mod não pode impedir a nova de carregar.
 class ConfigLoader {
-    static List = [];           // { inst, mod, name, file, options: [{ key, ... }] }
+    static List = [];
     static #dirty = new Set();
+    static #VALUES = ['toggle', 'range', 'radio', 'dropdown', 'cycle', 'color'];
+    static #CHOICES = ['radio', 'dropdown', 'cycle'];
+    static #MAX_DROPDOWN = 12;
+    static #ALIGNS = ['left', 'center', 'right'];
 
     static Add(inst) {
         const cls = inst.constructor;
@@ -18,23 +15,42 @@ class ConfigLoader {
         }
 
         const options = Object.keys(declared).map((key) => ConfigLoader.#Option(name, key, declared[key]));
+        for (const o of options) {
+            if (typeof o.enabledWhen === 'string' && !options.some((other) => other.key === o.enabledWhen)) {
+                throw new TypeError(name + '.' + o.key + ": enabledWhen '" + o.enabledWhen + "' não é uma opção desta config");
+            }
+        }
         const mod = inst.Mod;
-        const entry = { inst, mod, name, file: null, options };
+        const entry = { inst, mod, name, file: null, options, draft: null };
         const dir = mod ? ModRegistry.DataDirectory(mod.uuid) : null;
         if (dir) entry.file = bl.path.join(dir, name + '.json');
 
         const saved = entry.file ? ConfigLoader.#Read(entry.file) : {};
-        for (const o of options) inst[o.key] = ConfigLoader.#Valid(o, saved[o.key]) ? saved[o.key] : o.default;
+        for (const o of options) {
+            if (ConfigLoader.HasValue(o)) inst[o.key] = ConfigLoader.#Valid(o, saved[o.key]) ? saved[o.key] : o.default;
+        }
         ConfigLoader.List.push(entry);
         Safe.Run(name + '.OnLoaded', () => inst.OnLoaded());
     }
 
-    // A opção conferida, com o rótulo e os textos das escolhas já resolvidos.
+    static HasValue(o) {
+        return ConfigLoader.#VALUES.includes(o.type);
+    }
+
     static #Option(owner, key, raw) {
-        if (!raw || typeof raw !== 'object') throw new TypeError(owner + '.' + key + ': use ModConfig.Toggle/Range/Radio');
         const where = owner + '.' + key;
+        if (!raw || typeof raw !== 'object') throw new TypeError(where + ': use ModConfig.Toggle, Range, Radio, Dropdown...');
         const o = { ...raw, key };
         switch (o.type) {
+            case 'header':
+                if (o.color !== undefined) {
+                    o.color = String(o.color).toUpperCase();
+                    if (!/^#[0-9A-F]{6}$/.test(o.color)) throw new TypeError(where + ": Header pede color '#RRGGBB'");
+                }
+                if (o.align !== undefined && !ConfigLoader.#ALIGNS.includes(o.align)) {
+                    throw new RangeError(where + ": Header pede align 'left', 'center' ou 'right'");
+                }
+                break;
             case 'toggle':
                 o.default = !!o.default;
                 break;
@@ -46,30 +62,47 @@ class ConfigLoader {
                 o.default = ConfigLoader.Snap(o, o.default);
                 break;
             case 'radio':
-                if (!Array.isArray(o.choices) || o.choices.length < 2) throw new TypeError(where + ': Radio pede ao menos duas escolhas');
+            case 'dropdown':
+            case 'cycle':
+                if (!Array.isArray(o.choices) || o.choices.length < 2) throw new TypeError(where + ': pede ao menos duas escolhas');
+                if (o.type === 'dropdown' && o.choices.length > ConfigLoader.#MAX_DROPDOWN) {
+                    throw new RangeError(where + ': Dropdown aceita até ' + ConfigLoader.#MAX_DROPDOWN + ' escolhas');
+                }
                 if (!o.choices.includes(o.default)) throw new RangeError(where + ": o padrão '" + o.default + "' não está nas escolhas");
                 break;
+            case 'color':
+                if (!/^#[0-9A-F]{6}$/.test(o.default)) throw new TypeError(where + ": Color pede '#RRGGBB'");
+                break;
+            case 'button':
+                if (typeof o.action !== 'function' && typeof o.action !== 'string') {
+                    throw new TypeError(where + ": Button pede uma função ou o nome de um método da config");
+                }
+                break;
+            case 'link':
+                if (!/^https?:\/\//i.test(o.url)) throw new TypeError(where + ': Link pede um endereço http(s)');
+                break;
             default:
-                throw new TypeError(where + ": tipo '" + o.type + "' desconhecido (toggle, range ou radio)");
+                throw new TypeError(where + ": tipo '" + o.type + "' desconhecido");
+        }
+        if (o.enabledWhen !== undefined && typeof o.enabledWhen !== 'string' && typeof o.enabledWhen !== 'function') {
+            throw new TypeError(where + ': enabledWhen pede o nome de uma opção ou uma função');
         }
 
-        // O texto do Localization na cultura do jogo, se o mod tiver.
         const local = (path) => {
             const texts = Lang.Localized('Configs', owner + '.' + key + '.' + path);
             return texts ? Lang.Pick(texts) : '';
         };
         o.label = local('Label') || o.label || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
-        if (o.type === 'radio') {
+        if (ConfigLoader.#CHOICES.includes(o.type)) {
             o.choiceLabels = o.choices.map((c, i) => local(String(c)) || (o.labels && o.labels[i]) || String(c));
         }
+        if (o.type === 'button' || o.type === 'link') o.text = local('Text') || o.text || (o.type === 'link' ? 'Abrir' : 'OK');
         return o;
     }
 
-    // O número da faixa no degrau mais perto, dentro dos limites.
     static Snap(o, value) {
         const steps = Math.round((value - o.min) / o.step);
         const snapped = o.min + steps * o.step;
-        // Sem o arredondamento, 0.1 + 0.2 aparece como 0.30000000000000004.
         return Math.min(o.max, Math.max(o.min, Number(snapped.toFixed(6))));
     }
 
@@ -77,20 +110,112 @@ class ConfigLoader {
         switch (o.type) {
             case 'toggle': return typeof value === 'boolean';
             case 'range': return typeof value === 'number' && value >= o.min && value <= o.max;
-            case 'radio': return o.choices.includes(value);
+            case 'radio':
+            case 'dropdown':
+            case 'cycle': return o.choices.includes(value);
+            case 'color': return typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value);
         }
         return false;
     }
 
-    // Muda o valor, avisa o mod e marca para gravar (o Flush grava; o arrastar
-    // de uma faixa não escreve no disco a cada quadro).
+    // Com a tela aberta, cada config tem um rascunho: um clone da instância
+    // onde a tela lê e grava. Nada chega à config (nem ao OnChanged, nem ao
+    // arquivo) antes do Aplicar.
+    static Begin() {
+        for (const entry of ConfigLoader.List) {
+            const draft = Object.create(Object.getPrototypeOf(entry.inst));
+            Object.assign(draft, entry.inst);
+            entry.draft = draft;
+        }
+    }
+
+    static View(entry) {
+        return entry.draft || entry.inst;
+    }
+
+    static Pending(entries = ConfigLoader.List) {
+        return entries.some((entry) => entry.draft && entry.options.some((o) =>
+            ConfigLoader.HasValue(o) && entry.draft[o.key] !== entry.inst[o.key]));
+    }
+
+    static AtDefaults(entries) {
+        return entries.every((entry) => entry.options.every((o) =>
+            !ConfigLoader.HasValue(o) || ConfigLoader.View(entry)[o.key] === o.default));
+    }
+
+    static Defaults(entries) {
+        for (const entry of entries) {
+            for (const o of entry.options) {
+                if (ConfigLoader.HasValue(o)) ConfigLoader.Set(entry, o, o.default);
+            }
+        }
+    }
+
+    static Apply() {
+        for (const entry of ConfigLoader.List) {
+            const draft = entry.draft;
+            if (!draft) continue;
+            entry.draft = null;
+            const changed = entry.options.filter((o) => ConfigLoader.HasValue(o) && draft[o.key] !== entry.inst[o.key]);
+            if (!changed.length) continue;
+            for (const o of changed) entry.inst[o.key] = draft[o.key];
+            ConfigLoader.#dirty.add(entry);
+            for (const o of changed) Safe.Run(entry.name + '.OnChanged', () => entry.inst.OnChanged(o.key));
+            Safe.Run(entry.name + '.OnApply', () => entry.inst.OnApply());
+        }
+        ConfigLoader.Flush();
+    }
+
+    static Discard() {
+        for (const entry of ConfigLoader.List) entry.draft = null;
+    }
+
     static Set(entry, o, value) {
         if (o.type === 'range') value = ConfigLoader.Snap(o, value);
-        if (!ConfigLoader.#Valid(o, value) || entry.inst[o.key] === value) return;
+        if (o.type === 'color' && typeof value === 'string') value = value.toUpperCase();
+        const target = ConfigLoader.View(entry);
+        if (!ConfigLoader.#Valid(o, value) || target[o.key] === value) return;
 
-        entry.inst[o.key] = value;
+        target[o.key] = value;
+        if (entry.draft) return;
         ConfigLoader.#dirty.add(entry);
         Safe.Run(entry.name + '.OnChanged', () => entry.inst.OnChanged(o.key));
+    }
+
+    static #EntryOf(inst) {
+        return ConfigLoader.List.find((e) => e.inst === inst || e.draft === inst);
+    }
+
+    static Reset(inst) {
+        const entry = ConfigLoader.#EntryOf(inst);
+        if (!entry) return;
+        ConfigLoader.Defaults([entry]);
+        ConfigLoader.Flush();
+    }
+
+    static SetOption(inst, key, value) {
+        const entry = ConfigLoader.#EntryOf(inst);
+        const o = entry && entry.options.find((x) => x.key === key);
+        if (!o || !ConfigLoader.HasValue(o)) throw new TypeError(inst.constructor.name + ": '" + key + "' não é uma opção com valor");
+        ConfigLoader.Set(entry, o, value);
+    }
+
+    static IsEnabled(entry, o) {
+        if (o.enabledWhen === undefined) return true;
+        const view = ConfigLoader.View(entry);
+        if (typeof o.enabledWhen === 'string') return !!view[o.enabledWhen];
+        return !!Safe.Run(entry.name + '.' + o.key + '.enabledWhen', () => o.enabledWhen.call(view, view));
+    }
+
+    // Com a tela aberta, o método do botão roda no rascunho: lê o que está na
+    // tela, e o SetOption dele também espera o Aplicar.
+    static Run(entry, o) {
+        Safe.Run(entry.name + '.' + o.key, () => {
+            const view = ConfigLoader.View(entry);
+            const action = typeof o.action === 'string' ? view[o.action] : o.action;
+            if (typeof action !== 'function') throw new TypeError(entry.name + '.' + o.key + ": '" + o.action + "' não é um método da config");
+            action.call(view, view);
+        });
     }
 
     static Flush() {
@@ -98,7 +223,7 @@ class ConfigLoader {
             if (!entry.file) continue;
             const data = {};
             for (const o of entry.options) {
-                if (entry.inst[o.key] !== o.default) data[o.key] = entry.inst[o.key];
+                if (ConfigLoader.HasValue(o) && entry.inst[o.key] !== o.default) data[o.key] = entry.inst[o.key];
             }
             Safe.Run('ModConfig: gravar ' + entry.file, () => {
                 if (!Object.keys(data).length) return bl.file.delete(entry.file);
@@ -109,7 +234,6 @@ class ConfigLoader {
         ConfigLoader.#dirty.clear();
     }
 
-    // As configs de um mod, na ordem do registro.
     static Of(mod) {
         return ConfigLoader.List.filter((e) => e.mod === mod);
     }
