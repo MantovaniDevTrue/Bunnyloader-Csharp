@@ -6,13 +6,15 @@ Object.assign(globalThis, {
     ModSystem, TagCompound, ModSceneEffect, ModBiome,
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
     ModWaterStyle, ModWaterfallStyle, ModMenu,
-    ModPlayer, ModBuff, ModMount, MountTextureType, ModTile, ModWall, ModProjectile,
+    ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModWall, ModProjectile,
     ModCommand, CommandType, UsageException, CommandLoader, ModHair, ModCloud, CloudLoader, ModEmoteBubble, ModAchievement,
     ModNPC, NPCLoot, NPCSpawnInfo, SpawnPool, SpawnCondition, NPCShop, NPCHappiness, AffectionLevel, ModGore,
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
     ModPacket, NetWriter, NetReader,
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,
 });
+
+ArmorSetLoader.InstallHairSettings();
 
 // Sempre ligado, com ou sem mod: o "Config. dos Mods" do menu de pausa.
 ModConfigMenu.Install();

@@ -1,8 +1,10 @@
 # O que cada classe tem hoje
 
-Esta é a lista completa do que as classes de mod do Bunny Loader oferecem **hoje**:
-cada campo, cada método que você pode escrever e cada atalho. Os guias explicam
-como usar; aqui é para consultar.
+Esta referência descreve os contratos, campos e atalhos das classes de mod.
+O [catálogo de métodos por classe](metodos.md) é o índice completo das
+declarações públicas JavaScript, incluindo assinaturas, herança e aliases.
+Também está disponível como [planilha Excel](metodos.xlsx) e [CSV](metodos.csv).
+Os guias explicam como usar; aqui é para consultar.
 
 Para cada método que você escreve, a tabela diz **quando ele roda** e **qual
 método do jogo está por trás**, com o filtro nativo, se houver. Isso é o que
@@ -14,8 +16,10 @@ decide o custo (ver o [guia de custo](../mods/03-custo-e-desempenho.md)):
   dentro;
 - **nativo**: não é um hook JS; o núcleo em C++ chama o método.
 
-Um método que **nenhuma** classe registrada escreve não instala hook nenhum e
-não custa nada.
+Hooks de conteúdo são instalados sob demanda, de acordo com os métodos
+sobrescritos. Há infraestrutura compartilhada e hooks permanentes, como
+`Player.GetHairSettings`; por isso, a quantidade de métodos disponíveis na
+API não corresponde à quantidade de entradas JavaScript por quadro.
 
 Todas as classes são **globais**: nada de `import`. Toda classe exportada pelo
 arquivo de entrada ou por um arquivo de `Content/` e `Common/` é registrada
@@ -52,6 +56,8 @@ que outras estendem); o `register` de cada uma
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
 | [`ModContent`](#modcontent) | Tipo, modelo e textura pelo nome ou pela classe. | [4](../mods/04-conteudo-novo.md#modcontent) |
+| [`ModConfig`](#modconfig) | Opções persistentes do mod, alteradas no menu de pausa. | [14](../mods/14-opcoes-do-mod.md) |
+| [`DamageClass`, `StatModifier`, `StatInheritanceData`](#damageclass) | Classes de dano, modificadores de atributos e herança de bônus. | [15](../mods/15-classes-de-dano.md) |
 | [`ModRecipe`](#modrecipe) | Receitas e grupos de receita. | [5](../mods/05-itens.md#receitas) |
 | [`NPCLoot`, `NPCSpawnInfo`, `NPCShop`, `NPCHappiness`, `ModGore`](#ajudantes-de-npc) | Drops, spawn, loja, felicidade, gore. | [7](../mods/07-npcs.md) |
 | [`TooltipLine`, `DrawableTooltipLine`](#tooltipline) | Linha de tooltip, e a linha no desenho. | [5](../mods/05-itens.md#tooltip) |
@@ -171,8 +177,8 @@ própria instância, com `this.Item` apontando para ele.
 
 ### Ainda não
 
-Do `ModItem` do tModLoader, entre outros: `CanRightClick`/`RightClick`,
-`ModifyHitNPC`, `MeleeEffects`, `PreDrawInWorld`/`PostDrawInInventory`,
+Do `ModItem` do tModLoader, entre outros: `ModifyHitNPC`, `MeleeEffects`,
+`PreDrawInWorld`/`PostDrawInInventory`,
 `OnPickup`, `GrabRange`, `ModifyWeaponDamage` (há no `ModPlayer`),
 `DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
 `ModifyEquipTextureDraw` e as camadas de desenho próprias (`PlayerDrawLayer`).
@@ -187,6 +193,30 @@ Do `ModItem` do tModLoader, entre outros: `CanRightClick`/`RightClick`,
 | `EquipLoader.GetEquipTexture(tipo, slot)` | A `EquipTexture` do slot. |
 | `class X extends EquipTexture` | `FrameEffects`, `IsVanitySet`, `PreUpdateVanitySet`, `UpdateVanitySet`, `ArmorSetShadows`, `SetMatch`, `VerticalWingSpeeds`, `HorizontalWingSpeeds`, `WingUpdate` de uma textura só (padrão: os do item dono). |
 | `ArmorIDs.Head.Sets.DrawHead`, `ArmorIDs.Body.Sets.HidesTopSkin`/`HidesBottomSkin`/`HidesHands`/`HidesArms`, `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin` | As do tModLoader (não existem no jogo daqui), aplicadas no desenho. |
+
+O cabelo é decidido pelos Sets em `Terraria.ID`. O loader substitui
+`Player.GetHairSettings` por uma consulta dessas tabelas:
+
+| Set | Efeito |
+|---|---|
+| `ArmorIDs.Head.Sets.DrawFullHair[headSlot]` | Permite desenhar o cabelo completo com esse equipamento. |
+| `ArmorIDs.Head.Sets.DrawHatHair[headSlot]` | Permite desenhar o cabelo de chapéu. |
+| `ArmorIDs.Face.Sets.PreventHairDraw[faceSlot]` | Oculta o cabelo por causa do equipamento facial. |
+| `ArmorIDs.Head.Sets.DrawsBackHairWithoutHeadgear[headSlot]` | Define a flag correspondente do cabelo traseiro. |
+| `HairID.Sets.DrawBackHair[hair]` | Define se o penteado desenha cabelo atrás. |
+
+Para um chapéu que mantém o cabelo de chapéu visível, configure o slot já
+registrado no `SetStaticDefaults`:
+
+```js
+SetStaticDefaults() {
+    Terraria.ID.ArmorIDs.Head.Sets.DrawHatHair[this.Item.headSlot] = true;
+}
+```
+
+A regra de ocultação também considera `player.faceHead >= 0` com
+`player.head !== 0`. Os [testes de cabelo e chapéus](../../tools/tests/hairsettings/check.mjs)
+verificam a composição das flags.
 
 ---
 
@@ -280,6 +310,7 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 | `AI(proj)` | Todo quadro. | idem |
 | `PostAI(proj)` | Depois da IA. | idem |
 | `OnTileCollide(proj, oldVelocity)` | Bateu num bloco e ia morrer; `false` o mantém vivo. | `Projectile.HandleMovement` + `Kill`, filtro `tipo` |
+| `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Quatro `Ref`: dimensões da colisão, passagem por plataformas e centro. `false` pula a colisão neste movimento. | `Projectile.HandleMovement`/`GetCollisionParams`, filtro por tipo e sobrescrita |
 | `PreKill(proj, timeLeft)` | Antes de morrer; `false` tira os efeitos do jogo. | `Projectile.Kill`, filtro `tipo` |
 | `OnKill(proj, timeLeft)` | Ao morrer. | idem |
 | `OnHitNPC(proj, npc)` | Acertou um NPC. | `Projectile.StatusNPC`, filtro `tipo` |
@@ -301,6 +332,15 @@ Sempre instalado, para todo projétil de mod: o `originalDamage` (o dano base
 de lacaio e sentinela) vem do item que criou o projétil
 (`Projectile.ApplyStatsFromSource`).
 
+`OnTileCollide` retornando `false` conserva o projétil apenas no choque
+atual. Ele ainda morre ao expirar ou ao esgotar a penetração em um NPC,
+passando por `PreKill` e `OnKill`. Um veto em `PreKill` remove o projétil e
+encerra o fluxo antes de `OnKill`. Veja a
+[regressão do ciclo de morte](../../tools/tests/projectilekill/check.mjs).
+
+`SendExtraAI(writer)` e `ReceiveExtraAI(reader)` acompanham a sincronização
+do projétil. Use os leitores e escritores do loader descritos em [Rede](#rede).
+
 ### Atalhos e estáticos
 
 | | |
@@ -311,9 +351,7 @@ de lacaio e sentinela) vem do item que criou o projétil
 
 ### Ainda não
 
-`ModifyHitNPC`, `CanHitNPC`, `OnHitNPC` com as informações do golpe,
-`TileCollideStyle` (use `decidesManualFallThrough`/`shouldFallThrough`),
-`SendExtraAI`/`ReceiveExtraAI` (ver Rede).
+`ModifyHitNPC`, `CanHitNPC` e `OnHitNPC` com as informações completas do golpe.
 
 ---
 
@@ -349,6 +387,23 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `ModifyNPCLoot(npcLoot)` | Uma vez: os drops. | nativo |
 | `SetBestiary(database, bestiaryEntry)` | Uma vez: a entrada do Bestiário. | conteúdo pronto |
 | `HitEffect(npc, hitDirection, damage)` | A cada golpe, depois do efeito do jogo. | nativo (`NPC.HitEffect`), só se escrito |
+| `OnSpawn(npc, source)` | Uma vez após nascer; recebe a fonte nativa. | `NPC.NewNPC`, filtro no argumento Type e por sobrescrita |
+| `ResetEffects(npc)` | Depois de zerar os flags de buffs, antes de reaplicar efeitos e executar AI. | entrada de `NPC.UpdateNPC_BuffSetFlags`, filtro por tipo e sobrescrita |
+| `CanBeHitByItem(npc, player, item)` | `false` veta; `true` permite no teste de elegibilidade; `null`/`undefined` mantém o jogo. Um veto de ModPlayer prevalece. | fluxo compartilhado de `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `ModifyIncomingHit(npc, modifiers)` | Altera dano, empurrão, direção e crítico antes do golpe nativo. Não reaplica em `fromNet`. | `NPC.StrikeNPC_Inner`, filtro por tipo e sobrescrita |
+| `OnHitByItem(npc, player, item, hit, damageDone)` | Após dano efetivo de item, uma vez por golpe. | fluxo compartilhado de `NPC.StrikeNPC` |
+| `OnHitByProjectile(npc, projectile, hit, damageDone)` | Após dano efetivo de projétil, inclusive sem dono jogador. | `Projectile.Damage_PVE` e fluxo compartilhado de `NPC.StrikeNPC` |
+| `CanHitPlayer(npc, player, cooldownSlot)` | `false` veta dano; `cooldownSlot.value` altera o slot de imunidade. | fluxo compartilhado de `Player.Hurt` |
+| `ModifyHitPlayer(npc, player, modifiers)` | Altera os parâmetros de dano suportados pelo mobile antes de `Hurt`. | idem |
+| `OnHitPlayer(npc, player, hurtInfo)` | Após dano efetivo, recebe os dados do golpe e o slot usado. | idem |
+| `CheckDead(npc)` | Com NPC ativo e vida ≤ 0: `false` impede a morte; restaure a vida para evitar nova checagem. | `NPC.checkDead`, filtro por tipo e sobrescrita |
+| `ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment)` | Depois do escalonamento por jogadores. Recebe a contagem usada pelo NPC, balance calculado pelo jogo e ajuste 0,85 em Master ou 1 nos demais modos. | `NPC.ScaleStats_ByPlayerCount`, filtro por tipo e sobrescrita |
+| `DrawEffects(npc, drawColor)` | `Ref<Color>` da iluminação do centro; roda antes de `PreDraw`. A cor alterada passa pelo tint dos buffs do jogo. | duas sobrecargas de `Main.DrawNPCDirect`, filtro por NPC e sobrescrita |
+| `PreDraw(npc, spriteBatch, screenPos, drawColor)` | `false` pula o desenho nativo. | idem |
+| `PostDraw(npc, spriteBatch, screenPos, drawColor)` | Após desenhar, inclusive quando `PreDraw` veta. | idem |
+| `DrawBehind(npc, index)` | Após o cache de desenho; adicione o índice às listas `Main.instance.DrawCacheNPCs*`. | `Main.CacheNPCDraws`, só entidades rastreadas com sobrescrita |
+| `GetAlpha(npc, drawColor)` | `Color` substitui o resultado, inclusive alfa 0; `null`/`undefined` usa o jogo. | `NPC.GetAlpha`, filtro por tipo e sobrescrita |
+| `BossHeadSlot(npc, index)`, `BossHeadRotation(npc, rotation)`, `BossHeadSpriteEffects(npc, spriteEffects)` | Recebem `Ref` inicializada com o resultado do jogo. Índice -1 esconde o ícone. | getters `NPC.GetBossHead*`, filtro por tipo e sobrescrita |
 | `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | Todo quadro. `PreAI` → `false` pula a IA do jogo. | `NPC.AI`, filtro `tipo` |
 | `FindFrame(npc, frameHeight)` | Animação própria: mude `npc.frame`. | `NPC.FindFrame`, filtro `tipo` |
 | `CheckActive(npc)` | `false`: não some quando longe. | `NPC.CheckActive`, filtro `tipo` |
@@ -361,6 +416,10 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `CheckConditions(left, right, top, bottom)` | A sala serve para ele? | `WorldGen.CheckSpecialTownNPCSpawningConditions` |
 | `SetNPCNameList()` | Os nomes próprios; um é sorteado. | `NPC.getNewNPCName` |
 | `GetChat(npc)` | A fala ao conversar. | `NPC.GetChat`, filtro `tipo` |
+| `CanChat(npc)` | Decide se pode conversar, inclusive fora de AI 7; retorno indefinido mantém o jogo. | `NPC.get_CanTalk` e `get_CanBeTalkedTo`, filtro por tipo e sobrescrita |
+| `TownNPCProfile()` | Uma vez após carregar conteúdo: devolva um `ITownNPCProfile` nativo; `null` mantém a aparência automática. | registro em `TownNPCProfiles.Instance`, sem hook por frame |
+| `ModifyActiveShop(npc, shopName, items)` | Ao preencher uma loja registrada deste NPC em conversa, após `NPCShop` montar os itens. Recebe o nome local da loja e o array nativo de itens. | `InventoryStorage.SetupShop` |
+| `ModifyNPCHappiness(npc, player, primaryPlayerBiome, shopHelper, nearbyNPCsByType)` | Após as preferências nativas, antes de limitar o preço. Usa a alternativa de ExMod; o método está desativado no tModLoader stable. | `AllPersonalitiesModifier.ModifyShopPrice`, sem filtro nativo, somente cálculos de preço |
 | `SetChatButtons(npc, buttons)` | Os botões da conversa (até dois no celular). | `GUINPCDialogue.SetupButtonText` |
 | `OnChatButtonClicked(npc, firstButton)` | Tocou num botão; devolva o nome de uma loja para abri-la. | `GUINPCDialogue.Option1Clicked`/`Option2Clicked` |
 | `AddShops()` | Uma vez: as lojas (`NPCShop`). | conteúdo pronto |
@@ -372,6 +431,25 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 A música (`Music`) é decidida pelos hooks de `Main.UpdateAudio*`, instalados
 uma vez; ver o [guia 10](../mods/10-sons-e-musica.md).
 
+Os modificadores de entrada usam `damage`, `knockBack`, `hitDirection`, `crit`,
+`SourceDamage` e `Knockback` (`StatModifier`), além de `SetCrit()` e
+`DisableCrit()`. `ModifyHitPlayer` usa `damage`, `hitDirection`, `quiet`,
+`crit` e `dodgeable`, como o fluxo de `ModPlayer` do Bunny Loader.
+`hit` contém `Damage`, `SourceDamage`, `Knockback`, `HitDirection` e `Crit`;
+`damageDone` é o retorno efetivo do golpe nativo. Esses objetos são contratos
+JavaScript do Bunny Loader: não incluem os demais campos das estruturas do
+tModLoader. `hurtInfo` inclui `DamageSource`, `Damage`, `HitDirection`, `PvP`,
+`Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`.
+
+Os métodos sem contrato completo acessível no mobile foram descartados;
+as razões e os testes estão em
+[ModNPC: contratos e validação](../../tools/tests/modnpchooks/README.md).
+
+No callback de felicidade, o biome primário segue os IDs do ExMod: 0 floresta,
+1 subterrâneo, 2 neve, 3 deserto, 4 selva, 5 oceano, 6 sagrado, 7 cogumelo,
+8 masmorra, 9 corrupção e 10 carmim. `shopHelper` é nativo e aceita seus
+métodos de preferência; o array de vizinhos também vem do `HelperInfo` nativo.
+
 ### Estáticos
 
 | | |
@@ -381,11 +459,10 @@ uma vez; ver o [guia 10](../mods/10-sons-e-musica.md).
 
 ### Ainda não
 
-`CanHitPlayer`/`ModifyHitPlayer`/`OnHitPlayer`, `ModifyHitByItem`/`ByProjectile`
-e `OnHitByItem`/`ByProjectile`, `PreDraw`/`PostDraw`, ícone de
-chefe no mapa, sacola de tesouro, marca de chefe derrotado,
-`ModifyNPCHappiness`, `CanGoToStatue` e os ataques de morador além do
-projétil.
+`ModifyHitByItem`/`ModifyHitByProjectile`, `CanBeHitByProjectile`,
+`UpdateLifeRegen`, `ModifyDeathMessage`, `DrawHealthBar`, sacola de tesouro,
+marca de chefe derrotado, `CanGoToStatue` e os ataques de morador além
+do projétil.
 
 ---
 
@@ -414,6 +491,7 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `UpdateEquips(player)`, `PostUpdateEquips(player)` | Depois dos equipamentos. | `Player.UpdateEquips` |
 | `UpdateBadLifeRegen(player)`, `UpdateLifeRegen(player)` | Antes e depois da regeneração de vida. | `Player.UpdateLifeRegen` |
 | `UpdateManaRegen(player)` | Depois da regeneração de mana. | `Player.UpdateManaRegen` |
+| `PreModifyLuck(player, luck)`, `ModifyLuck(player, luck)` | A sorte, `luck.value`; `PreModifyLuck` false pula a do jogo. | `Player.RecalculateLuck` |
 | `UpdateMovement(player)` | Movimento próprio (dash), perto do fim do quadro. | `Player.BordersMovement` |
 | `FrameEffects(player)` | Depois de o jogo montar o que se desenha: trocar `player.head`/`body`/`legs` muda o desenho. | depois do `Player.PlayerFrame` |
 | `PostUpdate(player)` | Fim do quadro. | `Player.Update` |
@@ -439,8 +517,12 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `SaveData(data)` | A cada save: ponha o que lembrar em `data`. | `Player.InternalSavePlayerFile` |
 | `LoadData(data)` | Ao carregar o personagem. | `Player.LoadPlayer` |
 
-Os hooks do `ModPlayer` não têm filtro: rodam uma vez por jogador por
-quadro, o que é barato.
+Os hooks de `ModPlayer` são compartilhados e instalados conforme as
+sobrescritas. Hooks de atualização podem executar a cada tick por jogador;
+os de combate, item e desenho acompanham os respectivos eventos. Listas de
+callbacks são armazenadas em cache e os despachos frequentes evitam arrays
+temporários. O custo depende dos callbacks ativos e do que cada mod executa.
+Veja a [revisão e as medições](../../tools/tests/modplayerperf/RESULTADOS.md).
 
 ### Como achar a instância
 
@@ -451,11 +533,16 @@ quadro, o que é barato.
 | `ModPlayer.getByName('Classe')` | A do jogador **local** (para interface). |
 | `ModPlayer.register(Classe)` | Registra. |
 
-### Ainda não
+### Combate, itens, desenho, inventário e rede
 
-`ModifyHitNPC`/`OnHitNPC` do jogador, `ProcessTriggers` (teclas),
-`ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
-sincronização pela rede.
+A [referência completa dos hooks de ModPlayer](modplayer-hooks.md) descreve
+os hooks adicionais, as referências, os retornos, os descritores de saltos e
+camadas, e as adaptações do Terraria nativo.
+
+O teste com host e cliente reais teve 102 verificações sem falhas, incluindo
+desconexão e reconexão. Essa execução não cobre todos os hooks nem um
+servidor dedicado. Consulte os [resultados multiplayer](../../tools/tests/mpmodplayer/RESULTADOS.md)
+e o [roteiro com limites de cobertura](../../tools/tests/mpmodplayer/README.md).
 
 ---
 
@@ -599,8 +686,9 @@ Um penteado, como o `ModHair` do tModLoader. Tipo depois dos 228 do jogo.
 
 Save: o arquivo do jogo leva o cabelo 0 e o de mod vai pelo nome no
 `<personagem>.plr.bl.json` (`bunny:hair`); sem o mod, o personagem abre com
-o cabelo 0. O `HairID.Sets` e o `RandomizedCharacterCreationGender` do
-tModLoader não existem no celular.
+o cabelo 0. `Terraria.ID.HairID.Sets.DrawBackHair[this.Type] = true` no
+`SetStaticDefaults()` permite desenhar o cabelo atrás do jogador. O
+`RandomizedCharacterCreationGender` do tModLoader não existe no celular.
 
 ---
 
@@ -768,8 +856,8 @@ escreve não instala hook.
 |---|---|
 | `AppliesToEntity(entidade, lateInstantiation)` | `false`: os métodos do Global não rodam para ela. `lateInstantiation` é `false` na amostra do `ModifyNPCLoot`. |
 | `InstancePerEntity` | `true` (campo ou getter): cada entidade ganha a própria cópia, nascida no `SetDefaults`. |
-| `Clone(de, para)` | A cópia no `Item.Clone`. Padrão: os mesmos campos. |
-| `NewInstance(entidade)` | A cópia de uma entidade nova. Padrão: os campos do modelo. |
+| `Clone(from, to)` | Retorna uma cópia dos campos da instância global. No fluxo de itens, é chamado por `Item.Clone`. |
+| `NewInstance(target)` | A cópia de uma entidade nova. Padrão: os campos do modelo. |
 | `SetStaticDefaults()`, `AddRecipeGroups()`, `AddRecipes()`, `PostSetupContent()` | Uma vez, com o conteúdo pronto. |
 | `this.Mod` | O `Mod` de quem registrou. |
 
@@ -850,17 +938,39 @@ export class MaisInimigosNoBioma extends GlobalNPC {
 | `SetDefaults(projectile)` | O projétil nasce (também no outro lado da rede). | `Projectile.SetDefaults` |
 | `OnSpawn(projectile, source)` | Criado por `NewProjectile`, em quem criou. | `Projectile.NewProjectile` |
 | `PreAI`, `AI`, `PostAI(projectile)` | A cada quadro. | `Projectile.AI` |
-| `PreKill(projectile, timeLeft)`, `OnKill(projectile, timeLeft)` | Morte. `PreKill` `false`: some sem o efeito do jogo. | `Projectile.Kill` |
+| `PreKill(projectile, timeLeft)` | Antes da morte. `false` remove o projétil sem o efeito nativo e encerra o fluxo antes de `OnKill`. | `Projectile.Kill` |
+| `OnKill(projectile, timeLeft)` | Depois da morte nativa, quando `PreKill` não vetou. | `Projectile.Kill` |
 | `OnHitNPC(projectile, target)` | Acertou um NPC. | `Projectile.StatusNPC` |
 | `OnHitPlayer(projectile, target)` | Acertou um jogador. | `Projectile.StatusPlayer` |
+| `PreDraw(projectile, lightColor)` | Cor em `Ref<Color>`; `false` cancela o sprite. Todos os Globais rodam antes do método local, mantendo extras como correntes. | `Main.DrawProjDirect` |
+| `PostDraw(projectile, lightColor)` | Cor direta; roda depois do método local, mesmo com veto no desenho. | `Main.DrawProjDirect` |
+| `GetAlpha(projectile, lightColor)` | Primeiro `Color` global decide; `undefined`/`null` consulta o método local e o jogo. | `Projectile.GetAlpha` |
+| `Colliding(projectile, projHitbox, targetHitbox)` | Primeiro booleano global decide; `undefined`/`null` consulta o método local e o jogo. | `Projectile.Colliding`, `Projectile.Damage` |
+| `CanDamage(projectile)` | `false` global veta; `true` global prevalece sobre o método local. Condições nativas continuam valendo. | `Projectile.Damage` |
+| `ModifyDamageHitbox(projectile, hitbox)` | `Ref<Rectangle>`, depois do método local. | `Projectile.Damage_GetHitbox` |
+| `OnTileCollide(projectile, oldVelocity)` | `false` impede morte por choque; tempo e NPC continuam chamando `OnKill`. Todos os Globais rodam antes do método local. | `Projectile.HandleMovement`, `UpdatePosition`, `Kill` |
+| `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | Quatro `Ref`, depois do método local; primeiro `false` pula colisão neste movimento. | `Projectile.HandleMovement`, `GetCollisionParams` |
+| `MinionContactDamage(projectile)` | `true` permite dano por contato de pet. | `Projectile.Damage` |
+| `CanCutTiles(projectile)` | Primeiro booleano global decide; `false` impede corte padrão e personalizado. | `Projectile.CanCutTiles` |
+| `CutTiles(projectile)` | Globais, método local e corte padrão, quando permitido. | `Projectile.CutTiles` |
+| `CanUseGrapple(type, player)` | No template, filtrado por amostra do tipo; última resposta booleana global decide. | `Player.FireGrapple` |
+| `UseGrapple(player, type)` | Tipo em `Ref<number>`, depois do método local, para todos os templates que implementam o método. | `Player.FireGrapple` |
+| `GrappleCanLatchOnTo(projectile, player, tile)` | Recebe o bloco nativo; `false` global veta, `true` global permite. | `Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo` |
 | `NetSend(projectile, writer)`, `NetReceive(projectile, reader)` | Rede: junto com cada projétil sincronizado, de quem o controla. | `NetMessage.SendData` (27) |
+
+O [catálogo](metodos.md#globalprojectile) inclui as assinaturas completas e
+os métodos herdados de `GlobalType`. A
+[validação de GlobalProjectile](../../tools/tests/globalprojectilehooks/RESULTADOS.md)
+registra 59 verificações JavaScript e 38 verificações no jogo singleplayer,
+sem falhas. Os retornos opcionais, a ordem com `ModProjectile` e os quatro
+parâmetros de `TileCollideStyle` estão detalhados no
+[contrato de testes](../../tools/tests/globalprojectilehooks/README.md).
 
 ### Ainda não
 
 `NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
 `GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`,
-`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
-`GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
+`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`.
 
 ---
 
@@ -1348,6 +1458,50 @@ Vale também no Otherworld. `Priority` `None` não toca.
 
 ---
 
+## ModConfig
+
+Opções por mod, declaradas em `static Options`. O registro automático cria
+uma instância que pode ser obtida com `ModContent.GetInstance(Classe)`.
+O [guia de opções](../mods/14-opcoes-do-mod.md) descreve o menu e a persistência.
+As [assinaturas completas](metodos.md#modconfig) vêm da implementação.
+
+| Método | Contrato |
+|---|---|
+| `OnLoaded()` | Depois de carregar a configuração. |
+| `OnChanged(key)` | Quando uma opção é alterada na configuração aplicada. |
+| `OnApply()` | Notificação da aplicação das opções. |
+| `ResetToDefaults()` | Solicita ao loader a restauração dos valores padrão. |
+| `SetOption(key, value)` | Altera uma opção pela API de configuração. |
+| `ModConfig.Header(extra)`, `Toggle(defaultValue, extra)`, `Range(defaultValue, options)` | Descritores de título, interruptor e barra. |
+| `ModConfig.Radio(defaultValue, choices, extra)`, `Dropdown(...)`, `Cycle(...)` | Descritores de seleção. |
+| `ModConfig.Color(defaultValue, extra)`, `Button(action, extra)`, `Link(url, extra)` | Descritores de cor, ação e endereço. |
+| `ModConfig.register(Classe)` | Registra manualmente uma classe de configuração. |
+
+## DamageClass
+
+Uma classe de dano define herança de bônus, efeitos e prefixos. Ela pode ser
+usada em `item.DamageType` e `projectile.DamageType`. As instâncias nativas
+adaptadas são acessadas por `DamageClass.Melee`, `Magic`, `Ranged`, `Summon`
+e pelos demais getters listados no [catálogo](metodos.md#damageclass).
+
+| Método | Contrato |
+|---|---|
+| `GetModifierInheritance(damageClass)` | Retorna `StatInheritanceData`; por padrão, herda todos os bônus de `Generic` e nenhum dos demais. |
+| `GetEffectInheritance(damageClass)` | Define se herda os efeitos da outra classe; padrão `false`. |
+| `GetPrefixInheritance(damageClass)` | Define a herança de prefixos; padrão delega a `GetEffectInheritance`. |
+| `SetStaticDefaults()`, `SetDefaultStats(player)` | Inicialização do tipo e dos atributos do jogador. |
+| `UseStandardCritCalcs` | Getter com padrão `true`. |
+| `ShowStatTooltipLine(player, lineName)` | Controla a linha de atributo no tooltip; padrão `true`. |
+| `CountsAsClass(damageClass)`, `GetsPrefixesFor(damageClass)` | Consultam as relações entre classes registradas. |
+| `DamageClass.register(Classe)` | Registra manualmente e retorna o tipo. |
+
+`StatModifier` aplica `(valor + Base) * Additive * Multiplicative + Flat`.
+Seus campos são mutáveis em JavaScript. `ApplyTo`, `CombineWith`, `Scale`,
+`Undo`, `Clone` e `Equals` estão no [catálogo de StatModifier](metodos.md#statmodifier).
+`StatInheritanceData` aceita cinco fatores ou um objeto com esses fatores;
+`Full` e `None` devolvem instâncias novas. Veja o
+[guia de classes de dano](../mods/15-classes-de-dano.md) para compor esses atributos.
+
 ## Ajudantes
 
 Globais, com os nomes do tModLoader:
@@ -1372,8 +1526,6 @@ Classes do tModLoader sem equivalente hoje. Dá para fazer o efeito com hooks
 diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
 
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- `ModMount`, `ModBiome`, `ModSceneEffect`, `ModWall`, `ModDust`,
-  `ModRarity`, `ModWaterStyle` e os estilos de fundo;
-- `ModKeybind`, `ModCommand`, `ModConfig`;
+- `ModDust` e `ModKeybind`;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);
 - `ModTree`, `ModPalmTree`, `ModCactus` e os pilares (`ModPylon`).
