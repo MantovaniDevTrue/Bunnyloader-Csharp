@@ -60,8 +60,8 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
     EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
-    TagCompound Loaders/SystemLoader ModSystem
-    Loaders/PlayerCombatHooks Loaders/PlayerItemHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
+    TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
+    Loaders/PlayerCombatHooks Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
     Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
@@ -130,5 +130,6 @@ target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 # MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
 # milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
 set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
+    content/textures/TexturePacks.cpp
     PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)

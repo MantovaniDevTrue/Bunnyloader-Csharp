@@ -73,7 +73,7 @@ Os modificadores de dano recebido mantêm o contrato existente de
 | `CanAutoReuseItem(player, item)` | Decisão opcional, preservando os campos permanentes do item. |
 | `ModifyWeaponCrit(player, item, crit)` | `crit` é `Ref<int>`. |
 | `ModifyWeaponKnockback(player, item, knockback)` | `knockback` é `StatModifier`. |
-| `ModifyItemScale(player, item, scale)` | `scale` é `Ref<float>`. |
+| `ModifyItemScale(player, item, scale)` | `scale` é `Ref<float>` do multiplicador. Atua em `GetAdjustedItemScale` e na hitbox nativa, junto com ModItem. |
 | `UseSpeedMultiplier(player, item)` | Divisor dos tempos de uso e animação; padrão `1`. |
 | `UseTimeMultiplier(player, item)` | Multiplica o tempo de uso; padrão `1`. |
 | `UseAnimationMultiplier(player, item)` | Multiplica o tempo da animação; padrão `1`. |
@@ -141,6 +141,43 @@ A ordenação reorganiza os dados produzidos pelas camadas nativas, preservando
 as regras de posição e equipamento do jogo. Ciclos são ignorados com aviso.
 O cache é `drawInfo.DrawDataCache`, com `drawInfo.DrawDataCacheCount` entradas
 ativas. As visibilidades são restauradas ao terminar cada desenho.
+
+Classes exportadas que estendem `PlayerDrawLayer` também são registradas
+automaticamente. Implemente `GetDefaultPosition()` e `Draw(drawInfo)`;
+`GetDefaultVisibility(drawInfo)` é opcional. Consulte o
+[contrato e exemplo de glowmask](playerdrawlayers.md). Filhos acompanham a
+visibilidade e o deslocamento do pai. A consulta de visibilidade ocorre
+em cada desenho, e as posições padrão ficam em cache. Camadas nativas sem
+mudanças continuam fora do despacho JavaScript.
+
+No jogo móvel, `DrawDataCache` é um array de capacidade fixa, e não uma lista
+do [tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/DataStructures/PlayerDrawSet.cs.patch). Escrever uma entrada sem incrementar `DrawDataCacheCount` não
+a inclui no desenho e permite que a próxima camada a sobrescreva. Use
+`ModPlayer.AddDrawData(drawInfo, drawData)`: grava no próximo slot ativo e só
+incrementa o contador depois da escrita. Retorna `false` se o cache estiver
+cheio, o contador for inválido ou faltar o cache ou o dado. Não aloca outro
+array nem instala hooks. O desenho continua passando pelas transformações,
+shaders e renderização nativos.
+
+```js
+ModifyDrawInfo(player, drawInfo) {
+    const Main = Terraria.Main;
+    const drawData = Terraria.DataStructures.DrawData.new();
+    drawData['void .ctor(Texture2D texture, Vector2 position, Rectangle sourceRect, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effect, int inactiveLayerDepth)'](
+        Terraria.GameContent.TextureAssets.MagicPixel.Value,
+        Vector2.new(drawInfo.Position.X - Main.screenPosition.X - 24, drawInfo.Position.Y - Main.screenPosition.Y),
+        Rectangle.new(0, 0, 1, 1), Color.new(255, 0, 255, 255),
+        0, Vector2.new(0, 0), 16, 0, 0
+    );
+    ModPlayer.AddDrawData(drawInfo, drawData);
+}
+```
+
+Em `ModifyDrawInfo`, a entrada precede os dados produzidos pelas camadas
+nativas e pode ficar atrás do jogador. Em `TransformDrawData`, ela entra
+depois das transformações daquele callback; forneça a posição final desejada.
+`DrawData.Draw(Main.spriteBatch)` desenha imediatamente e não acrescenta uma
+entrada ao cache. Teste nativo: [cache de desenho do jogador](../../tools/tests/playerdrawcache/README.md).
 
 ## Pesca, serviços e inventário
 

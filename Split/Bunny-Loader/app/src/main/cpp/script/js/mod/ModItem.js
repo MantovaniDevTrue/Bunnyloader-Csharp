@@ -51,12 +51,39 @@ class ModItem {
     IsAnglerQuestAvailable() { return true; }
     AnglerQuestChat(description, catchLocation) {}
     HoldItem(item, player) {}
+    UseAnimation(item, player) {}
+    UseItemFrame(item, player) {}
+    HoldItemFrame(item, player) {}
     UseStyle(item, player, mountOffset, heldItemFrame) {}
     HoldStyle(item, player, mountOffset, heldItemFrame) {}
     HoldoutOffset(item, player) { return undefined; }
     CanShoot(item, player) { return true; }
     ModifyShootStats(item, player, stats) {}
     Shoot(item, player, position, velocity, type, damage, knockBack) { return true; }
+    NeedsAmmo(item, player) { return true; }
+    CanChooseAmmo(item, ammo, player) { return null; }
+    CanBeChosenAsAmmo(item, weapon, player) { return null; }
+    CanConsumeAmmo(item, ammo, player) { return true; }
+    CanBeConsumedAsAmmo(item, weapon, player) { return true; }
+    OnConsumeAmmo(item, ammo, player) {}
+    OnConsumedAsAmmo(item, weapon, player) {}
+    PickAmmo(item, weapon, player, type, speed, damage, knockback) {}
+    GetHealLife(item, player, quickHeal, healValue) {}
+    GetHealMana(item, player, quickHeal, healValue) {}
+    ModifyPotionDelay(item, player, baseDelay) {}
+    ApplyPotionDelay(item, player, potionDelay) { return true; }
+    ModifyWeaponDamage(item, player, damage) {}
+    ModifyWeaponCrit(item, player, crit) {}
+    ModifyWeaponKnockback(item, player, knockback) {}
+    ModifyItemScale(item, player, scale) {}
+    CanHitNPC(item, player, target) { return null; }
+    ModifyHitNPC(item, player, target, modifiers) {}
+    CanHitPvp(item, player, target) { return true; }
+    ModifyHitPvp(item, player, target, modifiers) {}
+    OnHitPvp(item, player, target, hurtInfo) {}
+    CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
+    MeleeEffects(item, player, hitbox) {}
+    UseItemHitbox(item, player, hitbox, noHitbox) {}
     OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
@@ -316,7 +343,7 @@ class ModItem {
             },
         });
         inst.Type = type;
-        Lang.Follow('ItemName.' + name, inst.DisplayName || Lang.Localized('ItemName', name));
+        Lang.Follow('ItemName.' + name, inst.DisplayName || Lang.Localized('ItemName', name) || name);
         ItemLoader.ByType.set(type, inst);
         EquipLoader.Autoload(inst, cls, name);
         Safe.Run(name + '.Load', () => inst.Load());

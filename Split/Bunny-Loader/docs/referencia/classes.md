@@ -116,10 +116,37 @@ própria instância, com `this.Item` apontando para ele.
 | `HoldItem(item, player)` | Todo quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, filtro `tipo` |
 | `UseStyle(item, player, mountOffset, frame)` | Todo quadro de uso, depois do estilo do jogo. | idem |
 | `HoldStyle(item, player, mountOffset, frame)` | Todo quadro segurando, depois do estilo do jogo. | idem |
+| `UseAnimation(item, player)` | Antes do cálculo nativo da duração da animação. | `Player.ApplyItemAnimation`, marcas por tipo e ponto compartilhado com ModPlayer |
+| `UseItemFrame(item, player)` | Depois do frame nativo, durante animação de uso. | `Player.PlayerFrame`, filtro nativo pelo item selecionado |
+| `HoldItemFrame(item, player)` | Depois do frame nativo, ocioso e com item visualmente permitido. | idem |
+| `GetHealLife(item, player, quickHeal, healValue)` | Vida restaurada (`Ref`), com cura base positiva; também na seleção de QuickHeal. | `Player.ApplyLifeAndOrMana` e `QuickHeal_GetItemToUse_TryChoosingItem`, marcas por tipo |
+| `GetHealMana(item, player, quickHeal, healValue)` | Mana restaurada (`Ref`), com cura base positiva. | `Player.ApplyLifeAndOrMana`, marcas por tipo |
+| `ModifyPotionDelay(item, player, baseDelay)` | Atraso calculado pelo jogo móvel (`Ref`), antes do veto e da aplicação. | `Player.ApplyPotionDelay`, `AddBuff` com `whileIn` |
+| `ApplyPotionDelay(item, player, potionDelay)` | `false`: impede o contador e o buff de doença de poção; conserva cura e consumo. | idem, compartilhado com ModPlayer |
+| `NeedsAmmo(item, player)` | `false`: pode atirar com a munição padrão temporária quando não há candidato. | `Player.HasAmmo` e `PickAmmo`, marcas por tipo |
+| `CanChooseAmmo(item, ammo, player)` | Arma: `false` rejeita; `true` permite outra categoria; `null` conserva categoria nativa. | `Player.PickAmmo_IterateRange`, marcas por tipo |
+| `CanBeChosenAsAmmo(item, weapon, player)` | Munição: compõe a seleção; qualquer veto prevalece. | idem, inclusive para arma vanilla |
+| `CanConsumeAmmo(item, ammo, player)` | Arma: `false` conserva a pilha sem impedir o tiro. | `Player.PickAmmo`, compartilhado com ModPlayer |
+| `CanBeConsumedAsAmmo(item, weapon, player)` | Munição: `false` conserva a pilha. | idem |
+| `OnConsumeAmmo(item, ammo, player)` | Arma: consumo efetivo, com a pilha já reduzida e antes de limpar o tipo. | idem |
+| `OnConsumedAsAmmo(item, weapon, player)` | Munição: consumo efetivo, inclusive da última unidade. | idem |
+| `PickAmmo(item, weapon, player, type, speed, damage, knockback)` | Munição: três `Ref<number>` e `StatModifier` do dano total móvel. | depois do `Player.PickAmmo` nativo, antes do retorno |
 | `HoldoutOffset(item, player)` | Devolva `{ X, Y }`: desloca a arma na mão. | idem |
 | `CanShoot(item, player)` | `false`: usa, mas não atira. | `Player.ItemCheck_Shoot`, filtro `tipo` |
 | `ModifyShootStats(item, player, stats)` | Antes de cada projétil: `stats.position`, `velocity`, `type`, `damage`, `knockBack`. | idem + `Projectile.NewProjectile` (sem filtro; só age durante o tiro) |
 | `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: o projétil do jogo não nasce. | idem |
+| `ModifyWeaponDamage(item, player, damage)` | `StatModifier`; também aceita retorno numérico. | `Player.GetWeaponDamage`, marcas por tipo |
+| `ModifyWeaponCrit(item, player, crit)` | `crit` é `Ref<number>`. | `Player.GetWeaponCrit`, marcas por tipo |
+| `ModifyWeaponKnockback(item, player, knockback)` | `knockback` é `StatModifier`. | `Player.GetWeaponKnockback`, marcas por tipo |
+| `ModifyItemScale(item, player, scale)` | `scale` é `Ref<number>` do multiplicador, incluindo a luva nativa. | `Player.GetAdjustedItemScale` e `ItemCheck_GetMeleeHitbox`, marcas por tipo |
+| `CanHitNPC(item, player, target)` | `false` veta; `true` permite a elegibilidade; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `ModifyHitNPC(item, player, target, modifiers)` | Modifica o dano, crítico, direção e repulsão do golpe corpo a corpo. | `NPC.StrikeNPC`, contexto do item |
+| `CanHitPvp(item, player, target)` | `false` impede o golpe corpo a corpo. | `Player.ItemCheck_MeleeHitPVP` e `Hurt` |
+| `ModifyHitPvp(item, player, target, modifiers)` | Objeto JS com os parâmetros mutáveis do dano recebido. | `Player.Hurt`, contexto do ataque corpo a corpo |
+| `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo, com `HurtInfo` do resultado aplicado. | retorno de `Player.Hurt`, contexto do ataque corpo a corpo |
+| `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta; `true` permite a colisão; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC`, `Rectangle.Intersects` com flag e `whileIn` |
+| `MeleeEffects(item, player, hitbox)` | Depois dos efeitos visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals`, marcas por tipo |
+| `UseItemHitbox(item, player, hitbox, noHitbox)` | `Ref<Rectangle>` e `Ref<boolean>` depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox`, marcas por tipo |
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. | `Player.ApplyNPCOnHitEffects`, filtro `tipo` |
 | `UpdateEquip(item, player)` | Todo quadro, equipado (armadura ou acessório). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits`, filtro `tipo` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, acessório equipado (também no slot de vaidade). | `Player.ApplyEquipFunctional`, `ApplyEquipVanity`, filtro `tipo` |
@@ -144,6 +171,10 @@ própria instância, com `this.Item` apontando para ele.
 | `PrefixChance(item, pre, rand)` | `false` impede, `true` força um prefixo; `null` = o do jogo (`pre`: -1 criar/baú, -2 reforja). | `Item.Prefix`, sem filtro |
 | `AllowPrefix(item, pre)` | `false` tira esse prefixo das opções. | `Item.GetRollablePrefixes` |
 | `ApplyPrefix(item, pre)` | Depois dos status do prefixo. | `Item.Prefix`, sem filtro |
+
+Os contratos completos dos modificadores, a ordem entre classes e os limites
+do PvP estão em [Combate de ModItem](moditem-combate.md). Seleção, consumo e
+as adaptações móveis estão em [Uso e munição de ModItem](moditem-uso-municao.md).
 
 ### Atalhos
 
@@ -177,11 +208,11 @@ própria instância, com `this.Item` apontando para ele.
 
 ### Ainda não
 
-Do `ModItem` do tModLoader, entre outros: `ModifyHitNPC`, `MeleeEffects`,
-`PreDrawInWorld`/`PostDrawInInventory`,
-`OnPickup`, `GrabRange`, `ModifyWeaponDamage` (há no `ModPlayer`),
+Do `ModItem` do tModLoader, entre outros: `PreDrawInWorld`/`PostDrawInInventory`,
+`OnPickup`, `GrabRange`,
 `DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
-`ModifyEquipTextureDraw` e as camadas de desenho próprias (`PlayerDrawLayer`).
+`ModifyEquipTextureDraw`. As camadas de desenho próprias
+([`PlayerDrawLayer`](playerdrawlayers.md)) já podem ser registradas e desenhadas.
 
 ### Texturas vestidas: EquipLoader e EquipTexture
 
@@ -530,6 +561,7 @@ Veja a [revisão e as medições](../../tools/tests/modplayerperf/RESULTADOS.md)
 |---|---|
 | `player.GetModPlayer(Classe)`, `GetModPlayer('Classe')` ou `GetModPlayer('mod/Classe')` | A instância daquele jogador. Pelo nome: a do seu mod; se o nome é de outro mod e mais de um mod o tem, `undefined` e aviso no log. Dois mods podem ter `ModPlayer` com o mesmo nome. |
 | `Classe.get(player)` | O mesmo. |
+| `AddDrawData(drawInfo, drawData)` | Estático de ModPlayer: grava no próximo slot ativo e incrementa DrawDataCacheCount depois da escrita. Retorna true na inserção e false para cache cheio, contador inválido ou cache/dado ausente. |
 | `ModPlayer.getByName('Classe')` | A do jogador **local** (para interface). |
 | `ModPlayer.register(Classe)` | Registra. |
 
@@ -1019,13 +1051,43 @@ Cada método de mundo só ganha hook se algum `ModSystem` o escreveu.
 | `ResetNearbyTileEffects()` | Antes de o jogo contar os blocos em volta do jogador local (a cada 5 quadros), e também ao sair do mundo e ao carregar outro (a contagem do anterior não vale no novo). | `SceneMetrics.Reset`, `WorldGen.SaveAndQuit`, `WorldGen.clearWorld` |
 | `TileCountsAvailable(tileCounts)` | Com a contagem pronta: `tileCounts[tipo]` é quantos blocos daquele tipo há em volta. Vale durante a chamada: guarde o número, não o array. Só a varredura do jogador local (a dos pilares e a da câmera não chamam). | `SceneMetrics.AggregateTileCounts` |
 | `NetSend(writer)`, `NetReceive(reader)` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | `NetMessage.SendData` (7) |
+| `OnModUnload()` | Uma vez na saída normal ou no shutdown do motor JS. | `Main.QuitGame`, shutdown do runtime |
+| `OnLocalizationsLoaded()` | Após aplicar os textos dos mods, inicialmente e a cada troca de idioma. | `LanguageManager.LoadFilesForCulture`, aplicação inicial adiada |
+| `ResizeArrays()` | Conteúdo pronto, antes das fases de setup. | fase resize de Ready |
+| `PostSetupRecipes()` | Depois de todas as receitas, pós-hooks e caches. | fase finish de Ready |
+| `PreWorldGen()` | Antes de executar a lista de geração já montada pelo mobile. | `WorldGenerator.GenerateWorld` |
+| `ModifyWorldGenTasks(tasks)` | Array JS de GenPass: inserir, remover, ordenar, alterar peso e desativar. | idem |
+| `PostWorldGen()` | Depois de uma geração concluída; cancelamento não chama. | idem |
+| `ModifyHardmodeTasks(tasks)` | Array JS; etapa nativa única Hardmode Conversion. | `WorldGen.initializeHardMode` |
+| `UpdateUI(gameTime)` | Depois da atualização de UI dentro do mundo, inclusive pausado. | `Main.UpdateUIStates` |
+| `PostUpdateInput()` | Depois do processamento da entrada. | `Main.DoUpdate_HandleInput` |
+| `PreUpdateEntities()` | Antes dos grupos de entidades. | entrada de `Main.DoUpdateInWorld` |
+| `PreUpdatePlayers()`, `PostUpdatePlayers()` | Uma vez nas bordas do grupo de jogadores. | pontos internos de `Main.DoUpdateInWorld` |
+| `PreUpdateNPCs()`, `PostUpdateNPCs()` | Uma vez nas bordas do grupo de NPCs. | idem |
+| `PreUpdateGores()`, `PostUpdateGores()` | Uma vez nas bordas do grupo de gores. | idem |
+| `PreUpdateProjectiles()`, `PostUpdateProjectiles()` | Uma vez nas bordas do grupo de projéteis. | `Main.PreUpdateAllProjectiles`, ponto interno de `Main.DoUpdateInWorld` |
+| `PreUpdateItems()`, `PostUpdateItems()` | Uma vez nas bordas do grupo de WorldItem. | pontos internos de `Main.DoUpdateInWorld` |
+| `PreUpdateDusts()`, `PostUpdateDusts()` | Antes e depois de atualizar partículas. | `Dust.UpdateDust` |
+| `PreUpdateInvasions()`, `PostUpdateInvasions()` | Antes e depois da rotina de invasões. | `Main.UpdateInvasion` |
+| `ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate)` | Três Ref independentes; clock double, tiles e eventos com acumulação fracionária. | `Main.UpdateTimeRate`, ponto interno de `Main.UpdateTime` |
+| `ModifySunLightColor(tileColor, backgroundColor)` | Dois Ref de cor depois do cálculo nativo. | `Main.ApplyColorOfTheSkiesToTiles` |
+| `ModifyLightingBrightness(scale)` | Ref de escala de brilho depois do cálculo nativo. | `Lighting.UpdateGlobalBrightness` |
+| `ModifyScreenPosition()` | Depois da câmera e de ModPlayer, dentro do mundo; altere Main.screenPosition. | hook compartilhado de `Main.DoDraw_UpdateCameraPosition` |
+| `ModifyTransformMatrix(transform)` | Ref de SpriteViewMatrix depois do zoom, antes de ler a matriz. | ponto interno de `Main.DoDraw` |
+| `SaveWorldHeader(tag)` | Cabeçalho em `.wld.bl.header.json`, separado dos dados completos. | `WorldFile.InternalSaveWorld` |
+| `CanWorldBePlayed(playerData, worldData)` | false bloqueia a combinação de personagem e mundo. | `GUIWorldSelectMenu.CanWorldBePlayed`, `PlayWorldCheck`, `WorldFile.LoadWorld` |
+| `WorldCanBePlayedRejectionMessage(playerData, worldData)` | Mensagem do primeiro sistema que bloqueou. | fluxo de rejeição do loader |
+| `HijackGetData(messageType, reader, playerNumber)` | Ref de tipo e leitor; qualquer true cancela o pacote. | `MessageBuffer.ProcessData` |
+| `HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7)` | Qualquer true cancela envio e envelope de entidade. | pipeline compartilhado de `NetMessage.SendData` |
 
 Os dados vão para `<mundo>.wld.bl.json`, ao lado do `.wld`, uma entrada por
 `ModSystem` (a chave é o uid do mod e o nome da classe). `ModSystem.register(Classe)`
 devolve a instância (a de `ModContent.GetInstance`).
 
-**Ainda não**: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
-jogadores, NPCs, projéteis e itens separados.
+Os contratos de geração, cabeçalho, taxas e rede estão em
+[ModSystem: geração e integração móvel](modsystem-hooks.md).
+`RequiresScreenTarget` foi descartado por falta de um caminho de captura
+compatível no renderer móvel. `ModifyInterfaceLayers` permanece sem implementação.
 
 ---
 
@@ -1253,6 +1315,14 @@ and Boulder). Também não há o `UserInterface` do tema.
 
 ---
 
+Os novos ganchos de atualização, geração, desenho, ciclo de conteúdo e rede estão descritos em [ModSystem: contratos e limitações](modsystem-hooks.md). `RequiresScreenTarget` foi descartado: a captura de tela do tModLoader não existe no caminho de desenho Unity móvel.
+
+## GenPass e PassLegacy
+
+`GenPass` representa uma etapa do gerador móvel. Estenda a classe e implemente `ApplyPass(progress, configuration)`, ou use `new PassLegacy(nome, função, peso)`. Nome e peso devem ser válidos; peso zero é permitido. `Name`, `Weight` e `Enabled` refletem a etapa nativa; `Disable()` e `Enable()` controlam a execução. `Apply(progress, configuration)` respeita `Enabled`. O construtor usa peso 1 por padrão.
+
+`ModifyWorldGenTasks(tasks)` recebe um array JavaScript de etapas, incluindo as nativas. Use `findIndex`, `splice`, `push` e `Disable()`; mudanças são aplicadas à lista do jogo antes de gerar. Leia [exemplo e adaptação do Hardmode](modsystem-hooks.md).
+
 ## TagCompound
 
 Os dados que um mod salva: o `tag` do `SaveWorldData`/`LoadWorldData` e do
@@ -1407,6 +1477,14 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 |---|---|
 Toda chave de `Localization/<cultura>.json` já está no jogo como
 `Mods.<id do mod>.<Secao>.<Chave>` (qualquer profundidade), e segue a troca de idioma.
+
+Os textos entram após o original de `LanguageManager.LoadFilesForCulture`, antes
+dos eventos de idioma e do processamento nativo de referências. Nomes, descrições,
+tooltips e rótulos de configuração acompanham a troca; referências `{$chave}`
+ao jogo são resolvidas na cultura carregada. Uma string retornada por `Translate`
+ou `GetTextValue` e guardada pelo mod mantém seu valor: consulte ao usar ou guarde
+o `LocalizedText` de `GetText` e leia `.Value`. Referências circulares terminam
+no nome completo da chave que fecha o ciclo.
 
 | | |
 |---|---|
