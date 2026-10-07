@@ -164,6 +164,7 @@ TerrariaSnapshot captureTerrariaSnapshot() {
         if (!projectile) continue;
 
         const bool active = runtime::field<uint8_t>(projectile, g.proj.active) != 0;
+        sample.flags = active ? 1 : 0;
         sample.type = runtime::field<int32_t>(projectile, g.proj.type);
         sample.owner = runtime::field<int32_t>(projectile, g.proj.owner);
         sample.timeLeft = runtime::field<int32_t>(projectile, g.proj.timeLeft);
@@ -174,7 +175,6 @@ TerrariaSnapshot captureTerrariaSnapshot() {
         sample.y = active ? center.y : 0.0f;
         sample.vx = active ? velocity.x : 0.0f;
         sample.vy = active ? velocity.y : 0.0f;
-        if (!active) sample.timeLeft = -sample.timeLeft - 1;
         if (active) ++out.activeProjectiles;
     }
 
