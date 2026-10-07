@@ -80,6 +80,7 @@ struct Claim {
     int generation = 0;
     int targetIndex = -1;
     int writes = 0;
+    int aiCalls = 0;
 };
 
 std::mutex g_mutex;
@@ -169,8 +170,12 @@ void applyWrite(Il2CppObject* projectile) {
 }
 
 void hkAi(Il2CppObject* self, const MethodInfo* method) {
-    g_origAi(self, method);
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        if (g_claim.object == self) ++g_claim.aiCalls;
+    }
     applyWrite(self);
+    g_origAi(self, method);
 }
 
 void hkKill(Il2CppObject* self, const MethodInfo* method) {
@@ -193,6 +198,7 @@ ProjectileWriteStatus statusLocked() {
     out.generation = g_claim.generation;
     out.targetIndex = g_claim.targetIndex;
     out.writes = g_claim.writes;
+    out.aiCalls = g_claim.aiCalls;
     out.valid = g_claim.object && claimMatches(g_claim.object, g_claim);
     return out;
 }
@@ -274,6 +280,7 @@ ProjectileWriteStatus claimProjectile(int requestedSlot) {
             g_claim.generation = g_generation.fetch_add(1, std::memory_order_relaxed) + 1;
             g_claim.targetIndex = -1;
             g_claim.writes = 0;
+            g_claim.aiCalls = 0;
 
             BL_INFO("csharp write: claim projectile[%d] type=%d owner=%d generation=%d",
                     g_claim.slot, g_claim.type, g_claim.owner, g_claim.generation);
