@@ -1,0 +1,41 @@
+name: Publish ModInput vanilla editor bundle
+
+on:
+  push:
+    branches:
+      - bunny-upstream-latest-icons
+    paths:
+      - ".github/workflows/publish-mod-input-vanilla.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect signed APK and source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/modinput-release"
+          gh release download bunny-mod-input-v1             --repo "${{ github.repository }}"             --pattern "BunnyLoader-v0.1.9.2-ModInput.apk"             --dir "$RUNNER_TEMP/modinput-release"
+          gh release download bunny-mod-input-source-v1             --repo "${{ github.repository }}"             --pattern "BunnyLoader-ModInput-0.1.9.3-Source.zip"             --dir "$RUNNER_TEMP/modinput-release"
+          cp "$RUNNER_TEMP/modinput-release/BunnyLoader-v0.1.9.2-ModInput.apk"              "$RUNNER_TEMP/modinput-release/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk"
+          sha256sum "$RUNNER_TEMP/modinput-release/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk"             > "$RUNNER_TEMP/modinput-release/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk.sha256"
+
+      - name: Publish bundle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="bunny-mod-input-vanilla-editor-v1"
+          DIR="$RUNNER_TEMP/modinput-release"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG"               "$DIR/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk"               "$DIR/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk.sha256"               "$DIR/BunnyLoader-ModInput-0.1.9.3-Source.zip"               --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG"               "$DIR/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk#BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk"               "$DIR/BunnyLoader-v0.1.9.3-VanillaTouchEditor.apk.sha256#SHA-256"               "$DIR/BunnyLoader-ModInput-0.1.9.3-Source.zip#BunnyLoader-ModInput-0.1.9.3-Source.zip"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader v0.1.9.3 Vanilla Touch Editor"               --notes "ModInput test build with SecondaryUse, Terraria touch-editor detection, vanilla-style custom control selection/panel, locked gameplay layout, persistent size/position, and an upstream-ready source package."               --prerelease
+          fi
