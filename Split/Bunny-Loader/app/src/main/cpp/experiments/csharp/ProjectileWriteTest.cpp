@@ -25,6 +25,7 @@ struct Refs {
     bool ok = false;
     FieldInfo* projectiles = nullptr;
     const MethodInfo* getMyPlayer = nullptr;
+    const MethodInfo* updateProjectiles = nullptr;
 };
 
 Refs& refs() {
@@ -36,11 +37,12 @@ Refs& refs() {
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     r.projectiles = main ? findField(main, "projectile") : nullptr;
     r.getMyPlayer = main ? api().class_get_method_from_name(main, "get_myPlayer", 0) : nullptr;
-    r.ok = r.projectiles && r.getMyPlayer && runtime::resolveGameRefs();
+    r.updateProjectiles = main ? api().class_get_method_from_name(main, "UpdateProjectiles", 0) : nullptr;
+    r.ok = r.projectiles && r.getMyPlayer && r.updateProjectiles && runtime::resolveGameRefs();
 
     if (!r.ok) {
-        BL_WARN("csharp write: refs incompletas (projectile=%p myPlayer=%p)",
-                (void*)r.projectiles, (void*)r.getMyPlayer);
+        BL_WARN("csharp write: refs incompletas (projectile=%p myPlayer=%p UpdateProjectiles=%p)",
+                (void*)r.projectiles, (void*)r.getMyPlayer, (void*)r.updateProjectiles);
     }
     return r;
 }
@@ -80,19 +82,28 @@ struct Claim {
     int generation = 0;
     int targetIndex = -1;
     int writes = 0;
-    int updateCalls = 0;
+    int loopCalls = 0;
+};
+
+struct LastClaim {
+    int slot = -1;
+    int type = -1;
+    int targetIndex = -1;
+    int writes = 0;
+    int loopCalls = 0;
 };
 
 std::mutex g_mutex;
 Claim g_claim;
+LastClaim g_last;
 bool g_installed = false;
 std::atomic<int> g_generation{0};
 
-using ProjectileUpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using MainUpdateProjectilesFn = void (*)(const MethodInfo*);
 using ProjectileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
 using ProjectileSetDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 
-ProjectileUpdateFn g_origUpdate = nullptr;
+MainUpdateProjectilesFn g_origUpdateProjectiles = nullptr;
 ProjectileKillFn g_origKill = nullptr;
 ProjectileSetDefaultsFn g_origSetDefaults = nullptr;
 
@@ -108,6 +119,13 @@ bool claimMatches(Il2CppObject* projectile, const Claim& claim) {
 }
 
 void clearClaimLocked() {
+    if (g_claim.object) {
+        g_last.slot = g_claim.slot;
+        g_last.type = g_claim.type;
+        g_last.targetIndex = g_claim.targetIndex;
+        g_last.writes = g_claim.writes;
+        g_last.loopCalls = g_claim.loopCalls;
+    }
     g_claim = {};
 }
 
@@ -169,13 +187,17 @@ void applyWrite(Il2CppObject* projectile) {
     }
 }
 
-void hkUpdate(Il2CppObject* self, int32_t i, const MethodInfo* method) {
+void hkUpdateProjectiles(const MethodInfo* method) {
+    Il2CppObject* claimed = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_mutex);
-        if (g_claim.object == self) ++g_claim.updateCalls;
+        if (g_claim.object) {
+            ++g_claim.loopCalls;
+            claimed = g_claim.object;
+        }
     }
-    applyWrite(self);
-    g_origUpdate(self, i, method);
+    if (claimed) applyWrite(claimed);
+    g_origUpdateProjectiles(method);
 }
 
 void hkKill(Il2CppObject* self, const MethodInfo* method) {
@@ -198,7 +220,12 @@ ProjectileWriteStatus statusLocked() {
     out.generation = g_claim.generation;
     out.targetIndex = g_claim.targetIndex;
     out.writes = g_claim.writes;
-    out.updateCalls = g_claim.updateCalls;
+    out.loopCalls = g_claim.loopCalls;
+    out.lastSlot = g_last.slot;
+    out.lastType = g_last.type;
+    out.lastTargetIndex = g_last.targetIndex;
+    out.lastWrites = g_last.writes;
+    out.lastLoopCalls = g_last.loopCalls;
     out.valid = g_claim.object && claimMatches(g_claim.object, g_claim);
     return out;
 }
@@ -210,10 +237,10 @@ bool installProjectileWriteTest() {
     if (!available() || !refs().ok) return false;
 
     const auto& g = runtime::game();
-    if (!g.proj.update || !g.proj.kill || !g.proj.setDefaults) return false;
+    if (!g.proj.kill || !g.proj.setDefaults || !refs().updateProjectiles) return false;
 
-    if (!hook::install(g.proj.update, hkUpdate, &g_origUpdate)) {
-        BL_WARN("csharp write: falha no hook Projectile.Update");
+    if (!hook::install(refs().updateProjectiles, hkUpdateProjectiles, &g_origUpdateProjectiles)) {
+        BL_WARN("csharp write: falha no hook Main.UpdateProjectiles");
         return false;
     }
     if (!hook::install(g.proj.kill, hkKill, &g_origKill)) {
@@ -226,7 +253,7 @@ bool installProjectileWriteTest() {
     }
 
     g_installed = true;
-    BL_INFO("csharp write: host de projectile instalado em Projectile.Update sem depender de identity");
+    BL_INFO("csharp write: host de projectile instalado em Main.UpdateProjectiles sem depender de identity");
     return true;
 }
 
@@ -280,7 +307,7 @@ ProjectileWriteStatus claimProjectile(int requestedSlot) {
             g_claim.generation = g_generation.fetch_add(1, std::memory_order_relaxed) + 1;
             g_claim.targetIndex = -1;
             g_claim.writes = 0;
-            g_claim.updateCalls = 0;
+            g_claim.loopCalls = 0;
 
             BL_INFO("csharp write: claim projectile[%d] type=%d owner=%d generation=%d",
                     g_claim.slot, g_claim.type, g_claim.owner, g_claim.generation);
