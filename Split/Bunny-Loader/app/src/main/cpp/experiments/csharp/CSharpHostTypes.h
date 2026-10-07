@@ -1,0 +1,44 @@
+#pragma once
+
+#include <cstdint>
+
+namespace bl::csharp {
+
+struct NpcSample {
+    int32_t index;
+    int32_t type;
+    int32_t life;
+    int32_t lifeMax;
+    float x;
+    float y;
+    float vx;
+    float vy;
+    int32_t flags;
+};
+static_assert(sizeof(NpcSample) == 36);
+
+struct ProjectileSample {
+    int32_t index;
+    int32_t type;
+    int32_t owner;
+    int32_t timeLeft;
+    int32_t damage;
+    float x;
+    float y;
+    float vx;
+    float vy;
+};
+static_assert(sizeof(ProjectileSample) == 36);
+
+struct PlayerSample {
+    int32_t index;
+    int32_t life;
+    int32_t lifeMax;
+    float x;
+    float y;
+    float vx;
+    float vy;
+};
+static_assert(sizeof(PlayerSample) == 28);
+
+}
