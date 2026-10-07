@@ -16,3 +16,19 @@ Exports:
 The Bunny native side benchmarks direct C++ calls against C++ -> C# NativeAOT calls and publishes a small `bl.csharp` test API to QuickJS.
 
 If this prototype proves stable on-device, the next stage is a host ABI for Terraria objects and content registration.
+
+
+## Benchmark suite
+
+The 0.1.9.6 prototype adds two batch workloads:
+
+- `bunnycs_math_batch`: deterministic 32-bit integer workload.
+- `bunnycs_projectile_batch`: position/velocity/gravity/bounce simulation over many projectile-like objects.
+
+The QuickJS API exposes `bl.csharp.suite(iterations, count, steps)`. It runs the same algorithm in JavaScript and C# NativeAOT, measures both with the same native steady clock, checks the integer checksum and reports projectile checksum delta.
+
+Recommended device test:
+
+```js
+JSON.stringify(bl.csharp.suite(1000000, 4096, 180), null, 2)
+```
