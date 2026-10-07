@@ -42,4 +42,18 @@ struct PlayerSample {
 };
 static_assert(sizeof(PlayerSample) == 28);
 
+struct HostProjectileState {
+    int32_t slot;
+    int32_t type;
+    int32_t owner;
+    int32_t identity;
+    int32_t targetIndex;
+    float x;
+    float y;
+    float vx;
+    float vy;
+    float rotation;
+};
+static_assert(sizeof(HostProjectileState) == 40);
+
 }
