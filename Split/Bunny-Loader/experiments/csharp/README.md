@@ -122,3 +122,16 @@ For a narrower search inside Terraria.Projectile:
 ```js
 JSON.stringify(bl.csharp.projectileMethods("update"), null, 2)
 ```
+
+
+## 0.1.9.8.6 UpdatePosition hook
+
+The runtime IL2CPP probe confirmed this real Terraria.Projectile method on the mobile build:
+
+```
+void UpdatePosition(Vector2 wetVelocity)
+```
+
+The controlled C# steering test now hooks that exact method instead of guessing a higher-level update method. When the claimed projectile enters `UpdatePosition`, C# selects the nearest valid hostile NPC and computes a new velocity/rotation. Bunny writes the projectile velocity and also replaces the `wetVelocity` argument passed to vanilla `UpdatePosition` so the movement step uses the steered direction immediately.
+
+Kill/SetDefaults invalidation and the identity-free claim token remain unchanged.
