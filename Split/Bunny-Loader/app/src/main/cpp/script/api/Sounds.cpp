@@ -63,7 +63,8 @@ JSValue sounds_play(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
 JSValue sounds_stop(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t stream = 0;
     if (!argInt(ctx, argc, argv, 0, &stream)) return JS_ThrowTypeError(ctx, "bl.sounds.stop(stream)");
-    runtime::content::stopSound(stream);
+    if (runtime::content::isSoundStyleToken(stream)) runtime::content::stopSoundStyleToken(stream);
+    else runtime::content::stopSound(stream);
     return JS_UNDEFINED;
 }
 
