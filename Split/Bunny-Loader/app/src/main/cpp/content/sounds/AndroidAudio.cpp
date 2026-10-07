@@ -22,6 +22,7 @@ struct Jni {
     jmethodID stop = nullptr;
     jmethodID musicRegister = nullptr;
     jmethodID musicVolume = nullptr;
+    jmethodID musicRamp = nullptr;
     jmethodID musicState = nullptr;
 };
 
@@ -108,9 +109,10 @@ bool init() {
         g_jni.stop = env->GetStaticMethodID(cls, "stop", "(I)V");
         g_jni.musicRegister = env->GetStaticMethodID(cls, "musicRegister", "(Ljava/lang/String;)I");
         g_jni.musicVolume = env->GetStaticMethodID(cls, "musicVolume", "(IF)V");
+        g_jni.musicRamp = env->GetStaticMethodID(cls, "musicRamp", "(IFFI)V");
         g_jni.musicState = env->GetStaticMethodID(cls, "musicState", "(I)I");
         g_ok = cleared(env, "metodos do ModAudio") && g_jni.load && g_jni.state && g_jni.duration &&
-               g_jni.play && g_jni.stop && g_jni.musicRegister && g_jni.musicVolume && g_jni.musicState;
+               g_jni.play && g_jni.stop && g_jni.musicRegister && g_jni.musicVolume && g_jni.musicRamp && g_jni.musicState;
         if (!g_ok) BL_ERROR("sons: dev.bunnyloader.game.ModAudio sem os metodos esperados");
     });
     return g_ok;
@@ -176,6 +178,14 @@ void setMusicVolume(int id, float volume) {
     if (!env) return;
     env->CallStaticVoidMethod(g_jni.cls, g_jni.musicVolume, id, volume);
     cleared(env, "ModAudio.musicVolume");
+}
+
+void rampMusicVolume(int id, float from, float to, int durationMs) {
+    if (!init()) return;
+    JNIEnv* env = envOfThisThread();
+    if (!env) return;
+    env->CallStaticVoidMethod(g_jni.cls, g_jni.musicRamp, id, from, to, durationMs);
+    cleared(env, "ModAudio.musicRamp");
 }
 
 int musicState(int id) {
