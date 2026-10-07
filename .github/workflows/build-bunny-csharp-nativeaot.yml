@@ -113,6 +113,8 @@ jobs:
           readelf -Ws "$CSO" | grep -q bunnycs_player_sample
           readelf -Ws "$CSO" | grep -q bunnycs_math_batch
           readelf -Ws "$CSO" | grep -q bunnycs_projectile_batch
+          readelf -Ws "$CSO" | grep -q bunnycs_npc_scan
+          readelf -Ws "$CSO" | grep -q bunnycs_projectile_scan
 
           JNI="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a"
           mkdir -p "$JNI"
@@ -194,8 +196,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="bunny-csharp-benchmark-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.9.6-Benchmark.apk"
+          TAG="bunny-csharp-terraria-host-v1"
+          OUT="BunnyLoader-CSharp-Test-v0.1.9.7-TerrariaHost.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
@@ -203,5 +205,5 @@ jobs:
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" --repo "${{ github.repository }}" --clobber
           else
-            gh release create "$TAG"               "$RUNNER_TEMP/$OUT#$OUT"               "$RUNNER_TEMP/$OUT.sha256#SHA-256"               "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader C# Test v0.1.9.6 — JS vs NativeAOT Benchmark"               --notes "Separate experimental app. Adds matched JavaScript vs C# NativeAOT math and projectile-style batch benchmarks under bl.csharp.suite(). Does not share app data with the normal Bunny Loader."               --prerelease
+            gh release create "$TAG"               "$RUNNER_TEMP/$OUT#$OUT"               "$RUNNER_TEMP/$OUT.sha256#SHA-256"               "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader C# Test v0.1.9.7 — Terraria Host API"               --notes "Separate experimental app. Adds a read-only Terraria Host API that snapshots the real local player, Main.npc and Main.projectile arrays, then benchmarks the same live data in JavaScript and C# NativeAOT via bl.csharp.terrariaSuite(). Does not share app data with the normal Bunny Loader."               --prerelease
           fi
