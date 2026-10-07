@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "experiments/csharp/CSharpHostTypes.h"
 
 namespace bl::csharp {
 
@@ -20,6 +21,8 @@ int64_t checksum(int iterations);
 int64_t playerSample(float x, float y, int life, int maxLife);
 uint32_t mathBatch(int iterations, uint32_t seed);
 double projectileBatch(int count, int steps);
+double npcScan(const NpcSample* samples, int count, float playerX, float playerY, int repeats);
+double projectileScan(const ProjectileSample* samples, int count, int repeats);
 double clockMs();
 BenchmarkResult benchmark(int iterations);
 
