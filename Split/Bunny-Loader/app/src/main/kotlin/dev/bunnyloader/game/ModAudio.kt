@@ -6,6 +6,9 @@ import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Sons e musicas de mod, tocados pelo Android.
@@ -33,6 +36,15 @@ object ModAudio {
     private val durations = ConcurrentHashMap<Int, Int>()
 
     @Volatile private var poolCreated = false
+    @Volatile private var sfxPaused = false
+
+    private val activeStreams = ConcurrentHashMap<Int, Int>()
+    private val streamToken = AtomicInteger(1)
+    private val sfxQueue = ScheduledThreadPoolExecutor(1) { runnable ->
+        Thread(runnable, "BunnyLoader-SFX").apply { isDaemon = true }
+    }.apply {
+        setRemoveOnCancelPolicy(true)
+    }
 
     private val pool: SoundPool by lazy {
         poolCreated = true
@@ -75,12 +87,50 @@ object ModAudio {
 
     /** Volume por lado 0..1, velocidade 0,5..2 (2 = uma oitava acima). O stream, ou 0. */
     @JvmStatic
-    fun play(id: Int, left: Float, right: Float, rate: Float): Int =
-        if (id in loaded) pool.play(id, left, right, 1, 0, rate) else 0
+    fun play(id: Int, left: Float, right: Float, rate: Float): Int {
+        if (id !in loaded || sfxPaused) return 0
+
+        val token = nextStreamToken()
+        val l = left.coerceIn(0f, 1f)
+        val r = right.coerceIn(0f, 1f)
+        val speed = rate.coerceIn(0.5f, 2f)
+
+        sfxQueue.execute {
+            if (sfxPaused || id !in loaded) return@execute
+
+            val stream = pool.play(id, l, r, 1, 0, speed)
+            if (stream <= 0) return@execute
+
+            activeStreams[token] = stream
+            val duration = durations[id] ?: 0
+            val cleanupDelay = if (duration > 0) {
+                (duration / speed).toLong().coerceAtLeast(100L) + 500L
+            } else {
+                10000L
+            }
+
+            sfxQueue.schedule({
+                if (activeStreams[token] == stream) activeStreams.remove(token)
+            }, cleanupDelay, TimeUnit.MILLISECONDS)
+        }
+
+        return token
+    }
 
     @JvmStatic
     fun stop(stream: Int) {
-        if (poolCreated) pool.stop(stream)
+        if (stream <= 0 || !poolCreated) return
+        sfxQueue.execute {
+            activeStreams.remove(stream)?.let(pool::stop)
+        }
+    }
+
+    private fun nextStreamToken(): Int {
+        while (true) {
+            val current = streamToken.get()
+            val next = if (current == Int.MAX_VALUE) 1 else current + 1
+            if (streamToken.compareAndSet(current, next)) return current
+        }
     }
 
     private fun durationOf(path: String): Int {
@@ -187,6 +237,7 @@ object ModAudio {
     @JvmStatic
     @Synchronized
     fun pauseAll() {
+        sfxPaused = true
         if (poolCreated) pool.autoPause()
         for (t in tracks.values) {
             val p = t.player ?: continue
@@ -200,6 +251,7 @@ object ModAudio {
     @JvmStatic
     @Synchronized
     fun resumeAll() {
+        sfxPaused = false
         if (poolCreated) pool.autoResume()
         for (t in tracks.values) {
             if (!t.pausedByApp) continue
