@@ -6,7 +6,7 @@ namespace BunnyCsPrototype;
 
 public static class Exports
 {
-    private const int Version = 2;
+    private const int Version = 3;
 
     [UnmanagedCallersOnly(EntryPoint = "bunnycs_version", CallConvs = new[] { typeof(CallConvCdecl) })]
     public static int GetVersion()
@@ -108,6 +108,97 @@ public static class Exports
             }
         }
 
+        return checksum;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct NpcSample
+    {
+        public int Index;
+        public int Type;
+        public int Life;
+        public int LifeMax;
+        public float X;
+        public float Y;
+        public float Vx;
+        public float Vy;
+        public int Flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct ProjectileSample
+    {
+        public int Index;
+        public int Type;
+        public int Owner;
+        public int TimeLeft;
+        public int Damage;
+        public float X;
+        public float Y;
+        public float Vx;
+        public float Vy;
+        public int Flags;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunnycs_npc_scan", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe double NpcScan(NpcSample* samples, int count, float playerX, float playerY, int repeats)
+    {
+        if (samples == null || count <= 0 || repeats <= 0) return 0.0;
+        if (count > 4096) count = 4096;
+        if (repeats > 1000000) repeats = 1000000;
+
+        double checksum = 0.0;
+        for (int repeat = 0; repeat < repeats; repeat++)
+        {
+            int bestIndex = -1;
+            double bestDistance = double.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                NpcSample sample = samples[i];
+                if ((sample.Flags & 1) == 0 || (sample.Flags & 6) != 0 || sample.Life <= 0) continue;
+
+                double dx = (double)sample.X - (double)playerX;
+                double dy = (double)sample.Y - (double)playerY;
+                double distance = dx * dx + dy * dy;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = sample.Index;
+                }
+            }
+
+            checksum += bestIndex;
+            if (bestIndex >= 0) checksum += bestDistance * 0.000000001;
+        }
+        return checksum;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunnycs_projectile_scan", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe double ProjectileScan(ProjectileSample* samples, int count, int repeats)
+    {
+        if (samples == null || count <= 0 || repeats <= 0) return 0.0;
+        if (count > 32768) count = 32768;
+        if (repeats > 1000000) repeats = 1000000;
+
+        double checksum = 0.0;
+        for (int repeat = 0; repeat < repeats; repeat++)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                ProjectileSample sample = samples[i];
+                if ((sample.Flags & 1) == 0) continue;
+
+                checksum += sample.Index * 0.00001;
+                checksum += sample.Type * 0.00002;
+                checksum += sample.Owner * 0.00003;
+                checksum += sample.TimeLeft * 0.00004;
+                checksum += sample.Damage * 0.00005;
+                checksum += (double)sample.X * 0.000001;
+                checksum += (double)sample.Y * 0.000002;
+                checksum += (double)sample.Vx * 0.0003;
+                checksum += (double)sample.Vy * 0.0004;
+            }
+        }
         return checksum;
     }
 
