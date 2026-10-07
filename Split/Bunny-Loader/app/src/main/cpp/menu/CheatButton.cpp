@@ -1,6 +1,9 @@
 #include "menu/CheatButton.h"
 #include "core/Config.h"
 #include "core/Log.h"
+#include "hook/HookManager.h"
+#include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
 #include <iterator>
 #include <string>
 #include <vector>
@@ -18,6 +21,7 @@
 #include "script/api/Input.h"
 
 #include <atomic>
+#include <chrono>
 #include <mutex>
 #include <unordered_set>
 #include <dlfcn.h>
@@ -319,6 +323,43 @@ jboolean JNICALL jni_inWorld(JNIEnv*, jclass) {
     return runtime::inWorld() ? JNI_TRUE : JNI_FALSE;
 }
 
+using TouchEditorDrawFn = void (*)(Il2CppObject*, const MethodInfo*);
+TouchEditorDrawFn g_origTouchEditorDraw = nullptr;
+std::atomic<int64_t> g_touchEditorLastDrawMs{0};
+
+int64_t touchEditorNowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+void hkTouchEditorDraw(Il2CppObject* self, const MethodInfo* method) {
+    g_touchEditorLastDrawMs.store(touchEditorNowMs(), std::memory_order_release);
+    g_origTouchEditorDraw(self, method);
+}
+
+void installTouchEditorProbe() {
+    Il2CppClass* editor = il2cpp::findClass({"", "GUIVirtualInputControllerEdit", {}});
+    if (!editor) {
+        BL_WARN("mod input: GUIVirtualInputControllerEdit nao encontrada");
+        return;
+    }
+    const MethodInfo* draw = il2cpp::api().class_get_method_from_name(editor, "Draw", 0);
+    if (!draw) {
+        BL_WARN("mod input: GUIVirtualInputControllerEdit.Draw nao encontrado");
+        return;
+    }
+    if (!hook::install(draw, hkTouchEditorDraw, &g_origTouchEditorDraw)) {
+        BL_WARN("mod input: falha ao observar editor de controles");
+        return;
+    }
+    BL_DEBUG("mod input: editor de controles de toque detectado");
+}
+
+jboolean JNICALL jni_touchControlsEditing(JNIEnv*, jclass) {
+    const int64_t last = g_touchEditorLastDrawMs.load(std::memory_order_acquire);
+    return last > 0 && touchEditorNowMs() - last < 250 ? JNI_TRUE : JNI_FALSE;
+}
+
 jobjectArray toJavaStrings(JNIEnv* env, const std::vector<std::string>& v) {
     jclass sc = env->FindClass("java/lang/String");
     jobjectArray out = sc ? env->NewObjectArray(static_cast<jsize>(v.size()), sc, nullptr) : nullptr;
@@ -427,6 +468,8 @@ jclass loadClass(JNIEnv* env, jobject loader, const char* dotted) {
 } // namespace
 
 void installCheatButton() {
+    installTouchEditorProbe();
+
     JavaVM* vm = getJavaVM();
     if (!vm) return;
 
@@ -508,6 +551,7 @@ void installCheatButton() {
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
         {"nModInputButtons", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modInputButtons)},
         {"nModInputState", "(Ljava/lang/String;Z)V", reinterpret_cast<void*>(&jni_modInputState)},
+        {"nTouchControlsEditing", "()Z", reinterpret_cast<void*>(&jni_touchControlsEditing)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");
