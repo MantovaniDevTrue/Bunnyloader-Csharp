@@ -85,3 +85,12 @@ The claim is released when the projectile receives `Kill()` or when `SetDefaults
 The claimed projectile is now processed by the C# host before vanilla `Projectile.AI`. This avoids losing the write when vanilla AI kills the projectile during the same call.
 
 `projectileWriteStatus()` also reports `aiCalls` so device tests can distinguish "hook was not called" from "hook ran but no valid target was found".
+
+
+## 0.1.9.8.3 Update hook fix
+
+The write host now hooks `Projectile.Update(int i)` instead of `Projectile.AI()`.
+
+Device testing showed `Kill()` firing while the claimed vanilla arrow never entered the resolved `AI()` hook (`aiCalls = 0`). `Update(int i)` is the lifecycle entry that owns AI/collision/kill for the projectile, so the C# steering write is now applied before vanilla Update runs.
+
+`projectileWriteStatus()` reports `updateCalls`.
