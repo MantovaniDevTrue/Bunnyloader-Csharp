@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/CSharpPrototype.h"
 #include "experiments/csharp/TerrariaHost.h"
+#include "experiments/csharp/ProjectileWriteTest.h"
 
 #include <algorithm>
 #include <chrono>
@@ -293,6 +294,38 @@ JSValue jsTerrariaSuite(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return out;
 }
 
+
+JSValue writeStatusToJs(JSContext* ctx, const bl::csharp::ProjectileWriteStatus& status) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, out, "claimed", JS_NewBool(ctx, status.claimed));
+    JS_SetPropertyStr(ctx, out, "valid", JS_NewBool(ctx, status.valid));
+    JS_SetPropertyStr(ctx, out, "slot", JS_NewInt32(ctx, status.slot));
+    JS_SetPropertyStr(ctx, out, "type", JS_NewInt32(ctx, status.type));
+    JS_SetPropertyStr(ctx, out, "owner", JS_NewInt32(ctx, status.owner));
+    JS_SetPropertyStr(ctx, out, "identity", JS_NewInt32(ctx, status.identity));
+    JS_SetPropertyStr(ctx, out, "targetIndex", JS_NewInt32(ctx, status.targetIndex));
+    JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
+    return out;
+}
+
+JSValue jsClaimProjectile(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t slot = -1;
+    if (argc > 0 && !JS_IsUndefined(argv[0]) && JS_ToInt32(ctx, &slot, argv[0]) < 0) {
+        return JS_EXCEPTION;
+    }
+    return writeStatusToJs(ctx, bl::csharp::claimProjectile(slot));
+}
+
+JSValue jsReleaseProjectile(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    bl::csharp::releaseProjectile();
+    return writeStatusToJs(ctx, bl::csharp::projectileWriteStatus());
+}
+
+JSValue jsProjectileWriteStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return writeStatusToJs(ctx, bl::csharp::projectileWriteStatus());
+}
+
 constexpr char kSuiteSource[] = R"JS(
 (function(iterations, count, steps) {
     iterations = iterations === undefined ? 1000000 : Math.max(1000, Math.min(20000000, iterations | 0));
@@ -424,6 +457,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "mathBatch", JS_NewCFunction(ctx, jsMathBatch, "mathBatch", 2));
     JS_SetPropertyStr(ctx, api, "projectileBatch", JS_NewCFunction(ctx, jsProjectileBatch, "projectileBatch", 2));
     JS_SetPropertyStr(ctx, api, "terrariaSuite", JS_NewCFunction(ctx, jsTerrariaSuite, "terrariaSuite", 1));
+    JS_SetPropertyStr(ctx, api, "claimProjectile", JS_NewCFunction(ctx, jsClaimProjectile, "claimProjectile", 1));
+    JS_SetPropertyStr(ctx, api, "releaseProjectile", JS_NewCFunction(ctx, jsReleaseProjectile, "releaseProjectile", 0));
+    JS_SetPropertyStr(ctx, api, "projectileWriteStatus",
+                      JS_NewCFunction(ctx, jsProjectileWriteStatus, "projectileWriteStatus", 0));
 
     JSValue suite = makeSuite(ctx);
     if (JS_IsException(suite)) {
