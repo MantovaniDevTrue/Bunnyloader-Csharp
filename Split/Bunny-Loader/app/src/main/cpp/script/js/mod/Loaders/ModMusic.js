@@ -13,6 +13,7 @@ class ModMusic {
     static #savedSilenceFade = null;
     static #base = 0;
     static #nativeTarget = -1;
+    static #nativeVolume = -1;
 
     static Base() {
         if (!ModMusic.#base) ModMusic.#base = Safe.Run('MusicID.Count', () => Terraria.ID.MusicID.Count) || 105;
@@ -154,9 +155,11 @@ class ModMusic {
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         const nativeTarget = track ? track.id : 0;
 
-        if (nativeTarget !== ModMusic.#nativeTarget) {
-            bl.music.target(nativeTarget);
+        const nativeVolume = Math.max(0, Math.min(1, Number(Main.musicVolume) || 0));
+        if (nativeTarget !== ModMusic.#nativeTarget || Math.abs(nativeVolume - ModMusic.#nativeVolume) > 0.0001) {
+            bl.music.target(nativeTarget, nativeVolume);
             ModMusic.#nativeTarget = nativeTarget;
+            ModMusic.#nativeVolume = nativeVolume;
         }
 
         if (track && bl.music.fade(track.id) > ModMusic.AUDIBLE) {
