@@ -8,11 +8,17 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace bl::runtime::content {
@@ -24,7 +30,7 @@ using PlaySoundFn = Il2CppObject* (*)(Il2CppObject*, int32_t, int32_t, int32_t, 
                                      float, float, const MethodInfo*);
 
 struct ActiveStream {
-    int stream = 0;
+    int token = 0;
     Clock::time_point end{};
 };
 
@@ -59,11 +65,33 @@ struct GameAudioRefs {
     StaticValueRef<float> attenuation;
 };
 
+enum class AudioCommandKind {
+    Play,
+    Stop,
+};
+
+struct AudioCommand {
+    AudioCommandKind kind = AudioCommandKind::Play;
+    int token = 0;
+    int soundId = 0;
+    float left = 1.0f;
+    float right = 1.0f;
+    float rate = 1.0f;
+};
+
 std::mutex g_mutex;
 std::vector<NativeStyle> g_styles;
 GameAudioRefs g_refs;
 PlaySoundFn g_original = nullptr;
 bool g_hooked = false;
+
+std::mutex g_queueMutex;
+std::condition_variable g_queueCv;
+std::deque<AudioCommand> g_queue;
+std::unordered_map<int, int> g_streams;
+std::unordered_set<int> g_cancelled;
+std::atomic<int> g_nextToken{kAsyncSoundTokenBase};
+std::once_flag g_workerOnce;
 
 float clampf(float value, float min, float max) {
     return value < min ? min : value > max ? max : value;
@@ -108,6 +136,88 @@ StaticValueRef<T> resolveStatic(Il2CppClass* cls, const char* fieldName, const c
 template <typename T>
 bool resolved(const StaticValueRef<T>& ref) {
     return ref.field || ref.getter;
+}
+
+void workerLoop() {
+    for (;;) {
+        AudioCommand command;
+        {
+            std::unique_lock<std::mutex> lock(g_queueMutex);
+            g_queueCv.wait(lock, [] { return !g_queue.empty(); });
+            command = g_queue.front();
+            g_queue.pop_front();
+        }
+
+        if (command.kind == AudioCommandKind::Stop) {
+            int stream = 0;
+            {
+                std::lock_guard<std::mutex> lock(g_queueMutex);
+                g_cancelled.insert(command.token);
+                const auto it = g_streams.find(command.token);
+                if (it != g_streams.end()) {
+                    stream = it->second;
+                    g_streams.erase(it);
+                }
+            }
+            if (stream > 0) stopSound(stream);
+            continue;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(g_queueMutex);
+            if (g_cancelled.erase(command.token) > 0) continue;
+        }
+
+        const int stream = playSound(command.soundId, command.left, command.right, command.rate);
+        if (stream <= 0) continue;
+
+        bool stopImmediately = false;
+        {
+            std::lock_guard<std::mutex> lock(g_queueMutex);
+            if (g_cancelled.erase(command.token) > 0) {
+                stopImmediately = true;
+            } else {
+                g_streams[command.token] = stream;
+            }
+        }
+        if (stopImmediately) stopSound(stream);
+    }
+}
+
+void ensureWorker() {
+    std::call_once(g_workerOnce, [] {
+        std::thread(workerLoop).detach();
+    });
+}
+
+int nextToken() {
+    int token = g_nextToken.fetch_add(1, std::memory_order_relaxed);
+    if (token < kAsyncSoundTokenBase) {
+        g_nextToken.store(kAsyncSoundTokenBase + 1, std::memory_order_relaxed);
+        token = kAsyncSoundTokenBase;
+    }
+    return token;
+}
+
+int queuePlay(int soundId, float left, float right, float rate) {
+    ensureWorker();
+    const int token = nextToken();
+    {
+        std::lock_guard<std::mutex> lock(g_queueMutex);
+        g_queue.push_back({AudioCommandKind::Play, token, soundId, left, right, rate});
+    }
+    g_queueCv.notify_one();
+    return token;
+}
+
+void queueStop(int token) {
+    if (!isSoundStyleToken(token)) return;
+    ensureWorker();
+    {
+        std::lock_guard<std::mutex> lock(g_queueMutex);
+        g_queue.push_back({AudioCommandKind::Stop, token, 0, 0, 0, 1});
+    }
+    g_queueCv.notify_one();
 }
 
 void prune(NativeStyle& style, Clock::time_point now) {
@@ -168,7 +278,7 @@ int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float p
     prune(style, now);
     if (style.maxInstances > 0 && static_cast<int>(style.active.size()) >= style.maxInstances) {
         if (style.limitBehavior == 0) return 0;
-        stopSound(style.active.front().stream);
+        queueStop(style.active.front().token);
         style.active.erase(style.active.begin());
     }
 
@@ -176,13 +286,12 @@ int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float p
     rate = clampf(rate, 0.5f, 2.0f);
     const float left = clampf(volume * std::min(1.0f, 1.0f - pan), 0.0f, 1.0f);
     const float right = clampf(volume * std::min(1.0f, 1.0f + pan), 0.0f, 1.0f);
-    const int stream = playSound(style.soundId, left, right, rate);
-    if (stream <= 0) return 0;
+    const int token = queuePlay(style.soundId, left, right, rate);
 
     const int duration = style.durationMs > 0 ? style.durationMs : 1000;
     const auto scaled = static_cast<int64_t>(static_cast<double>(duration) / static_cast<double>(rate));
-    style.active.push_back({stream, now + std::chrono::milliseconds(std::max<int64_t>(1, scaled))});
-    return stream;
+    style.active.push_back({token, now + std::chrono::milliseconds(std::max<int64_t>(1, scaled))});
+    return token;
 }
 
 Il2CppObject* playSoundHook(Il2CppObject* self, int32_t type, int32_t x, int32_t y, int32_t style,
@@ -196,7 +305,7 @@ Il2CppObject* playSoundHook(Il2CppObject* self, int32_t type, int32_t x, int32_t
     return original ? original(self, type, x, y, style, volumeScale, pitchOffset, method) : nullptr;
 }
 
-} // namespace
+}
 
 bool installNativeSoundRouter() {
     std::lock_guard<std::mutex> guard(g_mutex);
@@ -212,12 +321,13 @@ bool installNativeSoundRouter() {
     }
 
     resolveGameAudioRefs();
+    ensureWorker();
     if (!hook::install(method, playSoundHook, &g_original)) {
         BL_ERROR("sons nativos: falha ao instalar roteador");
         return false;
     }
     g_hooked = true;
-    BL_INFO("sons nativos: roteador instalado; sons vanilla nao entram no QuickJS");
+    BL_INFO("sons nativos: fila assincrona instalada; SoundPool fora da thread do jogo");
     return true;
 }
 
@@ -248,7 +358,15 @@ int findActiveSoundStyle(int style) {
     if (style < 0 || static_cast<size_t>(style) >= g_styles.size()) return 0;
     NativeStyle& sound = g_styles[static_cast<size_t>(style)];
     prune(sound, Clock::now());
-    return sound.active.empty() ? 0 : sound.active.back().stream;
+    return sound.active.empty() ? 0 : sound.active.back().token;
 }
 
-} // namespace bl::runtime::content
+void stopSoundStyleToken(int token) {
+    queueStop(token);
+}
+
+bool isSoundStyleToken(int token) {
+    return token >= kAsyncSoundTokenBase;
+}
+
+}
