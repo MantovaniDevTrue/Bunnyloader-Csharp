@@ -133,6 +133,7 @@ public class CheatBridge {
     public static native boolean nRestartReady();
     public static native String[] nModInputButtons();
     public static native void nModInputState(String id, boolean down);
+    public static native boolean nTouchControlsEditing();
 
     // --- paleta ---
     static final int PANEL      = 0xFF3F5297;
@@ -1608,6 +1609,18 @@ public class CheatBridge {
     private static final String MOD_INPUT_PREFS = "bunny_mod_input";
     private static final LinkedHashMap<String, TextView> sModInputViews = new LinkedHashMap<String, TextView>();
 
+    private static boolean touchControlsEditing() {
+        try { return nTouchControlsEditing(); } catch (Throwable t) { return false; }
+    }
+
+    private static GradientDrawable modInputBackground(Activity act, boolean pressed, boolean editing) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(editing ? 0xB33F5297 : pressed ? 0xC55268B6 : 0x8C17203A);
+        bg.setStroke(px(act, editing ? 2 : 1), editing ? 0xFFE8ECFF : 0xB8A4B2EA);
+        return bg;
+    }
+
     private static void watchModInputs(final Activity act) {
         final Handler h = new Handler(Looper.getMainLooper());
         h.post(new Runnable() {
@@ -1618,6 +1631,7 @@ public class CheatBridge {
                 boolean inWorld = true;
                 try { buttons = nModInputButtons(); } catch (Throwable t) { }
                 try { inWorld = nInWorld(); } catch (Throwable t) { }
+                boolean editing = inWorld && touchControlsEditing();
 
                 if (buttons != null) {
                     for (int i = 0; i + 1 < buttons.length; i += 2) {
@@ -1637,8 +1651,13 @@ public class CheatBridge {
                 for (TextView view : sModInputViews.values()) {
                     int vis = inWorld ? View.VISIBLE : View.GONE;
                     if (view.getVisibility() != vis) view.setVisibility(vis);
+                    if (view.isActivated() != editing) {
+                        view.setActivated(editing);
+                        view.setAlpha(editing ? 1.0f : 0.82f);
+                        view.setBackground(modInputBackground(act, false, editing));
+                    }
                 }
-                h.postDelayed(this, WORLD_POLL_MS);
+                h.postDelayed(this, 120);
             }
         });
     }
@@ -1646,12 +1665,14 @@ public class CheatBridge {
     private static TextView createModInputButton(Activity act, String id, String label, int index) {
         TextView button = text(act, label == null || label.length() == 0 ? id : label, 13, INK);
         button.setGravity(Gravity.CENTER);
-        button.setBackground(actionBackground(act, false));
+        button.setBackground(modInputBackground(act, false, false));
+        button.setAlpha(0.82f);
+        button.setShadowLayer(px(act, 1), 0, px(act, 1), 0xCC000000);
         button.setContentDescription(id);
         button.setOnTouchListener(new ModInputTouch(act, id));
 
         int min = px(act, 30);
-        int max = px(act, 80);
+        int max = px(act, 84);
         int side = px(act, 46);
         SharedPreferences prefs = act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE);
         side = clamp(prefs.getInt("size:" + id, side), min, max);
@@ -1684,9 +1705,14 @@ public class CheatBridge {
     private static final class ModInputTouch implements View.OnTouchListener {
         private final Activity act;
         private final String id;
+        private final int touchSlop;
         private boolean down;
         private boolean editing;
-        private boolean suppressUntilUp;
+        private boolean pinching;
+        private float dragRawX;
+        private float dragRawY;
+        private int dragX;
+        private int dragY;
         private float startMidX;
         private float startMidY;
         private float startSpan;
@@ -1697,13 +1723,22 @@ public class CheatBridge {
         ModInputTouch(Activity act, String id) {
             this.act = act;
             this.id = id;
+            touchSlop = ViewConfiguration.get(act).getScaledTouchSlop();
         }
 
         private void setDown(View view, boolean next) {
             if (down == next) return;
             down = next;
             try { nModInputState(id, next); } catch (Throwable t) { }
-            view.setBackground(actionBackground(act, next));
+            view.setBackground(modInputBackground(act, next, false));
+        }
+
+        private float rawX(MotionEvent e, int index) {
+            return e.getRawX() + e.getX(index) - e.getX(0);
+        }
+
+        private float rawY(MotionEvent e, int index) {
+            return e.getRawY() + e.getY(index) - e.getY(0);
         }
 
         private float span(MotionEvent e) {
@@ -1714,30 +1749,46 @@ public class CheatBridge {
         }
 
         private float rawMidX(MotionEvent e) {
-            return e.getRawX() + (e.getX(1) - e.getX(0)) * 0.5f;
+            return (rawX(e, 0) + rawX(e, 1)) * 0.5f;
         }
 
         private float rawMidY(MotionEvent e) {
-            return e.getRawY() + (e.getY(1) - e.getY(0)) * 0.5f;
+            return (rawY(e, 0) + rawY(e, 1)) * 0.5f;
         }
 
-        private void beginEdit(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
-            setDown(view, false);
-            editing = true;
-            suppressUntilUp = true;
+        private void beginDrag(MotionEvent e, FrameLayout.LayoutParams lp) {
+            dragRawX = e.getRawX();
+            dragRawY = e.getRawY();
+            dragX = lp.leftMargin;
+            dragY = lp.topMargin;
+        }
+
+        private void moveDrag(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
+            float dx = e.getRawX() - dragRawX;
+            float dy = e.getRawY() - dragRawY;
+            if (Math.abs(dx) < touchSlop && Math.abs(dy) < touchSlop) return;
+            View parent = (View) view.getParent();
+            lp.leftMargin = clamp(dragX + dx, 0, parent.getWidth() - lp.width);
+            lp.topMargin = clamp(dragY + dy, 0, parent.getHeight() - lp.height);
+            view.setLayoutParams(lp);
+        }
+
+        private void beginPinch(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
+            if (e.getPointerCount() < 2) return;
+            pinching = true;
             startMidX = rawMidX(e);
             startMidY = rawMidY(e);
             startSpan = Math.max(1f, span(e));
             startSize = lp.width;
             startCenterX = lp.leftMargin + lp.width * 0.5f;
             startCenterY = lp.topMargin + lp.height * 0.5f;
-            view.setBackground(actionBackground(act, true));
+            view.setBackground(modInputBackground(act, false, true));
         }
 
-        private void moveEdit(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
+        private void movePinch(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
             if (e.getPointerCount() < 2) return;
             int min = px(act, 30);
-            int max = px(act, 80);
+            int max = px(act, 84);
             int side = clamp(startSize * (span(e) / startSpan), min, max);
             float centerX = startCenterX + rawMidX(e) - startMidX;
             float centerY = startCenterY + rawMidY(e) - startMidY;
@@ -1749,39 +1800,62 @@ public class CheatBridge {
             view.setLayoutParams(lp);
         }
 
+        private void continueDragAfterPointerUp(MotionEvent e, FrameLayout.LayoutParams lp) {
+            int leaving = e.getActionIndex();
+            int keep = leaving == 0 ? 1 : 0;
+            dragRawX = rawX(e, keep);
+            dragRawY = rawY(e, keep);
+            dragX = lp.leftMargin;
+            dragY = lp.topMargin;
+            pinching = false;
+        }
+
+        private void finishEdit(View view, FrameLayout.LayoutParams lp) {
+            saveModInputLayout(act, id, lp);
+            editing = false;
+            pinching = false;
+            view.setBackground(modInputBackground(act, false, false));
+            view.setAlpha(0.82f);
+        }
+
         @Override public boolean onTouch(View view, MotionEvent e) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) view.getLayoutParams();
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
-                    editing = false;
-                    suppressUntilUp = false;
-                    setDown(view, true);
+                    if (touchControlsEditing()) {
+                        setDown(view, false);
+                        editing = true;
+                        pinching = false;
+                        beginDrag(e, lp);
+                        view.setBackground(modInputBackground(act, false, true));
+                        view.setAlpha(1.0f);
+                    } else {
+                        editing = false;
+                        setDown(view, true);
+                    }
                     return true;
 
                 case MotionEvent.ACTION_POINTER_DOWN:
-                    if (e.getPointerCount() >= 2) beginEdit(view, e, lp);
+                    if (editing && e.getPointerCount() >= 2) beginPinch(view, e, lp);
                     return true;
 
                 case MotionEvent.ACTION_MOVE:
-                    if (editing) moveEdit(view, e, lp);
+                    if (editing) {
+                        if (pinching && e.getPointerCount() >= 2) movePinch(view, e, lp);
+                        else moveDrag(view, e, lp);
+                    }
                     return true;
 
                 case MotionEvent.ACTION_POINTER_UP:
-                    if (editing) {
-                        saveModInputLayout(act, id, lp);
-                        editing = false;
-                        suppressUntilUp = true;
-                        view.setBackground(actionBackground(act, false));
+                    if (editing && e.getPointerCount() >= 2) {
+                        continueDragAfterPointerUp(e, lp);
                     }
                     return true;
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    setDown(view, false);
-                    if (editing) saveModInputLayout(act, id, lp);
-                    editing = false;
-                    suppressUntilUp = false;
-                    view.setBackground(actionBackground(act, false));
+                    if (editing) finishEdit(view, lp);
+                    else setDown(view, false);
                     return true;
 
                 default:
