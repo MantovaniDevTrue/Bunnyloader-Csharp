@@ -11,7 +11,7 @@ struct ProjectileWriteStatus {
     int slot = -1;
     int type = -1;
     int owner = -1;
-    int identity = -1;
+    int generation = 0;
     int targetIndex = -1;
     int writes = 0;
 };
