@@ -38,17 +38,19 @@ struct MusicRefs {
 struct Track {
     int id = 0;
     float fade = 0.0f;
-    float sent = 0.0f;
+    int direction = 0;
 };
 
 constexpr float kFade = 0.005f;
 constexpr float kAudible = 0.25f;
+constexpr float kFramesPerSecond = 60.0f;
 
 std::mutex g_mutex;
 std::vector<Track> g_tracks;
 MusicRefs g_refs;
 UpdateAudioFn g_original = nullptr;
 std::atomic<int> g_target{0};
+float g_masterVolume = -1.0f;
 bool g_hooked = false;
 
 template <typename T>
@@ -103,6 +105,12 @@ Track* findTrack(int id) {
     return nullptr;
 }
 
+int rampDurationMs(float fromFade, float toFade) {
+    const float distance = std::fabs(toFade - fromFade);
+    const float frames = distance / kFade;
+    return std::max(1, static_cast<int>(std::lround(frames * 1000.0f / kFramesPerSecond)));
+}
+
 void resolveRefs() {
     using namespace il2cpp;
     auto& a = api();
@@ -116,11 +124,25 @@ void resolveRefs() {
     if (!g_refs.musicFade) g_refs.musicFadeGetter = a.class_get_method_from_name(main, "get_musicFade", 0);
 }
 
+void dispatchRamp(Track& track, int direction, float masterVolume) {
+    const float from = track.fade * masterVolume;
+    if (direction > 0) {
+        rampMusicVolume(track.id, from, masterVolume, rampDurationMs(track.fade, 1.0f));
+    } else if (direction < 0) {
+        rampMusicVolume(track.id, from, 0.0f, rampDurationMs(track.fade, 0.0f));
+    } else {
+        rampMusicVolume(track.id, from, from, 1);
+    }
+    track.direction = direction;
+}
+
 void step() {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (g_tracks.empty()) return;
 
-    int targetId = readStatic<bool>(g_refs.gameMenu, false) ? 0 : g_target.load(std::memory_order_relaxed);
+    const int targetId = readStatic<bool>(g_refs.gameMenu, false)
+        ? 0
+        : g_target.load(std::memory_order_relaxed);
     Track* target = targetId > 0 ? findTrack(targetId) : nullptr;
 
     if (target) target->fade = std::min(1.0f, target->fade + kFade);
@@ -134,12 +156,20 @@ void step() {
     }
 
     const float volume = std::clamp(readStatic<float>(g_refs.musicVolume, 1.0f), 0.0f, 1.0f);
+    const bool masterChanged = g_masterVolume < 0.0f || std::fabs(volume - g_masterVolume) > 0.0001f;
+    g_masterVolume = volume;
+
     for (auto& track : g_tracks) {
-        if (&track != target && mainAudible) track.fade = std::max(0.0f, track.fade - kFade);
-        const float next = track.fade * volume;
-        if (std::fabs(next - track.sent) <= 0.0001f) continue;
-        setMusicVolume(track.id, next);
-        track.sent = next;
+        const bool isTarget = &track == target;
+        if (!isTarget && mainAudible) track.fade = std::max(0.0f, track.fade - kFade);
+
+        int direction = 0;
+        if (isTarget && track.fade < 1.0f) direction = 1;
+        else if (!isTarget && mainAudible && track.fade > 0.0f) direction = -1;
+
+        if (direction != track.direction || masterChanged) {
+            dispatchRamp(track, direction, volume);
+        }
     }
 }
 
@@ -157,7 +187,9 @@ bool installNativeMusicRouter() {
 
     using namespace il2cpp;
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
-    const MethodInfo* method = main ? findMethodBySignature(main, parseSignature("void UpdateAudio()")) : nullptr;
+    const MethodInfo* method = main
+        ? findMethodBySignature(main, parseSignature("void UpdateAudio()"))
+        : nullptr;
     if (!method) {
         BL_ERROR("musica nativa: Main.UpdateAudio nao encontrado");
         return false;
@@ -170,7 +202,7 @@ bool installNativeMusicRouter() {
     }
 
     g_hooked = true;
-    BL_INFO("musica nativa: fade instalado; Main.UpdateAudio nao entra no QuickJS");
+    BL_INFO("musica nativa: fade assincrono instalado; Main.UpdateAudio nao entra no QuickJS");
     return true;
 }
 
@@ -179,7 +211,7 @@ void registerNativeMusicTrack(int id) {
     installNativeMusicRouter();
     std::lock_guard<std::mutex> guard(g_mutex);
     if (findTrack(id)) return;
-    g_tracks.push_back({id, 0.0f, 0.0f});
+    g_tracks.push_back({id, 0.0f, 0});
 }
 
 void setNativeMusicTarget(int id) {
