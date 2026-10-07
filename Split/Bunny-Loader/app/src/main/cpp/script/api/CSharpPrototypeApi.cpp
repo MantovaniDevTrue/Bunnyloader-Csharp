@@ -306,6 +306,7 @@ JSValue writeStatusToJs(JSContext* ctx, const bl::csharp::ProjectileWriteStatus&
     JS_SetPropertyStr(ctx, out, "generation", JS_NewInt32(ctx, status.generation));
     JS_SetPropertyStr(ctx, out, "targetIndex", JS_NewInt32(ctx, status.targetIndex));
     JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
+    JS_SetPropertyStr(ctx, out, "aiCalls", JS_NewInt32(ctx, status.aiCalls));
     return out;
 }
 
