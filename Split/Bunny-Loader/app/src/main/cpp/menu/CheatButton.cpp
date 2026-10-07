@@ -15,6 +15,7 @@
 #include "menu/CheatBridgeDex.h"
 #include "menu/DevTools.h"
 #include "script/api/Console.h"
+#include "script/api/Input.h"
 
 #include <atomic>
 #include <mutex>
@@ -330,6 +331,14 @@ jobjectArray toJavaStrings(JNIEnv* env, const std::vector<std::string>& v) {
     return out;
 }
 
+jobjectArray JNICALL jni_modInputButtons(JNIEnv* env, jclass) {
+    return toJavaStrings(env, bl::script::modInputButtons());
+}
+
+void JNICALL jni_modInputState(JNIEnv* env, jclass, jstring id, jboolean down) {
+    bl::script::setModInputState(fromJava(env, id), down == JNI_TRUE);
+}
+
 jint JNICALL jni_vanillaItemCount(JNIEnv*, jclass) { return runtime::kVanillaItemCount; }
 
 /** O PNG de cada item de mod, na ordem do tipo (indice = tipo - vanilla). */
@@ -497,6 +506,8 @@ void installCheatButton() {
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
+        {"nModInputButtons", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modInputButtons)},
+        {"nModInputState", "(Ljava/lang/String;Z)V", reinterpret_cast<void*>(&jni_modInputState)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");
