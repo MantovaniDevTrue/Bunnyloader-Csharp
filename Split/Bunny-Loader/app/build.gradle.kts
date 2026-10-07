@@ -18,10 +18,10 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.bunnyloader"
+        applicationId = "com.bunnyloader.csharptest"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
+        versionCode = 1
         versionName = "0.1.9.5-csharp-test"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
