@@ -18,6 +18,8 @@ using ChecksumFn = int64_t (*)(int);
 using PlayerSampleFn = int64_t (*)(float, float, int, int);
 using MathBatchFn = uint32_t (*)(int, uint32_t);
 using ProjectileBatchFn = double (*)(int, int);
+using NpcScanFn = double (*)(const NpcSample*, int, float, float, int);
+using ProjectileScanFn = double (*)(const ProjectileSample*, int, int);
 
 void* g_handle = nullptr;
 VersionFn g_version = nullptr;
@@ -26,6 +28,8 @@ ChecksumFn g_checksum = nullptr;
 PlayerSampleFn g_playerSample = nullptr;
 MathBatchFn g_mathBatch = nullptr;
 ProjectileBatchFn g_projectileBatch = nullptr;
+NpcScanFn g_npcScan = nullptr;
+ProjectileScanFn g_projectileScan = nullptr;
 bool g_attempted = false;
 std::mutex g_lock;
 
@@ -59,8 +63,11 @@ bool installPrototype() {
     g_playerSample = symbol<PlayerSampleFn>("bunnycs_player_sample");
     g_mathBatch = symbol<MathBatchFn>("bunnycs_math_batch");
     g_projectileBatch = symbol<ProjectileBatchFn>("bunnycs_projectile_batch");
+    g_npcScan = symbol<NpcScanFn>("bunnycs_npc_scan");
+    g_projectileScan = symbol<ProjectileScanFn>("bunnycs_projectile_scan");
 
-    if (!g_version || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch) {
+    if (!g_version || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch ||
+        !g_npcScan || !g_projectileScan) {
         BL_ERROR("csharp: exports NativeAOT incompletos");
         dlclose(g_handle);
         g_handle = nullptr;
@@ -85,7 +92,8 @@ bool installPrototype() {
 }
 
 bool available() {
-    return g_handle && g_version && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch;
+    return g_handle && g_version && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch &&
+           g_npcScan && g_projectileScan;
 }
 
 int version() {
@@ -115,6 +123,16 @@ double projectileBatch(int count, int steps) {
     count = std::clamp(count, 1, 16384);
     steps = std::clamp(steps, 1, 2000);
     return g_projectileBatch(count, steps);
+}
+
+double npcScan(const NpcSample* samples, int count, float playerX, float playerY, int repeats) {
+    if (!available() || !samples || count <= 0) return 0.0;
+    return g_npcScan(samples, count, playerX, playerY, repeats);
+}
+
+double projectileScan(const ProjectileSample* samples, int count, int repeats) {
+    if (!available() || !samples || count <= 0) return 0.0;
+    return g_projectileScan(samples, count, repeats);
 }
 
 double clockMs() {
