@@ -18,6 +18,7 @@
 #include "script/api/Texture.h"
 #include "script/api/Sounds.h"
 #include "script/api/Console.h"
+#include "script/api/Input.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
 #include "script/bridge/Members.h"
@@ -1797,6 +1798,7 @@ void installBindings(void* context) {
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);
     installConsoleApi(ctx, global, bl);
+    installInputApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass
