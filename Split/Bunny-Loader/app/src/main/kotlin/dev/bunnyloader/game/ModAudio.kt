@@ -120,24 +120,25 @@ object ModAudio {
 
     @JvmStatic
     @Synchronized
-    fun musicRamp(id: Int, from: Float, to: Float, durationMs: Int) {
+    fun musicRamp(id: Int, from: Float, to: Float, delayMs: Int, durationMs: Int) {
         val t = tracks[id] ?: return
         if (t.failed) return
 
         val start = from.coerceIn(0f, 1f)
         val end = to.coerceIn(0f, 1f)
+        val delay = delayMs.coerceAtLeast(0).toLong()
         t.generation++
         val generation = t.generation
         t.rampFrom = start
         t.rampTo = end
-        t.rampStart = SystemClock.uptimeMillis()
+        t.rampStart = SystemClock.uptimeMillis() + delay
         t.rampDuration = durationMs.coerceAtLeast(1).toLong()
         t.volume = start
 
         if (t.player == null && (start > 0f || end > 0f)) prepare(id, t)
         if (t.prepared) applyTrackVolume(id, t)
 
-        musicHandler.post { runRamp(id, generation) }
+        musicHandler.postDelayed({ runRamp(id, generation) }, delay)
     }
 
     @JvmStatic
@@ -186,7 +187,13 @@ object ModAudio {
         val t = tracks[id] ?: return
         if (t.failed || t.generation != generation) return
 
-        val elapsed = SystemClock.uptimeMillis() - t.rampStart
+        val now = SystemClock.uptimeMillis()
+        if (now < t.rampStart) {
+            musicHandler.postDelayed({ runRamp(id, generation) }, t.rampStart - now)
+            return
+        }
+
+        val elapsed = now - t.rampStart
         val progress = (elapsed.toFloat() / t.rampDuration.toFloat()).coerceIn(0f, 1f)
         t.volume = t.rampFrom + (t.rampTo - t.rampFrom) * progress
         applyTrackVolume(id, t)
