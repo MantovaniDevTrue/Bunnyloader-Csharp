@@ -137,8 +137,10 @@ JSValue music_state(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
 
 JSValue music_target(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t id = 0;
-    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.target(id)");
-    runtime::content::setNativeMusicTarget(id);
+    float masterVolume = 1;
+    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.target(id, masterVolume)");
+    if (argc > 1 && !argFloat(ctx, argc, argv, 1, &masterVolume)) return JS_EXCEPTION;
+    runtime::content::setNativeMusicTarget(id, masterVolume);
     return JS_UNDEFINED;
 }
 
@@ -165,7 +167,7 @@ void installSoundsApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("register", 1, music_register),
         JS_CFUNC_DEF("setVolume", 2, music_setVolume),
         JS_CFUNC_DEF("state", 1, music_state),
-        JS_CFUNC_DEF("target", 1, music_target),
+        JS_CFUNC_DEF("target", 2, music_target),
         JS_CFUNC_DEF("fade", 1, music_fade),
     };
     JSValue sounds = JS_NewObject(ctx);
