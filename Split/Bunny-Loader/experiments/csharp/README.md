@@ -103,3 +103,22 @@ Device testing showed both resolved `Projectile.AI()` and `Projectile.Update(int
 The write host now hooks `Main.UpdateProjectiles()` instead. Before Terraria runs the global projectile update loop, Bunny validates the single claimed projectile and applies the C# NativeAOT steering result to it.
 
 Status now reports `loopCalls` and preserves the last released claim in `lastSlot`, `lastType`, `lastTargetIndex`, `lastWrites` and `lastLoopCalls`, so a short-lived projectile can still be diagnosed after `Kill()`.
+
+
+## 0.1.9.8.5 IL2CPP method probe
+
+Terraria mobile 1.4.5.8.6 does not expose `Main.UpdateProjectiles()`, and device tests showed the resolved `Projectile.AI()` and `Projectile.Update(int)` entry points were not called for the tested vanilla arrow.
+
+This build adds a runtime method probe instead of guessing another lifecycle name:
+
+```js
+JSON.stringify(bl.csharp.projectileProbe(), null, 2)
+```
+
+It enumerates methods directly from the loaded IL2CPP metadata and returns exact signatures plus native addresses for likely Projectile/Main lifecycle candidates.
+
+For a narrower search inside Terraria.Projectile:
+
+```js
+JSON.stringify(bl.csharp.projectileMethods("update"), null, 2)
+```
