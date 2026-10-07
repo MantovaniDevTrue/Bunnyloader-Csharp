@@ -9,8 +9,8 @@ namespace bl::script {
 
 namespace {
 
-JSValue jsAvailable(JSContext*, JSValueConst, int, JSValueConst*) {
-    return JS_NewBool(nullptr, bl::csharp::available());
+JSValue jsAvailable(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewBool(ctx, bl::csharp::available());
 }
 
 JSValue jsVersion(JSContext* ctx, JSValueConst, int, JSValueConst*) {
@@ -69,7 +69,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "checksum", JS_NewCFunction(ctx, jsChecksum, "checksum", 1));
     JS_SetPropertyStr(ctx, api, "playerSample", JS_NewCFunction(ctx, jsPlayerSample, "playerSample", 4));
     JS_SetPropertyStr(ctx, api, "benchmark", JS_NewCFunction(ctx, jsBenchmark, "benchmark", 1));
-    JS_SetPropertyStr(ctx, const_cast<JSValue&>(bl), "csharp", api);
+    JS_SetPropertyStr(ctx, bl, "csharp", api);
 }
 
 }
