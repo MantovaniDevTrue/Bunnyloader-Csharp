@@ -1,0 +1,38 @@
+name: Publish Bunny Loader v0.1.9
+
+on:
+  push:
+    branches:
+      - bunny-audio-performance-release
+    paths:
+      - ".github/workflows/publish-bunny-audio-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download validated APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p out
+          gh release download "audio-native-test-v1"             --repo "$GITHUB_REPOSITORY"             --pattern "BunnyLoader-v0.1.8-native-audio-test.apk"             --dir out
+          mv out/BunnyLoader-v0.1.8-native-audio-test.apk out/BunnyLoader-v0.1.9.apk
+
+      - name: Publish clean release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="bunny-loader-v0.1.9"
+          APK="out/BunnyLoader-v0.1.9.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$APK"               --repo "$GITHUB_REPOSITORY"               --target "$GITHUB_SHA"               --title "Bunny Loader v0.1.9"               --notes "Bunny Loader v0.1.9 com SFX customizados em fila nativa assíncrona e música customizada orientada a eventos."
+          fi
