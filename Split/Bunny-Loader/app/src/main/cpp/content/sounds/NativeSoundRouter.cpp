@@ -39,6 +39,11 @@ struct NativeStyle {
     std::vector<ActiveStream> active;
 };
 
+struct Vec2 {
+    float x = 0.0f;
+    float y = 0.0f;
+};
+
 template <typename T>
 struct StaticValueRef {
     FieldInfo* field = nullptr;
@@ -52,11 +57,6 @@ struct GameAudioRefs {
     StaticValueRef<int32_t> screenHeight;
     StaticValueRef<float> soundVolume;
     StaticValueRef<float> attenuation;
-};
-
-struct Vec2 {
-    float x = 0.0f;
-    float y = 0.0f;
 };
 
 std::mutex g_mutex;
