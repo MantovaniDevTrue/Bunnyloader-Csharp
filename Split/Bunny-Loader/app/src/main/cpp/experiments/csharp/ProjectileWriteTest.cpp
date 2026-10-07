@@ -8,8 +8,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
-#include <algorithm>
-#include <cmath>
+#include <atomic>
 #include <mutex>
 
 namespace bl::csharp {
@@ -21,14 +20,11 @@ struct Vector2 {
     float y;
 };
 
-
-
 struct Refs {
     bool tried = false;
     bool ok = false;
     FieldInfo* projectiles = nullptr;
     const MethodInfo* getMyPlayer = nullptr;
-    int32_t identity = -1;
 };
 
 Refs& refs() {
@@ -38,14 +34,13 @@ Refs& refs() {
 
     using namespace il2cpp;
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
-    Il2CppClass* projectile = findClass({"Terraria", "Projectile", {}});
     r.projectiles = main ? findField(main, "projectile") : nullptr;
     r.getMyPlayer = main ? api().class_get_method_from_name(main, "get_myPlayer", 0) : nullptr;
-    r.identity = projectile ? fieldOffset(projectile, "identity") : -1;
-    r.ok = r.projectiles && r.getMyPlayer && r.identity >= 0 && runtime::resolveGameRefs();
+    r.ok = r.projectiles && r.getMyPlayer && runtime::resolveGameRefs();
+
     if (!r.ok) {
-        BL_WARN("csharp write: refs incompletas (projectile=%p myPlayer=%p identity=%d)",
-                (void*)r.projectiles, (void*)r.getMyPlayer, r.identity);
+        BL_WARN("csharp write: refs incompletas (projectile=%p myPlayer=%p)",
+                (void*)r.projectiles, (void*)r.getMyPlayer);
     }
     return r;
 }
@@ -82,7 +77,7 @@ struct Claim {
     int slot = -1;
     int type = -1;
     int owner = -1;
-    int identity = -1;
+    int generation = 0;
     int targetIndex = -1;
     int writes = 0;
 };
@@ -90,20 +85,23 @@ struct Claim {
 std::mutex g_mutex;
 Claim g_claim;
 bool g_installed = false;
+std::atomic<int> g_generation{0};
 
 using ProjectileAiFn = void (*)(Il2CppObject*, const MethodInfo*);
 using ProjectileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
+using ProjectileSetDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+
 ProjectileAiFn g_origAi = nullptr;
 ProjectileKillFn g_origKill = nullptr;
+ProjectileSetDefaultsFn g_origSetDefaults = nullptr;
 
 bool claimMatches(Il2CppObject* projectile, const Claim& claim) {
     if (!projectile || projectile != claim.object) return false;
-    const Refs& r = refs();
+
     const auto& g = runtime::game();
     if (runtime::field<uint8_t>(projectile, g.proj.active) == 0) return false;
     if (runtime::field<int32_t>(projectile, g.proj.type) != claim.type) return false;
     if (runtime::field<int32_t>(projectile, g.proj.owner) != claim.owner) return false;
-    if (runtime::field<int32_t>(projectile, r.identity) != claim.identity) return false;
     if (runtime::field<int32_t>(projectile, g.entity.whoAmI) != claim.slot) return false;
     return true;
 }
@@ -112,16 +110,23 @@ void clearClaimLocked() {
     g_claim = {};
 }
 
+void clearIfClaimed(Il2CppObject* projectile, const char* reason) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (g_claim.object != projectile) return;
+    BL_INFO("csharp write: projectile[%d] liberado em %s", g_claim.slot, reason);
+    clearClaimLocked();
+}
+
 void applyWrite(Il2CppObject* projectile) {
     Claim claim;
     {
         std::lock_guard<std::mutex> lock(g_mutex);
         claim = g_claim;
     }
+
     if (!claim.object || projectile != claim.object) return;
     if (!claimMatches(projectile, claim)) {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        if (g_claim.object == projectile) clearClaimLocked();
+        clearIfClaimed(projectile, "validacao");
         return;
     }
 
@@ -136,7 +141,7 @@ void applyWrite(Il2CppObject* projectile) {
     state.slot = claim.slot;
     state.type = claim.type;
     state.owner = claim.owner;
-    state.identity = claim.identity;
+    state.generation = claim.generation;
     state.targetIndex = -1;
     state.x = center.x;
     state.y = center.y;
@@ -147,7 +152,9 @@ void applyWrite(Il2CppObject* projectile) {
     if (!hostProjectileTick(&state, snapshot.npcs.data(), static_cast<int>(snapshot.npcs.size()),
                             snapshot.player.x, snapshot.player.y)) {
         std::lock_guard<std::mutex> lock(g_mutex);
-        if (g_claim.object == projectile) g_claim.targetIndex = state.targetIndex;
+        if (g_claim.object == projectile && g_claim.generation == claim.generation) {
+            g_claim.targetIndex = state.targetIndex;
+        }
         return;
     }
 
@@ -155,7 +162,7 @@ void applyWrite(Il2CppObject* projectile) {
     runtime::field<float>(projectile, g.proj.rotation) = state.rotation;
 
     std::lock_guard<std::mutex> lock(g_mutex);
-    if (g_claim.object == projectile) {
+    if (g_claim.object == projectile && g_claim.generation == claim.generation) {
         g_claim.targetIndex = state.targetIndex;
         ++g_claim.writes;
     }
@@ -167,14 +174,13 @@ void hkAi(Il2CppObject* self, const MethodInfo* method) {
 }
 
 void hkKill(Il2CppObject* self, const MethodInfo* method) {
-    {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        if (g_claim.object == self) {
-            BL_INFO("csharp write: projectile[%d] liberado no Kill()", g_claim.slot);
-            clearClaimLocked();
-        }
-    }
+    clearIfClaimed(self, "Kill()");
     g_origKill(self, method);
+}
+
+void hkSetDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
+    clearIfClaimed(self, "SetDefaults()");
+    g_origSetDefaults(self, type, method);
 }
 
 ProjectileWriteStatus statusLocked() {
@@ -184,7 +190,7 @@ ProjectileWriteStatus statusLocked() {
     out.slot = g_claim.slot;
     out.type = g_claim.type;
     out.owner = g_claim.owner;
-    out.identity = g_claim.identity;
+    out.generation = g_claim.generation;
     out.targetIndex = g_claim.targetIndex;
     out.writes = g_claim.writes;
     out.valid = g_claim.object && claimMatches(g_claim.object, g_claim);
@@ -198,7 +204,8 @@ bool installProjectileWriteTest() {
     if (!available() || !refs().ok) return false;
 
     const auto& g = runtime::game();
-    if (!g.proj.aiMethod || !g.proj.kill) return false;
+    if (!g.proj.aiMethod || !g.proj.kill || !g.proj.setDefaults) return false;
+
     if (!hook::install(g.proj.aiMethod, hkAi, &g_origAi)) {
         BL_WARN("csharp write: falha no hook Projectile.AI");
         return false;
@@ -207,9 +214,13 @@ bool installProjectileWriteTest() {
         BL_WARN("csharp write: falha no hook Projectile.Kill");
         return false;
     }
+    if (!hook::install(g.proj.setDefaults, hkSetDefaults, &g_origSetDefaults)) {
+        BL_WARN("csharp write: falha no hook Projectile.SetDefaults");
+        return false;
+    }
 
     g_installed = true;
-    BL_INFO("csharp write: host de projectile instalado");
+    BL_INFO("csharp write: host de projectile instalado sem depender de identity");
     return true;
 }
 
@@ -221,12 +232,10 @@ ProjectileWriteStatus claimProjectile(int requestedSlot) {
     if (!array || owner < 0) return projectileWriteStatus();
 
     const auto& g = runtime::game();
-    const Refs& r = refs();
     auto** data = reinterpret_cast<Il2CppObject**>(arrayData(array));
 
     Il2CppObject* chosen = nullptr;
     int chosenSlot = -1;
-    int chosenIdentity = -1;
 
     auto eligible = [&](int slot, Il2CppObject* projectile) {
         if (!projectile) return false;
@@ -242,35 +251,34 @@ ProjectileWriteStatus claimProjectile(int requestedSlot) {
         if (eligible(requestedSlot, projectile)) {
             chosen = projectile;
             chosenSlot = requestedSlot;
-            chosenIdentity = runtime::field<int32_t>(projectile, r.identity);
         }
     } else {
         for (uintptr_t i = 0; i < array->length; ++i) {
             Il2CppObject* projectile = data[i];
             if (!eligible(static_cast<int>(i), projectile)) continue;
-            const int identity = runtime::field<int32_t>(projectile, r.identity);
-            if (!chosen || identity > chosenIdentity) {
-                chosen = projectile;
-                chosenSlot = static_cast<int>(i);
-                chosenIdentity = identity;
-            }
+            chosen = projectile;
+            chosenSlot = static_cast<int>(i);
+            break;
         }
     }
 
     {
         std::lock_guard<std::mutex> lock(g_mutex);
         clearClaimLocked();
+
         if (chosen) {
             g_claim.object = chosen;
             g_claim.slot = chosenSlot;
             g_claim.type = runtime::field<int32_t>(chosen, g.proj.type);
             g_claim.owner = owner;
-            g_claim.identity = chosenIdentity;
+            g_claim.generation = g_generation.fetch_add(1, std::memory_order_relaxed) + 1;
             g_claim.targetIndex = -1;
             g_claim.writes = 0;
-            BL_INFO("csharp write: claim projectile[%d] type=%d owner=%d identity=%d",
-                    g_claim.slot, g_claim.type, g_claim.owner, g_claim.identity);
+
+            BL_INFO("csharp write: claim projectile[%d] type=%d owner=%d generation=%d",
+                    g_claim.slot, g_claim.type, g_claim.owner, g_claim.generation);
         }
+
         return statusLocked();
     }
 }
