@@ -2,6 +2,7 @@
 
 #if BL_HAVE_QUICKJS
 #include "content/sounds/AndroidAudio.h"
+#include "content/sounds/NativeSoundRouter.h"
 #include "core/Log.h"
 #include "script/api/Texture.h"
 
@@ -71,6 +72,35 @@ JSValue sounds_duration(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return JS_NewInt32(ctx, runtime::content::soundDuration(id));
 }
 
+JSValue sounds_registerStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0, maxInstances = 1, limitBehavior = 1;
+    float volume = 1, pitch = 0, pitchVariance = 0;
+    if (!argInt(ctx, argc, argv, 0, &id) || !argFloat(ctx, argc, argv, 1, &volume) ||
+        !argFloat(ctx, argc, argv, 2, &pitch) || !argFloat(ctx, argc, argv, 3, &pitchVariance) ||
+        !argInt(ctx, argc, argv, 4, &maxInstances) || !argInt(ctx, argc, argv, 5, &limitBehavior)) {
+        return JS_ThrowTypeError(ctx, "bl.sounds.registerStyle(id, volume, pitch, pitchVariance, maxInstances, limitBehavior)");
+    }
+    return JS_NewInt32(ctx, runtime::content::registerSoundStyle(id, volume, pitch, pitchVariance,
+                                                                  maxInstances, limitBehavior));
+}
+
+JSValue sounds_playStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t style = -1, x = -1, y = -1;
+    float volumeScale = 1, pitchOffset = 0;
+    if (!argInt(ctx, argc, argv, 0, &style) || !argInt(ctx, argc, argv, 1, &x) ||
+        !argInt(ctx, argc, argv, 2, &y) || !argFloat(ctx, argc, argv, 3, &volumeScale) ||
+        !argFloat(ctx, argc, argv, 4, &pitchOffset)) {
+        return JS_ThrowTypeError(ctx, "bl.sounds.playStyle(style, x, y, volumeScale, pitchOffset)");
+    }
+    return JS_NewInt32(ctx, runtime::content::playSoundStyle(style, x, y, volumeScale, pitchOffset));
+}
+
+JSValue sounds_findActiveStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t style = -1;
+    if (!argInt(ctx, argc, argv, 0, &style)) return JS_ThrowTypeError(ctx, "bl.sounds.findActiveStyle(style)");
+    return JS_NewInt32(ctx, runtime::content::findActiveSoundStyle(style));
+}
+
 JSValue music_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "bl.music.register(caminho) espera um texto");
     const char* cs = JS_ToCString(ctx, argv[0]);
@@ -112,6 +142,9 @@ void installSoundsApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("duration", 1, sounds_duration),
         JS_CFUNC_DEF("play", 4, sounds_play),
         JS_CFUNC_DEF("stop", 1, sounds_stop),
+        JS_CFUNC_DEF("registerStyle", 6, sounds_registerStyle),
+        JS_CFUNC_DEF("playStyle", 5, sounds_playStyle),
+        JS_CFUNC_DEF("findActiveStyle", 1, sounds_findActiveStyle),
     };
     static const JSCFunctionListEntry musicFns[] = {
         JS_CFUNC_DEF("register", 1, music_register),
