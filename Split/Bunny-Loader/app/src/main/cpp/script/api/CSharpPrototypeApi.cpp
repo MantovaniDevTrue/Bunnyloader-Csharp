@@ -1,6 +1,11 @@
 #include "script/api/CSharpPrototypeApi.h"
 
 #include "experiments/csharp/CSharpPrototype.h"
+#include "experiments/csharp/TerrariaHost.h"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -78,6 +83,214 @@ JSValue jsProjectileBatch(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
     if (argc > 0 && JS_ToInt32(ctx, &count, argv[0]) < 0) return JS_EXCEPTION;
     if (argc > 1 && JS_ToInt32(ctx, &steps, argv[1]) < 0) return JS_EXCEPTION;
     return JS_NewFloat64(ctx, bl::csharp::projectileBatch(count, steps));
+}
+
+
+JSValue makeFlatNpcArray(JSContext* ctx, const std::vector<bl::csharp::NpcSample>& samples) {
+    JSValue out = JS_NewArray(ctx);
+    uint32_t at = 0;
+    for (const auto& s : samples) {
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.index));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.type));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.life));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.lifeMax));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.x));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.y));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.vx));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.vy));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.flags));
+    }
+    return out;
+}
+
+JSValue makeFlatProjectileArray(JSContext* ctx, const std::vector<bl::csharp::ProjectileSample>& samples) {
+    JSValue out = JS_NewArray(ctx);
+    uint32_t at = 0;
+    for (const auto& s : samples) {
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.index));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.type));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.owner));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.timeLeft));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.damage));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.x));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.y));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.vx));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewFloat64(ctx, s.vy));
+        JS_SetPropertyUint32(ctx, out, at++, JS_NewInt32(ctx, s.flags));
+    }
+    return out;
+}
+
+constexpr char kTerrariaSuiteSource[] = R"JS(
+(function(npcs, projectiles, playerX, playerY, repeats) {
+    const npcStride = 9;
+    const projectileStride = 10;
+
+    function npcScanJs() {
+        let checksum = 0.0;
+        for (let repeat = 0; repeat < repeats; repeat++) {
+            let bestIndex = -1;
+            let bestDistance = Number.MAX_VALUE;
+            for (let at = 0; at < npcs.length; at += npcStride) {
+                const flags = npcs[at + 8] | 0;
+                const life = npcs[at + 2] | 0;
+                if ((flags & 1) === 0 || (flags & 6) !== 0 || life <= 0) continue;
+
+                const dx = npcs[at + 4] - playerX;
+                const dy = npcs[at + 5] - playerY;
+                const distance = dx * dx + dy * dy;
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = npcs[at] | 0;
+                }
+            }
+            checksum += bestIndex;
+            if (bestIndex >= 0) checksum += bestDistance * 0.000000001;
+        }
+        return checksum;
+    }
+
+    function projectileScanJs() {
+        let checksum = 0.0;
+        for (let repeat = 0; repeat < repeats; repeat++) {
+            for (let at = 0; at < projectiles.length; at += projectileStride) {
+                const flags = projectiles[at + 9] | 0;
+                if ((flags & 1) === 0) continue;
+
+                checksum += (projectiles[at] | 0) * 0.00001;
+                checksum += (projectiles[at + 1] | 0) * 0.00002;
+                checksum += (projectiles[at + 2] | 0) * 0.00003;
+                checksum += (projectiles[at + 3] | 0) * 0.00004;
+                checksum += (projectiles[at + 4] | 0) * 0.00005;
+                checksum += projectiles[at + 5] * 0.000001;
+                checksum += projectiles[at + 6] * 0.000002;
+                checksum += projectiles[at + 7] * 0.0003;
+                checksum += projectiles[at + 8] * 0.0004;
+            }
+        }
+        return checksum;
+    }
+
+    let t0 = bl.csharp.clockMs();
+    const npcValue = npcScanJs();
+    let t1 = bl.csharp.clockMs();
+
+    let t2 = bl.csharp.clockMs();
+    const projectileValue = projectileScanJs();
+    let t3 = bl.csharp.clockMs();
+
+    return {
+        npcMs: t1 - t0,
+        npcValue,
+        projectileMs: t3 - t2,
+        projectileValue
+    };
+})
+)JS";
+
+JSValue makeTerrariaSuite(JSContext* ctx) {
+    return JS_Eval(ctx, kTerrariaSuiteSource, sizeof(kTerrariaSuiteSource) - 1,
+                   "csharp-terraria-suite", JS_EVAL_TYPE_GLOBAL);
+}
+
+JSValue jsTerrariaSuite(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t repeats = 1000;
+    if (argc > 0 && JS_ToInt32(ctx, &repeats, argv[0]) < 0) return JS_EXCEPTION;
+    repeats = std::clamp(repeats, 1, 1000000);
+
+    bl::csharp::TerrariaSnapshot snapshot = bl::csharp::captureTerrariaSnapshot();
+    if (!snapshot.ready) {
+        return JS_ThrowInternalError(ctx, "bl.csharp.terrariaSuite: Terraria ainda nao esta pronto");
+    }
+
+    JSValue npcData = makeFlatNpcArray(ctx, snapshot.npcs);
+    JSValue projectileData = makeFlatProjectileArray(ctx, snapshot.projectiles);
+    JSValue suite = makeTerrariaSuite(ctx);
+    if (JS_IsException(suite)) {
+        JS_FreeValue(ctx, npcData);
+        JS_FreeValue(ctx, projectileData);
+        return suite;
+    }
+
+    JSValue args[] = {
+        npcData,
+        projectileData,
+        JS_NewFloat64(ctx, snapshot.player.x),
+        JS_NewFloat64(ctx, snapshot.player.y),
+        JS_NewInt32(ctx, repeats)
+    };
+
+    JSValue jsResult = JS_Call(ctx, suite, JS_UNDEFINED, 5, args);
+    JS_FreeValue(ctx, suite);
+    for (JSValue arg : args) JS_FreeValue(ctx, arg);
+    if (JS_IsException(jsResult)) return jsResult;
+
+    const double cNpcStart = bl::csharp::clockMs();
+    const double cNpcValue = bl::csharp::npcScan(
+        snapshot.npcs.data(), static_cast<int>(snapshot.npcs.size()),
+        snapshot.player.x, snapshot.player.y, repeats);
+    const double cNpcMs = bl::csharp::clockMs() - cNpcStart;
+
+    const double cProjectileStart = bl::csharp::clockMs();
+    const double cProjectileValue = bl::csharp::projectileScan(
+        snapshot.projectiles.data(), static_cast<int>(snapshot.projectiles.size()), repeats);
+    const double cProjectileMs = bl::csharp::clockMs() - cProjectileStart;
+
+    double jsNpcMs = 0.0;
+    double jsNpcValue = 0.0;
+    double jsProjectileMs = 0.0;
+    double jsProjectileValue = 0.0;
+    JSValue v = JS_GetPropertyStr(ctx, jsResult, "npcMs");
+    JS_ToFloat64(ctx, &jsNpcMs, v);
+    JS_FreeValue(ctx, v);
+    v = JS_GetPropertyStr(ctx, jsResult, "npcValue");
+    JS_ToFloat64(ctx, &jsNpcValue, v);
+    JS_FreeValue(ctx, v);
+    v = JS_GetPropertyStr(ctx, jsResult, "projectileMs");
+    JS_ToFloat64(ctx, &jsProjectileMs, v);
+    JS_FreeValue(ctx, v);
+    v = JS_GetPropertyStr(ctx, jsResult, "projectileValue");
+    JS_ToFloat64(ctx, &jsProjectileValue, v);
+    JS_FreeValue(ctx, v);
+    JS_FreeValue(ctx, jsResult);
+
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "abi", JS_NewInt32(ctx, bl::csharp::version()));
+    JS_SetPropertyStr(ctx, out, "captureMs", JS_NewFloat64(ctx, snapshot.captureMs));
+    JS_SetPropertyStr(ctx, out, "repeats", JS_NewInt32(ctx, repeats));
+
+    JSValue player = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, player, "index", JS_NewInt32(ctx, snapshot.player.index));
+    JS_SetPropertyStr(ctx, player, "life", JS_NewInt32(ctx, snapshot.player.life));
+    JS_SetPropertyStr(ctx, player, "lifeMax", JS_NewInt32(ctx, snapshot.player.lifeMax));
+    JS_SetPropertyStr(ctx, player, "x", JS_NewFloat64(ctx, snapshot.player.x));
+    JS_SetPropertyStr(ctx, player, "y", JS_NewFloat64(ctx, snapshot.player.y));
+    JS_SetPropertyStr(ctx, out, "player", player);
+
+    JSValue npc = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, npc, "slots", JS_NewInt32(ctx, static_cast<int32_t>(snapshot.npcs.size())));
+    JS_SetPropertyStr(ctx, npc, "active", JS_NewInt32(ctx, snapshot.activeNpcs));
+    JS_SetPropertyStr(ctx, npc, "jsMs", JS_NewFloat64(ctx, jsNpcMs));
+    JS_SetPropertyStr(ctx, npc, "csharpMs", JS_NewFloat64(ctx, cNpcMs));
+    JS_SetPropertyStr(ctx, npc, "speedup", JS_NewFloat64(ctx, cNpcMs > 0.0 ? jsNpcMs / cNpcMs : 0.0));
+    JS_SetPropertyStr(ctx, npc, "jsValue", JS_NewFloat64(ctx, jsNpcValue));
+    JS_SetPropertyStr(ctx, npc, "csharpValue", JS_NewFloat64(ctx, cNpcValue));
+    JS_SetPropertyStr(ctx, npc, "delta", JS_NewFloat64(ctx, std::abs(jsNpcValue - cNpcValue)));
+    JS_SetPropertyStr(ctx, out, "npcScan", npc);
+
+    JSValue projectile = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, projectile, "slots", JS_NewInt32(ctx, static_cast<int32_t>(snapshot.projectiles.size())));
+    JS_SetPropertyStr(ctx, projectile, "active", JS_NewInt32(ctx, snapshot.activeProjectiles));
+    JS_SetPropertyStr(ctx, projectile, "jsMs", JS_NewFloat64(ctx, jsProjectileMs));
+    JS_SetPropertyStr(ctx, projectile, "csharpMs", JS_NewFloat64(ctx, cProjectileMs));
+    JS_SetPropertyStr(ctx, projectile, "speedup",
+                      JS_NewFloat64(ctx, cProjectileMs > 0.0 ? jsProjectileMs / cProjectileMs : 0.0));
+    JS_SetPropertyStr(ctx, projectile, "jsValue", JS_NewFloat64(ctx, jsProjectileValue));
+    JS_SetPropertyStr(ctx, projectile, "csharpValue", JS_NewFloat64(ctx, cProjectileValue));
+    JS_SetPropertyStr(ctx, projectile, "delta",
+                      JS_NewFloat64(ctx, std::abs(jsProjectileValue - cProjectileValue)));
+    JS_SetPropertyStr(ctx, out, "projectileScan", projectile);
+    return out;
 }
 
 constexpr char kSuiteSource[] = R"JS(
@@ -210,6 +423,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "clockMs", JS_NewCFunction(ctx, jsClockMs, "clockMs", 0));
     JS_SetPropertyStr(ctx, api, "mathBatch", JS_NewCFunction(ctx, jsMathBatch, "mathBatch", 2));
     JS_SetPropertyStr(ctx, api, "projectileBatch", JS_NewCFunction(ctx, jsProjectileBatch, "projectileBatch", 2));
+    JS_SetPropertyStr(ctx, api, "terrariaSuite", JS_NewCFunction(ctx, jsTerrariaSuite, "terrariaSuite", 1));
 
     JSValue suite = makeSuite(ctx);
     if (JS_IsException(suite)) {
