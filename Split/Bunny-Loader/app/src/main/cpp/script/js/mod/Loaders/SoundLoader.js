@@ -69,14 +69,13 @@ class SoundLoader {
 
     static Install() {
         Hooks.Once('sound.Play', () => {
-            bl.hookMarks.set('sound.mod', SoundLoader.ID);
             Terraria.Audio.LegacySoundPlayer['SoundEffectInstance PlaySound(int type, int x, int y, int Style, float volumeScale, float pitchOffset)'].hook(
                 (original, self, type, x, y, style, volumeScale, pitchOffset) => {
                     if (type !== SoundLoader.ID) return original(self, type, x, y, style, volumeScale, pitchOffset);
 
                     SoundLoader.Play(SoundLoader.Sounds[style], x, y, volumeScale, pitchOffset);
                     return null;
-                }, { minType: SoundLoader.ID, arg: 0, marks: 'sound.mod' });
+                });
         });
     }
 

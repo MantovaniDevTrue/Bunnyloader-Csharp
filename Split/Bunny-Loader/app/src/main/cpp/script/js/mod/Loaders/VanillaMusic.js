@@ -95,14 +95,6 @@ class VanillaMusic {
         return 0;
     }
 
-    static Allows(priority, tow) {
-        if (priority >= SceneEffectPriority.BossHigh) {
-            if (priority > SceneEffectPriority.BossHigh) return true;
-            return !Terraria.GameContent.Events.CreditsRollEvent.IsEventOngoing;
-        }
-        return priority >= VanillaMusic.Tier(tow);
-    }
-
     static Tier(tow) {
         const Main = Terraria.Main;
         if (Terraria.GameContent.Events.CreditsRollEvent.IsEventOngoing) return 9;
