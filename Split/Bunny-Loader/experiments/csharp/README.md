@@ -61,7 +61,7 @@ Fire a normal projectile owned by the local player, then run:
 JSON.stringify(bl.csharp.claimProjectile(), null, 2)
 ```
 
-The host claims only one active, damaging projectile owned by the local player. It stores the projectile slot, identity, type and owner and refuses to keep writing if any part of that token changes.
+The host claims only one active, damaging projectile owned by the local player. It stores the projectile slot, object reference, type, owner and a Bunny generation token. The claim is also cleared when Projectile.SetDefaults runs on the same object, so slot reuse cannot inherit an old claim.
 
 C# NativeAOT scans the current NPC snapshot, chooses the nearest valid hostile target and returns a new velocity/rotation. Bunny applies only those two fields to the claimed projectile.
 
@@ -77,4 +77,4 @@ Release manually:
 bl.csharp.releaseProjectile()
 ```
 
-The claim is also released when the projectile receives `Kill()`. No Player or NPC state is written by this test.
+The claim is released when the projectile receives `Kill()` or when `SetDefaults()` starts reusing that projectile object. No Player or NPC state is written by this test.
