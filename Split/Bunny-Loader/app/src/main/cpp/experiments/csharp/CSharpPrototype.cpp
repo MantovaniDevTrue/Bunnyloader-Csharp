@@ -16,12 +16,16 @@ using VersionFn = int (*)();
 using AddFn = int (*)(int, int);
 using ChecksumFn = int64_t (*)(int);
 using PlayerSampleFn = int64_t (*)(float, float, int, int);
+using MathBatchFn = uint32_t (*)(int, uint32_t);
+using ProjectileBatchFn = double (*)(int, int);
 
 void* g_handle = nullptr;
 VersionFn g_version = nullptr;
 AddFn g_add = nullptr;
 ChecksumFn g_checksum = nullptr;
 PlayerSampleFn g_playerSample = nullptr;
+MathBatchFn g_mathBatch = nullptr;
+ProjectileBatchFn g_projectileBatch = nullptr;
 bool g_attempted = false;
 std::mutex g_lock;
 
@@ -53,8 +57,10 @@ bool installPrototype() {
     g_add = symbol<AddFn>("bunnycs_add");
     g_checksum = symbol<ChecksumFn>("bunnycs_checksum");
     g_playerSample = symbol<PlayerSampleFn>("bunnycs_player_sample");
+    g_mathBatch = symbol<MathBatchFn>("bunnycs_math_batch");
+    g_projectileBatch = symbol<ProjectileBatchFn>("bunnycs_projectile_batch");
 
-    if (!g_version || !g_add || !g_checksum || !g_playerSample) {
+    if (!g_version || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch) {
         BL_ERROR("csharp: exports NativeAOT incompletos");
         dlclose(g_handle);
         g_handle = nullptr;
@@ -79,7 +85,7 @@ bool installPrototype() {
 }
 
 bool available() {
-    return g_handle && g_version && g_add && g_checksum && g_playerSample;
+    return g_handle && g_version && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch;
 }
 
 int version() {
@@ -96,6 +102,24 @@ int64_t checksum(int iterations) {
 
 int64_t playerSample(float x, float y, int life, int maxLife) {
     return available() ? g_playerSample(x, y, life, maxLife) : 0;
+}
+
+uint32_t mathBatch(int iterations, uint32_t seed) {
+    if (!available()) return 0;
+    iterations = std::clamp(iterations, 0, 20000000);
+    return g_mathBatch(iterations, seed);
+}
+
+double projectileBatch(int count, int steps) {
+    if (!available()) return 0.0;
+    count = std::clamp(count, 1, 16384);
+    steps = std::clamp(steps, 1, 2000);
+    return g_projectileBatch(count, steps);
+}
+
+double clockMs() {
+    const auto now = std::chrono::steady_clock::now().time_since_epoch();
+    return std::chrono::duration<double, std::milli>(now).count();
 }
 
 BenchmarkResult benchmark(int iterations) {
