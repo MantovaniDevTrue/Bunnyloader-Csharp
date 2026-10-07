@@ -439,12 +439,32 @@ jobs:
           cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
           sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
 
-      - name: Upload full APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Split-BunnyLoader-full-debug
-          path: |
-            Split/build/output/Split-BunnyLoader-full-debug.apk
-            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
+      - name: Publish native audio test APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="audio-native-test-v1"
+          APK="Split/build/output/Split-BunnyLoader-full-debug.apk"
+          OUT="BunnyLoader-v0.1.8-native-audio-test.apk"
+
+          cp "$APK" "Split/build/output/$OUT"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
+              --title "Bunny Loader v0.1.8 Native Audio Test" \
+              --notes "Private test build: native SoundStyle routing for performance validation." \
+              --prerelease
+          fi
+          gh release upload "$TAG" "Split/build/output/$OUT" --repo "${{ github.repository }}" --clobber
+
+          ASSET_ID="$(gh api "repos/${{ github.repository }}/releases/tags/$TAG" \
+            --jq ".assets[] | select(.name == \"$OUT\") | .id")"
+          curl -sS -D "$RUNNER_TEMP/apk_headers.txt" -o /dev/null \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/octet-stream" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID"
+          DIRECT="$(tr -d '\r' < "$RUNNER_TEMP/apk_headers.txt" | awk 'tolower($1) == "location:" {print $2; exit}')"
+          echo "APK_RELEASE_TAG=$TAG"
+          echo "APK_RELEASE_ASSET_ID=$ASSET_ID"
+          echo "APK_DIRECT_URL=$DIRECT"
