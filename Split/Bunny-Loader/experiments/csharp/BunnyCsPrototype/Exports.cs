@@ -6,7 +6,7 @@ namespace BunnyCsPrototype;
 
 public static class Exports
 {
-    private const int Version = 3;
+    private const int Version = 4;
 
     [UnmanagedCallersOnly(EntryPoint = "bunnycs_version", CallConvs = new[] { typeof(CallConvCdecl) })]
     public static int GetVersion()
@@ -200,6 +200,88 @@ public static class Exports
             }
         }
         return checksum;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct HostProjectileState
+    {
+        public int Slot;
+        public int Type;
+        public int Owner;
+        public int Identity;
+        public int TargetIndex;
+        public float X;
+        public float Y;
+        public float Vx;
+        public float Vy;
+        public float Rotation;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunnycs_host_projectile_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe int HostProjectileTick(
+        HostProjectileState* state,
+        NpcSample* samples,
+        int count,
+        float playerX,
+        float playerY)
+    {
+        if (state == null || samples == null || count <= 0) return 0;
+        if (count > 4096) count = 4096;
+
+        int targetIndex = -1;
+        float targetX = 0f;
+        float targetY = 0f;
+        double bestDistance = double.MaxValue;
+
+        for (int i = 0; i < count; i++)
+        {
+            NpcSample sample = samples[i];
+            if ((sample.Flags & 1) == 0 || (sample.Flags & 6) != 0 || sample.Life <= 0) continue;
+
+            double dx = (double)sample.X - state->X;
+            double dy = (double)sample.Y - state->Y;
+            double distance = dx * dx + dy * dy;
+            if (distance >= bestDistance) continue;
+
+            bestDistance = distance;
+            targetIndex = sample.Index;
+            targetX = sample.X;
+            targetY = sample.Y;
+        }
+
+        if (targetIndex < 0)
+        {
+            state->TargetIndex = -1;
+            return 0;
+        }
+
+        float dxTarget = targetX - state->X;
+        float dyTarget = targetY - state->Y;
+        float length = MathF.Sqrt(dxTarget * dxTarget + dyTarget * dyTarget);
+        if (length < 0.001f) return 0;
+
+        float speed = MathF.Sqrt(state->Vx * state->Vx + state->Vy * state->Vy);
+        if (speed < 6f) speed = 6f;
+        if (speed > 18f) speed = 18f;
+
+        float desiredX = dxTarget / length * speed;
+        float desiredY = dyTarget / length * speed;
+        const float turn = 0.12f;
+
+        float nextX = state->Vx + (desiredX - state->Vx) * turn;
+        float nextY = state->Vy + (desiredY - state->Vy) * turn;
+        float nextLength = MathF.Sqrt(nextX * nextX + nextY * nextY);
+        if (nextLength > 0.001f)
+        {
+            nextX = nextX / nextLength * speed;
+            nextY = nextY / nextLength * speed;
+        }
+
+        state->TargetIndex = targetIndex;
+        state->Vx = nextX;
+        state->Vy = nextY;
+        state->Rotation = MathF.Atan2(nextY, nextX);
+        return 1;
     }
 
 }
