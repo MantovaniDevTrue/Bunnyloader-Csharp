@@ -14,7 +14,12 @@ struct ProjectileWriteStatus {
     int generation = 0;
     int targetIndex = -1;
     int writes = 0;
-    int updateCalls = 0;
+    int loopCalls = 0;
+    int lastSlot = -1;
+    int lastType = -1;
+    int lastTargetIndex = -1;
+    int lastWrites = 0;
+    int lastLoopCalls = 0;
 };
 
 bool installProjectileWriteTest();
