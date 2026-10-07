@@ -46,7 +46,7 @@ struct HostProjectileState {
     int32_t slot;
     int32_t type;
     int32_t owner;
-    int32_t identity;
+    int32_t generation;
     int32_t targetIndex;
     float x;
     float y;
