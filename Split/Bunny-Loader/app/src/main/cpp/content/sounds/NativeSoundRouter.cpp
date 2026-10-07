@@ -327,7 +327,6 @@ bool installNativeSoundRouter() {
         return false;
     }
     g_hooked = true;
-    BL_INFO("sons nativos: fila assincrona instalada; SoundPool fora da thread do jogo");
     return true;
 }
 
