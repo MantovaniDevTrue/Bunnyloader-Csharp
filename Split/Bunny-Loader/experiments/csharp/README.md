@@ -94,3 +94,12 @@ The write host now hooks `Projectile.Update(int i)` instead of `Projectile.AI()`
 Device testing showed `Kill()` firing while the claimed vanilla arrow never entered the resolved `AI()` hook (`aiCalls = 0`). `Update(int i)` is the lifecycle entry that owns AI/collision/kill for the projectile, so the C# steering write is now applied before vanilla Update runs.
 
 `projectileWriteStatus()` reports `updateCalls`.
+
+
+## 0.1.9.8.4 Main projectile loop hook
+
+Device testing showed both resolved `Projectile.AI()` and `Projectile.Update(int)` receiving zero calls for a live vanilla arrow while `Projectile.Kill()` fired normally.
+
+The write host now hooks `Main.UpdateProjectiles()` instead. Before Terraria runs the global projectile update loop, Bunny validates the single claimed projectile and applies the C# NativeAOT steering result to it.
+
+Status now reports `loopCalls` and preserves the last released claim in `lastSlot`, `lastType`, `lastTargetIndex`, `lastWrites` and `lastLoopCalls`, so a short-lived projectile can still be diagnosed after `Kill()`.
