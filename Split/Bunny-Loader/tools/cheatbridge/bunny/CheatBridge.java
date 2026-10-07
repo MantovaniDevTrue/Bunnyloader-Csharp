@@ -43,6 +43,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -1608,17 +1609,90 @@ public class CheatBridge {
 
     private static final String MOD_INPUT_PREFS = "bunny_mod_input";
     private static final LinkedHashMap<String, TextView> sModInputViews = new LinkedHashMap<String, TextView>();
+    private static String sSelectedModInput;
+    private static LinearLayout sModInputEditorPanel;
+    private static boolean sTouchEditorVisible;
 
     private static boolean touchControlsEditing() {
         try { return nTouchControlsEditing(); } catch (Throwable t) { return false; }
     }
 
-    private static GradientDrawable modInputBackground(Activity act, boolean pressed, boolean editing) {
+    private static String modInputName(String id) {
+        if (id == null || id.length() == 0) return "Custom Control";
+        StringBuilder out = new StringBuilder();
+        char previous = 0;
+        for (int i = 0; i < id.length(); i++) {
+            char c = id.charAt(i);
+            if (c == '_' || c == '-' || c == '.') {
+                if (out.length() > 0 && out.charAt(out.length() - 1) != ' ') out.append(' ');
+                previous = c;
+                continue;
+            }
+            if (i > 0 && Character.isUpperCase(c) && Character.isLowerCase(previous)) out.append(' ');
+            out.append(c);
+            previous = c;
+        }
+        return out.toString();
+    }
+
+    private static boolean modInputMultiTouch(Activity act, String id) {
+        try {
+            return act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE)
+                .getBoolean("multi:" + id, true);
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    private static void setModInputMultiTouch(Activity act, String id, boolean value) {
+        try {
+            act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE).edit()
+                .putBoolean("multi:" + id, value).apply();
+        } catch (Throwable t) { }
+    }
+
+    private static GradientDrawable modInputBackground(
+        Activity act, boolean pressed, boolean editing, boolean selected) {
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(editing ? 0xB33F5297 : pressed ? 0xC55268B6 : 0x8C17203A);
-        bg.setStroke(px(act, editing ? 2 : 1), editing ? 0xFFE8ECFF : 0xB8A4B2EA);
+        bg.setColor(pressed ? 0xD35469B5 : editing ? 0xB52C3A6B : 0xA817203A);
+        int stroke = selected ? 0xFFFFD72E : editing ? 0xFFD6DDF8 : 0xB3131625;
+        bg.setStroke(px(act, selected ? 3 : 2), stroke);
         return bg;
+    }
+
+    private static void paintModInputButton(Activity act, TextView view) {
+        String id = String.valueOf(view.getContentDescription());
+        boolean editing = view.isActivated();
+        boolean selected = editing && id.equals(sSelectedModInput);
+        view.setBackground(modInputBackground(act, view.isPressed(), editing, selected));
+        view.setAlpha(editing || view.isPressed() ? 1.0f : 0.82f);
+        float scale = view.isPressed() && !editing ? 0.92f : 1.0f;
+        view.setScaleX(scale);
+        view.setScaleY(scale);
+    }
+
+    private static int modInputDefaultSize(Activity act) {
+        return px(act, 46);
+    }
+
+    private static int modInputDefaultX(Activity act, int side) {
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        return m.widthPixels - side - px(act, 110);
+    }
+
+    private static int modInputDefaultY(Activity act, int side, int index) {
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        return m.heightPixels - side - px(act, 120 + index * 52);
+    }
+
+    private static int modInputIndex(String id) {
+        int index = 0;
+        for (String key : sModInputViews.keySet()) {
+            if (key.equals(id)) return index;
+            index++;
+        }
+        return index;
     }
 
     private static void watchModInputs(final Activity act) {
@@ -1648,15 +1722,23 @@ public class CheatBridge {
                     }
                 }
 
+                if (sTouchEditorVisible != editing) {
+                    sTouchEditorVisible = editing;
+                    if (!editing) clearModInputSelection(act);
+                }
+
                 for (TextView view : sModInputViews.values()) {
                     int vis = inWorld ? View.VISIBLE : View.GONE;
                     if (view.getVisibility() != vis) view.setVisibility(vis);
-                    if (view.isActivated() != editing) {
-                        view.setActivated(editing);
-                        view.setAlpha(editing ? 1.0f : 0.82f);
-                        view.setBackground(modInputBackground(act, false, editing));
-                    }
+                    if (view.isActivated() != editing) view.setActivated(editing);
+                    paintModInputButton(act, view);
                 }
+
+                if (sModInputEditorPanel != null) {
+                    int vis = editing && sSelectedModInput != null ? View.VISIBLE : View.GONE;
+                    if (sModInputEditorPanel.getVisibility() != vis) sModInputEditorPanel.setVisibility(vis);
+                }
+
                 h.postDelayed(this, 120);
             }
         });
@@ -1665,29 +1747,27 @@ public class CheatBridge {
     private static TextView createModInputButton(Activity act, String id, String label, int index) {
         TextView button = text(act, label == null || label.length() == 0 ? id : label, 13, INK);
         button.setGravity(Gravity.CENTER);
-        button.setBackground(modInputBackground(act, false, false));
-        button.setAlpha(0.82f);
-        button.setShadowLayer(px(act, 1), 0, px(act, 1), 0xCC000000);
         button.setContentDescription(id);
+        button.setShadowLayer(px(act, 1), 0, px(act, 1), 0xD8000000);
         button.setOnTouchListener(new ModInputTouch(act, id));
 
         int min = px(act, 30);
         int max = px(act, 84);
-        int side = px(act, 46);
+        int side = modInputDefaultSize(act);
         SharedPreferences prefs = act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE);
         side = clamp(prefs.getInt("size:" + id, side), min, max);
 
         DisplayMetrics metrics = act.getResources().getDisplayMetrics();
-        int x = metrics.widthPixels - side - px(act, 110);
-        int y = metrics.heightPixels - side - px(act, 120 + index * 52);
-        x = prefs.getInt("x:" + id, x);
-        y = prefs.getInt("y:" + id, y);
+        int x = prefs.getInt("x:" + id, modInputDefaultX(act, side));
+        int y = prefs.getInt("y:" + id, modInputDefaultY(act, side, index));
 
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(side, side);
         lp.gravity = Gravity.TOP | Gravity.START;
         lp.leftMargin = clamp(x, 0, metrics.widthPixels - side);
         lp.topMargin = clamp(y, 0, metrics.heightPixels - side);
         button.setVisibility(View.GONE);
+        button.setActivated(false);
+        paintModInputButton(act, button);
         act.addContentView(button, lp);
         return button;
     }
@@ -1700,6 +1780,192 @@ public class CheatBridge {
                 .putInt("size:" + id, lp.width)
                 .apply();
         } catch (Throwable t) { }
+    }
+
+    private static void applyModInputSize(Activity act, String id, int side) {
+        TextView view = sModInputViews.get(id);
+        if (view == null) return;
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) view.getLayoutParams();
+        View parent = (View) view.getParent();
+        int min = px(act, 30);
+        int max = px(act, 84);
+        side = clamp(side, min, max);
+        float centerX = lp.leftMargin + lp.width * 0.5f;
+        float centerY = lp.topMargin + lp.height * 0.5f;
+        lp.width = side;
+        lp.height = side;
+        lp.leftMargin = clamp(centerX - side * 0.5f, 0, parent.getWidth() - side);
+        lp.topMargin = clamp(centerY - side * 0.5f, 0, parent.getHeight() - side);
+        view.setLayoutParams(lp);
+        saveModInputLayout(act, id, lp);
+    }
+
+    private static TextView modEditorLabel(Activity act, String value) {
+        TextView t = text(act, value, 8.5f, INK);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        return t;
+    }
+
+    private static TextView modEditorButton(Activity act, String value) {
+        TextView t = text(act, value, 8.5f, INK);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(px(act, 7), px(act, 3), px(act, 7), px(act, 3));
+        t.setBackground(panel(act, PANEL_DARK, BUTTON_EDGE));
+        return t;
+    }
+
+    private static LinearLayout modEditorRow(Activity act) {
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(px(act, 5), px(act, 2), px(act, 5), px(act, 2));
+        return row;
+    }
+
+    private static void paintMultiChoice(
+        Activity act, TextView off, TextView on, boolean enabled) {
+        off.setBackground(panel(act, enabled ? PANEL_DARK : BUTTON, enabled ? OUTLINE : BUTTON_EDGE));
+        on.setBackground(panel(act, enabled ? GRASS : PANEL_DARK, enabled ? GRASS_LIT : OUTLINE));
+        off.setAlpha(enabled ? 0.78f : 1.0f);
+        on.setAlpha(enabled ? 1.0f : 0.78f);
+    }
+
+    private static void removeModInputEditorPanel() {
+        if (sModInputEditorPanel == null) return;
+        ViewParent parent = sModInputEditorPanel.getParent();
+        if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(sModInputEditorPanel);
+        sModInputEditorPanel = null;
+    }
+
+    private static void clearModInputSelection(Activity act) {
+        sSelectedModInput = null;
+        removeModInputEditorPanel();
+        for (TextView view : sModInputViews.values()) paintModInputButton(act, view);
+    }
+
+    private static void resetModInputLayout(Activity act, String id) {
+        TextView view = sModInputViews.get(id);
+        if (view == null) return;
+        int side = modInputDefaultSize(act);
+        int index = modInputIndex(id);
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) view.getLayoutParams();
+        lp.width = side;
+        lp.height = side;
+        lp.leftMargin = clamp(modInputDefaultX(act, side), 0, m.widthPixels - side);
+        lp.topMargin = clamp(modInputDefaultY(act, side, index), 0, m.heightPixels - side);
+        view.setLayoutParams(lp);
+        saveModInputLayout(act, id, lp);
+    }
+
+    private static void showModInputEditorPanel(final Activity act, final String id) {
+        removeModInputEditorPanel();
+        final TextView target = sModInputViews.get(id);
+        if (target == null) return;
+
+        LinearLayout panelView = new LinearLayout(act);
+        panelView.setOrientation(LinearLayout.VERTICAL);
+        panelView.setPadding(px(act, 6), px(act, 5), px(act, 6), px(act, 6));
+        panelView.setBackground(panelBig(act, PANEL, OUTLINE));
+
+        TextView title = text(act, modInputName(id), 9.2f, INK);
+        title.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 24));
+        panelView.addView(title, titleLp);
+
+        LinearLayout sizeRow = modEditorRow(act);
+        TextView sizeLabel = modEditorLabel(act, "Size");
+        LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(px(act, 58), px(act, 28));
+        sizeRow.addView(sizeLabel, labelLp);
+
+        int minSide = px(act, 30);
+        int maxSide = px(act, 84);
+        FrameLayout.LayoutParams current = (FrameLayout.LayoutParams) target.getLayoutParams();
+        final Range size = new Range(act, maxSide - minSide + 1, current.width - minSide + 1);
+        LinearLayout.LayoutParams rangeLp = new LinearLayout.LayoutParams(px(act, 118), px(act, 28));
+        sizeRow.addView(size, rangeLp);
+        final TextView sizeValue = modEditorLabel(act, Math.round(current.width / unit(act)) + "");
+        sizeValue.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams valueLp = new LinearLayout.LayoutParams(px(act, 34), px(act, 28));
+        sizeRow.addView(sizeValue, valueLp);
+        size.onChange = new Runnable() {
+            @Override public void run() {
+                int side = px(act, 30) + size.value() - 1;
+                applyModInputSize(act, id, side);
+                sizeValue.setText(String.valueOf(Math.round(side / unit(act))));
+            }
+        };
+        panelView.addView(sizeRow, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 31)));
+
+        LinearLayout multiRow = modEditorRow(act);
+        TextView multiLabel = modEditorLabel(act, "Multi Touch:");
+        multiRow.addView(multiLabel, new LinearLayout.LayoutParams(px(act, 94), px(act, 28)));
+        final TextView off = modEditorButton(act, "Off");
+        final TextView on = modEditorButton(act, "On");
+        LinearLayout.LayoutParams choiceLp = new LinearLayout.LayoutParams(px(act, 46), px(act, 24));
+        choiceLp.leftMargin = px(act, 3);
+        multiRow.addView(off, choiceLp);
+        LinearLayout.LayoutParams choiceLp2 = new LinearLayout.LayoutParams(px(act, 46), px(act, 24));
+        choiceLp2.leftMargin = px(act, 3);
+        multiRow.addView(on, choiceLp2);
+        paintMultiChoice(act, off, on, modInputMultiTouch(act, id));
+        off.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                setModInputMultiTouch(act, id, false);
+                paintMultiChoice(act, off, on, false);
+            }
+        });
+        on.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                setModInputMultiTouch(act, id, true);
+                paintMultiChoice(act, off, on, true);
+            }
+        });
+        panelView.addView(multiRow, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 31)));
+
+        LinearLayout bindRow = modEditorRow(act);
+        TextView bindLabel = modEditorLabel(act, "Binding");
+        bindRow.addView(bindLabel, new LinearLayout.LayoutParams(px(act, 58), px(act, 28)));
+        TextView binding = modEditorButton(act, modInputName(id) + "  >");
+        LinearLayout.LayoutParams bindingLp = new LinearLayout.LayoutParams(0, px(act, 25), 1f);
+        bindRow.addView(binding, bindingLp);
+        panelView.addView(bindRow, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 31)));
+
+        final TextView reset = modEditorButton(act, "Reset Control");
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                resetModInputLayout(act, id);
+                showModInputEditorPanel(act, id);
+            }
+        });
+        LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 27));
+        resetLp.leftMargin = px(act, 5);
+        resetLp.rightMargin = px(act, 5);
+        resetLp.topMargin = px(act, 3);
+        panelView.addView(reset, resetLp);
+
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        int width = px(act, 230);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            width, FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.TOP | Gravity.START;
+        lp.leftMargin = clamp(m.widthPixels / 2 - px(act, 188), 0, m.widthPixels - width);
+        lp.topMargin = clamp(m.heightPixels / 2 - px(act, 75), 0, m.heightPixels - px(act, 155));
+
+        sModInputEditorPanel = panelView;
+        act.addContentView(panelView, lp);
+    }
+
+    private static void selectModInput(Activity act, String id) {
+        if (!touchControlsEditing()) return;
+        sSelectedModInput = id;
+        for (TextView view : sModInputViews.values()) paintModInputButton(act, view);
+        showModInputEditorPanel(act, id);
     }
 
     private static final class ModInputTouch implements View.OnTouchListener {
@@ -1729,8 +1995,9 @@ public class CheatBridge {
         private void setDown(View view, boolean next) {
             if (down == next) return;
             down = next;
+            view.setPressed(next);
             try { nModInputState(id, next); } catch (Throwable t) { }
-            view.setBackground(modInputBackground(act, next, false));
+            paintModInputButton(act, (TextView) view);
         }
 
         private float rawX(MotionEvent e, int index) {
@@ -1782,7 +2049,6 @@ public class CheatBridge {
             startSize = lp.width;
             startCenterX = lp.leftMargin + lp.width * 0.5f;
             startCenterY = lp.topMargin + lp.height * 0.5f;
-            view.setBackground(modInputBackground(act, false, true));
         }
 
         private void movePinch(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
@@ -1814,8 +2080,8 @@ public class CheatBridge {
             saveModInputLayout(act, id, lp);
             editing = false;
             pinching = false;
-            view.setBackground(modInputBackground(act, false, false));
-            view.setAlpha(0.82f);
+            paintModInputButton(act, (TextView) view);
+            if (id.equals(sSelectedModInput)) showModInputEditorPanel(act, id);
         }
 
         @Override public boolean onTouch(View view, MotionEvent e) {
@@ -1824,11 +2090,10 @@ public class CheatBridge {
                 case MotionEvent.ACTION_DOWN:
                     if (touchControlsEditing()) {
                         setDown(view, false);
+                        selectModInput(act, id);
                         editing = true;
                         pinching = false;
                         beginDrag(e, lp);
-                        view.setBackground(modInputBackground(act, false, true));
-                        view.setAlpha(1.0f);
                     } else {
                         editing = false;
                         setDown(view, true);
@@ -1847,9 +2112,7 @@ public class CheatBridge {
                     return true;
 
                 case MotionEvent.ACTION_POINTER_UP:
-                    if (editing && e.getPointerCount() >= 2) {
-                        continueDragAfterPointerUp(e, lp);
-                    }
+                    if (editing && e.getPointerCount() >= 2) continueDragAfterPointerUp(e, lp);
                     return true;
 
                 case MotionEvent.ACTION_UP:
