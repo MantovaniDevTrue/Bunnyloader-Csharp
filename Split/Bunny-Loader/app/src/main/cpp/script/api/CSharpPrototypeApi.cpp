@@ -3,10 +3,17 @@
 #include "experiments/csharp/CSharpPrototype.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
+#include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cctype>
+#include <cstdio>
+#include <string>
+#include <string_view>
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -295,6 +302,139 @@ JSValue jsTerrariaSuite(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
 }
 
 
+
+bool containsNoCase(std::string_view text, std::string_view needle) {
+    if (needle.empty()) return true;
+    if (text.size() < needle.size()) return false;
+    for (size_t i = 0; i + needle.size() <= text.size(); ++i) {
+        bool ok = true;
+        for (size_t j = 0; j < needle.size(); ++j) {
+            const unsigned char a = static_cast<unsigned char>(text[i + j]);
+            const unsigned char b = static_cast<unsigned char>(needle[j]);
+            if (std::tolower(a) != std::tolower(b)) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) return true;
+    }
+    return false;
+}
+
+std::string pointerHex(const void* p) {
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "0x%llx",
+                  static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(p)));
+    return buf;
+}
+
+JSValue methodEntry(JSContext* ctx, const MethodInfo* method) {
+    auto& api = bl::il2cpp::api();
+    JSValue out = JS_NewObject(ctx);
+    const char* name = api.method_get_name(method);
+    JS_SetPropertyStr(ctx, out, "name", JS_NewString(ctx, name ? name : ""));
+    const std::string signature = bl::il2cpp::describeMethod(method);
+    JS_SetPropertyStr(ctx, out, "signature", JS_NewString(ctx, signature.c_str()));
+    const std::string address = pointerHex(bl::il2cpp::methodPointer(method));
+    JS_SetPropertyStr(ctx, out, "address", JS_NewString(ctx, address.c_str()));
+    JS_SetPropertyStr(ctx, out, "params",
+                      JS_NewInt32(ctx, static_cast<int32_t>(api.method_get_param_count(method))));
+    JS_SetPropertyStr(ctx, out, "instance",
+                      JS_NewBool(ctx, api.method_is_instance ? api.method_is_instance(method) : true));
+    return out;
+}
+
+JSValue collectMethods(JSContext* ctx, Il2CppClass* cls,
+                       bool (*keep)(std::string_view, const std::string&),
+                       int* total) {
+    JSValue out = JS_NewArray(ctx);
+    uint32_t at = 0;
+    *total = 0;
+    auto& api = bl::il2cpp::api();
+    if (!cls) return out;
+
+    for (Il2CppClass* c = cls; c; c = api.class_get_parent(c)) {
+        void* iter = nullptr;
+        while (const MethodInfo* method = api.class_get_methods(c, &iter)) {
+            ++*total;
+            const char* rawName = api.method_get_name(method);
+            const std::string signature = bl::il2cpp::describeMethod(method);
+            if (!keep(rawName ? std::string_view(rawName) : std::string_view{}, signature)) continue;
+            JS_SetPropertyUint32(ctx, out, at++, methodEntry(ctx, method));
+        }
+    }
+    return out;
+}
+
+bool keepProjectileProbe(std::string_view name, const std::string& signature) {
+    static constexpr std::string_view words[] = {
+        "update", "ai", "kill", "setdefaults", "collision", "position",
+        "movement", "active", "timeleft", "damage", "proj", "step"
+    };
+    for (std::string_view word : words) {
+        if (containsNoCase(name, word) || containsNoCase(signature, word)) return true;
+    }
+    return false;
+}
+
+bool keepMainProbe(std::string_view name, const std::string& signature) {
+    static constexpr std::string_view words[] = {
+        "projectile", "proj", "doupdate", "update", "game"
+    };
+    for (std::string_view word : words) {
+        if (containsNoCase(name, word) || containsNoCase(signature, word)) return true;
+    }
+    return false;
+}
+
+JSValue jsProjectileProbe(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    using namespace bl::il2cpp;
+    Il2CppClass* projectile = findClass({"Terraria", "Projectile", {}});
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+
+    JSValue out = JS_NewObject(ctx);
+    int projectileTotal = 0;
+    int mainTotal = 0;
+    JSValue projectileMethods = collectMethods(ctx, projectile, keepProjectileProbe, &projectileTotal);
+    JSValue mainMethods = collectMethods(ctx, main, keepMainProbe, &mainTotal);
+
+    JS_SetPropertyStr(ctx, out, "projectileMethodCount", JS_NewInt32(ctx, projectileTotal));
+    JS_SetPropertyStr(ctx, out, "mainMethodCount", JS_NewInt32(ctx, mainTotal));
+    JS_SetPropertyStr(ctx, out, "projectileCandidates", projectileMethods);
+    JS_SetPropertyStr(ctx, out, "mainCandidates", mainMethods);
+    return out;
+}
+
+JSValue jsProjectileMethods(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string filter;
+    if (argc > 0 && JS_IsString(argv[0])) {
+        const char* raw = JS_ToCString(ctx, argv[0]);
+        if (raw) {
+            filter = raw;
+            JS_FreeCString(ctx, raw);
+        }
+    }
+
+    Il2CppClass* projectile = bl::il2cpp::findClass({"Terraria", "Projectile", {}});
+    JSValue out = JS_NewArray(ctx);
+    uint32_t at = 0;
+    auto& api = bl::il2cpp::api();
+    if (!projectile) return out;
+
+    void* iter = nullptr;
+    while (const MethodInfo* method = api.class_get_methods(projectile, &iter)) {
+        const char* rawName = api.method_get_name(method);
+        const std::string signature = bl::il2cpp::describeMethod(method);
+        if (!filter.empty() &&
+            !containsNoCase(rawName ? std::string_view(rawName) : std::string_view{}, filter) &&
+            !containsNoCase(signature, filter)) {
+            continue;
+        }
+        JS_SetPropertyUint32(ctx, out, at++, methodEntry(ctx, method));
+    }
+    return out;
+}
+
 JSValue writeStatusToJs(JSContext* ctx, const bl::csharp::ProjectileWriteStatus& status) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
@@ -467,6 +607,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "releaseProjectile", JS_NewCFunction(ctx, jsReleaseProjectile, "releaseProjectile", 0));
     JS_SetPropertyStr(ctx, api, "projectileWriteStatus",
                       JS_NewCFunction(ctx, jsProjectileWriteStatus, "projectileWriteStatus", 0));
+    JS_SetPropertyStr(ctx, api, "projectileProbe",
+                      JS_NewCFunction(ctx, jsProjectileProbe, "projectileProbe", 0));
+    JS_SetPropertyStr(ctx, api, "projectileMethods",
+                      JS_NewCFunction(ctx, jsProjectileMethods, "projectileMethods", 1));
 
     JSValue suite = makeSuite(ctx);
     if (JS_IsException(suite)) {
