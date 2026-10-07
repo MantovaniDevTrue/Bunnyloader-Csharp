@@ -31,6 +31,8 @@ int registerMusic(const std::string& path);
 /** Volume agora (0..1, com o fade). Acima de 0 toca; em 0 para e volta ao comeco. */
 void setMusicVolume(int id, float volume);
 
+void rampMusicVolume(int id, float from, float to, int durationMs);
+
 /** -1 falhou, 0 parada, 1 preparando, 2 tocando. */
 int musicState(int id);
 
