@@ -613,4 +613,85 @@ globalThis.__blExtraStatics = Object.freeze({
     'Terraria.ID.ArmorIDs.Body.Sets': ArmorBodySetsExtras,
     'Terraria.ID.ArmorIDs.Legs.Sets': ArmorLegsSetsExtras,
 });
+
+const __modInputHandles = new Map();
+
+class ModInputButton {
+    constructor(id, label) {
+        this.id = id;
+        bl.input.registerButton(id, label);
+        const state = bl.input.state(id) >>> 0;
+        this.down = (state & 1) !== 0;
+        this.pressSerial = (state >>> 1) & 0x7FFF;
+        this.releaseSerial = (state >>> 16) & 0x7FFF;
+        this.pressFrame = -1;
+        this.releaseFrame = -1;
+    }
+
+    refresh() {
+        const state = bl.input.state(this.id) >>> 0;
+        const frame = Number(Terraria.Main.GameUpdateCount);
+        const press = (state >>> 1) & 0x7FFF;
+        const release = (state >>> 16) & 0x7FFF;
+        if (press !== this.pressSerial) {
+            this.pressSerial = press;
+            this.pressFrame = frame;
+        }
+        if (release !== this.releaseSerial) {
+            this.releaseSerial = release;
+            this.releaseFrame = frame;
+        }
+        this.down = (state & 1) !== 0;
+        return frame;
+    }
+
+    get Pressed() {
+        this.refresh();
+        return this.down;
+    }
+
+    get JustPressed() {
+        return this.refresh() === this.pressFrame;
+    }
+
+    get JustReleased() {
+        return this.refresh() === this.releaseFrame;
+    }
+}
+
+function __modInputButton(id, label) {
+    let button = __modInputHandles.get(id);
+    if (!button) {
+        button = new ModInputButton(id, label);
+        __modInputHandles.set(id, button);
+    }
+    return button;
+}
+
+const ModInput = {
+    RegisterButton(id, options = {}) {
+        const label = options.displayName || options.label || id;
+        return __modInputButton(String(id), String(label));
+    },
+
+    AimDirection(player, source = null) {
+        const origin = source || player.Center;
+        return Vector2.SafeNormalize(Vector2.Subtract(Terraria.Main.MouseWorld, origin), { X: player.direction || 1, Y: 0 });
+    },
+
+    SyncAim(player, source = null) {
+        const aim = this.AimDirection(player, source);
+        player.direction = aim.X >= 0 ? 1 : -1;
+        return aim;
+    },
+};
+
+Object.defineProperty(ModInput, 'SecondaryUse', {
+    get() {
+        return __modInputButton('SecondaryUse', 'R');
+    },
+});
+
+globalThis.ModInput = Object.freeze(ModInput);
+
 })();
