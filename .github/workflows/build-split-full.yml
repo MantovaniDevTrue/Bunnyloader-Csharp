@@ -7,6 +7,7 @@ on:
       - bunny-upstream-2026-10-01
       - bunny-upstream-latest-icons
       - audio-native-test
+      - bunny-music-spawn-hotfix-0.1.9
     paths:
       - ".github/workflows/build-split-full.yml"
       - "Split/Bunny-Loader/**"
@@ -439,20 +440,20 @@ jobs:
           cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
           sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
 
-      - name: Publish native audio test APK
+      - name: Publish music spawn hotfix APK
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="audio-native-test-v1"
+          TAG="bunny-music-spawn-hotfix-v1"
           APK="Split/build/output/Split-BunnyLoader-full-debug.apk"
-          OUT="BunnyLoader-v0.1.8-native-audio-test.apk"
+          OUT="BunnyLoader-v0.1.9-MusicHotfix.apk"
 
           cp "$APK" "Split/build/output/$OUT"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
-              --title "Bunny Loader v0.1.8 Native Audio Test" \
-              --notes "Private test build: native SoundStyle routing for performance validation." \
+              --title "Bunny Loader v0.1.9 Music Spawn Hotfix" \
+              --notes "Test build: BossHigh music decision fast path to remove the one-frame hitch when mod boss music starts." \
               --prerelease
           fi
           gh release upload "$TAG" "Split/build/output/$OUT" --repo "${{ github.repository }}" --clobber

@@ -33,6 +33,7 @@ class ModMusic {
     static Install() {
         Hooks.Once('music', () => {
             ModMusic.#hooked = true;
+            Safe.Run('ModMusic: prewarm BossHigh', () => Terraria.GameContent.Events.CreditsRollEvent.IsEventOngoing);
             const Main = Terraria.Main;
             const decide = (tow) => (original, self) => {
                 original(self);
@@ -59,8 +60,8 @@ class ModMusic {
         }
         if (music < 0 || priority < SceneEffectPriority.BiomeLow) return -1;
 
-        const tier = Safe.Run('ModMusic: degrau do jogo', () => VanillaMusic.Tier(tow));
-        return tier === undefined || priority >= tier ? music : -1;
+        const allowed = Safe.Run('ModMusic: degrau do jogo', () => VanillaMusic.Allows(priority, tow));
+        return allowed === undefined || allowed ? music : -1;
     }
 
     static #FromNpcs() {
