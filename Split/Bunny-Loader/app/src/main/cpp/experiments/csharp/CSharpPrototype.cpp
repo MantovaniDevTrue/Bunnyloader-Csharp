@@ -20,6 +20,7 @@ using MathBatchFn = uint32_t (*)(int, uint32_t);
 using ProjectileBatchFn = double (*)(int, int);
 using NpcScanFn = double (*)(const NpcSample*, int, float, float, int);
 using ProjectileScanFn = double (*)(const ProjectileSample*, int, int);
+using HostProjectileTickFn = int (*)(HostProjectileState*, const NpcSample*, int, float, float);
 
 void* g_handle = nullptr;
 VersionFn g_version = nullptr;
@@ -30,6 +31,7 @@ MathBatchFn g_mathBatch = nullptr;
 ProjectileBatchFn g_projectileBatch = nullptr;
 NpcScanFn g_npcScan = nullptr;
 ProjectileScanFn g_projectileScan = nullptr;
+HostProjectileTickFn g_hostProjectileTick = nullptr;
 bool g_attempted = false;
 std::mutex g_lock;
 
@@ -65,9 +67,10 @@ bool installPrototype() {
     g_projectileBatch = symbol<ProjectileBatchFn>("bunnycs_projectile_batch");
     g_npcScan = symbol<NpcScanFn>("bunnycs_npc_scan");
     g_projectileScan = symbol<ProjectileScanFn>("bunnycs_projectile_scan");
+    g_hostProjectileTick = symbol<HostProjectileTickFn>("bunnycs_host_projectile_tick");
 
     if (!g_version || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch ||
-        !g_npcScan || !g_projectileScan) {
+        !g_npcScan || !g_projectileScan || !g_hostProjectileTick) {
         BL_ERROR("csharp: exports NativeAOT incompletos");
         dlclose(g_handle);
         g_handle = nullptr;
@@ -93,7 +96,7 @@ bool installPrototype() {
 
 bool available() {
     return g_handle && g_version && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch &&
-           g_npcScan && g_projectileScan;
+           g_npcScan && g_projectileScan && g_hostProjectileTick;
 }
 
 int version() {
@@ -133,6 +136,12 @@ double npcScan(const NpcSample* samples, int count, float playerX, float playerY
 double projectileScan(const ProjectileSample* samples, int count, int repeats) {
     if (!available() || !samples || count <= 0) return 0.0;
     return g_projectileScan(samples, count, repeats);
+}
+
+bool hostProjectileTick(HostProjectileState* state, const NpcSample* samples, int count,
+                        float playerX, float playerY) {
+    if (!available() || !state || !samples || count <= 0) return false;
+    return g_hostProjectileTick(state, samples, count, playerX, playerY) != 0;
 }
 
 double clockMs() {
