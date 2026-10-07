@@ -23,6 +23,8 @@ uint32_t mathBatch(int iterations, uint32_t seed);
 double projectileBatch(int count, int steps);
 double npcScan(const NpcSample* samples, int count, float playerX, float playerY, int repeats);
 double projectileScan(const ProjectileSample* samples, int count, int repeats);
+bool hostProjectileTick(HostProjectileState* state, const NpcSample* samples, int count,
+                        float playerX, float playerY);
 double clockMs();
 BenchmarkResult benchmark(int iterations);
 
