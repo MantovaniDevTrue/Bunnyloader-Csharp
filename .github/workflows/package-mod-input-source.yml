@@ -1,0 +1,39 @@
+name: Package ModInput source
+
+on:
+  push:
+    branches:
+      - bunny-upstream-latest-icons
+    paths:
+      - ".github/workflows/package-mod-input-source.yml"
+      - "Split/Bunny-Loader/MODINPUT_UPSTREAM.md"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create source package
+        shell: bash
+        run: |
+          ROOT="Split/Bunny-Loader"
+          OUT="$RUNNER_TEMP/BunnyLoader-ModInput-0.1.9.3-Source.zip"
+          cd "$ROOT"
+          zip -9 "$OUT"             MODINPUT_UPSTREAM.md             app/src/main/cpp/script/api/Input.h             app/src/main/cpp/script/api/Input.cpp             app/src/main/cpp/script/bridge/Bindings.cpp             app/src/main/cpp/script/js/ModHelpers.js             app/src/main/cpp/menu/CheatButton.cpp             tools/cheatbridge/bunny/CheatBridge.java             samples/ExampleMod/content/Common/Players/ExampleSecondaryUsePlayer.js
+          echo "SOURCE_ZIP=$OUT" >> "$GITHUB_ENV"
+
+      - name: Publish source package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="bunny-mod-input-source-v1"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$SOURCE_ZIP" --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" "$SOURCE_ZIP#BunnyLoader-ModInput-0.1.9.3-Source.zip"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader ModInput 0.1.9.3 Source"               --notes "Source-only package for review/upstream. Includes the ModInput API, touch-editor bridge, vanilla-style mobile editor UI and ExampleMod usage."               --prerelease
+          fi
