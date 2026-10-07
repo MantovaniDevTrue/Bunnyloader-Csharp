@@ -33,7 +33,6 @@ std::mutex g_mutex;
 std::vector<Track> g_tracks;
 int g_target = 0;
 float g_masterVolume = 1.0f;
-bool g_announced = false;
 
 Track* findTrack(int id) {
     for (auto& track : g_tracks) {
@@ -122,11 +121,6 @@ void refreshMaster(float newMaster, Clock::time_point now) {
 }
 
 bool installNativeMusicRouter() {
-    std::lock_guard<std::mutex> guard(g_mutex);
-    if (!g_announced) {
-        g_announced = true;
-        BL_INFO("musica nativa: transicoes por evento; sem hook Main.UpdateAudio");
-    }
     return true;
 }
 
