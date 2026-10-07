@@ -208,7 +208,7 @@ public static class Exports
         public int Slot;
         public int Type;
         public int Owner;
-        public int Identity;
+        public int Generation;
         public int TargetIndex;
         public float X;
         public float Y;
