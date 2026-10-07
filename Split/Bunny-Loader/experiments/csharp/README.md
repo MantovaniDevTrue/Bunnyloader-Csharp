@@ -32,3 +32,20 @@ Recommended device test:
 ```js
 JSON.stringify(bl.csharp.suite(1000000, 4096, 180), null, 2)
 ```
+
+
+## Live Terraria host benchmark
+
+Version 0.1.9.7 adds a read-only host snapshot of the current Terraria process.
+
+The native Bunny side resolves `Main.player`, `Main.npc` and `Main.projectile` with the existing IL2CPP resolver. It copies player/NPC/projectile state into blittable structs and sends each batch to C# NativeAOT in one call.
+
+No Terraria state is written by this prototype.
+
+Run in-world:
+
+```js
+JSON.stringify(bl.csharp.terrariaSuite(1000), null, 2)
+```
+
+The result separates snapshot capture time from JavaScript and C# processing time and reports checksum deltas for both workloads.
