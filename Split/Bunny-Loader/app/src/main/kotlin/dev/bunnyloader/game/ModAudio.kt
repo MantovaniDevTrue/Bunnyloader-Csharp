@@ -4,29 +4,14 @@ import android.media.AudioAttributes
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.media.SoundPool
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.SystemClock
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Sons e musicas de mod, tocados pelo Android.
- *
- * A Unity deste build nao cria AudioClip novo: o "Strip Engine Code" tirou o
- * AudioClip.Create do C# e, na libunity, o registro e a implementacao das
- * icalls por baixo dele (Construct_Internal, CreateUserSound, SetData). Nao ha
- * AssetBundle nem FMOD exportado. Entao o audio de mod toca fora da Unity:
- *
- *  - efeito: SoundPool, que decodifica (OGG, MP3, WAV...), mistura e aplica
- *    volume por lado e velocidade (o tom);
- *  - musica: MediaPlayer, em streaming, em laco.
- *
- * O nativo chama por JNI (content/sounds/AndroidAudio.cpp). Quanto e quando
- * tocar vem do jogo, por script/js/mod/audio.js: volume de efeitos, distancia ate o
- * centro da tela, volume de musica e a musica que o jogo escolheria.
- */
 object ModAudio {
     private const val TAG = "BunnyLoader"
-
-    // ------------------------------- efeitos -------------------------------
 
     private val loaded: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val failed: MutableSet<Int> = ConcurrentHashMap.newKeySet()
@@ -53,7 +38,6 @@ object ModAudio {
             .setContentType(content)
             .build()
 
-    /** Comeca a carregar (o SoundPool decodifica noutra thread). O id, ou 0. */
     @JvmStatic
     fun load(path: String): Int {
         val id = pool.load(path, 1)
@@ -61,7 +45,6 @@ object ModAudio {
         return id
     }
 
-    /** 1 pronto, 0 carregando, -1 falhou. */
     @JvmStatic
     fun state(id: Int): Int = when (id) {
         in loaded -> 1
@@ -69,11 +52,9 @@ object ModAudio {
         else -> 0
     }
 
-    /** Duracao em ms (0 se o arquivo nao disse). */
     @JvmStatic
     fun duration(id: Int): Int = durations[id] ?: 0
 
-    /** Volume por lado 0..1, velocidade 0,5..2 (2 = uma oitava acima). O stream, ou 0. */
     @JvmStatic
     fun play(id: Int, left: Float, right: Float, rate: Float): Int =
         if (id in loaded) pool.play(id, left, right, 1, 0, rate) else 0
@@ -88,27 +69,37 @@ object ModAudio {
         return try {
             r.setDataSource(path)
             r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toIntOrNull() ?: 0
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             0
         } finally {
             r.release()
         }
     }
 
-    // ------------------------------- musica -------------------------------
-
     private class Track(val path: String) {
         var player: MediaPlayer? = null
         var prepared = false
         var failed = false
-        var volume = 0f            // o que o jogo pediu por ultimo
-        var pausedByApp = false    // tocava quando o app foi para o fundo
+        var volume = 0f
+        var pausedByApp = false
+        var generation = 0
+        var rampFrom = 0f
+        var rampTo = 0f
+        var rampStart = 0L
+        var rampDuration = 1L
     }
 
     private val tracks = ConcurrentHashMap<Int, Track>()
     @Volatile private var nextTrack = 1
 
-    /** Registra uma musica (nada e lido ainda). O id. */
+    private val musicThread: HandlerThread by lazy {
+        HandlerThread("BunnyModMusic").apply { start() }
+    }
+
+    private val musicHandler: Handler by lazy {
+        Handler(musicThread.looper)
+    }
+
     @JvmStatic
     @Synchronized
     fun musicRegister(path: String): Int {
@@ -117,29 +108,38 @@ object ModAudio {
         return id
     }
 
-    /**
-     * O volume da musica agora (0..1), chamado a cada quadro pelo jogo com o
-     * fade ja aplicado. Acima de 0 ela toca (prepara na primeira vez, sem
-     * travar o jogo); em 0 ela para e volta ao comeco, como a faixa do jogo.
-     */
     @JvmStatic
     @Synchronized
     fun musicVolume(id: Int, volume: Float) {
         val t = tracks[id] ?: return
         if (t.failed) return
-        t.volume = volume
-        val p = t.player ?: if (volume > 0f) prepare(id, t) else return
-        if (!t.prepared) return
-        if (volume > 0f) {
-            p.setVolume(volume, volume)
-            if (!p.isPlaying && !t.pausedByApp) p.start()
-        } else if (p.isPlaying) {
-            p.pause()
-            p.seekTo(0)
-        }
+        t.generation++
+        t.volume = volume.coerceIn(0f, 1f)
+        applyTrackVolume(id, t)
     }
 
-    /** -1 falhou, 0 parada, 1 preparando, 2 tocando. */
+    @JvmStatic
+    @Synchronized
+    fun musicRamp(id: Int, from: Float, to: Float, durationMs: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed) return
+
+        val start = from.coerceIn(0f, 1f)
+        val end = to.coerceIn(0f, 1f)
+        t.generation++
+        val generation = t.generation
+        t.rampFrom = start
+        t.rampTo = end
+        t.rampStart = SystemClock.uptimeMillis()
+        t.rampDuration = durationMs.coerceAtLeast(1).toLong()
+        t.volume = start
+
+        if (t.player == null && (start > 0f || end > 0f)) prepare(id, t)
+        if (t.prepared) applyTrackVolume(id, t)
+
+        musicHandler.post { runRamp(id, generation) }
+    }
+
     @JvmStatic
     @Synchronized
     fun musicState(id: Int): Int {
@@ -178,12 +178,37 @@ object ModAudio {
     private fun onPrepared(id: Int) {
         val t = tracks[id] ?: return
         t.prepared = true
-        musicVolume(id, t.volume)
+        applyTrackVolume(id, t)
     }
 
-    // ------------------------------- app -------------------------------
+    @Synchronized
+    private fun runRamp(id: Int, generation: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed || t.generation != generation) return
 
-    /** O jogo foi para o fundo: nada de mod soando por cima de outro app. */
+        val elapsed = SystemClock.uptimeMillis() - t.rampStart
+        val progress = (elapsed.toFloat() / t.rampDuration.toFloat()).coerceIn(0f, 1f)
+        t.volume = t.rampFrom + (t.rampTo - t.rampFrom) * progress
+        applyTrackVolume(id, t)
+
+        if (progress >= 1f) return
+        musicHandler.postDelayed({ runRamp(id, generation) }, 16L)
+    }
+
+    private fun applyTrackVolume(id: Int, t: Track) {
+        if (t.failed) return
+        val p = t.player ?: if (t.volume > 0f) prepare(id, t) else return
+        if (!t.prepared) return
+
+        if (t.volume > 0f) {
+            p.setVolume(t.volume, t.volume)
+            if (!p.isPlaying && !t.pausedByApp) p.start()
+        } else {
+            if (p.isPlaying) p.pause()
+            p.seekTo(0)
+        }
+    }
+
     @JvmStatic
     @Synchronized
     fun pauseAll() {
