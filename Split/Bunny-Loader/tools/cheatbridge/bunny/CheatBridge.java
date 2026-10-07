@@ -131,6 +131,8 @@ public class CheatBridge {
     /** Editor em tela cheia: o mundo para (Main.CanPauseGame, menu/DevTools.h). */
     public static native void nSetGameFrozen(boolean on);
     public static native boolean nRestartReady();
+    public static native String[] nModInputButtons();
+    public static native void nModInputState(String id, boolean down);
 
     // --- paleta ---
     static final int PANEL      = 0xFF3F5297;
@@ -1452,6 +1454,7 @@ public class CheatBridge {
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
+                try { watchModInputs(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
             }
         });
     }
@@ -1600,6 +1603,191 @@ public class CheatBridge {
                 h.postDelayed(this, WORLD_POLL_MS);
             }
         });
+    }
+
+    private static final String MOD_INPUT_PREFS = "bunny_mod_input";
+    private static final LinkedHashMap<String, TextView> sModInputViews = new LinkedHashMap<String, TextView>();
+
+    private static void watchModInputs(final Activity act) {
+        final Handler h = new Handler(Looper.getMainLooper());
+        h.post(new Runnable() {
+            @Override public void run() {
+                if (act.isFinishing() || act.isDestroyed()) return;
+
+                String[] buttons = null;
+                boolean inWorld = true;
+                try { buttons = nModInputButtons(); } catch (Throwable t) { }
+                try { inWorld = nInWorld(); } catch (Throwable t) { }
+
+                if (buttons != null) {
+                    for (int i = 0; i + 1 < buttons.length; i += 2) {
+                        String id = buttons[i];
+                        String label = buttons[i + 1];
+                        if (id == null || id.length() == 0) continue;
+                        TextView view = sModInputViews.get(id);
+                        if (view == null) {
+                            view = createModInputButton(act, id, label, sModInputViews.size());
+                            sModInputViews.put(id, view);
+                        } else if (label != null && !label.equals(view.getText().toString())) {
+                            view.setText(label);
+                        }
+                    }
+                }
+
+                for (TextView view : sModInputViews.values()) {
+                    int vis = inWorld ? View.VISIBLE : View.GONE;
+                    if (view.getVisibility() != vis) view.setVisibility(vis);
+                }
+                h.postDelayed(this, WORLD_POLL_MS);
+            }
+        });
+    }
+
+    private static TextView createModInputButton(Activity act, String id, String label, int index) {
+        TextView button = text(act, label == null || label.length() == 0 ? id : label, 13, INK);
+        button.setGravity(Gravity.CENTER);
+        button.setBackground(actionBackground(act, false));
+        button.setContentDescription(id);
+        button.setOnTouchListener(new ModInputTouch(act, id));
+
+        int min = px(act, 30);
+        int max = px(act, 80);
+        int side = px(act, 46);
+        SharedPreferences prefs = act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE);
+        side = clamp(prefs.getInt("size:" + id, side), min, max);
+
+        DisplayMetrics metrics = act.getResources().getDisplayMetrics();
+        int x = metrics.widthPixels - side - px(act, 110);
+        int y = metrics.heightPixels - side - px(act, 120 + index * 52);
+        x = prefs.getInt("x:" + id, x);
+        y = prefs.getInt("y:" + id, y);
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(side, side);
+        lp.gravity = Gravity.TOP | Gravity.START;
+        lp.leftMargin = clamp(x, 0, metrics.widthPixels - side);
+        lp.topMargin = clamp(y, 0, metrics.heightPixels - side);
+        button.setVisibility(View.GONE);
+        act.addContentView(button, lp);
+        return button;
+    }
+
+    private static void saveModInputLayout(Activity act, String id, FrameLayout.LayoutParams lp) {
+        try {
+            act.getSharedPreferences(MOD_INPUT_PREFS, Activity.MODE_PRIVATE).edit()
+                .putInt("x:" + id, lp.leftMargin)
+                .putInt("y:" + id, lp.topMargin)
+                .putInt("size:" + id, lp.width)
+                .apply();
+        } catch (Throwable t) { }
+    }
+
+    private static final class ModInputTouch implements View.OnTouchListener {
+        private final Activity act;
+        private final String id;
+        private boolean down;
+        private boolean editing;
+        private boolean suppressUntilUp;
+        private float startMidX;
+        private float startMidY;
+        private float startSpan;
+        private float startCenterX;
+        private float startCenterY;
+        private int startSize;
+
+        ModInputTouch(Activity act, String id) {
+            this.act = act;
+            this.id = id;
+        }
+
+        private void setDown(View view, boolean next) {
+            if (down == next) return;
+            down = next;
+            try { nModInputState(id, next); } catch (Throwable t) { }
+            view.setBackground(actionBackground(act, next));
+        }
+
+        private float span(MotionEvent e) {
+            if (e.getPointerCount() < 2) return 0f;
+            float dx = e.getX(1) - e.getX(0);
+            float dy = e.getY(1) - e.getY(0);
+            return (float) Math.sqrt(dx * dx + dy * dy);
+        }
+
+        private float rawMidX(MotionEvent e) {
+            return e.getRawX() + (e.getX(1) - e.getX(0)) * 0.5f;
+        }
+
+        private float rawMidY(MotionEvent e) {
+            return e.getRawY() + (e.getY(1) - e.getY(0)) * 0.5f;
+        }
+
+        private void beginEdit(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
+            setDown(view, false);
+            editing = true;
+            suppressUntilUp = true;
+            startMidX = rawMidX(e);
+            startMidY = rawMidY(e);
+            startSpan = Math.max(1f, span(e));
+            startSize = lp.width;
+            startCenterX = lp.leftMargin + lp.width * 0.5f;
+            startCenterY = lp.topMargin + lp.height * 0.5f;
+            view.setBackground(actionBackground(act, true));
+        }
+
+        private void moveEdit(View view, MotionEvent e, FrameLayout.LayoutParams lp) {
+            if (e.getPointerCount() < 2) return;
+            int min = px(act, 30);
+            int max = px(act, 80);
+            int side = clamp(startSize * (span(e) / startSpan), min, max);
+            float centerX = startCenterX + rawMidX(e) - startMidX;
+            float centerY = startCenterY + rawMidY(e) - startMidY;
+            View parent = (View) view.getParent();
+            lp.width = side;
+            lp.height = side;
+            lp.leftMargin = clamp(centerX - side * 0.5f, 0, parent.getWidth() - side);
+            lp.topMargin = clamp(centerY - side * 0.5f, 0, parent.getHeight() - side);
+            view.setLayoutParams(lp);
+        }
+
+        @Override public boolean onTouch(View view, MotionEvent e) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) view.getLayoutParams();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    editing = false;
+                    suppressUntilUp = false;
+                    setDown(view, true);
+                    return true;
+
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    if (e.getPointerCount() >= 2) beginEdit(view, e, lp);
+                    return true;
+
+                case MotionEvent.ACTION_MOVE:
+                    if (editing) moveEdit(view, e, lp);
+                    return true;
+
+                case MotionEvent.ACTION_POINTER_UP:
+                    if (editing) {
+                        saveModInputLayout(act, id, lp);
+                        editing = false;
+                        suppressUntilUp = true;
+                        view.setBackground(actionBackground(act, false));
+                    }
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    setDown(view, false);
+                    if (editing) saveModInputLayout(act, id, lp);
+                    editing = false;
+                    suppressUntilUp = false;
+                    view.setBackground(actionBackground(act, false));
+                    return true;
+
+                default:
+                    return true;
+            }
+        }
     }
 
     // ---- o menu por cima do teclado ----
