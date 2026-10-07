@@ -27,8 +27,9 @@ struct ProjectileSample {
     float y;
     float vx;
     float vy;
+    int32_t flags;
 };
-static_assert(sizeof(ProjectileSample) == 36);
+static_assert(sizeof(ProjectileSample) == 40);
 
 struct PlayerSample {
     int32_t index;
