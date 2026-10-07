@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <vector>
 
@@ -38,13 +39,19 @@ struct NativeStyle {
     std::vector<ActiveStream> active;
 };
 
+template <typename T>
+struct StaticValueRef {
+    FieldInfo* field = nullptr;
+    const MethodInfo* getter = nullptr;
+};
+
 struct GameAudioRefs {
     Il2CppClass* main = nullptr;
-    FieldInfo* screenPosition = nullptr;
-    FieldInfo* screenWidth = nullptr;
-    FieldInfo* screenHeight = nullptr;
-    FieldInfo* soundVolume = nullptr;
-    FieldInfo* attenuation = nullptr;
+    StaticValueRef<Vec2> screenPosition;
+    StaticValueRef<int32_t> screenWidth;
+    StaticValueRef<int32_t> screenHeight;
+    StaticValueRef<float> soundVolume;
+    StaticValueRef<float> attenuation;
 };
 
 struct Vec2 {
@@ -71,11 +78,36 @@ float randomCentered() {
 }
 
 template <typename T>
-T staticValue(FieldInfo* field, T fallback) {
-    if (!field) return fallback;
+T staticValue(const StaticValueRef<T>& ref, T fallback) {
+    auto& a = il2cpp::api();
+    if (ref.field) {
+        T value = fallback;
+        a.field_static_get_value(ref.field, &value);
+        return value;
+    }
+    if (!ref.getter || !a.runtime_invoke) return fallback;
+
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* boxed = a.runtime_invoke(ref.getter, nullptr, nullptr, &exception);
+    if (!boxed || exception) return fallback;
+
     T value = fallback;
-    il2cpp::api().field_static_get_value(field, &value);
+    std::memcpy(&value, reinterpret_cast<const char*>(boxed) + sizeof(Il2CppObject), sizeof(T));
     return value;
+}
+
+template <typename T>
+StaticValueRef<T> resolveStatic(Il2CppClass* cls, const char* fieldName, const char* getterName) {
+    StaticValueRef<T> ref;
+    if (!cls) return ref;
+    ref.field = il2cpp::findField(cls, fieldName);
+    if (!ref.field) ref.getter = il2cpp::api().class_get_method_from_name(cls, getterName, 0);
+    return ref;
+}
+
+template <typename T>
+bool resolved(const StaticValueRef<T>& ref) {
+    return ref.field || ref.getter;
 }
 
 void prune(NativeStyle& style, Clock::time_point now) {
@@ -89,24 +121,23 @@ void resolveGameAudioRefs() {
     g_refs.main = findClass({"Terraria", "Main", {}});
     if (g_refs.main) {
         if (a.runtime_class_init) a.runtime_class_init(g_refs.main);
-        g_refs.screenPosition = findField(g_refs.main, "screenPosition");
-        g_refs.screenWidth = findField(g_refs.main, "screenWidth");
-        g_refs.screenHeight = findField(g_refs.main, "screenHeight");
-        g_refs.soundVolume = findField(g_refs.main, "soundVolume");
+        g_refs.screenPosition = resolveStatic<Vec2>(g_refs.main, "screenPosition", "get_screenPosition");
+        g_refs.screenWidth = resolveStatic<int32_t>(g_refs.main, "screenWidth", "get_screenWidth");
+        g_refs.screenHeight = resolveStatic<int32_t>(g_refs.main, "screenHeight", "get_screenHeight");
+        g_refs.soundVolume = resolveStatic<float>(g_refs.main, "soundVolume", "get_soundVolume");
     }
 
     Il2CppClass* legacy = findClass({"Terraria.Audio", "LegacySoundPlayer", {}});
     if (legacy) {
         if (a.runtime_class_init) a.runtime_class_init(legacy);
-        g_refs.attenuation = findField(legacy, "SoundAttenuationDistance");
+        g_refs.attenuation = resolveStatic<float>(legacy, "SoundAttenuationDistance", "get_SoundAttenuationDistance");
     }
 
-    if (!g_refs.screenPosition || !g_refs.screenWidth || !g_refs.screenHeight || !g_refs.soundVolume) {
-        BL_WARN("sons nativos: alguns campos de Main nao foram resolvidos; usando fallback quando necessario");
-    }
-    if (!g_refs.attenuation) {
-        BL_WARN("sons nativos: SoundAttenuationDistance nao resolvido; usando 2500");
-    }
+    if (!resolved(g_refs.screenPosition)) BL_WARN("sons nativos: Main.screenPosition nao resolvido");
+    if (!resolved(g_refs.screenWidth)) BL_WARN("sons nativos: Main.screenWidth nao resolvido");
+    if (!resolved(g_refs.screenHeight)) BL_WARN("sons nativos: Main.screenHeight nao resolvido");
+    if (!resolved(g_refs.soundVolume)) BL_WARN("sons nativos: Main.soundVolume nao resolvido");
+    if (!resolved(g_refs.attenuation)) BL_WARN("sons nativos: SoundAttenuationDistance nao resolvido; usando 2500");
 }
 
 int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float pitchOffset) {
