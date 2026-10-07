@@ -91,7 +91,7 @@ struct LastClaim {
     int type = -1;
     int targetIndex = -1;
     int writes = 0;
-    int positionCalls = 0;
+    int loopCalls = 0;
 };
 
 std::mutex g_mutex;
