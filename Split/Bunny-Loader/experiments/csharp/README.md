@@ -49,3 +49,32 @@ JSON.stringify(bl.csharp.terrariaSuite(1000), null, 2)
 ```
 
 The result separates snapshot capture time from JavaScript and C# processing time and reports checksum deltas for both workloads.
+
+
+## Controlled projectile write test
+
+Version 0.1.9.8 adds the first controlled write path.
+
+Fire a normal projectile owned by the local player, then run:
+
+```js
+JSON.stringify(bl.csharp.claimProjectile(), null, 2)
+```
+
+The host claims only one active, damaging projectile owned by the local player. It stores the projectile slot, identity, type and owner and refuses to keep writing if any part of that token changes.
+
+C# NativeAOT scans the current NPC snapshot, chooses the nearest valid hostile target and returns a new velocity/rotation. Bunny applies only those two fields to the claimed projectile.
+
+Status:
+
+```js
+JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
+```
+
+Release manually:
+
+```js
+bl.csharp.releaseProjectile()
+```
+
+The claim is also released when the projectile receives `Kill()`. No Player or NPC state is written by this test.
