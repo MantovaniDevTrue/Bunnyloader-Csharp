@@ -8,6 +8,7 @@ on:
       - bunny-upstream-latest-icons
       - audio-native-test
       - bunny-music-spawn-hotfix-0.1.9
+      - bunny-music-prewarm-0.1.9.1
     paths:
       - ".github/workflows/build-split-full.yml"
       - "Split/Bunny-Loader/**"
@@ -440,20 +441,20 @@ jobs:
           cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
           sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
 
-      - name: Publish music spawn hotfix APK
+      - name: Publish music prewarm APK
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="bunny-music-spawn-hotfix-v1"
+          TAG="bunny-music-prewarm-v1"
           APK="Split/build/output/Split-BunnyLoader-full-debug.apk"
-          OUT="BunnyLoader-v0.1.9-MusicHotfix.apk"
+          OUT="BunnyLoader-v0.1.9.1-MusicPrewarm.apk"
 
           cp "$APK" "Split/build/output/$OUT"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
-              --title "Bunny Loader v0.1.9 Music Spawn Hotfix" \
-              --notes "Test build: BossHigh music decision fast path to remove the one-frame hitch when mod boss music starts." \
+              --title "Bunny Loader v0.1.9.1 Music Prewarm" \
+              --notes "Test build: custom music MediaPlayer preparation is queued on BunnyModMusic during registration, removing first-play setup from the Terraria thread." \
               --prerelease
           fi
           gh release upload "$TAG" "Split/build/output/$OUT" --repo "${{ github.repository }}" --clobber

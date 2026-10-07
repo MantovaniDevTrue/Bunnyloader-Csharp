@@ -87,6 +87,7 @@ object ModAudio {
         var rampTo = 0f
         var rampStart = 0L
         var rampDuration = 1L
+        var prepareQueued = false
     }
 
     private val tracks = ConcurrentHashMap<Int, Track>()
@@ -105,6 +106,7 @@ object ModAudio {
     fun musicRegister(path: String): Int {
         val id = nextTrack++
         tracks[id] = Track(path)
+        queuePrepare(id)
         return id
     }
 
@@ -135,7 +137,7 @@ object ModAudio {
         t.rampDuration = durationMs.coerceAtLeast(1).toLong()
         t.volume = start
 
-        if (t.player == null && (start > 0f || end > 0f)) prepare(id, t)
+        if (t.player == null && (start > 0f || end > 0f)) queuePrepare(id)
         if (t.prepared) applyTrackVolume(id, t)
 
         musicHandler.postDelayed({ runRamp(id, generation) }, delay)
@@ -154,7 +156,25 @@ object ModAudio {
         }
     }
 
+    private fun queuePrepare(id: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed || t.prepared || t.player != null || t.prepareQueued) return
+        t.prepareQueued = true
+        musicHandler.post {
+            synchronized(this) {
+                val current = tracks[id] ?: return@synchronized
+                if (current.failed || current.prepared || current.player != null) {
+                    current.prepareQueued = false
+                    return@synchronized
+                }
+                current.prepareQueued = false
+                prepare(id, current)
+            }
+        }
+    }
+
     private fun prepare(id: Int, t: Track): MediaPlayer {
+        t.prepareQueued = false
         val p = MediaPlayer()
         t.player = p
         try {
@@ -204,7 +224,10 @@ object ModAudio {
 
     private fun applyTrackVolume(id: Int, t: Track) {
         if (t.failed) return
-        val p = t.player ?: if (t.volume > 0f) prepare(id, t) else return
+        val p = t.player ?: run {
+            if (t.volume > 0f) queuePrepare(id)
+            return
+        }
         if (!t.prepared) return
 
         if (t.volume > 0f) {
