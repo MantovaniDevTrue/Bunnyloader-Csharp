@@ -16,6 +16,7 @@ struct BenchmarkResult {
 bool installPrototype();
 bool available();
 int version();
+int hostApiVersion();
 int add(int a, int b);
 int64_t checksum(int iterations);
 int64_t playerSample(float x, float y, int life, int maxLife);
