@@ -135,42 +135,6 @@ class GameActivity : Activity() {
         return File(dir, "bunny_$stamp.txt")
     }
 
-    private fun installManagedProbe(): String {
-        val dir = File(filesDir, "bunny-csharp")
-        val target = File(dir, "BunnyManagedProbe.dll")
-        return runCatching {
-            dir.mkdirs()
-            val marker = File(dir, "runtime-version.txt")
-            val version = dev.bunnyloader.BuildConfig.VERSION_NAME
-            val names = assets.list("managed").orEmpty()
-                .filter { it.endsWith(".dll") }
-                .sorted()
-            require(names.contains("System.Private.CoreLib.dll"))
-            require(names.contains("System.Runtime.dll"))
-            require(names.contains("BunnyManagedProbe.dll"))
-            if (marker.isFile && marker.readText() == version &&
-                names.all { File(dir, it).isFile && File(dir, it).length() > 0L }) {
-                return@runCatching target.absolutePath
-            }
-            marker.delete()
-            for (name in names) {
-                val destination = File(dir, name)
-                val temporary = File(dir, name + ".tmp")
-                assets.open("managed/" + name).use { source ->
-                    temporary.outputStream().use { output -> source.copyTo(output) }
-                }
-                if (!temporary.renameTo(destination)) {
-                    temporary.copyTo(destination, overwrite = true)
-                    temporary.delete()
-                }
-            }
-            marker.writeText(version)
-            BootLog.add(this, "C# runtime: ${names.size} assemblies instalados")
-            target.absolutePath
-        }.onFailure { BootLog.add(this, "C# managed probe indisponivel: ${it.message}") }
-            .getOrDefault("")
-    }
-
     private fun startNativeCore() {
         if (!NativeBridge.ensureLoaded()) {
             Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
@@ -204,7 +168,7 @@ class GameActivity : Activity() {
                     fastBoot = prefs.quickStart,
                     quickPlayer = if (prefs.quickWorldFile.isNotEmpty()) prefs.quickPlayer else "",
                     quickWorld = prefs.quickWorldFile,
-                    managedProbePath = installManagedProbe(),
+                    managedProbePath = "",
                     managedCheckpointPath = File(filesDir, "bunny-csharp/last-probe.txt").absolutePath,
                     appContext = applicationContext,
                 ),
