@@ -135,6 +135,23 @@ class GameActivity : Activity() {
         return File(dir, "bunny_$stamp.txt")
     }
 
+    private fun installManagedProbe(): String {
+        val target = File(filesDir, "bunny-csharp/BunnyManagedProbe.dll")
+        return runCatching {
+            target.parentFile?.mkdirs()
+            val temporary = File(target.parentFile, "BunnyManagedProbe.dll.tmp")
+            assets.open("managed/BunnyManagedProbe.dll").use { source ->
+                temporary.outputStream().use { destination -> source.copyTo(destination) }
+            }
+            if (!temporary.renameTo(target)) {
+                temporary.copyTo(target, overwrite = true)
+                temporary.delete()
+            }
+            target.absolutePath
+        }.onFailure { BootLog.add(this, "C# managed probe indisponivel: ${it.message}") }
+            .getOrDefault("")
+    }
+
     private fun startNativeCore() {
         if (!NativeBridge.ensureLoaded()) {
             Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
@@ -168,6 +185,7 @@ class GameActivity : Activity() {
                     fastBoot = prefs.quickStart,
                     quickPlayer = if (prefs.quickWorldFile.isNotEmpty()) prefs.quickPlayer else "",
                     quickWorld = prefs.quickWorldFile,
+                    managedProbePath = installManagedProbe(),
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)
