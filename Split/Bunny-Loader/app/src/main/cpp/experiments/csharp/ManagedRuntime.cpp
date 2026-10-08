@@ -1,6 +1,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 
 #include <cstdio>
+#include <ctime>
 #include <cstring>
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -9,6 +10,7 @@
 #include <mutex>
 #include <string>
 #include <sys/stat.h>
+#include <unistd.h>
 
 namespace bl::csharp {
 namespace {
@@ -40,14 +42,35 @@ ManagedRuntimeStatus g_status;
 MonoApi g_api;
 void* g_library = nullptr;
 void* g_domain = nullptr;
+std::string g_checkpointPath;
 
 template <typename T>
 T resolve(const char* name) {
     return reinterpret_cast<T>(dlsym(g_library, name));
 }
 
+void saveCheckpoint() {
+    if (g_checkpointPath.empty()) return;
+    const std::string tmp = g_checkpointPath + ".tmp";
+    FILE* file = std::fopen(tmp.c_str(), "wb");
+    if (!file) return;
+    std::fprintf(file, "timestampUnix=%lld\npid=%ld\nphase=%s\n"
+                       "attempted=%d\nlibraryLoaded=%d\nsymbolsReady=%d\n"
+                       "domainInitialized=%d\nmethodExecuted=%d\nresult=%d\nerror=%s\n",
+                 static_cast<long long>(std::time(nullptr)), static_cast<long>(getpid()),
+                 g_status.phase.c_str(), g_status.attempted,
+                 g_status.libraryLoaded, g_status.symbolsReady,
+                 g_status.domainInitialized, g_status.methodExecuted,
+                 g_status.result, g_status.error.c_str());
+    const bool flushed = std::fflush(file) == 0;
+    if (flushed) fsync(fileno(file));
+    std::fclose(file);
+    if (flushed) std::rename(tmp.c_str(), g_checkpointPath.c_str());
+}
+
 void trace(const char* phase, const char* detail = nullptr) {
     g_status.phase = phase;
+    saveCheckpoint();
 #ifdef __ANDROID__
     __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
                         "mono phase=%s detail=%s", phase, detail ? detail : "");
@@ -105,6 +128,12 @@ bool loadLibrary() {
     return true;
 }
 
+}
+
+void setManagedCheckpointPath(const std::string& path) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (path.size() <= 2048 && path.find("..") == std::string::npos)
+        g_checkpointPath = path;
 }
 
 ManagedRuntimeStatus managedRuntimeStatus() {
