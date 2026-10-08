@@ -30,6 +30,7 @@ using AbiVersionFn = int (*)();
 using HostApiVersionFn = int (*)();
 using InitializeFn = int (*)(int);
 using ProjectileBindFn = int (*)(int, const char*);
+using ProjectileReleaseFn = void (*)(int, int, int, int);
 using ProjectileTickFn = int (*)(bl::csharp::HostProjectileState*,
                                  const bl::csharp::NpcSample*,
                                  int,
@@ -41,6 +42,7 @@ struct NativeMod {
     void* handle = nullptr;
     ProjectileTickFn projectileTick = nullptr;
     ProjectileBindFn projectileBind = nullptr;
+    ProjectileReleaseFn projectileRelease = nullptr;
     std::unordered_set<int> acceptedProjectileTypes;
 };
 
@@ -196,6 +198,8 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         symbol<ProjectileTickFn>(native.handle, "bunny_mod_projectile_tick");
     native.projectileBind =
         symbol<ProjectileBindFn>(native.handle, "bunny_mod_bind_projectile");
+    native.projectileRelease =
+        symbol<ProjectileReleaseFn>(native.handle, "bunny_mod_projectile_release");
 
     if (!abi || !hostApi || !initialize) {
         BL_ERROR("csharp mod %s: exports obrigatorios ausentes", mod.id.c_str());
@@ -290,6 +294,19 @@ bool hasOwnedProjectileBehavior(int projectileType) {
         }
     }
     return false;
+}
+
+void releaseOwnedProjectile(int projectileType, int slot, int owner, int generation) {
+    if (generation <= 0 || slot < 0) return;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (NativeMod& mod : g_mods) {
+        if (!mod.info.loaded || !mod.projectileRelease ||
+            !bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id) ||
+            (mod.projectileBind &&
+             mod.acceptedProjectileTypes.count(projectileType) == 0)) continue;
+        mod.projectileRelease(projectileType, slot, owner, generation);
+        return;
+    }
 }
 
 bool dispatchOwnedProjectile(int projectileType,
