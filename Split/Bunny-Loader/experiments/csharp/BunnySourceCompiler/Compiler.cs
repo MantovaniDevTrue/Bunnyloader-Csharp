@@ -13,7 +13,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v2-portable-sha256";
+    private const string CacheVersion = "roslyn-net8-source-v3-portable-sha256-serial-emit";
 
     public static int Compile(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
@@ -130,7 +130,7 @@ public static class Compiler
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
                 deterministic: true,
-                concurrentBuild: true,
+                concurrentBuild: false,
                 allowUnsafe: false));
 
         Stage(diagnosticsFile, "compilation-created");
@@ -139,9 +139,15 @@ public static class Compiler
         using var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write,
             FileShare.None);
         Stage(diagnosticsFile, "before-emit");
+        Stage(diagnosticsFile, "emit-serial-start");
+        long emitStarted = Environment.TickCount64;
         var result = compilation.Emit(stream);
         Stage(diagnosticsFile, "after-emit");
+        Stage(diagnosticsFile, "emit-duration-ms-" +
+            (Environment.TickCount64 - emitStarted));
+        Stage(diagnosticsFile, "before-flush");
         stream.Flush(true);
+        Stage(diagnosticsFile, "after-flush");
         stream.Close();
 
         if (!result.Success)

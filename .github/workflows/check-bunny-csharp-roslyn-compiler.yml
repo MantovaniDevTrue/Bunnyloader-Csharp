@@ -6,6 +6,7 @@ on:
       - bunny-csharp-source-0.1.10.16-roslyn-worker
       - bunny-csharp-source-0.1.10.16.1-roslyn-checkpoints
       - bunny-csharp-source-0.1.10.16.2-portable-sha256
+      - bunny-csharp-source-0.1.10.16.3-serial-emit
     paths:
       - ".github/workflows/check-bunny-csharp-roslyn-compiler.yml"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
