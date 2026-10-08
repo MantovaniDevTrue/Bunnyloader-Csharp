@@ -5,6 +5,7 @@ on:
     branches:
       - bunny-csharp-source-0.1.10.12-managed-runtime
       - bunny-csharp-source-0.1.10.12.1-staged-probe
+      - bunny-csharp-source-0.1.10.12.2-crash-checkpoint
     paths:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*"
       - "Split/Bunny-Loader/tests/managed_*"
@@ -39,6 +40,17 @@ jobs:
           LD_LIBRARY_PATH="$RUNNER_TEMP/mono-mock" \
             "$RUNNER_TEMP/mono-mock/managed_runtime_smoke" \
             "$ROOT/experiments/csharp/BunnyManagedProbe/bin/Release/net8.0/BunnyManagedProbe.dll"
+          PROBE="$ROOT/experiments/csharp/BunnyManagedProbe/bin/Release/net8.0/BunnyManagedProbe.dll"
+          set +e
+          env LD_LIBRARY_PATH="$RUNNER_TEMP/mono-mock" BUNNY_MONO_SIMULATE_ABORT=1 \
+            "$RUNNER_TEMP/mono-mock/managed_runtime_smoke" "$PROBE"
+          EXIT_CODE=$?
+          set -e
+          test "$EXIT_CODE" -eq 86
+          grep -q "^phase=initializing-domain$" "$PROBE.checkpoint"
+          grep -q "^methodExecuted=0$" "$PROBE.checkpoint"
+          rm -f "$PROBE.checkpoint"
+          echo "BUNNY_MONO_PERSISTENT_CRASH_CHECKPOINT_PASS=YES"
       - name: Mark test scope
         run: |
           echo "CI mock verifies Mono symbol binding and native dispatch, NOT a real Android MonoVM run."
