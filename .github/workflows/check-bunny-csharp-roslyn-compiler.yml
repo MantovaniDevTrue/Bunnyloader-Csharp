@@ -37,4 +37,4 @@ jobs:
       - name: Run host-side Roslyn smoke
         shell: bash
         run: |
-          dotnet run --project Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj -c Release --no-restore -- "Split/Bunny-Loader/samples/SourceCSharpMod" "$RUNNER_TEMP/managed"
+          dotnet run --project Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj -c Release -- "Split/Bunny-Loader/samples/SourceCSharpMod" "$RUNNER_TEMP/managed"
