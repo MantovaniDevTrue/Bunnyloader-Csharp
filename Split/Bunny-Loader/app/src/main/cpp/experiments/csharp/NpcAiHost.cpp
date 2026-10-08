@@ -84,6 +84,7 @@ struct PendingAttack {
     int type = -1;
     int generation = 0;
     bool ready = false;
+    int ttl = 0;
     HostNpcAttack attack{};
 };
 
@@ -146,7 +147,8 @@ void runNativeAi(Il2CppObject* npc) {
     if (!snapshot.ready || snapshot.player.life <= 0) return;
 
     Instance& entry = g_instances[static_cast<size_t>(slot)];
-    g_pendingAttacks[static_cast<size_t>(slot)] = {};
+    PendingAttack& pending = g_pendingAttacks[static_cast<size_t>(slot)];
+    if (pending.ready && --pending.ttl <= 0) pending = {};
     if (entry.object != npc || entry.type != type) {
         retire(slot);
         if (g_nextGeneration <= 0) g_nextGeneration = 1;
@@ -205,7 +207,7 @@ void runNativeAi(Il2CppObject* npc) {
         ++g_attacksRejected;
         return;
     }
-    g_pendingAttacks[static_cast<size_t>(slot)] = {type, entry.generation, true, attack};
+    g_pendingAttacks[static_cast<size_t>(slot)] = {type, entry.generation, true, 4, attack};
     g_attackDelay[static_cast<size_t>(slot)] = 12;
     ++g_attacksQueued;
 }
