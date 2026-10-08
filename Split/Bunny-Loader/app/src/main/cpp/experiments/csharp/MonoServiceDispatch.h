@@ -7,5 +7,6 @@ namespace bl::csharp {
 
 bool bindMonoWorkerContext(JNIEnv* env, jobject appContext, std::string& error);
 bool requestIsolatedMonoProbe(std::string& error);
+bool requestIsolatedMonoCompile(const std::string& sourceRoot, std::string& error);
 
 }
