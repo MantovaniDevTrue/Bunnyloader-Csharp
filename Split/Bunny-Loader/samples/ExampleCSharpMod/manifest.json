@@ -2,7 +2,7 @@
   "uid": "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
   "id": "examplecsharpmod",
   "name": "Example C# Mod",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "authors": [
     {
       "name": "Bunny Loader C# Test",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Mod C# NativeAOT com homing normal, preditivo e IA ondulada com estado individual.",
+  "summary": "Mod C# NativeAOT: três armas, NPC de duas fases e estado individual por entidade.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
