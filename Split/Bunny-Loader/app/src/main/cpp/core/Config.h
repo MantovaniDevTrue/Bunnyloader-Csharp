@@ -30,6 +30,7 @@ struct Config {
     // o nome do pacote. Vazio = canal desligado.
     std::string cmdPath;
     std::string managedProbePath;
+    std::string managedCheckpointPath;
     // Painel de erro DENTRO do jogo (Configuracoes). Desligado, um mod que
     // quebra so deixa rastro no logcat — util para quem grava video.
     bool showErrors = true;
