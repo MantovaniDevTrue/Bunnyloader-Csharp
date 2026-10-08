@@ -41,6 +41,8 @@ struct ModNpcDef {
 int registerModNpc(ModNpcDef def);
 
 bool isModNpc(int type);
+bool modNpcBelongsTo(int type, const std::string& modId);
+std::vector<std::pair<int, std::string>> registeredNpcsForMod(const std::string& modId);
 
 /** Vanilla + NPCs de mod JA instalados nas tabelas do jogo. */
 int npcTypeCount();
