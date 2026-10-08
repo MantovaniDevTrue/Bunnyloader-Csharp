@@ -29,6 +29,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.modsDir    = readString(env, cfg, cls, "modsDir");
     c.logPath    = readString(env, cfg, cls, "logPath");
     c.cmdPath    = readString(env, cfg, cls, "cmdPath");
+    c.managedProbePath = readString(env, cfg, cls, "managedProbePath");
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
