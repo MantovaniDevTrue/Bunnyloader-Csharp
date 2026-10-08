@@ -15,6 +15,7 @@ struct ManagedRuntimeStatus {
     std::string error;
 };
 
+void setManagedCheckpointPath(const std::string& path);
 ManagedRuntimeStatus managedRuntimeStatus();
 ManagedRuntimeStatus inspectManagedRuntime();
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
