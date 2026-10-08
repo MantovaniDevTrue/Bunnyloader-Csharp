@@ -130,6 +130,11 @@ bool enableManagedSourceBoltHook(std::string* error) {
             : "Source C# Test 0.1.0 nao carregado como mod fonte C#";
         return false;
     }
+    if (type >= runtime::projectileTypeCount()) {
+        *error = "SourceBolt registrado, mas ainda nao instalado nas tabelas do jogo";
+        return false;
+    }
+    BL_INFO("csharp AI: SourceBolt localizado pelo UUID do mod, tipo %d", type);
     const auto& game = runtime::game();
     if (!game.proj.aiMethod) {
         *error = "Projectile.AI indisponivel nesta versao do Terraria";
