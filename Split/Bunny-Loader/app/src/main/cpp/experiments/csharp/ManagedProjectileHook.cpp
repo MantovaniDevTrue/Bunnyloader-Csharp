@@ -4,6 +4,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
 
 #include <array>
@@ -114,9 +115,19 @@ bool enableManagedSourceBoltHook(std::string* error) {
         *error = "Tabelas de projeteis do Terraria ainda indisponiveis";
         return false;
     }
-    const int type = runtime::modProjectileTypeByName("sourcecsharp", "SourceBolt");
+    constexpr const char* sourceUid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
+    int type = -1;
+    bool loaded = false;
+    for (const auto& source : sourceModStatuses()) {
+        if (source.id != sourceUid || !source.loaded || source.projectiles <= 0) continue;
+        loaded = true;
+        type = runtime::modProjectileTypeByName(source.id, "SourceBolt");
+        break;
+    }
     if (type < 0) {
-        *error = "Instalar e ativar o Source C# Test 0.1.0 antes deste teste";
+        *error = loaded
+            ? "SourceBolt nao encontrado no registro do Source C# Test"
+            : "Source C# Test 0.1.0 nao carregado como mod fonte C#";
         return false;
     }
     const auto& game = runtime::game();
