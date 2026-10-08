@@ -17,6 +17,7 @@
 #include "content/walls/ModWalls.h"
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
+#include "experiments/csharp/CSharpModLoader.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -75,6 +76,7 @@ void probeThread() {
                 return;
             }
             mods::loadAll(config().modsDir, config().enabledMods);
+            csharpmods::loadAll();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
             // pelo launcher significa que o usuario desativou todos os mods.
             if (config().modsDir.empty() && mods::loadedCount() == 0) {
