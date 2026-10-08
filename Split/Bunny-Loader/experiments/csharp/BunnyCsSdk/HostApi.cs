@@ -176,6 +176,68 @@ public unsafe ref struct ProjectileContext
         return true;
     }
 
+    public bool TryFindClosestHostileInRange(float radius, out NpcView target)
+    {
+        target = default;
+        if (!(radius > 0) || float.IsNaN(radius)) return false;
+        double bestDistance = (double)radius * radius;
+        int best = -1;
+        float x = Projectile.X;
+        float y = Projectile.Y;
+        for (int i = 0; i < _npcCount; i++)
+        {
+            NpcView candidate = new(_npcs[i]);
+            if (!candidate.IsHostileTarget) continue;
+            double dx = (double)candidate.X - x;
+            double dy = (double)candidate.Y - y;
+            double distance = dx * dx + dy * dy;
+            if (distance > bestDistance) continue;
+            bestDistance = distance;
+            best = i;
+        }
+        if (best < 0) return false;
+        target = new NpcView(_npcs[best]);
+        return true;
+    }
+
+    public bool SteerTowardsPredicted(NpcView target, float minimumSpeed,
+                                     float maximumSpeed, float turn, float maxLeadTicks)
+    {
+        ProjectileView projectile = Projectile;
+        float speed = Math.Clamp(projectile.Speed, minimumSpeed, maximumSpeed);
+        if (!float.IsFinite(speed) || speed < 0.001f) return false;
+
+        double dx = (double)target.X - projectile.X;
+        double dy = (double)target.Y - projectile.Y;
+        double vx = target.VelocityX;
+        double vy = target.VelocityY;
+        double a = vx * vx + vy * vy - speed * speed;
+        double b = 2 * (dx * vx + dy * vy);
+        double c = dx * dx + dy * dy;
+        double time = -1;
+        if (Math.Abs(a) < 0.0001)
+        {
+            if (b < -0.0001) time = -c / b;
+        }
+        else
+        {
+            double discriminant = b * b - 4 * a * c;
+            if (discriminant >= 0)
+            {
+                double root = Math.Sqrt(discriminant);
+                double t1 = (-b - root) / (2 * a);
+                double t2 = (-b + root) / (2 * a);
+                if (t1 > 0) time = t1;
+                if (t2 > 0 && (time < 0 || t2 < time)) time = t2;
+            }
+        }
+        if (time < 0) time = Math.Sqrt(c) / speed;
+        time = Math.Clamp(time, 0, Math.Max(0, maxLeadTicks));
+        return SteerTowards((float)(target.X + vx * time),
+                            (float)(target.Y + vy * time),
+                            minimumSpeed, maximumSpeed, turn);
+    }
+
     public bool SteerTowards(
         float targetX,
         float targetY,
