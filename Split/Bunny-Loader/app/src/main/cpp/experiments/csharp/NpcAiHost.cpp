@@ -179,6 +179,16 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
 
 }
 
+NpcAiStatus npcAiStatus() {
+    NpcAiStatus status;
+    status.installed = g_installed;
+    status.calls = g_calls;
+    status.writes = g_writes;
+    status.spawns = g_spawns;
+    status.releases = g_releases;
+    return status;
+}
+
 bool installNpcAiHost() {
     if (g_installed) return true;
     Refs& r = refs();
