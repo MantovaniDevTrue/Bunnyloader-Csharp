@@ -1,0 +1,60 @@
+name: Diagnose Bunny CSharp APK Install
+
+on:
+  push:
+    branches:
+      - bunny-csharp-apk-signature-diagnostics
+    paths:
+      - ".github/workflows/diagnose-bunny-csharp-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install Android verifier
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "build-tools;34.0.0"
+      - name: Download published APKs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/apks/v101" "$RUNNER_TEMP/apks/v102"
+          gh release download bunny-csharp-auto-projectile-v1 --repo "${{ github.repository }}" --pattern "BunnyLoader-CSharp-Test-v0.1.10.1-AutoProjectile.apk" --dir "$RUNNER_TEMP/apks/v101"
+          gh release download bunny-csharp-selective-projectiles-v1 --repo "${{ github.repository }}" --pattern "BunnyLoader-CSharp-Test-v0.1.10.2-PredictiveHoming.apk" --dir "$RUNNER_TEMP/apks/v102"
+      - name: Validate and compare package signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          A="$RUNNER_TEMP/apks/v101/BunnyLoader-CSharp-Test-v0.1.10.1-AutoProjectile.apk"
+          B="$RUNNER_TEMP/apks/v102/BunnyLoader-CSharp-Test-v0.1.10.2-PredictiveHoming.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          ZIPALIGN="$ANDROID_HOME/build-tools/34.0.0/zipalign"
+          stat -c "%n %s bytes" "$A" "$B"
+          sha256sum "$A" "$B"
+          "$APKSIGNER" verify --verbose --print-certs "$A" > "$RUNNER_TEMP/a-cert.txt"
+          "$APKSIGNER" verify --verbose --print-certs "$B" > "$RUNNER_TEMP/b-cert.txt"
+          cat "$RUNNER_TEMP/a-cert.txt"
+          cat "$RUNNER_TEMP/b-cert.txt"
+          "$ZIPALIGN" -c -v 4 "$A" | tail -n 1
+          "$ZIPALIGN" -c -v 4 "$B" | tail -n 1
+          "$AAPT" dump badging "$A" | grep "^package:"
+          "$AAPT" dump badging "$B" | grep "^package:"
+          OLD_SHA="$(grep -m1 "Signer #1 certificate SHA-256 digest" "$RUNNER_TEMP/a-cert.txt" | cut -d: -f2 | tr -d '[:space:]')"
+          NEW_SHA="$(grep -m1 "Signer #1 certificate SHA-256 digest" "$RUNNER_TEMP/b-cert.txt" | cut -d: -f2 | tr -d '[:space:]')"
+          if [ -n "$OLD_SHA" ] && [ "$OLD_SHA" = "$NEW_SHA" ]; then
+            echo "SIGNATURE_MATCH=YES"
+          else
+            echo "SIGNATURE_MATCH=NO"
+          fi
