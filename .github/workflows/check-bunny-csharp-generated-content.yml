@@ -1,0 +1,58 @@
+name: Check CSharp Content Generator
+
+on:
+  push:
+    branches:
+      - bunny-csharp-nativeaot-0.1.10.7-csharp-content
+    paths:
+      - ".github/workflows/check-bunny-csharp-generated-content.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Compile managed CSharp authoring SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build Split/Bunny-Loader/experiments/csharp/ExampleCSharpMod/ExampleCSharpMod.csproj -c Release -p:PublishAot=false
+          dotnet build Split/Bunny-Loader/experiments/csharp/BunnyCsPackager/BunnyCsPackager.csproj -c Release
+      - name: Generate all internal scripts and validate syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          S=Split/Bunny-Loader
+          mkdir -p "$RUNNER_TEMP/check"
+          printf 'TEST_ONLY_NOT_A_REAL_SHARED_LIBRARY' > "$RUNNER_TEMP/check/libmod.so"
+          dotnet run --project "$S/experiments/csharp/BunnyCsPackager/BunnyCsPackager.csproj" -c Release -- \
+            "$S/experiments/csharp/ExampleCSharpMod/bin/Release/net10.0/mod.dll" \
+            "$RUNNER_TEMP/check/libmod.so" \
+            "$S/samples/ExampleCSharpOnlyMod/Assets" \
+            "$RUNNER_TEMP/check/content-test.bmod"
+          mkdir -p "$RUNNER_TEMP/check/unpacked"
+          unzip -q "$RUNNER_TEMP/check/content-test.bmod" -d "$RUNNER_TEMP/check/unpacked"
+          find "$RUNNER_TEMP/check/unpacked/content" -name '*.js' -type f -print0 | while IFS= read -r -d '' f; do
+            node --check --input-type=module < "$f"
+          done
+          python3 - "$RUNNER_TEMP/check/content-test.bmod" <<'PY'
+          import json,sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              js={p:z.read(p).decode() for p in z.namelist() if p.endswith(".js")}
+              assert len(js)==17, len(js)
+              assert len([p for p in z.namelist() if p.endswith(".png")])==19
+              assert json.loads(z.read("manifest.json"))["version"]=="0.1.7"
+              assert "UpdateAccessory" in js["content/Content/Items/Accessories/NativeStatCharm.js"]
+              assert "CreateArmorSet" in js["content/Content/Items/Armor/NativeArmorHelmet.js"]
+              assert "ItemDropRule.Common" in js["content/Content/NPCs/NativePhaseSlime.js"]
+              assert "NativeDefenseBuff" in js["content/Content/Items/Consumables/NativeDefensePotion.js"]
+              print("CSHARP_GENERATED_SCRIPTS_SYNTAX_OK=17")
+              print("CSHARP_GENERATED_TEXTURES_OK=19")
+          PY
