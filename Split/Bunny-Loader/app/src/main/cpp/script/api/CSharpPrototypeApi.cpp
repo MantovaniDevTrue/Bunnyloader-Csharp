@@ -6,6 +6,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MonoServiceDispatch.h"
 #include "core/Config.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
@@ -17,6 +18,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <string_view>
 
@@ -48,16 +50,36 @@ JSValue jsManagedInspect(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return makeManagedStatus(ctx, bl::csharp::inspectManagedRuntime());
 }
 
-JSValue jsManagedProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    if (argc == 0 || JS_IsUndefined(argv[0]))
-        return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(bl::config().managedProbePath));
-    if (!JS_IsString(argv[0]))
-        return JS_ThrowTypeError(ctx, "bl.csharp.managedProbe([assemblyPath])");
-    const char* path = JS_ToCString(ctx, argv[0]);
-    if (!path) return JS_EXCEPTION;
-    const auto status = bl::csharp::probeManagedRuntime(path);
-    JS_FreeCString(ctx, path);
-    return makeManagedStatus(ctx, status);
+JSValue jsManagedProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "bl.csharp.managedProbe()");
+    std::string error;
+    const bool queued = bl::csharp::requestIsolatedMonoProbe(error);
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "queued", JS_NewBool(ctx, queued));
+    JS_SetPropertyStr(ctx, out, "isolated", JS_NewBool(ctx, true));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, error.c_str()));
+    JS_SetPropertyStr(ctx, out, "details", JS_NewString(ctx, "Consultar managedWorkerStatus() e relatorio"));
+    return out;
+}
+
+std::string readManagedWorkerFile(const char* filename) {
+    const auto& path = bl::config().managedCheckpointPath;
+    const auto slash = path.find_last_of('/');
+    if (slash == std::string::npos) return {};
+    std::ifstream stream(path.substr(0, slash + 1) + filename, std::ios::binary);
+    if (!stream) return {};
+    char buffer[2049]{};
+    stream.read(buffer, 2048);
+    return std::string(buffer, static_cast<size_t>(stream.gcount()));
+}
+
+JSValue jsManagedWorkerStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue out = JS_NewObject(ctx);
+    const auto state = readManagedWorkerFile("isolated-worker-status.txt");
+    const auto checkpoint = readManagedWorkerFile("last-isolated-probe.txt");
+    JS_SetPropertyStr(ctx, out, "status", JS_NewString(ctx, state.c_str()));
+    JS_SetPropertyStr(ctx, out, "checkpoint", JS_NewString(ctx, checkpoint.c_str()));
+    return out;
 }
 
 JSValue jsSourceMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
@@ -742,7 +764,9 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "managedInspect",
                       JS_NewCFunction(ctx, jsManagedInspect, "managedInspect", 0));
     JS_SetPropertyStr(ctx, api, "managedProbe",
-                      JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 1));
+                      JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 0));
+    JS_SetPropertyStr(ctx, api, "managedWorkerStatus",
+                      JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
