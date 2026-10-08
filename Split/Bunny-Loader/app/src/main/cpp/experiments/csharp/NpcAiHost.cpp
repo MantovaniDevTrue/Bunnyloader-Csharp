@@ -1,4 +1,5 @@
 #include "experiments/csharp/NpcAiHost.h"
+#include "experiments/csharp/NativeContent.h"
 
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModNpcs.h"
@@ -207,9 +208,14 @@ void runNativeAi(Il2CppObject* npc) {
         ++g_attacksRejected;
         return;
     }
-    g_pendingAttacks[static_cast<size_t>(slot)] = {type, entry.generation, true, 4, attack};
     g_attackDelay[static_cast<size_t>(slot)] = 12;
     ++g_attacksQueued;
+    if (nativeNpcProjectileType(type) >= 0) {
+        if (fireNativeNpcAttack(npc, type, attack)) ++g_attacksConsumed;
+        else ++g_attacksRejected;
+        return;
+    }
+    g_pendingAttacks[static_cast<size_t>(slot)] = {type, entry.generation, true, 4, attack};
 }
 
 void hookAi(Il2CppObject* npc, const MethodInfo* method) {

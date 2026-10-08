@@ -3,7 +3,11 @@
 #include <cstdint>
 #include <string>
 
+struct Il2CppObject;
+
 namespace bl::csharp {
+
+struct HostNpcAttack;
 
 enum NativeContentKind : int32_t {
     NativeProjectile = 1,
@@ -55,5 +59,6 @@ using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
 int nativeNpcProjectileType(int npcType);
+bool fireNativeNpcAttack(Il2CppObject* npc, int type, const HostNpcAttack& attack);
 
 }

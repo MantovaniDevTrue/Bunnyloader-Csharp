@@ -30,6 +30,9 @@ struct LoadedNativeMod {
     int nativeFirstNpcType = -1;
     int nativeFirstAccessoryType = -1;
     int nativeFirstBuffType = -1;
+    int nativeArmorPieces = 0;
+    int nativeArmorSets = 0;
+    int nativeFirstArmorType = -1;
 };
 
 void loadAll();

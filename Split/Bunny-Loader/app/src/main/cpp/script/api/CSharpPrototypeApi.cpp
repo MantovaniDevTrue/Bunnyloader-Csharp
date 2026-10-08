@@ -50,6 +50,9 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "nativeNpcType", JS_NewInt32(ctx, mod.nativeFirstNpcType));
         JS_SetPropertyStr(ctx, row, "nativeAccessoryType", JS_NewInt32(ctx, mod.nativeFirstAccessoryType));
         JS_SetPropertyStr(ctx, row, "nativeBuffType", JS_NewInt32(ctx, mod.nativeFirstBuffType));
+        JS_SetPropertyStr(ctx, row, "nativeArmorPieces", JS_NewInt32(ctx, mod.nativeArmorPieces));
+        JS_SetPropertyStr(ctx, row, "nativeArmorSets", JS_NewInt32(ctx, mod.nativeArmorSets));
+        JS_SetPropertyStr(ctx, row, "nativeFirstArmorType", JS_NewInt32(ctx, mod.nativeFirstArmorType));
         JS_SetPropertyUint32(ctx, out, at++, row);
     }
     return out;
