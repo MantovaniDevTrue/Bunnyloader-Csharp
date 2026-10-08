@@ -384,6 +384,23 @@ bool isModNpc(int type) {
     return type >= kVanillaNpcCount && type < kVanillaNpcCount + g_total.load(std::memory_order_acquire);
 }
 
+bool modNpcBelongsTo(int type, const std::string& modId) {
+    if (type < kVanillaNpcCount) return false;
+    std::lock_guard<std::mutex> lock(g_mx);
+    const size_t index = static_cast<size_t>(type - kVanillaNpcCount);
+    return index < g_regs.size() && g_regs[index].def.mod == modId;
+}
+
+std::vector<std::pair<int, std::string>> registeredNpcsForMod(const std::string& modId) {
+    std::vector<std::pair<int, std::string>> found;
+    std::lock_guard<std::mutex> lock(g_mx);
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        if (g_regs[i].def.mod == modId)
+            found.emplace_back(kVanillaNpcCount + static_cast<int>(i), g_regs[i].def.name);
+    }
+    return found;
+}
+
 int npcTypeCount() {
     return kVanillaNpcCount + g_installed.load(std::memory_order_acquire);
 }
