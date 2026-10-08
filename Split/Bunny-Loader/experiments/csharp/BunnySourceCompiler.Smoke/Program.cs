@@ -12,6 +12,9 @@ try
 {
     string output = Path.Combine(scratch, "CompiledSource.dll");
     string diag = Path.Combine(scratch, "diagnostics.txt");
+    if (BunnyLoader.SourceCompiler.Preflight.Ping(diag) != 42 ||
+        File.ReadAllText(diag) != "ROSLYN_PREFLIGHT=42")
+        throw new InvalidOperationException("Mono preflight method contract failed");
     if (Compiler.Compile(sourceRoot, output, framework, diag) != 1)
         throw new InvalidOperationException(File.ReadAllText(diag));
     byte[] original = File.ReadAllBytes(output);
