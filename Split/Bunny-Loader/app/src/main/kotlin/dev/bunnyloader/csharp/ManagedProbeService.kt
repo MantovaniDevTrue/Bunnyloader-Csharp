@@ -13,6 +13,10 @@ class ManagedProbeService : Service() {
     private val running = AtomicBoolean(false)
 
     private external fun runNative(assemblyPath: String, checkpointPath: String): String
+    private external fun compileNative(
+        probePath: String, compilerPath: String, sourceRoot: String,
+        outputPath: String, diagnosticPath: String, checkpointPath: String
+    ): String
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -22,23 +26,57 @@ class ManagedProbeService : Service() {
         val checkpoint = File(dir, "last-isolated-probe.txt")
         val status = File(dir, "isolated-worker-status.txt")
         val log = File(dir, "isolated-worker-logcat.txt")
+        val compileRoot = intent?.getStringExtra("sourceRoot")
+        val compileStatus = File(dir, "source-compile-status.txt")
+        val diagnostic = File(dir, "source-compile-diagnostics.txt")
         dir.mkdirs()
         checkpoint.delete()
         log.delete()
-        runCatching { status.writeText("state=starting\npid=${Process.myPid()}\n") }
+        if (compileRoot == null) {
+            runCatching { status.writeText("state=starting\npid=${Process.myPid()}\n") }
+        } else {
+            runCatching {
+                diagnostic.delete()
+                compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
+            }
+        }
         startLogCapture(log)
 
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
             try {
                 System.loadLibrary("bunnymonoprobe")
-                status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
+                if (compileRoot == null)
+                    status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
                 val assembly = installManagedFramework(dir)
-                status.writeText("state=calling-mono\npid=${Process.myPid()}\n")
-                val result = runNative(assembly, checkpoint.absolutePath)
-                status.writeText("state=finished\npid=${Process.myPid()}\n$result\n")
+                if (compileRoot == null)
+                    status.writeText("state=calling-mono\npid=${Process.myPid()}\n")
+                if (compileRoot != null) {
+                    val compiler = File(dir, "BunnySourceCompiler.dll")
+                    val outputDir = File(dir, "compiled")
+                    outputDir.mkdirs()
+                    val output = File(outputDir, "sourcecsharp.dll")
+                    compileStatus.writeText("state=compiling\npid=${Process.myPid()}\n")
+                    val result = compileNative(
+                        assembly, compiler.absolutePath, compileRoot,
+                        output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
+                    )
+                    val passed = result.contains("phase=compile-verified") &&
+                        (result.contains("result=1\n") || result.contains("result=2\n"))
+                    compileStatus.writeText(
+                        "state=${if (passed) "finished" else "failed"}\n" +
+                            "pid=${Process.myPid()}\n$result\n" +
+                            "assemblyReady=${if (passed && output.isFile) 1 else 0}\n"
+                    )
+                } else {
+                    val result = runNative(assembly, checkpoint.absolutePath)
+                    status.writeText("state=finished\npid=${Process.myPid()}\n$result\n")
+                }
             } catch (error: Throwable) {
                 val detail = (error.javaClass.simpleName + ": " + (error.message ?: "")).take(512)
-                runCatching { status.writeText("state=failed\npid=${Process.myPid()}\nerror=$detail\n") }
+                runCatching {
+                    val target = if (compileRoot == null) status else compileStatus
+                    target.writeText("state=failed\npid=${Process.myPid()}\nerror=$detail\n")
+                }
                 Log.e("BunnyCSharp", "mono worker failed", error)
             } finally {
                 running.set(false)
@@ -57,6 +95,10 @@ class ManagedProbeService : Service() {
         require(names.contains("System.Private.CoreLib.dll"))
         require(names.contains("System.Runtime.dll"))
         require(names.contains("BunnyManagedProbe.dll"))
+        require(names.contains("BunnySourceCompiler.dll"))
+        require(names.contains("BunnySourceSdk.dll"))
+        require(names.contains("Microsoft.CodeAnalysis.dll"))
+        require(names.contains("Microsoft.CodeAnalysis.CSharp.dll"))
         if (marker.isFile && marker.readText() == version &&
             names.all { File(dir, it).isFile && File(dir, it).length() > 0L }) {
             return File(dir, "BunnyManagedProbe.dll").absolutePath
