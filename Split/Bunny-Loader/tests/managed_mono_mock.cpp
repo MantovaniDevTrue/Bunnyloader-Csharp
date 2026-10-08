@@ -3,7 +3,7 @@
 
 extern "C" {
 
-void* mono_jit_init_version(const char*, const char*) {
+void* mono_jit_init(const char*) {
     if (std::getenv("BUNNY_MONO_SIMULATE_ABORT")) std::_Exit(86);
     return reinterpret_cast<void*>(1);
 }
