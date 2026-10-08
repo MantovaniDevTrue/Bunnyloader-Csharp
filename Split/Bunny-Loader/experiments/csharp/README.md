@@ -325,3 +325,10 @@ JSON.stringify({
 Expect `npcCombat: true`, `npcBindings: 1`, `projectileBindings: 3`, `attacksQueued > 0`, and `attacksConsumed > 0` after the slime attacks. `attacksRejected` should remain at zero. Keep at least one slime alive long enough to trigger the attacks, then reduce its health below 50% to compare single and double shots.
 
 NPC combat remains singleplayer-only in this test. Native C# multiplayer requires a separate server-authoritative state and projectile synchronization design, so do not claim multiplayer support on this branch. The Android build and visual test must succeed before marking 0.1.10.5 stable.
+
+
+## 0.1.10.5.1 — JavaScript-only NPC projectile source hotfix
+
+The Android APK remains 0.1.10.5 and the NativeAOT `libmod.so` is unchanged. The `NativePhaseSlime.AI()` sample previously called `npc.GetSource_FromAI()`, a member missing in the Android Terraria.NPC bridge. The mod-only patch now uses the existing ExampleModBunny API `player.GetProjectileSource_Item(player.HeldItem)`, already demonstrated by `ExampleLaserHoldout.js`. Because this is a test of NativeAOT NPC combat and not a final NPC source API, the spawn source is temporarily attributed to the local player's held item in singleplayer. Later NPC-specific source support should be developed and tested separately.
+
+Download ExampleCSharpMod 0.1.5.1 and replace 0.1.5 using the existing APK 0.1.10.5. Confirm that hostile orbs spawn and damage the player without the missing member error, and check `bl.csharp.npcStatus()` for `attacksQueued` and `attacksConsumed`.

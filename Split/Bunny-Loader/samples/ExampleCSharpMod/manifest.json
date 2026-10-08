@@ -2,7 +2,7 @@
   "uid": "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
   "id": "examplecsharpmod",
   "name": "Example C# Mod",
-  "version": "0.1.5",
+  "version": "0.1.5.1",
   "authors": [
     {
       "name": "Bunny Loader C# Test",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Mod C# NativeAOT com três armas e slime de combate em duas fases, ataques e ciclo de vida.",
+  "summary": "Mod C# NativeAOT com slime de combate em duas fases e origem de disparo compatível com Bunny.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

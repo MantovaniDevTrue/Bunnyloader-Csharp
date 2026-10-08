@@ -1,4 +1,4 @@
-const { NPCID, SoundID, ItemID } = Terraria.ID;
+const { NPCID, SoundID } = Terraria.ID;
 
 const NewProjectile = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'];
 
@@ -13,9 +13,10 @@ export class NativePhaseSlime extends ModNPC {
         if (!attack) return;
         const shotType = ModProjectile.getTypeByName('NativeSlimeOrb');
         if (shotType < 0) return;
-        const source = npc.GetSource_FromAI();
+        const player = Terraria.Main.player[Terraria.Main.myPlayer];
+        const source = player.GetProjectileSource_Item(player.HeldItem);
         const spawn = Vector2.new(attack.x, attack.y);
-        const owner = Terraria.Main.myPlayer;
+        const owner = player.whoAmI;
         NewProjectile(source, spawn, Vector2.new(attack.vx0, attack.vy0), shotType,
                       attack.damage, 0, owner, 0, 0, 0, null);
         if (attack.count === 2) {

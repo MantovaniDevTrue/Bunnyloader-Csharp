@@ -1,0 +1,75 @@
+name: Package Bunny CSharp NPC Combat JS Hotfix
+
+on:
+  push:
+    branches:
+      - bunny-csharp-nativeaot-0.1.10.5.1
+    paths:
+      - ".github/workflows/package-bunny-csharp-mod-hotfix.yml"
+      - "Split/Bunny-Loader/samples/ExampleCSharpMod/**"
+      - "Split/Bunny-Loader/experiments/csharp/README.md"
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reuse stable NativeAOT library
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PACKAGE="Split/Bunny-Loader/samples/ExampleCSharpMod"
+          mkdir -p "$RUNNER_TEMP/previous" "$PACKAGE/native/arm64-v8a"
+          gh release download bunny-csharp-npc-combat-v1 \
+            --repo "${{ github.repository }}" \
+            --pattern ExampleCSharpMod-v0.1.5.bmod \
+            --dir "$RUNNER_TEMP/previous"
+          unzip -p "$RUNNER_TEMP/previous/ExampleCSharpMod-v0.1.5.bmod" \
+            native/arm64-v8a/libmod.so > "$PACKAGE/native/arm64-v8a/libmod.so"
+          test -s "$PACKAGE/native/arm64-v8a/libmod.so"
+          readelf -h "$PACKAGE/native/arm64-v8a/libmod.so" | grep -q AArch64
+          readelf -Ws "$PACKAGE/native/arm64-v8a/libmod.so" | grep -q bunny_mod_npc_combat_tick
+          sha256sum "$PACKAGE/native/arm64-v8a/libmod.so"
+
+      - name: Build and verify updated mod
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/tools/mods/pack.py Split/Bunny-Loader/samples/ExampleCSharpMod
+          PACK="Split/Bunny-Loader/build/mods-packs/examplecsharpmod-0.1.5.1.bl"
+          test -s "$PACK"
+          python3 - "$PACK" <<'PY'
+          import json, sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              assert json.loads(z.read('manifest.json'))['version'] == '0.1.5.1'
+              assert 'native/arm64-v8a/libmod.so' in z.namelist()
+              js = z.read('content/Content/NPCs/NativePhaseSlime.js').decode()
+              assert 'GetProjectileSource_Item' in js
+              assert 'GetSource_FromAI' not in js
+              print('HOTFIX_PACKAGE_VALID=YES')
+          PY
+          mkdir -p "$RUNNER_TEMP/out"
+          cp "$PACK" "$RUNNER_TEMP/out/ExampleCSharpMod-v0.1.5.1.bmod"
+          cd "$RUNNER_TEMP/out"
+          sha256sum ExampleCSharpMod-v0.1.5.1.bmod > ExampleCSharpMod-v0.1.5.1.bmod.sha256
+
+      - name: Publish mod-only hotfix
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create bunny-csharp-npc-combat-js-hotfix-v1 \
+            "$RUNNER_TEMP/out/ExampleCSharpMod-v0.1.5.1.bmod" \
+            "$RUNNER_TEMP/out/ExampleCSharpMod-v0.1.5.1.bmod.sha256" \
+            --repo "${{ github.repository }}" \
+            --target "$GITHUB_SHA" \
+            --title "ExampleCSharpMod 0.1.5.1 — NPC combat JS source hotfix" \
+            --notes "JavaScript-only hotfix for the missing Terraria.NPC.GetSource_FromAI method. Reuses the exact NativeAOT library from ExampleCSharpMod 0.1.5. Requires Bunny C# APK 0.1.10.5; no APK reinstall needed. Singleplayer-only. Uses player held-item projectile source as a proven ExampleModBunny compatibility bridge for this test." \
+            --prerelease
