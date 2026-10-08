@@ -20,6 +20,9 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
+#include <cerrno>
+#include <cstdlib>
+#include <csignal>
 #include <fstream>
 #include <string>
 #include <string_view>
@@ -209,6 +212,28 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     JS_SetPropertyStr(ctx, out, "diagnostics", JS_NewString(ctx, diagnostics.c_str()));
     JS_SetPropertyStr(ctx, out, "checkpoint", JS_NewString(ctx, checkpoint.c_str()));
     JS_SetPropertyStr(ctx, out, "health", JS_NewString(ctx, health.c_str()));
+    const auto pidAt = state.find("pid=");
+    long workerPid = 0;
+    if (pidAt != std::string::npos) {
+        const char* begin = state.c_str() + pidAt + 4;
+        char* end = nullptr;
+        const long value = std::strtol(begin, &end, 10);
+        if (end != begin && value > 1 && value <= 4194304 &&
+            (*end == '\n' || *end == '\r' || *end == '\0'))
+            workerPid = value;
+    }
+    const bool workerKnown = workerPid > 0;
+    bool workerAlive = false;
+    if (workerKnown) {
+        const int result = kill(static_cast<pid_t>(workerPid), 0);
+        workerAlive = result == 0 || (result < 0 && errno == EPERM);
+    }
+    JS_SetPropertyStr(ctx, out, "workerPid", JS_NewInt32(ctx, static_cast<int>(workerPid)));
+    JS_SetPropertyStr(ctx, out, "workerKnown", JS_NewBool(ctx, workerKnown));
+    JS_SetPropertyStr(ctx, out, "workerAlive", JS_NewBool(ctx, workerAlive));
+    JS_SetPropertyStr(ctx, out, "staleCompilingState",
+        JS_NewBool(ctx, workerKnown && !workerAlive &&
+            state.find("state=compiling") != std::string::npos));
     return out;
 }
 

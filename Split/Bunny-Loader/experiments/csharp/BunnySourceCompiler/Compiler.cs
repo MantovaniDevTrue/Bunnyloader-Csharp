@@ -13,7 +13,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v6-minimal-probes";
+    private const string CacheVersion = "roslyn-net8-source-v7-semantic-exit";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -273,6 +273,13 @@ public static class Compiler
                 deterministic: false,
                 concurrentBuild: false,
                 allowUnsafe: false));
+        Stage(diagnosticsFile, "probe-" + name + "-specialtype-start");
+        var objectSymbol = compilation.GetSpecialType(SpecialType.System_Object);
+        Stage(diagnosticsFile, "probe-" + name + "-specialtype-" +
+            (objectSymbol.TypeKind == TypeKind.Error ? "missing" : "ready"));
+        Stage(diagnosticsFile, "probe-" + name + "-semantic-model-start");
+        var model = compilation.GetSemanticModel(tree);
+        Stage(diagnosticsFile, "probe-" + name + "-semantic-model-ready");
         Stage(diagnosticsFile, "probe-" + name + "-declarations-start");
         var declarationErrors = compilation.GetDeclarationDiagnostics()
             .Where(item => item.Severity == DiagnosticSeverity.Error)

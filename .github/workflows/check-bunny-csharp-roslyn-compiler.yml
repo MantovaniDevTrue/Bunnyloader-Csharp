@@ -10,6 +10,7 @@ on:
       - bunny-csharp-source-0.1.10.16.4-nondeterministic-emit
       - bunny-csharp-source-0.1.10.16.5-reference-trim
       - bunny-csharp-source-0.1.10.16.6-roslyn-minimal-probe
+      - bunny-csharp-source-0.1.10.16.7-semantic-exit-probe
     paths:
       - ".github/workflows/check-bunny-csharp-roslyn-compiler.yml"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
