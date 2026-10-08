@@ -3,6 +3,7 @@
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
 #include "experiments/csharp/CSharpPrototype.h"
+#include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -169,8 +170,9 @@ bool applyWrite(Il2CppObject* projectile) {
     state.vy = velocity.y;
     state.rotation = runtime::field<float>(projectile, g.proj.rotation);
 
-    if (!hostProjectileTick(&state, snapshot.npcs.data(), static_cast<int>(snapshot.npcs.size()),
-                            snapshot.player.x, snapshot.player.y)) {
+    if (!csharpmods::dispatchProjectile(&state, snapshot.npcs.data(),
+                                        static_cast<int>(snapshot.npcs.size()),
+                                        snapshot.player.x, snapshot.player.y)) {
         std::lock_guard<std::mutex> lock(g_mutex);
         if (g_claim.object == projectile && g_claim.generation == claim.generation) {
             g_claim.targetIndex = state.targetIndex;
@@ -240,6 +242,10 @@ ProjectileWriteStatus statusLocked() {
 bool installProjectileWriteTest() {
     if (g_installed) return true;
     if (!available() || !refs().ok) return false;
+    if (!csharpmods::hasProjectileBehavior()) {
+        BL_WARN("csharp write: nenhum mod C# externo com comportamento de projectile");
+        return false;
+    }
 
     const auto& g = runtime::game();
     if (!g.proj.kill || !g.proj.setDefaults || !refs().updatePosition) return false;
@@ -258,7 +264,7 @@ bool installProjectileWriteTest() {
     }
 
     g_installed = true;
-    BL_INFO("csharp write: host de projectile instalado em Projectile.UpdatePosition sem depender de identity");
+    BL_INFO("csharp write: host externo de projectile instalado em Projectile.UpdatePosition");
     return true;
 }
 
