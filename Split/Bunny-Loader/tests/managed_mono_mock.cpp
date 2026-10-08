@@ -1,8 +1,12 @@
 #include <cstring>
+#include <cstdlib>
 
 extern "C" {
 
-void* mono_jit_init_version(const char*, const char*) { return reinterpret_cast<void*>(1); }
+void* mono_jit_init_version(const char*, const char*) {
+    if (std::getenv("BUNNY_MONO_SIMULATE_ABORT")) std::_Exit(86);
+    return reinterpret_cast<void*>(1);
+}
 void* mono_thread_attach(void*) { return reinterpret_cast<void*>(1); }
 void* mono_domain_assembly_open(void*, const char*) { return reinterpret_cast<void*>(1); }
 void* mono_assembly_get_image(void*) { return reinterpret_cast<void*>(1); }
