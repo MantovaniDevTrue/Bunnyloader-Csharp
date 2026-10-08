@@ -14,6 +14,12 @@ public static class Exports
         return Version;
     }
 
+    [UnmanagedCallersOnly(EntryPoint = "bunnycs_host_api_version", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static int GetHostApiVersion()
+    {
+        return BunnyHost.ApiVersion;
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "bunnycs_add", CallConvs = new[] { typeof(CallConvCdecl) })]
     public static int Add(int a, int b)
     {
