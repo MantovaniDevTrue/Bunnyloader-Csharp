@@ -56,4 +56,18 @@ struct HostProjectileState {
 };
 static_assert(sizeof(HostProjectileState) == 40);
 
+struct HostNpcState {
+    int32_t slot;
+    int32_t type;
+    int32_t generation;
+    int32_t life;
+    int32_t lifeMax;
+    int32_t targetPlayer;
+    float x;
+    float y;
+    float vx;
+    float vy;
+};
+static_assert(sizeof(HostNpcState) == 40);
+
 }
