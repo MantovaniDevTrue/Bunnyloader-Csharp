@@ -190,6 +190,7 @@ class GameActivity : Activity() {
                     quickPlayer = if (prefs.quickWorldFile.isNotEmpty()) prefs.quickPlayer else "",
                     quickWorld = prefs.quickWorldFile,
                     managedProbePath = installManagedProbe(),
+                    managedCheckpointPath = File(filesDir, "bunny-csharp/last-probe.txt").absolutePath,
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)
