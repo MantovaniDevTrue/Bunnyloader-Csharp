@@ -13,6 +13,7 @@ namespace bl::csharp {
 namespace {
 
 using VersionFn = int (*)();
+using HostApiVersionFn = int (*)();
 using AddFn = int (*)(int, int);
 using ChecksumFn = int64_t (*)(int);
 using PlayerSampleFn = int64_t (*)(float, float, int, int);
@@ -24,6 +25,7 @@ using HostProjectileTickFn = int (*)(HostProjectileState*, const NpcSample*, int
 
 void* g_handle = nullptr;
 VersionFn g_version = nullptr;
+HostApiVersionFn g_hostApiVersion = nullptr;
 AddFn g_add = nullptr;
 ChecksumFn g_checksum = nullptr;
 PlayerSampleFn g_playerSample = nullptr;
@@ -60,6 +62,7 @@ bool installPrototype() {
     }
 
     g_version = symbol<VersionFn>("bunnycs_version");
+    g_hostApiVersion = symbol<HostApiVersionFn>("bunnycs_host_api_version");
     g_add = symbol<AddFn>("bunnycs_add");
     g_checksum = symbol<ChecksumFn>("bunnycs_checksum");
     g_playerSample = symbol<PlayerSampleFn>("bunnycs_player_sample");
@@ -69,7 +72,7 @@ bool installPrototype() {
     g_projectileScan = symbol<ProjectileScanFn>("bunnycs_projectile_scan");
     g_hostProjectileTick = symbol<HostProjectileTickFn>("bunnycs_host_projectile_tick");
 
-    if (!g_version || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch ||
+    if (!g_version || !g_hostApiVersion || !g_add || !g_checksum || !g_playerSample || !g_mathBatch || !g_projectileBatch ||
         !g_npcScan || !g_projectileScan || !g_hostProjectileTick) {
         BL_ERROR("csharp: exports NativeAOT incompletos");
         dlclose(g_handle);
@@ -79,14 +82,15 @@ bool installPrototype() {
 
     const int probe = g_add(20, 22);
     const int runtimeVersion = g_version();
-    if (probe != 42 || runtimeVersion <= 0) {
-        BL_ERROR("csharp: self-test falhou (version=%d add=%d)", runtimeVersion, probe);
+    const int hostVersion = g_hostApiVersion();
+    if (probe != 42 || runtimeVersion <= 0 || hostVersion <= 0) {
+        BL_ERROR("csharp: self-test falhou (version=%d hostApi=%d add=%d)", runtimeVersion, hostVersion, probe);
         dlclose(g_handle);
         g_handle = nullptr;
         return false;
     }
 
-    BL_INFO("csharp: NativeAOT carregado (ABI v%d, self-test 20+22=%d)", runtimeVersion, probe);
+    BL_INFO("csharp: NativeAOT carregado (ABI v%d, Host API v%d, self-test 20+22=%d)", runtimeVersion, hostVersion, probe);
 
     const BenchmarkResult result = benchmark(250000);
     BL_INFO("csharp: benchmark direto cpp=%.1f ns/call csharp=%.1f ns/call ratio=%.2fx",
@@ -95,12 +99,16 @@ bool installPrototype() {
 }
 
 bool available() {
-    return g_handle && g_version && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch &&
+    return g_handle && g_version && g_hostApiVersion && g_add && g_checksum && g_playerSample && g_mathBatch && g_projectileBatch &&
            g_npcScan && g_projectileScan && g_hostProjectileTick;
 }
 
 int version() {
     return available() ? g_version() : 0;
+}
+
+int hostApiVersion() {
+    return available() ? g_hostApiVersion() : 0;
 }
 
 int add(int a, int b) {
