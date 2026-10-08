@@ -1,6 +1,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 
 #include "content/projectiles/ModProjectiles.h"
+#include "content/npcs/ModNpcs.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
@@ -31,6 +32,9 @@ using HostApiVersionFn = int (*)();
 using InitializeFn = int (*)(int);
 using ProjectileBindFn = int (*)(int, const char*);
 using ProjectileReleaseFn = void (*)(int, int, int, int);
+using NpcBindFn = int (*)(int, const char*);
+using NpcTickFn = int (*)(bl::csharp::HostNpcState*, float, float);
+using NpcReleaseFn = void (*)(int, int, int);
 using ProjectileTickFn = int (*)(bl::csharp::HostProjectileState*,
                                  const bl::csharp::NpcSample*,
                                  int,
@@ -43,7 +47,11 @@ struct NativeMod {
     ProjectileTickFn projectileTick = nullptr;
     ProjectileBindFn projectileBind = nullptr;
     ProjectileReleaseFn projectileRelease = nullptr;
+    NpcBindFn npcBind = nullptr;
+    NpcTickFn npcTick = nullptr;
+    NpcReleaseFn npcRelease = nullptr;
     std::unordered_set<int> acceptedProjectileTypes;
+    std::unordered_set<int> acceptedNpcTypes;
 };
 
 std::mutex g_mutex;
@@ -200,6 +208,9 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         symbol<ProjectileBindFn>(native.handle, "bunny_mod_bind_projectile");
     native.projectileRelease =
         symbol<ProjectileReleaseFn>(native.handle, "bunny_mod_projectile_release");
+    native.npcBind = symbol<NpcBindFn>(native.handle, "bunny_mod_bind_npc");
+    native.npcTick = symbol<NpcTickFn>(native.handle, "bunny_mod_npc_tick");
+    native.npcRelease = symbol<NpcReleaseFn>(native.handle, "bunny_mod_npc_release");
 
     if (!abi || !hostApi || !initialize) {
         BL_ERROR("csharp mod %s: exports obrigatorios ausentes", mod.id.c_str());
@@ -237,6 +248,15 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         }
         native.info.projectileBindings = static_cast<int>(native.acceptedProjectileTypes.size());
     }
+    native.info.npcBehavior = native.npcBind && native.npcTick;
+    if (native.info.npcBehavior) {
+        for (const auto& entry : bl::runtime::registeredNpcsForMod(mod.id)) {
+            if (native.npcBind(entry.first, entry.second.c_str())) {
+                native.acceptedNpcTypes.insert(entry.first);
+            }
+        }
+        native.info.npcBindings = static_cast<int>(native.acceptedNpcTypes.size());
+    }
     native.info.loaded = true;
     BL_INFO("csharp mod %s: NativeAOT carregado (ABI %d, Host API %d, projectile=%s)",
             mod.id.c_str(), native.info.abiVersion, native.info.hostApiVersion,
@@ -244,6 +264,9 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
     BL_INFO("csharp mod %s: filtro por tipo=%s, projeteis C#=%d",
             mod.id.c_str(), native.info.selectiveProjectiles ? "sim" : "legado",
             native.info.projectileBindings);
+    BL_INFO("csharp mod %s: NPC NativeAOT=%s, tipos=%d",
+            mod.id.c_str(), native.info.npcBehavior ? "sim" : "nao",
+            native.info.npcBindings);
     g_mods.push_back(std::move(native));
 }
 
@@ -281,6 +304,44 @@ bool hasProjectileBehavior() {
         if (mod.info.loaded && mod.projectileTick) return true;
     }
     return false;
+}
+
+bool hasNpcBehavior() {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods)
+        if (mod.info.loaded && mod.npcTick && !mod.acceptedNpcTypes.empty()) return true;
+    return false;
+}
+
+bool hasOwnedNpcBehavior(int npcType) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods)
+        if (mod.info.loaded && mod.npcTick && mod.acceptedNpcTypes.count(npcType) &&
+            bl::runtime::modNpcBelongsTo(npcType, mod.info.id)) return true;
+    return false;
+}
+
+bool dispatchOwnedNpc(int npcType, bl::csharp::HostNpcState* state,
+                      float playerX, float playerY) {
+    if (!state || state->type != npcType) return false;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods) {
+        if (!mod.info.loaded || !mod.npcTick || !mod.acceptedNpcTypes.count(npcType) ||
+            !bl::runtime::modNpcBelongsTo(npcType, mod.info.id)) continue;
+        return mod.npcTick(state, playerX, playerY) != 0;
+    }
+    return false;
+}
+
+void releaseOwnedNpc(int npcType, int slot, int generation) {
+    if (slot < 0 || generation <= 0) return;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods) {
+        if (!mod.info.loaded || !mod.npcRelease || !mod.acceptedNpcTypes.count(npcType) ||
+            !bl::runtime::modNpcBelongsTo(npcType, mod.info.id)) continue;
+        mod.npcRelease(npcType, slot, generation);
+        return;
+    }
 }
 
 bool hasOwnedProjectileBehavior(int projectileType) {
