@@ -2,7 +2,7 @@
   "uid": "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
   "id": "examplecsharpmod",
   "name": "Example C# Mod",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "authors": [
     {
       "name": "Bunny Loader C# Test",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Mod C# NativeAOT externo com homing simples e preditivo, vinculados por nome de projétil.",
+  "summary": "Mod C# NativeAOT com homing normal, preditivo e IA ondulada com estado individual.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
