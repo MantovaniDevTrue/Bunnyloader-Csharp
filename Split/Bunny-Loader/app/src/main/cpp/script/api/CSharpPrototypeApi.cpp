@@ -37,6 +37,7 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     JS_SetPropertyStr(ctx, out, "domainInitialized", JS_NewBool(ctx, s.domainInitialized));
     JS_SetPropertyStr(ctx, out, "methodExecuted", JS_NewBool(ctx, s.methodExecuted));
     JS_SetPropertyStr(ctx, out, "result", JS_NewInt32(ctx, s.result));
+    JS_SetPropertyStr(ctx, out, "callbacksExecuted", JS_NewInt32(ctx, s.callbacksExecuted));
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
     return out;
@@ -100,6 +101,23 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         return JS_ThrowInternalError(ctx, "BunnyManagedProbe.dll ausente; executar worker antes");
 
     return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(assembly));
+}
+
+JSValue jsManagedCallbackProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1) return JS_ThrowTypeError(ctx, "managedCallbackProbe(count)");
+    int32_t count = 0;
+    if (JS_ToInt32(ctx, &count, argv[0]) < 0) return JS_EXCEPTION;
+    if (count < 1 || count > 120)
+        return JS_ThrowRangeError(ctx, "Quantidade de callbacks precisa estar entre 1 e 120");
+    const auto state = bl::csharp::managedRuntimeStatus();
+    if (!state.domainInitialized || !state.methodExecuted)
+        return JS_ThrowInternalError(ctx, "Executar managedGameProbe antes do teste AI");
+    const auto& checkpoint = bl::config().managedCheckpointPath;
+    const auto slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Diretorio CSharp nao configurado");
+    const auto assembly = checkpoint.substr(0, slash + 1) + "BunnyManagedProbe.dll";
+    return makeManagedStatus(ctx, bl::csharp::probeManagedCallbacks(assembly, count));
 }
 
 JSValue jsManagedWorkerStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
@@ -798,6 +816,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
+    JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
+                      JS_NewCFunction(ctx, jsManagedCallbackProbe, "managedCallbackProbe", 1));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
