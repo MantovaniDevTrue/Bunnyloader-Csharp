@@ -113,6 +113,7 @@ object BootLog {
         header(ctx) +
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
             "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
+            "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
@@ -123,6 +124,20 @@ object BootLog {
         if (!checkpoint.isFile) "(nenhuma tentativa registrada)\n"
         else checkpoint.readText().take(2048).ifBlank { "(registro vazio)\n" }
     }.getOrElse { "(erro ao ler checkpoint MonoVM: ${it.javaClass.simpleName})\n" }
+
+    private fun lastIsolatedMonoWorker(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        for (name in listOf("isolated-worker-status.txt", "last-isolated-probe.txt")) {
+            append(name).append(":\n")
+            val value = runCatching { File(dir, name).readText().take(1600) }
+                .getOrDefault("(sem registro)")
+            append(value).append('\n')
+        }
+        val log = runCatching {
+            File(dir, "isolated-worker-logcat.txt").readLines().takeLast(30).joinToString("\n")
+        }.getOrDefault("(sem logcat do worker)")
+        append("logcat do worker:\n").append(log).append('\n')
+    }
 
     /** Versões, aparelho, data e os mods ligados: sem isso ninguém reproduz nada. */
     private fun header(ctx: Context): String = buildString {
