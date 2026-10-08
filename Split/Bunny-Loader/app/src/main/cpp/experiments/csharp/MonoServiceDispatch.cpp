@@ -47,7 +47,7 @@ bool bindMonoWorkerContext(JNIEnv* env, jobject context, std::string& error) {
     return true;
 }
 
-bool requestIsolatedMonoProbe(std::string& error) {
+bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot) {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_vm || !g_context || !g_serviceClass) {
         error = "worker nao inicializado";
@@ -76,8 +76,32 @@ bool requestIsolatedMonoProbe(std::string& error) {
         if (!checkException(env, error, "Intent constructor indisponivel") && ctor) {
             jobject intent = env->NewObject(intentClass, ctor, g_context, g_serviceClass);
             if (!checkException(env, error, "Intent creation falhou") && intent) {
-                jclass contextClass = env->FindClass("android/content/Context");
-                if (!checkException(env, error, "Context class indisponivel") && contextClass) {
+                bool extrasReady = true;
+                if (!sourceRoot.empty()) {
+                    jmethodID putExtra = env->GetMethodID(intentClass, "putExtra",
+                        "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;");
+                    if (checkException(env, error, "Intent.putExtra indisponivel") || !putExtra) {
+                        extrasReady = false;
+                    } else {
+                        jstring key = env->NewStringUTF("sourceRoot");
+                        jstring value = env->NewStringUTF(sourceRoot.c_str());
+                        if (!key || !value) {
+                            extrasReady = false;
+                            error = "Intent extras sem memoria";
+                        } else {
+                            jobject updated = env->CallObjectMethod(intent, putExtra, key, value);
+                            if (checkException(env, error, "Intent.putExtra falhou") || !updated)
+                                extrasReady = false;
+                            if (updated) env->DeleteLocalRef(updated);
+                        }
+                        if (key) env->DeleteLocalRef(key);
+                        if (value) env->DeleteLocalRef(value);
+                    }
+                }
+                jclass contextClass = extrasReady
+                    ? env->FindClass("android/content/Context") : nullptr;
+                if (extrasReady &&
+                    !checkException(env, error, "Context class indisponivel") && contextClass) {
                     jmethodID start = env->GetMethodID(
                         contextClass, "startService",
                         "(Landroid/content/Intent;)Landroid/content/ComponentName;");
@@ -100,6 +124,19 @@ bool requestIsolatedMonoProbe(std::string& error) {
 
     if (attached) g_vm->DetachCurrentThread();
     return success;
+}
+
+bool requestIsolatedMonoProbe(std::string& error) {
+    return dispatchMonoWorker(error, "");
+}
+
+bool requestIsolatedMonoCompile(const std::string& sourceRoot, std::string& error) {
+    if (sourceRoot.empty() || sourceRoot.size() > 2048 ||
+        sourceRoot.find("..") != std::string::npos) {
+        error = "Diretorio do mod C# invalido";
+        return false;
+    }
+    return dispatchMonoWorker(error, sourceRoot);
 }
 
 }
