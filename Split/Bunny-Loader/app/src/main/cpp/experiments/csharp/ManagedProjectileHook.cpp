@@ -42,7 +42,8 @@ std::atomic<int> g_lastSlot{-1};
 std::atomic<int> g_lastState{0};
 
 void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
-    if (g_original) g_original(projectile, method);
+    AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
+    if (original) original(projectile, method);
     if (!g_enabled.load(std::memory_order_relaxed) || !projectile) return;
 
     const auto& game = runtime::game();
@@ -124,6 +125,7 @@ bool enableManagedSourceBoltHook(std::string* error) {
         return false;
     }
 
+    g_enabled.store(false, std::memory_order_release);
     if (!g_installed.load(std::memory_order_acquire)) {
         if (!hook::install(game.proj.aiMethod, hkAi, &g_original)) {
             *error = "Falha ao instalar hook de Projectile.AI";
@@ -142,6 +144,10 @@ bool enableManagedSourceBoltHook(std::string* error) {
     g_enabled.store(true, std::memory_order_release);
     BL_INFO("csharp AI: SourceBolt hook ativado apenas para tipo %d", type);
     return true;
+}
+
+bool pauseManagedSourceBoltHook() {
+    return g_enabled.exchange(false, std::memory_order_acq_rel);
 }
 
 ManagedProjectileHookStatus managedSourceBoltHookStatus() {
