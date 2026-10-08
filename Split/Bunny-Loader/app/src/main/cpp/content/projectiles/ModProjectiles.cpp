@@ -232,6 +232,18 @@ bool modProjectileBelongsTo(int type, const std::string& modId) {
     return index < g_regs.size() && g_regs[index].def.mod == modId;
 }
 
+std::vector<std::pair<int, std::string>> registeredProjectilesForMod(const std::string& modId) {
+    std::vector<std::pair<int, std::string>> result;
+    std::lock_guard<std::mutex> lock(g_mx);
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        const auto& def = g_regs[i].def;
+        if (def.mod == modId) {
+            result.emplace_back(kVanillaProjectileCount + static_cast<int>(i), def.name);
+        }
+    }
+    return result;
+}
+
 int projectileTypeCount() {
     return kVanillaProjectileCount + g_installed.load(std::memory_order_acquire);
 }
