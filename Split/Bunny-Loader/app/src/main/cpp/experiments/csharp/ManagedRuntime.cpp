@@ -1,6 +1,10 @@
 #include "experiments/csharp/ManagedRuntime.h"
 
+#include <cstdio>
 #include <cstring>
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 #include <dlfcn.h>
 #include <mutex>
 #include <string>
@@ -42,10 +46,20 @@ T resolve(const char* name) {
     return reinterpret_cast<T>(dlsym(g_library, name));
 }
 
-ManagedRuntimeStatus failure(const char* phase, const std::string& detail) {
+void trace(const char* phase, const char* detail = nullptr) {
     g_status.phase = phase;
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                        "mono phase=%s detail=%s", phase, detail ? detail : "");
+#else
+    std::fprintf(stderr, "mono phase=%s detail=%s\n", phase, detail ? detail : "");
+#endif
+}
+
+ManagedRuntimeStatus failure(const char* phase, const std::string& detail) {
     g_status.error = detail.substr(0, 512);
     g_status.methodExecuted = false;
+    trace(phase, g_status.error.c_str());
     return g_status;
 }
 
@@ -59,6 +73,7 @@ bool validAssembly(const std::string& path) {
 
 bool loadLibrary() {
     if (g_library) return true;
+    trace("opening-library");
     g_library = dlopen("libmonosgen-2.0.so", RTLD_NOW | RTLD_LOCAL);
     if (!g_library) {
         const char* message = dlerror();
@@ -66,6 +81,7 @@ bool loadLibrary() {
         return false;
     }
     g_status.libraryLoaded = true;
+    trace("resolving-symbols");
     g_api.initialize = resolve<InitFn>("mono_jit_init_version");
     g_api.setAssembliesPath = resolve<AssemblyPathFn>("mono_set_assemblies_path");
     g_api.attach = resolve<AttachFn>("mono_thread_attach");
@@ -85,6 +101,7 @@ bool loadLibrary() {
         return false;
     }
     g_status.symbolsReady = true;
+    trace("symbols-ready");
     return true;
 }
 
@@ -95,12 +112,22 @@ ManagedRuntimeStatus managedRuntimeStatus() {
     return g_status;
 }
 
+ManagedRuntimeStatus inspectManagedRuntime() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_status.attempted = true;
+    g_status.error.clear();
+    if (loadLibrary() && !g_status.domainInitialized)
+        trace("symbols-ready");
+    return g_status;
+}
+
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     std::lock_guard<std::mutex> guard(g_mutex);
     g_status.attempted = true;
     g_status.methodExecuted = false;
     g_status.result = 0;
     g_status.error.clear();
+    trace("checking-assembly");
     if (!validAssembly(assemblyPath))
         return failure("invalid-assembly", "assembly de teste ausente ou fora do limite");
 
@@ -108,19 +135,25 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
 
     if (!g_domain) {
         const auto slash = assemblyPath.find_last_of('/');
-        if (g_api.setAssembliesPath && slash != std::string::npos)
+        if (g_api.setAssembliesPath && slash != std::string::npos) {
+            trace("setting-assembly-path");
             g_api.setAssembliesPath(assemblyPath.substr(0, slash).c_str());
+        }
+        trace("initializing-domain");
         g_domain = g_api.initialize("BunnyCSharp", "v4.0.30319");
         if (!g_domain)
             return failure("domain-failed", "mono_jit_init_version retornou nulo");
     }
     g_status.domainInitialized = true;
+    trace("attaching-thread");
     if (!g_api.attach(g_domain))
         return failure("attach-failed", "mono_thread_attach retornou nulo");
 
+    trace("opening-assembly");
     void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
     if (!assembly) return failure("assembly-failed", "mono_domain_assembly_open falhou");
 
+    trace("resolving-method");
     void* image = g_api.image(assembly);
     void* klass = image ? g_api.findClass(image, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
     void* method = klass ? g_api.findMethod(klass, "Run", 2) : nullptr;
@@ -130,6 +163,7 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     int b = 23;
     void* parameters[] = {&a, &b};
     void* exception = nullptr;
+    trace("invoking-method");
     void* result = g_api.invoke(method, nullptr, parameters, &exception);
     if (exception) return failure("managed-exception", "Run lancou uma excecao gerenciada");
     if (!result) return failure("null-result", "Run nao retornou objeto");
@@ -142,8 +176,8 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     g_status.result = value;
     if (value != 42) return failure("result-mismatch", "Run retornou resultado inesperado");
 
-    g_status.phase = "verified";
     g_status.methodExecuted = true;
+    trace("verified");
     return g_status;
 }
 
