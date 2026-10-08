@@ -50,3 +50,32 @@ O formato de classes C# deve seguir o SDK Bunny, usando os exemplos de `samples/
 - Não prometer execução de `AI()` antes de existir chamada real em código gerenciado.
 - Assemblies C# carregados no processo não oferecem isolamento de segurança forte; instalar somente mods confiáveis.
 - A integração Mono/Roslyn depende de validar as bibliotecas e dependências Android/arm64 antes de gerar um APK público.
+
+
+## Implementação da primeira etapa
+
+O arquivo `ManagedRuntime.cpp` abre `libmonosgen-2.0.so` somente quando solicitado, verifica a Mono Embedding API, inicializa um domínio gerenciado e tenta executar `BunnyLoader.ManagedProbe.Probe.Run(19, 23)`, presente em `BunnyManagedProbe.dll`. O retorno esperado é `42`. Nenhuma chamada ao Mono acontece automaticamente na inicialização do jogo.
+
+O `GameActivity` extrai `System.Private.CoreLib.dll` e `BunnyManagedProbe.dll` dos assets do APK para o armazenamento privado. A biblioteca nativa Mono é empacotada na variante ARM64 a partir de `Microsoft.NETCore.App.Runtime.Mono.android-arm64`, versão 8.0.23, distribuída pela Microsoft no NuGet.
+
+No console do aplicativo:
+
+```javascript
+JSON.stringify(bl.csharp.managedRuntime(), null, 2)
+```
+
+Este comando apenas consulta o estado. Para tentar o teste real no Android:
+
+```javascript
+JSON.stringify(bl.csharp.managedProbe(), null, 2)
+```
+
+`phase: "verified"`, `methodExecuted: true` e `result: 42` juntos significam que o método gerenciado foi invocado e retornou o valor esperado. `library-missing`, `abi-incompatible`, `domain-failed`, `assembly-failed` e `managed-exception` indicam em qual camada a experiência falhou. Uma falha nativa durante o bootstrap ainda pode encerrar o processo: testar apenas no aplicativo experimental, com backup do mundo.
+
+O workflow `check-bunny-csharp-managed-runtime.yml` testa a ABI com uma biblioteca Mono **simulada** para conferir chamadas e estados sem Android. Passar nesse teste não comprova execução real no MonoVM do celular.
+
+O workflow `build-bunny-csharp-source-loader.yml` prepara o APK experimental e exporta o artefato de build junto com o pacote `SourceCSharpMod`. O mod de `.cs` continua funcionando apenas pelo interpretador declarativo `SetDefaults-literals-v1` até que o carregador use execução gerenciada e compilação interna de código-fonte.
+
+## Próxima etapa
+
+Confirmar em dispositivo que MonoVM inicializa sem interferir com IL2CPP; depois integrar Roslyn e o SDK Bunny ao processo de compilação local de mods `.cs`, com cache por conteúdo e despacho gerenciado dos callbacks `SetDefaults`/`AI`. Não confundir este teste de execução com compatibilidade completa com mods C# de PC.
