@@ -13,7 +13,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v5-compact-references";
+    private const string CacheVersion = "roslyn-net8-source-v6-minimal-probes";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -137,6 +137,10 @@ public static class Compiler
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
         var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
         Stage(diagnosticsFile, "metadata-references-created-" + references.Length);
+        int probeResult = RunMinimalProbes(runtimeDir, diagnosticsFile);
+        if (probeResult != 0)
+            return probeResult;
+        Stage(diagnosticsFile, "main-compilation-create-start");
         var compilation = CSharpCompilation.Create(
             assemblyName: "BunnySource_" + hash.Substring(0, 16),
             syntaxTrees: trees,
@@ -206,6 +210,107 @@ public static class Compiler
             " references=" + references.Length + " hash=" + hash +
             " bytes=" + new FileInfo(outputFile).Length);
         return 1;
+    }
+
+
+    private static int RunMinimalProbes(string runtimeDir, string diagnosticsFile)
+    {
+        string corelib = Path.Combine(runtimeDir, "System.Private.CoreLib.dll");
+        string runtime = Path.Combine(runtimeDir, "System.Runtime.dll");
+        string sdk = Path.Combine(runtimeDir, "BunnySourceSdk.dll");
+        if (!File.Exists(corelib) || !File.Exists(runtime) || !File.Exists(sdk))
+        {
+            WriteDiagnostic(diagnosticsFile, "PROBE_REFERENCES_MISSING");
+            return -9;
+        }
+
+        Stage(diagnosticsFile, "probe-core-references-start");
+        MetadataReference[] coreReferences =
+        {
+            MetadataReference.CreateFromFile(corelib),
+            MetadataReference.CreateFromFile(runtime)
+        };
+        Stage(diagnosticsFile, "probe-core-references-ready");
+        int coreResult = RunProbe("core",
+            "public static class BunnyCoreProbe { public static int Sum(int a, int b) => a + b; }",
+            coreReferences, diagnosticsFile);
+        if (coreResult != 0)
+            return coreResult;
+
+        Stage(diagnosticsFile, "probe-sdk-references-start");
+        MetadataReference[] sdkReferences =
+        {
+            coreReferences[0],
+            coreReferences[1],
+            MetadataReference.CreateFromFile(sdk)
+        };
+        Stage(diagnosticsFile, "probe-sdk-references-ready");
+        int sdkResult = RunProbe("sdk",
+            "public sealed class BunnySdkProbe : BunnyLoader.Source.BunnyProjectile { " +
+            "public override void SetDefaults() { Width = 10; Height = 10; } }",
+            sdkReferences, diagnosticsFile);
+        if (sdkResult != 0)
+            return sdkResult;
+
+        Stage(diagnosticsFile, "minimal-probes-complete");
+        return 0;
+    }
+
+    private static int RunProbe(string name, string source,
+        MetadataReference[] references, string diagnosticsFile)
+    {
+        Stage(diagnosticsFile, "probe-" + name + "-syntax-start");
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(
+            source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12));
+        Stage(diagnosticsFile, "probe-" + name + "-create-start");
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "Bunny_" + name + "_Probe",
+            syntaxTrees: new[] { tree },
+            references: references,
+            options: new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                optimizationLevel: OptimizationLevel.Release,
+                deterministic: false,
+                concurrentBuild: false,
+                allowUnsafe: false));
+        Stage(diagnosticsFile, "probe-" + name + "-declarations-start");
+        var declarationErrors = compilation.GetDeclarationDiagnostics()
+            .Where(item => item.Severity == DiagnosticSeverity.Error)
+            .Take(20).ToArray();
+        Stage(diagnosticsFile, "probe-" + name + "-declarations-done-" + declarationErrors.Length);
+        if (declarationErrors.Length > 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "PROBE_DECLARATIONS_FAILED " + name + "\n" +
+                string.Join("\n", declarationErrors.Select(item => item.ToString())));
+            return -10;
+        }
+
+        Stage(diagnosticsFile, "probe-" + name + "-methods-start");
+        var bodyErrors = compilation.GetMethodBodyDiagnostics()
+            .Where(item => item.Severity == DiagnosticSeverity.Error)
+            .Take(20).ToArray();
+        Stage(diagnosticsFile, "probe-" + name + "-methods-done-" + bodyErrors.Length);
+        if (bodyErrors.Length > 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "PROBE_METHODS_FAILED " + name + "\n" +
+                string.Join("\n", bodyErrors.Select(item => item.ToString())));
+            return -11;
+        }
+
+        using var bytes = new MemoryStream();
+        Stage(diagnosticsFile, "probe-" + name + "-emit-start");
+        var result = compilation.Emit(bytes);
+        Stage(diagnosticsFile, "probe-" + name + "-emit-done");
+        if (!result.Success || bytes.Length == 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "PROBE_EMIT_FAILED " + name + "\n" +
+                string.Join("\n", result.Diagnostics
+                    .Where(item => item.Severity == DiagnosticSeverity.Error)
+                    .Take(20).Select(item => item.ToString())));
+            return -12;
+        }
+        Stage(diagnosticsFile, "probe-" + name + "-complete");
+        return 0;
     }
 
     private static void Stage(string path, string stage)
