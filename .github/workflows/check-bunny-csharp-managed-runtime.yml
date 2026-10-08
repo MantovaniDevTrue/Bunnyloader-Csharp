@@ -11,8 +11,12 @@ on:
       - bunny-csharp-source-0.1.10.14-callback-probe
       - bunny-csharp-source-0.1.10.15-live-projectile-ai
       - bunny-csharp-source-0.1.10.15.1-status-diagnostics
+      - bunny-csharp-source-0.1.10.15.2-source-uid-lookup
     paths:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.*"
+      - "Split/Bunny-Loader/samples/SourceCSharpMod/manifest.json"
+      - "Split/Bunny-Loader/samples/SourceCSharpMod/content/main.cs"
       - "Split/Bunny-Loader/tests/managed_*"
       - "Split/Bunny-Loader/experiments/csharp/BunnyManagedProbe/**"
       - ".github/workflows/check-bunny-csharp-managed-runtime.yml"
@@ -56,6 +60,25 @@ jobs:
           grep -q "^methodExecuted=0$" "$PROBE.checkpoint"
           rm -f "$PROBE.checkpoint"
           echo "BUNNY_MONO_PERSISTENT_CRASH_CHECKPOINT_PASS=YES"
+      - name: Check SourceBolt registration identity
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          manifest = json.loads((root / "samples/SourceCSharpMod/manifest.json").read_text())
+          source = (root / "samples/SourceCSharpMod/content/main.cs").read_text()
+          loader = (root / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          native = (root / "app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          hook = (root / "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp").read_text()
+          assert 'class SourceBolt : BunnyProjectile' in source
+          assert 'NativeRegisterContext ctx{mod.id, mod.dir' in loader
+          assert 'def.mod = ctx.modId;' in native
+          assert manifest["uid"] in hook
+          assert 'modProjectileTypeByName(source.id, "SourceBolt")' in hook
+          assert 'modProjectileTypeByName("sourcecsharp"' not in hook
+          print("SOURCE_BOLT_UUID_REGISTRATION_MATCH=YES")
+          PY
       - name: Mark test scope
         run: |
           echo "CI mock verifies Mono symbol binding and native dispatch, NOT a real Android MonoVM run."
