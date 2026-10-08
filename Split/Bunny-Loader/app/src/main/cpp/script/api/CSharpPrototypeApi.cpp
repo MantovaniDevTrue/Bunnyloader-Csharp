@@ -6,6 +6,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "core/Config.h"
 #include "experiments/csharp/NpcAiHost.h"
@@ -118,6 +119,41 @@ JSValue jsManagedCallbackProbe(JSContext* ctx, JSValueConst, int argc, JSValueCo
         return JS_ThrowInternalError(ctx, "Diretorio CSharp nao configurado");
     const auto assembly = checkpoint.substr(0, slash + 1) + "BunnyManagedProbe.dll";
     return makeManagedStatus(ctx, bl::csharp::probeManagedCallbacks(assembly, count));
+}
+
+JSValue makeSourceBoltHookStatus(JSContext* ctx) {
+    const auto status = bl::csharp::managedSourceBoltHookStatus();
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "type", JS_NewInt32(ctx, status.type));
+    JS_SetPropertyStr(ctx, result, "callbacks", JS_NewInt32(ctx, status.callbacks));
+    JS_SetPropertyStr(ctx, result, "velocityWrites", JS_NewInt32(ctx, status.velocityWrites));
+    JS_SetPropertyStr(ctx, result, "spawns", JS_NewInt32(ctx, status.spawns));
+    JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, result, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
+    JS_SetPropertyStr(ctx, result, "lastState", JS_NewInt32(ctx, status.lastState));
+    return result;
+}
+
+JSValue jsManagedProjectileEnable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "managedProjectileEnable('CONFIRM_SOURCE_BOLT')");
+    const char* confirm = JS_ToCString(ctx, argv[0]);
+    if (!confirm) return JS_EXCEPTION;
+    const bool valid = std::string_view(confirm) == "CONFIRM_SOURCE_BOLT";
+    JS_FreeCString(ctx, confirm);
+    if (!valid)
+        return JS_ThrowTypeError(ctx, "Confirmar explicitamente: CONFIRM_SOURCE_BOLT");
+
+    std::string error;
+    if (!bl::csharp::enableManagedSourceBoltHook(&error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    return makeSourceBoltHookStatus(ctx);
+}
+
+JSValue jsManagedProjectileStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return makeSourceBoltHookStatus(ctx);
 }
 
 JSValue jsManagedWorkerStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
@@ -818,6 +854,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
                       JS_NewCFunction(ctx, jsManagedCallbackProbe, "managedCallbackProbe", 1));
+    JS_SetPropertyStr(ctx, api, "managedProjectileEnable",
+                      JS_NewCFunction(ctx, jsManagedProjectileEnable, "managedProjectileEnable", 1));
+    JS_SetPropertyStr(ctx, api, "managedProjectileStatus",
+                      JS_NewCFunction(ctx, jsManagedProjectileStatus, "managedProjectileStatus", 0));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
