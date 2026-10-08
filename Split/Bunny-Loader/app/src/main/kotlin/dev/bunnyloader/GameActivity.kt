@@ -140,7 +140,20 @@ class GameActivity : Activity() {
         val target = File(dir, "BunnyManagedProbe.dll")
         return runCatching {
             dir.mkdirs()
-            for (name in listOf("System.Private.CoreLib.dll", "BunnyManagedProbe.dll")) {
+            val marker = File(dir, "runtime-version.txt")
+            val version = dev.bunnyloader.BuildConfig.VERSION_NAME
+            val names = assets.list("managed").orEmpty()
+                .filter { it.endsWith(".dll") }
+                .sorted()
+            require(names.contains("System.Private.CoreLib.dll"))
+            require(names.contains("System.Runtime.dll"))
+            require(names.contains("BunnyManagedProbe.dll"))
+            if (marker.isFile && marker.readText() == version &&
+                names.all { File(dir, it).isFile && File(dir, it).length() > 0L }) {
+                return@runCatching target.absolutePath
+            }
+            marker.delete()
+            for (name in names) {
                 val destination = File(dir, name)
                 val temporary = File(dir, name + ".tmp")
                 assets.open("managed/" + name).use { source ->
@@ -151,6 +164,8 @@ class GameActivity : Activity() {
                     temporary.delete()
                 }
             }
+            marker.writeText(version)
+            BootLog.add(this, "C# runtime: ${names.size} assemblies instalados")
             target.absolutePath
         }.onFailure { BootLog.add(this, "C# managed probe indisponivel: ${it.message}") }
             .getOrDefault("")
