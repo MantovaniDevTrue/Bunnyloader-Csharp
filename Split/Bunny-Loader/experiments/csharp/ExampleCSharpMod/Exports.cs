@@ -11,10 +11,12 @@ public static class Exports
     private static int _homingType = -1;
     private static int _predictiveType = -1;
     private static readonly BunnyProjectileRegistry Registry = new();
+    private static readonly BunnyNpcRegistry NpcRegistry = new();
 
     static Exports()
     {
         Registry.Register("NativeWaveBolt", new WaveSeekingProjectile());
+        NpcRegistry.Register("NativePhaseSlime", new PhaseSlimeBehavior());
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_abi_version", CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -51,6 +53,28 @@ public static class Exports
             return 1;
         }
         return projectileName != null && Registry.Bind(type, projectileName) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_bind_npc", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe int BindNpc(int type, byte* name)
+    {
+        if (type < 0 || name == null) return 0;
+        string? npcName = Marshal.PtrToStringUTF8((nint)name);
+        return npcName != null && NpcRegistry.Bind(type, npcName) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe int TickNpc(NpcState* state, float playerX, float playerY)
+    {
+        if (state == null || state->Generation <= 0) return 0;
+        NpcContext context = new(state, playerX, playerY);
+        return NpcRegistry.Tick(ref context) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_release", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static void ReleaseNpc(int type, int slot, int generation)
+    {
+        NpcRegistry.Release(type, slot, generation);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_projectile_release", CallConvs = new[] { typeof(CallConvCdecl) })]
