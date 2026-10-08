@@ -23,4 +23,17 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count);
 bool invokeManagedProjectileAI(int tick, int state, int* nextState);
 
+struct ManagedSourceCompileResult {
+    int result = 0;
+    std::string phase = "idle";
+    std::string error;
+};
+
+ManagedSourceCompileResult compileManagedSource(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modRoot,
+    const std::string& outputAssembly,
+    const std::string& diagnosticsPath);
+
 }
