@@ -21,5 +21,6 @@ ManagedRuntimeStatus managedRuntimeStatus();
 ManagedRuntimeStatus inspectManagedRuntime();
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count);
+bool invokeManagedProjectileAI(int tick, int state, int* nextState);
 
 }
