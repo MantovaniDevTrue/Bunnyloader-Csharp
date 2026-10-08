@@ -303,3 +303,25 @@ JSON.stringify({
 ```
 
 Expected: `npcBindings: 1`, `projectileBindings: 3`, `npc.installed: true`, and NPC calls/writes increasing while the slime moves. Reduce its health below 50% to check the movement phase. After it despawns or dies, check the release counter. Existing three projectile weapons should still work at stable FPS. Visual behavior, gameplay safety, and multiplayer remain pending Android validation.
+
+## 0.1.10.5 — NPC combat patterns
+
+The experimental Bunny C# mod keeps Native Mod ABI 1 and Host API 1. Existing `bunny_mod_npc_tick` implementations continue to work. An optional `bunny_mod_npc_combat_tick(HostNpcState*, float playerX, float playerY, HostNpcAttack*)` export emits a bounded attack command, not a raw IL2CPP call.
+
+C# handles target direction, phase-based cooldown, attack count, damage and projectile velocity. The Bunny ExampleMod JavaScript API is responsible for the actual projectile spawn using the tested `Terraria.Projectile.NewProjectile` overload. The host validates each request (active local NPC, type, generation, singleplayer mode, damage, finite positions, and maximum projectile speed); a pending request can only be consumed once and expires after several AI updates. No GC-heavy allocations or scans are added to the C# host update path.
+
+ExampleCSharpMod 0.1.5 adds `NativeSlimeOrb` (hostile projectile), fired from `NativePhaseSlime`: phase 1 single shot approximately every 140 ticks, phase 2 two-shot spread approximately every 70 ticks. The original 3 C# projectile weapons and movement AI remain unchanged. The slime summon is still reusable and is craftable with 10 wood at a workbench.
+
+Run in the game editor:
+
+```js
+JSON.stringify({
+  mods: bl.csharp.externalMods(),
+  npc: bl.csharp.npcStatus(),
+  projectiles: bl.csharp.projectileWriteStatus()
+}, null, 2)
+```
+
+Expect `npcCombat: true`, `npcBindings: 1`, `projectileBindings: 3`, `attacksQueued > 0`, and `attacksConsumed > 0` after the slime attacks. `attacksRejected` should remain at zero. Keep at least one slime alive long enough to trigger the attacks, then reduce its health below 50% to compare single and double shots.
+
+NPC combat remains singleplayer-only in this test. Native C# multiplayer requires a separate server-authoritative state and projectile synchronization design, so do not claim multiplayer support on this branch. The Android build and visual test must succeed before marking 0.1.10.5 stable.

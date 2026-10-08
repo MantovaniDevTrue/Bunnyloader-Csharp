@@ -2,7 +2,7 @@
   "uid": "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
   "id": "examplecsharpmod",
   "name": "Example C# Mod",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "authors": [
     {
       "name": "Bunny Loader C# Test",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Mod C# NativeAOT: três armas, NPC de duas fases e estado individual por entidade.",
+  "summary": "Mod C# NativeAOT com três armas e slime de combate em duas fases, ataques e ciclo de vida.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

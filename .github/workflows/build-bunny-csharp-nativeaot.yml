@@ -8,6 +8,7 @@ on:
       - bunny-csharp-nativeaot-0.1.10.2
       - bunny-csharp-nativeaot-0.1.10.3
       - bunny-csharp-nativeaot-0.1.10.4
+      - bunny-csharp-nativeaot-0.1.10.5
     paths:
       - ".github/workflows/build-bunny-csharp-nativeaot.yml"
       - "Split/Bunny-Loader/**"
@@ -160,6 +161,7 @@ jobs:
           readelf -Ws "$MODSO" | grep -q bunny_mod_bind_npc
           readelf -Ws "$MODSO" | grep -q bunny_mod_npc_tick
           readelf -Ws "$MODSO" | grep -q bunny_mod_npc_release
+          readelf -Ws "$MODSO" | grep -q bunny_mod_npc_combat_tick
 
           PKG="Split/Bunny-Loader/samples/ExampleCSharpMod"
           mkdir -p "$PKG/native/arm64-v8a"
@@ -168,10 +170,10 @@ jobs:
           sha256sum "$PKG/native/arm64-v8a/libmod.so"
 
           python3 Split/Bunny-Loader/tools/mods/pack.py "$PKG"
-          PACK="$(find Split/Bunny-Loader/build/mods-packs -maxdepth 1 -type f -name 'examplecsharpmod-0.1.4.bl' | head -n 1)"
+          PACK="$(find Split/Bunny-Loader/build/mods-packs -maxdepth 1 -type f -name 'examplecsharpmod-0.1.5.bl' | head -n 1)"
           test -n "$PACK"
-          cp "$PACK" "$RUNNER_TEMP/ExampleCSharpMod-v0.1.4.bmod"
-          sha256sum "$RUNNER_TEMP/ExampleCSharpMod-v0.1.4.bmod" > "$RUNNER_TEMP/ExampleCSharpMod-v0.1.4.bmod.sha256"
+          cp "$PACK" "$RUNNER_TEMP/ExampleCSharpMod-v0.1.5.bmod"
+          sha256sum "$RUNNER_TEMP/ExampleCSharpMod-v0.1.5.bmod" > "$RUNNER_TEMP/ExampleCSharpMod-v0.1.5.bmod.sha256"
 
       - name: Integrate Terraria runtime
         shell: bash
@@ -247,14 +249,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="bunny-csharp-npc-ai-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.4-NpcAi.apk"
+          TAG="bunny-csharp-npc-combat-v1"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.5-NpcCombat.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          MOD="$RUNNER_TEMP/ExampleCSharpMod-v0.1.4.bmod"
-          MODSHA="$RUNNER_TEMP/ExampleCSharpMod-v0.1.4.bmod.sha256"
+          MOD="$RUNNER_TEMP/ExampleCSharpMod-v0.1.5.bmod"
+          MODSHA="$RUNNER_TEMP/ExampleCSharpMod-v0.1.5.bmod.sha256"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" "$MOD" "$MODSHA" --repo "${{ github.repository }}" --clobber
           else
@@ -262,11 +264,11 @@ jobs:
               "$RUNNER_TEMP/$OUT#$OUT" \
               "$RUNNER_TEMP/$OUT.sha256#APK SHA-256" \
               "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so" \
-              "$MOD#Example C# Mod 0.1.4" \
+              "$MOD#Example C# Mod 0.1.5" \
               "$MODSHA#Example C# Mod SHA-256" \
               --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# Test v0.1.10.4 — NativeAOT NPC AI" \
-              --notes "Experimental NativeAOT NPC AI host, selective per-mod NPC bindings, phase-based movement and lifecycle callbacks. ExampleCSharpMod 0.1.4 adds a custom phase slime and summon while preserving all three C# projectile examples. ABI 1 remains unchanged." \
+              --title "Bunny Loader C# Test v0.1.10.5 — NativeAOT NPC Combat" \
+              --notes "Experimental singleplayer NativeAOT NPC combat patterns, with attack choices produced in C# and actual projectile spawns performed through the ExampleModBunny API. ExampleCSharpMod 0.1.5 adds a phase-dependent slime spread shot. ABI 1 remains unchanged; multiplayer is not yet supported." \
               --prerelease
           fi
