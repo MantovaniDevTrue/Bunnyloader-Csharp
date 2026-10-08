@@ -20,6 +20,7 @@ class NativeConfig(
     @JvmField val quickPlayer: String,
     /** O mundo em que o jogo entra sozinho (`Interior_Pálido.wld`). */
     @JvmField val quickWorld: String,
+    @JvmField val managedProbePath: String = "",
 )
 
 /**
