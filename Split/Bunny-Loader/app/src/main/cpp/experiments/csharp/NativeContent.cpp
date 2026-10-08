@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <map>
+#include <vector>
 #include <cmath>
 #include <string>
 #include <sys/stat.h>
@@ -60,6 +61,8 @@ struct NativeRefs {
     int playerBuffType = -1;
     int playerBuffTime = -1;
     int itemType = -1;
+    int itemDefense = -1, itemHeadSlot = -1, itemBodySlot = -1, itemLegSlot = -1;
+    int playerStatManaMax2 = -1, playerMaxMinions = -1, playerMoveSpeed = -1, playerArmor = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -73,6 +76,13 @@ struct NativeAccessoryDefaults {
     int defenseBonus;
 };
 
+struct NativeArmorDefaults {
+    int defense, slot, visualSlot, manaBonus, minionsBonus;
+    float speedBonus;
+};
+struct NativeArmorSetDefaults {
+    int head, body, legs, defenseBonus;
+};
 struct NativeBuffDefaults {
     int defenseBonus;
 };
@@ -106,6 +116,8 @@ using ProjectileDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*)
 using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const MethodInfo*);
 using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
 using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using GrantArmorFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using UpdateArmorSetsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -114,11 +126,17 @@ std::map<int, NativeNpcDefaults> g_npcs;
 std::map<int, NativeAccessoryDefaults> g_accessories;
 std::map<int, NativeBuffDefaults> g_buffs;
 std::map<int, NativePotionDefaults> g_potions;
+std::map<int, NativeArmorDefaults> g_armor;
+std::map<int, int> g_npcProjectiles;
+std::vector<NativeArmorSetDefaults> g_armorSets;
 ItemDefaultsFn g_originalItem = nullptr;
 ProjectileDefaultsFn g_originalProjectile = nullptr;
 NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
+GrantArmorFn g_originalGrantArmor = nullptr;
+UpdateArmorSetsFn g_originalUpdateArmorSets = nullptr;
+bool g_armorHooksReady = false;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
@@ -154,8 +172,9 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     auto it = g_weapons.find(type);
     auto accessory = g_accessories.find(type);
     auto potion = g_potions.find(type);
+    auto armor = g_armor.find(type);
     if ((it == g_weapons.end() && accessory == g_accessories.end() &&
-         potion == g_potions.end()) || !self) {
+         potion == g_potions.end() && armor == g_armor.end()) || !self) {
         if (g_originalItem) g_originalItem(self, type, variant, method);
         return;
     }
@@ -165,6 +184,16 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
         bl::runtime::field<int32_t>(self, r.itemRare) = 2;
         bl::runtime::field<uint8_t>(self, r.itemAccessory) = 1;
+        bl::runtime::finishModItem(self, type);
+        return;
+    }
+    if (armor != g_armor.end()) {
+        const auto& d = armor->second;
+        bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
+        bl::runtime::field<int32_t>(self, r.itemRare) = 2;
+        bl::runtime::field<int32_t>(self, r.itemDefense) = d.defense;
+        const int off = d.slot == 0 ? r.itemHeadSlot : d.slot == 1 ? r.itemBodySlot : r.itemLegSlot;
+        bl::runtime::field<int32_t>(self, off) = d.visualSlot;
         bl::runtime::finishModItem(self, type);
         return;
     }
@@ -240,6 +269,36 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     defense += it->second.defenseBonus;
 }
 
+
+void hkGrantArmor(Il2CppObject* self, Il2CppObject* item, const MethodInfo* method) {
+    if (g_originalGrantArmor) g_originalGrantArmor(self, item, method);
+    if (!self || !item) return;
+    auto it = g_armor.find(bl::runtime::field<int32_t>(item, g_refs.itemType));
+    if (it == g_armor.end()) return;
+    const auto& d = it->second;
+    bl::runtime::field<int32_t>(self, g_refs.playerStatManaMax2) += d.manaBonus;
+    bl::runtime::field<int32_t>(self, g_refs.playerMaxMinions) += d.minionsBonus;
+    bl::runtime::field<float>(self, g_refs.playerMoveSpeed) += d.speedBonus;
+}
+
+void hkUpdateArmorSets(Il2CppObject* self, int32_t index, const MethodInfo* method) {
+    if (g_originalUpdateArmorSets) g_originalUpdateArmorSets(self, index, method);
+    if (!self || g_armorSets.empty()) return;
+    auto* armor = bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor);
+    if (!armor || armor->length < 3) return;
+    auto** items = static_cast<Il2CppObject**>(arrayData(armor));
+    if (!items[0] || !items[1] || !items[2]) return;
+    const int head = bl::runtime::field<int32_t>(items[0], g_refs.itemType);
+    const int body = bl::runtime::field<int32_t>(items[1], g_refs.itemType);
+    const int legs = bl::runtime::field<int32_t>(items[2], g_refs.itemType);
+    for (const auto& set : g_armorSets) {
+        if (head == set.head && body == set.body && legs == set.legs) {
+            bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) += set.defenseBonus;
+            return;
+        }
+    }
+}
+
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
     if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, index, method);
     if (!self || g_buffs.empty()) return;
@@ -308,6 +367,14 @@ bool prepareNativeContent() {
     r.playerStatDefense = fieldOffset(player, "statDefense");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
+    r.itemDefense = fieldOffset(item, "defense");
+    r.itemHeadSlot = fieldOffset(item, "headSlot");
+    r.itemBodySlot = fieldOffset(item, "bodySlot");
+    r.itemLegSlot = fieldOffset(item, "legSlot");
+    r.playerStatManaMax2 = fieldOffset(player, "statManaMax2");
+    r.playerMaxMinions = fieldOffset(player, "maxMinions");
+    r.playerMoveSpeed = fieldOffset(player, "moveSpeed");
+    r.playerArmor = fieldOffset(player, "armor");
 
     const int* all = &r.itemDamage;
     for (size_t i = 0; i < offsetof(NativeRefs, itemAccessory) / sizeof(int); ++i) {
@@ -377,6 +444,30 @@ bool prepareNativePlayerEffects() {
     return true;
 }
 
+
+bool prepareNativeArmor() {
+    if (g_armorHooksReady) return true;
+    using namespace bl::il2cpp;
+    const auto& r = g_refs;
+    if (r.itemDefense < 0 || r.itemHeadSlot < 0 || r.itemBodySlot < 0 ||
+        r.itemLegSlot < 0 || r.playerStatManaMax2 < 0 || r.playerMaxMinions < 0 ||
+        r.playerMoveSpeed < 0 || r.playerArmor < 0) return false;
+    Il2CppClass* player = findClass({"Terraria", "Player", {}});
+    if (!player) return false;
+    const auto grant = findMethodBySignature(player, parseSignature("void GrantArmorBenefits(Item armorPiece)"));
+    const auto update = findMethodBySignature(player, parseSignature("void UpdateArmorSets(int i)"));
+    if (!grant || !update) return false;
+    if (!bl::hook::install(grant, hkGrantArmor, &g_originalGrantArmor)) return false;
+    if (!bl::hook::install(update, hkUpdateArmorSets, &g_originalUpdateArmorSets)) return false;
+    g_armorHooksReady = true;
+    return true;
+}
+
+int nativeNpcProjectileType(int npcType) {
+    auto it = g_npcProjectiles.find(npcType);
+    return it == g_npcProjectiles.end() ? -1 : it->second;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
@@ -403,7 +494,8 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         const int type = bl::runtime::registerModProjectile(std::move(def));
         if (type >= 0) {
             g_projectiles[type] = {spec->width, spec->height, spec->aiStyle,
-                                   spec->penetrate, spec->timeLeft, true, false};
+                                   spec->penetrate, spec->timeLeft,
+                                   (spec->flags & 1) == 0, (spec->flags & 1) != 0};
             ++ctx.projectiles;
         }
         return type;
@@ -429,6 +521,8 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         if (type >= 0) {
             g_npcs[type] = {spec->width, spec->height, spec->damage,
                             spec->useTime, spec->shootType, spec->aiStyle};
+            if (spec->flags > 0 && bl::runtime::modProjectileBelongsTo(spec->flags, ctx.modId))
+                g_npcProjectiles[type] = spec->flags;
             if (ctx.firstNpcType < 0) ctx.firstNpcType = type;
             ++ctx.npcs;
         }
@@ -484,6 +578,44 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
             ++ctx.potions;
         }
         return type;
+    }
+
+    if (spec->kind == NativeArmor) {
+        if (!prepareNativeArmor()) return -1;
+        if (spec->damage < 0 || spec->damage > 50 ||
+            spec->flags < 0 || spec->flags > 2 ||
+            spec->useTime < 0 || spec->useTime > 200 ||
+            spec->shootType < 0 || spec->shootType > 8 ||
+            !std::isfinite(spec->shootSpeed) || spec->shootSpeed < 0 ||
+            spec->shootSpeed > 0.5f || spec->penetrate < 1 ||
+            spec->penetrate > 255) return -1;
+        bl::runtime::ModItemDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        def.names.push_back({"", display});
+        const int type = bl::runtime::registerModItem(std::move(def));
+        if (type >= 0) {
+            g_armor[type] = {spec->damage, spec->flags, spec->penetrate,
+                             spec->useTime, spec->shootType, spec->shootSpeed};
+            if (ctx.firstArmorType < 0) ctx.firstArmorType = type;
+            ++ctx.items;
+            ++ctx.armorPieces;
+        }
+        return type;
+    }
+    if (spec->kind == NativeArmorSet) {
+        if (spec->width < 0 || spec->height < 0 || spec->shootType < 0 ||
+            spec->damage < 0 || spec->damage > 100) return -1;
+        auto head = g_armor.find(spec->width);
+        auto body = g_armor.find(spec->height);
+        auto legs = g_armor.find(spec->shootType);
+        if (head == g_armor.end() || body == g_armor.end() || legs == g_armor.end() ||
+            head->second.slot != 0 || body->second.slot != 1 || legs->second.slot != 2)
+            return -1;
+        g_armorSets.push_back({spec->width, spec->height, spec->shootType, spec->damage});
+        ++ctx.armorSets;
+        return 1;
     }
     if (spec->kind == NativeWeapon) {
         if (spec->damage < 1 || spec->damage > 1000 ||
