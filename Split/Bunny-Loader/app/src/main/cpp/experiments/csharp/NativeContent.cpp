@@ -12,6 +12,7 @@
 #include "il2cpp/Signature.h"
 
 #include <cstdint>
+#include <cstddef>
 #include <cstdio>
 #include <map>
 #include <cmath>
@@ -119,6 +120,8 @@ NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 bool g_ready = false;
+bool g_npcReady = false;
+bool g_effectsReady = false;
 
 bool validName(const char* value) {
     if (!value || !*value) return false;
@@ -245,8 +248,8 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) 
     if (!types || !times) return;
     const uintptr_t count = types->length < times->length ? types->length : times->length;
     if (count > 60) return;
-    const auto* typeValues = reinterpret_cast<const int32_t*>(bl::il2cpp::arrayData(types));
-    const auto* timeValues = reinterpret_cast<const int32_t*>(bl::il2cpp::arrayData(times));
+    const auto* typeValues = reinterpret_cast<const int32_t*>(arrayData(types));
+    const auto* timeValues = reinterpret_cast<const int32_t*>(arrayData(times));
     int bonus = 0;
     for (uintptr_t i = 0; i < count; ++i) {
         if (timeValues[i] < 1) continue;
@@ -307,7 +310,7 @@ bool prepareNativeContent() {
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
     const int* all = &r.itemDamage;
-    for (size_t i = 0; i < sizeof(NativeRefs) / sizeof(int); ++i) {
+    for (size_t i = 0; i < offsetof(NativeRefs, itemAccessory) / sizeof(int); ++i) {
         if (all[i] < 0) {
             BL_ERROR("csharp native content: campo %zu indisponivel", i);
             return false;
@@ -317,30 +320,60 @@ bool prepareNativeContent() {
         item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     const MethodInfo* projectileMethod = findMethodBySignature(
         projectile, parseSignature("void SetDefaults(int Type)"));
-    const MethodInfo* npcMethod = findMethodBySignature(
-        npc, parseSignature("void SetDefaults(int Type, NPCSpawnParams spawnparams)"));
-    const MethodInfo* equipMethod = findMethodBySignature(
-        player, parseSignature("void ApplyEquipFunctional(int itemSlot, Item currentItem)"));
-    const MethodInfo* buffsMethod = findMethodBySignature(
-        player, parseSignature("void UpdateBuffs(int i)"));
-    if (!itemMethod || !projectileMethod || !npcMethod || !equipMethod || !buffsMethod) return false;
-    const Il2CppType* paramType = api().method_get_param(npcMethod, 1);
-    Il2CppClass* spawnClass = paramType ? api().class_from_il2cpp_type(paramType) : nullptr;
-    uint32_t align = 0;
-    const int spawnSize = spawnClass ? api().class_value_size(spawnClass, &align) : 0;
-    if (spawnSize <= 16 || spawnSize > 1024) {
-        BL_ERROR("csharp native: NPCSpawnParams ABI nao verificada (size=%d)", spawnSize);
-        return false;
-    }
+    if (!itemMethod || !projectileMethod) return false;
 
     g_refs = r;
     if (!bl::hook::install(itemMethod, hkItemDefaults, &g_originalItem)) return false;
     if (!bl::hook::install(projectileMethod, hkProjectileDefaults, &g_originalProjectile)) return false;
-    if (!bl::hook::install(npcMethod, hkNpcDefaults, &g_originalNpc)) return false;
-    if (!bl::hook::install(equipMethod, hkApplyEquip, &g_originalEquip)) return false;
-    if (!bl::hook::install(buffsMethod, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
+ 
     g_ready = true;
-    BL_INFO("csharp native content: hooks C++ de item, projetil, npc, acessorio e buff instalados");
+    BL_INFO("csharp native content: hooks C++ de item e projetil instalados");
+    return true;
+}
+
+bool prepareNativeNpc() {
+    if (g_npcReady) return true;
+    using namespace bl::il2cpp;
+    Il2CppClass* npc = findClass({"Terraria", "NPC", {}});
+    if (!npc || g_refs.npcWidth < 0 || g_refs.npcHeight < 0 ||
+        g_refs.npcDamage < 0 || g_refs.npcDefense < 0 ||
+        g_refs.npcLifeMax < 0 || g_refs.npcAiStyle < 0) return false;
+    const MethodInfo* method = findMethodBySignature(
+        npc, parseSignature("void SetDefaults(int Type, NPCSpawnParams spawnparams)"));
+    if (!method) return false;
+    const Il2CppType* p = api().method_get_param(method, 1);
+    Il2CppClass* cls = p ? api().class_from_il2cpp_type(p) : nullptr;
+    uint32_t align = 0;
+    const int size = cls ? api().class_value_size(cls, &align) : 0;
+    if (size <= 16 || size > 1024) {
+        BL_ERROR("csharp native: NPCSpawnParams ABI nao verificada (size=%d)", size);
+        return false;
+    }
+    if (!bl::hook::install(method, hkNpcDefaults, &g_originalNpc)) return false;
+    g_npcReady = true;
+    BL_INFO("csharp native: NPC defaults registrado com ABI por referencia (size=%d)", size);
+    return true;
+}
+
+bool prepareNativePlayerEffects() {
+    if (g_effectsReady) return true;
+    using namespace bl::il2cpp;
+    const auto& r = g_refs;
+    if (r.playerStatDefense < 0 || r.playerBuffType < 0 ||
+        r.playerBuffTime < 0 || r.itemType < 0 ||
+        r.itemAccessory < 0 || r.itemBuffType < 0 ||
+        r.itemBuffTime < 0 || r.itemConsumable < 0) return false;
+    Il2CppClass* player = findClass({"Terraria", "Player", {}});
+    if (!player) return false;
+    const MethodInfo* equip = findMethodBySignature(
+        player, parseSignature("void ApplyEquipFunctional(int itemSlot, Item currentItem)"));
+    const MethodInfo* buffs = findMethodBySignature(
+        player, parseSignature("void UpdateBuffs(int i)"));
+    if (!equip || !buffs) return false;
+    if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
+    if (!bl::hook::install(buffs, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
+    g_effectsReady = true;
+    BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
 }
 
@@ -376,6 +409,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         return type;
     }
     if (spec->kind == NativeNpc) {
+        if (!prepareNativeNpc()) return -1;
         if (spec->width < 8 || spec->width > 256 ||
             spec->height < 8 || spec->height > 256 ||
             spec->damage < 0 || spec->damage > 500 ||
@@ -401,6 +435,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         return type;
     }
     if (spec->kind == NativeBuff) {
+        if (!prepareNativePlayerEffects()) return -1;
         if (spec->damage < -50 || spec->damage > 100) return -1;
         bl::runtime::ModBuffDef def{};
         def.mod = ctx.modId;
@@ -416,6 +451,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         return type;
     }
     if (spec->kind == NativeAccessory) {
+        if (!prepareNativePlayerEffects()) return -1;
         if (spec->damage < 0 || spec->damage > 100) return -1;
         bl::runtime::ModItemDef def{};
         def.mod = ctx.modId;
@@ -432,10 +468,10 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         return type;
     }
     if (spec->kind == NativeBuffPotion) {
+        if (!prepareNativePlayerEffects()) return -1;
         if (spec->timeLeft < 1 || spec->timeLeft > 216000 ||
             bl::runtime::modBuffTypeByName(ctx.modId, spec->name) >= 0) return -1;
-        if (spec->shootType < bl::runtime::kVanillaBuffCount ||
-            spec->shootType >= bl::runtime::buffTypeCount() + 1024) return -1;
+        if (g_buffs.count(spec->shootType) == 0) return -1;
         bl::runtime::ModItemDef def{};
         def.mod = ctx.modId;
         def.name = spec->name;
