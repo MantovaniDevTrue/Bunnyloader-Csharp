@@ -31,8 +31,9 @@ class ManagedProbeService : Service() {
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
             try {
                 System.loadLibrary("bunnymonoprobe")
+                status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
+                val assembly = installManagedFramework(dir)
                 status.writeText("state=calling-mono\npid=${Process.myPid()}\n")
-                val assembly = File(dir, "BunnyManagedProbe.dll").absolutePath
                 val result = runNative(assembly, checkpoint.absolutePath)
                 status.writeText("state=finished\npid=${Process.myPid()}\n$result\n")
             } catch (error: Throwable) {
@@ -45,6 +46,36 @@ class ManagedProbeService : Service() {
             }
         }
         return START_NOT_STICKY
+    }
+
+    private fun installManagedFramework(dir: File): String {
+        val version = dev.bunnyloader.BuildConfig.VERSION_NAME
+        val marker = File(dir, "framework-version.txt")
+        val names = assets.list("managed").orEmpty()
+            .filter { it.endsWith(".dll") }
+            .sorted()
+        require(names.contains("System.Private.CoreLib.dll"))
+        require(names.contains("System.Runtime.dll"))
+        require(names.contains("BunnyManagedProbe.dll"))
+        if (marker.isFile && marker.readText() == version &&
+            names.all { File(dir, it).isFile && File(dir, it).length() > 0L }) {
+            return File(dir, "BunnyManagedProbe.dll").absolutePath
+        }
+        marker.delete()
+        for (name in names) {
+            val target = File(dir, name)
+            val temporary = File(dir, name + ".tmp")
+            assets.open("managed/" + name).use { source ->
+                temporary.outputStream().use { output -> source.copyTo(output) }
+            }
+            if (!temporary.renameTo(target)) {
+                temporary.copyTo(target, overwrite = true)
+                temporary.delete()
+            }
+        }
+        marker.writeText(version)
+        Log.i("BunnyCSharp", "framework carregado: ${names.size} assemblies")
+        return File(dir, "BunnyManagedProbe.dll").absolutePath
     }
 
     private fun startLogCapture(destination: File) {
