@@ -44,6 +44,10 @@ JSValue jsManagedRuntime(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return makeManagedStatus(ctx, bl::csharp::managedRuntimeStatus());
 }
 
+JSValue jsManagedInspect(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return makeManagedStatus(ctx, bl::csharp::inspectManagedRuntime());
+}
+
 JSValue jsManagedProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc == 0 || JS_IsUndefined(argv[0]))
         return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(bl::config().managedProbePath));
@@ -735,6 +739,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "sourceMods", JS_NewCFunction(ctx, jsSourceMods, "sourceMods", 0));
     JS_SetPropertyStr(ctx, api, "managedRuntime",
                       JS_NewCFunction(ctx, jsManagedRuntime, "managedRuntime", 0));
+    JS_SetPropertyStr(ctx, api, "managedInspect",
+                      JS_NewCFunction(ctx, jsManagedInspect, "managedInspect", 0));
     JS_SetPropertyStr(ctx, api, "managedProbe",
                       JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 1));
     JS_SetPropertyStr(ctx, api, "externalMods",
