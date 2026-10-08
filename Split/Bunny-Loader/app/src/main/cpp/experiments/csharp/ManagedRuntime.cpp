@@ -333,7 +333,7 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
     void* args[] = {
-        &argsManaged[0], &argsManaged[1], &argsManaged[2], &argsManaged[3]
+        argsManaged[0], argsManaged[1], argsManaged[2], argsManaged[3]
     };
     void* exception = nullptr;
     trace("compiling-source");
