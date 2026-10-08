@@ -131,31 +131,29 @@ TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles, bool includeNp
     out.player.vy = playerVelocity.y;
 
     if (includeNpcs) {
-    out.npcs.resize(npcs->length);
-    auto** npcData = reinterpret_cast<Il2CppObject**>(arrayData(npcs));
-    for (uintptr_t i = 0; i < npcs->length; ++i) {
-        NpcSample& sample = out.npcs[i];
-        sample.index = static_cast<int32_t>(i);
-        Il2CppObject* npc = npcData[i];
-        if (!npc) continue;
-
-        const bool active = runtime::field<uint8_t>(npc, r.npcActive) != 0;
-        const bool friendly = r.npcFriendly >= 0 && runtime::field<uint8_t>(npc, r.npcFriendly) != 0;
-        const bool dontTakeDamage = r.npcDontTakeDamage >= 0 &&
-                                    runtime::field<uint8_t>(npc, r.npcDontTakeDamage) != 0;
-        sample.flags = (active ? 1 : 0) | (friendly ? 2 : 0) | (dontTakeDamage ? 4 : 0);
-        sample.type = runtime::field<int32_t>(npc, r.npcType);
-        sample.life = runtime::field<int32_t>(npc, r.npcLife);
-        sample.lifeMax = runtime::field<int32_t>(npc, r.npcLifeMax);
-        const Vector2 center = centerOf(npc);
-        const Vector2 velocity = runtime::field<Vector2>(npc, g.entity.velocity);
-        sample.x = center.x;
-        sample.y = center.y;
-        sample.vx = velocity.x;
-        sample.vy = velocity.y;
-        if (active) ++out.activeNpcs;
-    }
-
+        out.npcs.resize(npcs->length);
+        auto** npcData = reinterpret_cast<Il2CppObject**>(arrayData(npcs));
+        for (uintptr_t i = 0; i < npcs->length; ++i) {
+            NpcSample& sample = out.npcs[i];
+            sample.index = static_cast<int32_t>(i);
+            Il2CppObject* npc = npcData[i];
+            if (!npc) continue;
+    
+            const bool active = runtime::field<uint8_t>(npc, r.npcActive) != 0;
+            const bool friendly = r.npcFriendly >= 0 && runtime::field<uint8_t>(npc, r.npcFriendly) != 0;
+            const bool dontTakeDamage = r.npcDontTakeDamage >= 0 &&
+                                        runtime::field<uint8_t>(npc, r.npcDontTakeDamage) != 0;
+            sample.flags = (active ? 1 : 0) | (friendly ? 2 : 0) | (dontTakeDamage ? 4 : 0);
+            sample.type = runtime::field<int32_t>(npc, r.npcType);
+            sample.life = runtime::field<int32_t>(npc, r.npcLife);
+            sample.lifeMax = runtime::field<int32_t>(npc, r.npcLifeMax);
+            const Vector2 center = centerOf(npc);
+            const Vector2 velocity = runtime::field<Vector2>(npc, g.entity.velocity);
+            sample.x = center.x;
+            sample.y = center.y;
+            sample.vx = velocity.x;
+            sample.vy = velocity.y;
+            if (active) ++out.activeNpcs;
     }
 
     if (includeProjectiles) {

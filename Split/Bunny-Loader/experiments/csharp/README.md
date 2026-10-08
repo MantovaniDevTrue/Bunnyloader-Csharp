@@ -277,3 +277,29 @@ JSON.stringify({
 Expected: `projectileBindings: 3`, `automaticWrites` increasing, and new `automaticSpawns` / `automaticReleases` counters. Compare the two previously validated wands against `NativeWaveWand`. This build is experimental until tested on the Android device.
 
 The per-projectile memory is intentionally constrained to 4096 slots and only has native write access to `velocity` and `rotation`. It is not a full PC tModLoader API or an IL2CPP DLL loader.
+
+## 0.1.10.4 — NativeAOT NPC AI
+
+The project keeps Native Mod ABI 1 and Host API 1. NPC types, textures, defaults, and summon item are registered with the original Bunny ExampleMod JavaScript classes. No tModLoader runtime is required.
+
+An optional set of three exports is supported by external NativeAOT mods:
+
+- `bunny_mod_bind_npc(int type, const char* name)`
+- `bunny_mod_npc_tick(HostNpcState* state, float playerX, float playerY)`
+- `bunny_mod_npc_release(int type, int slot, int generation)`
+
+Only NPC types belonging to that exact package and explicitly accepted by the C# mod are dispatched. Only the local singleplayer world is supported in this prototype. After the original Terraria `NPC.AI()` completes, the host validates slot, generation, active state, type, life, and finite/clamped velocity before writing. Hook-based `CheckActive()` and `NPCLoot()` support lifecycle release. Native player-only snapshots skip all NPC and projectile array scanning.
+
+The C# SDK includes `NpcContext`, `NpcMemory`, `BunnyNpcBehavior`, and `BunnyNpcRegistry`, with `OnSpawn`, `AI`, and `OnDespawn` methods. The new `NativePhaseSlime` selects phase 1 at more than half life and phase 2 at half life or below. The `NativePhaseSlimeBeacon` is reusable, crafted with 10 wood at a workbench, and only spawns one test NPC in singleplayer.
+
+Test after installing the APK and importing ExampleCSharpMod 0.1.4:
+
+```js
+JSON.stringify({
+  mods: bl.csharp.externalMods(),
+  npc: bl.csharp.npcStatus(),
+  projectiles: bl.csharp.projectileWriteStatus()
+}, null, 2)
+```
+
+Expected: `npcBindings: 1`, `projectileBindings: 3`, `npc.installed: true`, and NPC calls/writes increasing while the slime moves. Reduce its health below 50% to check the movement phase. After it despawns or dies, check the release counter. Existing three projectile weapons should still work at stable FPS. Visual behavior, gameplay safety, and multiplayer remain pending Android validation.

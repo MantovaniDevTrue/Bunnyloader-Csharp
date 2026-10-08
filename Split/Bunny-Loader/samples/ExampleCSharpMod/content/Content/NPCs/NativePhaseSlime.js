@@ -1,6 +1,10 @@
 const { NPCID, SoundID, ItemID } = Terraria.ID;
 
 export class NativePhaseSlime extends ModNPC {
+    SetStaticDefaults() {
+        Terraria.Main.npcFrameCount[this.Type] = 2;
+    }
+
     SetDefaults() {
         this.NPC.width = 32;
         this.NPC.height = 24;
