@@ -24,6 +24,16 @@ public unsafe struct NativeContentSpec
     public int Flags;
 }
 
+public sealed class NativePureSlimeAI : BunnyNpcBehavior
+{
+    public override bool AI(ref NpcContext context, ref NpcMemory memory)
+    {
+        float acceleration = context.LifeRatio <= 0.5f ? 0.24f : 0.13f;
+        float maxSpeed = context.LifeRatio <= 0.5f ? 5.5f : 3.2f;
+        return context.MoveTowards(context.PlayerX, context.PlayerY, acceleration, maxSpeed);
+    }
+}
+
 public sealed class NativeBoltAI : BunnyProjectileBehavior
 {
     public override bool AI(ref ProjectileContext context, ref ProjectileMemory memory)
@@ -36,10 +46,12 @@ public sealed class NativeBoltAI : BunnyProjectileBehavior
 public static unsafe class Exports
 {
     private static readonly BunnyProjectileRegistry Registry = new();
+    private static readonly BunnyNpcRegistry Npcs = new();
 
     static Exports()
     {
         Registry.Register("NativePureBolt", new NativeBoltAI());
+        Npcs.Register("NativePureSlime", new NativePureSlimeAI());
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_abi_version", CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -94,7 +106,97 @@ public static unsafe class Exports
             };
             if (register(context, &item) < 0) return 0;
         }
+        fixed (byte* name = "NativePureSlime\0"u8)
+        fixed (byte* texture = "Content/NPCs/NativePureSlime.png\0"u8)
+        fixed (byte* display = "Native Pure Slime\0"u8)
+        {
+            NativeContentSpec npc = new()
+            {
+                Kind = 3,
+                Name = name,
+                Texture = texture,
+                DisplayName = display,
+                Width = 32,
+                Height = 24,
+                Damage = 14,
+                UseTime = 5,
+                ShootType = 90,
+                AiStyle = 0,
+                Penetrate = 1,
+                TimeLeft = 2
+            };
+            if (register(context, &npc) < 0) return 0;
+        }
+
+        int buffType;
+        fixed (byte* name = "NativePureDefense\0"u8)
+        fixed (byte* texture = "Content/Buffs/NativePureDefense.png\0"u8)
+        fixed (byte* display = "Native Pure Defense\0"u8)
+        {
+            NativeContentSpec buff = new()
+            {
+                Kind = 5,
+                Name = name,
+                Texture = texture,
+                DisplayName = display,
+                Damage = 8
+            };
+            buffType = register(context, &buff);
+            if (buffType < 0) return 0;
+        }
+
+        fixed (byte* name = "NativePureAmulet\0"u8)
+        fixed (byte* texture = "Content/Items/Accessories/NativePureAmulet.png\0"u8)
+        fixed (byte* display = "Native Pure Amulet\0"u8)
+        {
+            NativeContentSpec accessory = new()
+            {
+                Kind = 4,
+                Name = name,
+                Texture = texture,
+                DisplayName = display,
+                Damage = 4
+            };
+            if (register(context, &accessory) < 0) return 0;
+        }
+
+        fixed (byte* name = "NativePurePotion\0"u8)
+        fixed (byte* texture = "Content/Items/Consumables/NativePurePotion.png\0"u8)
+        fixed (byte* display = "Native Pure Potion\0"u8)
+        {
+            NativeContentSpec potion = new()
+            {
+                Kind = 6,
+                Name = name,
+                Texture = texture,
+                DisplayName = display,
+                ShootType = buffType,
+                TimeLeft = 3600
+            };
+            if (register(context, &potion) < 0) return 0;
+        }
         return 1;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_bind_npc", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static int BindNpc(int type, byte* name)
+    {
+        string? npcName = name != null ? Marshal.PtrToStringUTF8((nint)name) : null;
+        return npcName is not null && Npcs.Bind(type, npcName) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static int TickNpc(NpcState* state, float playerX, float playerY)
+    {
+        if (state == null || state->Generation < 1) return 0;
+        NpcContext context = new(state, playerX, playerY);
+        return Npcs.Tick(ref context) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_release", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static void ReleaseNpc(int type, int slot, int generation)
+    {
+        Npcs.Release(type, slot, generation);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_bind_projectile", CallConvs = new[] { typeof(CallConvCdecl) })]
