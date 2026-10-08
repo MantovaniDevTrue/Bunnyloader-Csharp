@@ -19,6 +19,19 @@ public struct NpcState
     public float VelocityY;
 }
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct NpcCombatCommand
+{
+    public int Count;
+    public int Damage;
+    public float X;
+    public float Y;
+    public float VelocityX0;
+    public float VelocityY0;
+    public float VelocityX1;
+    public float VelocityY1;
+}
+
 public unsafe ref struct NpcContext
 {
     private readonly NpcState* _state;
@@ -103,6 +116,7 @@ public abstract class BunnyNpcBehavior
     public virtual void OnSpawn(ref NpcContext context, ref NpcMemory memory) { }
     public abstract bool AI(ref NpcContext context, ref NpcMemory memory);
     public virtual void OnDespawn(ref NpcMemory memory) { }
+    public virtual bool TryAttack(ref NpcContext context, ref NpcMemory memory, out NpcCombatCommand attack) { attack = default; return false; }
 }
 
 public sealed class BunnyNpcRegistry
@@ -154,6 +168,18 @@ public sealed class BunnyNpcRegistry
         bool changed = behavior.AI(ref context, ref memory);
         if (memory.Age < int.MaxValue) memory.Age++;
         return changed;
+    }
+
+    public bool TryAttack(ref NpcContext context, out NpcCombatCommand attack)
+    {
+        attack = default;
+        int slot = context.Slot;
+        if ((uint)slot >= MaxSlots) return false;
+        ref NpcMemory memory = ref _memory[slot];
+        BunnyNpcBehavior? behavior = _active[slot];
+        if (behavior == null || context.Generation <= 0 || memory.Generation != context.Generation ||
+            memory.Type != context.Type || memory.Age < 1) return false;
+        return behavior.TryAttack(ref context, ref memory, out attack);
     }
 
     public void Release(int type, int slot, int generation)

@@ -71,6 +71,16 @@ public static class Exports
         return NpcRegistry.Tick(ref context) ? 1 : 0;
     }
 
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_combat_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static unsafe int NpcCombatTick(NpcState* state, float playerX, float playerY, NpcCombatCommand* output)
+    {
+        if (state == null || output == null || state->Generation <= 0) return 0;
+        NpcContext context = new(state, playerX, playerY);
+        bool fired = NpcRegistry.TryAttack(ref context, out NpcCombatCommand attack);
+        *output = fired ? attack : default;
+        return fired ? 1 : 0;
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_release", CallConvs = new[] { typeof(CallConvCdecl) })]
     public static void ReleaseNpc(int type, int slot, int generation)
     {

@@ -35,6 +35,33 @@ public sealed class PhaseSlimeBehavior : BunnyNpcBehavior
         return context.MoveTowards(goalX, goalY, acceleration, speed);
     }
 
+    public override bool TryAttack(ref NpcContext context, ref NpcMemory memory, out NpcCombatCommand attack)
+    {
+        attack = default;
+        int period = memory.Phase == 1 ? 140 : 70;
+        if (memory.Age < 60 || memory.Age % period != 0) return false;
+
+        float dx = context.PlayerX - context.X;
+        float dy = context.PlayerY - context.Y;
+        float length = MathF.Sqrt(dx * dx + dy * dy);
+        if (!float.IsFinite(length) || length < 1f || length > 1100f) return false;
+
+        float speed = memory.Phase == 1 ? 7.5f : 10f;
+        float ux = dx / length;
+        float uy = dy / length;
+        float spread = memory.Phase == 1 ? 0f : 0.22f;
+
+        attack.Count = memory.Phase == 1 ? 1 : 2;
+        attack.Damage = memory.Phase == 1 ? 8 : 12;
+        attack.X = context.X;
+        attack.Y = context.Y;
+        attack.VelocityX0 = (ux * MathF.Cos(spread) - uy * MathF.Sin(spread)) * speed;
+        attack.VelocityY0 = (ux * MathF.Sin(spread) + uy * MathF.Cos(spread)) * speed;
+        attack.VelocityX1 = (ux * MathF.Cos(-spread) - uy * MathF.Sin(-spread)) * speed;
+        attack.VelocityY1 = (ux * MathF.Sin(-spread) + uy * MathF.Cos(-spread)) * speed;
+        return true;
+    }
+
     public override void OnDespawn(ref NpcMemory memory)
     {
         memory = default;
