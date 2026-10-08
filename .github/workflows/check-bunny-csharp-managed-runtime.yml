@@ -13,6 +13,7 @@ on:
       - bunny-csharp-source-0.1.10.15.1-status-diagnostics
       - bunny-csharp-source-0.1.10.15.2-source-uid-lookup
       - bunny-csharp-source-0.1.10.16-roslyn-worker
+      - bunny-csharp-source-0.1.10.16.1-roslyn-checkpoints
     paths:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.*"
