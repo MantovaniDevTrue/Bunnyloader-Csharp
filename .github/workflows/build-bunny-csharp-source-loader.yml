@@ -17,6 +17,7 @@ on:
       - bunny-csharp-source-0.1.10.12.4-runtime-dependencies
       - bunny-csharp-source-0.1.10.13-inprocess-gate
       - bunny-csharp-source-0.1.10.14-callback-probe
+      - bunny-csharp-source-0.1.10.15-live-projectile-ai
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -283,7 +284,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.14-ManagedCallbackProbe.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.15-LiveSourceBoltAI.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -295,23 +296,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.14"
+          TAG="bunny-csharp-managed-runtime-0.1.10.15"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.14-ManagedCallbackProbe.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.15-LiveSourceBoltAI.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.14 — Managed Callback Probe" \
-              --notes "Opt-in repeated managed CSharp AI callback validation in Terraria game process after verified in-process Mono probe. Not yet a live projectile AI hook or direct .cs compiler." \
+              --title "Bunny Loader C# v0.1.10.15 — Live SourceBolt AI" \
+              --notes "Experimental opt-in live Projectile.AI hook for SourceBolt only. Uses cached Mono Probe.AI and bounded velocity edits; preserves JS/NativeAOT. Not yet direct execution of SourceCSharpMod .cs AI source." \
               --prerelease || true
           fi
           DEST="$TAG"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             DEST="$FALLBACK"
-            echo "New release creation unavailable; publishing extra v0.1.10.14 assets into existing private test release."
+            echo "New release creation unavailable; publishing extra v0.1.10.15 assets into existing private test release."
           fi
           gh release upload "$DEST" \
             "$APK" "$APK.sha256" \
@@ -328,7 +329,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.14-ManagedCallbackProbe.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.15-LiveSourceBoltAI.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
