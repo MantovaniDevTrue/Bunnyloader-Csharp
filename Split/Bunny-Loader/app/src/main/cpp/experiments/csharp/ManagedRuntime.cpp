@@ -316,6 +316,40 @@ ManagedSourceCompileResult compileManagedSource(
         trace("compile-method-missing", out.error.c_str());
         return out;
     }
+    void* preflightClass = image ? g_api.findClass(
+        image, "BunnyLoader.SourceCompiler", "Preflight") : nullptr;
+    void* ping = preflightClass ? g_api.findMethod(preflightClass, "Ping", 1) : nullptr;
+    if (!ping) {
+        out.phase = "compile-preflight-missing";
+        out.error = "Preflight.Ping(string) indisponivel";
+        trace(out.phase.c_str(), out.error.c_str());
+        return out;
+    }
+    trace("compile-preflight-start");
+    void* pingArgument = g_api.newString(g_domain, diagnosticsPath.c_str());
+    if (!pingArgument) {
+        out.phase = "compile-preflight-argument-failed";
+        trace(out.phase.c_str());
+        return out;
+    }
+    void* pingArgs[] = { pingArgument };
+    void* pingException = nullptr;
+    void* pingResult = g_api.invoke(ping, nullptr, pingArgs, &pingException);
+    if (pingException || !pingResult || !g_api.unbox(pingResult)) {
+        out.phase = "compile-preflight-exception";
+        out.error = "Falha antes de carregar a rotina Roslyn";
+        trace(out.phase.c_str(), out.error.c_str());
+        return out;
+    }
+    int pingValue = 0;
+    std::memcpy(&pingValue, g_api.unbox(pingResult), sizeof(pingValue));
+    if (pingValue != 42) {
+        out.phase = "compile-preflight-invalid-result";
+        trace(out.phase.c_str());
+        return out;
+    }
+    trace("compile-preflight-verified");
+
     const auto slash = compilerAssembly.find_last_of('/');
     if (slash == std::string::npos) {
         out.phase = "compile-framework-invalid";
