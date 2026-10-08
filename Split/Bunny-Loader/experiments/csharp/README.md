@@ -163,3 +163,43 @@ JSON.stringify(bl.csharp.hostInfo(), null, 2)
 Expected values include `runtimeAbi: 5`, `hostApi: 1` and `projectileStage: "Projectile.UpdatePosition"`.
 
 This is the first reusable Host API layer. It is still embedded in the separate C# test app and is not yet an external C# mod package loader.
+
+
+## 0.1.10.0 External NativeAOT mod loader
+
+The validated homing behavior is no longer dispatched from the Bunny runtime library.
+
+An enabled Bunny package may now include:
+
+```
+native/arm64-v8a/libmod.so
+```
+
+After the normal package is loaded, Bunny detects that library, validates Native Mod ABI 1 and Host API 1, calls `bunny_mod_initialize`, and registers its optional projectile callback.
+
+The first SDK lives in `experiments/csharp/BunnyCsSdk`. The first external mod lives in `experiments/csharp/ExampleCSharpMod` and is packaged as a normal Bunny mod with a minimal JavaScript entry only so the current launcher can import and enable it unchanged.
+
+Required exports for Native Mod ABI 1:
+
+```
+bunny_mod_abi_version
+bunny_mod_host_api_version
+bunny_mod_initialize
+```
+
+Optional projectile callback:
+
+```
+bunny_mod_projectile_tick
+```
+
+The loader first tries the mod package path directly. If Android refuses executable mapping from external storage, it copies the library into the app's private `code_cache/bunny-csharp` directory and loads it there.
+
+Editor diagnostics:
+
+```js
+JSON.stringify(bl.csharp.hostInfo(), null, 2)
+JSON.stringify(bl.csharp.externalMods(), null, 2)
+```
+
+The controlled `claimProjectile()` test now dispatches only to external C# mods. Without an external mod exposing `bunny_mod_projectile_tick`, the steering hook refuses to install.
