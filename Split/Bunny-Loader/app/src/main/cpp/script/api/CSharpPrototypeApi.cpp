@@ -45,8 +45,10 @@ JSValue jsManagedRuntime(JSContext* ctx, JSValueConst, int, JSValueConst*) {
 }
 
 JSValue jsManagedProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    if (argc < 1 || !JS_IsString(argv[0]))
-        return JS_ThrowTypeError(ctx, "bl.csharp.managedProbe(assemblyPath)");
+    if (argc == 0 || JS_IsUndefined(argv[0]))
+        return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(bl::config().managedProbePath));
+    if (!JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "bl.csharp.managedProbe([assemblyPath])");
     const char* path = JS_ToCString(ctx, argv[0]);
     if (!path) return JS_EXCEPTION;
     const auto status = bl::csharp::probeManagedRuntime(path);
