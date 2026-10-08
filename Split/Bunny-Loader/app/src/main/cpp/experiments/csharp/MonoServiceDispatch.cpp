@@ -128,7 +128,7 @@ bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot) {
 }
 
 
-std::string historicalMonoWorkerExit(int pid, long long minimumTimestampMs) {
+std::string invokeMonoHistoryMethod(const char* methodName, int pid, long long minimumTimestampMs) {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (pid <= 0 || !g_vm || !g_context || !g_serviceClass)
         return "context-unavailable";
@@ -145,7 +145,7 @@ std::string historicalMonoWorkerExit(int pid, long long minimumTimestampMs) {
     }
 
     std::string result;
-    jmethodID method = env->GetStaticMethodID(g_serviceClass, "historicalWorkerExit",
+    jmethodID method = env->GetStaticMethodID(g_serviceClass, methodName,
         "(Landroid/content/Context;IJ)Ljava/lang/String;");
     if (env->ExceptionCheck() || !method) {
         env->ExceptionClear();
@@ -167,6 +167,14 @@ std::string historicalMonoWorkerExit(int pid, long long minimumTimestampMs) {
     }
     if (attached) g_vm->DetachCurrentThread();
     return result;
+}
+
+std::string historicalMonoWorkerExit(int pid, long long minimumTimestampMs) {
+    return invokeMonoHistoryMethod("historicalWorkerExit", pid, minimumTimestampMs);
+}
+
+std::string historicalMonoWorkerTrace(int pid, long long minimumTimestampMs) {
+    return invokeMonoHistoryMethod("historicalWorkerTrace", pid, minimumTimestampMs);
 }
 
 bool requestIsolatedMonoProbe(std::string& error) {

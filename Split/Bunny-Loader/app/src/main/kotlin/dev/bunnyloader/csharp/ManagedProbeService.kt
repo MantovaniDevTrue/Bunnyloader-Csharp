@@ -11,6 +11,53 @@ import kotlin.concurrent.thread
 
 class ManagedProbeService : Service() {
     companion object {
+
+        @JvmStatic
+        fun historicalWorkerTrace(context: android.content.Context, pid: Int, minimumTimestampMs: Long): String {
+            if (android.os.Build.VERSION.SDK_INT < 30 || pid <= 0) return "trace-api-unavailable"
+            return try {
+                val manager = context.getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                    as? android.app.ActivityManager ?: return "activity-manager-unavailable"
+                val name = context.packageName + ":mono_probe"
+                val record = manager.getHistoricalProcessExitReasons(context.packageName, pid, 10)
+                    .filter { it.pid == pid && it.processName == name &&
+                        it.timestamp >= minimumTimestampMs }
+                    .maxByOrNull { it.timestamp }
+                    ?: return "exit-record-unavailable"
+                val stream = record.traceInputStream
+                    ?: return "trace-unavailable reason=" + record.reason +
+                        " status=" + record.status
+                val output = java.io.ByteArrayOutputStream()
+                stream.use { source ->
+                    val buffer = ByteArray(4096)
+                    while (output.size() < 65536) {
+                        val count = source.read(buffer, 0,
+                            minOf(buffer.size, 65536 - output.size()))
+                        if (count <= 0) break
+                        output.write(buffer, 0, count)
+                    }
+                }
+                val raw = output.toString("UTF-8").replace('\u0000', ' ')
+                val interesting = raw.lineSequence().filterIndexed { index, line ->
+                    index < 16 ||
+                        line.contains("signal ", ignoreCase = true) ||
+                        line.contains("Abort message", ignoreCase = true) ||
+                        line.contains("backtrace", ignoreCase = true) ||
+                        line.contains("Cause:", ignoreCase = true) ||
+                        line.contains("libmonosgen", ignoreCase = true) ||
+                        line.contains("libc.so", ignoreCase = true) ||
+                        line.contains("BunnySource", ignoreCase = true) ||
+                        line.contains("mono_", ignoreCase = true) ||
+                        Regex("^\\s*#\\d+\\s+pc\\s+").containsMatchIn(line)
+                }.take(150).joinToString("\n").take(16384)
+                "traceBytes=" + output.size() + "\n" +
+                    (interesting.ifEmpty { raw.take(12288) })
+            } catch (error: Throwable) {
+                "trace-query-error=" + error.javaClass.simpleName + ":" +
+                    (error.message ?: "").take(180)
+            }
+        }
+
         @JvmStatic
         fun historicalWorkerExit(context: android.content.Context, pid: Int, minimumTimestampMs: Long): String {
             if (android.os.Build.VERSION.SDK_INT < 30 || pid <= 0) return "unavailable"

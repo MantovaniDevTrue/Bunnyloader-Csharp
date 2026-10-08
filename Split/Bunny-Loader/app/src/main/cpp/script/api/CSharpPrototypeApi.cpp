@@ -236,6 +236,7 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
         JS_NewBool(ctx, workerKnown && !workerAlive &&
             state.find("state=compiling") != std::string::npos));
     std::string exitInfo;
+    std::string exitTrace;
     if (workerKnown && !workerAlive) {
         const auto timestampAt = checkpoint.find("timestampUnix=");
         long long minimumTimestampMs = 0;
@@ -248,8 +249,11 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
         }
         exitInfo = bl::csharp::historicalMonoWorkerExit(
             static_cast<int>(workerPid), minimumTimestampMs);
+        exitTrace = bl::csharp::historicalMonoWorkerTrace(
+            static_cast<int>(workerPid), minimumTimestampMs);
     }
     JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
+    JS_SetPropertyStr(ctx, out, "exitTrace", JS_NewString(ctx, exitTrace.c_str()));
     return out;
 }
 
