@@ -22,6 +22,9 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -153,7 +156,20 @@ JSValue jsManagedProjectileEnable(JSContext* ctx, JSValueConst, int argc, JSValu
 }
 
 JSValue jsManagedProjectileStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
-    return makeSourceBoltHookStatus(ctx);
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp", "sourcebolt-status enter");
+#endif
+    const bool wasEnabled = bl::csharp::pauseManagedSourceBoltHook();
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                        "sourcebolt-status paused previousEnabled=%d", wasEnabled ? 1 : 0);
+#endif
+    JSValue out = makeSourceBoltHookStatus(ctx);
+    JS_SetPropertyStr(ctx, out, "pausedForSnapshot", JS_NewBool(ctx, wasEnabled));
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp", "sourcebolt-status completed");
+#endif
+    return out;
 }
 
 JSValue jsManagedWorkerStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
