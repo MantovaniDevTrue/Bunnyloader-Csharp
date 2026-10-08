@@ -1,5 +1,6 @@
 #include "experiments/csharp/CSharpModLoader.h"
 
+#include "content/projectiles/ModProjectiles.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
@@ -256,6 +257,33 @@ bool hasProjectileBehavior() {
     std::lock_guard<std::mutex> lock(g_mutex);
     for (const NativeMod& mod : g_mods) {
         if (mod.info.loaded && mod.projectileTick) return true;
+    }
+    return false;
+}
+
+bool hasOwnedProjectileBehavior(int projectileType) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods) {
+        if (mod.info.loaded && mod.projectileTick &&
+            bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool dispatchOwnedProjectile(int projectileType,
+                             bl::csharp::HostProjectileState* state,
+                             const bl::csharp::NpcSample* npcs,
+                             int count,
+                             float playerX,
+                             float playerY) {
+    if (!state || !npcs || count <= 0 || state->type != projectileType) return false;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (NativeMod& mod : g_mods) {
+        if (!mod.info.loaded || !mod.projectileTick ||
+            !bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id)) continue;
+        return mod.projectileTick(state, npcs, count, playerX, playerY) != 0;
     }
     return false;
 }

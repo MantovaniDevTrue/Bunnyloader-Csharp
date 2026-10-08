@@ -34,6 +34,7 @@ struct ModProjectileDef {
 int registerModProjectile(ModProjectileDef def);
 
 bool isModProjectile(int type);
+bool modProjectileBelongsTo(int type, const std::string& modId);
 
 /** Vanilla + projeteis de mod JA instalados nas tabelas do jogo. */
 int projectileTypeCount();

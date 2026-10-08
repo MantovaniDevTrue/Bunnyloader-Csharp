@@ -1,6 +1,7 @@
 #include "experiments/csharp/ProjectileWriteTest.h"
 
 #include "content/common/GameRefs.h"
+#include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/CSharpPrototype.h"
 #include "experiments/csharp/CSharpModLoader.h"
@@ -10,6 +11,7 @@
 #include "il2cpp/Resolver.h"
 
 #include <atomic>
+#include <cmath>
 #include <mutex>
 
 namespace bl::csharp {
@@ -100,6 +102,8 @@ Claim g_claim;
 LastClaim g_last;
 bool g_installed = false;
 std::atomic<int> g_generation{0};
+std::atomic<int> g_autoCalls{0};
+std::atomic<int> g_autoWrites{0};
 
 using ProjectileUpdatePositionFn = void (*)(Il2CppObject*, Vector2, const MethodInfo*);
 using ProjectileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -151,7 +155,7 @@ bool applyWrite(Il2CppObject* projectile) {
         return false;
     }
 
-    TerrariaSnapshot snapshot = captureTerrariaSnapshot();
+    TerrariaSnapshot snapshot = captureTerrariaSnapshot(false);
     if (!snapshot.ready) return false;
 
     const auto& g = runtime::game();
@@ -191,6 +195,58 @@ bool applyWrite(Il2CppObject* projectile) {
     return true;
 }
 
+bool applyAutomaticWrite(Il2CppObject* projectile) {
+    if (!projectile) return false;
+
+    const auto& g = runtime::game();
+    if (runtime::field<uint8_t>(projectile, g.proj.active) == 0 ||
+        runtime::field<int32_t>(projectile, g.proj.damage) <= 0 ||
+        runtime::field<int32_t>(projectile, g.proj.timeLeft) <= 0) return false;
+
+    const int type = runtime::field<int32_t>(projectile, g.proj.type);
+    if (!runtime::isModProjectile(type) ||
+        !csharpmods::hasOwnedProjectileBehavior(type)) return false;
+
+    const int owner = runtime::field<int32_t>(projectile, g.proj.owner);
+    const int slot = runtime::field<int32_t>(projectile, g.entity.whoAmI);
+    if (slot < 0) return false;
+
+    TerrariaSnapshot snapshot = captureTerrariaSnapshot(false);
+    if (!snapshot.ready || snapshot.player.index != owner) return false;
+
+    const Vector2 center = centerOf(projectile);
+    const Vector2 velocity = runtime::field<Vector2>(projectile, g.entity.velocity);
+    HostProjectileState state{};
+    state.slot = slot;
+    state.type = type;
+    state.owner = owner;
+    state.generation = 0;
+    state.targetIndex = -1;
+    state.x = center.x;
+    state.y = center.y;
+    state.vx = velocity.x;
+    state.vy = velocity.y;
+    state.rotation = runtime::field<float>(projectile, g.proj.rotation);
+
+    g_autoCalls.fetch_add(1, std::memory_order_relaxed);
+    if (!csharpmods::dispatchOwnedProjectile(type, &state, snapshot.npcs.data(),
+                                             static_cast<int>(snapshot.npcs.size()),
+                                             snapshot.player.x, snapshot.player.y)) return false;
+
+    if (!std::isfinite(state.vx) || !std::isfinite(state.vy) ||
+        !std::isfinite(state.rotation) ||
+        std::abs(state.vx) > 2048.0f || std::abs(state.vy) > 2048.0f ||
+        runtime::field<uint8_t>(projectile, g.proj.active) == 0 ||
+        runtime::field<int32_t>(projectile, g.proj.type) != type ||
+        runtime::field<int32_t>(projectile, g.proj.owner) != owner ||
+        runtime::field<int32_t>(projectile, g.entity.whoAmI) != slot) return false;
+
+    runtime::field<Vector2>(projectile, g.entity.velocity) = {state.vx, state.vy};
+    runtime::field<float>(projectile, g.proj.rotation) = state.rotation;
+    g_autoWrites.fetch_add(1, std::memory_order_relaxed);
+    return true;
+}
+
 void hkUpdatePosition(Il2CppObject* self, Vector2 wetVelocity, const MethodInfo* method) {
     bool claimed = false;
     {
@@ -201,7 +257,8 @@ void hkUpdatePosition(Il2CppObject* self, Vector2 wetVelocity, const MethodInfo*
         }
     }
 
-    if (claimed && applyWrite(self)) {
+    const bool wrote = claimed ? applyWrite(self) : applyAutomaticWrite(self);
+    if (wrote) {
         wetVelocity = runtime::field<Vector2>(self, runtime::game().entity.velocity);
     }
     g_origUpdatePosition(self, wetVelocity, method);
@@ -220,6 +277,8 @@ void hkSetDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
 ProjectileWriteStatus statusLocked() {
     ProjectileWriteStatus out;
     out.installed = g_installed;
+    out.automaticCalls = g_autoCalls.load(std::memory_order_relaxed);
+    out.automaticWrites = g_autoWrites.load(std::memory_order_relaxed);
     out.claimed = g_claim.object != nullptr;
     out.slot = g_claim.slot;
     out.type = g_claim.type;
@@ -241,7 +300,7 @@ ProjectileWriteStatus statusLocked() {
 
 bool installProjectileWriteTest() {
     if (g_installed) return true;
-    if (!available() || !refs().ok) return false;
+    if (!refs().ok) return false;
     if (!csharpmods::hasProjectileBehavior()) {
         BL_WARN("csharp write: nenhum mod C# externo com comportamento de projectile");
         return false;

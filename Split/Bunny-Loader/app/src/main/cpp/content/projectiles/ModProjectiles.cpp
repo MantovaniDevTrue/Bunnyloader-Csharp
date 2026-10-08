@@ -225,6 +225,13 @@ bool isModProjectile(int type) {
            type < kVanillaProjectileCount + g_total.load(std::memory_order_acquire);
 }
 
+bool modProjectileBelongsTo(int type, const std::string& modId) {
+    if (type < kVanillaProjectileCount) return false;
+    std::lock_guard<std::mutex> lock(g_mx);
+    const size_t index = static_cast<size_t>(type - kVanillaProjectileCount);
+    return index < g_regs.size() && g_regs[index].def.mod == modId;
+}
+
 int projectileTypeCount() {
     return kVanillaProjectileCount + g_installed.load(std::memory_order_acquire);
 }

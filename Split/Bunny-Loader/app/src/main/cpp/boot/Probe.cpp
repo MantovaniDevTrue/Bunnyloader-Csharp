@@ -18,6 +18,7 @@
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/ProjectileWriteTest.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -88,6 +89,9 @@ void probeThread() {
             registerUnloadedPool();
             registerUnloadedWall();
             prepareModNpcs();
+            if (csharpmods::hasProjectileBehavior()) {
+                csharp::installProjectileWriteTest();
+            }
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();

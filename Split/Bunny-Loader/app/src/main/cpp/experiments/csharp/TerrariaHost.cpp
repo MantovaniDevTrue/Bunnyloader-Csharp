@@ -100,7 +100,7 @@ Vector2 centerOf(Il2CppObject* obj) {
 
 }
 
-TerrariaSnapshot captureTerrariaSnapshot() {
+TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles) {
     TerrariaSnapshot out;
     const auto start = std::chrono::steady_clock::now();
 
@@ -110,8 +110,8 @@ TerrariaSnapshot captureTerrariaSnapshot() {
 
     Il2CppArray* players = staticArray(r.players);
     Il2CppArray* npcs = staticArray(r.npcs);
-    Il2CppArray* projectiles = staticArray(r.projectiles);
-    if (!players || !npcs || !projectiles) return out;
+    Il2CppArray* projectiles = includeProjectiles ? staticArray(r.projectiles) : nullptr;
+    if (!players || !npcs || (includeProjectiles && !projectiles)) return out;
 
     const int me = localPlayerIndex(r);
     if (me < 0 || static_cast<uintptr_t>(me) >= players->length) return out;
@@ -155,27 +155,29 @@ TerrariaSnapshot captureTerrariaSnapshot() {
         if (active) ++out.activeNpcs;
     }
 
-    out.projectiles.resize(projectiles->length);
-    auto** projectileData = reinterpret_cast<Il2CppObject**>(arrayData(projectiles));
-    for (uintptr_t i = 0; i < projectiles->length; ++i) {
-        ProjectileSample& sample = out.projectiles[i];
-        sample.index = static_cast<int32_t>(i);
-        Il2CppObject* projectile = projectileData[i];
-        if (!projectile) continue;
-
-        const bool active = runtime::field<uint8_t>(projectile, g.proj.active) != 0;
-        sample.flags = active ? 1 : 0;
-        sample.type = runtime::field<int32_t>(projectile, g.proj.type);
-        sample.owner = runtime::field<int32_t>(projectile, g.proj.owner);
-        sample.timeLeft = runtime::field<int32_t>(projectile, g.proj.timeLeft);
-        sample.damage = runtime::field<int32_t>(projectile, g.proj.damage);
-        const Vector2 center = centerOf(projectile);
-        const Vector2 velocity = runtime::field<Vector2>(projectile, g.entity.velocity);
-        sample.x = active ? center.x : 0.0f;
-        sample.y = active ? center.y : 0.0f;
-        sample.vx = active ? velocity.x : 0.0f;
-        sample.vy = active ? velocity.y : 0.0f;
-        if (active) ++out.activeProjectiles;
+    if (includeProjectiles) {
+        out.projectiles.resize(projectiles->length);
+        auto** projectileData = reinterpret_cast<Il2CppObject**>(arrayData(projectiles));
+        for (uintptr_t i = 0; i < projectiles->length; ++i) {
+            ProjectileSample& sample = out.projectiles[i];
+            sample.index = static_cast<int32_t>(i);
+            Il2CppObject* projectile = projectileData[i];
+            if (!projectile) continue;
+    
+            const bool active = runtime::field<uint8_t>(projectile, g.proj.active) != 0;
+            sample.flags = active ? 1 : 0;
+            sample.type = runtime::field<int32_t>(projectile, g.proj.type);
+            sample.owner = runtime::field<int32_t>(projectile, g.proj.owner);
+            sample.timeLeft = runtime::field<int32_t>(projectile, g.proj.timeLeft);
+            sample.damage = runtime::field<int32_t>(projectile, g.proj.damage);
+            const Vector2 center = centerOf(projectile);
+            const Vector2 velocity = runtime::field<Vector2>(projectile, g.entity.velocity);
+            sample.x = active ? center.x : 0.0f;
+            sample.y = active ? center.y : 0.0f;
+            sample.vx = active ? velocity.x : 0.0f;
+            sample.vy = active ? velocity.y : 0.0f;
+            if (active) ++out.activeProjectiles;
+        }
     }
 
     out.ready = true;

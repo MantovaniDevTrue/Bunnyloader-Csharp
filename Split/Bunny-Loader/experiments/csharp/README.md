@@ -203,3 +203,21 @@ JSON.stringify(bl.csharp.externalMods(), null, 2)
 ```
 
 The controlled `claimProjectile()` test now dispatches only to external C# mods. Without an external mod exposing `bunny_mod_projectile_tick`, the steering hook refuses to install.
+
+## 0.1.10.1 Automatic owned projectiles
+
+The host no longer needs the embedded `libbunnycs.so` prototype to install the external projectile hook. The benchmark prototype remains optional and unchanged.
+
+The native host skips the full projectile-array scan when evaluating a projectile behavior, capturing only the player and NPCs instead.
+
+A mod's NativeAOT `bunny_mod_projectile_tick` now runs automatically on active, locally owned, damaging projectile types that the same Bunny package registered in JavaScript (the native package UID must match the projectile registration owner). Other mods' projectile types and vanilla projectile types are not automatically affected. Existing `claimProjectile()` remains available for the tested vanilla-arrow demonstration.
+
+Run in the Editor:
+
+```js
+JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
+```
+
+The additional `automaticCalls` and `automaticWrites` counters measure the new path. Neither counter should increase for projectiles owned by unrelated mods. The 0.1.10.0 ExampleCSharpMod only registers a minimal JavaScript entry, not a new projectile type; its existing vanilla homing test still requires `claimProjectile()`. Creating a new projectile in the example via the Bunny ExampleMod JavaScript API is the next test.
+
+This branch is a source-level test; automatic mode requires a new Android build and on-device validation before it can be declared stable.

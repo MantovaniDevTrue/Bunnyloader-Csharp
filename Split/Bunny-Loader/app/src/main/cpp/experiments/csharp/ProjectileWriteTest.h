@@ -6,6 +6,8 @@ namespace bl::csharp {
 
 struct ProjectileWriteStatus {
     bool installed = false;
+    int automaticCalls = 0;
+    int automaticWrites = 0;
     bool claimed = false;
     bool valid = false;
     int slot = -1;

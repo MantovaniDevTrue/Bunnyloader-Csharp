@@ -22,6 +22,13 @@ size_t loadedCount();
 std::vector<LoadedNativeMod> snapshot();
 
 bool hasProjectileBehavior();
+bool hasOwnedProjectileBehavior(int projectileType);
+bool dispatchOwnedProjectile(int projectileType,
+                             bl::csharp::HostProjectileState* state,
+                             const bl::csharp::NpcSample* npcs,
+                             int count,
+                             float playerX,
+                             float playerY);
 bool dispatchProjectile(bl::csharp::HostProjectileState* state,
                         const bl::csharp::NpcSample* npcs,
                         int count,
