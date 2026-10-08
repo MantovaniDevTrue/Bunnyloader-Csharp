@@ -87,7 +87,7 @@ object BootLog {
                     // descartava as linhas do nosso próprio núcleo (giveItem,
                     // cheats, mods), que são justamente as que o usuário
                     // precisa conseguir mandar quando algo não funciona.
-                    val keep = line.contains(TAG) ||
+                    val keep = line.contains(TAG) || line.contains("BunnyCSharp") ||
                         line.contains("Unity") || line.contains("IL2CPP") ||
                         line.contains("DEBUG") || line.contains("libc") ||
                         line.contains("Fatal") || line.contains("FATAL") ||
@@ -112,10 +112,17 @@ object BootLog {
     fun read(ctx: Context): String =
         header(ctx) +
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
+            "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    private fun lastMonoCheckpoint(ctx: Context): String = runCatching {
+        val checkpoint = File(ctx.filesDir, "bunny-csharp/last-probe.txt")
+        if (!checkpoint.isFile) "(nenhuma tentativa registrada)\n"
+        else checkpoint.readText().take(2048).ifBlank { "(registro vazio)\n" }
+    }.getOrElse { "(erro ao ler checkpoint MonoVM: ${it.javaClass.simpleName})\n" }
 
     /** Versões, aparelho, data e os mods ligados: sem isso ninguém reproduz nada. */
     private fun header(ctx: Context): String = buildString {
@@ -171,7 +178,7 @@ object BootLog {
         val causes = lines.filter { l ->
             l.contains("FatalError called") || l.contains("JNI DETECTED") ||
                 l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
-                l.contains("dlopen") || l.contains("Unable to") ||
+                l.contains("dlopen") || l.contains("mono phase=") || l.contains("Unable to") ||
                 l.contains("Failed to") || l.contains("E/Unity") ||
                 l.contains("E Unity") || l.contains("could not") ||
                 l.startsWith("E/$TAG")  // erro do próprio núcleo
