@@ -29,6 +29,7 @@ class ManagedProbeService : Service() {
         val compileRoot = intent?.getStringExtra("sourceRoot")
         val compileStatus = File(dir, "source-compile-status.txt")
         val diagnostic = File(dir, "source-compile-diagnostics.txt")
+        val health = File(dir, "source-compile-health.txt")
         dir.mkdirs()
         checkpoint.delete()
         log.delete()
@@ -37,6 +38,7 @@ class ManagedProbeService : Service() {
         } else {
             runCatching {
                 diagnostic.delete()
+                health.delete()
                 compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
             }
         }
@@ -56,6 +58,7 @@ class ManagedProbeService : Service() {
                     outputDir.mkdirs()
                     val output = File(outputDir, "sourcecsharp.dll")
                     compileStatus.writeText("state=compiling\npid=${Process.myPid()}\n")
+                    startCompileHealthMonitor(health)
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
                         output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
@@ -118,6 +121,32 @@ class ManagedProbeService : Service() {
         marker.writeText(version)
         Log.i("BunnyCSharp", "framework carregado: ${names.size} assemblies")
         return File(dir, "BunnyManagedProbe.dll").absolutePath
+    }
+
+    private fun startCompileHealthMonitor(destination: File) {
+        thread(name = "BunnyMonoCompileHealth", isDaemon = true) {
+            val started = android.os.SystemClock.elapsedRealtime()
+            while (running.get()) {
+                runCatching {
+                    val status = File("/proc/self/status").useLines { lines ->
+                        lines.filter { it.startsWith("VmRSS:") ||
+                            it.startsWith("VmHWM:") ||
+                            it.startsWith("Threads:") }.joinToString("\n")
+                    }
+                    destination.writeText(
+                        "pid=${Process.myPid()}\n" +
+                        "elapsedMs=${android.os.SystemClock.elapsedRealtime() - started}\n" +
+                        "managedJavaHeapBytes=${Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()}\n" +
+                        status + "\n"
+                    )
+                }
+                try {
+                    Thread.sleep(4000L)
+                } catch (_: InterruptedException) {
+                    break
+                }
+            }
+        }
     }
 
     private fun startLogCapture(destination: File) {

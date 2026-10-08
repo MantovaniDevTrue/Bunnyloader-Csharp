@@ -13,7 +13,24 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v4-portable-sha256-nondeterministic-emit";
+    private const string CacheVersion = "roslyn-net8-source-v5-compact-references";
+    private static readonly string[] ReferenceNames =
+    {
+        "System.Private.CoreLib.dll",
+        "System.Runtime.dll",
+        "netstandard.dll",
+        "System.Collections.dll",
+        "System.Collections.Concurrent.dll",
+        "System.Linq.dll",
+        "System.Console.dll",
+        "System.Runtime.Extensions.dll",
+        "System.ObjectModel.dll",
+        "System.Threading.dll",
+        "System.Threading.Tasks.dll",
+        "System.Numerics.Vectors.dll",
+        "System.ComponentModel.Primitives.dll",
+        "BunnySourceSdk.dll"
+    };
 
     public static int Compile(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
@@ -106,13 +123,11 @@ public static class Compiler
         }
 
         Stage(diagnosticsFile, "listing-framework-assemblies");
-        string[] framework = Directory.EnumerateFiles(runtimeDir, "*.dll",
-                SearchOption.TopDirectoryOnly)
-            .Where(path => Path.GetFileName(path).StartsWith("System.", StringComparison.Ordinal) ||
-                           Path.GetFileName(path) is "mscorlib.dll" or "netstandard.dll" or
-                           "BunnySourceSdk.dll")
-            .OrderBy(path => path, StringComparer.Ordinal).ToArray();
-        if (framework.Length < 50 || !framework.Contains(sdkFile))
+        string[] framework = ReferenceNames.Select(name => Path.Combine(runtimeDir, name))
+            .Where(File.Exists).ToArray();
+        if (!framework.Contains(sdkFile) ||
+            !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
+            !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll")))
         {
             WriteDiagnostic(diagnosticsFile, "FRAMEWORK_REFERENCES_INCOMPLETE " +
                 framework.Length);
@@ -121,7 +136,7 @@ public static class Compiler
 
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
         var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
-        Stage(diagnosticsFile, "metadata-references-created");
+        Stage(diagnosticsFile, "metadata-references-created-" + references.Length);
         var compilation = CSharpCompilation.Create(
             assemblyName: "BunnySource_" + hash.Substring(0, 16),
             syntaxTrees: trees,
@@ -134,12 +149,34 @@ public static class Compiler
                 allowUnsafe: false));
 
         Stage(diagnosticsFile, "compilation-created");
+        Stage(diagnosticsFile, "declaration-diagnostics-start");
+        string[] declarationErrors = compilation.GetDeclarationDiagnostics()
+            .Where(item => item.Severity == DiagnosticSeverity.Error)
+            .Take(60).Select(item => item.ToString()).ToArray();
+        Stage(diagnosticsFile, "declaration-diagnostics-complete-" + declarationErrors.Length);
+        if (declarationErrors.Length > 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "COMPILE_DECLARATION_FAILED\n" +
+                string.Join("\n", declarationErrors));
+            return -8;
+        }
+        Stage(diagnosticsFile, "methodbody-diagnostics-start");
+        string[] bodyErrors = compilation.GetMethodBodyDiagnostics()
+            .Where(item => item.Severity == DiagnosticSeverity.Error)
+            .Take(60).Select(item => item.ToString()).ToArray();
+        Stage(diagnosticsFile, "methodbody-diagnostics-complete-" + bodyErrors.Length);
+        if (bodyErrors.Length > 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "COMPILE_BODY_FAILED\n" +
+                string.Join("\n", bodyErrors));
+            return -8;
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
         string temporary = outputFile + ".tmp";
         using var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write,
             FileShare.None);
         Stage(diagnosticsFile, "before-emit");
-        Stage(diagnosticsFile, "emit-nondeterministic-start");
+        Stage(diagnosticsFile, "emit-compact-references-start");
         long emitStarted = Environment.TickCount64;
         var result = compilation.Emit(stream);
         Stage(diagnosticsFile, "after-emit");
@@ -166,7 +203,8 @@ public static class Compiler
         File.Move(temporary, outputFile, true);
         File.WriteAllText(cache, hash);
         WriteDiagnostic(diagnosticsFile, "COMPILE_OK files=" + files.Length +
-            " hash=" + hash + " bytes=" + new FileInfo(outputFile).Length);
+            " references=" + references.Length + " hash=" + hash +
+            " bytes=" + new FileInfo(outputFile).Length);
         return 1;
     }
 
