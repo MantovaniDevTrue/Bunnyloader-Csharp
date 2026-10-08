@@ -194,8 +194,6 @@ public static class BunnyHost
 {
     public const int ApiVersion = 1;
 
-    private static readonly IProjectileBehavior ProjectileBehavior = new ExampleHomingProjectile();
-
     public static unsafe bool DispatchProjectile(
         Exports.HostProjectileState* state,
         Exports.NpcSample* npcs,
@@ -203,10 +201,6 @@ public static class BunnyHost
         float playerX,
         float playerY)
     {
-        if (state == null || npcs == null || npcCount <= 0) return false;
-        if (npcCount > 4096) npcCount = 4096;
-
-        ProjectileContext context = new(state, npcs, npcCount, playerX, playerY);
-        return ProjectileBehavior.Update(ref context);
+        return false;
     }
 }
