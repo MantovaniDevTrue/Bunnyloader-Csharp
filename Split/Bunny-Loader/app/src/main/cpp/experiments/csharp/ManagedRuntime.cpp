@@ -220,4 +220,51 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     return g_status;
 }
 
+ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_status.callbacksExecuted = 0;
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted)
+        return failure("callback-runtime-not-ready", "Executar managedGameProbe antes dos callbacks");
+    if (!validAssembly(assemblyPath))
+        return failure("callback-assembly-missing", "BunnyManagedProbe.dll ausente");
+    if (count < 1 || count > 120)
+        return failure("callback-count-invalid", "Quantidade deve ser entre 1 e 120");
+    if (!g_api.attach(g_domain))
+        return failure("callback-attach-failed", "mono_thread_attach retornou nulo");
+
+    trace("callback-opening-assembly");
+    void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+    if (!assembly)
+        return failure("callback-assembly-failed", "Nao foi possivel carregar BunnyManagedProbe");
+    void* img = g_api.image(assembly);
+    void* klass = img ? g_api.findClass(img, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "AI", 2) : nullptr;
+    if (!method)
+        return failure("callback-method-missing", "Probe.AI(int,int) nao encontrado");
+
+    int state = 0;
+    int expected = 0;
+    trace("invoking-ai-callbacks");
+    for (int tick = 0; tick < count; ++tick) {
+        int tickArg = tick;
+        int stateArg = state;
+        void* args[] = {&tickArg, &stateArg};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(method, nullptr, args, &exception);
+        if (exception || !boxed)
+            return failure("callback-invoke-failed", "Probe.AI lancou excecao ou retornou nulo");
+        void* value = g_api.unbox(boxed);
+        if (!value)
+            return failure("callback-unbox-failed", "Probe.AI retornou valor invalido");
+        std::memcpy(&state, value, sizeof(state));
+        expected += (tick % 7) - 3;
+        ++g_status.callbacksExecuted;
+        if (state != expected)
+            return failure("callback-mismatch", "Probe.AI retornou resultado incorreto");
+    }
+    g_status.result = state;
+    trace("callback-verified");
+    return g_status;
+}
+
 }
