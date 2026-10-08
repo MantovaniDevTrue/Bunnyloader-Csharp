@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -14,7 +13,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v1";
+    private const string CacheVersion = "roslyn-net8-source-v2-portable-sha256";
 
     public static int Compile(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
@@ -56,7 +55,9 @@ public static class Compiler
 
         Stage(diagnosticsFile, "sources-found-" + files.Length);
         var trees = new List<SyntaxTree>(files.Length);
-        using var fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Stage(diagnosticsFile, "initializing-portable-sha256");
+        var fingerprint = new PortableSha256();
+        Stage(diagnosticsFile, "portable-sha256-ready");
         fingerprint.AppendData(Encoding.UTF8.GetBytes(CacheVersion));
         int totalBytes = 0;
         foreach (string path in files)
