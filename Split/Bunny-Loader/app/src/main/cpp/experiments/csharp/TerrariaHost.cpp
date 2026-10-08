@@ -154,6 +154,7 @@ TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles, bool includeNp
             sample.vx = velocity.x;
             sample.vy = velocity.y;
             if (active) ++out.activeNpcs;
+        }
     }
 
     if (includeProjectiles) {
