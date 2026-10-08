@@ -41,6 +41,15 @@ int main(int argc, char** argv) {
     if (!second.methodExecuted || second.result != 42 ||
         saved().find("phase=verified") == std::string::npos ||
         saved().find("result=42") == std::string::npos) return 5;
+    const auto invalid = bl::csharp::probeManagedCallbacks(argv[1], 121);
+    if (invalid.phase != "callback-count-invalid" || invalid.callbacksExecuted) return 8;
+    const auto callback = bl::csharp::probeManagedCallbacks(argv[1], 120);
+    int expected = 0;
+    for (int tick = 0; tick < 120; ++tick) expected += (tick % 7) - 3;
+    if (callback.phase != "callback-verified" || callback.callbacksExecuted != 120 ||
+        callback.result != expected || saved().find("phase=callback-verified") == std::string::npos)
+        return 9;
+    std::puts("BUNNY_MANAGED_AI_CALLBACKS_MOCK_PASS=YES");
     std::remove(checkpoint.c_str());
     std::puts("BUNNY_MANAGED_BRIDGE_MOCK_PASS=YES");
     return 0;
