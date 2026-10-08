@@ -252,3 +252,28 @@ JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
 ```
 
 Expected after module load: `selectiveProjectiles: true`, `projectileBindings: 2`. Fire both weapons near moving enemies. The previous automatic counters must still increase. This change still needs Android visual verification.
+
+## 0.1.10.3 — Bunny C# projectile lifecycle
+
+The C# organization is now class-based, without importing tModLoader runtime code. Registration, content defaults and textures remain in the original Bunny ExampleMod JavaScript API. The NativeAOT DLL handles fast projectile AI.
+
+The `BunnyCsSdk/BunnyProjectileBehavior.cs` file introduces a bounded 4096-slot state array and hooks:
+- `OnSpawn(ref ProjectileContext, ref ProjectileMemory)`
+- `AI(ref ProjectileContext, ref ProjectileMemory)`
+- `OnKill(ref ProjectileMemory)`
+
+The native host assigns a new generation when a tracked projectile slot changes identity and retires that generation at `Kill()` or `SetDefaults()`. The optional `bunny_mod_projectile_release(int type, int slot, int owner, int generation)` export releases managed state; ABI 1 / Host API 1 are unchanged, and older mods may omit the export.
+
+`ProjectileMotion.AccelerateTowards` and `ProjectileMotion.ApplyDrag` provide bounded movement without new allocations per tick. The `ExampleCSharpMod` uses `BunnyProjectileRegistry` only for `NativeWaveBolt`; the previous normal and predictive homing behaviors are unchanged. A third `NativeWaveWand` is craftable with 10 wood at a workbench.
+
+Editor checks:
+```js
+JSON.stringify({
+  mods: bl.csharp.externalMods(),
+  state: bl.csharp.projectileWriteStatus()
+}, null, 2)
+```
+
+Expected: `projectileBindings: 3`, `automaticWrites` increasing, and new `automaticSpawns` / `automaticReleases` counters. Compare the two previously validated wands against `NativeWaveWand`. This build is experimental until tested on the Android device.
+
+The per-projectile memory is intentionally constrained to 4096 slots and only has native write access to `velocity` and `rotation`. It is not a full PC tModLoader API or an IL2CPP DLL loader.
