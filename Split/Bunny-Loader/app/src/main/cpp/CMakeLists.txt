@@ -110,6 +110,14 @@ configure_file(
 
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+list(REMOVE_ITEM BL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/experiments/csharp/MonoWorkerJni.cpp)
+
+add_library(bunnymonoprobe SHARED
+    experiments/csharp/ManagedRuntime.cpp
+    experiments/csharp/MonoWorkerJni.cpp)
+target_include_directories(bunnymonoprobe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(bunnymonoprobe PRIVATE -O2 -fno-exceptions -fno-rtti)
+target_link_libraries(bunnymonoprobe log dl)
 
 add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})
 
