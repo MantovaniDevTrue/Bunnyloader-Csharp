@@ -126,6 +126,39 @@ void onAbort(int signal, siginfo_t*, void* raw) {
 
 }
 
+void rearmNativeAbortProbe(const char* stage) {
+    if (g_trace < 0) return;
+    emit("ABORT_HANDLER_STAGE=");
+    emit(stage);
+    emit("\n");
+    struct sigaction previous{};
+    if (sigaction(SIGABRT, nullptr, &previous) != 0) {
+        emit("ABORT_HANDLER_READ_FAILED\n");
+        return;
+    }
+    if ((previous.sa_flags & SA_SIGINFO) && previous.sa_sigaction == &onAbort) {
+        emit("ABORT_HANDLER_STILL_OURS\n");
+        return;
+    }
+    if (previous.sa_handler == SIG_DFL)
+        emit("ABORT_HANDLER_REPLACED_DEFAULT\n");
+    else if (previous.sa_handler == SIG_IGN)
+        emit("ABORT_HANDLER_REPLACED_IGNORED\n");
+    else
+        emit("ABORT_HANDLER_REPLACED_CUSTOM\n");
+
+    struct sigaction action{};
+    sigemptyset(&action.sa_mask);
+    action.sa_sigaction = &onAbort;
+    action.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_RESETHAND;
+    if (sigaction(SIGABRT, &action, nullptr) != 0) {
+        emit("ABORT_HANDLER_REARM_FAILED\n");
+        return;
+    }
+    g_previous = previous;
+    emit("ABORT_HANDLER_REARMED\n");
+}
+
 bool installNativeAbortProbe(const std::string& directory) {
     if (directory.empty() || directory.size() > 2048 || g_trace >= 0) return false;
     const std::string file = directory + "/native-abort-trace.txt";

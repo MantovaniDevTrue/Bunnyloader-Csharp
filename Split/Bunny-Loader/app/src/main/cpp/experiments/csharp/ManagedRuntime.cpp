@@ -1,4 +1,5 @@
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 
 #include <cstdio>
 #include <ctime>
@@ -370,6 +371,7 @@ ManagedSourceCompileResult compileManagedSource(
         argsManaged[0], argsManaged[1], argsManaged[2], argsManaged[3]
     };
     void* exception = nullptr;
+    rearmNativeAbortProbe("after-mono-preflight-before-roslyn");
     trace("compiling-source");
     void* boxed = g_api.invoke(method, nullptr, args, &exception);
     if (exception || !boxed) {
