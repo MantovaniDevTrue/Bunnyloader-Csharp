@@ -8,9 +8,9 @@ public sealed class ContentDefinition : BunnyContentModule
         "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
         "examplecsharpmod",
         "Example C# Mod",
-        "0.1.6",
+        "0.1.7",
         "Bunny Loader C# Test",
-        "Exemplo escrito em C#: armas, projetis, NPC e receitas. NativeAOT executa a IA.");
+        "Exemplo 100% escrito em C#: armas, armaduras, acessórios, buffs, poções, NPCs e drops.");
 
     public override void Register(BunnyContentRegistry content)
     {
@@ -45,5 +45,47 @@ public sealed class ContentDefinition : BunnyContentModule
             CombatProjectile = "NativeSlimeOrb"
         });
         content.Add(new BunnySummonItem("NativePhaseSlimeBeacon", "NativePhaseSlime"));
+
+        content.Add(new BunnyAccessory("NativeStatCharm")
+        {
+            DamagePercent = 10
+        });
+
+        content.Add(new BunnyArmor("NativeArmorHelmet", BunnyArmorSlot.Head)
+        {
+            Defense = 5
+        });
+        content.Add(new BunnyArmor("NativeArmorBreastplate", BunnyArmorSlot.Body)
+        {
+            Defense = 6,
+            ManaBonus = 20,
+            MinionBonus = 1
+        });
+        content.Add(new BunnyArmor("NativeArmorLeggings", BunnyArmorSlot.Legs)
+        {
+            Defense = 5,
+            MoveSpeedPercent = 5
+        });
+        content.Add(new BunnyArmorSet(
+            "NativeArmorHelmet", "NativeArmorBreastplate", "NativeArmorLeggings")
+        {
+            DamagePercent = 20
+        });
+
+        content.Add(new BunnyBuff("NativeDefenseBuff")
+        {
+            DefenseBonus = 10
+        });
+        content.Add(new BunnyBuffPotion("NativeDefensePotion", "NativeDefenseBuff")
+        {
+            DurationTicks = 3600
+        });
+        content.Add(new BunnyMaterial("NativeSlimeShard"));
+        content.Add(new BunnyNpcDrop("NativePhaseSlime", "NativeSlimeShard")
+        {
+            ChanceDenominator = 2,
+            MinStack = 1,
+            MaxStack = 2
+        });
     }
 }
