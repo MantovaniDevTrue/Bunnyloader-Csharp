@@ -63,17 +63,86 @@ public sealed record BunnySummonItem(string Name, string Npc)
     public string Rarity { get; init; } = "Green";
 }
 
+public sealed record BunnyAccessory(string Name)
+{
+    public int DamagePercent { get; init; } = 10;
+    public string Rarity { get; init; } = "Green";
+    public int WoodCost { get; init; } = 10;
+}
+
+public enum BunnyArmorSlot
+{
+    Head,
+    Body,
+    Legs
+}
+
+public sealed record BunnyArmor(string Name, BunnyArmorSlot Slot)
+{
+    public int Defense { get; init; } = 5;
+    public int ManaBonus { get; init; }
+    public int MinionBonus { get; init; }
+    public int MoveSpeedPercent { get; init; }
+    public string Rarity { get; init; } = "Green";
+    public int WoodCost { get; init; } = 10;
+}
+
+public sealed record BunnyArmorSet(string Head, string Body, string Legs)
+{
+    public int DamagePercent { get; init; } = 10;
+}
+
+public sealed record BunnyBuff(string Name)
+{
+    public int DefenseBonus { get; init; } = 10;
+    public bool IsDebuff { get; init; }
+}
+
+public sealed record BunnyBuffPotion(string Name, string Buff)
+{
+    public int DurationTicks { get; init; } = 3600;
+    public string Rarity { get; init; } = "Green";
+    public int WoodCost { get; init; } = 10;
+}
+
+public sealed record BunnyMaterial(string Name)
+{
+    public string Rarity { get; init; } = "Green";
+    public int MaxStack { get; init; } = 9999;
+}
+
+public sealed record BunnyNpcDrop(string Npc, string Material)
+{
+    public int ChanceDenominator { get; init; } = 2;
+    public int MinStack { get; init; } = 1;
+    public int MaxStack { get; init; } = 2;
+}
+
 public sealed class BunnyContentRegistry
 {
     public List<BunnyProjectile> Projectiles { get; } = new();
     public List<BunnyWeapon> Weapons { get; } = new();
     public List<BunnyNpc> Npcs { get; } = new();
     public List<BunnySummonItem> SummonItems { get; } = new();
+    public List<BunnyAccessory> Accessories { get; } = new();
+    public List<BunnyArmor> Armor { get; } = new();
+    public List<BunnyArmorSet> ArmorSets { get; } = new();
+    public List<BunnyBuff> Buffs { get; } = new();
+    public List<BunnyBuffPotion> BuffPotions { get; } = new();
+    public List<BunnyMaterial> Materials { get; } = new();
+    public List<BunnyNpcDrop> NpcDrops { get; } = new();
 
     public void Add(BunnyProjectile projectile) => Projectiles.Add(projectile);
     public void Add(BunnyWeapon weapon) => Weapons.Add(weapon);
     public void Add(BunnyNpc npc) => Npcs.Add(npc);
     public void Add(BunnySummonItem item) => SummonItems.Add(item);
+    public void Add(BunnyAccessory item) => Accessories.Add(item);
+    public void Add(BunnyArmor item) => Armor.Add(item);
+    public void Add(BunnyArmorSet armorSet) => ArmorSets.Add(armorSet);
+    public void Add(BunnyBuff buff) => Buffs.Add(buff);
+    public void Add(BunnyBuffPotion potion) => BuffPotions.Add(potion);
+    public void Add(BunnyMaterial material) => Materials.Add(material);
+    public void Add(BunnyNpcDrop drop) => NpcDrops.Add(drop);
 }
 
 public abstract class BunnyContentModule
