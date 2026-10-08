@@ -3,6 +3,7 @@
 #include "core/Config.h"
 #include "core/Log.h"
 #include "boot/LibWatcher.h"
+#include "experiments/csharp/ManagedRuntime.h"
 
 namespace {
 
@@ -30,6 +31,8 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.logPath    = readString(env, cfg, cls, "logPath");
     c.cmdPath    = readString(env, cfg, cls, "cmdPath");
     c.managedProbePath = readString(env, cfg, cls, "managedProbePath");
+    c.managedCheckpointPath = readString(env, cfg, cls, "managedCheckpointPath");
+    bl::csharp::setManagedCheckpointPath(c.managedCheckpointPath);
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
