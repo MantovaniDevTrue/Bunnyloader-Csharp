@@ -3,6 +3,7 @@
 #include "experiments/csharp/CSharpPrototype.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
+#include "experiments/csharp/CSharpModLoader.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -22,6 +23,22 @@ namespace bl::script {
 
 namespace {
 
+JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue out = JS_NewArray(ctx);
+    const auto mods = bl::csharpmods::snapshot();
+    uint32_t at = 0;
+    for (const auto& mod : mods) {
+        JSValue row = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, row, "id", JS_NewString(ctx, mod.id.c_str()));
+        JS_SetPropertyStr(ctx, row, "abi", JS_NewInt32(ctx, mod.abiVersion));
+        JS_SetPropertyStr(ctx, row, "hostApi", JS_NewInt32(ctx, mod.hostApiVersion));
+        JS_SetPropertyStr(ctx, row, "loaded", JS_NewBool(ctx, mod.loaded));
+        JS_SetPropertyStr(ctx, row, "projectileBehavior", JS_NewBool(ctx, mod.projectileBehavior));
+        JS_SetPropertyUint32(ctx, out, at++, row);
+    }
+    return out;
+}
+
 JSValue jsHostInfo(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "available", JS_NewBool(ctx, bl::csharp::available()));
@@ -32,6 +49,8 @@ JSValue jsHostInfo(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JS_SetPropertyStr(ctx, out, "playerWrite", JS_NewBool(ctx, false));
     JS_SetPropertyStr(ctx, out, "npcWrite", JS_NewBool(ctx, false));
     JS_SetPropertyStr(ctx, out, "projectileVelocityWrite", JS_NewBool(ctx, true));
+    JS_SetPropertyStr(ctx, out, "externalModCount",
+                      JS_NewInt32(ctx, static_cast<int32_t>(bl::csharpmods::loadedCount())));
     return out;
 }
 
@@ -608,6 +627,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JSValue api = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
+    JS_SetPropertyStr(ctx, api, "externalMods",
+                      JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
     JS_SetPropertyStr(ctx, api, "add", JS_NewCFunction(ctx, jsAdd, "add", 2));
     JS_SetPropertyStr(ctx, api, "checksum", JS_NewCFunction(ctx, jsChecksum, "checksum", 1));
