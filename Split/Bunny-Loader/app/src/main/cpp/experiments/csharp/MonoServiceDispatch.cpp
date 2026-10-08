@@ -3,6 +3,7 @@
 #include "core/Config.h"
 
 #include <cstdio>
+#include <cstdint>
 #include <mutex>
 #include <string>
 
@@ -124,6 +125,48 @@ bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot) {
 
     if (attached) g_vm->DetachCurrentThread();
     return success;
+}
+
+
+std::string historicalMonoWorkerExit(int pid, long long minimumTimestampMs) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (pid <= 0 || !g_vm || !g_context || !g_serviceClass)
+        return "context-unavailable";
+
+    JNIEnv* env = nullptr;
+    bool attached = false;
+    const jint state = g_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (state == JNI_EDETACHED) {
+        if (g_vm->AttachCurrentThread(&env, nullptr) != JNI_OK)
+            return "thread-attach-failed";
+        attached = true;
+    } else if (state != JNI_OK) {
+        return "jni-env-unavailable";
+    }
+
+    std::string result;
+    jmethodID method = env->GetStaticMethodID(g_serviceClass, "historicalWorkerExit",
+        "(Landroid/content/Context;IJ)Ljava/lang/String;");
+    if (env->ExceptionCheck() || !method) {
+        env->ExceptionClear();
+        result = "exit-method-unavailable";
+    } else {
+        jobject value = env->CallStaticObjectMethod(g_serviceClass, method,
+            g_context, static_cast<jint>(pid), static_cast<jlong>(minimumTimestampMs));
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+            result = "exit-query-failed";
+        } else if (value) {
+            const char* raw = env->GetStringUTFChars(static_cast<jstring>(value), nullptr);
+            if (raw) {
+                result = raw;
+                env->ReleaseStringUTFChars(static_cast<jstring>(value), raw);
+            }
+            env->DeleteLocalRef(value);
+        }
+    }
+    if (attached) g_vm->DetachCurrentThread();
+    return result;
 }
 
 bool requestIsolatedMonoProbe(std::string& error) {

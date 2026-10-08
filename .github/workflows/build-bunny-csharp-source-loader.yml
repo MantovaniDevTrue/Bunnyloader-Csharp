@@ -28,6 +28,7 @@ on:
       - bunny-csharp-source-0.1.10.16.5-reference-trim
       - bunny-csharp-source-0.1.10.16.6-roslyn-minimal-probe
       - bunny-csharp-source-0.1.10.16.7-semantic-exit-probe
+      - bunny-csharp-source-0.1.10.16.8-native-exit-metadata
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -311,7 +312,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.7-SemanticExit.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.8-NativeExitMetadata.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -323,17 +324,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.7"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.8"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.7-SemanticExit.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.8-NativeExitMetadata.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.7 — Roslyn Semantic Exit Probe" \
-              --notes "Experimental Android Roslyn: special-type resolution and semantic-model checkpoints before declaration diagnostics for core and Bunny SDK micro-probes. sourceCompileStatus() reports actual isolated-worker process liveness and stale compiling states. Keeps compact references, portable SHA-256 and health logging. Needs Android verification." \
+              --title "Bunny Loader C# v0.1.10.16.8 — Native Exit + Metadata Probe" \
+              --notes "Experimental MonoVM Android diagnostics: sourceCompileStatus() looks up the isolated worker termination through Android ApplicationExitInfo, including native crash reason and signal status. Adds System.Private.CoreLib PE metadata checkpoint before Roslyn GetSpecialType. Preserves existing C# source mod and NativeAOT paths. Android compile success not yet confirmed." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -356,7 +357,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.7-SemanticExit.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.8-NativeExitMetadata.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"

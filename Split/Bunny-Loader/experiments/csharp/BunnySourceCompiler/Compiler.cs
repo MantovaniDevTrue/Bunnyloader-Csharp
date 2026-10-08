@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v7-semantic-exit";
+    private const string CacheVersion = "roslyn-net8-source-v8-native-exit-metadata";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -213,6 +215,28 @@ public static class Compiler
     }
 
 
+
+    private static int ProbeCoreMetadata(string corelib, string diagnosticsFile)
+    {
+        Stage(diagnosticsFile, "core-metadata-open-start");
+        using var file = File.OpenRead(corelib);
+        using var reader = new PEReader(file, PEStreamOptions.LeaveOpen);
+        Stage(diagnosticsFile, "core-metadata-pe-ready");
+        var metadata = reader.GetMetadataReader();
+        Stage(diagnosticsFile, "core-metadata-reader-ready");
+        int count = metadata.TypeDefinitions.Count;
+        Stage(diagnosticsFile, "core-metadata-types-" + count);
+        if (count == 0)
+        {
+            WriteDiagnostic(diagnosticsFile, "CORE_METADATA_EMPTY");
+            return -13;
+        }
+        var first = metadata.GetTypeDefinition(metadata.TypeDefinitions.First());
+        string firstName = metadata.GetString(first.Name);
+        Stage(diagnosticsFile, "core-metadata-first-type-" + firstName.Length);
+        return 0;
+    }
+
     private static int RunMinimalProbes(string runtimeDir, string diagnosticsFile)
     {
         string corelib = Path.Combine(runtimeDir, "System.Private.CoreLib.dll");
@@ -223,6 +247,10 @@ public static class Compiler
             WriteDiagnostic(diagnosticsFile, "PROBE_REFERENCES_MISSING");
             return -9;
         }
+
+        int metadataResult = ProbeCoreMetadata(corelib, diagnosticsFile);
+        if (metadataResult != 0)
+            return metadataResult;
 
         Stage(diagnosticsFile, "probe-core-references-start");
         MetadataReference[] coreReferences =

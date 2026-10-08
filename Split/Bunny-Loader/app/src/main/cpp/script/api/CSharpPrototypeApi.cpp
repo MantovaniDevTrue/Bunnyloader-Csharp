@@ -6,6 +6,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "core/Config.h"
@@ -234,6 +235,21 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     JS_SetPropertyStr(ctx, out, "staleCompilingState",
         JS_NewBool(ctx, workerKnown && !workerAlive &&
             state.find("state=compiling") != std::string::npos));
+    std::string exitInfo;
+    if (workerKnown && !workerAlive) {
+        const auto timestampAt = checkpoint.find("timestampUnix=");
+        long long minimumTimestampMs = 0;
+        if (timestampAt != std::string::npos) {
+            const char* start = checkpoint.c_str() + timestampAt + 14;
+            char* end = nullptr;
+            const long long stamp = std::strtoll(start, &end, 10);
+            if (end != start && stamp > 0 && stamp < 100000000000LL)
+                minimumTimestampMs = stamp * 1000;
+        }
+        exitInfo = bl::csharp::historicalMonoWorkerExit(
+            static_cast<int>(workerPid), minimumTimestampMs);
+    }
+    JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
     return out;
 }
 

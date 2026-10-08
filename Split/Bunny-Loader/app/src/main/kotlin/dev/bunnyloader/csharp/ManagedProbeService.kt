@@ -10,6 +10,41 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 class ManagedProbeService : Service() {
+    companion object {
+        @JvmStatic
+        fun historicalWorkerExit(context: android.content.Context, pid: Int, minimumTimestampMs: Long): String {
+            if (android.os.Build.VERSION.SDK_INT < 30 || pid <= 0) return "unavailable"
+            return try {
+                val activityManager = context.getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                    as? android.app.ActivityManager ?: return "activity-manager-unavailable"
+                val processName = context.packageName + ":mono_probe"
+                val record = activityManager.getHistoricalProcessExitReasons(context.packageName, pid, 10)
+                    .filter { it.pid == pid && it.processName == processName &&
+                        it.timestamp >= minimumTimestampMs }
+                    .maxByOrNull { it.timestamp }
+                    ?: return "exit-record-unavailable"
+                val reason = when (record.reason) {
+                    android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE"
+                    android.app.ApplicationExitInfo.REASON_CRASH -> "CRASH"
+                    android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
+                    android.app.ApplicationExitInfo.REASON_ANR -> "ANR"
+                    android.app.ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
+                    android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "USER_REQUESTED"
+                    else -> "OTHER_" + record.reason
+                }
+                ("pid=" + record.pid + "\nreason=" + reason +
+                    "\nstatus=" + record.status +
+                    "\ntimestampMs=" + record.timestamp +
+                    "\npssKb=" + record.pss + "\nrssKb=" + record.rss +
+                    "\ndescription=" + (record.description ?: "").replace('\n', ' ')
+                ).take(2048)
+            } catch (error: Throwable) {
+                "exit-lookup-error=" + error.javaClass.simpleName + ":" +
+                    (error.message ?: "").take(180)
+            }
+        }
+    }
+
     private val running = AtomicBoolean(false)
 
     private external fun runNative(assemblyPath: String, checkpointPath: String): String
