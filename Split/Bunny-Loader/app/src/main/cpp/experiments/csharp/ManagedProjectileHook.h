@@ -17,6 +17,7 @@ struct ManagedProjectileHookStatus {
 };
 
 bool enableManagedSourceBoltHook(std::string* error);
+bool pauseManagedSourceBoltHook();
 ManagedProjectileHookStatus managedSourceBoltHookStatus();
 
 }
