@@ -10,6 +10,12 @@ public static class Exports
     private static readonly IProjectileBehavior PredictiveBehavior = new PredictiveHomingProjectile();
     private static int _homingType = -1;
     private static int _predictiveType = -1;
+    private static readonly BunnyProjectileRegistry Registry = new();
+
+    static Exports()
+    {
+        Registry.Register("NativeWaveBolt", new WaveSeekingProjectile());
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_abi_version", CallConvs = new[] { typeof(CallConvCdecl) })]
     public static int AbiVersion()
@@ -44,7 +50,13 @@ public static class Exports
             _predictiveType = type;
             return 1;
         }
-        return 0;
+        return projectileName != null && Registry.Bind(type, projectileName) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_projectile_release", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static void ReleaseProjectile(int type, int slot, int owner, int generation)
+    {
+        Registry.Release(type, slot, owner, generation);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_projectile_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -59,6 +71,9 @@ public static class Exports
         if (npcCount > 4096) npcCount = 4096;
 
         ProjectileContext context = new(state, npcs, npcCount, playerX, playerY);
+        if (Registry.Tick(ref context)) return 1;
+        if (state->Type >= 1136 && state->Type != _homingType &&
+            state->Type != _predictiveType) return 0;
         if (state->Type == _predictiveType) {
             return PredictiveBehavior.Update(ref context) ? 1 : 0;
         }
