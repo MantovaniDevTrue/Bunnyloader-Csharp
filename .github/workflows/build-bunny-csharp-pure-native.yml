@@ -11,7 +11,7 @@ on:
       - bunny-csharp-nativeaot-0.1.10.5
       - bunny-csharp-nativeaot-0.1.10.8-native-content
     paths:
-      - ".github/workflows/build-bunny-csharp-nativeaot.yml"
+      - ".github/workflows/build-bunny-csharp-pure-native.yml"
       - "Split/Bunny-Loader/**"
 
 permissions:
