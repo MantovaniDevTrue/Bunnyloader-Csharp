@@ -9,6 +9,7 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "core/Config.h"
+#include "mods/ModLoader.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -169,6 +170,41 @@ JSValue jsManagedProjectileStatus(JSContext* ctx, JSValueConst, int, JSValueCons
 #ifdef __ANDROID__
     __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp", "sourcebolt-status completed");
 #endif
+    return out;
+}
+
+JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0)
+        return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
+    constexpr const char* uid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
+    bool loaded = false;
+    for (const auto& status : bl::csharp::sourceModStatuses()) {
+        if (status.id == uid && status.loaded && status.sourceFiles > 0) {
+            loaded = true;
+            break;
+        }
+    }
+    if (!loaded)
+        return JS_ThrowInternalError(ctx, "Source C# Test nao carregado");
+    const std::string root = bl::mods::rootOf(uid);
+    if (root.empty())
+        return JS_ThrowInternalError(ctx, "Pasta do mod fonte indisponivel");
+    std::string error;
+    const bool queued = bl::csharp::requestIsolatedMonoCompile(root, error);
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "queued", JS_NewBool(ctx, queued));
+    JS_SetPropertyStr(ctx, out, "isolated", JS_NewBool(ctx, true));
+    JS_SetPropertyStr(ctx, out, "engine", JS_NewString(ctx, "Roslyn-net8"));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, error.c_str()));
+    return out;
+}
+
+JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue out = JS_NewObject(ctx);
+    const auto state = readManagedWorkerFile("source-compile-status.txt");
+    const auto diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    JS_SetPropertyStr(ctx, out, "status", JS_NewString(ctx, state.c_str()));
+    JS_SetPropertyStr(ctx, out, "diagnostics", JS_NewString(ctx, diagnostics.c_str()));
     return out;
 }
 
@@ -866,6 +902,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 0));
     JS_SetPropertyStr(ctx, api, "managedWorkerStatus",
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceCompile",
+                      JS_NewCFunction(ctx, jsManagedSourceCompile, "sourceCompile", 0));
+    JS_SetPropertyStr(ctx, api, "sourceCompileStatus",
+                      JS_NewCFunction(ctx, jsManagedSourceCompileStatus, "sourceCompileStatus", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
