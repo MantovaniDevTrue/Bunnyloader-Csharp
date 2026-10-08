@@ -111,7 +111,7 @@ void runNativeAi(Il2CppObject* npc) {
 
     const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
     if (slot < 0 || static_cast<size_t>(slot) >= g_instances.size()) return;
-    TerrariaSnapshot snapshot = captureTerrariaSnapshot(false);
+    TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
     if (!snapshot.ready || snapshot.player.life <= 0) return;
 
     Instance& entry = g_instances[static_cast<size_t>(slot)];
