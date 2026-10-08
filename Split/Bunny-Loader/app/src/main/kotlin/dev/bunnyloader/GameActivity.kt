@@ -136,16 +136,20 @@ class GameActivity : Activity() {
     }
 
     private fun installManagedProbe(): String {
-        val target = File(filesDir, "bunny-csharp/BunnyManagedProbe.dll")
+        val dir = File(filesDir, "bunny-csharp")
+        val target = File(dir, "BunnyManagedProbe.dll")
         return runCatching {
-            target.parentFile?.mkdirs()
-            val temporary = File(target.parentFile, "BunnyManagedProbe.dll.tmp")
-            assets.open("managed/BunnyManagedProbe.dll").use { source ->
-                temporary.outputStream().use { destination -> source.copyTo(destination) }
-            }
-            if (!temporary.renameTo(target)) {
-                temporary.copyTo(target, overwrite = true)
-                temporary.delete()
+            dir.mkdirs()
+            for (name in listOf("System.Private.CoreLib.dll", "BunnyManagedProbe.dll")) {
+                val destination = File(dir, name)
+                val temporary = File(dir, "$" + "{name}.tmp")
+                assets.open("managed/$" + "name").use { source ->
+                    temporary.outputStream().use { output -> source.copyTo(output) }
+                }
+                if (!temporary.renameTo(destination)) {
+                    temporary.copyTo(destination, overwrite = true)
+                    temporary.delete()
+                }
             }
             target.absolutePath
         }.onFailure { BootLog.add(this, "C# managed probe indisponivel: ${it.message}") }
