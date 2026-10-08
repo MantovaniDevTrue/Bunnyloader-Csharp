@@ -149,6 +149,18 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
 
         // O `entry` do manifesto manda, relativo a content/ (sem ele, main.js).
         const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
+        if (name == "@native") {
+            const std::string native = mod.dir + "/native/arm64-v8a/libmod.so";
+            if (!fileExists(native)) {
+                BL_ERROR("mod %s: biblioteca NativeAOT ausente", id.c_str());
+                registry().back().enabled = false;
+                continue;
+            }
+            registry().back().entry = "@native";
+            dirsById()[id] = mod.dir + "/content";
+            registry().back().loaded = true;
+            continue;
+        }
         const std::string path = mod.dir + "/content/" + name;
         if (!fileExists(path)) {
             BL_ERROR("mod %s: nao achei o arquivo de entrada content/%s", id.c_str(), name.c_str());
@@ -167,7 +179,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     // durante a carga, mas uma referencia guardada atravessando o loadMod
     // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
-        if (!registry()[i].enabled) continue;
+        if (!registry()[i].enabled || registry()[i].entry == "@native") continue;
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];

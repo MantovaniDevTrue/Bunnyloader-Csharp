@@ -20,6 +20,9 @@ struct LoadedNativeMod {
     bool npcBehavior = false;
     int npcBindings = 0;
     bool npcCombat = false;
+    bool nativeContent = false;
+    int nativeItems = 0;
+    int nativeProjectiles = 0;
 };
 
 void loadAll();

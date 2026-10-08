@@ -151,7 +151,13 @@ class ModRepository(private val context: Context) {
         if (manifest.packType == PackType.TEXTURE) {
             require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em content/Images" }
         } else {
-            require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
+            if (manifest.entry == "@native") {
+                require(File(root, "native/arm64-v8a/libmod.so").isFile) {
+                    "mod nativo sem native/arm64-v8a/libmod.so"
+                }
+            } else {
+                require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
+            }
         }
 
         val target = File(modsDir, manifest.uid)
@@ -221,6 +227,7 @@ class ModRepository(private val context: Context) {
     private fun entryOf(dir: File): File? {
         val m = readManifest(dir) ?: return null
         if (m.packType == PackType.TEXTURE) return TexturePackFiles.images(dir)?.takeIf { TexturePackFiles.hasImages(dir) }
+        if (m.entry == "@native") return File(dir, "native/arm64-v8a/libmod.so").takeIf { it.isFile }
         val path = resolvePackagePath(dir.path, true, "${Catalog.CONTENT}/${m.entry}") ?: return null
         return File(path).takeIf { it.isFile }
     }

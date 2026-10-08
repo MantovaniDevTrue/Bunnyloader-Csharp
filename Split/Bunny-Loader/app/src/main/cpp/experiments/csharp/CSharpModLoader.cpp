@@ -1,4 +1,5 @@
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/NativeContent.h"
 
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModNpcs.h"
@@ -31,6 +32,7 @@ using AbiVersionFn = int (*)();
 using HostApiVersionFn = int (*)();
 using InitializeFn = int (*)(int);
 using ProjectileBindFn = int (*)(int, const char*);
+using NativeRegisterFn = int (*)(void*, bl::csharp::NativeRegisterCallback);
 using ProjectileReleaseFn = void (*)(int, int, int, int);
 using NpcBindFn = int (*)(int, const char*);
 using NpcTickFn = int (*)(bl::csharp::HostNpcState*, float, float);
@@ -46,6 +48,7 @@ struct NativeMod {
     LoadedNativeMod info;
     void* handle = nullptr;
     ProjectileTickFn projectileTick = nullptr;
+    NativeRegisterFn nativeRegister = nullptr;
     ProjectileBindFn projectileBind = nullptr;
     ProjectileReleaseFn projectileRelease = nullptr;
     NpcBindFn npcBind = nullptr;
@@ -204,6 +207,7 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
     const auto abi = symbol<AbiVersionFn>(native.handle, "bunny_mod_abi_version");
     const auto hostApi = symbol<HostApiVersionFn>(native.handle, "bunny_mod_host_api_version");
     const auto initialize = symbol<InitializeFn>(native.handle, "bunny_mod_initialize");
+    native.nativeRegister = symbol<NativeRegisterFn>(native.handle, "bunny_mod_register_native_content");
     native.projectileTick =
         symbol<ProjectileTickFn>(native.handle, "bunny_mod_projectile_tick");
     native.projectileBind =
@@ -241,6 +245,24 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         return;
     }
 
+    if (mod.entry == "@native") {
+        if (!native.nativeRegister) {
+            BL_ERROR("csharp mod %s: export native content obrigatorio ausente", mod.id.c_str());
+            dlclose(native.handle);
+            return;
+        }
+        bl::csharp::NativeRegisterContext context{mod.id, mod.dir, 0, 0};
+        if (!bl::csharp::prepareNativeContent() ||
+            native.nativeRegister(&context, bl::csharp::registerNativeContent) == 0 ||
+            context.items < 1 || context.projectiles < 1) {
+            BL_ERROR("csharp mod %s: registro de conteudo nativo falhou", mod.id.c_str());
+            dlclose(native.handle);
+            return;
+        }
+        native.info.nativeContent = true;
+        native.info.nativeItems = context.items;
+        native.info.nativeProjectiles = context.projectiles;
+    }
     native.info.projectileBehavior = native.projectileTick != nullptr;
     native.info.selectiveProjectiles = native.projectileBind != nullptr;
     if (native.projectileBind && native.projectileTick) {
