@@ -236,7 +236,30 @@ jobs:
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
 
+      - name: Export source-loader test artifacts
+        shell: bash
+        run: |
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.11-SourceFiles.apk"
+          cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
+          sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256"
+
+      - name: Upload signed APK and source-only mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bunny-CSharp-Source-Test-v0.1.10.11
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.11-SourceFiles.apk
+            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.11-SourceFiles.apk.sha256
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.0.bmod
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.0.bmod.sha256
+
       - name: Publish prototype APK
+        if: ${{ false }}
+
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
