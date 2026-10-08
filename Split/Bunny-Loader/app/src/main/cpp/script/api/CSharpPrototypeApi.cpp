@@ -203,8 +203,10 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     JSValue out = JS_NewObject(ctx);
     const auto state = readManagedWorkerFile("source-compile-status.txt");
     const auto diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    const auto checkpoint = readManagedWorkerFile("last-isolated-probe.txt");
     JS_SetPropertyStr(ctx, out, "status", JS_NewString(ctx, state.c_str()));
     JS_SetPropertyStr(ctx, out, "diagnostics", JS_NewString(ctx, diagnostics.c_str()));
+    JS_SetPropertyStr(ctx, out, "checkpoint", JS_NewString(ctx, checkpoint.c_str()));
     return out;
 }
 
