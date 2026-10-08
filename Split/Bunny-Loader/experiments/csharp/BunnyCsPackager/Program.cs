@@ -8,7 +8,7 @@ using BunnyLoader.CSharp.Authoring;
 
 namespace BunnyLoader.CSharp.Packager;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly DateTimeOffset FixedDate = new(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly UTF8Encoding Utf8 = new(false);
@@ -76,10 +76,25 @@ internal static class Program
                 Generate(generatedRoot, "Items/Weapons", weapon.Name, WeaponJs(weapon));
 
             foreach (BunnyNpc npc in registry.Npcs)
-                Generate(generatedRoot, "NPCs", npc.Name, NpcJs(npc));
+                Generate(generatedRoot, "NPCs", npc.Name, NpcJs(npc, registry));
 
             foreach (BunnySummonItem summon in registry.SummonItems)
                 Generate(generatedRoot, "Items/Consumables", summon.Name, SummonJs(summon));
+
+            foreach (BunnyAccessory accessory in registry.Accessories)
+                Generate(generatedRoot, "Items/Accessories", accessory.Name, AccessoryJs(accessory));
+
+            foreach (BunnyArmor armor in registry.Armor)
+                Generate(generatedRoot, "Items/Armor", armor.Name, ArmorJs(armor, registry));
+
+            foreach (BunnyBuff buff in registry.Buffs)
+                Generate(generatedRoot, "Buffs", buff.Name, BuffJs(buff));
+
+            foreach (BunnyBuffPotion potion in registry.BuffPotions)
+                Generate(generatedRoot, "Items/Consumables", potion.Name, BuffPotionJs(potion));
+
+            foreach (BunnyMaterial material in registry.Materials)
+                Generate(generatedRoot, "Items/Materials", material.Name, MaterialJs(material));
 
             string sourceAssets = Path.Combine(assetsPath, "Content");
             if (!Directory.Exists(sourceAssets))
@@ -96,7 +111,12 @@ internal static class Program
             foreach (string expected in registry.Projectiles.Select(p => "Projectiles/" + p.Name)
                          .Concat(registry.Weapons.Select(w => "Items/Weapons/" + w.Name))
                          .Concat(registry.Npcs.Select(n => "NPCs/" + n.Name))
-                         .Concat(registry.SummonItems.Select(s => "Items/Consumables/" + s.Name)))
+                         .Concat(registry.SummonItems.Select(s => "Items/Consumables/" + s.Name))
+                         .Concat(registry.Accessories.Select(a => "Items/Accessories/" + a.Name))
+                         .Concat(registry.Armor.Select(a => "Items/Armor/" + a.Name))
+                         .Concat(registry.Buffs.Select(b => "Buffs/" + b.Name))
+                         .Concat(registry.BuffPotions.Select(b => "Items/Consumables/" + b.Name))
+                         .Concat(registry.Materials.Select(m => "Items/Materials/" + m.Name)))
             {
                 if (!File.Exists(Path.Combine(generatedRoot, expected.Replace('/', Path.DirectorySeparatorChar) + ".png")))
                     throw new FileNotFoundException("Required sprite is missing: " + expected + ".png");
@@ -127,6 +147,13 @@ internal static class Program
             Console.WriteLine("BUNNY_GENERATED_WEAPONS=" + registry.Weapons.Count);
             Console.WriteLine("BUNNY_GENERATED_NPCS=" + registry.Npcs.Count);
             Console.WriteLine("BUNNY_GENERATED_SUMMONS=" + registry.SummonItems.Count);
+            Console.WriteLine("BUNNY_GENERATED_ACCESSORIES=" + registry.Accessories.Count);
+            Console.WriteLine("BUNNY_GENERATED_ARMOR=" + registry.Armor.Count);
+            Console.WriteLine("BUNNY_GENERATED_ARMOR_SETS=" + registry.ArmorSets.Count);
+            Console.WriteLine("BUNNY_GENERATED_BUFFS=" + registry.Buffs.Count);
+            Console.WriteLine("BUNNY_GENERATED_POTIONS=" + registry.BuffPotions.Count);
+            Console.WriteLine("BUNNY_GENERATED_MATERIALS=" + registry.Materials.Count);
+            Console.WriteLine("BUNNY_GENERATED_NPC_DROPS=" + registry.NpcDrops.Count);
             return 0;
         }
         catch (Exception exception)
@@ -149,7 +176,12 @@ internal static class Program
         foreach (string name in content.Projectiles.Select(p => p.Name)
                      .Concat(content.Weapons.Select(w => w.Name))
                      .Concat(content.Npcs.Select(n => n.Name))
-                     .Concat(content.SummonItems.Select(s => s.Name)))
+                     .Concat(content.SummonItems.Select(s => s.Name))
+                     .Concat(content.Accessories.Select(a => a.Name))
+                     .Concat(content.Armor.Select(a => a.Name))
+                     .Concat(content.Buffs.Select(b => b.Name))
+                     .Concat(content.BuffPotions.Select(b => b.Name))
+                     .Concat(content.Materials.Select(m => m.Name)))
         {
             Id(name);
             if (!types.Add(name)) throw new InvalidOperationException("Duplicate content name: " + name);
@@ -169,6 +201,7 @@ internal static class Program
             if (!npcs.Contains(item.Npc)) throw new InvalidOperationException("Unknown NPC: " + item.Npc);
             Id(item.Rarity);
         }
+        ValidateAdvanced(content);
         foreach (BunnyNpc npc in content.Npcs)
         {
             Id(npc.AnimationNpc);
@@ -257,7 +290,7 @@ internal static class Program
         .Replace("@RARITY@", w.Rarity).Replace("@SOUND@", w.UseSound)
         .Replace("@WOOD@", w.WoodCost.ToString(CultureInfo.InvariantCulture));
 
-    private static string NpcJs(BunnyNpc n)
+    private static string NpcJs(BunnyNpc n, BunnyContentRegistry registry)
     {
         string combat = n.CombatProjectile is null ? "" : """
                 AI(npc) {
@@ -293,6 +326,7 @@ internal static class Program
                 }
 
             @COMBAT@
+            @DROPS@
                 SetDefaults() {
                     this.NPC.width = @WIDTH@;
                     this.NPC.height = @HEIGHT@;
@@ -308,7 +342,7 @@ internal static class Program
                 }
             }
             """).Replace("@DECLARATION@", declaration).Replace("@NAME@", n.Name)
-            .Replace("@COMBAT@", combat)
+            .Replace("@COMBAT@", combat).Replace("@DROPS@", NpcDropsJs(n, registry))
             .Replace("@FRAMECOUNT@", n.FrameCount.ToString(CultureInfo.InvariantCulture))
             .Replace("@WIDTH@", n.Width.ToString(CultureInfo.InvariantCulture))
             .Replace("@HEIGHT@", n.Height.ToString(CultureInfo.InvariantCulture))
