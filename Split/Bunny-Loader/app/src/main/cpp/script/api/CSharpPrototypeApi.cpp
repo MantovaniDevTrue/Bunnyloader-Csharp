@@ -6,6 +6,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "core/Config.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
