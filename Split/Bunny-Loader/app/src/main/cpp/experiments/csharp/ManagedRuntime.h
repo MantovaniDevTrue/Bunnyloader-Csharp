@@ -16,6 +16,7 @@ struct ManagedRuntimeStatus {
 };
 
 ManagedRuntimeStatus managedRuntimeStatus();
+ManagedRuntimeStatus inspectManagedRuntime();
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
 
 }
