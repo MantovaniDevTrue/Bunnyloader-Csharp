@@ -13,6 +13,11 @@ int main(int argc, char** argv) {
     if (!missing.attempted || missing.phase != "invalid-assembly" ||
         missing.libraryLoaded || missing.methodExecuted) return 3;
 
+    const auto inspected = bl::csharp::inspectManagedRuntime();
+    if (!inspected.libraryLoaded || !inspected.symbolsReady ||
+        inspected.domainInitialized || inspected.methodExecuted ||
+        inspected.phase != "symbols-ready") return 7;
+
     const auto first = bl::csharp::probeManagedRuntime(argv[1]);
     if (!first.libraryLoaded || !first.symbolsReady ||
         !first.domainInitialized || !first.methodExecuted ||
