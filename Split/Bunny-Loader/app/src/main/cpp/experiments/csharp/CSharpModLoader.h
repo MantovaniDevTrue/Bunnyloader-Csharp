@@ -15,6 +15,8 @@ struct LoadedNativeMod {
     int hostApiVersion = 0;
     bool loaded = false;
     bool projectileBehavior = false;
+    bool selectiveProjectiles = false;
+    int projectileBindings = 0;
 };
 
 void loadAll();
