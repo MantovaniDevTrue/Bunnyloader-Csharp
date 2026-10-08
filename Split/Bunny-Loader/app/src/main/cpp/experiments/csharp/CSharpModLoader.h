@@ -19,6 +19,7 @@ struct LoadedNativeMod {
     int projectileBindings = 0;
     bool npcBehavior = false;
     int npcBindings = 0;
+    bool npcCombat = false;
 };
 
 void loadAll();
@@ -27,6 +28,8 @@ std::vector<LoadedNativeMod> snapshot();
 
 bool hasProjectileBehavior();
 bool hasNpcBehavior();
+bool dispatchOwnedNpcCombat(int npcType, bl::csharp::HostNpcState* state,
+                            float playerX, float playerY, bl::csharp::HostNpcAttack* attack);
 bool hasOwnedNpcBehavior(int npcType);
 bool dispatchOwnedNpc(int npcType, bl::csharp::HostNpcState* state, float playerX, float playerY);
 void releaseOwnedNpc(int npcType, int slot, int generation);

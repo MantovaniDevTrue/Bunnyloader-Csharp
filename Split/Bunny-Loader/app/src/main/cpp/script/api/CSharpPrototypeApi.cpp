@@ -39,6 +39,7 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "projectileBindings", JS_NewInt32(ctx, mod.projectileBindings));
         JS_SetPropertyStr(ctx, row, "npcBehavior", JS_NewBool(ctx, mod.npcBehavior));
         JS_SetPropertyStr(ctx, row, "npcBindings", JS_NewInt32(ctx, mod.npcBindings));
+        JS_SetPropertyStr(ctx, row, "npcCombat", JS_NewBool(ctx, mod.npcCombat));
         JS_SetPropertyUint32(ctx, out, at++, row);
     }
     return out;
@@ -473,6 +474,27 @@ JSValue jsProjectileMethods(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return out;
 }
 
+JSValue jsNpcAttack(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t slot = -1;
+    int32_t type = -1;
+    if (argc < 2 || JS_ToInt32(ctx, &slot, argv[0]) < 0 ||
+        JS_ToInt32(ctx, &type, argv[1]) < 0) return JS_EXCEPTION;
+
+    bl::csharp::HostNpcAttack attack{};
+    if (!bl::csharp::takeNpcAttack(slot, type, &attack)) return JS_NULL;
+
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "count", JS_NewInt32(ctx, attack.count));
+    JS_SetPropertyStr(ctx, out, "damage", JS_NewInt32(ctx, attack.damage));
+    JS_SetPropertyStr(ctx, out, "x", JS_NewFloat64(ctx, attack.x));
+    JS_SetPropertyStr(ctx, out, "y", JS_NewFloat64(ctx, attack.y));
+    JS_SetPropertyStr(ctx, out, "vx0", JS_NewFloat64(ctx, attack.vx0));
+    JS_SetPropertyStr(ctx, out, "vy0", JS_NewFloat64(ctx, attack.vy0));
+    JS_SetPropertyStr(ctx, out, "vx1", JS_NewFloat64(ctx, attack.vx1));
+    JS_SetPropertyStr(ctx, out, "vy1", JS_NewFloat64(ctx, attack.vy1));
+    return out;
+}
+
 JSValue jsNpcStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     const auto status = bl::csharp::npcAiStatus();
     JSValue out = JS_NewObject(ctx);
@@ -481,6 +503,9 @@ JSValue jsNpcStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
     JS_SetPropertyStr(ctx, out, "spawns", JS_NewInt32(ctx, status.spawns));
     JS_SetPropertyStr(ctx, out, "releases", JS_NewInt32(ctx, status.releases));
+    JS_SetPropertyStr(ctx, out, "attacksQueued", JS_NewInt32(ctx, status.attacksQueued));
+    JS_SetPropertyStr(ctx, out, "attacksConsumed", JS_NewInt32(ctx, status.attacksConsumed));
+    JS_SetPropertyStr(ctx, out, "attacksRejected", JS_NewInt32(ctx, status.attacksRejected));
     return out;
 }
 
@@ -664,6 +689,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "projectileWriteStatus",
                       JS_NewCFunction(ctx, jsProjectileWriteStatus, "projectileWriteStatus", 0));
     JS_SetPropertyStr(ctx, api, "npcStatus", JS_NewCFunction(ctx, jsNpcStatus, "npcStatus", 0));
+    JS_SetPropertyStr(ctx, api, "npcAttack", JS_NewCFunction(ctx, jsNpcAttack, "npcAttack", 2));
     JS_SetPropertyStr(ctx, api, "projectileProbe",
                       JS_NewCFunction(ctx, jsProjectileProbe, "projectileProbe", 0));
     JS_SetPropertyStr(ctx, api, "projectileMethods",

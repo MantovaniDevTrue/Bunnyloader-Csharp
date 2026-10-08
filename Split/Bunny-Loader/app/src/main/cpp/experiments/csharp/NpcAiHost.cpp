@@ -76,6 +76,35 @@ int g_spawns = 0;
 int g_releases = 0;
 int g_calls = 0;
 int g_writes = 0;
+int g_attacksQueued = 0;
+int g_attacksConsumed = 0;
+int g_attacksRejected = 0;
+
+struct PendingAttack {
+    int type = -1;
+    int generation = 0;
+    bool ready = false;
+    HostNpcAttack attack{};
+};
+
+std::array<PendingAttack, 512> g_pendingAttacks{};
+std::array<int, 512> g_attackDelay{};
+
+bool validAttack(const HostNpcAttack& attack, const HostNpcState& state) {
+    if (attack.count < 1 || attack.count > 2 ||
+        attack.damage < 1 || attack.damage > 100 ||
+        !std::isfinite(attack.x) || !std::isfinite(attack.y) ||
+        std::fabs(attack.x - state.x) > 32.f || std::fabs(attack.y - state.y) > 32.f)
+        return false;
+
+    const auto checkVelocity = [](float vx, float vy) {
+        if (!std::isfinite(vx) || !std::isfinite(vy)) return false;
+        const float speedSq = vx * vx + vy * vy;
+        return speedSq >= 4.f && speedSq <= 256.f;
+    };
+    return checkVelocity(attack.vx0, attack.vy0) &&
+           (attack.count == 1 || checkVelocity(attack.vx1, attack.vy1));
+}
 
 void retire(int slot, Il2CppObject* expected = nullptr) {
     if (slot < 0 || static_cast<size_t>(slot) >= g_instances.size()) return;
@@ -83,6 +112,8 @@ void retire(int slot, Il2CppObject* expected = nullptr) {
     if (!entry.object || (expected && entry.object != expected)) return;
     const Instance previous = entry;
     entry = {};
+    g_pendingAttacks[static_cast<size_t>(slot)] = {};
+    g_attackDelay[static_cast<size_t>(slot)] = 0;
     csharpmods::releaseOwnedNpc(previous.type, slot, previous.generation);
     ++g_releases;
 }
@@ -115,6 +146,7 @@ void runNativeAi(Il2CppObject* npc) {
     if (!snapshot.ready || snapshot.player.life <= 0) return;
 
     Instance& entry = g_instances[static_cast<size_t>(slot)];
+    g_pendingAttacks[static_cast<size_t>(slot)] = {};
     if (entry.object != npc || entry.type != type) {
         retire(slot);
         if (g_nextGeneration <= 0) g_nextGeneration = 1;
@@ -160,6 +192,22 @@ void runNativeAi(Il2CppObject* npc) {
             runtime::field<int>(npc, r.spriteDirection) = facing;
     }
     ++g_writes;
+
+    if (g_attackDelay[static_cast<size_t>(slot)] > 0) {
+        --g_attackDelay[static_cast<size_t>(slot)];
+        return;
+    }
+
+    HostNpcAttack attack{};
+    if (!csharpmods::dispatchOwnedNpcCombat(type, &state, snapshot.player.x,
+                                             snapshot.player.y, &attack)) return;
+    if (!validAttack(attack, state)) {
+        ++g_attacksRejected;
+        return;
+    }
+    g_pendingAttacks[static_cast<size_t>(slot)] = {type, entry.generation, true, attack};
+    g_attackDelay[static_cast<size_t>(slot)] = 12;
+    ++g_attacksQueued;
 }
 
 void hookAi(Il2CppObject* npc, const MethodInfo* method) {
@@ -179,6 +227,19 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
 
 }
 
+bool takeNpcAttack(int slot, int type, HostNpcAttack* out) {
+    if (!out || slot < 0 || static_cast<size_t>(slot) >= g_pendingAttacks.size())
+        return false;
+    PendingAttack& queued = g_pendingAttacks[static_cast<size_t>(slot)];
+    if (!queued.ready || queued.type != type ||
+        g_instances[static_cast<size_t>(slot)].generation != queued.generation)
+        return false;
+    *out = queued.attack;
+    queued = {};
+    ++g_attacksConsumed;
+    return true;
+}
+
 NpcAiStatus npcAiStatus() {
     NpcAiStatus status;
     status.installed = g_installed;
@@ -186,6 +247,9 @@ NpcAiStatus npcAiStatus() {
     status.writes = g_writes;
     status.spawns = g_spawns;
     status.releases = g_releases;
+    status.attacksQueued = g_attacksQueued;
+    status.attacksConsumed = g_attacksConsumed;
+    status.attacksRejected = g_attacksRejected;
     return status;
 }
 

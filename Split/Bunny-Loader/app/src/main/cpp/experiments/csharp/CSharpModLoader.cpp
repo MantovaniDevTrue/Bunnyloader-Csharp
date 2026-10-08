@@ -34,6 +34,7 @@ using ProjectileBindFn = int (*)(int, const char*);
 using ProjectileReleaseFn = void (*)(int, int, int, int);
 using NpcBindFn = int (*)(int, const char*);
 using NpcTickFn = int (*)(bl::csharp::HostNpcState*, float, float);
+using NpcCombatFn = int (*)(bl::csharp::HostNpcState*, float, float, bl::csharp::HostNpcAttack*);
 using NpcReleaseFn = void (*)(int, int, int);
 using ProjectileTickFn = int (*)(bl::csharp::HostProjectileState*,
                                  const bl::csharp::NpcSample*,
@@ -49,6 +50,7 @@ struct NativeMod {
     ProjectileReleaseFn projectileRelease = nullptr;
     NpcBindFn npcBind = nullptr;
     NpcTickFn npcTick = nullptr;
+    NpcCombatFn npcCombat = nullptr;
     NpcReleaseFn npcRelease = nullptr;
     std::unordered_set<int> acceptedProjectileTypes;
     std::unordered_set<int> acceptedNpcTypes;
@@ -210,6 +212,7 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         symbol<ProjectileReleaseFn>(native.handle, "bunny_mod_projectile_release");
     native.npcBind = symbol<NpcBindFn>(native.handle, "bunny_mod_bind_npc");
     native.npcTick = symbol<NpcTickFn>(native.handle, "bunny_mod_npc_tick");
+    native.npcCombat = symbol<NpcCombatFn>(native.handle, "bunny_mod_npc_combat_tick");
     native.npcRelease = symbol<NpcReleaseFn>(native.handle, "bunny_mod_npc_release");
 
     if (!abi || !hostApi || !initialize) {
@@ -249,6 +252,7 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         native.info.projectileBindings = static_cast<int>(native.acceptedProjectileTypes.size());
     }
     native.info.npcBehavior = native.npcBind && native.npcTick;
+    native.info.npcCombat = native.info.npcBehavior && native.npcCombat;
     if (native.info.npcBehavior) {
         for (const auto& entry : bl::runtime::registeredNpcsForMod(mod.id)) {
             if (native.npcBind(entry.first, entry.second.c_str())) {
@@ -318,6 +322,18 @@ bool hasOwnedNpcBehavior(int npcType) {
     for (const NativeMod& mod : g_mods)
         if (mod.info.loaded && mod.npcTick && mod.acceptedNpcTypes.count(npcType) &&
             bl::runtime::modNpcBelongsTo(npcType, mod.info.id)) return true;
+    return false;
+}
+
+bool dispatchOwnedNpcCombat(int npcType, bl::csharp::HostNpcState* state,
+                            float playerX, float playerY, bl::csharp::HostNpcAttack* attack) {
+    if (!state || !attack || state->type != npcType) return false;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    for (const NativeMod& mod : g_mods) {
+        if (!mod.info.loaded || !mod.npcCombat || !mod.acceptedNpcTypes.count(npcType) ||
+            !bl::runtime::modNpcBelongsTo(npcType, mod.info.id)) continue;
+        return mod.npcCombat(state, playerX, playerY, attack) != 0;
+    }
     return false;
 }
 
