@@ -142,8 +142,8 @@ class GameActivity : Activity() {
             dir.mkdirs()
             for (name in listOf("System.Private.CoreLib.dll", "BunnyManagedProbe.dll")) {
                 val destination = File(dir, name)
-                val temporary = File(dir, "$" + "{name}.tmp")
-                assets.open("managed/$" + "name").use { source ->
+                val temporary = File(dir, name + ".tmp")
+                assets.open("managed/" + name).use { source ->
                     temporary.outputStream().use { output -> source.copyTo(output) }
                 }
                 if (!temporary.renameTo(destination)) {
