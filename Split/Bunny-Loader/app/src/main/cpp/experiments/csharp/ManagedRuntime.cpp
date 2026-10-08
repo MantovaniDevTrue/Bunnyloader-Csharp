@@ -24,6 +24,7 @@ using ClassFn = void* (*)(void*, const char*, const char*);
 using MethodFn = void* (*)(void*, const char*, int);
 using InvokeFn = void* (*)(void*, void*, void**, void**);
 using UnboxFn = void* (*)(void*);
+using NewStringFn = void* (*)(void*, const char*);
 
 struct MonoApi {
     InitFn initialize = nullptr;
@@ -35,6 +36,7 @@ struct MonoApi {
     MethodFn findMethod = nullptr;
     InvokeFn invoke = nullptr;
     UnboxFn unbox = nullptr;
+    NewStringFn newString = nullptr;
 };
 
 std::mutex g_mutex;
@@ -115,6 +117,7 @@ bool loadLibrary() {
     g_api.findMethod = resolve<MethodFn>("mono_class_get_method_from_name");
     g_api.invoke = resolve<InvokeFn>("mono_runtime_invoke");
     g_api.unbox = resolve<UnboxFn>("mono_object_unbox");
+    g_api.newString = resolve<NewStringFn>("mono_string_new");
     if (!g_api.initialize || !g_api.attach || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) {
         failure("abi-incompatible", "Mono Embedding API incompleta");
@@ -268,6 +271,89 @@ ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int 
     g_status.methodExecuted = true;
     trace("callback-verified");
     return g_status;
+}
+
+ManagedSourceCompileResult compileManagedSource(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modRoot,
+    const std::string& outputAssembly,
+    const std::string& diagnosticsPath) {
+    ManagedSourceCompileResult out;
+    if (modRoot.empty() || outputAssembly.empty() || diagnosticsPath.empty() ||
+        modRoot.size() > 2048 || outputAssembly.size() > 2048 ||
+        diagnosticsPath.size() > 2048 ||
+        modRoot.find("..") != std::string::npos ||
+        outputAssembly.find("..") != std::string::npos ||
+        diagnosticsPath.find("..") != std::string::npos) {
+        out.phase = "compile-path-invalid";
+        out.error = "Diretorio do mod ou saida invalida";
+        return out;
+    }
+    const auto initialized = probeManagedRuntime(probeAssembly);
+    if (!initialized.domainInitialized || !initialized.methodExecuted) {
+        out.phase = "compile-mono-unavailable";
+        out.error = initialized.error;
+        return out;
+    }
+
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!validAssembly(compilerAssembly) || !g_api.newString) {
+        out.phase = "compile-host-unavailable";
+        out.error = "Roslyn assembly ou mono_string_new indisponivel";
+        trace("compile-host-unavailable", out.error.c_str());
+        return out;
+    }
+    trace("compile-opening-assembly");
+    void* assembly = g_api.openAssembly(g_domain, compilerAssembly.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.SourceCompiler", "Compiler") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "Compile", 4) : nullptr;
+    if (!method) {
+        out.phase = "compile-method-missing";
+        out.error = "Compiler.Compile(string,string,string,string) indisponivel";
+        trace("compile-method-missing", out.error.c_str());
+        return out;
+    }
+    const auto slash = compilerAssembly.find_last_of('/');
+    if (slash == std::string::npos) {
+        out.phase = "compile-framework-invalid";
+        return out;
+    }
+    const std::string frameworkDir = compilerAssembly.substr(0, slash);
+    void* argsManaged[] = {
+        g_api.newString(g_domain, modRoot.c_str()),
+        g_api.newString(g_domain, outputAssembly.c_str()),
+        g_api.newString(g_domain, frameworkDir.c_str()),
+        g_api.newString(g_domain, diagnosticsPath.c_str())
+    };
+    if (!argsManaged[0] || !argsManaged[1] || !argsManaged[2] || !argsManaged[3]) {
+        out.phase = "compile-arguments-failed";
+        return out;
+    }
+    void* args[] = {
+        &argsManaged[0], &argsManaged[1], &argsManaged[2], &argsManaged[3]
+    };
+    void* exception = nullptr;
+    trace("compiling-source");
+    void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    if (exception || !boxed) {
+        out.phase = "compile-managed-exception";
+        out.error = "Excecao no compilador gerenciado, consultar logcat";
+        trace("compile-managed-exception", out.error.c_str());
+        return out;
+    }
+    void* raw = g_api.unbox(boxed);
+    if (!raw) {
+        out.phase = "compile-return-invalid";
+        trace("compile-return-invalid");
+        return out;
+    }
+    std::memcpy(&out.result, raw, sizeof(out.result));
+    out.phase = out.result > 0 ? "compile-verified" : "compile-failed";
+    trace(out.phase.c_str());
+    return out;
 }
 
 bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
