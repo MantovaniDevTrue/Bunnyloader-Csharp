@@ -10,6 +10,7 @@ namespace bl::csharp {
 namespace {
 
 using InitFn = void* (*)(const char*, const char*);
+using AssemblyPathFn = void (*)(const char*);
 using AttachFn = void* (*)(void*);
 using OpenFn = void* (*)(void*, const char*);
 using ImageFn = void* (*)(void*);
@@ -20,6 +21,7 @@ using UnboxFn = void* (*)(void*);
 
 struct MonoApi {
     InitFn initialize = nullptr;
+    AssemblyPathFn setAssembliesPath = nullptr;
     AttachFn attach = nullptr;
     OpenFn openAssembly = nullptr;
     ImageFn image = nullptr;
@@ -65,6 +67,7 @@ bool loadLibrary() {
     }
     g_status.libraryLoaded = true;
     g_api.initialize = resolve<InitFn>("mono_jit_init_version");
+    g_api.setAssembliesPath = resolve<AssemblyPathFn>("mono_set_assemblies_path");
     g_api.attach = resolve<AttachFn>("mono_thread_attach");
     g_api.openAssembly = resolve<OpenFn>("mono_domain_assembly_open");
     g_api.image = resolve<ImageFn>("mono_assembly_get_image");
@@ -104,6 +107,9 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     if (!loadLibrary()) return g_status;
 
     if (!g_domain) {
+        const auto slash = assemblyPath.find_last_of('/');
+        if (g_api.setAssembliesPath && slash != std::string::npos)
+            g_api.setAssembliesPath(assemblyPath.substr(0, slash).c_str());
         g_domain = g_api.initialize("BunnyCSharp", "v4.0.30319");
         if (!g_domain)
             return failure("domain-failed", "mono_jit_init_version retornou nulo");
