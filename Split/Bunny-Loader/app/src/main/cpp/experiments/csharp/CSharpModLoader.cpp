@@ -16,6 +16,7 @@
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace bl::csharpmods {
@@ -28,6 +29,7 @@ constexpr int kHostApiVersion = 1;
 using AbiVersionFn = int (*)();
 using HostApiVersionFn = int (*)();
 using InitializeFn = int (*)(int);
+using ProjectileBindFn = int (*)(int, const char*);
 using ProjectileTickFn = int (*)(bl::csharp::HostProjectileState*,
                                  const bl::csharp::NpcSample*,
                                  int,
@@ -38,6 +40,8 @@ struct NativeMod {
     LoadedNativeMod info;
     void* handle = nullptr;
     ProjectileTickFn projectileTick = nullptr;
+    ProjectileBindFn projectileBind = nullptr;
+    std::unordered_set<int> acceptedProjectileTypes;
 };
 
 std::mutex g_mutex;
@@ -190,6 +194,8 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
     const auto initialize = symbol<InitializeFn>(native.handle, "bunny_mod_initialize");
     native.projectileTick =
         symbol<ProjectileTickFn>(native.handle, "bunny_mod_projectile_tick");
+    native.projectileBind =
+        symbol<ProjectileBindFn>(native.handle, "bunny_mod_bind_projectile");
 
     if (!abi || !hostApi || !initialize) {
         BL_ERROR("csharp mod %s: exports obrigatorios ausentes", mod.id.c_str());
@@ -218,10 +224,22 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
     }
 
     native.info.projectileBehavior = native.projectileTick != nullptr;
+    native.info.selectiveProjectiles = native.projectileBind != nullptr;
+    if (native.projectileBind && native.projectileTick) {
+        for (const auto& entry : bl::runtime::registeredProjectilesForMod(mod.id)) {
+            if (native.projectileBind(entry.first, entry.second.c_str()) != 0) {
+                native.acceptedProjectileTypes.insert(entry.first);
+            }
+        }
+        native.info.projectileBindings = static_cast<int>(native.acceptedProjectileTypes.size());
+    }
     native.info.loaded = true;
     BL_INFO("csharp mod %s: NativeAOT carregado (ABI %d, Host API %d, projectile=%s)",
             mod.id.c_str(), native.info.abiVersion, native.info.hostApiVersion,
             native.info.projectileBehavior ? "sim" : "nao");
+    BL_INFO("csharp mod %s: filtro por tipo=%s, projeteis C#=%d",
+            mod.id.c_str(), native.info.selectiveProjectiles ? "sim" : "legado",
+            native.info.projectileBindings);
     g_mods.push_back(std::move(native));
 }
 
@@ -265,7 +283,9 @@ bool hasOwnedProjectileBehavior(int projectileType) {
     std::lock_guard<std::mutex> lock(g_mutex);
     for (const NativeMod& mod : g_mods) {
         if (mod.info.loaded && mod.projectileTick &&
-            bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id)) {
+            bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id) &&
+            (!mod.projectileBind ||
+             mod.acceptedProjectileTypes.count(projectileType) != 0)) {
             return true;
         }
     }
@@ -282,7 +302,9 @@ bool dispatchOwnedProjectile(int projectileType,
     std::lock_guard<std::mutex> lock(g_mutex);
     for (NativeMod& mod : g_mods) {
         if (!mod.info.loaded || !mod.projectileTick ||
-            !bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id)) continue;
+            !bl::runtime::modProjectileBelongsTo(projectileType, mod.info.id) ||
+            (mod.projectileBind &&
+             mod.acceptedProjectileTypes.count(projectileType) == 0)) continue;
         return mod.projectileTick(state, npcs, count, playerX, playerY) != 0;
     }
     return false;
