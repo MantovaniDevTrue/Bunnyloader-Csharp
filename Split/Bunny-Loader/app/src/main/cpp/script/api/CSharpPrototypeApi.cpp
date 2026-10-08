@@ -73,6 +73,35 @@ std::string readManagedWorkerFile(const char* filename) {
     return std::string(buffer, static_cast<size_t>(stream.gcount()));
 }
 
+JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "managedGameProbe('CONFIRM_IN_PROCESS')");
+    const char* token = JS_ToCString(ctx, argv[0]);
+    if (!token) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(token) == "CONFIRM_IN_PROCESS";
+    JS_FreeCString(ctx, token);
+    if (!confirmed) return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_IN_PROCESS");
+
+    const auto workerState = readManagedWorkerFile("isolated-worker-status.txt");
+    const auto workerCheckpoint = readManagedWorkerFile("last-isolated-probe.txt");
+    if (workerState.find("state=finished\n") == std::string::npos ||
+        workerState.find("methodExecuted=1\n") == std::string::npos ||
+        workerState.find("result=42\n") == std::string::npos ||
+        workerCheckpoint.find("phase=verified\n") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Executar managedProbe() no worker e aguardar verified antes do teste no jogo");
+
+    const auto& checkpoint = bl::config().managedCheckpointPath;
+    const auto slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Diretorio do Mono nao configurado");
+    const auto assembly = checkpoint.substr(0, slash + 1) + "BunnyManagedProbe.dll";
+    std::ifstream probeFile(assembly, std::ios::binary);
+    if (!probeFile)
+        return JS_ThrowInternalError(ctx, "BunnyManagedProbe.dll ausente; executar worker antes");
+
+    return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(assembly));
+}
+
 JSValue jsManagedWorkerStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewObject(ctx);
     const auto state = readManagedWorkerFile("isolated-worker-status.txt");
@@ -767,6 +796,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 0));
     JS_SetPropertyStr(ctx, api, "managedWorkerStatus",
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
+    JS_SetPropertyStr(ctx, api, "managedGameProbe",
+                      JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
