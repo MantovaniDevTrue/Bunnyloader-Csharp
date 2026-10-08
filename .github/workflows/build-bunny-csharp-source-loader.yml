@@ -281,17 +281,36 @@ jobs:
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256"
 
-      - name: Upload signed APK and source-only mod
-        uses: actions/upload-artifact@v4
-        with:
-          name: Bunny-CSharp-Managed-Runtime-v0.1.10.12
-          retention-days: 30
-          if-no-files-found: error
-          path: |
-            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.12-ManagedRuntime.apk
-            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.12-ManagedRuntime.apk.sha256
-            ${{ runner.temp }}/SourceCSharpMod-v0.1.0.bmod
-            ${{ runner.temp }}/SourceCSharpMod-v0.1.0.bmod.sha256
+      - name: Publish signed APK as GitHub Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="bunny-csharp-managed-runtime-0.1.10.12"
+          FALLBACK="bunny-csharp-native-armor-combat-v1"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.12-ManagedRuntime.apk"
+          test -s "$APK"
+          test -s "$APK.sha256"
+          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "${{ github.repository }}" \
+              --target "$GITHUB_SHA" \
+              --title "Bunny Loader C# v0.1.10.12 — Managed Runtime Probe" \
+              --notes "Experimental Android ARM64 MonoVM embedding probe. Source-only C# SetDefaults parser is unchanged; full C# mods are NOT yet supported. APK and mod are for device diagnostics. Use bl.csharp.managedRuntime() then bl.csharp.managedProbe()." \
+              --prerelease || true
+          fi
+          DEST="$TAG"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            DEST="$FALLBACK"
+            echo "New release creation unavailable; publishing extra v0.1.10.12 assets into existing private test release."
+          fi
+          gh release upload "$DEST" \
+            "$APK" "$APK.sha256" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256" \
+            --repo "${{ github.repository }}" --clobber
+          echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
 
       - name: Publish prototype APK
         if: ${{ false }}
