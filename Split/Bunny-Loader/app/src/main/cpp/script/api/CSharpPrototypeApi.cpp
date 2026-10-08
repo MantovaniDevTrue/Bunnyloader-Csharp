@@ -254,6 +254,12 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     }
     JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
     JS_SetPropertyStr(ctx, out, "exitTrace", JS_NewString(ctx, exitTrace.c_str()));
+    const auto nativeAbort = readManagedWorkerFile("native-abort-trace.txt");
+    const auto nativeMaps = readManagedWorkerFile("native-abort-maps.txt");
+    const auto nativeThreads = readManagedWorkerFile("native-abort-threads.txt");
+    JS_SetPropertyStr(ctx, out, "nativeAbort", JS_NewString(ctx, nativeAbort.c_str()));
+    JS_SetPropertyStr(ctx, out, "nativeMaps", JS_NewString(ctx, nativeMaps.c_str()));
+    JS_SetPropertyStr(ctx, out, "nativeThreads", JS_NewString(ctx, nativeThreads.c_str()));
     return out;
 }
 

@@ -114,9 +114,10 @@ list(REMOVE_ITEM BL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/experiments/csharp/MonoW
 
 add_library(bunnymonoprobe SHARED
     experiments/csharp/ManagedRuntime.cpp
-    experiments/csharp/MonoWorkerJni.cpp)
+    experiments/csharp/MonoWorkerJni.cpp
+    experiments/csharp/NativeAbortProbe.cpp)
 target_include_directories(bunnymonoprobe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_options(bunnymonoprobe PRIVATE -O2 -fno-exceptions -fno-rtti)
+target_compile_options(bunnymonoprobe PRIVATE -O2 -fno-exceptions -fno-rtti -fno-omit-frame-pointer)
 target_link_libraries(bunnymonoprobe log dl)
 
 add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})

@@ -1,4 +1,5 @@
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 
 #include <jni.h>
 #include <string>
@@ -42,6 +43,9 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     const std::string outputPath = get(output);
     const std::string diagnosticPath = get(diagnostic);
     bl::csharp::setManagedCheckpointPath(get(checkpoint));
+    const auto slash = diagnosticPath.find_last_of('/');
+    if (slash != std::string::npos)
+        bl::csharp::installNativeAbortProbe(diagnosticPath.substr(0, slash));
     const auto result = bl::csharp::compileManagedSource(
         probePath, compilerPath, sourceRoot, outputPath, diagnosticPath);
     const std::string status = "result=" + std::to_string(result.result) +
