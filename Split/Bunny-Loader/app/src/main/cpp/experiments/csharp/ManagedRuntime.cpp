@@ -15,7 +15,7 @@
 namespace bl::csharp {
 namespace {
 
-using InitFn = void* (*)(const char*, const char*);
+using InitFn = void* (*)(const char*);
 using AssemblyPathFn = void (*)(const char*);
 using AttachFn = void* (*)(void*);
 using OpenFn = void* (*)(void*, const char*);
@@ -105,7 +105,7 @@ bool loadLibrary() {
     }
     g_status.libraryLoaded = true;
     trace("resolving-symbols");
-    g_api.initialize = resolve<InitFn>("mono_jit_init_version");
+    g_api.initialize = resolve<InitFn>("mono_jit_init");
     g_api.setAssembliesPath = resolve<AssemblyPathFn>("mono_set_assemblies_path");
     g_api.attach = resolve<AttachFn>("mono_thread_attach");
     g_api.openAssembly = resolve<OpenFn>("mono_domain_assembly_open");
@@ -168,10 +168,20 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
             trace("setting-assembly-path");
             g_api.setAssembliesPath(assemblyPath.substr(0, slash).c_str());
         }
+#ifdef __ANDROID__
+        trace("checking-system-native");
+        void* systemNative = dlopen("libSystem.Native.so", RTLD_NOW | RTLD_LOCAL);
+        if (!systemNative) {
+            const char* message = dlerror();
+            return failure("system-native-missing",
+                           message ? message : "libSystem.Native.so indisponivel");
+        }
+        trace("system-native-ready");
+#endif
         trace("initializing-domain");
-        g_domain = g_api.initialize("BunnyCSharp", "v4.0.30319");
+        g_domain = g_api.initialize("BunnyCSharp");
         if (!g_domain)
-            return failure("domain-failed", "mono_jit_init_version retornou nulo");
+            return failure("domain-failed", "mono_jit_init retornou nulo");
     }
     g_status.domainInitialized = true;
     trace("attaching-thread");
