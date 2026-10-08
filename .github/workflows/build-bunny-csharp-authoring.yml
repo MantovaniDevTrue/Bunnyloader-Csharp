@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - bunny-csharp-nativeaot-0.1.10.6-csharp-authoring
+      - bunny-csharp-nativeaot-0.1.10.7-csharp-content
     paths:
       - ".github/workflows/build-bunny-csharp-authoring.yml"
       - "Split/Bunny-Loader/experiments/csharp/**"
@@ -75,13 +76,13 @@ jobs:
             "$S/experiments/csharp/ExampleCSharpMod/bin/Release/net10.0/mod.dll" \
             "$BUNNY_NATIVE_LIBRARY" \
             "$S/samples/ExampleCSharpOnlyMod/Assets" \
-            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.6.bmod"
-          python3 - "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.6.bmod" <<'PY'
+            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.7.bmod"
+          python3 - "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.7.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=set(z.namelist())
               manifest=json.loads(z.read("manifest.json"))
-              assert manifest["version"]=="0.1.6",manifest
+              assert manifest["version"]=="0.1.7",manifest
               assert manifest["uid"]=="7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10"
               assert "native/arm64-v8a/libmod.so" in names
               assert "content/main.js" in names
@@ -93,23 +94,37 @@ jobs:
               npc=z.read("content/Content/NPCs/NativePhaseSlime.js").decode()
               assert "GetProjectileSource_Item" in npc
               assert "GetSource_FromAI" not in npc
-              assert len([p for p in names if p.endswith(".png")])==9
-              assert len([p for p in names if p.endswith(".js")])==10
+              assert len([p for p in names if p.endswith(".png")])==19
+              assert "content/Content/Items/Accessories/NativeStatCharm.js" in names
+              assert "content/Content/Items/Armor/NativeArmorHelmet.js" in names
+              assert "content/Content/Items/Armor/NativeArmorBreastplate.js" in names
+              assert "content/Content/Items/Armor/NativeArmorLeggings.js" in names
+              assert "content/Content/Buffs/NativeDefenseBuff.js" in names
+              assert "content/Content/Items/Consumables/NativeDefensePotion.js" in names
+              assert "content/Content/Items/Materials/NativeSlimeShard.js" in names
+              assert "CreateArmorSet" in z.read("content/Content/Items/Armor/NativeArmorHelmet.js").decode()
+              assert "UpdateAccessory" in z.read("content/Content/Items/Accessories/NativeStatCharm.js").decode()
+              assert "ModBuff.getTypeByName('NativeDefenseBuff')" in z.read("content/Content/Items/Consumables/NativeDefensePotion.js").decode()
+              assert "ItemDropRule.Common" in npc
+              assert "content/Content/Items/Armor/NativeArmorHelmet_Head.png" in names
+              assert "content/Content/Items/Armor/NativeArmorBreastplate_Body.png" in names
+              assert "content/Content/Items/Armor/NativeArmorLeggings_Legs.png" in names
+              assert len([p for p in names if p.endswith(".js")])==17
               print("CSHARP_AUTHORING_PACKAGE_VALID=YES")
           PY
           cd "$RUNNER_TEMP/release"
-          sha256sum ExampleCSharpMod-v0.1.6.bmod > ExampleCSharpMod-v0.1.6.bmod.sha256
+          sha256sum ExampleCSharpMod-v0.1.7.bmod > ExampleCSharpMod-v0.1.7.bmod.sha256
 
       - name: Publish CSharp-authored mod
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create bunny-csharp-authoring-v1 \
-            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.6.bmod" \
-            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.6.bmod.sha256" \
+          gh release create bunny-csharp-authoring-v2 \
+            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.7.bmod" \
+            "$RUNNER_TEMP/release/ExampleCSharpMod-v0.1.7.bmod.sha256" \
             --repo "${{ github.repository }}" \
             --target "$GITHUB_SHA" \
-            --title "ExampleCSharpMod 0.1.6 — CSharp-only authoring" \
-            --notes "First C#-only authoring experiment. All item, NPC, projectile and recipe registrations come from ContentDefinition.cs and are compiled to internal Bunny compatibility scripts automatically. NativeAOT gameplay logic and Host API 1 remain unchanged. Use Bunny C# Test APK 0.1.10.5; no APK reinstall needed. JavaScript is generated inside the .bmod, not written by the developer. Runtime gameplay behavior still requires on-device testing, especially NPC combat." \
+            --title "ExampleCSharpMod 0.1.7 — CSharp content authoring" \
+            --notes "Experimental C#-only authoring now includes accessory bonuses, three-piece armor set, buff potion, material and NPC loot, based on ExampleModBunny source. NativeAOT ABI/Host API 1 and JS mod support are unchanged. Needs Bunny C# Test APK 0.1.10.5; no APK reinstall needed. Effects and FPS require Android testing." \
             --prerelease
