@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - bunny-csharp-source-0.1.10.12-managed-runtime
+      - bunny-csharp-source-0.1.10.12.1-staged-probe
     paths:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*"
       - "Split/Bunny-Loader/tests/managed_*"
