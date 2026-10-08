@@ -23,3 +23,28 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_runNative(
         "\nerror=" + result.error;
     return env->NewStringUTF(status.c_str());
 }
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
+    JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
+    jstring output, jstring diagnostic, jstring checkpoint) {
+    if (!probe || !compiler || !source || !output || !diagnostic || !checkpoint)
+        return env->NewStringUTF("result=-1\nphase=missing-arguments\n");
+    auto get = [env](jstring value) {
+        const char* raw = env->GetStringUTFChars(value, nullptr);
+        const std::string result = raw ? raw : "";
+        if (raw) env->ReleaseStringUTFChars(value, raw);
+        return result;
+    };
+    const std::string probePath = get(probe);
+    const std::string compilerPath = get(compiler);
+    const std::string sourceRoot = get(source);
+    const std::string outputPath = get(output);
+    const std::string diagnosticPath = get(diagnostic);
+    bl::csharp::setManagedCheckpointPath(get(checkpoint));
+    const auto result = bl::csharp::compileManagedSource(
+        probePath, compilerPath, sourceRoot, outputPath, diagnosticPath);
+    const std::string status = "result=" + std::to_string(result.result) +
+        "\nphase=" + result.phase + "\nerror=" + result.error;
+    return env->NewStringUTF(status.c_str());
+}
