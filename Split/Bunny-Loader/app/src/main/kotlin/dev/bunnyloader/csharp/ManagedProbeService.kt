@@ -112,6 +112,9 @@ class ManagedProbeService : Service() {
         val compileStatus = File(dir, "source-compile-status.txt")
         val diagnostic = File(dir, "source-compile-diagnostics.txt")
         val health = File(dir, "source-compile-health.txt")
+        val nativeTrace = File(dir, "native-abort-trace.txt")
+        val nativeMaps = File(dir, "native-abort-maps.txt")
+        val nativeThreads = File(dir, "native-abort-threads.txt")
         dir.mkdirs()
         checkpoint.delete()
         log.delete()
@@ -121,6 +124,9 @@ class ManagedProbeService : Service() {
             runCatching {
                 diagnostic.delete()
                 health.delete()
+                nativeTrace.delete()
+                nativeMaps.delete()
+                nativeThreads.delete()
                 compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
             }
         }
@@ -141,6 +147,7 @@ class ManagedProbeService : Service() {
                     val output = File(outputDir, "sourcecsharp.dll")
                     compileStatus.writeText("state=compiling\npid=${Process.myPid()}\n")
                     startCompileHealthMonitor(health)
+                    startNativeAbortSampler(nativeMaps, nativeThreads)
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
                         output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
@@ -203,6 +210,40 @@ class ManagedProbeService : Service() {
         marker.writeText(version)
         Log.i("BunnyCSharp", "framework carregado: ${names.size} assemblies")
         return File(dir, "BunnyManagedProbe.dll").absolutePath
+    }
+
+    private fun startNativeAbortSampler(maps: File, threads: File) {
+        thread(name = "BunnyMonoNativeSnapshot", isDaemon = true) {
+            repeat(15) {
+                if (!running.get()) return@thread
+                runCatching {
+                    val codeMappings = File("/proc/self/maps").useLines { entries ->
+                        entries.filter { line ->
+                            line.contains("r-xp") &&
+                                (line.contains("libmonosgen") ||
+                                    line.contains("libc.so") ||
+                                    line.contains("libbunnymonoprobe") ||
+                                    line.contains("libSystem.") ||
+                                    line.contains("libart.so") ||
+                                    line.contains("libc++.so"))
+                        }.joinToString("\n")
+                    }
+                    maps.writeText(codeMappings.take(6000) + "\n")
+                    val activeThreads = File("/proc/self/task").listFiles().orEmpty()
+                        .take(96).mapNotNull { task ->
+                            runCatching {
+                                task.name + " " + File(task, "comm").readText().trim()
+                            }.getOrNull()
+                        }.joinToString("\n")
+                    threads.writeText(activeThreads.take(5000) + "\n")
+                }
+                try {
+                    Thread.sleep(400L)
+                } catch (_: InterruptedException) {
+                    return@thread
+                }
+            }
+        }
     }
 
     private fun startCompileHealthMonitor(destination: File) {
