@@ -16,13 +16,18 @@ void* mono_class_from_name(void*, const char* space, const char* name) {
     return reinterpret_cast<void*>(1);
 }
 void* mono_class_get_method_from_name(void*, const char* name, int count) {
-    return std::strcmp(name, "Run") == 0 && count == 2
-        ? reinterpret_cast<void*>(1) : nullptr;
+    if (count != 2) return nullptr;
+    if (std::strcmp(name, "Run") == 0) return reinterpret_cast<void*>(1);
+    if (std::strcmp(name, "AI") == 0) return reinterpret_cast<void*>(2);
+    return nullptr;
 }
-void* mono_runtime_invoke(void*, void*, void** args, void** exception) {
+void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
     static int result;
     *exception = nullptr;
-    result = *static_cast<int*>(args[0]) + *static_cast<int*>(args[1]);
+    const int a = *static_cast<int*>(args[0]);
+    const int b = *static_cast<int*>(args[1]);
+    if (method == reinterpret_cast<void*>(2)) result = b + (a % 7) - 3;
+    else result = a + b;
     return &result;
 }
 void* mono_object_unbox(void* value) { return value; }
