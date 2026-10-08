@@ -475,6 +475,8 @@ JSValue writeStatusToJs(JSContext* ctx, const bl::csharp::ProjectileWriteStatus&
     JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
     JS_SetPropertyStr(ctx, out, "automaticCalls", JS_NewInt32(ctx, status.automaticCalls));
     JS_SetPropertyStr(ctx, out, "automaticWrites", JS_NewInt32(ctx, status.automaticWrites));
+    JS_SetPropertyStr(ctx, out, "automaticSpawns", JS_NewInt32(ctx, status.automaticSpawns));
+    JS_SetPropertyStr(ctx, out, "automaticReleases", JS_NewInt32(ctx, status.automaticReleases));
     JS_SetPropertyStr(ctx, out, "claimed", JS_NewBool(ctx, status.claimed));
     JS_SetPropertyStr(ctx, out, "valid", JS_NewBool(ctx, status.valid));
     JS_SetPropertyStr(ctx, out, "slot", JS_NewInt32(ctx, status.slot));
