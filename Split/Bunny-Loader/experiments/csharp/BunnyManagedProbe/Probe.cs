@@ -6,4 +6,9 @@ public static class Probe
     {
         return a + b;
     }
+
+    public static int AI(int tick, int state)
+    {
+        return state + (tick % 7) - 3;
+    }
 }
