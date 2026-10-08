@@ -160,10 +160,10 @@ jobs:
           sha256sum "$PKG/native/arm64-v8a/libmod.so"
 
           python3 Split/Bunny-Loader/tools/mods/pack.py "$PKG"
-          PACK="$(find Split/Bunny-Loader/build/mods-packs -maxdepth 1 -type f -name 'examplecsharpmod-0.1.0.bl' | head -n 1)"
+          PACK="$(find Split/Bunny-Loader/build/mods-packs -maxdepth 1 -type f -name 'examplecsharpmod-0.1.1.bl' | head -n 1)"
           test -n "$PACK"
-          cp "$PACK" "$RUNNER_TEMP/ExampleCSharpMod-v0.1.0.bmod"
-          sha256sum "$RUNNER_TEMP/ExampleCSharpMod-v0.1.0.bmod" > "$RUNNER_TEMP/ExampleCSharpMod-v0.1.0.bmod.sha256"
+          cp "$PACK" "$RUNNER_TEMP/ExampleCSharpMod-v0.1.1.bmod"
+          sha256sum "$RUNNER_TEMP/ExampleCSharpMod-v0.1.1.bmod" > "$RUNNER_TEMP/ExampleCSharpMod-v0.1.1.bmod.sha256"
 
       - name: Integrate Terraria runtime
         shell: bash
@@ -245,8 +245,8 @@ jobs:
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          MOD="$RUNNER_TEMP/ExampleCSharpMod-v0.1.0.bmod"
-          MODSHA="$RUNNER_TEMP/ExampleCSharpMod-v0.1.0.bmod.sha256"
+          MOD="$RUNNER_TEMP/ExampleCSharpMod-v0.1.1.bmod"
+          MODSHA="$RUNNER_TEMP/ExampleCSharpMod-v0.1.1.bmod.sha256"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" "$MOD" "$MODSHA" --repo "${{ github.repository }}" --clobber
           else
@@ -254,7 +254,7 @@ jobs:
               "$RUNNER_TEMP/$OUT#$OUT" \
               "$RUNNER_TEMP/$OUT.sha256#APK SHA-256" \
               "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so" \
-              "$MOD#Example C# Mod 0.1.0" \
+              "$MOD#Example C# Mod 0.1.1" \
               "$MODSHA#Example C# Mod SHA-256" \
               --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \

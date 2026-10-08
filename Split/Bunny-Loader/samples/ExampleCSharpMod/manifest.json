@@ -2,7 +2,7 @@
   "uid": "7f1d6115-6c2c-4a86-bb1e-5ca7d9a21f10",
   "id": "examplecsharpmod",
   "name": "Example C# Mod",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "authors": [
     {
       "name": "Bunny Loader C# Test",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Primeiro mod C# NativeAOT externo para o Bunny Loader. O comportamento de homing fica em native/arm64-v8a/libmod.so.",
+  "summary": "Mod C# NativeAOT externo com projétil de homing automático e arma de teste.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

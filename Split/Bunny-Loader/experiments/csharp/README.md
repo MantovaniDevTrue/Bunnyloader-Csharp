@@ -221,3 +221,15 @@ JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
 The additional `automaticCalls` and `automaticWrites` counters measure the new path. Neither counter should increase for projectiles owned by unrelated mods. The 0.1.10.0 ExampleCSharpMod only registers a minimal JavaScript entry, not a new projectile type; its existing vanilla homing test still requires `claimProjectile()`. Creating a new projectile in the example via the Bunny ExampleMod JavaScript API is the next test.
 
 This branch is a source-level test; automatic mode requires a new Android build and on-device validation before it can be declared stable.
+
+### Testando o homing automático
+
+A versão 0.1.1 do exemplo inclui `NativeHomingWand` e `NativeHomingBolt` na pasta JavaScript `Content/`. Os dois seguem as classes do ExampleModBunny. Os PNGs são reutilizados dos exemplos originais do Bunny.
+
+Crie a `NativeHomingWand` com 10 madeiras e uma bancada de trabalho. Atire próximo de um NPC hostil. A nova biblioteca C# deve receber automaticamente o projétil `NativeHomingBolt` registrado pelo mesmo pacote, sem precisar executar `claimProjectile()`.
+
+```js
+JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
+```
+
+Verifique que `automaticCalls` e `automaticWrites` aumentam. Para comparação, projéteis de outros mods não devem aumentar estes contadores.
