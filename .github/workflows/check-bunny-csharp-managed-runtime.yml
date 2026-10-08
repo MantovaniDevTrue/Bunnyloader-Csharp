@@ -12,6 +12,7 @@ on:
       - bunny-csharp-source-0.1.10.15-live-projectile-ai
       - bunny-csharp-source-0.1.10.15.1-status-diagnostics
       - bunny-csharp-source-0.1.10.15.2-source-uid-lookup
+      - bunny-csharp-source-0.1.10.16-roslyn-worker
     paths:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.*"
