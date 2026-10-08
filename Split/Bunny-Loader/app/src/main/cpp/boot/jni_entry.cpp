@@ -4,6 +4,7 @@
 #include "core/Log.h"
 #include "boot/LibWatcher.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MonoServiceDispatch.h"
 
 namespace {
 
@@ -33,6 +34,14 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.managedProbePath = readString(env, cfg, cls, "managedProbePath");
     c.managedCheckpointPath = readString(env, cfg, cls, "managedCheckpointPath");
     bl::csharp::setManagedCheckpointPath(c.managedCheckpointPath);
+    jfieldID contextId = env->GetFieldID(cls, "appContext", "Landroid/content/Context;");
+    if (contextId) {
+        jobject context = env->GetObjectField(cfg, contextId);
+        std::string workerError;
+        if (!bl::csharp::bindMonoWorkerContext(env, context, workerError))
+            BL_WARN("csharp: worker isolado indisponivel: %s", workerError.c_str());
+        if (context) env->DeleteLocalRef(context);
+    }
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
