@@ -5,6 +5,7 @@
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -24,6 +25,33 @@
 namespace bl::script {
 
 namespace {
+
+JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus& s) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "attempted", JS_NewBool(ctx, s.attempted));
+    JS_SetPropertyStr(ctx, out, "libraryLoaded", JS_NewBool(ctx, s.libraryLoaded));
+    JS_SetPropertyStr(ctx, out, "symbolsReady", JS_NewBool(ctx, s.symbolsReady));
+    JS_SetPropertyStr(ctx, out, "domainInitialized", JS_NewBool(ctx, s.domainInitialized));
+    JS_SetPropertyStr(ctx, out, "methodExecuted", JS_NewBool(ctx, s.methodExecuted));
+    JS_SetPropertyStr(ctx, out, "result", JS_NewInt32(ctx, s.result));
+    JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
+    return out;
+}
+
+JSValue jsManagedRuntime(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return makeManagedStatus(ctx, bl::csharp::managedRuntimeStatus());
+}
+
+JSValue jsManagedProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "bl.csharp.managedProbe(assemblyPath)");
+    const char* path = JS_ToCString(ctx, argv[0]);
+    if (!path) return JS_EXCEPTION;
+    const auto status = bl::csharp::probeManagedRuntime(path);
+    JS_FreeCString(ctx, path);
+    return makeManagedStatus(ctx, status);
+}
 
 JSValue jsSourceMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewArray(ctx);
@@ -702,6 +730,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
     JS_SetPropertyStr(ctx, api, "sourceMods", JS_NewCFunction(ctx, jsSourceMods, "sourceMods", 0));
+    JS_SetPropertyStr(ctx, api, "managedRuntime",
+                      JS_NewCFunction(ctx, jsManagedRuntime, "managedRuntime", 0));
+    JS_SetPropertyStr(ctx, api, "managedProbe",
+                      JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 1));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));
