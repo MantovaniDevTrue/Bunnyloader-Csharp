@@ -54,30 +54,27 @@ public readonly struct ProjectileView
     public unsafe int Type => State->Type;
     public unsafe int Owner => State->Owner;
     public unsafe int Generation => State->Generation;
-    public unsafe int TargetIndex
-    {
-        get => State->TargetIndex;
-        set => State->TargetIndex = value;
-    }
-
+    public unsafe int TargetIndex => State->TargetIndex;
     public unsafe float X => State->X;
     public unsafe float Y => State->Y;
-    public unsafe float VelocityX
+    public unsafe float VelocityX => State->Vx;
+    public unsafe float VelocityY => State->Vy;
+    public unsafe float Rotation => State->Rotation;
+
+    public unsafe void SetTargetIndex(int value)
     {
-        get => State->Vx;
-        set => State->Vx = value;
+        State->TargetIndex = value;
     }
 
-    public unsafe float VelocityY
+    public unsafe void SetVelocity(float x, float y)
     {
-        get => State->Vy;
-        set => State->Vy = value;
+        State->Vx = x;
+        State->Vy = y;
     }
 
-    public unsafe float Rotation
+    public unsafe void SetRotation(float value)
     {
-        get => State->Rotation;
-        set => State->Rotation = value;
+        State->Rotation = value;
     }
 
     public unsafe float Speed
@@ -181,9 +178,9 @@ public unsafe struct ProjectileContext
             nextY = nextY / nextLength * speed;
         }
 
-        Projectile.VelocityX = nextX;
-        Projectile.VelocityY = nextY;
-        Projectile.Rotation = MathF.Atan2(nextY, nextX);
+        ProjectileView projectile = Projectile;
+        projectile.SetVelocity(nextX, nextY);
+        projectile.SetRotation(MathF.Atan2(nextY, nextX));
         return true;
     }
 }
