@@ -25,6 +25,7 @@ std::vector<LoadedNativeMod> snapshot();
 
 bool hasProjectileBehavior();
 bool hasOwnedProjectileBehavior(int projectileType);
+void releaseOwnedProjectile(int projectileType, int slot, int owner, int generation);
 bool dispatchOwnedProjectile(int projectileType,
                              bl::csharp::HostProjectileState* state,
                              const bl::csharp::NpcSample* npcs,
