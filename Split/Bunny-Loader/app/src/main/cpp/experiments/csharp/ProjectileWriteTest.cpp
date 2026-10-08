@@ -10,6 +10,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <mutex>
@@ -104,6 +105,47 @@ bool g_installed = false;
 std::atomic<int> g_generation{0};
 std::atomic<int> g_autoCalls{0};
 std::atomic<int> g_autoWrites{0};
+std::atomic<int> g_autoSpawns{0};
+std::atomic<int> g_autoReleases{0};
+int g_nextAutoGeneration = 1;
+
+struct AutoInstance {
+    Il2CppObject* object = nullptr;
+    int type = -1;
+    int owner = -1;
+    int generation = 0;
+};
+
+std::array<AutoInstance, 4096> g_autoInstances{};
+
+void retireAutoInstance(int slot, Il2CppObject* expected = nullptr) {
+    if (slot < 0 || static_cast<size_t>(slot) >= g_autoInstances.size()) return;
+    AutoInstance& entry = g_autoInstances[static_cast<size_t>(slot)];
+    if (!entry.object || (expected && entry.object != expected)) return;
+    const AutoInstance retired = entry;
+    entry = {};
+    csharpmods::releaseOwnedProjectile(retired.type, slot, retired.owner, retired.generation);
+    g_autoReleases.fetch_add(1, std::memory_order_relaxed);
+}
+
+int trackAutoInstance(Il2CppObject* projectile, int slot, int type, int owner) {
+    if (slot < 0 || static_cast<size_t>(slot) >= g_autoInstances.size()) return 0;
+    AutoInstance& entry = g_autoInstances[static_cast<size_t>(slot)];
+    if (entry.object != projectile || entry.type != type || entry.owner != owner) {
+        retireAutoInstance(slot);
+        if (g_nextAutoGeneration <= 0) g_nextAutoGeneration = 1;
+        entry = {projectile, type, owner, g_nextAutoGeneration++};
+        g_autoSpawns.fetch_add(1, std::memory_order_relaxed);
+    }
+    return entry.generation;
+}
+
+void retireAutoObject(Il2CppObject* projectile) {
+    if (!projectile) return;
+    const auto& g = runtime::game();
+    const int slot = runtime::field<int32_t>(projectile, g.entity.whoAmI);
+    retireAutoInstance(slot, projectile);
+}
 
 using ProjectileUpdatePositionFn = void (*)(Il2CppObject*, Vector2, const MethodInfo*);
 using ProjectileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -220,7 +262,8 @@ bool applyAutomaticWrite(Il2CppObject* projectile) {
     state.slot = slot;
     state.type = type;
     state.owner = owner;
-    state.generation = 0;
+    state.generation = trackAutoInstance(projectile, slot, type, owner);
+    if (state.generation == 0) return false;
     state.targetIndex = -1;
     state.x = center.x;
     state.y = center.y;
@@ -265,11 +308,13 @@ void hkUpdatePosition(Il2CppObject* self, Vector2 wetVelocity, const MethodInfo*
 }
 
 void hkKill(Il2CppObject* self, const MethodInfo* method) {
+    retireAutoObject(self);
     clearIfClaimed(self, "Kill()");
     g_origKill(self, method);
 }
 
 void hkSetDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
+    retireAutoObject(self);
     clearIfClaimed(self, "SetDefaults()");
     g_origSetDefaults(self, type, method);
 }
@@ -279,6 +324,8 @@ ProjectileWriteStatus statusLocked() {
     out.installed = g_installed;
     out.automaticCalls = g_autoCalls.load(std::memory_order_relaxed);
     out.automaticWrites = g_autoWrites.load(std::memory_order_relaxed);
+    out.automaticSpawns = g_autoSpawns.load(std::memory_order_relaxed);
+    out.automaticReleases = g_autoReleases.load(std::memory_order_relaxed);
     out.claimed = g_claim.object != nullptr;
     out.slot = g_claim.slot;
     out.type = g_claim.type;
