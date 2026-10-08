@@ -23,6 +23,13 @@ struct LoadedNativeMod {
     bool nativeContent = false;
     int nativeItems = 0;
     int nativeProjectiles = 0;
+    int nativeNpcs = 0;
+    int nativeAccessories = 0;
+    int nativeBuffs = 0;
+    int nativePotions = 0;
+    int nativeFirstNpcType = -1;
+    int nativeFirstAccessoryType = -1;
+    int nativeFirstBuffType = -1;
 };
 
 void loadAll();

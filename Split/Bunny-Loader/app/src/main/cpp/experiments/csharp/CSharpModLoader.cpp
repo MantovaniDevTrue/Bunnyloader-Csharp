@@ -262,6 +262,13 @@ void tryLoad(const bl::mods::LoadedMod& mod) {
         native.info.nativeContent = true;
         native.info.nativeItems = context.items;
         native.info.nativeProjectiles = context.projectiles;
+        native.info.nativeNpcs = context.npcs;
+        native.info.nativeAccessories = context.accessories;
+        native.info.nativeBuffs = context.buffs;
+        native.info.nativePotions = context.potions;
+        native.info.nativeFirstNpcType = context.firstNpcType;
+        native.info.nativeFirstAccessoryType = context.firstAccessoryType;
+        native.info.nativeFirstBuffType = context.firstBuffType;
     }
     native.info.projectileBehavior = native.projectileTick != nullptr;
     native.info.selectiveProjectiles = native.projectileBind != nullptr;

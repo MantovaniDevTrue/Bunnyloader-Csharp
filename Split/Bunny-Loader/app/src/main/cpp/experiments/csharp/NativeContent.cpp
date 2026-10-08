@@ -2,6 +2,9 @@
 
 #include "content/common/GameRefs.h"
 #include "content/items/ModItems.h"
+#include "content/npcs/ModNpcs.h"
+#include "content/buffs/ModBuffs.h"
+#include "il2cpp/Api.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -11,6 +14,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <map>
+#include <cmath>
 #include <string>
 #include <sys/stat.h>
 
@@ -40,6 +44,21 @@ struct NativeRefs {
     int projTileCollide = -1;
     int projWidth = -1;
     int projHeight = -1;
+    int itemAccessory = -1;
+    int itemBuffType = -1;
+    int itemBuffTime = -1;
+    int itemConsumable = -1;
+    int npcWidth = -1;
+    int npcHeight = -1;
+    int npcDamage = -1;
+    int npcDefense = -1;
+    int npcLifeMax = -1;
+    int npcAiStyle = -1;
+    int npcType = -1;
+    int playerStatDefense = -1;
+    int playerBuffType = -1;
+    int playerBuffTime = -1;
+    int itemType = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -47,6 +66,28 @@ struct NativeWeaponDefaults {
     int useTime;
     float shootSpeed;
     int shootType;
+};
+
+struct NativeAccessoryDefaults {
+    int defenseBonus;
+};
+
+struct NativeBuffDefaults {
+    int defenseBonus;
+};
+
+struct NativePotionDefaults {
+    int buffType;
+    int duration;
+};
+
+struct NativeNpcDefaults {
+    int width;
+    int height;
+    int damage;
+    int defense;
+    int lifeMax;
+    int aiStyle;
 };
 
 struct NativeProjectileDefaults {
@@ -61,12 +102,22 @@ struct NativeProjectileDefaults {
 
 using ItemDefaultsFn = void (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
 using ProjectileDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const MethodInfo*);
+using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
+using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
 std::map<int, NativeProjectileDefaults> g_projectiles;
+std::map<int, NativeNpcDefaults> g_npcs;
+std::map<int, NativeAccessoryDefaults> g_accessories;
+std::map<int, NativeBuffDefaults> g_buffs;
+std::map<int, NativePotionDefaults> g_potions;
 ItemDefaultsFn g_originalItem = nullptr;
 ProjectileDefaultsFn g_originalProjectile = nullptr;
+NpcDefaultsPtrFn g_originalNpc = nullptr;
+ApplyEquipFn g_originalEquip = nullptr;
+UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 bool g_ready = false;
 
 bool validName(const char* value) {
@@ -98,12 +149,34 @@ bool validTexture(const char* path) {
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
     auto it = g_weapons.find(type);
-    if (it == g_weapons.end() || !self) {
+    auto accessory = g_accessories.find(type);
+    auto potion = g_potions.find(type);
+    if ((it == g_weapons.end() && accessory == g_accessories.end() &&
+         potion == g_potions.end()) || !self) {
         if (g_originalItem) g_originalItem(self, type, variant, method);
         return;
     }
     bl::runtime::prepareModItem(self, type);
     const auto& r = g_refs;
+    if (accessory != g_accessories.end()) {
+        bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
+        bl::runtime::field<int32_t>(self, r.itemRare) = 2;
+        bl::runtime::field<uint8_t>(self, r.itemAccessory) = 1;
+        bl::runtime::finishModItem(self, type);
+        return;
+    }
+    if (potion != g_potions.end()) {
+        bl::runtime::field<int32_t>(self, r.itemMaxStack) = 30;
+        bl::runtime::field<int32_t>(self, r.itemRare) = 2;
+        bl::runtime::field<int32_t>(self, r.itemUseTime) = 15;
+        bl::runtime::field<int32_t>(self, r.itemUseAnimation) = 15;
+        bl::runtime::field<int32_t>(self, r.itemUseStyle) = 2;
+        bl::runtime::field<uint8_t>(self, r.itemConsumable) = 1;
+        bl::runtime::field<int32_t>(self, r.itemBuffType) = potion->second.buffType;
+        bl::runtime::field<int32_t>(self, r.itemBuffTime) = potion->second.duration;
+        bl::runtime::finishModItem(self, type);
+        return;
+    }
     const auto& d = it->second;
     bl::runtime::field<int32_t>(self, r.itemDamage) = d.damage;
     bl::runtime::field<int32_t>(self, r.itemUseTime) = d.useTime;
@@ -139,6 +212,50 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::finishModProjectile(self, type);
 }
 
+void hkNpcDefaults(Il2CppObject* self, int32_t type, const void* params, const MethodInfo* method) {
+    if (g_originalNpc) g_originalNpc(self, type, params, method);
+    auto it = g_npcs.find(type);
+    if (it == g_npcs.end() || !self) return;
+    const auto& d = it->second;
+    const auto& r = g_refs;
+    bl::runtime::field<int32_t>(self, r.npcWidth) = d.width;
+    bl::runtime::field<int32_t>(self, r.npcHeight) = d.height;
+    bl::runtime::field<int32_t>(self, r.npcDamage) = d.damage;
+    bl::runtime::field<int32_t>(self, r.npcDefense) = d.defense;
+    bl::runtime::field<int32_t>(self, r.npcLifeMax) = d.lifeMax;
+    bl::runtime::field<int32_t>(self, r.npcAiStyle) = d.aiStyle;
+    bl::runtime::finishModNpc(self, type);
+}
+
+void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const MethodInfo* method) {
+    if (g_originalEquip) g_originalEquip(self, slot, item, method);
+    if (!self || !item) return;
+    const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+    const auto it = g_accessories.find(type);
+    if (it == g_accessories.end()) return;
+    auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
+    defense += it->second.defenseBonus;
+}
+
+void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
+    if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, index, method);
+    if (!self || g_buffs.empty()) return;
+    Il2CppArray* types = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffType);
+    Il2CppArray* times = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffTime);
+    if (!types || !times) return;
+    const uintptr_t count = types->length < times->length ? types->length : times->length;
+    if (count > 60) return;
+    const auto* typeValues = reinterpret_cast<const int32_t*>(bl::il2cpp::arrayData(types));
+    const auto* timeValues = reinterpret_cast<const int32_t*>(bl::il2cpp::arrayData(times));
+    int bonus = 0;
+    for (uintptr_t i = 0; i < count; ++i) {
+        if (timeValues[i] < 1) continue;
+        const auto it = g_buffs.find(typeValues[i]);
+        if (it != g_buffs.end()) bonus += it->second.defenseBonus;
+    }
+    bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) += bonus;
+}
+
 }
 
 bool prepareNativeContent() {
@@ -146,7 +263,9 @@ bool prepareNativeContent() {
     using namespace bl::il2cpp;
     Il2CppClass* item = findClass({"Terraria", "Item", {}});
     Il2CppClass* projectile = findClass({"Terraria", "Projectile", {}});
-    if (!item || !projectile) return false;
+    Il2CppClass* npc = findClass({"Terraria", "NPC", {}});
+    Il2CppClass* player = findClass({"Terraria", "Player", {}});
+    if (!item || !projectile || !npc || !player) return false;
 
     NativeRefs r{};
     r.itemDamage = fieldOffset(item, "damage");
@@ -171,6 +290,21 @@ bool prepareNativeContent() {
     r.projTileCollide = fieldOffset(projectile, "tileCollide");
     r.projWidth = fieldOffset(projectile, "width");
     r.projHeight = fieldOffset(projectile, "height");
+    r.itemAccessory = fieldOffset(item, "accessory");
+    r.itemBuffType = fieldOffset(item, "buffType");
+    r.itemBuffTime = fieldOffset(item, "buffTime");
+    r.itemConsumable = fieldOffset(item, "consumable");
+    r.itemType = fieldOffset(item, "type");
+    r.npcWidth = fieldOffset(npc, "width");
+    r.npcHeight = fieldOffset(npc, "height");
+    r.npcDamage = fieldOffset(npc, "damage");
+    r.npcDefense = fieldOffset(npc, "defense");
+    r.npcLifeMax = fieldOffset(npc, "lifeMax");
+    r.npcAiStyle = fieldOffset(npc, "aiStyle");
+    r.npcType = fieldOffset(npc, "type");
+    r.playerStatDefense = fieldOffset(player, "statDefense");
+    r.playerBuffType = fieldOffset(player, "buffType");
+    r.playerBuffTime = fieldOffset(player, "buffTime");
 
     const int* all = &r.itemDamage;
     for (size_t i = 0; i < sizeof(NativeRefs) / sizeof(int); ++i) {
@@ -183,13 +317,30 @@ bool prepareNativeContent() {
         item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     const MethodInfo* projectileMethod = findMethodBySignature(
         projectile, parseSignature("void SetDefaults(int Type)"));
-    if (!itemMethod || !projectileMethod) return false;
+    const MethodInfo* npcMethod = findMethodBySignature(
+        npc, parseSignature("void SetDefaults(int Type, NPCSpawnParams spawnparams)"));
+    const MethodInfo* equipMethod = findMethodBySignature(
+        player, parseSignature("void ApplyEquipFunctional(int itemSlot, Item currentItem)"));
+    const MethodInfo* buffsMethod = findMethodBySignature(
+        player, parseSignature("void UpdateBuffs(int i)"));
+    if (!itemMethod || !projectileMethod || !npcMethod || !equipMethod || !buffsMethod) return false;
+    const Il2CppType* paramType = api().method_get_param(npcMethod, 1);
+    Il2CppClass* spawnClass = paramType ? api().class_from_il2cpp_type(paramType) : nullptr;
+    uint32_t align = 0;
+    const int spawnSize = spawnClass ? api().class_value_size(spawnClass, &align) : 0;
+    if (spawnSize <= 16 || spawnSize > 1024) {
+        BL_ERROR("csharp native: NPCSpawnParams ABI nao verificada (size=%d)", spawnSize);
+        return false;
+    }
 
     g_refs = r;
     if (!bl::hook::install(itemMethod, hkItemDefaults, &g_originalItem)) return false;
     if (!bl::hook::install(projectileMethod, hkProjectileDefaults, &g_originalProjectile)) return false;
+    if (!bl::hook::install(npcMethod, hkNpcDefaults, &g_originalNpc)) return false;
+    if (!bl::hook::install(equipMethod, hkApplyEquip, &g_originalEquip)) return false;
+    if (!bl::hook::install(buffsMethod, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
     g_ready = true;
-    BL_INFO("csharp native content: hooks C++ de item e projetil instalados");
+    BL_INFO("csharp native content: hooks C++ de item, projetil, npc, acessorio e buff instalados");
     return true;
 }
 
@@ -221,6 +372,80 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
             g_projectiles[type] = {spec->width, spec->height, spec->aiStyle,
                                    spec->penetrate, spec->timeLeft, true, false};
             ++ctx.projectiles;
+        }
+        return type;
+    }
+    if (spec->kind == NativeNpc) {
+        if (spec->width < 8 || spec->width > 256 ||
+            spec->height < 8 || spec->height > 256 ||
+            spec->damage < 0 || spec->damage > 500 ||
+            spec->useTime < 0 || spec->useTime > 200 ||
+            spec->shootType < 1 || spec->shootType > 100000 ||
+            spec->aiStyle < 0 || spec->aiStyle > 200 ||
+            spec->penetrate < 0 || spec->penetrate >= bl::runtime::kVanillaNpcCount ||
+            spec->timeLeft < 1 || spec->timeLeft > 30) return -1;
+        bl::runtime::ModNpcDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        def.names.push_back({"", display});
+        def.frames = spec->timeLeft;
+        def.animationType = spec->penetrate;
+        const int type = bl::runtime::registerModNpc(std::move(def));
+        if (type >= 0) {
+            g_npcs[type] = {spec->width, spec->height, spec->damage,
+                            spec->useTime, spec->shootType, spec->aiStyle};
+            if (ctx.firstNpcType < 0) ctx.firstNpcType = type;
+            ++ctx.npcs;
+        }
+        return type;
+    }
+    if (spec->kind == NativeBuff) {
+        if (spec->damage < -50 || spec->damage > 100) return -1;
+        bl::runtime::ModBuffDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        def.names.push_back({"", display});
+        const int type = bl::runtime::registerModBuff(std::move(def));
+        if (type >= 0) {
+            g_buffs[type] = {spec->damage};
+            if (ctx.firstBuffType < 0) ctx.firstBuffType = type;
+            ++ctx.buffs;
+        }
+        return type;
+    }
+    if (spec->kind == NativeAccessory) {
+        if (spec->damage < 0 || spec->damage > 100) return -1;
+        bl::runtime::ModItemDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        def.names.push_back({"", display});
+        const int type = bl::runtime::registerModItem(std::move(def));
+        if (type >= 0) {
+            g_accessories[type] = {spec->damage};
+            if (ctx.firstAccessoryType < 0) ctx.firstAccessoryType = type;
+            ++ctx.items;
+            ++ctx.accessories;
+        }
+        return type;
+    }
+    if (spec->kind == NativeBuffPotion) {
+        if (spec->timeLeft < 1 || spec->timeLeft > 216000 ||
+            bl::runtime::modBuffTypeByName(ctx.modId, spec->name) >= 0) return -1;
+        if (spec->shootType < bl::runtime::kVanillaBuffCount ||
+            spec->shootType >= bl::runtime::buffTypeCount() + 1024) return -1;
+        bl::runtime::ModItemDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        def.names.push_back({"", display});
+        const int type = bl::runtime::registerModItem(std::move(def));
+        if (type >= 0) {
+            g_potions[type] = {spec->shootType, spec->timeLeft};
+            ++ctx.items;
+            ++ctx.potions;
         }
         return type;
     }

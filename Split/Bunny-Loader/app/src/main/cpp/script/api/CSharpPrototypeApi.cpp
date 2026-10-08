@@ -40,6 +40,16 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "npcBehavior", JS_NewBool(ctx, mod.npcBehavior));
         JS_SetPropertyStr(ctx, row, "npcBindings", JS_NewInt32(ctx, mod.npcBindings));
         JS_SetPropertyStr(ctx, row, "npcCombat", JS_NewBool(ctx, mod.npcCombat));
+        JS_SetPropertyStr(ctx, row, "nativeContent", JS_NewBool(ctx, mod.nativeContent));
+        JS_SetPropertyStr(ctx, row, "nativeItems", JS_NewInt32(ctx, mod.nativeItems));
+        JS_SetPropertyStr(ctx, row, "nativeProjectiles", JS_NewInt32(ctx, mod.nativeProjectiles));
+        JS_SetPropertyStr(ctx, row, "nativeNpcs", JS_NewInt32(ctx, mod.nativeNpcs));
+        JS_SetPropertyStr(ctx, row, "nativeAccessories", JS_NewInt32(ctx, mod.nativeAccessories));
+        JS_SetPropertyStr(ctx, row, "nativeBuffs", JS_NewInt32(ctx, mod.nativeBuffs));
+        JS_SetPropertyStr(ctx, row, "nativePotions", JS_NewInt32(ctx, mod.nativePotions));
+        JS_SetPropertyStr(ctx, row, "nativeNpcType", JS_NewInt32(ctx, mod.nativeFirstNpcType));
+        JS_SetPropertyStr(ctx, row, "nativeAccessoryType", JS_NewInt32(ctx, mod.nativeFirstAccessoryType));
+        JS_SetPropertyStr(ctx, row, "nativeBuffType", JS_NewInt32(ctx, mod.nativeFirstBuffType));
         JS_SetPropertyUint32(ctx, out, at++, row);
     }
     return out;

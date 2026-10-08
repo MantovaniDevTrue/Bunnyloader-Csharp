@@ -7,7 +7,11 @@ namespace bl::csharp {
 
 enum NativeContentKind : int32_t {
     NativeProjectile = 1,
-    NativeWeapon = 2
+    NativeWeapon = 2,
+    NativeNpc = 3,
+    NativeAccessory = 4,
+    NativeBuff = 5,
+    NativeBuffPotion = 6
 };
 
 struct NativeContentSpec {
@@ -32,6 +36,13 @@ struct NativeRegisterContext {
     std::string modDir;
     int items;
     int projectiles;
+    int npcs = 0;
+    int accessories = 0;
+    int buffs = 0;
+    int potions = 0;
+    int firstNpcType = -1;
+    int firstAccessoryType = -1;
+    int firstBuffType = -1;
 };
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);
