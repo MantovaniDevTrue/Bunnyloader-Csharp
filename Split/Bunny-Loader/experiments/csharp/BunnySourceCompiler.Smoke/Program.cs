@@ -2,6 +2,35 @@ using BunnyLoader.SourceCompiler;
 using System.Reflection;
 using System.Runtime.Loader;
 
+static void VerifyHash(string content, string expected)
+{
+    var hash = new PortableSha256();
+    byte[] input = System.Text.Encoding.UTF8.GetBytes(content);
+    int chunk = 1;
+    int offset = 0;
+    while (offset < input.Length)
+    {
+        int length = Math.Min(chunk, input.Length - offset);
+        hash.AppendData(input, offset, length);
+        offset += length;
+        chunk = chunk >= 101 ? 1 : chunk + 1;
+    }
+    string result = Convert.ToHexString(hash.GetHashAndReset());
+    if (!string.Equals(result, expected, StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Portable SHA256 mismatch expected=" +
+            expected + " actual=" + result);
+    string sameAgain = Convert.ToHexString(hash.GetHashAndReset());
+    if (sameAgain !=
+        "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855")
+        throw new InvalidOperationException("SHA256 reset failed");
+}
+
+VerifyHash("", "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855");
+VerifyHash("abc", "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD");
+VerifyHash(new string('a', 1000000),
+    "CDC76E5C9914FB9281A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0");
+Console.WriteLine("BUNNY_PORTABLE_SHA256_VECTORS=PASS");
+
 if (args.Length != 2) throw new ArgumentException("source-root framework-directory");
 string sourceRoot = Path.GetFullPath(args[0]);
 string framework = Path.GetFullPath(args[1]);
