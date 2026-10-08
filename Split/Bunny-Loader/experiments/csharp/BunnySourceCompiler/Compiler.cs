@@ -21,12 +21,13 @@ public static class Compiler
     {
         try
         {
+            Stage(diagnosticsFile, "compiler-entered");
             return CompileCore(modRoot, outputFile, runtimeDir, diagnosticsFile);
         }
         catch (Exception exception)
         {
-            WriteDiagnostic(diagnosticsFile, "COMPILER_EXCEPTION " +
-                exception.GetType().Name + ": " + exception.Message);
+            WriteDiagnostic(diagnosticsFile,
+                "COMPILER_EXCEPTION " + exception.ToString());
             return -1;
         }
     }
@@ -34,6 +35,7 @@ public static class Compiler
     private static int CompileCore(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
     {
+        Stage(diagnosticsFile, "normalizing-paths");
         string content = Path.GetFullPath(Path.Combine(modRoot, "content"));
         string root = Path.GetFullPath(modRoot);
         if (!content.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
@@ -43,6 +45,7 @@ public static class Compiler
             return -2;
         }
 
+        Stage(diagnosticsFile, "enumerating-sources");
         var files = Directory.EnumerateFiles(content, "*.cs", SearchOption.AllDirectories)
             .OrderBy(path => path, StringComparer.Ordinal).ToArray();
         if (files.Length == 0 || files.Length > MaxFiles)
@@ -51,6 +54,7 @@ public static class Compiler
             return -3;
         }
 
+        Stage(diagnosticsFile, "sources-found-" + files.Length);
         var trees = new List<SyntaxTree>(files.Length);
         using var fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         fingerprint.AppendData(Encoding.UTF8.GetBytes(CacheVersion));
@@ -75,12 +79,14 @@ public static class Compiler
             string relative = Path.GetRelativePath(content, absolute);
             fingerprint.AppendData(Encoding.UTF8.GetBytes(relative));
             fingerprint.AppendData(bytes);
+            Stage(diagnosticsFile, "parsing-source-" + trees.Count);
             trees.Add(CSharpSyntaxTree.ParseText(
                 Encoding.UTF8.GetString(bytes),
                 CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12),
                 relative));
         }
 
+        Stage(diagnosticsFile, "source-trees-created");
         string sdkFile = Path.Combine(runtimeDir, "BunnySourceSdk.dll");
         if (!File.Exists(sdkFile))
         {
@@ -88,6 +94,7 @@ public static class Compiler
             return -6;
         }
         fingerprint.AppendData(File.ReadAllBytes(sdkFile));
+        Stage(diagnosticsFile, "calculating-fingerprint");
         string hash = Convert.ToHexString(fingerprint.GetHashAndReset());
         string cache = outputFile + ".sha256";
         if (File.Exists(outputFile) && new FileInfo(outputFile).Length > 0 &&
@@ -97,6 +104,7 @@ public static class Compiler
             return 2;
         }
 
+        Stage(diagnosticsFile, "listing-framework-assemblies");
         string[] framework = Directory.EnumerateFiles(runtimeDir, "*.dll",
                 SearchOption.TopDirectoryOnly)
             .Where(path => Path.GetFileName(path).StartsWith("System.", StringComparison.Ordinal) ||
@@ -110,7 +118,9 @@ public static class Compiler
             return -7;
         }
 
-        var references = framework.Select(path => MetadataReference.CreateFromFile(path));
+        Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
+        var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
+        Stage(diagnosticsFile, "metadata-references-created");
         var compilation = CSharpCompilation.Create(
             assemblyName: "BunnySource_" + hash.Substring(0, 16),
             syntaxTrees: trees,
@@ -122,11 +132,14 @@ public static class Compiler
                 concurrentBuild: true,
                 allowUnsafe: false));
 
+        Stage(diagnosticsFile, "compilation-created");
         Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
         string temporary = outputFile + ".tmp";
         using var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write,
             FileShare.None);
+        Stage(diagnosticsFile, "before-emit");
         var result = compilation.Emit(stream);
+        Stage(diagnosticsFile, "after-emit");
         stream.Flush(true);
         stream.Close();
 
@@ -142,11 +155,17 @@ public static class Compiler
             return -8;
         }
 
+        Stage(diagnosticsFile, "before-assembly-install");
         File.Move(temporary, outputFile, true);
         File.WriteAllText(cache, hash);
         WriteDiagnostic(diagnosticsFile, "COMPILE_OK files=" + files.Length +
             " hash=" + hash + " bytes=" + new FileInfo(outputFile).Length);
         return 1;
+    }
+
+    private static void Stage(string path, string stage)
+    {
+        WriteDiagnostic(path, "ROSLYN_STAGE=" + stage);
     }
 
     private static void WriteDiagnostic(string path, string message)
