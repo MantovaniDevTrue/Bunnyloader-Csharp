@@ -1,0 +1,144 @@
+#include "experiments/csharp/ManagedRuntime.h"
+
+#include <cstring>
+#include <dlfcn.h>
+#include <mutex>
+#include <string>
+#include <sys/stat.h>
+
+namespace bl::csharp {
+namespace {
+
+using InitFn = void* (*)(const char*, const char*);
+using AttachFn = void* (*)(void*);
+using OpenFn = void* (*)(void*, const char*);
+using ImageFn = void* (*)(void*);
+using ClassFn = void* (*)(void*, const char*, const char*);
+using MethodFn = void* (*)(void*, const char*, int);
+using InvokeFn = void* (*)(void*, void*, void**, void**);
+using UnboxFn = void* (*)(void*);
+
+struct MonoApi {
+    InitFn initialize = nullptr;
+    AttachFn attach = nullptr;
+    OpenFn openAssembly = nullptr;
+    ImageFn image = nullptr;
+    ClassFn findClass = nullptr;
+    MethodFn findMethod = nullptr;
+    InvokeFn invoke = nullptr;
+    UnboxFn unbox = nullptr;
+};
+
+std::mutex g_mutex;
+ManagedRuntimeStatus g_status;
+MonoApi g_api;
+void* g_library = nullptr;
+void* g_domain = nullptr;
+
+template <typename T>
+T resolve(const char* name) {
+    return reinterpret_cast<T>(dlsym(g_library, name));
+}
+
+ManagedRuntimeStatus failure(const char* phase, const std::string& detail) {
+    g_status.phase = phase;
+    g_status.error = detail.substr(0, 512);
+    g_status.methodExecuted = false;
+    return g_status;
+}
+
+bool validAssembly(const std::string& path) {
+    if (path.empty() || path.size() > 2048 || path.find("..") != std::string::npos)
+        return false;
+    struct stat st{};
+    return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode) &&
+           st.st_size > 0 && st.st_size <= 8 * 1024 * 1024;
+}
+
+bool loadLibrary() {
+    if (g_library) return true;
+    g_library = dlopen("libmonosgen-2.0.so", RTLD_NOW | RTLD_LOCAL);
+    if (!g_library) {
+        const char* message = dlerror();
+        failure("library-missing", message ? message : "libmonosgen-2.0.so indisponivel");
+        return false;
+    }
+    g_status.libraryLoaded = true;
+    g_api.initialize = resolve<InitFn>("mono_jit_init_version");
+    g_api.attach = resolve<AttachFn>("mono_thread_attach");
+    g_api.openAssembly = resolve<OpenFn>("mono_domain_assembly_open");
+    g_api.image = resolve<ImageFn>("mono_assembly_get_image");
+    g_api.findClass = resolve<ClassFn>("mono_class_from_name");
+    g_api.findMethod = resolve<MethodFn>("mono_class_get_method_from_name");
+    g_api.invoke = resolve<InvokeFn>("mono_runtime_invoke");
+    g_api.unbox = resolve<UnboxFn>("mono_object_unbox");
+    if (!g_api.initialize || !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) {
+        failure("abi-incompatible", "Mono Embedding API incompleta");
+        dlclose(g_library);
+        g_library = nullptr;
+        g_api = {};
+        g_status.libraryLoaded = false;
+        return false;
+    }
+    g_status.symbolsReady = true;
+    return true;
+}
+
+}
+
+ManagedRuntimeStatus managedRuntimeStatus() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    return g_status;
+}
+
+ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_status.attempted = true;
+    g_status.methodExecuted = false;
+    g_status.result = 0;
+    g_status.error.clear();
+    if (!validAssembly(assemblyPath))
+        return failure("invalid-assembly", "assembly de teste ausente ou fora do limite");
+
+    if (!loadLibrary()) return g_status;
+
+    if (!g_domain) {
+        g_domain = g_api.initialize("BunnyCSharp", "v4.0.30319");
+        if (!g_domain)
+            return failure("domain-failed", "mono_jit_init_version retornou nulo");
+    }
+    g_status.domainInitialized = true;
+    if (!g_api.attach(g_domain))
+        return failure("attach-failed", "mono_thread_attach retornou nulo");
+
+    void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+    if (!assembly) return failure("assembly-failed", "mono_domain_assembly_open falhou");
+
+    void* image = g_api.image(assembly);
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "Run", 2) : nullptr;
+    if (!method) return failure("method-missing", "BunnyLoader.ManagedProbe.Probe.Run(int,int) ausente");
+
+    int a = 19;
+    int b = 23;
+    void* parameters[] = {&a, &b};
+    void* exception = nullptr;
+    void* result = g_api.invoke(method, nullptr, parameters, &exception);
+    if (exception) return failure("managed-exception", "Run lancou uma excecao gerenciada");
+    if (!result) return failure("null-result", "Run nao retornou objeto");
+
+    void* unboxed = g_api.unbox(result);
+    if (!unboxed) return failure("unbox-failed", "mono_object_unbox retornou nulo");
+
+    int value = 0;
+    std::memcpy(&value, unboxed, sizeof(value));
+    g_status.result = value;
+    if (value != 42) return failure("result-mismatch", "Run retornou resultado inesperado");
+
+    g_status.phase = "verified";
+    g_status.methodExecuted = true;
+    return g_status;
+}
+
+}
