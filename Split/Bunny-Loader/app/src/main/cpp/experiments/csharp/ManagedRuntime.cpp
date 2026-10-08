@@ -223,7 +223,8 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count) {
     std::lock_guard<std::mutex> guard(g_mutex);
     g_status.callbacksExecuted = 0;
-    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted)
+    g_status.error.clear();
+    if (!g_domain || !g_status.domainInitialized)
         return failure("callback-runtime-not-ready", "Executar managedGameProbe antes dos callbacks");
     if (!validAssembly(assemblyPath))
         return failure("callback-assembly-missing", "BunnyManagedProbe.dll ausente");
@@ -263,6 +264,7 @@ ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int 
             return failure("callback-mismatch", "Probe.AI retornou resultado incorreto");
     }
     g_status.result = state;
+    g_status.methodExecuted = true;
     trace("callback-verified");
     return g_status;
 }
