@@ -15,6 +15,6 @@ struct TerrariaSnapshot {
     double captureMs = 0.0;
 };
 
-TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles = true);
+TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles = true, bool includeNpcs = true);
 
 }
