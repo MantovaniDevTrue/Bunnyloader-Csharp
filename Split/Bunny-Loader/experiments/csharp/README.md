@@ -135,3 +135,31 @@ void UpdatePosition(Vector2 wetVelocity)
 The controlled C# steering test now hooks that exact method instead of guessing a higher-level update method. When the claimed projectile enters `UpdatePosition`, C# selects the nearest valid hostile NPC and computes a new velocity/rotation. Bunny writes the projectile velocity and also replaces the `wetVelocity` argument passed to vanilla `UpdatePosition` so the movement step uses the steered direction immediately.
 
 Kill/SetDefaults invalidation and the identity-free claim token remain unchanged.
+
+
+## 0.1.9.9 C# Host API v1
+
+The validated UpdatePosition write path is now routed through a reusable C# layer instead of keeping the homing logic inside the unmanaged export.
+
+Host API v1 adds:
+
+- `PlayerView`
+- `NpcView`
+- `ProjectileView`
+- `ProjectileContext`
+- `IProjectileBehavior`
+- `BunnyHost`
+
+The validated homing behavior now lives in `ExampleHomingProjectile.cs` and implements `IProjectileBehavior`.
+
+The C ABI remains the boundary between Bunny native code and NativeAOT. `bunnycs_host_projectile_tick` only creates a context and dispatches the registered C# behavior.
+
+Runtime status:
+
+```js
+JSON.stringify(bl.csharp.hostInfo(), null, 2)
+```
+
+Expected values include `runtimeAbi: 5`, `hostApi: 1` and `projectileStage: "Projectile.UpdatePosition"`.
+
+This is the first reusable Host API layer. It is still embedded in the separate C# test app and is not yet an external C# mod package loader.
