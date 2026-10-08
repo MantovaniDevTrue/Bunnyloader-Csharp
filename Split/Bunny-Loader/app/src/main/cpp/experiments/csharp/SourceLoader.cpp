@@ -12,6 +12,7 @@
 #include <cstring>
 #include <dirent.h>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <string>
 #include <sys/stat.h>

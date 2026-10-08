@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceParser.h"
 
+#include <cstdio>
 #include <iostream>
 #include <string>
 #include <vector>

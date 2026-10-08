@@ -138,6 +138,8 @@ jobs:
           ROOT="Split/Bunny-Loader"
           CPP="$ROOT/app/src/main/cpp"
           TEST="$RUNNER_TEMP/bunny-csharp-source-parser-test"
+          dotnet build "$ROOT/experiments/csharp/SourceCSharpSyntaxCheck/SourceCSharpSyntaxCheck.csproj" \
+            -c Release --nologo
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -I"$CPP" \
             "$CPP/experiments/csharp/SourceParser.cpp" \
             "$ROOT/tests/source_parser_smoke.cpp" -o "$TEST"
@@ -254,7 +256,7 @@ jobs:
               "$RUNNER_TEMP/$OUT#$OUT" \
               "$RUNNER_TEMP/$OUT.sha256#APK SHA-256" \
               "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so" \
-              "$MOD#Pure C# Mod 0.1.0" \
+              "$MOD#Source C# Mod 0.1.0" \
               "$MODSHA#Example C# Mod SHA-256" \
               --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
