@@ -4,6 +4,7 @@
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -36,6 +37,8 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "projectileBehavior", JS_NewBool(ctx, mod.projectileBehavior));
         JS_SetPropertyStr(ctx, row, "selectiveProjectiles", JS_NewBool(ctx, mod.selectiveProjectiles));
         JS_SetPropertyStr(ctx, row, "projectileBindings", JS_NewInt32(ctx, mod.projectileBindings));
+        JS_SetPropertyStr(ctx, row, "npcBehavior", JS_NewBool(ctx, mod.npcBehavior));
+        JS_SetPropertyStr(ctx, row, "npcBindings", JS_NewInt32(ctx, mod.npcBindings));
         JS_SetPropertyUint32(ctx, out, at++, row);
     }
     return out;
@@ -50,7 +53,7 @@ JSValue jsHostInfo(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JS_SetPropertyStr(ctx, out, "safeClaim", JS_NewBool(ctx, true));
     JS_SetPropertyStr(ctx, out, "automaticOwnedProjectiles", JS_NewBool(ctx, true));
     JS_SetPropertyStr(ctx, out, "playerWrite", JS_NewBool(ctx, false));
-    JS_SetPropertyStr(ctx, out, "npcWrite", JS_NewBool(ctx, false));
+    JS_SetPropertyStr(ctx, out, "npcWrite", JS_NewBool(ctx, bl::csharp::npcAiStatus().installed));
     JS_SetPropertyStr(ctx, out, "projectileVelocityWrite", JS_NewBool(ctx, true));
     JS_SetPropertyStr(ctx, out, "externalModCount",
                       JS_NewInt32(ctx, static_cast<int32_t>(bl::csharpmods::loadedCount())));
@@ -470,6 +473,17 @@ JSValue jsProjectileMethods(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return out;
 }
 
+JSValue jsNpcStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::npcAiStatus();
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, out, "calls", JS_NewInt32(ctx, status.calls));
+    JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
+    JS_SetPropertyStr(ctx, out, "spawns", JS_NewInt32(ctx, status.spawns));
+    JS_SetPropertyStr(ctx, out, "releases", JS_NewInt32(ctx, status.releases));
+    return out;
+}
+
 JSValue writeStatusToJs(JSContext* ctx, const bl::csharp::ProjectileWriteStatus& status) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
@@ -649,6 +663,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "releaseProjectile", JS_NewCFunction(ctx, jsReleaseProjectile, "releaseProjectile", 0));
     JS_SetPropertyStr(ctx, api, "projectileWriteStatus",
                       JS_NewCFunction(ctx, jsProjectileWriteStatus, "projectileWriteStatus", 0));
+    JS_SetPropertyStr(ctx, api, "npcStatus", JS_NewCFunction(ctx, jsNpcStatus, "npcStatus", 0));
     JS_SetPropertyStr(ctx, api, "projectileProbe",
                       JS_NewCFunction(ctx, jsProjectileProbe, "projectileProbe", 0));
     JS_SetPropertyStr(ctx, api, "projectileMethods",
