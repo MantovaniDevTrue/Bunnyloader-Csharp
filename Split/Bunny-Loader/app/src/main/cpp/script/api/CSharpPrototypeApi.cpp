@@ -34,6 +34,8 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "hostApi", JS_NewInt32(ctx, mod.hostApiVersion));
         JS_SetPropertyStr(ctx, row, "loaded", JS_NewBool(ctx, mod.loaded));
         JS_SetPropertyStr(ctx, row, "projectileBehavior", JS_NewBool(ctx, mod.projectileBehavior));
+        JS_SetPropertyStr(ctx, row, "selectiveProjectiles", JS_NewBool(ctx, mod.selectiveProjectiles));
+        JS_SetPropertyStr(ctx, row, "projectileBindings", JS_NewInt32(ctx, mod.projectileBindings));
         JS_SetPropertyUint32(ctx, out, at++, row);
     }
     return out;
