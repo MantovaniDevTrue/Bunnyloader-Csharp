@@ -233,3 +233,22 @@ JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
 ```
 
 Verifique que `automaticCalls` e `automaticWrites` aumentam. Para comparação, projéteis de outros mods não devem aumentar estes contadores.
+
+## 0.1.10.2 Selective projectile profiles
+
+Native Mod ABI 1 and Host API 1 are unchanged. The C++ host optionally resolves `bunny_mod_bind_projectile(int type, const char* name)` during module startup, after JavaScript has registered the mod's projectile types.
+
+When the optional function is present, the host only dispatches projectile updates for types explicitly accepted by that module. Existing NativeAOT mods without this export continue to receive their own projectile types as before.
+
+The SDK has new helpers: `TryFindClosestHostileInRange(radius, out target)` and `SteerTowardsPredicted(target, minimumSpeed, maximumSpeed, turn, maxLeadTicks)`. The latter approximates interception using the NPC velocity, with a maximum prediction horizon.
+
+The ExampleCSharpMod v0.1.2 offers `NativeHomingWand` (unchanged homing) and `NativePredictiveWand` (predictive homing). Both are craftable with 10 wood and a workbench. The new weapon's PNGs use existing original ExampleModBunny textures.
+
+In the in-game editor:
+
+```js
+JSON.stringify(bl.csharp.externalMods(), null, 2)
+JSON.stringify(bl.csharp.projectileWriteStatus(), null, 2)
+```
+
+Expected after module load: `selectiveProjectiles: true`, `projectileBindings: 2`. Fire both weapons near moving enemies. The previous automatic counters must still increase. This change still needs Android visual verification.
