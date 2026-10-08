@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" />
-    <Compile Include="../../samples/SourceCSharpMod/content/main.cs" />
-    <Compile Include="../../samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.cs" />
+    <Compile Include="../../../samples/SourceCSharpMod/content/main.cs" />
+    <Compile Include="../../../samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.cs" />
   </ItemGroup>
 </Project>
