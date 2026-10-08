@@ -4,6 +4,7 @@
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -23,6 +24,23 @@
 namespace bl::script {
 
 namespace {
+
+JSValue jsSourceMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue out = JS_NewArray(ctx);
+    const auto mods = bl::csharp::sourceModStatuses();
+    for (uint32_t i = 0; i < mods.size(); ++i) {
+        JSValue row = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, row, "id", JS_NewString(ctx, mods[i].id.c_str()));
+        JS_SetPropertyStr(ctx, row, "loaded", JS_NewBool(ctx, mods[i].loaded));
+        JS_SetPropertyStr(ctx, row, "files", JS_NewInt32(ctx, mods[i].sourceFiles));
+        JS_SetPropertyStr(ctx, row, "items", JS_NewInt32(ctx, mods[i].items));
+        JS_SetPropertyStr(ctx, row, "projectiles", JS_NewInt32(ctx, mods[i].projectiles));
+        JS_SetPropertyStr(ctx, row, "engine", JS_NewString(ctx, "SetDefaults-literals-v1"));
+        JS_SetPropertyStr(ctx, row, "error", JS_NewString(ctx, mods[i].error.c_str()));
+        JS_SetPropertyUint32(ctx, out, i, row);
+    }
+    return out;
+}
 
 JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewArray(ctx);
@@ -683,6 +701,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JSValue api = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
+    JS_SetPropertyStr(ctx, api, "sourceMods", JS_NewCFunction(ctx, jsSourceMods, "sourceMods", 0));
     JS_SetPropertyStr(ctx, api, "externalMods",
                       JS_NewCFunction(ctx, jsExternalMods, "externalMods", 0));
     JS_SetPropertyStr(ctx, api, "version", JS_NewCFunction(ctx, jsVersion, "version", 0));

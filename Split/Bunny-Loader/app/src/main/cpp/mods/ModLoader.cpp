@@ -1,5 +1,6 @@
 #include "mods/ModLoader.h"
 #include "core/Log.h"
+#include "experiments/csharp/SourceLoader.h"
 #include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
@@ -180,6 +181,14 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
         if (!registry()[i].enabled || registry()[i].entry == "@native") continue;
+        if (registry()[i].entry.size() >= 3 &&
+            registry()[i].entry.compare(registry()[i].entry.size() - 3, 3, ".cs") == 0) {
+            if (!bl::csharp::loadCSharpSourceMod(registry()[i]))
+                registry()[i].enabled = false;
+            else
+                registry()[i].loaded = true;
+            continue;
+        }
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];
