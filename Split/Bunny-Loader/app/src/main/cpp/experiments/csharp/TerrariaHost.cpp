@@ -100,7 +100,7 @@ Vector2 centerOf(Il2CppObject* obj) {
 
 }
 
-TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles) {
+TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles, bool includeNpcs) {
     TerrariaSnapshot out;
     const auto start = std::chrono::steady_clock::now();
 
@@ -130,6 +130,7 @@ TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles) {
     out.player.vx = playerVelocity.x;
     out.player.vy = playerVelocity.y;
 
+    if (includeNpcs) {
     out.npcs.resize(npcs->length);
     auto** npcData = reinterpret_cast<Il2CppObject**>(arrayData(npcs));
     for (uintptr_t i = 0; i < npcs->length; ++i) {
@@ -153,6 +154,8 @@ TerrariaSnapshot captureTerrariaSnapshot(bool includeProjectiles) {
         sample.vx = velocity.x;
         sample.vy = velocity.y;
         if (active) ++out.activeNpcs;
+    }
+
     }
 
     if (includeProjectiles) {
