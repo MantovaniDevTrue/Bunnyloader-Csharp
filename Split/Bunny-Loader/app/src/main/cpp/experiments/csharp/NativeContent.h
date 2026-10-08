@@ -11,7 +11,9 @@ enum NativeContentKind : int32_t {
     NativeNpc = 3,
     NativeAccessory = 4,
     NativeBuff = 5,
-    NativeBuffPotion = 6
+    NativeBuffPotion = 6,
+    NativeArmor = 7,
+    NativeArmorSet = 8
 };
 
 struct NativeContentSpec {
@@ -40,14 +42,18 @@ struct NativeRegisterContext {
     int accessories = 0;
     int buffs = 0;
     int potions = 0;
+    int armorPieces = 0;
+    int armorSets = 0;
     int firstNpcType = -1;
     int firstAccessoryType = -1;
     int firstBuffType = -1;
+    int firstArmorType = -1;
 };
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);
 
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
+int nativeNpcProjectileType(int npcType);
 
 }
