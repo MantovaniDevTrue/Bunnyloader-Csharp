@@ -19,6 +19,7 @@
 #include "menu/DevTools.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
+#include "experiments/csharp/NpcAiHost.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -91,6 +92,9 @@ void probeThread() {
             prepareModNpcs();
             if (csharpmods::hasProjectileBehavior()) {
                 csharp::installProjectileWriteTest();
+            }
+            if (csharpmods::hasNpcBehavior()) {
+                csharp::installNpcAiHost();
             }
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
