@@ -22,6 +22,7 @@ class NativeConfig(
     @JvmField val quickWorld: String,
     @JvmField val managedProbePath: String = "",
     @JvmField val managedCheckpointPath: String = "",
+    @JvmField val appContext: android.content.Context,
 )
 
 /**
