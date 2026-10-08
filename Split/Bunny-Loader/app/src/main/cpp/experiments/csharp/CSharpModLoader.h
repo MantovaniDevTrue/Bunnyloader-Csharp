@@ -17,6 +17,8 @@ struct LoadedNativeMod {
     bool projectileBehavior = false;
     bool selectiveProjectiles = false;
     int projectileBindings = 0;
+    bool npcBehavior = false;
+    int npcBindings = 0;
 };
 
 void loadAll();
@@ -24,6 +26,10 @@ size_t loadedCount();
 std::vector<LoadedNativeMod> snapshot();
 
 bool hasProjectileBehavior();
+bool hasNpcBehavior();
+bool hasOwnedNpcBehavior(int npcType);
+bool dispatchOwnedNpc(int npcType, bl::csharp::HostNpcState* state, float playerX, float playerY);
+void releaseOwnedNpc(int npcType, int slot, int generation);
 bool hasOwnedProjectileBehavior(int projectileType);
 void releaseOwnedProjectile(int projectileType, int slot, int owner, int generation);
 bool dispatchOwnedProjectile(int projectileType,
