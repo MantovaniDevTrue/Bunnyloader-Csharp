@@ -32,6 +32,33 @@ public sealed class NativePureSlimeAI : BunnyNpcBehavior
         float maxSpeed = context.LifeRatio <= 0.5f ? 5.5f : 3.2f;
         return context.MoveTowards(context.PlayerX, context.PlayerY, acceleration, maxSpeed);
     }
+
+    public override bool TryAttack(ref NpcContext context, ref NpcMemory memory, out NpcCombatCommand attack)
+    {
+        attack = default;
+        bool phase2 = context.LifeRatio <= 0.5f;
+        int interval = phase2 ? 65 : 115;
+        if (memory.Age < 50 || memory.Age % interval != 0) return false;
+        float dx = context.PlayerX - context.X;
+        float dy = context.PlayerY - context.Y;
+        float distance = MathF.Sqrt(dx * dx + dy * dy);
+        if (!float.IsFinite(distance) || distance < 1f) return false;
+        float speed = phase2 ? 10f : 7.5f;
+        float vx = dx / distance * speed;
+        float vy = dy / distance * speed;
+        attack = new NpcCombatCommand
+        {
+            Count = phase2 ? 2 : 1,
+            Damage = phase2 ? 12 : 8,
+            X = context.X,
+            Y = context.Y,
+            VelocityX0 = vx,
+            VelocityY0 = vy,
+            VelocityX1 = vx * 0.94f - vy * 0.34f,
+            VelocityY1 = vx * 0.34f + vy * 0.94f
+        };
+        return true;
+    }
 }
 
 public sealed class NativeBoltAI : BunnyProjectileBehavior
@@ -106,6 +133,27 @@ public static unsafe class Exports
             };
             if (register(context, &item) < 0) return 0;
         }
+        int orbType;
+        fixed (byte* name = "NativePureOrb\0"u8)
+        fixed (byte* texture = "Content/Projectiles/NativePureOrb.png\0"u8)
+        fixed (byte* display = "Native Pure Orb\0"u8)
+        {
+            NativeContentSpec orb = new()
+            {
+                Kind = 1,
+                Name = name,
+                Texture = texture,
+                DisplayName = display,
+                Width = 12,
+                Height = 12,
+                AiStyle = 1,
+                Penetrate = 1,
+                TimeLeft = 160,
+                Flags = 1
+            };
+            orbType = register(context, &orb);
+            if (orbType < 0) return 0;
+        }
         fixed (byte* name = "NativePureSlime\0"u8)
         fixed (byte* texture = "Content/NPCs/NativePureSlime.png\0"u8)
         fixed (byte* display = "Native Pure Slime\0"u8)
@@ -123,7 +171,8 @@ public static unsafe class Exports
                 ShootType = 90,
                 AiStyle = 0,
                 Penetrate = 1,
-                TimeLeft = 2
+                TimeLeft = 2,
+                Flags = orbType
             };
             if (register(context, &npc) < 0) return 0;
         }
@@ -175,6 +224,53 @@ public static unsafe class Exports
             };
             if (register(context, &potion) < 0) return 0;
         }
+        int helm, chest, legs;
+        fixed (byte* name = "NativePureHelm\0"u8)
+        fixed (byte* texture = "Content/Items/Armor/NativePureHelm.png\0"u8)
+        fixed (byte* display = "Native Pure Helm\0"u8)
+        {
+            NativeContentSpec piece = new()
+            {
+                Kind = 7, Name = name, Texture = texture, DisplayName = display,
+                Damage = 5, Flags = 0, Penetrate = 1
+            };
+            helm = register(context, &piece);
+            if (helm < 0) return 0;
+        }
+        fixed (byte* name = "NativePureChest\0"u8)
+        fixed (byte* texture = "Content/Items/Armor/NativePureChest.png\0"u8)
+        fixed (byte* display = "Native Pure Chest\0"u8)
+        {
+            NativeContentSpec piece = new()
+            {
+                Kind = 7, Name = name, Texture = texture, DisplayName = display,
+                Damage = 6, Flags = 1, Penetrate = 1, UseTime = 20, ShootType = 1
+            };
+            chest = register(context, &piece);
+            if (chest < 0) return 0;
+        }
+        fixed (byte* name = "NativePureLegs\0"u8)
+        fixed (byte* texture = "Content/Items/Armor/NativePureLegs.png\0"u8)
+        fixed (byte* display = "Native Pure Legs\0"u8)
+        {
+            NativeContentSpec piece = new()
+            {
+                Kind = 7, Name = name, Texture = texture, DisplayName = display,
+                Damage = 4, Flags = 2, Penetrate = 1, ShootSpeed = 0.05f
+            };
+            legs = register(context, &piece);
+            if (legs < 0) return 0;
+        }
+        fixed (byte* name = "NativePureArmorSet\0"u8)
+        fixed (byte* texture = "Content/Items/Armor/NativePureHelm.png\0"u8)
+        {
+            NativeContentSpec set = new()
+            {
+                Kind = 8, Name = name, Texture = texture,
+                Width = helm, Height = chest, ShootType = legs, Damage = 6
+            };
+            if (register(context, &set) < 0) return 0;
+        }
         return 1;
     }
 
@@ -191,6 +287,17 @@ public static unsafe class Exports
         if (state == null || state->Generation < 1) return 0;
         NpcContext context = new(state, playerX, playerY);
         return Npcs.Tick(ref context) ? 1 : 0;
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_combat_tick", CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static int NpcCombatTick(NpcState* state, float playerX, float playerY,
+                                    NpcCombatCommand* output)
+    {
+        if (state == null || output == null || state->Generation < 1) return 0;
+        NpcContext context = new(state, playerX, playerY);
+        bool fire = Npcs.TryAttack(ref context, out NpcCombatCommand attack);
+        *output = fire ? attack : default;
+        return fire ? 1 : 0;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "bunny_mod_npc_release", CallConvs = new[] { typeof(CallConvCdecl) })]
