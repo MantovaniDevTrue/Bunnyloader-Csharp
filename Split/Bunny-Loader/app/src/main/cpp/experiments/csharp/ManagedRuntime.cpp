@@ -43,6 +43,7 @@ MonoApi g_api;
 void* g_library = nullptr;
 void* g_domain = nullptr;
 std::string g_checkpointPath;
+void* g_liveAiMethod = nullptr;
 
 template <typename T>
 T resolve(const char* name) {
@@ -267,6 +268,41 @@ ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int 
     g_status.methodExecuted = true;
     trace("callback-verified");
     return g_status;
+}
+
+bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
+    if (!nextState || tick < 0 || tick >= 120) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_api.attach ||
+        !g_api.invoke || !g_api.unbox) return false;
+    if (!g_api.attach(g_domain)) return false;
+
+    if (!g_liveAiMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return false;
+        const std::string assemblyPath =
+            g_checkpointPath.substr(0, slash + 1) + "BunnyManagedProbe.dll";
+        if (!validAssembly(assemblyPath)) return false;
+        void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+        void* img = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = img ? g_api.findClass(img, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
+        g_liveAiMethod = klass ? g_api.findMethod(klass, "AI", 2) : nullptr;
+        if (!g_liveAiMethod) return false;
+    }
+
+    int tickArg = tick;
+    int stateArg = state;
+    void* args[] = {&tickArg, &stateArg};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(g_liveAiMethod, nullptr, args, &exception);
+    if (exception || !boxed) return false;
+    void* unboxed = g_api.unbox(boxed);
+    if (!unboxed) return false;
+    int next = 0;
+    std::memcpy(&next, unboxed, sizeof(next));
+    if (next != state + (tick % 7) - 3) return false;
+    *nextState = next;
+    return true;
 }
 
 }
