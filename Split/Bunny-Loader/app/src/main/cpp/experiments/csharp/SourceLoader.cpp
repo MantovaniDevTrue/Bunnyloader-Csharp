@@ -325,6 +325,9 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
+    std::vector<ManagedAccessoryEntry> accessories;
+    std::vector<ManagedPlayerEntry> players;
+    std::map<std::string, int> accessoryTypes;
     std::vector<std::string> shootNames;
     std::string line;
     while (std::getline(lines, line)) {
@@ -337,6 +340,26 @@ bool applyManagedSourceDefaults(
             !seen.emplace(fields[1], true).second) {
             *error = "Classe C# duplicada ou registro invalido";
             return false;
+        }
+        if (fields[0] == "PLAYER" && fields.size() == 4) {
+            if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
+                          fields[1]) == mod->playerClasses.end()) {
+                *error = "BunnyPlayer C# nao registrado: " + fields[1];
+                return false;
+            }
+            ManagedPlayerEntry record;
+            record.name = fields[1];
+            record.accessoryName = fields[2];
+            const auto target = accessoryTypes.find(record.accessoryName);
+            if (target == accessoryTypes.end() ||
+                !integer(fields[3], &record.equippedDefenseBonus) ||
+                record.equippedDefenseBonus < 0 || record.equippedDefenseBonus > 100) {
+                *error = "Politica BunnyPlayer invalida: " + record.name;
+                return false;
+            }
+            record.accessoryType = target->second;
+            players.push_back(std::move(record));
+            continue;
         }
         const auto registered = mod->registeredTypes.find(fields[1]);
         if (registered == mod->registeredTypes.end() || registered->second < 0) {
@@ -373,6 +396,18 @@ bool applyManagedSourceDefaults(
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
+        } else if (fields[0] == "ACCESSORY" && fields.size() == 3) {
+            ManagedAccessoryEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.defenseBonus) ||
+                record.defenseBonus < 0 || record.defenseBonus > 100 ||
+                runtime::modItemTypeByKey(modId + "/" + record.name) != record.type) {
+                *error = "Valores invalidos de acessorio C#: " + record.name;
+                return false;
+            }
+            accessoryTypes[record.name] = record.type;
+            accessories.push_back(std::move(record));
         } else if (fields[0] == "BUFF" && fields.size() == 3) {
             ManagedBuffEntry record;
             record.name = fields[1];
@@ -407,16 +442,20 @@ bool applyManagedSourceDefaults(
             return false;
         }
         if (projectiles.size() > 16 || weapons.size() > 16 ||
-            buffs.size() > 16 || potions.size() > 16) {
+            buffs.size() > 16 || potions.size() > 16 ||
+            accessories.size() > 16 || players.size() > 16) {
             *error = "Quantidade de conteudo C# excede 16 por categoria";
             return false;
         }
     }
     if (projectiles.size() != static_cast<size_t>(mod->projectiles) ||
-        weapons.size() + potions.size() != static_cast<size_t>(mod->items) ||
+        weapons.size() + potions.size() + accessories.size() !=
+            static_cast<size_t>(mod->items) ||
         buffs.size() != static_cast<size_t>(mod->buffs) ||
         potions.size() != static_cast<size_t>(mod->potions) ||
-        seen.size() != mod->registeredTypes.size()) {
+        accessories.size() != static_cast<size_t>(mod->accessories) ||
+        players.size() != static_cast<size_t>(mod->players) ||
+        seen.size() != mod->registeredTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
@@ -434,6 +473,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
         *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
+        return false;
+    }
+    if (!applyManagedNativePlayerDefaultsBatch(modId, accessories, players)) {
+        *error = "Falha ao validar ou aplicar politica BunnyPlayer C#";
         return false;
     }
     mod->runtimeApplied = true;
