@@ -5,6 +5,7 @@
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
@@ -945,6 +946,24 @@ JSValue jsSourceApplyCompiled(JSContext* ctx, JSValueConst, int argc, JSValueCon
     return result;
 }
 
+JSValue jsSourceAutoStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceAutoStatus()");
+    JSValue output = JS_NewArray(ctx);
+    uint32_t index = 0;
+    for (const auto& status : bl::csharp::autoSourceStatuses()) {
+        JSValue item = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, item, "modId", JS_NewString(ctx, status.modId.c_str()));
+        JS_SetPropertyStr(ctx, item, "phase", JS_NewString(ctx, status.phase.c_str()));
+        JS_SetPropertyStr(ctx, item, "cached", JS_NewBool(ctx, status.cached));
+        JS_SetPropertyStr(ctx, item, "applied", JS_NewBool(ctx, status.applied));
+        JS_SetPropertyStr(ctx, item, "curves", JS_NewInt32(ctx, status.curves));
+        JS_SetPropertyStr(ctx, item, "enabledCurves", JS_NewInt32(ctx, status.enabledCurves));
+        JS_SetPropertyStr(ctx, item, "error", JS_NewString(ctx, status.error.c_str()));
+        JS_SetPropertyUint32(ctx, output, index++, item);
+    }
+    return output;
+}
+
 JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewObject(ctx);
     const auto state = readManagedWorkerFile("source-compile-status.txt");
@@ -1711,6 +1730,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceApplyMod, "sourceApplyMod", 2));
     JS_SetPropertyStr(ctx, api, "sourceCompileStatus",
                       JS_NewCFunction(ctx, jsManagedSourceCompileStatus, "sourceCompileStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceAutoStatus",
+                      JS_NewCFunction(ctx, jsSourceAutoStatus, "sourceAutoStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceApplyCompiled",
                       JS_NewCFunction(ctx, jsSourceApplyCompiled, "sourceApplyCompiled", 1));
     JS_SetPropertyStr(ctx, api, "sourceEnableBufferedAI",
