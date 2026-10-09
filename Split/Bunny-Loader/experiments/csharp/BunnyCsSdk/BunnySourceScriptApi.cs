@@ -26,3 +26,20 @@ public abstract class BunnyWeapon
     public string Shoot { get; set; } = "";
     public abstract void SetDefaults();
 }
+
+public abstract class BunnyBuff
+{
+    public string DisplayName { get; set; } = "";
+    public string Texture { get; set; } = "";
+    public int DefenseBonus { get; set; } = 0;
+    public abstract void SetDefaults();
+}
+
+public abstract class BunnyBuffPotion
+{
+    public string DisplayName { get; set; } = "";
+    public string Texture { get; set; } = "";
+    public string Buff { get; set; } = "";
+    public int Duration { get; set; } = 600;
+    public abstract void SetDefaults();
+}
