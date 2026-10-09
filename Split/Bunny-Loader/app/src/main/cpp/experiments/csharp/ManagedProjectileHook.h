@@ -11,6 +11,11 @@ struct SourceBoltHomingPolicy {
     std::array<int, 129> turnsMilliRadians{};
 };
 
+struct SourceBoltHitPolicy {
+    int buffId = 24;
+    std::array<int, 4> durations{};
+};
+
 struct ManagedProjectileHookStatus {
     bool installed = false;
     bool enabled = false;
@@ -19,6 +24,13 @@ struct ManagedProjectileHookStatus {
     int homingScans = 0;
     int homingLocks = 0;
     int homingFrames = 0;
+    bool hitInstalled = false;
+    bool hitEnabled = false;
+    int hitEvents = 0;
+    int buffsApplied = 0;
+    int buffErrors = 0;
+    int lastHitNpc = -1;
+    int hitBuffId = 0;
     int lastTarget = -1;
     int bufferSamples = 0;
     int type = -1;
@@ -36,6 +48,8 @@ bool enableBufferedSourceBoltHook(const std::array<int, 120>& turnsMilliRadians,
 bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
                                  const std::array<int, 120>& fallbackTurns,
                                  std::string* error);
+bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error);
+bool pauseSourceBoltOnHit();
 bool pauseManagedSourceBoltHook();
 ManagedProjectileHookStatus managedSourceBoltHookStatus();
 
