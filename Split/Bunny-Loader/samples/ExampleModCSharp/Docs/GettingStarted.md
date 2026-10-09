@@ -47,3 +47,41 @@ O que confirma funcionamento: `enabled: true`, contadores crescendo, `errors: 0`
 - Os callbacks de impacto e destruicao ainda sao integracoes experimentais especificas do SourceBolt.
 - O motor nativo aplica politicas preparadas pelo MonoVM; nao executa codigo gerenciado a cada frame.
 - No multiplayer, essas politicas experimentais nao devem ser ativadas.
+
+## ExampleModCSharp independente — teste experimental
+
+A partir da branch 0.1.10.16.35, um segundo .bmod possui identificador proprio:
+`68c3115f-62f4-49f2-a56b-388256781d5f`.
+
+Instale `ExampleModCSharp-v0.1.0.bmod` e o APK correspondente. Dentro de um mundo solo, execute:
+
+```javascript
+bl.csharp.sourceCompileMod("68c3115f-62f4-49f2-a56b-388256781d5f")
+```
+
+Espere o status indicar `state=finished`, `assemblyReady=1`, `executedTypes=2` e o mesmo `modId`. Depois:
+
+```javascript
+bl.csharp.sourceApplyMod(
+  "68c3115f-62f4-49f2-a56b-388256781d5f",
+  "CONFIRM_MANAGED_DEFAULTS"
+)
+bl.csharp.sourceEnableProjectileAI(
+  "68c3115f-62f4-49f2-a56b-388256781d5f",
+  "ExampleBolt",
+  "CONFIRM_CSHARP_PROJECTILE_AI"
+)
+```
+
+Esperado: `applied=true`, `items=1`, `projectiles=1`. Dispare a ExampleWand e confira:
+
+```javascript
+JSON.stringify(
+  bl.csharp.sourceProjectileAIStatus(
+    "68c3115f-62f4-49f2-a56b-388256781d5f",
+    "ExampleBolt"
+  ), null, 2
+)
+```
+
+Os contadores `callbacks` e `velocityWrites` devem aumentar, com `errors=0`. A confirmacao do desempenho em 60 FPS precisa ser feita no Android. Nunca aplique os resultados de compilacao de outro mod: o worker passa a registrar a identidade de origem e o host verifica essa identidade.
