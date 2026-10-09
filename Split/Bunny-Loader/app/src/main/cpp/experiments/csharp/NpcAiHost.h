@@ -24,6 +24,10 @@ struct LiveNpcAiStatus {
     int events = 0;
     int writes = 0;
     int errors = 0;
+    int queued = 0;
+    int discarded = 0;
+    bool workerStarted = false;
+    bool workerPending = false;
     int lastSlot = -1;
     int lastDeltaX = 0;
     int lastVelocityTenths = 0;
