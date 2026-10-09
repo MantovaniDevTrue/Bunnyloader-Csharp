@@ -70,6 +70,7 @@ on:
       - bunny-csharp-source-0.1.10.16.48-async-npc-ai
       - bunny-csharp-source-0.1.10.16.49-mono-thread-lifecycle
       - bunny-csharp-source-0.1.10.16.50-game-abort-trace
+      - bunny-csharp-source-0.1.10.16.51-crash-session-preservation
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -172,6 +173,24 @@ jobs:
           assert "native-game-abort-previous.txt" in native
           assert "std::rename(file.c_str(), previous.c_str())" in native
           print("CSHARP_GAME_CRASH_TRACE_WIRING=PASS")
+          PY
+
+      - name: Verify retained crash session diagnostics
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          boot = (root / "app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt").read_text()
+          native = (root / "app/src/main/cpp/experiments/csharp/NativeAbortProbe.cpp").read_text()
+          assert "rotateLogcat(ctx)" in boot
+          assert "for (generation in 3 downTo 1)" in boot
+          assert "for (generation in 0..3)" in boot
+          assert "native-game-abort-previous.txt" in boot
+          assert "private fun gameCrashTraces(" in boot
+          assert "emitAbortHeader();" in native
+          assert "NATIVE_ABORT_SIGNAL pid=" in native
+          print("CSHARP_CRASH_SESSION_RETENTION=PASS")
           PY
 
       - name: Build CSharp NativeAOT library
@@ -597,7 +616,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='75' versionName='0.1.10.16.50-csharp-game-native-trace'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='76' versionName='0.1.10.16.51-csharp-crash-session-preservation'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -620,7 +639,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.50-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.51-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -634,9 +653,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.50"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.51"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.50-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.51-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -644,8 +663,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.50 — Game Process Native Crash Diagnostics" \
-              --notes "Diagnostic v0.1.10.16.50: capture native crash and destroyed mutex caller in the Terraria game process upon explicit managedGameProbe confirmation, retain the previous game-process trace across rearming, expose gameNativeAbort and gameNativePrevious in sourceCompileStatus. Preserve .49 C# source mod loader, MonoVM thread handling and experimental async NPC AI behavior unchanged. The SIGABRT libc FORTIFY cause was observed on Android, but its originating caller remains unproven until a game-process trace is collected." \
+              --title "Bunny Loader C# v0.1.10.16.51 — Persistent Game Crash Diagnostics" \
+              --notes "v0.1.10.16.51: Preserve latest four Terraria-process logcat sessions across restarts, report game-process native abort traces directly and atomically log PID/TID in the first abort record to investigate recurrent native SIGABRT/FORTIFY destroyed mutex without reworking the proven C# dynamic execution path. Preserve .50 ExampleModCSharp 0.1.6, async NPC AI behavior, Roslyn worker, cache and MonoVM thread lifecycle. Android validation required: collect report after spontaneous crash before enabling further experimental NPC AI." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -670,7 +689,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.50-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.51-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
