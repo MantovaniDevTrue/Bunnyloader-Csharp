@@ -33,7 +33,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_42";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_43";
 std::mutex g_lock;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
@@ -226,7 +226,7 @@ bool validCompileStatus(const std::string& status, const std::string& id,
            status.find("modId=" + id + "\n") != std::string::npos &&
            status.find("phase=compile-verified\n") != std::string::npos &&
            status.find("assemblyReady=1\n") != std::string::npos &&
-           status.find("executedTypes=" + std::to_string(mod.items + mod.projectiles + mod.buffs + mod.players) +
+           status.find("executedTypes=" + std::to_string(mod.items + mod.projectiles + mod.buffs + mod.players + mod.npcs) +
                        "\n") != std::string::npos;
 }
 
