@@ -46,14 +46,17 @@ try
         throw new InvalidOperationException("Mono preflight method contract failed");
     if (Compiler.Compile(sourceRoot, output, framework, diag) != 1)
         throw new InvalidOperationException(File.ReadAllText(diag));
-    if (CompiledAssemblyProbe.Verify(output, diag) != 2 ||
+    if (CompiledAssemblyProbe.Verify(output, diag) != 4 ||
         !File.ReadAllText(diag).Contains("ASSEMBLY_EXEC_OK"))
         throw new InvalidOperationException("Compiled C# classes were not executed: " +
             File.ReadAllText(diag));
     string managedDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
-    if (!managedDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V1\n", StringComparison.Ordinal) ||
+    if (!managedDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         !managedDefaults.Contains("PROJECTILE\tSourceBolt\t10\t10\t1\t1\t360\t1\n", StringComparison.Ordinal) ||
-        !managedDefaults.Contains("WEAPON\tSourceWand\t22\t18\t13\tSourceBolt\n", StringComparison.Ordinal))
+        !managedDefaults.Contains("PROJECTILE\tSourceSpark\t14\t14\t1\t2\t240\t1\n", StringComparison.Ordinal) ||
+        !managedDefaults.Contains("WEAPON\tSourceStaff\t30\t24\t10\tSourceSpark\n", StringComparison.Ordinal) ||
+        !managedDefaults.Contains("WEAPON\tSourceWand\t22\t18\t13\tSourceBolt\n", StringComparison.Ordinal) ||
+        managedDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 5)
         throw new InvalidOperationException("Unexpected managed Terraria defaults payload: " + managedDefaults);
     string motionBuffer = File.ReadAllText(Path.Combine(scratch, "source-ai-turns.txt"));
     string[] motionLines = motionBuffer.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -115,6 +118,7 @@ try
     Console.WriteLine("BUNNY_CSHARP_ONHIT_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_AI_BUFFER=PASS");
+    Console.WriteLine("BUNNY_CSHARP_MULTI_CONTENT=PASS");
     Console.WriteLine("BUNNY_MANAGED_DEFAULTS_BRIDGE=PASS");
     Console.WriteLine("BUNNY_MANAGED_ASSEMBLY_EXECUTION=PASS");
     byte[] original = File.ReadAllBytes(output);
