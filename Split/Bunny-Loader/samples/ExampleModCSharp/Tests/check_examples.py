@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.5"
+assert catalog["exampleModCSharpVersion"] == "0.1.6"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -56,7 +56,7 @@ example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "SourceBoltMotion", "SourceSparkMotion",
                    "ExampleDefenseBuff", "ExampleBuffPotion",
                    "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSlimeNPC",
-                   "BunnyLiveEntry"}
+                   "BunnyLiveEntry", "BunnyLiveNpc"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
@@ -79,15 +79,16 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.5"
+assert manifest2["version"] == "0.1.6"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 9
+assert len(playable_files) == 10
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
                  "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)",
                  "BunnyBuff", "BunnyBuffPotion", "BunnyPlayer", "BunnyAccessory", "BunnyNPC",
                  "AnimationType = 1", "LifeMax = 25",
                  "static class BunnyLiveEntry", "static int Tick(int tick, int state)",
+                 "static class BunnyLiveNpc", "static int AI(int playerDeltaX, int npcLife)",
                  "DefenseBonus = 10", "DefenseBonus = 7", "ResetEffects()",
                  "UpdateEquips(bool accessoryEquipped)",
                  "Buff = nameof(ExampleDefenseBuff)",
