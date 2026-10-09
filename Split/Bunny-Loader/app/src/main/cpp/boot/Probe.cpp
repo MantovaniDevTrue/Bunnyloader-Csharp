@@ -18,6 +18,7 @@
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/AutoSourceBootstrap.h"
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/NpcAiHost.h"
 
@@ -88,6 +89,7 @@ void probeThread() {
             BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
             // Depois dos mods: os ids deles ficam os mesmos de sempre.
             registerUnloadedPool();
+            csharp::bootstrapAutomaticSourceMods();
             registerUnloadedWall();
             prepareModNpcs();
             if (csharpmods::hasProjectileBehavior()) {
