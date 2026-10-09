@@ -656,6 +656,148 @@ JSValue jsSourceEnableSparkAI(JSContext* ctx, JSValueConst, int argc, JSValueCon
     return result;
 }
 
+JSValue makeProjectileCurveStatus(JSContext* ctx, const std::string& modId,
+                                  const std::string& name) {
+    const auto status = bl::csharp::managedProjectileCurveStatus(modId, name);
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "modId", JS_NewString(ctx, modId.c_str()));
+    JS_SetPropertyStr(ctx, result, "projectile", JS_NewString(ctx, name.c_str()));
+    JS_SetPropertyStr(ctx, result, "registered", JS_NewBool(ctx, status.registered));
+    JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "type", JS_NewInt32(ctx, status.type));
+    JS_SetPropertyStr(ctx, result, "samples", JS_NewInt32(ctx, status.samples));
+    JS_SetPropertyStr(ctx, result, "spawns", JS_NewInt32(ctx, status.spawns));
+    JS_SetPropertyStr(ctx, result, "callbacks", JS_NewInt32(ctx, status.callbacks));
+    JS_SetPropertyStr(ctx, result, "velocityWrites", JS_NewInt32(ctx, status.velocityWrites));
+    JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, result, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
+    JS_SetPropertyStr(ctx, result, "lastTurn", JS_NewInt32(ctx, status.lastTurn));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-Projectile-Curve-v1"));
+    return result;
+}
+
+bool parseProjectileCurveArgs(JSContext* ctx, int argc, JSValueConst* argv,
+                              int expected, std::string* modId, std::string* name) {
+    if (argc != expected || !JS_IsString(argv[0]) || !JS_IsString(argv[1])) {
+        JS_ThrowTypeError(ctx, "Informe o ID do mod e o nome do projetil");
+        return false;
+    }
+    const char* mod = JS_ToCString(ctx, argv[0]);
+    if (!mod) return false;
+    const char* projectile = JS_ToCString(ctx, argv[1]);
+    if (!projectile) {
+        JS_FreeCString(ctx, mod);
+        return false;
+    }
+    *modId = mod;
+    *name = projectile;
+    JS_FreeCString(ctx, projectile);
+    JS_FreeCString(ctx, mod);
+    if (modId->empty() || modId->size() > 128 ||
+        name->empty() || name->size() > 72) {
+        JS_ThrowTypeError(ctx, "ID do mod ou nome do projetil invalido");
+        return false;
+    }
+    return true;
+}
+
+JSValue jsSourceProjectileAIStatus(JSContext* ctx, JSValueConst,
+                                   int argc, JSValueConst* argv) {
+    std::string id, name;
+    if (!parseProjectileCurveArgs(ctx, argc, argv, 2, &id, &name)) return JS_EXCEPTION;
+    return makeProjectileCurveStatus(ctx, id, name);
+}
+
+JSValue jsSourcePauseProjectileAI(JSContext* ctx, JSValueConst,
+                                  int argc, JSValueConst* argv) {
+    std::string id, name;
+    if (!parseProjectileCurveArgs(ctx, argc, argv, 2, &id, &name)) return JS_EXCEPTION;
+    const bool previous = bl::csharp::pauseManagedProjectileCurve(id, name);
+    JSValue result = makeProjectileCurveStatus(ctx, id, name);
+    JS_SetPropertyStr(ctx, result, "wasEnabled", JS_NewBool(ctx, previous));
+    return result;
+}
+
+JSValue jsSourceEnableProjectileAI(JSContext* ctx, JSValueConst,
+                                   int argc, JSValueConst* argv) {
+    std::string id, name;
+    if (!parseProjectileCurveArgs(ctx, argc, argv, 3, &id, &name)) return JS_EXCEPTION;
+    if (!JS_IsString(argv[2]))
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_CSHARP_PROJECTILE_AI");
+    const char* supplied = JS_ToCString(ctx, argv[2]);
+    if (!supplied) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(supplied) == "CONFIRM_CSHARP_PROJECTILE_AI";
+    JS_FreeCString(ctx, supplied);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_CSHARP_PROJECTILE_AI");
+
+    constexpr const char* sourceTestId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
+    if (id != sourceTestId)
+        return JS_ThrowTypeError(ctx, "Compilacao multi-mod ainda nao habilitada; use o Source C# Test");
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostics.find("PROJECTILE_TURNS_V1_OK curves=") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compile novamente as politicas C# antes de ativar");
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == id && mod.loaded && mod.runtimeApplied &&
+            mod.registeredTypes.contains(name)) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "Projetil nao registrado ou SetDefaults nao aplicado");
+
+    std::istringstream input(readManagedWorkerFile("source-projectile-turns.txt"));
+    std::string header, line;
+    if (!std::getline(input, header) || header != "BUNNY_PROJECTILE_TURNS_V1")
+        return JS_ThrowInternalError(ctx, "Cabecalho da tabela C# de projeteis invalido");
+    std::array<int, 120> turns{};
+    bool found = false;
+    int rows = 0;
+    while (std::getline(input, line)) {
+        if (line.empty()) continue;
+        if (++rows > 16 || line.size() > 1300)
+            return JS_ThrowInternalError(ctx, "Tabela C# de projeteis excedeu os limites");
+        std::istringstream samples(line);
+        std::string candidate;
+        if (!std::getline(samples, candidate, '\t') || candidate.empty())
+            return JS_ThrowInternalError(ctx, "Nome de projetil na tabela invalido");
+        if (candidate != name) continue;
+        if (found)
+            return JS_ThrowInternalError(ctx, "Politica C# de projetil duplicada");
+        for (size_t i = 0; i < turns.size(); ++i) {
+            std::string piece;
+            if (!std::getline(samples, piece, '\t') || piece.empty() || piece.size() > 5)
+                return JS_ThrowInternalError(ctx, "Curva C# de projetil incompleta");
+            errno = 0;
+            char* end = nullptr;
+            long value = std::strtol(piece.c_str(), &end, 10);
+            if (errno || end == piece.c_str() || *end || value < -80 || value > 80)
+                return JS_ThrowInternalError(ctx, "Curva C# de projetil fora dos limites");
+            turns[i] = static_cast<int>(value);
+        }
+        std::string extra;
+        if (std::getline(samples, extra, '\t'))
+            return JS_ThrowInternalError(ctx, "Curva C# de projetil com amostras extras");
+        found = true;
+    }
+    if (!found)
+        return JS_ThrowInternalError(ctx, "Projetil nao possui metodo C# TurnAtTick(int)");
+    std::string error;
+    if (!bl::csharp::enableManagedProjectileCurve(id, name, turns, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    JSValue result = makeProjectileCurveStatus(ctx, id, name);
+    JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
+    return result;
+}
+
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0)
         return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
@@ -1498,6 +1640,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceEnableSparkAI, "sourceEnableSparkAI", 1));
     JS_SetPropertyStr(ctx, api, "sourceSparkStatus",
                       JS_NewCFunction(ctx, jsSourceSparkStatus, "sourceSparkStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceEnableProjectileAI",
+                      JS_NewCFunction(ctx, jsSourceEnableProjectileAI, "sourceEnableProjectileAI", 3));
+    JS_SetPropertyStr(ctx, api, "sourceProjectileAIStatus",
+                      JS_NewCFunction(ctx, jsSourceProjectileAIStatus, "sourceProjectileAIStatus", 2));
+    JS_SetPropertyStr(ctx, api, "sourcePauseProjectileAI",
+                      JS_NewCFunction(ctx, jsSourcePauseProjectileAI, "sourcePauseProjectileAI", 2));
     JS_SetPropertyStr(ctx, api, "sourcePauseSparkAI",
                       JS_NewCFunction(ctx, jsSourcePauseSparkAI, "sourcePauseSparkAI", 0));
     JS_SetPropertyStr(ctx, api, "sourceEnableOnHit",
