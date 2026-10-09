@@ -103,7 +103,7 @@ struct ManagedProjectileHookStatus {
 bool enableManagedProjectileCurve(const std::string& modId,
                                   const std::string& projectileName,
                                   const std::array<int, 120>& turns,
-                                  std::string* error);
+                                  std::string* error, bool allowInMenu = false);
 bool pauseManagedProjectileCurve(const std::string& modId, const std::string& projectileName);
 ManagedProjectileCurveStatus managedProjectileCurveStatus(
     const std::string& modId, const std::string& projectileName);
