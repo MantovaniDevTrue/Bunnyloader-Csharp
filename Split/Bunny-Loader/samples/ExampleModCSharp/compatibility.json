@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.1",
+  "exampleModCSharpVersion": "0.1.2",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -104,6 +104,20 @@
       "id": "experimental_csharp_multiplayer",
       "status": "not_implemented",
       "examples": []
+    },
+    {
+      "id": "source_bunny_buff",
+      "status": "experimental",
+      "examples": [
+        "ExampleDefenseBuff"
+      ]
+    },
+    {
+      "id": "source_bunny_buff_potion",
+      "status": "experimental",
+      "examples": [
+        "ExampleBuffPotion"
+      ]
     }
   ]
 }
