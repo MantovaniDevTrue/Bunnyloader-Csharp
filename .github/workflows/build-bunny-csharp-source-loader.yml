@@ -67,6 +67,7 @@ on:
       - bunny-csharp-source-0.1.10.16.45-live-runtime
       - bunny-csharp-source-0.1.10.16.46-live-npc-ai
       - bunny-csharp-source-0.1.10.16.47-live-npc-syntax
+      - bunny-csharp-source-0.1.10.16.48-async-npc-ai
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -360,7 +361,7 @@ jobs:
           assert "kFixtureId" in native
           assert "source-compile-status.txt" in native
           assert "modId=" in native and "executedTypes=" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_47" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_48" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -372,7 +373,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_47" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_48" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
@@ -424,7 +425,14 @@ jobs:
           assert "BunnyLiveNpc" in mono and "invokeLiveSourceNpcAi" in mono
           assert "invokeLiveSourceNpcAi(" in npcHost
           assert "runLiveNpcAi(npc);" in npcHost
-          assert "kLiveNpcMaxCalls = 240" in npcHost
+          assert "kLiveNpcMaxCalls = 24" in npcHost
+          assert "kLiveNpcSampleInterval = 12" in npcHost
+          assert "std::thread(liveNpcWorkerLoop).detach()" in npcHost
+          assert "std::condition_variable g_liveDispatchCv" in npcHost
+          assert "g_liveHasCompletion" in npcHost
+          assert "paused-world-transition" in npcHost
+          assert 'g_api.invoke(entry.npcAiMethod' in mono
+          assert "workerPending" in api and "discarded" in api
           assert "installNpcAiHost" in npcHost
           assert "liveNpcAiStatus" in npcHeader
           assert "sourceLiveNpcEnable" in api and "sourceLiveNpcPause" in api
@@ -562,7 +570,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='72' versionName='0.1.10.16.47-csharp-live-npc-syntax'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='73' versionName='0.1.10.16.48-csharp-async-npc'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -585,7 +593,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.47-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.48-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -599,9 +607,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.47"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.48"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.47-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.48-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -609,8 +617,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.47 — Automatic CSharp Source Loader" \
-              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.47 parser hotfix for dynamic CSharp NPC.AI: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile/BunnyBuff/BunnyBuffPotion defaults and enable validated projectile curves and OnHitNPC/OnKill damage-based OnFire effects automatically in singleplayer. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Fixes SourceParser rejection of standard C# &&, || and ?: operators in ExampleLiveNpcAI.cs. Includes ExampleModCSharp 0.1.6 with experimental BunnyLiveNpc.AI. Confirm managedGameProbe and sourceLiveTick, then explicitly enable sourceLiveNpcEnable; automatic safety pause after 240 NPC events, repeated callback errors, or slow callbacks. MonoVM in the Terraria game process remains experimental and requires Android device validation." \
+              --title "Bunny Loader C# v0.1.10.16.48 — Automatic CSharp Source Loader" \
+              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.48 async managed NPC.AI crash isolation: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile/BunnyBuff/BunnyBuffPotion defaults and enable validated projectile curves and OnHitNPC/OnKill damage-based OnFire effects automatically in singleplayer. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Routes managed NPC AI through a bounded background MonoVM callback worker instead of game-thread mono_runtime_invoke; pauses after 24 spaced callbacks, menu transition, timeout or repeated failures. Crash cause in previous experimental version is not yet confirmed. Includes ExampleModCSharp 0.1.6 with experimental BunnyLiveNpc.AI. Confirm managedGameProbe and sourceLiveTick, then explicitly enable sourceLiveNpcEnable; automatic safety pause after 240 NPC events, repeated callback errors, or slow callbacks. MonoVM in the Terraria game process remains experimental and requires Android device validation." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -635,7 +643,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.47-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.48-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
