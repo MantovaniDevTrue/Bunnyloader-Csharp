@@ -266,6 +266,23 @@ try
         throw new InvalidOperationException(
             "C# live callbacks did not retain managed static state: " +
             firstLive + ", " + secondLive);
+    var npcLiveType = liveAssembly.GetType("BunnyLoader.Source.BunnyLiveNpc")
+        ?? throw new InvalidOperationException("Dynamic C# NPC callback class missing");
+    var npcLiveAi = npcLiveType.GetMethod("AI", BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("Dynamic C# NPC AI(int,int) missing");
+    int npcRight = (int)(npcLiveAi.Invoke(null, new object[] { 100, 25 })
+        ?? throw new InvalidOperationException("Dynamic NPC callback returned null"));
+    int npcRightNext = (int)(npcLiveAi.Invoke(null, new object[] { 100, 25 })
+        ?? throw new InvalidOperationException("Dynamic NPC callback returned null"));
+    int npcLeftLowLife = (int)(npcLiveAi.Invoke(null, new object[] { -100, 12 })
+        ?? throw new InvalidOperationException("Dynamic NPC callback returned null"));
+    int npcClose = (int)(npcLiveAi.Invoke(null, new object[] { 0, 25 })
+        ?? throw new InvalidOperationException("Dynamic NPC callback returned null"));
+    if (npcRight != 13 || npcRightNext != 14 ||
+        npcLeftLowLife != -18 || npcClose != 0)
+        throw new InvalidOperationException("Live NPC AI did not react to live state: " +
+            npcRight + ", " + npcRightNext + ", " + npcLeftLowLife + ", " + npcClose);
+    Console.WriteLine("BUNNY_CSHARP_LIVE_NPC_AI_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS");
