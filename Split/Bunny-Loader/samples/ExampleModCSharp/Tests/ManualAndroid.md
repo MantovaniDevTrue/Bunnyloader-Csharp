@@ -26,3 +26,17 @@ bl.csharp.sourcePauseProjectileAI(
 Nao ativar a politica generica e `sourceEnableSparkAI()` para o mesmo projetil ao mesmo tempo.
 
 Ao validar uma API nova, atualizar o ExampleMod C#, o catalogo de compatibilidade, os testes do Roslyn e o checklist Android.
+
+## Regressao do pacote independente 0.1.10.16.35
+
+- [ ] ExampleModCSharp 0.1.0 aparece como segundo mod com UID diferente
+- [ ] `sourceCompileMod(uid)` compila apenas ExampleModCSharp
+- [ ] Status mostra `modId` correto, `executedTypes=2` e `assemblyReady=1`
+- [ ] `sourceApplyMod(uid, "CONFIRM_MANAGED_DEFAULTS")` retorna 1 arma e 1 projetil
+- [ ] ExampleWand aparece e dispara ExampleBolt
+- [ ] Curva `ExampleBoltMotion.TurnAtTick` cresce via `sourceProjectileAIStatus(uid, "ExampleBolt")`
+- [ ] `errors=0`, sem crash, FPS comparado a 60
+- [ ] Tentar aplicar com UID de outro mod e confirmar que e rejeitado
+- [ ] Recompilar SourceCSharpMod original e confirmar que os testes antigos permanecem disponiveis
+
+Execute em mundo de testes; nao ative duas politicas de IA no mesmo tipo de projetil.
