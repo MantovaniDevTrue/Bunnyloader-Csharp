@@ -17,6 +17,8 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <array>
+#include <sstream>
 #include <chrono>
 #include <cmath>
 #include <cctype>
@@ -135,6 +137,8 @@ JSValue makeSourceBoltHookStatus(JSContext* ctx) {
     JSValue result = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
     JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "buffered", JS_NewBool(ctx, status.buffered));
+    JS_SetPropertyStr(ctx, result, "bufferSamples", JS_NewInt32(ctx, status.bufferSamples));
     JS_SetPropertyStr(ctx, result, "type", JS_NewInt32(ctx, status.type));
     JS_SetPropertyStr(ctx, result, "callbacks", JS_NewInt32(ctx, status.callbacks));
     JS_SetPropertyStr(ctx, result, "velocityWrites", JS_NewInt32(ctx, status.velocityWrites));
@@ -176,6 +180,78 @@ JSValue jsManagedProjectileStatus(JSContext* ctx, JSValueConst, int, JSValueCons
     __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp", "sourcebolt-status completed");
 #endif
     return out;
+}
+
+JSValue jsSourceEnableBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceEnableBufferedAI('CONFIRM_BUFFERED_CSHARP_AI')");
+    const char* token = JS_ToCString(ctx, argv[0]);
+    if (!token) return JS_EXCEPTION;
+    const bool approved = std::string_view(token) == "CONFIRM_BUFFERED_CSHARP_AI";
+    JS_FreeCString(ctx, token);
+    if (!approved)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_BUFFERED_CSHARP_AI");
+
+    const auto state = readManagedWorkerFile("source-compile-status.txt");
+    const auto diagnostic = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        state.find("executedTypes=2\n") == std::string::npos ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostic.find("AI_BUFFER_OK ticks=120") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Source C# deve compilar, executar e exportar 120 ticks de IA");
+
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.runtimeApplied) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "Aplicar sourceApplyCompiled antes de ativar IA");
+
+    const auto file = readManagedWorkerFile("source-ai-turns.txt");
+    std::istringstream stream(file);
+    std::string header;
+    std::string projectile;
+    std::string data;
+    if (!std::getline(stream, header) || header != "BUNNY_SOURCE_AI_TURNS_V1" ||
+        !std::getline(stream, projectile) || projectile != "SourceBolt" ||
+        !std::getline(stream, data) || data.empty() || data.size() > 1500)
+        return JS_ThrowInternalError(ctx, "Arquivo de IA gerenciada ausente ou invalido");
+    std::string extra;
+    if (std::getline(stream, extra) && !extra.empty())
+        return JS_ThrowInternalError(ctx, "Arquivo de IA contem dados inesperados");
+    std::array<int, 120> turns{};
+    std::istringstream entries(data);
+    std::string part;
+    for (size_t i = 0; i < turns.size(); ++i) {
+        if (!std::getline(entries, part, '\t') || part.empty() || part.size() > 5)
+            return JS_ThrowInternalError(ctx, "Buffer C# incompleto no tick %d", static_cast<int>(i));
+        errno = 0;
+        char* end = nullptr;
+        const long turn = std::strtol(part.c_str(), &end, 10);
+        if (errno || end == part.c_str() || *end || turn < -80 || turn > 80)
+            return JS_ThrowInternalError(ctx, "Curva C# fora de limite no tick %d", static_cast<int>(i));
+        turns[i] = static_cast<int>(turn);
+    }
+    if (std::getline(entries, part, '\t'))
+        return JS_ThrowInternalError(ctx, "Buffer C# possui mais de 120 amostras");
+
+    std::string error;
+    if (!bl::csharp::enableBufferedSourceBoltHook(turns, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    JSValue result = makeSourceBoltHookStatus(ctx);
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-AI-Buffered-v1"));
+    return result;
+}
+
+JSValue jsSourceAIStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue result = makeSourceBoltHookStatus(ctx);
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-AI-Buffered-v1"));
+    return result;
 }
 
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -998,6 +1074,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedSourceCompileStatus, "sourceCompileStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceApplyCompiled",
                       JS_NewCFunction(ctx, jsSourceApplyCompiled, "sourceApplyCompiled", 1));
+    JS_SetPropertyStr(ctx, api, "sourceEnableBufferedAI",
+                      JS_NewCFunction(ctx, jsSourceEnableBufferedAI, "sourceEnableBufferedAI", 1));
+    JS_SetPropertyStr(ctx, api, "sourceAIStatus",
+                      JS_NewCFunction(ctx, jsSourceAIStatus, "sourceAIStatus", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
