@@ -124,6 +124,8 @@ void liveNpcWorkerLoop() {
         }
         int velocity = 0;
         const auto start = std::chrono::steady_clock::now();
+        BL_INFO("csharp live NPC worker: begin session=%llu slot=%d life=%d",
+                static_cast<unsigned long long>(job.session), job.slot, job.life);
         const bool ok = invokeLiveSourceNpcAi(
             job.modId, job.assemblyPath, job.deltaX, job.life, &velocity);
         const double ms = std::chrono::duration<double, std::milli>(
@@ -352,6 +354,7 @@ void runLiveNpcAi(Il2CppObject* npc) {
         } else if (completed.job.slot == slot &&
                    completed.job.npcPointer == reinterpret_cast<uintptr_t>(npc) &&
                    completed.job.type == type &&
+                   completed.job.life == life &&
                    runtime::field<int>(npc, r.life) > 0 &&
                    runtime::field<uint8_t>(npc, r.active)) {
             const Vector2 previous =
@@ -521,6 +524,10 @@ bool enableLiveNpcAi(const std::string& modId, int npcType,
             std::thread(liveNpcWorkerLoop).detach();
         } catch (...) {
             g_liveNpcEnabled.store(false, std::memory_order_release);
+            {
+                std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+                g_liveWorkerStarted = false;
+            }
             std::lock_guard<std::mutex> lock(g_liveNpcMutex);
             g_liveNpcStatus.phase = "worker-start-failed";
             *error = "Unable to launch managed NPC callback worker";
