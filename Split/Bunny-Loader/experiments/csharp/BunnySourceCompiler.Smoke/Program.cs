@@ -148,6 +148,22 @@ try
             int.TryParse(durationSamples[i], out int duration) &&
             duration == Math.Clamp(60 + i * 2, 60, 160)))
         throw new InvalidOperationException("C# OnKill policy sample validation failed");
+    string autoCombat = File.ReadAllText(Path.Combine(scratch, "source-combat-policies.txt"));
+    string[] autoCombatRows = autoCombat.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (autoCombatRows.Length != 3 ||
+        autoCombatRows[0] != "BUNNY_COMBAT_POLICIES_V1")
+        throw new InvalidOperationException("Generic C# combat policy header invalid");
+    var hitRow = autoCombatRows[1].Split('\t');
+    var killRow = autoCombatRows[2].Split('\t');
+    if (hitRow.Length != 259 || killRow.Length != 515 ||
+        hitRow[0] != "HIT" || hitRow[1] != "SourceBolt" || hitRow[2] != "24" ||
+        killRow[0] != "KILL" || killRow[1] != "SourceBolt" || killRow[2] != "24" ||
+        !Enumerable.Range(0, 256).All(i =>
+            hitRow[i + 3] == Math.Clamp(60 + i * 3, 60, 150).ToString() &&
+            killRow[i + 3] == Math.Clamp(24 + i * 2, 24, 100).ToString() &&
+            killRow[i + 259] == Math.Clamp(60 + i * 2, 60, 160).ToString()))
+        throw new InvalidOperationException("Generic C# combat policy values incorrect");
+    Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_FIXTURE=PASS");
     Console.WriteLine("BUNNY_CSHARP_ONKILL_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_ONHIT_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
@@ -215,6 +231,24 @@ try
             int.TryParse(independentSamples[i + 1], out int value) &&
             value == (int)MathF.Round(MathF.Sin(i * 0.25f) * 0.025f * 1000f)))
         throw new InvalidOperationException("Independent ExampleMod C# curve is incorrect");
+    string independentCombat = File.ReadAllText(Path.Combine(scratch, "source-combat-policies.txt"));
+    string[] independentCombatRows = independentCombat.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (independentCombatRows.Length != 3 ||
+        independentCombatRows[0] != "BUNNY_COMBAT_POLICIES_V1")
+        throw new InvalidOperationException("Independent C# combat header invalid");
+    string[] exampleHit = independentCombatRows[1].Split('\t');
+    string[] exampleKill = independentCombatRows[2].Split('\t');
+    if (exampleHit.Length != 259 || exampleKill.Length != 515 ||
+        exampleHit[0] != "HIT" || exampleHit[1] != "ExampleBolt" ||
+        exampleHit[2] != "24" ||
+        exampleKill[0] != "KILL" || exampleKill[1] != "ExampleBolt" ||
+        exampleKill[2] != "24" ||
+        !Enumerable.Range(0, 256).All(i =>
+            exampleHit[3 + i] == Math.Clamp(45 + i * 2, 45, 130).ToString() &&
+            exampleKill[3 + i] == Math.Clamp(28 + i, 28, 96).ToString() &&
+            exampleKill[259 + i] == Math.Clamp(50 + i * 2, 50, 150).ToString()))
+        throw new InvalidOperationException("Independent OnHitNPC/OnKill C# tables incorrect");
+    Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
