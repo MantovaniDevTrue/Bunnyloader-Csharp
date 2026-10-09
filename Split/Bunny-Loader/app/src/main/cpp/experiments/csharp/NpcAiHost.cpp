@@ -14,10 +14,12 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cmath>
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <thread>
 
 namespace bl::csharp {
 namespace {
@@ -28,6 +30,7 @@ struct Refs {
     bool attempted = false;
     bool ok = false;
     FieldInfo* netMode = nullptr;
+    FieldInfo* gameMenu = nullptr;
     int type = -1;
     int active = -1;
     int life = -1;
@@ -49,6 +52,7 @@ Refs& refs() {
     if (!npc || !main || !runtime::resolveGameRefs()) return r;
 
     r.netMode = findField(main, "netMode");
+    r.gameMenu = findField(main, "gameMenu");
     r.type = fieldOffset(npc, "type");
     r.active = fieldOffset(npc, "active");
     r.life = fieldOffset(npc, "life");
@@ -74,7 +78,68 @@ std::atomic<bool> g_liveNpcEnabled{false};
 std::mutex g_liveNpcMutex;
 LiveNpcAiStatus g_liveNpcStatus;
 std::string g_liveNpcPath;
-constexpr int kLiveNpcMaxCalls = 240;
+
+constexpr int kLiveNpcMaxCalls = 24;
+constexpr int kLiveNpcSampleInterval = 12;
+constexpr int kLiveNpcWorkerTimeoutMs = 300;
+
+struct LiveNpcJob {
+    std::string modId;
+    std::string assemblyPath;
+    uintptr_t npcPointer = 0;
+    uint64_t session = 0;
+    int slot = -1;
+    int type = -1;
+    int deltaX = 0;
+    int life = 0;
+};
+
+struct LiveNpcCompletion {
+    LiveNpcJob job;
+    bool ok = false;
+    int velocityTenths = 0;
+    double callbackMs = 0.0;
+};
+
+std::mutex g_liveDispatchMutex;
+std::condition_variable g_liveDispatchCv;
+LiveNpcJob g_liveJob;
+LiveNpcCompletion g_liveCompletion;
+bool g_liveHasJob = false;
+bool g_liveWorkerBusy = false;
+bool g_liveHasCompletion = false;
+bool g_liveWorkerStarted = false;
+uint64_t g_liveSession = 0;
+int g_liveSampleCounter = 0;
+std::chrono::steady_clock::time_point g_liveJobTime{};
+
+void liveNpcWorkerLoop() {
+    for (;;) {
+        LiveNpcJob job;
+        {
+            std::unique_lock<std::mutex> lock(g_liveDispatchMutex);
+            g_liveDispatchCv.wait(lock, [] { return g_liveHasJob; });
+            job = std::move(g_liveJob);
+            g_liveHasJob = false;
+        }
+        int velocity = 0;
+        const auto start = std::chrono::steady_clock::now();
+        const bool ok = invokeLiveSourceNpcAi(
+            job.modId, job.assemblyPath, job.deltaX, job.life, &velocity);
+        const double ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - start).count();
+        {
+            std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+            if (job.session == g_liveSession) {
+                g_liveCompletion = {job, ok, velocity, ms};
+                g_liveHasCompletion = true;
+            }
+            g_liveWorkerBusy = false;
+        }
+        BL_INFO("csharp live NPC worker: session=%llu slot=%d ok=%d elapsedMs=%.3f",
+                static_cast<unsigned long long>(job.session), job.slot, ok, ms);
+    }
+}
 
 
 
