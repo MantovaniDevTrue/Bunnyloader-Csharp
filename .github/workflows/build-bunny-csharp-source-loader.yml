@@ -37,6 +37,7 @@ on:
       - bunny-csharp-source-0.1.10.16.14-mutex-map-trace
       - bunny-csharp-source-0.1.10.16.15-exit-order
       - bunny-csharp-source-0.1.10.16.16-exit-caller
+      - bunny-csharp-source-0.1.10.16.17-sigsegv-origin
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -320,7 +321,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.16-ExitCaller.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.17-SegvOrigin.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -332,17 +333,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.16"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.17"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.16-ExitCaller.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.17-SegvOrigin.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.16 — Mono Exit Caller Trace" \
-              --notes "Experimental Roslyn worker lifecycle diagnosis: hooks the original libc exit() using ShadowHook, capturing exact exit code, caller thread and ARM64 return addresses plus their /proc/self/maps entries before exit(255) completes. Preserves atexit and FORTIFY and leaves JavaScript and NativeAOT untouched. Diagnostic worker only; requires device validation." \
+              --title "Bunny Loader C# v0.1.10.16.17 — Mono SIGSEGV Origin Trace" \
+              --notes "Experimental isolated Roslyn worker test: detects original SIGSEGV before MonoVM calls exit(-1). Captures siginfo.si_code, fault address, ARM64 PC/LR/SP and exact memory mappings, then delegates to the original Mono signal handler. Retains exit(255), destroyed mutex diagnostics, FORTIFY and working JavaScript and NativeAOT code. Device validation required." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -365,7 +366,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.16-ExitCaller.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.17-SegvOrigin.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
