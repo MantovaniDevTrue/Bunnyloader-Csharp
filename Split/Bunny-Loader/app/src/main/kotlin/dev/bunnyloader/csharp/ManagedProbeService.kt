@@ -138,6 +138,14 @@ class ManagedProbeService : Service() {
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
             try {
                 System.loadLibrary("bunnymonoprobe")
+                if (compileRoot != null) {
+                    compileStatus.writeText(
+                        "state=preparing-crypto-jni\npid=${Process.myPid()}\n"
+                    )
+                    Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
+                    System.loadLibrary("System.Security.Cryptography.Native.Android")
+                    Log.i("BunnyCSharp", "Mono Android Crypto JNI_OnLoad completed")
+                }
                 if (compileRoot == null)
                     status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
                 val assembly = installManagedFramework(dir)
