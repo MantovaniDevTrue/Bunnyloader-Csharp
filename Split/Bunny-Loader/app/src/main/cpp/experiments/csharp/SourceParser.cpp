@@ -172,7 +172,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
 
 bool parseCSharpSource(const std::string& source,
                        std::vector<ParsedSourceType>* definitions,
-                       std::string* error) {
+                       std::string* error, bool requireContent) {
     if (!definitions || !error || source.size() > 256 * 1024) return false;
     std::vector<Token> tokens;
     if (!tokenize(source, &tokens, error)) return false;
@@ -208,7 +208,7 @@ bool parseCSharpSource(const std::string& source,
         }
         i = end;
     }
-    if (found == 0) {
+    if (found == 0 && requireContent) {
         *error = "nenhuma classe BunnyProjectile ou BunnyWeapon encontrada";
         return false;
     }
