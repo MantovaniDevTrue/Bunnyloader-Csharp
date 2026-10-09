@@ -36,7 +36,7 @@ struct LiveSourceStatus {
     std::string error;
 };
 
-LiveSourceStatus liveSourceStatus();
+LiveSourceStatus liveSourceStatus(const std::string& modId);
 LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
                                      const std::string& assemblyPath,
                                      int tick, int state);
