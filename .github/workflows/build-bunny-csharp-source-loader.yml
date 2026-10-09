@@ -281,9 +281,9 @@ jobs:
               assert "content/Content/Items/Consumables/ExampleBuffPotion.cs" in names
               assert "content/Content/Buffs/ExampleDefenseBuff.png" in names
               assert "content/Content/Items/Consumables/ExampleBuffPotion.png" in names
-          assert "content/Content/Items/Accessories/ExampleFocusAccessory.cs" in names
-          assert "content/Common/Players/ExampleFocusPlayer.cs" in names
-          assert "content/Content/Items/Accessories/ExampleFocusAccessory.png" in names
+              assert "content/Content/Items/Accessories/ExampleFocusAccessory.cs" in names
+              assert "content/Common/Players/ExampleFocusPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleFocusAccessory.png" in names
               assert len([n for n in names if n.endswith(".png")])==5
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
