@@ -2,13 +2,21 @@
   "uid": "57a98f20-7a35-4d19-8ce8-079e25bb36a1",
   "id": "sourcecsharp",
   "name": "Source C# Test",
-  "version": "0.1.0",
-  "authors": [{ "name": "Bunny Loader", "role": "Teste de fonte C#" }],
+  "version": "0.1.1",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Teste de fonte C#"
+    }
+  ],
   "category": "Teste",
-  "summary": "Mod importado apenas com arquivos .cs e PNG; interpreta SetDefaults de arma e projetil sem JS e sem SO.",
+  "summary": "Teste C# compilado no Android com SetDefaults, IA de perseguicao e OnHitNPC aplicando OnFire via hook nativo.",
   "license": "MIT",
   "blVersion": 2,
-  "gameVersion": [301720, 301720],
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "entry": "main.cs",
   "dependencies": []
 }
