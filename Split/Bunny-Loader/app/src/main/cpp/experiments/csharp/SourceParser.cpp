@@ -76,7 +76,7 @@ bool tokenize(const std::string& source, std::vector<Token>* out, std::string* e
             out->push_back({value, at, true});
             continue;
         }
-        if (std::string("{}()[]=;:.,-").find(static_cast<char>(c)) != std::string::npos) {
+        if (std::string("{}()[]=;:.,-*+/%<>").find(static_cast<char>(c)) != std::string::npos) {
             out->push_back({std::string(1, static_cast<char>(c)), line, false});
             ++i;
             continue;
