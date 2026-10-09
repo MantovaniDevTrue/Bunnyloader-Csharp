@@ -310,7 +310,8 @@ jobs:
           assert probe.index("prepareModNpcs();") < probe.index("csharp::startAutoSourceRuntime();")
           assert "ch == '_'" in native
           assert "if (depth > 7" in native
-          assert "defaultLength.c_str()" in native
+          assert "std::istringstream lengths(counts)" in native
+          assert "combatSize" in native
           assert "std::thread(run).detach()" in native
           assert "readActivationContext()" in native
           assert "if (context.netMode < 0)" in native
@@ -528,7 +529,7 @@ jobs:
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
               --title "Bunny Loader C# v0.1.10.16.40 — Automatic CSharp Source Loader" \
-              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.40 optional gameMenu fix: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile defaults and enable validated projectile curves automatically when a solo world is ready. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Includes ExampleModCSharp 0.1.1. Requires Android device validation." \
+              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.40 automatic OnHitNPC/OnKill: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile defaults and enable validated projectile curves and OnHitNPC/OnKill damage-based OnFire effects automatically in singleplayer. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Includes ExampleModCSharp 0.1.1. Requires Android device validation." \
               --prerelease || true
           fi
           DEST="$TAG"
