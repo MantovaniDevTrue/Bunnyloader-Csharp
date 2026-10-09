@@ -1,0 +1,88 @@
+name: Analyze Android Crypto SIGSEGV
+
+on:
+  push:
+    branches:
+      - bunny-csharp-crypto-jni-diagnosis-0.1.10.16.17
+    paths:
+      - ".github/workflows/analyze-android-crypto-sigsegv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Examine exact Android ARM64 8.0.23 cryptography library
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 \
+            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.android-arm64/8.0.23/microsoft.netcore.app.runtime.mono.android-arm64.8.0.23.nupkg" \
+            -o /tmp/mono-8.0.23.nupkg
+          unzip -p /tmp/mono-8.0.23.nupkg \
+            "runtimes/android-arm64/native/libSystem.Security.Cryptography.Native.Android.so" > /tmp/crypto.so
+          test -s /tmp/crypto.so
+          file /tmp/crypto.so
+          sha256sum /tmp/crypto.so
+          readelf -W -l /tmp/crypto.so | grep -E 'Type|LOAD' | head -10
+          readelf -W -s /tmp/crypto.so | grep -Ei 'AndroidCryptoNative_InitLibraryOnLoad|JNI_OnLoad|GetJNIEnv|GetJavaVM|CryptoNative|SystemNative|JNIEnv|JavaVM' | head -100 || true
+
+      - name: Symbolize primary fault PC and caller LR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          so = "/tmp/crypto.so"
+          pcs = [
+             ("fault_pc", 0x13944),
+             ("fault_lr", 0x11688),
+          ]
+          raw = subprocess.check_output(["readelf", "-W", "--dyn-syms", so], text=True)
+          symbols=[]
+          for line in raw.splitlines():
+              cols=line.split(maxsplit=7)
+              if len(cols) < 8 or not cols[0].endswith(":"):continue
+              try:value,size=int(cols[1],16),int(cols[2])
+              except ValueError:continue
+              if value and cols[3] == "FUNC": symbols.append((value,size,cols[7]))
+          symbols.sort()
+          print("EXPORTED_FUNCTION_COUNT",len(symbols))
+          for name,pc in pcs:
+              print("ADDRESS",name,hex(pc), "PREVIOUS_SYMBOLS")
+              for address,size,symbol in [x for x in symbols if x[0]<=pc][-20:]:
+                  print("SYMBOL",hex(address),hex(pc-address),"SIZE",hex(size),symbol,
+                      "CONTAINS",address<=pc<address+size)
+              print("NEARBY_FORWARD")
+              for address,size,symbol in [x for x in symbols if pc<x[0]][:10]:
+                  print("SYMBOL",hex(address),hex(address-pc),"SIZE",hex(size),symbol)
+              proc=subprocess.run(["addr2line","-f","-C","-e",so,hex(pc),hex(pc-4)],text=True,capture_output=True)
+              print("ADDR2LINE",proc.stdout)
+          PY
+
+      - name: Disassemble fault and calling locations
+        shell: bash
+        run: |
+          set -euo pipefail
+          O=""
+          for t in llvm-objdump llvm-objdump-18 llvm-objdump-19 aarch64-linux-gnu-objdump; do
+            if command -v "$t" >/dev/null; then O="$t"; break; fi
+          done
+          if [ -z "$O" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq binutils-aarch64-linux-gnu
+            O=aarch64-linux-gnu-objdump
+          fi
+          for address in 0x13944 0x11688; do
+            start=$((address-256))
+            stop=$((address+144))
+            echo "============ DISASM $address ============"
+            "$O" -d -C --start-address="$start" --stop-address="$stop" /tmp/crypto.so || true
+          done
+          echo "============ DYNAMIC_IMPORTS ============"
+          readelf -W --dyn-syms /tmp/crypto.so |
+            grep -Ei 'JNI|android|abort|mono|dlopen|dlsym|crypt|findclass' | head -85 || true
