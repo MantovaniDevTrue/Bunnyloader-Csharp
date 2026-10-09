@@ -381,7 +381,7 @@ JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst
         state.find("phase=compile-verified\n") == std::string::npos ||
         state.find("executedTypes=2\n") == std::string::npos ||
         state.find("assemblyReady=1\n") == std::string::npos ||
-        diagnostics.find("ONHIT_POLICY_OK buff=24 hits=4") == std::string::npos)
+        diagnostics.find("ONHIT_POLICY_OK buff=24 hits=256") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Compile o Source C# Test com OnHitNPC antes da ativacao");
     bool applied = false;
     for (const auto& mod : bl::csharp::sourceModStatuses()) {
@@ -396,7 +396,7 @@ JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst
 
     std::istringstream input(readManagedWorkerFile("source-onhit-policy.txt"));
     std::string header, name, buff, values, trailing;
-    if (!std::getline(input, header) || header != "BUNNY_SOURCE_ONHIT_V1" ||
+    if (!std::getline(input, header) || header != "BUNNY_SOURCE_ONHIT_V2" ||
         !std::getline(input, name) || name != "SourceBolt" ||
         !std::getline(input, buff) || buff != "24" ||
         !std::getline(input, values) ||
@@ -425,7 +425,7 @@ JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst
     const auto status = bl::csharp::sourceBoltHitStatus();
     JSValue result = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
-    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v1"));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v2"));
     JS_SetPropertyStr(ctx, result, "buffId", JS_NewInt32(ctx, status.buffId));
     JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
     return result;
@@ -440,8 +440,10 @@ JSValue jsSourceHitStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JS_SetPropertyStr(ctx, result, "buffsApplied", JS_NewInt32(ctx, status.applied));
     JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
     JS_SetPropertyStr(ctx, result, "lastNpc", JS_NewInt32(ctx, status.lastNpc));
+    JS_SetPropertyStr(ctx, result, "lastDamage", JS_NewInt32(ctx, status.lastDamage));
+    JS_SetPropertyStr(ctx, result, "lastDuration", JS_NewInt32(ctx, status.lastDuration));
     JS_SetPropertyStr(ctx, result, "buffId", JS_NewInt32(ctx, status.buffId));
-    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v1"));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v2"));
     return result;
 }
 
