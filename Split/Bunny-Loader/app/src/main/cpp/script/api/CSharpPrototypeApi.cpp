@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <csignal>
 #include <fstream>
+#include <unistd.h>
 #include <string>
 #include <string_view>
 #ifdef __ANDROID__
@@ -96,8 +97,25 @@ std::string readManagedWorkerFile(const char* filename) {
 }
 
 JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    if (argc != 1 || !JS_IsString(argv[0]))
-        return JS_ThrowTypeError(ctx, "managedGameProbe('CONFIRM_IN_PROCESS')");
+    if ((argc != 1 && argc != 2) || !JS_IsString(argv[0]) ||
+        (argc == 2 && !JS_IsString(argv[1])))
+        return JS_ThrowTypeError(ctx,
+            "managedGameProbe('CONFIRM_IN_PROCESS', 'MONO_ONLY'|'ABORT_ONLY'|'FULL_DIAGNOSTICS')");
+    std::string selectedMode = "FULL_DIAGNOSTICS";
+    if (argc == 2) {
+        const char* rawMode = JS_ToCString(ctx, argv[1]);
+        if (!rawMode) return JS_EXCEPTION;
+        selectedMode = rawMode;
+        JS_FreeCString(ctx, rawMode);
+    }
+    if (selectedMode != "MONO_ONLY" && selectedMode != "ABORT_ONLY" &&
+        selectedMode != "FULL_DIAGNOSTICS")
+        return JS_ThrowTypeError(ctx, "Modo invalido: MONO_ONLY, ABORT_ONLY ou FULL_DIAGNOSTICS");
+    static std::string lockedMode;
+    if (!lockedMode.empty() && lockedMode != selectedMode)
+        return JS_ThrowInternalError(ctx,
+            "Modo MonoVM ja selecionado nesta sessao: %s; reinicie o processo do jogo",
+            lockedMode.c_str());
     const char* token = JS_ToCString(ctx, argv[0]);
     if (!token) return JS_EXCEPTION;
     const bool confirmed = std::string_view(token) == "CONFIRM_IN_PROCESS";
@@ -121,22 +139,35 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     if (!probeFile)
         return JS_ThrowInternalError(ctx, "BunnyManagedProbe.dll ausente; executar worker antes");
 
+    if (lockedMode.empty()) {
+        lockedMode = selectedMode;
+        const auto modeFile = checkpoint.substr(0, slash + 1) + "native-game-probe-mode.txt";
+        std::ofstream record(modeFile, std::ios::trunc);
+        if (record) record << "mode=" << lockedMode << "\npid="
+                           << static_cast<long>(getpid()) << "\n";
+    }
     static bool gameAbortTraceInstalled = false;
-    if (!gameAbortTraceInstalled)
+    static bool gameMutexTraceInstalled = false;
+    if (selectedMode != "MONO_ONLY" && !gameAbortTraceInstalled)
         gameAbortTraceInstalled = bl::csharp::installNativeAbortProbe(
             checkpoint.substr(0, slash), "native-game-abort-trace.txt");
     const auto result = bl::csharp::probeManagedRuntime(assembly);
-    static bool gameMutexTraceInstalled = false;
     if (gameAbortTraceInstalled) {
         bl::csharp::rearmNativeAbortProbe("after-game-mono-probe");
-        if (result.methodExecuted && !gameMutexTraceInstalled)
+        if (result.methodExecuted && selectedMode == "FULL_DIAGNOSTICS" &&
+            !gameMutexTraceInstalled)
             gameMutexTraceInstalled = bl::csharp::installDestroyedMutexTrace();
     }
+    const bool moduleMapsSaved = result.domainInitialized &&
+        bl::csharp::persistGameNativeModuleMaps(checkpoint.substr(0, slash));
     JSValue out = makeManagedStatus(ctx, result);
+    JS_SetPropertyStr(ctx, out, "gameProbeMode", JS_NewString(ctx, lockedMode.c_str()));
     JS_SetPropertyStr(ctx, out, "gameAbortTraceInstalled",
                       JS_NewBool(ctx, gameAbortTraceInstalled));
     JS_SetPropertyStr(ctx, out, "gameMutexTraceInstalled",
                       JS_NewBool(ctx, gameMutexTraceInstalled));
+    JS_SetPropertyStr(ctx, out, "gameModuleMapsSaved",
+                      JS_NewBool(ctx, moduleMapsSaved));
     return out;
 }
 
@@ -1187,6 +1218,12 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     }
     JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
     JS_SetPropertyStr(ctx, out, "exitTrace", JS_NewString(ctx, exitTrace.c_str()));
+    const auto gameProbeMode = readManagedWorkerFile("native-game-probe-mode.txt");
+    const auto gameModuleMaps = readManagedWorkerFile("native-game-module-maps.txt");
+    JS_SetPropertyStr(ctx, out, "gameProbeMode",
+                      JS_NewString(ctx, gameProbeMode.c_str()));
+    JS_SetPropertyStr(ctx, out, "gameModuleMaps",
+                      JS_NewString(ctx, gameModuleMaps.c_str()));
     const auto gameNativeAbort = readManagedWorkerFile("native-game-abort-trace.txt");
     const auto gameNativePrevious = readManagedWorkerFile("native-game-abort-previous.txt");
     JS_SetPropertyStr(ctx, out, "gameNativeAbort",
