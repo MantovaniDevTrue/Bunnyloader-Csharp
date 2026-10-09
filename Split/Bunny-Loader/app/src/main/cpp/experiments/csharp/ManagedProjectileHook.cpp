@@ -175,6 +175,73 @@ std::atomic<int> g_sparkErrors{0};
 std::atomic<int> g_sparkLastSlot{-1};
 std::atomic<int> g_sparkLastTurn{0};
 
+struct CurveState {
+    std::string modId;
+    std::string projectileName;
+    int type = -1;
+    std::array<int, 120> turns{};
+    std::atomic<bool> enabled{false};
+    std::atomic<int> spawns{0};
+    std::atomic<int> callbacks{0};
+    std::atomic<int> velocityWrites{0};
+    std::atomic<int> errors{0};
+    std::atomic<int> lastSlot{-1};
+    std::atomic<int> lastTurn{0};
+};
+
+std::array<CurveState, 8> g_curveStates{};
+std::array<std::atomic<int16_t>, 32768> g_curveByType{};
+std::array<Slot, 4096> g_curveSlots{};
+std::atomic<int> g_curveCount{0};
+FieldInfo* g_curveNetMode = nullptr;
+
+void applyManagedCurve(Il2CppObject* projectile, const runtime::GameRefs& game,
+                       CurveState& policy) {
+    if (!g_curveNetMode) return;
+    int mode = -1;
+    il2cpp::api().field_static_get_value(g_curveNetMode, &mode);
+    if (mode != 0) {
+        policy.errors.fetch_add(1, std::memory_order_relaxed);
+        policy.enabled.store(false, std::memory_order_release);
+        return;
+    }
+    if (!runtime::field<uint8_t>(projectile, game.proj.active)) return;
+    const int timeLeft = runtime::field<int32_t>(projectile, game.proj.timeLeft);
+    if (timeLeft <= 0) return;
+    const int slot = runtime::field<int32_t>(projectile, game.entity.whoAmI);
+    if (slot < 0 || static_cast<size_t>(slot) >= g_curveSlots.size()) return;
+    const int owner = runtime::field<int32_t>(projectile, game.proj.owner);
+    Slot& entry = g_curveSlots[static_cast<size_t>(slot)];
+    if (entry.object != projectile || entry.owner != owner ||
+        entry.state != policy.type || timeLeft > entry.lastTimeLeft) {
+        entry = {projectile, owner, timeLeft, 0, policy.type};
+        policy.spawns.fetch_add(1, std::memory_order_relaxed);
+    }
+    entry.lastTimeLeft = timeLeft;
+    if (entry.ticks >= 120 || policy.callbacks.load(std::memory_order_relaxed) >= 30000)
+        return;
+    const int angleMrad = policy.turns[static_cast<size_t>(entry.ticks++)];
+    policy.callbacks.fetch_add(1, std::memory_order_relaxed);
+    policy.lastSlot.store(slot, std::memory_order_relaxed);
+    policy.lastTurn.store(angleMrad, std::memory_order_relaxed);
+    const Vector2 velocity = runtime::field<Vector2>(projectile, game.entity.velocity);
+    if (!std::isfinite(velocity.x) || !std::isfinite(velocity.y)) return;
+    const float squared = velocity.x * velocity.x + velocity.y * velocity.y;
+    if (!std::isfinite(squared) || squared < 0.01f || squared > 4096.f) return;
+    const float angle = static_cast<float>(angleMrad) * 0.001f;
+    const float sine = std::sin(angle);
+    const float cosine = std::cos(angle);
+    const Vector2 rotated{
+        velocity.x * cosine - velocity.y * sine,
+        velocity.x * sine + velocity.y * cosine
+    };
+    if (!std::isfinite(rotated.x) || !std::isfinite(rotated.y)) return;
+    runtime::field<Vector2>(projectile, game.entity.velocity) = rotated;
+    runtime::field<float>(projectile, game.proj.rotation) =
+        std::atan2(rotated.y, rotated.x);
+    policy.velocityWrites.fetch_add(1, std::memory_order_relaxed);
+}
+
 void applySparkAi(Il2CppObject* projectile, const runtime::GameRefs& game) {
     if (!g_sparkNetMode) return;
     int mode = -1;
@@ -230,6 +297,18 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
 
     const auto& game = runtime::game();
     const int projectileType = runtime::field<int32_t>(projectile, game.proj.type);
+    if (projectileType >= 0 &&
+        static_cast<size_t>(projectileType) < g_curveByType.size()) {
+        const int slot = g_curveByType[static_cast<size_t>(projectileType)]
+            .load(std::memory_order_acquire) - 1;
+        if (slot >= 0 && slot < g_curveCount.load(std::memory_order_acquire)) {
+            CurveState& curve = g_curveStates[static_cast<size_t>(slot)];
+            if (curve.enabled.load(std::memory_order_acquire)) {
+                applyManagedCurve(projectile, game, curve);
+                return;
+            }
+        }
+    }
     if (g_sparkEnabled.load(std::memory_order_relaxed) &&
         projectileType == g_sparkType.load(std::memory_order_relaxed)) {
         applySparkAi(projectile, game);
@@ -341,6 +420,163 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     g_writes.fetch_add(1, std::memory_order_relaxed);
 }
 
+}
+
+bool enableManagedProjectileCurve(const std::string& modId,
+                                  const std::string& projectileName,
+                                  const std::array<int, 120>& turns,
+                                  std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (modId.empty() || modId.size() > 128 ||
+        projectileName.empty() || projectileName.size() > 72) {
+        *error = "ID do mod ou nome do projetil invalido";
+        return false;
+    }
+    for (char c : projectileName) {
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '_')) {
+            *error = "Nome de projetil C# contem caracteres invalidos";
+            return false;
+        }
+    }
+    for (int angle : turns) {
+        if (angle < -80 || angle > 80) {
+            *error = "Curva C# fora do limite de 80 mrad";
+            return false;
+        }
+    }
+    if (!runtime::resolveGameRefs() || !runtime::modProjectilesSettled()) {
+        *error = "Tabelas Terraria indisponiveis";
+        return false;
+    }
+    bool registered = false;
+    for (const auto& mod : sourceModStatuses()) {
+        if (mod.id == modId && mod.loaded && mod.runtimeApplied &&
+            mod.registeredTypes.contains(projectileName)) {
+            registered = true;
+            break;
+        }
+    }
+    const int type = runtime::modProjectileTypeByName(modId, projectileName);
+    if (!registered || type < 0 || type >= runtime::projectileTypeCount() ||
+        static_cast<size_t>(type) >= g_curveByType.size()) {
+        *error = "Projetil C# nao registrado ou fora dos limites";
+        return false;
+    }
+    if (projectileName == "SourceBolt" && g_enabled.load(std::memory_order_acquire) &&
+        type == g_type.load(std::memory_order_relaxed)) {
+        *error = "Desative a IA de SourceBolt antes de usar outra curva no mesmo projetil";
+        return false;
+    }
+    if (projectileName == "SourceSpark" && g_sparkEnabled.load(std::memory_order_acquire) &&
+        type == g_sparkType.load(std::memory_order_relaxed)) {
+        *error = "Desative sourceEnableSparkAI antes de usar a API generica";
+        return false;
+    }
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    if (!main || !runtime::game().proj.aiMethod) {
+        *error = "Main ou Projectile.AI indisponivel";
+        return false;
+    }
+    FieldInfo* modeField = il2cpp::findField(main, "netMode");
+    FieldInfo* menuField = il2cpp::findField(main, "gameMenu");
+    if (!modeField) {
+        *error = "Main.netMode indisponivel";
+        return false;
+    }
+    int mode = -1;
+    il2cpp::api().field_static_get_value(modeField, &mode);
+    if (mode != 0) {
+        *error = "IA C# exclusiva do singleplayer nesta versao";
+        return false;
+    }
+    if (menuField) {
+        uint8_t menu = 0;
+        il2cpp::api().field_static_get_value(menuField, &menu);
+        if (menu) {
+            *error = "Entre no mundo antes de ativar a IA C#";
+            return false;
+        }
+    }
+    if (!g_installed.load(std::memory_order_acquire)) {
+        if (!hook::install(runtime::game().proj.aiMethod, hkAi, &g_original)) {
+            *error = "Falha ao instalar hook Projectile.AI";
+            return false;
+        }
+        g_installed.store(true, std::memory_order_release);
+    }
+
+    int index = -1;
+    const int count = g_curveCount.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i) {
+        if (g_curveStates[static_cast<size_t>(i)].modId == modId &&
+            g_curveStates[static_cast<size_t>(i)].projectileName == projectileName) {
+            index = i;
+            break;
+        }
+    }
+    if (index < 0) {
+        if (count >= static_cast<int>(g_curveStates.size())) {
+            *error = "Limite de oito politicas C# por sessao atingido";
+            return false;
+        }
+        index = count;
+    }
+    CurveState& curve = g_curveStates[static_cast<size_t>(index)];
+    curve.enabled.store(false, std::memory_order_release);
+    curve.modId = modId;
+    curve.projectileName = projectileName;
+    curve.type = type;
+    curve.turns = turns;
+    curve.spawns.store(0, std::memory_order_relaxed);
+    curve.callbacks.store(0, std::memory_order_relaxed);
+    curve.velocityWrites.store(0, std::memory_order_relaxed);
+    curve.errors.store(0, std::memory_order_relaxed);
+    curve.lastSlot.store(-1, std::memory_order_relaxed);
+    curve.lastTurn.store(0, std::memory_order_relaxed);
+    g_curveNetMode = modeField;
+    if (index == count)
+        g_curveCount.store(count + 1, std::memory_order_release);
+    curve.enabled.store(true, std::memory_order_release);
+    g_curveByType[static_cast<size_t>(type)].store(static_cast<int16_t>(index + 1),
+                                                  std::memory_order_release);
+    BL_INFO("csharp projectile curve: %s/%s type=%d samples=120",
+            modId.c_str(), projectileName.c_str(), type);
+    return true;
+}
+
+bool pauseManagedProjectileCurve(const std::string& modId,
+                                 const std::string& projectileName) {
+    const int count = g_curveCount.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i) {
+        auto& policy = g_curveStates[static_cast<size_t>(i)];
+        if (policy.modId == modId && policy.projectileName == projectileName)
+            return policy.enabled.exchange(false, std::memory_order_acq_rel);
+    }
+    return false;
+}
+
+ManagedProjectileCurveStatus managedProjectileCurveStatus(
+    const std::string& modId, const std::string& projectileName) {
+    ManagedProjectileCurveStatus status;
+    status.installed = g_installed.load(std::memory_order_acquire);
+    const int count = g_curveCount.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i) {
+        const auto& policy = g_curveStates[static_cast<size_t>(i)];
+        if (policy.modId != modId || policy.projectileName != projectileName) continue;
+        status.registered = true;
+        status.enabled = policy.enabled.load(std::memory_order_acquire);
+        status.type = policy.type;
+        status.spawns = policy.spawns.load(std::memory_order_relaxed);
+        status.callbacks = policy.callbacks.load(std::memory_order_relaxed);
+        status.velocityWrites = policy.velocityWrites.load(std::memory_order_relaxed);
+        status.errors = policy.errors.load(std::memory_order_relaxed);
+        status.lastSlot = policy.lastSlot.load(std::memory_order_relaxed);
+        status.lastTurn = policy.lastTurn.load(std::memory_order_relaxed);
+        break;
+    }
+    return status;
 }
 
 bool enableSourceSparkAi(const std::array<int, 120>& turnsMilliRadians, std::string* error) {
