@@ -16,6 +16,16 @@ struct SourceBoltHitPolicy {
     std::array<int, 4> durations{};
 };
 
+struct SourceBoltHitStatus {
+    bool installed = false;
+    bool enabled = false;
+    int events = 0;
+    int applied = 0;
+    int errors = 0;
+    int lastNpc = -1;
+    int buffId = 0;
+};
+
 struct ManagedProjectileHookStatus {
     bool installed = false;
     bool enabled = false;
@@ -50,6 +60,7 @@ bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
                                  std::string* error);
 bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error);
 bool pauseSourceBoltOnHit();
+SourceBoltHitStatus sourceBoltHitStatus();
 bool pauseManagedSourceBoltHook();
 ManagedProjectileHookStatus managedSourceBoltHookStatus();
 
