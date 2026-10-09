@@ -204,6 +204,10 @@ JSValue jsSourceLiveNpcStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) 
     JS_SetPropertyStr(ctx, out, "events", JS_NewInt32(ctx, status.events));
     JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
     JS_SetPropertyStr(ctx, out, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, out, "queued", JS_NewInt32(ctx, status.queued));
+    JS_SetPropertyStr(ctx, out, "discarded", JS_NewInt32(ctx, status.discarded));
+    JS_SetPropertyStr(ctx, out, "workerStarted", JS_NewBool(ctx, status.workerStarted));
+    JS_SetPropertyStr(ctx, out, "workerPending", JS_NewBool(ctx, status.workerPending));
     JS_SetPropertyStr(ctx, out, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
     JS_SetPropertyStr(ctx, out, "lastDeltaX", JS_NewInt32(ctx, status.lastDeltaX));
     JS_SetPropertyStr(ctx, out, "lastVelocityTenths",
