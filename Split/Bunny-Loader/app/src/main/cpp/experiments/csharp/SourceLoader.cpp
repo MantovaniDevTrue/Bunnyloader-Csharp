@@ -6,6 +6,7 @@
 #include "mods/ModLoader.h"
 
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
@@ -92,24 +93,38 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             std::string* shoot, std::string* display, std::string* texture,
             std::string* error) {
     const bool projectile = type.base == "BunnyProjectile";
+    const bool weapon = type.base == "BunnyWeapon";
+    const bool buff = type.base == "BunnyBuff";
+    const bool potion = type.base == "BunnyBuffPotion";
+    if (!projectile && !weapon && !buff && !potion) {
+        *error = type.name + ": tipo de conteudo C# desconhecido";
+        return false;
+    }
     spec->width = projectile ? 8 : 0;
     spec->height = projectile ? 8 : 0;
     spec->aiStyle = projectile ? 1 : 0;
     spec->penetrate = projectile ? 1 : 0;
-    spec->timeLeft = projectile ? 360 : 0;
-    spec->damage = projectile ? 0 : 20;
-    spec->useTime = projectile ? 0 : 18;
-    spec->shootSpeed = projectile ? 0.f : 12.f;
-    spec->kind = projectile ? NativeProjectile : NativeWeapon;
+    spec->timeLeft = projectile ? 360 : potion ? 600 : 0;
+    spec->damage = weapon ? 20 : 0;
+    spec->useTime = weapon ? 18 : 0;
+    spec->shootSpeed = weapon ? 12.f : 0.f;
+    spec->kind = projectile ? NativeProjectile :
+                 weapon ? NativeWeapon : buff ? NativeBuff : NativeBuffPotion;
     *texture = projectile ? "Content/Projectiles/" + type.name + ".png" :
-                            "Content/Items/Weapons/" + type.name + ".png";
+               weapon ? "Content/Items/Weapons/" + type.name + ".png" :
+               buff ? "Content/Buffs/" + type.name + ".png" :
+                      "Content/Items/Consumables/" + type.name + ".png";
     *display = type.name;
     for (const auto& [key, value] : type.properties) {
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
-        if (!projectile && key == "Shoot") { *shoot = value; continue; }
+        if (weapon && key == "Shoot") { *shoot = value; continue; }
+        if (potion && key == "Buff") { *shoot = value; continue; }
         if (key == "Friendly" && projectile) {
-            if (value != "true") { *error = "somente projeteis Friendly=true nesta etapa"; return false; }
+            if (value != "true") {
+                *error = "somente projeteis Friendly=true nesta etapa";
+                return false;
+            }
             continue;
         }
         int* integerField = nullptr;
@@ -118,8 +133,10 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         else if (projectile && key == "AiStyle") integerField = &spec->aiStyle;
         else if (projectile && key == "Penetrate") integerField = &spec->penetrate;
         else if (projectile && key == "TimeLeft") integerField = &spec->timeLeft;
-        else if (!projectile && key == "Damage") integerField = &spec->damage;
-        else if (!projectile && key == "UseTime") integerField = &spec->useTime;
+        else if (weapon && key == "Damage") integerField = &spec->damage;
+        else if (weapon && key == "UseTime") integerField = &spec->useTime;
+        else if (buff && key == "DefenseBonus") integerField = &spec->damage;
+        else if (potion && key == "Duration") integerField = &spec->timeLeft;
         if (integerField) {
             if (!integer(value, integerField)) {
                 *error = type.name + ": inteiro invalido em " + key;
@@ -127,7 +144,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
-        if (!projectile && key == "ShootSpeed") {
+        if (weapon && key == "ShootSpeed") {
             if (!real(value, &spec->shootSpeed)) {
                 *error = type.name + ": ShootSpeed invalido";
                 return false;
@@ -137,8 +154,9 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         *error = type.name + ": propriedade C# nao suportada: " + key;
         return false;
     }
-    if (!projectile && shoot->empty()) {
-        *error = type.name + ": Shoot = nameof(Projetil) obrigatorio";
+    if ((weapon || potion) && shoot->empty()) {
+        *error = type.name + (weapon ? ": Shoot" : ": Buff") +
+            " = nameof(Classe) obrigatorio";
         return false;
     }
     return true;
@@ -182,16 +200,26 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    for (int pass = 0; pass < 2; ++pass) {
+    const std::array<std::string, 4> order = {
+        "BunnyBuff", "BunnyProjectile", "BunnyBuffPotion", "BunnyWeapon"
+    };
+    for (const auto& base : order) {
         for (const auto& def : defs) {
-            if ((def.base == "BunnyProjectile") != (pass == 0)) continue;
+            if (def.base != base) continue;
             NativeContentSpec spec{};
-            std::string shoot, display, texture;
-            if (!fields(def, &spec, &shoot, &display, &texture, &status->error)) return false;
-            if (pass == 1) {
-                auto it = types.find(shoot);
-                if (it == types.end() || it->second < 0) {
-                    status->error = def.name + ": projetil nao encontrado: " + shoot;
+            std::string target, display, texture;
+            if (!fields(def, &spec, &target, &display, &texture, &status->error))
+                return false;
+            if (base == "BunnyWeapon" || base == "BunnyBuffPotion") {
+                bool targetRegistered = false;
+                for (const auto& other : defs) {
+                    if (other.name != target) continue;
+                    if (other.base == (base == "BunnyWeapon" ? "BunnyProjectile" : "BunnyBuff"))
+                        targetRegistered = true;
+                }
+                const auto it = types.find(target);
+                if (!targetRegistered || it == types.end() || it->second < 0) {
+                    status->error = def.name + ": alvo nao encontrado: " + target;
                     return false;
                 }
                 spec.shootType = it->second;
@@ -210,6 +238,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->registeredTypes = types;
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
+    status->buffs = ctx.buffs;
+    status->potions = ctx.potions;
     if (status->items < 1 || status->projectiles < 1) {
         status->error = "mod C# precisa registrar um BunnyWeapon e BunnyProjectile";
         return false;
@@ -224,8 +254,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.id = mod.id;
     status.loaded = load(mod, &status);
     if (status.loaded) {
-        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is)",
-                mod.id.c_str(), status.sourceFiles, status.items, status.projectiles);
+        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes)",
+                mod.id.c_str(), status.sourceFiles, status.items,
+                status.projectiles, status.buffs, status.potions);
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
