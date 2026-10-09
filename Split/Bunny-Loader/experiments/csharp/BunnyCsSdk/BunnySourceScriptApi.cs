@@ -60,3 +60,17 @@ public abstract class BunnyPlayer
     public virtual void ResetEffects() => DefenseBonus = 0;
     public abstract void UpdateEquips(bool accessoryEquipped);
 }
+public abstract class BunnyNPC
+{
+    public string DisplayName { get; set; } = "";
+    public string Texture { get; set; } = "";
+    public int Width { get; set; } = 32;
+    public int Height { get; set; } = 24;
+    public int Damage { get; set; } = 7;
+    public int Defense { get; set; } = 2;
+    public int LifeMax { get; set; } = 25;
+    public int AiStyle { get; set; } = 1;
+    public int AnimationType { get; set; } = 1;
+    public int Frames { get; set; } = 2;
+    public abstract void SetDefaults();
+}
