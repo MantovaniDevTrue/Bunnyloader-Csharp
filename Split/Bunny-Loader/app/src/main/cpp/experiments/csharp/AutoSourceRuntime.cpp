@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <mutex>
 #include <sstream>
+#include <set>
 #include <string>
 #include <sys/stat.h>
 #include <thread>
@@ -32,7 +33,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_38";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_40";
 std::mutex g_lock;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
@@ -41,6 +42,14 @@ struct Curve {
     std::string modId;
     std::string name;
     std::array<int, 120> turns{};
+};
+
+struct Combat {
+    std::string modId;
+    std::string name;
+    bool kill = false;
+    SourceBoltHitPolicy hit{};
+    SourceBoltKillPolicy onKill{};
 };
 
 using namespace std::chrono_literals;
@@ -168,8 +177,8 @@ std::string fingerprint(const std::string& id, const std::string& root) {
 
 bool readCache(const std::string& path, const std::string& id,
                const std::string& key, std::string* defaults,
-               std::string* curves) {
-    const std::string value = readText(path, 32768);
+               std::string* curves, std::string* combat) {
+    const std::string value = readText(path, 65536);
     if (value.empty()) return false;
     std::istringstream input(value);
     std::string first, second, third, counts;
@@ -177,35 +186,37 @@ bool readCache(const std::string& path, const std::string& id,
         !std::getline(input, second) || second != id ||
         !std::getline(input, third) || third != key ||
         !std::getline(input, counts)) return false;
-    size_t separator = counts.find(' ');
-    if (separator == std::string::npos) return false;
-    const std::string defaultLength = counts.substr(0, separator);
-    const std::string curveLength = counts.substr(separator + 1);
-    if (defaultLength.empty() || curveLength.empty()) return false;
-    char* end1 = nullptr;
-    char* end2 = nullptr;
-    errno = 0;
-    const unsigned long a = std::strtoul(defaultLength.c_str(), &end1, 10);
-    if (errno || end1 == defaultLength.c_str() || *end1) return false;
-    errno = 0;
-    const unsigned long b = std::strtoul(curveLength.c_str(), &end2, 10);
-    if (errno || end2 == curveLength.c_str() || *end2 ||
-        a < 10 || a > 8192 || b > 22000) return false;
-    size_t header = value.find('\n', value.find('\n', value.find('\n', value.find('\n') + 1) + 1) + 1);
-    if (header == std::string::npos || value.size() != header + 1 + a + b) return false;
-    *defaults = value.substr(header + 1, a);
-    *curves = value.substr(header + 1 + a, b);
+    std::istringstream lengths(counts);
+    size_t defaultsSize = 0, curvesSize = 0, combatSize = 0;
+    std::string trailing;
+    if (!(lengths >> defaultsSize >> curvesSize >> combatSize) ||
+        (lengths >> trailing) ||
+        defaultsSize < 10 || defaultsSize > 8192 ||
+        curvesSize > 22000 || combatSize < 25 || combatSize > 30000)
+        return false;
+    const size_t header = value.find('\n',
+        value.find('\n', value.find('\n', value.find('\n') + 1) + 1) + 1);
+    if (header == std::string::npos ||
+        value.size() != header + 1 + defaultsSize + curvesSize + combatSize)
+        return false;
+    const size_t data = header + 1;
+    *defaults = value.substr(data, defaultsSize);
+    *curves = value.substr(data + defaultsSize, curvesSize);
+    *combat = value.substr(data + defaultsSize + curvesSize, combatSize);
     return defaults->rfind("BUNNY_MANAGED_DEFAULTS_V2\n", 0) == 0 &&
-           (curves->empty() || curves->rfind("BUNNY_PROJECTILE_TURNS_V1\n", 0) == 0);
+           (curves->empty() || curves->rfind("BUNNY_PROJECTILE_TURNS_V1\n", 0) == 0) &&
+           combat->rfind("BUNNY_COMBAT_POLICIES_V1\n", 0) == 0;
 }
 
 void saveCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& defaults,
-               const std::string& curves) {
-    if (defaults.empty() || defaults.size() > 8192 || curves.size() > 22000) return;
+               const std::string& curves, const std::string& combat) {
+    if (defaults.empty() || defaults.size() > 8192 || curves.size() > 22000 ||
+        combat.size() < 25 || combat.size() > 30000) return;
     const std::string value = std::string(kCacheVersion) + "\n" + id + "\n" +
         key + "\n" + std::to_string(defaults.size()) + " " +
-        std::to_string(curves.size()) + "\n" + defaults + curves;
+        std::to_string(curves.size()) + " " + std::to_string(combat.size()) +
+        "\n" + defaults + curves + combat;
     writeText(path, value);
 }
 
@@ -221,10 +232,12 @@ bool validCompileStatus(const std::string& status, const std::string& id,
 
 bool compile(const std::string& root, const std::string& id,
              const SourceModStatus& mod, const std::string& workDir,
-             std::string* defaults, std::string* curves, std::string* error) {
+             std::string* defaults, std::string* curves,
+             std::string* combat, std::string* error) {
     std::remove((workDir + "source-compile-status.txt").c_str());
     std::remove((workDir + "source-runtime-values.txt").c_str());
     std::remove((workDir + "source-projectile-turns.txt").c_str());
+    std::remove((workDir + "source-combat-policies.txt").c_str());
     if (!requestIsolatedMonoCompile(root, id, *error)) return false;
     const std::string path = workDir + "source-compile-status.txt";
     for (int poll = 0; poll < 600; ++poll) {
@@ -239,7 +252,9 @@ bool compile(const std::string& root, const std::string& id,
         if (!validCompileStatus(status, id, mod)) continue;
         *defaults = readText(workDir + "source-runtime-values.txt", 8192);
         *curves = readText(workDir + "source-projectile-turns.txt", 22000);
-        if (defaults->rfind("BUNNY_MANAGED_DEFAULTS_V2\n", 0) != 0) {
+        *combat = readText(workDir + "source-combat-policies.txt", 30000);
+        if (defaults->rfind("BUNNY_MANAGED_DEFAULTS_V2\n", 0) != 0 ||
+            combat->rfind("BUNNY_COMBAT_POLICIES_V1\n", 0) != 0) {
             *error = "Resultado C# sem tabela valida de SetDefaults";
             return false;
         }
