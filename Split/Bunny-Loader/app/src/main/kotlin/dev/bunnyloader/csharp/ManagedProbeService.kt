@@ -129,6 +129,8 @@ class ManagedProbeService : Service() {
                 File(dir, "source-runtime-values.txt.tmp").delete()
                 File(dir, "source-ai-turns.txt").delete()
                 File(dir, "source-ai-turns.txt.tmp").delete()
+                File(dir, "source-homing-policy.txt").delete()
+                File(dir, "source-homing-policy.txt.tmp").delete()
                 health.delete()
                 nativeTrace.delete()
                 nativeMaps.delete()
