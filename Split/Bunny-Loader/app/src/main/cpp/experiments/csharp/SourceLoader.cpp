@@ -237,7 +237,7 @@ bool applyManagedSourceDefaults(
     const std::string& modId, const std::string& runtimeValues, std::string* error) {
     if (!error) return false;
     error->clear();
-    if (runtimeValues.empty() || runtimeValues.size() > 2048) {
+    if (runtimeValues.empty() || runtimeValues.size() > 8192) {
         *error = "Resultado gerenciado inexistente ou grande demais";
         return false;
     }
@@ -248,21 +248,22 @@ bool applyManagedSourceDefaults(
             break;
         }
     }
-    if (!mod || mod->runtimeApplied || mod->registeredTypes.size() != 2) {
-        *error = "Mod fonte nao carregado, ja aplicado ou com tipos incompatíveis";
+    if (!mod || mod->runtimeApplied) {
+        *error = "Mod fonte nao carregado ou SetDefaults ja aplicado";
         return false;
     }
     std::istringstream lines(runtimeValues);
     std::string header;
-    if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V1") {
-        *error = "Formato do resultado gerenciado nao suportado";
+    if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V2") {
+        *error = "Formato gerenciado V2 esperado";
         return false;
     }
-    ManagedProjectileDefaults projectile;
-    ManagedWeaponDefaults weapon;
-    std::string projectileName, weaponName, shootName;
-    bool seenProjectile = false;
-    bool seenWeapon = false;
+
+    std::map<std::string, int> projectilesByName;
+    std::map<std::string, bool> seen;
+    std::vector<ManagedProjectileEntry> projectiles;
+    std::vector<ManagedWeaponEntry> weapons;
+    std::vector<std::string> shootNames;
     std::string line;
     while (std::getline(lines, line)) {
         if (line.empty()) continue;
@@ -270,47 +271,71 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
-        if (fields.size() == 8 && fields[0] == "PROJECTILE" && !seenProjectile) {
+        if (fields.size() < 2 || fields[1].empty() ||
+            !seen.emplace(fields[1], true).second) {
+            *error = "Classe C# duplicada ou registro invalido";
+            return false;
+        }
+        const auto registered = mod->registeredTypes.find(fields[1]);
+        if (registered == mod->registeredTypes.end() || registered->second < 0) {
+            *error = "Classe C# nao registrada no Terraria: " + fields[1];
+            return false;
+        }
+        if (fields[0] == "PROJECTILE" && fields.size() == 8) {
+            ManagedProjectileEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
             int friendly = 0;
-            if (!integer(fields[2], &projectile.width) ||
-                !integer(fields[3], &projectile.height) ||
-                !integer(fields[4], &projectile.aiStyle) ||
-                !integer(fields[5], &projectile.penetrate) ||
-                !integer(fields[6], &projectile.timeLeft) ||
+            if (!integer(fields[2], &record.values.width) ||
+                !integer(fields[3], &record.values.height) ||
+                !integer(fields[4], &record.values.aiStyle) ||
+                !integer(fields[5], &record.values.penetrate) ||
+                !integer(fields[6], &record.values.timeLeft) ||
                 !integer(fields[7], &friendly) || friendly != 1) {
-                *error = "Valores gerenciados invalidos para projetil";
+                *error = "Valores invalidos de projetil C#: " + record.name;
                 return false;
             }
-            projectileName = fields[1];
-            projectile.friendly = true;
-            seenProjectile = true;
-        } else if (fields.size() == 6 && fields[0] == "WEAPON" && !seenWeapon) {
-            if (!integer(fields[2], &weapon.damage) ||
-                !integer(fields[3], &weapon.useTime) ||
-                !real(fields[4], &weapon.shootSpeed)) {
-                *error = "Valores gerenciados invalidos para arma";
+            record.values.friendly = true;
+            projectilesByName.emplace(record.name, record.type);
+            projectiles.push_back(std::move(record));
+        } else if (fields[0] == "WEAPON" && fields.size() == 6) {
+            ManagedWeaponEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.values.damage) ||
+                !integer(fields[3], &record.values.useTime) ||
+                !real(fields[4], &record.values.shootSpeed) ||
+                fields[5].empty()) {
+                *error = "Valores invalidos de arma C#: " + record.name;
                 return false;
             }
-            weaponName = fields[1];
-            shootName = fields[5];
-            seenWeapon = true;
+            shootNames.push_back(fields[5]);
+            weapons.push_back(std::move(record));
         } else {
-            *error = "Linha inesperada no resultado do C#";
+            *error = "Linha V2 inesperada no resultado do C#";
+            return false;
+        }
+        if (projectiles.size() > 16 || weapons.size() > 16) {
+            *error = "Quantidade de conteudo C# excede 16 por categoria";
             return false;
         }
     }
-    if (!seenWeapon || !seenProjectile || projectileName != shootName) {
-        *error = "Arma ou projetil ausente, referencia Shoot invalida";
+    if (projectiles.size() != static_cast<size_t>(mod->projectiles) ||
+        weapons.size() != static_cast<size_t>(mod->items) ||
+        seen.size() != mod->registeredTypes.size()) {
+        *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
-    const auto projectileType = mod->registeredTypes.find(projectileName);
-    const auto weaponType = mod->registeredTypes.find(weaponName);
-    if (projectileType == mod->registeredTypes.end() ||
-        weaponType == mod->registeredTypes.end() ||
-        projectileType->second == weaponType->second ||
-        !applyManagedNativeDefaults(modId, projectileName, projectileType->second,
-                                    projectile, weaponName, weaponType->second, weapon)) {
-        *error = "IDs do Terraria ou dados do SetDefaults nao correspondem ao mod";
+    for (size_t i = 0; i < weapons.size(); ++i) {
+        const auto projectile = projectilesByName.find(shootNames[i]);
+        if (projectile == projectilesByName.end()) {
+            *error = "Shoot referencia projetil C# inexistente: " + shootNames[i];
+            return false;
+        }
+        weapons[i].shootType = projectile->second;
+    }
+    if (!applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
+        *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
         return false;
     }
     mod->runtimeApplied = true;
