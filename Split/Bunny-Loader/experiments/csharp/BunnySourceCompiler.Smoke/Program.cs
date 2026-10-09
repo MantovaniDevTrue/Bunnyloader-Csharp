@@ -212,14 +212,16 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 2)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 4)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
     if (!independentDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 3)
+        !independentDefaults.Contains("BUFF\tExampleDefenseBuff\t10\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 5)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -248,6 +250,7 @@ try
             exampleKill[3 + i] == Math.Clamp(28 + i, 28, 96).ToString() &&
             exampleKill[259 + i] == Math.Clamp(50 + i * 2, 50, 150).ToString()))
         throw new InvalidOperationException("Independent OnHitNPC/OnKill C# tables incorrect");
+    Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
     Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
