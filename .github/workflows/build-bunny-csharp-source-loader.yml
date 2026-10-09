@@ -337,7 +337,7 @@ jobs:
               lines = package.read("assets/managed/framework.sha256").decode("utf-8").splitlines()
               assert lines, "Empty framework fingerprint"
               for line in lines:
-                  name, checksum = line.split("\\t", 1)
+                  name, checksum = line.split("\t", 1)
                   content = package.read("assets/managed/" + name)
                   assert hashlib.sha256(content).hexdigest() == checksum, name
               print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
