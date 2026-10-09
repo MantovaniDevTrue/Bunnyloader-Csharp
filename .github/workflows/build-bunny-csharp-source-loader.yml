@@ -47,6 +47,7 @@ on:
       - bunny-csharp-source-0.1.10.16.24-homing-policy
       - bunny-csharp-source-0.1.10.16.25-npc-ref-hotfix
       - bunny-csharp-source-0.1.10.16.26-local-player-fallback
+      - bunny-csharp-source-0.1.10.16.27-onhit-buff
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -195,8 +196,8 @@ jobs:
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
           PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.0.bl"
           test -f "$PACK"
-          cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
-          python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod" <<'PY'
+          cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod"
+          python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -210,7 +211,7 @@ jobs:
               assert not any(n.endswith((".js",".so",".dll")) for n in names)
               print("CSHARP_SOURCE_ONLY_PACKAGE=YES")
           PY
-          sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod.sha256"
 
       - name: Stage experimental MonoVM and managed probe
         shell: bash
@@ -337,7 +338,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='52' versionName='0.1.10.16.26-csharp-local-player-fallback'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='53' versionName='0.1.10.16.27-csharp-onhit-buff'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -360,11 +361,11 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.27-OnHitNPC.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod.sha256"
 
       - name: Publish signed APK as GitHub Release asset
         shell: bash
@@ -372,17 +373,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.26"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.27"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.27-OnHitNPC.apk"
           test -s "$APK"
           test -s "$APK.sha256"
-          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
+          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.26 — CSharp Local Player Fallback" \
-              --notes "Fix C# homing activation where Main.myPlayer does not exist on Terraria Android. Resolve local player through Main.LocalPlayer getter when available, or use Main.netMode-validated singleplayer-only fallback with continuous mode guard. Refuse unsafe multiplayer fallback. Preserve managed Roslyn homing policy, existing projectile ownership protection, NPC damage flag fallback, buffered AI, JavaScript and NativeAOT. Existing SourceCSharpMod.bmod is unchanged. Device validation required." \
+              --title "Bunny Loader C# v0.1.10.16.27 — CSharp SourceBolt OnHitNPC Buff" \
+              --notes "Experimental SourceBolt OnHitNPC: define a bounded OnHitNPC damage-to-OnFire-duration policy in the actual C# source mod. Roslyn/MonoVM executes it once in isolated worker and writes a validated lookup. The Terraria native Projectile.StatusNPC hook applies vanilla OnFire after real NPC impacts; solo-only, with per-hit counters and a safe disable API. Preserves existing homing, JS and NativeAOT. Requires Android device testing." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -392,8 +393,8 @@ jobs:
           fi
           gh release upload "$DEST" \
             "$APK" "$APK.sha256" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
           echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
 
@@ -405,13 +406,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.27-OnHitNPC.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          MOD="$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
-          MODSHA="$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod.sha256"
+          MOD="$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod"
+          MODSHA="$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod.sha256"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" "$MOD" "$MODSHA" --repo "${{ github.repository }}" --clobber
           else
