@@ -53,6 +53,7 @@ void* g_liveAiMethod = nullptr;
 struct LiveEntry {
     std::string path;
     void* method = nullptr;
+    void* npcAiMethod = nullptr;
     LiveSourceStatus status;
 };
 
@@ -550,6 +551,64 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
     status.ready = true;
     status.error.clear();
     return status;
+}
+
+bool invokeLiveSourceNpcAi(const std::string& modId,
+                           const std::string& assemblyPath,
+                           int playerDeltaX, int npcLife,
+                           int* velocityTenths) {
+    if (!velocityTenths || playerDeltaX < -100000 || playerDeltaX > 100000 ||
+        npcLife <= 0 || npcLife > 1000000) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
+    const auto found = g_sourceLiveEntries.find(modId);
+    if (found == g_sourceLiveEntries.end()) return false;
+    LiveEntry& entry = found->second;
+    auto& status = entry.status;
+    if (!entry.method || entry.path != assemblyPath || status.npcFailures >= 3)
+        return false;
+    if (!g_api.attach(g_domain)) {
+        ++status.npcFailures;
+        status.error = "Live NPC MonoVM thread attach failed";
+        return false;
+    }
+    if (!entry.npcAiMethod) {
+        void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLiveNpc") : nullptr;
+        entry.npcAiMethod = klass ? g_api.findMethod(klass, "AI", 2) : nullptr;
+        if (!entry.npcAiMethod) {
+            ++status.npcFailures;
+            status.error = "BunnyLiveNpc.AI(int,int) not found in C# assembly";
+            return false;
+        }
+    }
+    int argDelta = playerDeltaX;
+    int argLife = npcLife;
+    void* arguments[] = {&argDelta, &argLife};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(entry.npcAiMethod, nullptr, arguments, &exception);
+    void* value = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!value) {
+        ++status.npcFailures;
+        status.error = "Managed BunnyLiveNpc.AI threw or returned non-int";
+        return false;
+    }
+    int32_t result = 0;
+    std::memcpy(&result, value, sizeof(result));
+    if (result < -18 || result > 18) {
+        ++status.npcFailures;
+        status.error = "Managed NPC horizontal velocity exceeds safety range";
+        return false;
+    }
+    *velocityTenths = result;
+    ++status.npcCallbacks;
+    status.npcLastLife = npcLife;
+    status.npcLastDeltaX = playerDeltaX;
+    status.npcLastVelocityTenths = result;
+    status.error.clear();
+    return true;
 }
 
 bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
