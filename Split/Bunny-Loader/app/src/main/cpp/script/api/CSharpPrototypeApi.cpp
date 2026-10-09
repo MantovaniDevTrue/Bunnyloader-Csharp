@@ -365,6 +365,94 @@ JSValue jsSourcePauseBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValueC
     return result;
 }
 
+JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceEnableOnHit('CONFIRM_CSHARP_ONHIT')");
+    const char* token = JS_ToCString(ctx, argv[0]);
+    if (!token) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(token) == "CONFIRM_CSHARP_ONHIT";
+    JS_FreeCString(ctx, token);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_CSHARP_ONHIT");
+
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        state.find("executedTypes=2\n") == std::string::npos ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostics.find("ONHIT_POLICY_OK buff=24 hits=4") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compile o Source C# Test com OnHitNPC antes da ativacao");
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.runtimeApplied && mod.projectiles == 1) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "Aplique os valores gerenciados antes de ativar OnHitNPC");
+
+    std::istringstream input(readManagedWorkerFile("source-onhit-policy.txt"));
+    std::string header, name, buff, values, trailing;
+    if (!std::getline(input, header) || header != "BUNNY_SOURCE_ONHIT_V1" ||
+        !std::getline(input, name) || name != "SourceBolt" ||
+        !std::getline(input, buff) || buff != "24" ||
+        !std::getline(input, values) ||
+        (std::getline(input, trailing) && !trailing.empty()))
+        return JS_ThrowInternalError(ctx, "Arquivo OnHitNPC C# invalido");
+    std::istringstream durations(values);
+    bl::csharp::SourceBoltHitPolicy policy{};
+    std::string piece;
+    for (size_t i = 0; i < policy.durations.size(); ++i) {
+        if (!std::getline(durations, piece, '\t') ||
+            piece.empty() || piece.size() > 4)
+            return JS_ThrowInternalError(ctx, "Tabela OnHitNPC C# incompleta");
+        errno = 0;
+        char* end = nullptr;
+        const long n = std::strtol(piece.c_str(), &end, 10);
+        if (errno || end == piece.c_str() || *end || n < 30 || n > 180)
+            return JS_ThrowInternalError(ctx, "Duracao OnHitNPC C# invalida");
+        policy.durations[i] = static_cast<int>(n);
+    }
+    if (std::getline(durations, piece, '\t'))
+        return JS_ThrowInternalError(ctx, "Tabela OnHitNPC C# contem valores excedentes");
+
+    std::string error;
+    if (!bl::csharp::enableSourceBoltOnHit(policy, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    const auto status = bl::csharp::sourceBoltHitStatus();
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v1"));
+    JS_SetPropertyStr(ctx, result, "buffId", JS_NewInt32(ctx, status.buffId));
+    JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
+    return result;
+}
+
+JSValue jsSourceHitStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::sourceBoltHitStatus();
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "hitEvents", JS_NewInt32(ctx, status.events));
+    JS_SetPropertyStr(ctx, result, "buffsApplied", JS_NewInt32(ctx, status.applied));
+    JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, result, "lastNpc", JS_NewInt32(ctx, status.lastNpc));
+    JS_SetPropertyStr(ctx, result, "buffId", JS_NewInt32(ctx, status.buffId));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnHitNPC-v1"));
+    return result;
+}
+
+JSValue jsSourcePauseOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourcePauseOnHit()");
+    const bool wasEnabled = bl::csharp::pauseSourceBoltOnHit();
+    JSValue result = jsSourceHitStatus(ctx, JS_UNDEFINED, 0, nullptr);
+    JS_SetPropertyStr(ctx, result, "wasEnabled", JS_NewBool(ctx, wasEnabled));
+    return result;
+}
+
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0)
         return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
@@ -1193,6 +1281,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourcePauseBufferedAI, "sourcePauseBufferedAI", 0));
     JS_SetPropertyStr(ctx, api, "sourceEnableHomingAI",
                       JS_NewCFunction(ctx, jsSourceEnableHomingAI, "sourceEnableHomingAI", 1));
+    JS_SetPropertyStr(ctx, api, "sourceEnableOnHit",
+                      JS_NewCFunction(ctx, jsSourceEnableOnHit, "sourceEnableOnHit", 1));
+    JS_SetPropertyStr(ctx, api, "sourceHitStatus",
+                      JS_NewCFunction(ctx, jsSourceHitStatus, "sourceHitStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePauseOnHit",
+                      JS_NewCFunction(ctx, jsSourcePauseOnHit, "sourcePauseOnHit", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
