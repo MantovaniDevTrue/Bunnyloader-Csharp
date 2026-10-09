@@ -155,6 +155,59 @@ void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
     emit("DESTROYED_MUTEX_MAPS_END\n");
 }
 
+using ExitFn = void (*)(int);
+void* g_originalExit = nullptr;
+volatile sig_atomic_t g_exitCaptureCount = 0;
+
+[[noreturn]] void observeProcessExit(int code) {
+    if (g_trace >= 0 && __sync_lock_test_and_set(&g_exitCaptureCount, 1) == 0) {
+        emit("PROCESS_EXIT_PRECALL\n");
+        emit("exit_status=");
+        emitDec(static_cast<uintptr_t>(static_cast<unsigned int>(code) & 0xffu));
+        emit("exit_code_hex=");
+        emitHex(static_cast<uintptr_t>(static_cast<unsigned int>(code)));
+        emit("exit_tid=");
+        emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+        char name[16]{};
+        if (syscall(__NR_prctl, PR_GET_NAME, name, 0, 0, 0) == 0) {
+            emit("exit_thread=");
+            emit(name);
+            emit("\n");
+        }
+#if defined(__aarch64__)
+        const uintptr_t caller = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+        emit("exit_caller_lr=");
+        emitHex(caller);
+        uintptr_t addresses[21]{caller};
+        size_t count = 1;
+        uintptr_t anchor = 0;
+        const uintptr_t sp = reinterpret_cast<uintptr_t>(&anchor);
+        uintptr_t fp = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+        for (int i = 0; i < 20; ++i) {
+            if ((fp & 15u) != 0u || fp < sp || fp - sp > 8u * 1024u * 1024u)
+                break;
+            uintptr_t pair[2]{};
+            if (!readFrame(fp, pair)) break;
+            emit("exit_return=");
+            emitHex(pair[1]);
+            if (count < sizeof(addresses) / sizeof(addresses[0]))
+                addresses[count++] = pair[1];
+            if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
+            fp = pair[0];
+        }
+        emitMatchingMaps(addresses, count);
+#endif
+        emit("PROCESS_EXIT_PRECALL_END\n");
+        (void)fsync(g_trace);
+    }
+    const auto original = reinterpret_cast<ExitFn>(g_originalExit);
+    if (original) original(code);
+#ifdef __NR_exit_group
+    (void)syscall(__NR_exit_group, code);
+#endif
+    _exit(code);
+}
+
 using MutexLockFn = int (*)(pthread_mutex_t*);
 void* g_originalMutexLock = nullptr;
 volatile sig_atomic_t g_mutexCaptureCount = 0;
@@ -295,6 +348,16 @@ bool installDestroyedMutexTrace() {
         return false;
     }
     emit("DESTROYED_MUTEX_HOOK_ACTIVE\n");
+    emit("PROCESS_EXIT_HOOK_ATTEMPT\n");
+    void* exitStub = shadowhook_hook_sym_name(
+        "libc.so", "exit",
+        reinterpret_cast<void*>(&observeProcessExit), &g_originalExit);
+    if (!exitStub) {
+        emit("PROCESS_EXIT_HOOK_FAILED\n");
+        emitDec(static_cast<uintptr_t>(shadowhook_get_errno()));
+    } else {
+        emit("PROCESS_EXIT_HOOK_ACTIVE\n");
+    }
     return true;
 }
 
