@@ -425,7 +425,7 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
 bool enableManagedProjectileCurve(const std::string& modId,
                                   const std::string& projectileName,
                                   const std::array<int, 120>& turns,
-                                  std::string* error) {
+                                  std::string* error, bool allowInMenu) {
     if (!error) return false;
     error->clear();
     if (modId.empty() || modId.size() > 128 ||
