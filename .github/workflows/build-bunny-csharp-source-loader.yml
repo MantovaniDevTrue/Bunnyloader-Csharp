@@ -35,6 +35,7 @@ on:
       - bunny-csharp-source-0.1.10.16.12-sigaction-watch
       - bunny-csharp-source-0.1.10.16.13-mutex-caller-trace
       - bunny-csharp-source-0.1.10.16.14-mutex-map-trace
+      - bunny-csharp-source-0.1.10.16.15-exit-order
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -318,7 +319,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.14-MutexMaps.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.15-ExitOrder.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -330,17 +331,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.14"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.15"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.14-MutexMaps.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.15-ExitOrder.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.14 — Destroyed Mutex Address Maps" \
-              --notes "Experimental isolated MonoVM diagnosis: on the 0xffff destroyed-mutex lock, ShadowHook preserves Android FORTIFY and captures mutex address, ARM64 return frames and the exact /proc/self/maps entries for those addresses before the abort. The complete 8KB trace is exposed through bl.csharp.sourceCompileStatus().nativeAbort. NativeAOT and JavaScript behavior unchanged. Requires device validation." \
+              --title "Bunny Loader C# v0.1.10.16.15 — Mono Process Exit Order" \
+              --notes "Experimental Roslyn worker lifecycle check: disables concurrent Kotlin logcat and file-sampling threads only in the isolated source compile worker, records native process atexit and the native mutex caller thread name, and preserves previous FORTIFY-safe destroyed mutex trace. This distinguishes a primary MonoVM/Roslyn process exit from a secondary Android AsynchronousCloseMonitor crash. The game's JavaScript and NativeAOT runtime is unchanged; device validation required." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -363,7 +364,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.14-MutexMaps.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.15-ExitOrder.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
