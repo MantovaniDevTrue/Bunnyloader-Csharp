@@ -410,6 +410,54 @@ bool applyManagedNativeDefaults(
     return true;
 }
 
+bool applyManagedNativeDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedProjectileEntry>& projectiles,
+    const std::vector<ManagedWeaponEntry>& weapons) {
+    if (!g_ready || projectiles.empty() || weapons.empty() ||
+        projectiles.size() > 16 || weapons.size() > 16) return false;
+
+    std::map<int, NativeProjectileDefaults> stagedProjectiles;
+    std::map<int, NativeWeaponDefaults> stagedWeapons;
+    for (const auto& entry : projectiles) {
+        const auto& data = entry.values;
+        if (entry.type < 0 ||
+            bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
+            g_projectiles.count(entry.type) != 1 ||
+            !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
+                data.width, data.height, data.aiStyle, data.penetrate,
+                data.timeLeft, true, false}).second ||
+            data.width < 1 || data.width > 512 ||
+            data.height < 1 || data.height > 512 ||
+            data.aiStyle < 0 || data.aiStyle > 255 ||
+            data.penetrate < -1 || data.penetrate > 100 ||
+            data.timeLeft < 1 || data.timeLeft > 36000 ||
+            !data.friendly)
+            return false;
+    }
+    for (const auto& entry : weapons) {
+        const auto& data = entry.values;
+        if (entry.type < 0 ||
+            bl::runtime::modItemTypeByKey(modId + "/" + entry.name) != entry.type ||
+            g_weapons.count(entry.type) != 1 ||
+            stagedProjectiles.count(entry.shootType) != 1 ||
+            !stagedWeapons.emplace(entry.type, NativeWeaponDefaults{
+                data.damage, data.useTime, data.shootSpeed, entry.shootType}).second ||
+            data.damage < 1 || data.damage > 1000 ||
+            data.useTime < 2 || data.useTime > 120 ||
+            !std::isfinite(data.shootSpeed) ||
+            data.shootSpeed < 1.f || data.shootSpeed > 40.f)
+            return false;
+    }
+    for (const auto& item : stagedProjectiles)
+        g_projectiles[item.first] = item.second;
+    for (const auto& item : stagedWeapons)
+        g_weapons[item.first] = item.second;
+    BL_INFO("csharp native: managed batch applied for %s (%zu projectile, %zu weapon)",
+            modId.c_str(), stagedProjectiles.size(), stagedWeapons.size());
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
