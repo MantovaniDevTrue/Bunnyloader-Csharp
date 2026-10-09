@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "exampleModCSharpVersion": "0.1.0",
+  "verifiedLoaderVersion": "0.1.10.16.34",
+  "fixtureMod": "sourcecsharp",
+  "fixtureModVersion": "0.1.5",
+  "supportedModId": "57a98f20-7a35-4d19-8ce8-079e25bb36a1",
+  "features": [
+    {
+      "id": "weapons",
+      "status": "device_verified",
+      "examples": [
+        "SourceWand",
+        "SourceStaff"
+      ]
+    },
+    {
+      "id": "projectiles",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt",
+        "SourceSpark"
+      ]
+    },
+    {
+      "id": "managed_set_defaults",
+      "status": "device_verified",
+      "examples": [
+        "SourceWand",
+        "SourceStaff",
+        "SourceBolt",
+        "SourceSpark"
+      ]
+    },
+    {
+      "id": "homing",
+      "status": "device_verified",
+      "examples": [
+        "SourceBoltMotion"
+      ]
+    },
+    {
+      "id": "on_hit_npc_native_effect",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "on_kill_native_effect",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "independent_projectile_motion",
+      "status": "device_verified",
+      "examples": [
+        "SourceBoltMotion",
+        "SourceSparkMotion"
+      ]
+    },
+    {
+      "id": "generic_projectile_curve_dispatch",
+      "status": "device_verified",
+      "examples": [
+        "SourceSparkMotion"
+      ]
+    },
+    {
+      "id": "arbitrary_mod_csharp_compile",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "generic_on_hit_on_kill",
+      "status": "experimental",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "custom_npc_csharp",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "custom_buff_csharp",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "custom_accessory_csharp",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "custom_player_csharp",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "experimental_csharp_multiplayer",
+      "status": "not_implemented",
+      "examples": []
+    }
+  ]
+}
