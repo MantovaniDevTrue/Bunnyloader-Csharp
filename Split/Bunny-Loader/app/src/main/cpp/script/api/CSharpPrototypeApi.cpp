@@ -144,6 +144,10 @@ JSValue makeLiveSourceStatus(JSContext* ctx, const bl::csharp::LiveSourceStatus&
     JS_SetPropertyStr(ctx, out, "ready", JS_NewBool(ctx, s.ready));
     JS_SetPropertyStr(ctx, out, "callbacks", JS_NewInt32(ctx, s.callbacks));
     JS_SetPropertyStr(ctx, out, "failures", JS_NewInt32(ctx, s.failures));
+    JS_SetPropertyStr(ctx, out, "npcThreadAttaches", JS_NewInt32(ctx, s.npcThreadAttaches));
+    JS_SetPropertyStr(ctx, out, "npcThreadDetaches", JS_NewInt32(ctx, s.npcThreadDetaches));
+    JS_SetPropertyStr(ctx, out, "npcThreadAlreadyAttached",
+                      JS_NewInt32(ctx, s.npcThreadAlreadyAttached));
     JS_SetPropertyStr(ctx, out, "lastTick", JS_NewInt32(ctx, s.lastTick));
     JS_SetPropertyStr(ctx, out, "lastState", JS_NewInt32(ctx, s.lastState));
     JS_SetPropertyStr(ctx, out, "lastResult", JS_NewInt32(ctx, s.lastResult));
