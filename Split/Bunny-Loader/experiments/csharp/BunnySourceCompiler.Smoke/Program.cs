@@ -80,7 +80,7 @@ try
     if (sparkSamples.Length != 120 ||
         !Enumerable.Range(0, 120).All(i =>
             int.TryParse(sparkSamples[i], out var mrad) &&
-            mrad == (int)MathF.Round(MathF.Sin(i * 0.32f) * 45f)) ||
+            mrad == (int)MathF.Round((MathF.Sin(i * 0.32f) * 0.045f) * 1000f)) ||
         !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad > 30) ||
         !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad < -30))
         throw new InvalidOperationException("Independent C# SourceSpark AI curve failed validation");
