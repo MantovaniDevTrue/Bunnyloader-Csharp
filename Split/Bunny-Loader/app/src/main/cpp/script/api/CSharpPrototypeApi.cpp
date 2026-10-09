@@ -680,6 +680,24 @@ JSValue makeProjectileCurveStatus(JSContext* ctx, const std::string& modId,
     JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
     JS_SetPropertyStr(ctx, result, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
     JS_SetPropertyStr(ctx, result, "lastTurn", JS_NewInt32(ctx, status.lastTurn));
+    const auto hit = bl::csharp::autoProjectileHitStatus(modId, name);
+    const auto kill = bl::csharp::autoProjectileKillStatus(modId, name);
+    JSValue onHit = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, onHit, "registered", JS_NewBool(ctx, hit.registered));
+    JS_SetPropertyStr(ctx, onHit, "enabled", JS_NewBool(ctx, hit.enabled));
+    JS_SetPropertyStr(ctx, onHit, "events", JS_NewInt32(ctx, hit.events));
+    JS_SetPropertyStr(ctx, onHit, "buffsApplied", JS_NewInt32(ctx, hit.buffsApplied));
+    JS_SetPropertyStr(ctx, onHit, "errors", JS_NewInt32(ctx, hit.errors));
+    JS_SetPropertyStr(ctx, onHit, "buffId", JS_NewInt32(ctx, hit.buffId));
+    JS_SetPropertyStr(ctx, result, "autoOnHit", onHit);
+    JSValue onKill = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, onKill, "registered", JS_NewBool(ctx, kill.registered));
+    JS_SetPropertyStr(ctx, onKill, "enabled", JS_NewBool(ctx, kill.enabled));
+    JS_SetPropertyStr(ctx, onKill, "events", JS_NewInt32(ctx, kill.events));
+    JS_SetPropertyStr(ctx, onKill, "buffsApplied", JS_NewInt32(ctx, kill.buffsApplied));
+    JS_SetPropertyStr(ctx, onKill, "errors", JS_NewInt32(ctx, kill.errors));
+    JS_SetPropertyStr(ctx, onKill, "buffId", JS_NewInt32(ctx, kill.buffId));
+    JS_SetPropertyStr(ctx, result, "autoOnKill", onKill);
     JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-Projectile-Curve-v1"));
     return result;
 }
@@ -958,6 +976,10 @@ JSValue jsSourceAutoStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         JS_SetPropertyStr(ctx, item, "applied", JS_NewBool(ctx, status.applied));
         JS_SetPropertyStr(ctx, item, "curves", JS_NewInt32(ctx, status.curves));
         JS_SetPropertyStr(ctx, item, "enabledCurves", JS_NewInt32(ctx, status.enabledCurves));
+        JS_SetPropertyStr(ctx, item, "hitPolicies", JS_NewInt32(ctx, status.hitPolicies));
+        JS_SetPropertyStr(ctx, item, "killPolicies", JS_NewInt32(ctx, status.killPolicies));
+        JS_SetPropertyStr(ctx, item, "enabledHits", JS_NewInt32(ctx, status.enabledHits));
+        JS_SetPropertyStr(ctx, item, "enabledKills", JS_NewInt32(ctx, status.enabledKills));
         JS_SetPropertyStr(ctx, item, "netMode", JS_NewInt32(ctx, status.netMode));
         JS_SetPropertyStr(ctx, item, "gameMenu", JS_NewInt32(ctx, status.gameMenu));
         JS_SetPropertyStr(ctx, item, "error", JS_NewString(ctx, status.error.c_str()));
