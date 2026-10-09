@@ -122,7 +122,8 @@ class ManagedProbeService : Service() {
         checkpoint.delete()
         log.delete()
         if (compileRoot != null && (compileModId.isBlank() ||
-            compileModId.length > 128 || compileModId.contains('\n'))) {
+            compileModId.length > 128 ||
+            !compileModId.matches(Regex("[0-9a-fA-F-]+")))) {
             running.set(false)
             stopSelf(startId)
             return START_NOT_STICKY
@@ -177,7 +178,7 @@ class ManagedProbeService : Service() {
                     val compiler = File(dir, "BunnySourceCompiler.dll")
                     val outputDir = File(dir, "compiled")
                     outputDir.mkdirs()
-                    val output = File(outputDir, "sourcecsharp.dll")
+                    val output = File(outputDir, "$compileModId.dll")
                     compileStatus.writeText(
                         "state=compiling\npid=${Process.myPid()}\nwatchers=memory-monitor\n"
                     )
