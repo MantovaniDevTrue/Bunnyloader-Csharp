@@ -139,6 +139,11 @@ JSValue makeSourceBoltHookStatus(JSContext* ctx) {
     JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
     JS_SetPropertyStr(ctx, result, "buffered", JS_NewBool(ctx, status.buffered));
     JS_SetPropertyStr(ctx, result, "bufferSamples", JS_NewInt32(ctx, status.bufferSamples));
+    JS_SetPropertyStr(ctx, result, "homing", JS_NewBool(ctx, status.homing));
+    JS_SetPropertyStr(ctx, result, "homingScans", JS_NewInt32(ctx, status.homingScans));
+    JS_SetPropertyStr(ctx, result, "homingLocks", JS_NewInt32(ctx, status.homingLocks));
+    JS_SetPropertyStr(ctx, result, "homingFrames", JS_NewInt32(ctx, status.homingFrames));
+    JS_SetPropertyStr(ctx, result, "lastTarget", JS_NewInt32(ctx, status.lastTarget));
     JS_SetPropertyStr(ctx, result, "type", JS_NewInt32(ctx, status.type));
     JS_SetPropertyStr(ctx, result, "callbacks", JS_NewInt32(ctx, status.callbacks));
     JS_SetPropertyStr(ctx, result, "velocityWrites", JS_NewInt32(ctx, status.velocityWrites));
@@ -251,6 +256,102 @@ JSValue jsSourceEnableBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValue
 JSValue jsSourceAIStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue result = makeSourceBoltHookStatus(ctx);
     JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-AI-Buffered-v1"));
+    return result;
+}
+
+JSValue jsSourceEnableHomingAI(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceEnableHomingAI('CONFIRM_HOMING_CSHARP_AI')");
+    const char* token = JS_ToCString(ctx, argv[0]);
+    if (!token) return JS_EXCEPTION;
+    const bool approved = std::string_view(token) == "CONFIRM_HOMING_CSHARP_AI";
+    JS_FreeCString(ctx, token);
+    if (!approved)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_HOMING_CSHARP_AI");
+
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        state.find("executedTypes=2\n") == std::string::npos ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostics.find("HOMING_POLICY_OK samples=129") == std::string::npos ||
+        diagnostics.find("AI_BUFFER_OK ticks=120") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compilar a versao C# com politica de homing primeiro");
+
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.runtimeApplied && mod.sourceFiles == 3) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "sourceApplyCompiled precisa estar aplicado e o mod conter 3 arquivos C#");
+
+    auto parseTurns = [](const std::string& line, int* values, size_t count) -> bool {
+        if (line.empty() || line.size() > count * 6) return false;
+        std::istringstream stream(line);
+        std::string text;
+        for (size_t i = 0; i < count; ++i) {
+            if (!std::getline(stream, text, '\t') || text.empty() || text.size() > 5) return false;
+            errno = 0;
+            char* end = nullptr;
+            long number = std::strtol(text.c_str(), &end, 10);
+            if (errno || end == text.c_str() || *end != 0 || number < -80 || number > 80)
+                return false;
+            values[i] = static_cast<int>(number);
+        }
+        return !std::getline(stream, text, '\t');
+    };
+    auto parsePositive = [](const std::string& value, int minValue, int maxValue, int* result) -> bool {
+        if (value.empty() || value.size() > 6) return false;
+        errno = 0;
+        char* end = nullptr;
+        long x = std::strtol(value.c_str(), &end, 10);
+        if (errno || end == value.c_str() || *end || x < minValue || x > maxValue) return false;
+        *result = static_cast<int>(x);
+        return true;
+    };
+
+    std::array<int, 120> fallback{};
+    {
+        std::istringstream file(readManagedWorkerFile("source-ai-turns.txt"));
+        std::string header, projectile, data, extra;
+        if (!std::getline(file, header) || header != "BUNNY_SOURCE_AI_TURNS_V1" ||
+            !std::getline(file, projectile) || projectile != "SourceBolt" ||
+            !std::getline(file, data) || !parseTurns(data, fallback.data(), fallback.size()) ||
+            (std::getline(file, extra) && !extra.empty()))
+            return JS_ThrowInternalError(ctx, "Buffer da curva C# invalido");
+    }
+    bl::csharp::SourceBoltHomingPolicy policy;
+    {
+        std::istringstream file(readManagedWorkerFile("source-homing-policy.txt"));
+        std::string header, projectile, config, data, extra;
+        if (!std::getline(file, header) || header != "BUNNY_SOURCE_HOMING_V1" ||
+            !std::getline(file, projectile) || projectile != "SourceBolt" ||
+            !std::getline(file, config) || !std::getline(file, data) ||
+            (std::getline(file, extra) && !extra.empty()))
+            return JS_ThrowInternalError(ctx, "Arquivo de politica C# invalido");
+        const size_t divider = config.find('\t');
+        if (divider == std::string::npos || config.find('\t', divider + 1) != std::string::npos ||
+            !parsePositive(config.substr(0, divider), 64, 720, &policy.radius) ||
+            !parsePositive(config.substr(divider + 1), 4, 24, &policy.retargetTicks) ||
+            !parseTurns(data, policy.turnsMilliRadians.data(), policy.turnsMilliRadians.size()) ||
+            policy.turnsMilliRadians[64] != 0 ||
+            policy.turnsMilliRadians[0] >= 0 ||
+            policy.turnsMilliRadians[128] <= 0)
+            return JS_ThrowInternalError(ctx, "Dados da curva homing C# invalidos");
+    }
+
+    std::string error;
+    if (!bl::csharp::enableHomingSourceBoltHook(policy, fallback, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    JSValue result = makeSourceBoltHookStatus(ctx);
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-Homing-Policy-v1"));
+    JS_SetPropertyStr(ctx, result, "radius", JS_NewInt32(ctx, policy.radius));
+    JS_SetPropertyStr(ctx, result, "retargetTicks", JS_NewInt32(ctx, policy.retargetTicks));
     return result;
 }
 
@@ -1089,6 +1190,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceAIStatus, "sourceAIStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourcePauseBufferedAI",
                       JS_NewCFunction(ctx, jsSourcePauseBufferedAI, "sourcePauseBufferedAI", 0));
+    JS_SetPropertyStr(ctx, api, "sourceEnableHomingAI",
+                      JS_NewCFunction(ctx, jsSourceEnableHomingAI, "sourceEnableHomingAI", 1));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
