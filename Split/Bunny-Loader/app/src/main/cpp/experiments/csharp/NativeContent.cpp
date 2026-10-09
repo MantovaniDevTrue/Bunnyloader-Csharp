@@ -377,6 +377,39 @@ bool prepareNativePlayerEffects() {
     return true;
 }
 
+
+bool applyManagedNativeDefaults(
+    const std::string& modId, const std::string& projectileName, int projectileType,
+    const ManagedProjectileDefaults& projectile, const std::string& weaponName,
+    int weaponType, const ManagedWeaponDefaults& weapon) {
+    if (!g_ready ||
+        bl::runtime::modProjectileTypeByName(modId, projectileName) != projectileType ||
+        bl::runtime::modItemTypeByKey(modId + "/" + weaponName) != weaponType ||
+        g_projectiles.count(projectileType) == 0 || g_weapons.count(weaponType) == 0 ||
+        projectile.width < 1 || projectile.width > 512 ||
+        projectile.height < 1 || projectile.height > 512 ||
+        projectile.aiStyle < 0 || projectile.aiStyle > 255 ||
+        projectile.penetrate < -1 || projectile.penetrate > 100 ||
+        projectile.timeLeft < 1 || projectile.timeLeft > 36000 ||
+        !projectile.friendly ||
+        weapon.damage < 1 || weapon.damage > 1000 ||
+        weapon.useTime < 2 || weapon.useTime > 120 ||
+        !std::isfinite(weapon.shootSpeed) ||
+        weapon.shootSpeed < 1.f || weapon.shootSpeed > 40.f)
+        return false;
+
+    g_projectiles[projectileType] = {
+        projectile.width, projectile.height, projectile.aiStyle,
+        projectile.penetrate, projectile.timeLeft, true, false
+    };
+    g_weapons[weaponType] = {
+        weapon.damage, weapon.useTime, weapon.shootSpeed, projectileType
+    };
+    BL_INFO("csharp native: managed SetDefaults applied for %s/%s and %s/%s",
+            modId.c_str(), projectileName.c_str(), modId.c_str(), weaponName.c_str());
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
