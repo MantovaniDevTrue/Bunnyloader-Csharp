@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <dlfcn.h>
 #include "shadowhook.h"
 #include <fcntl.h>
@@ -85,6 +86,62 @@ void emitAbortHeader() {
     appendDecimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
     buffer[used++] = '\n';
     (void)write(g_trace, buffer, used);
+}
+
+void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
+    if (g_trace < 0) return;
+    char line[384]{};
+    size_t length = 0;
+    auto literal = [&](const char* value) {
+        while (*value && length < sizeof(line) - 1) line[length++] = *value++;
+    };
+    auto decimal = [&](uintptr_t value) {
+        char scratch[3 * sizeof(uintptr_t) + 2]{};
+        size_t count = 0;
+        do {
+            scratch[count++] = static_cast<char>('0' + value % 10);
+            value /= 10;
+        } while (value && count < sizeof(scratch));
+        while (count && length < sizeof(line) - 1)
+            line[length++] = scratch[--count];
+    };
+    auto hex = [&](uintptr_t value) {
+        literal("0x");
+        for (int shift = static_cast<int>(sizeof(uintptr_t) * 8) - 4; shift >= 0; shift -= 4) {
+            const unsigned nibble = (value >> shift) & 15u;
+            if (length < sizeof(line) - 1)
+                line[length++] = "0123456789abcdef"[nibble];
+        }
+    };
+    literal("ABORT_CRITICAL_V2 pid=");
+    decimal(static_cast<uintptr_t>(getpid()));
+    literal(" tid=");
+    decimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    literal(" signo=");
+    decimal(static_cast<uintptr_t>(signal));
+    if (info) {
+        literal(" si_code=");
+        decimal(static_cast<uintptr_t>(static_cast<unsigned int>(info->si_code)));
+        literal(" si_addr=");
+        hex(reinterpret_cast<uintptr_t>(info->si_addr));
+    }
+#if defined(__aarch64__)
+    const auto* context = static_cast<const ucontext_t*>(raw);
+    if (context) {
+        literal(" pc=");
+        hex(static_cast<uintptr_t>(context->uc_mcontext.pc));
+        literal(" lr=");
+        hex(static_cast<uintptr_t>(context->uc_mcontext.regs[30]));
+        literal(" sp=");
+        hex(static_cast<uintptr_t>(context->uc_mcontext.sp));
+        literal(" fp=");
+        hex(static_cast<uintptr_t>(context->uc_mcontext.regs[29]));
+    }
+#else
+    (void)raw;
+#endif
+    if (length < sizeof(line)) line[length++] = '\n';
+    (void)write(g_trace, line, length);
 }
 
 void markProcessExit() {
@@ -355,9 +412,10 @@ int observeMutexLock(pthread_mutex_t* mutex) {
     return original(mutex);
 }
 
-void onAbort(int signal, siginfo_t*, void* raw) {
-    if (g_handling) _exit(128 + signal);
-    g_handling = 1;
+void onAbort(int signal, siginfo_t* info, void* raw) {
+    if (__sync_lock_test_and_set(&g_handling, 1))
+        _exit(128 + signal);
+    emitCriticalAbortSnapshot(signal, info, raw);
     emitAbortHeader();
 #if defined(__aarch64__)
     const auto* context = static_cast<const ucontext_t*>(raw);
@@ -471,6 +529,38 @@ bool installDestroyedMutexTrace() {
         emit("PROCESS_EXIT_HOOK_ACTIVE\n");
     }
     return true;
+}
+
+bool persistGameNativeModuleMaps(const std::string& directory) {
+    if (directory.empty() || directory.size() > 2048) return false;
+    FILE* source = std::fopen("/proc/self/maps", "rb");
+    if (!source) return false;
+    const std::string target = directory + "/native-game-module-maps.txt";
+    FILE* output = std::fopen(target.c_str(), "wb");
+    if (!output) {
+        std::fclose(source);
+        return false;
+    }
+    char buffer[1024]{};
+    std::fprintf(output, "GAME_MAPS_V2 pid=%ld\n", static_cast<long>(getpid()));
+    int count = 0;
+    while (std::fgets(buffer, sizeof(buffer), source)) {
+        const bool executable = std::strstr(buffer, "r-xp") != nullptr;
+        const bool relevant = std::strstr(buffer, "libbunny") ||
+            std::strstr(buffer, "libmono") ||
+            std::strstr(buffer, "libunity") ||
+            std::strstr(buffer, "libil2cpp") ||
+            std::strstr(buffer, "libc.so") ||
+            std::strstr(buffer, "libart.so") ||
+            std::strstr(buffer, "libshadowhook") ||
+            std::strstr(buffer, "libSystem.Native") ||
+            std::strstr(buffer, "linker64");
+        if (executable && relevant && count++ < 64)
+            std::fputs(buffer, output);
+    }
+    const bool ok = !std::ferror(source) && std::fclose(output) == 0;
+    std::fclose(source);
+    return ok;
 }
 
 std::string currentNativeAbortHandler() {
