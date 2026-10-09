@@ -18,8 +18,8 @@ public sealed class SourceBolt : BunnyProjectile
 
     public int OnHitBuffId() => 24;
 
-    public override int OnHitNPC(int hitCount)
+    public override int OnHitNPC(int damage)
     {
-        return Math.Clamp(90 + hitCount * 15, 90, 135);
+        return Math.Clamp(60 + damage * 3, 60, 150);
     }
 }
