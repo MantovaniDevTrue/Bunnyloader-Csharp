@@ -195,6 +195,21 @@ std::array<Slot, 4096> g_curveSlots{};
 std::atomic<int> g_curveCount{0};
 FieldInfo* g_curveNetMode = nullptr;
 
+struct AutoCurve {
+    std::string modId;
+    std::string name;
+    std::array<int, 120> turns{};
+    bool enabled = false;
+};
+
+std::array<AutoCurve, 8> g_autoCurves{};
+int g_autoCount = 0;
+std::atomic<int> g_autoPending{0};
+std::atomic<int> g_autoTicks{0};
+std::atomic<int> g_autoAttempts{0};
+std::atomic_flag g_autoBusy = ATOMIC_FLAG_INIT;
+
+
 void applyManagedCurve(Il2CppObject* projectile, const runtime::GameRefs& game,
                        CurveState& policy) {
     if (!g_curveNetMode) return;
@@ -294,6 +309,29 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
     if (original) original(projectile, method);
     if (!projectile) return;
+
+    if (g_autoPending.load(std::memory_order_acquire) > 0 &&
+        g_autoTicks.fetch_add(1, std::memory_order_relaxed) % 180 == 0 &&
+        !g_autoBusy.test_and_set(std::memory_order_acquire)) {
+        if (g_autoAttempts.fetch_add(1, std::memory_order_relaxed) < 300) {
+            for (int i = 0; i < g_autoCount; ++i) {
+                AutoCurve& curve = g_autoCurves[static_cast<size_t>(i)];
+                if (curve.enabled) continue;
+                std::string error;
+                if (enableManagedProjectileCurve(curve.modId, curve.name,
+                                                 curve.turns, &error)) {
+                    curve.enabled = true;
+                    g_autoPending.fetch_sub(1, std::memory_order_release);
+                    BL_INFO("csharp auto: IA %s/%s ativada ao entrar no mundo",
+                            curve.modId.c_str(), curve.name.c_str());
+                }
+            }
+        } else {
+            BL_WARN("csharp auto: tempo limite para ativar curvas de projetil");
+            g_autoPending.store(0, std::memory_order_release);
+        }
+        g_autoBusy.clear(std::memory_order_release);
+    }
 
     const auto& game = runtime::game();
     const int projectileType = runtime::field<int32_t>(projectile, game.proj.type);
@@ -420,6 +458,62 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     g_writes.fetch_add(1, std::memory_order_relaxed);
 }
 
+}
+
+bool stageManagedProjectileAutoCurve(const std::string& modId,
+                                    const std::string& name,
+                                    const std::array<int, 120>& turns,
+                                    std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (modId.empty() || modId.size() > 128 ||
+        name.empty() || name.size() > 72 ||
+        g_autoCount >= static_cast<int>(g_autoCurves.size())) {
+        *error = "Limite ou identificador de IA C# automatica invalido";
+        return false;
+    }
+    for (int value : turns) {
+        if (value < -80 || value > 80) {
+            *error = "Amostra gerenciada de IA fora dos limites";
+            return false;
+        }
+    }
+    for (int i = 0; i < g_autoCount; ++i) {
+        if (g_autoCurves[static_cast<size_t>(i)].modId == modId &&
+            g_autoCurves[static_cast<size_t>(i)].name == name) {
+            *error = "IA C# automatica duplicada";
+            return false;
+        }
+    }
+    AutoCurve& entry = g_autoCurves[static_cast<size_t>(g_autoCount)];
+    entry.modId = modId;
+    entry.name = name;
+    entry.turns = turns;
+    entry.enabled = false;
+    ++g_autoCount;
+    g_autoPending.fetch_add(1, std::memory_order_release);
+    return true;
+}
+
+bool installManagedProjectileAutoHook(std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (g_autoPending.load(std::memory_order_acquire) <= 0) return true;
+    if (g_installed.load(std::memory_order_acquire)) return true;
+    if (!runtime::resolveGameRefs() || !runtime::game().proj.aiMethod) {
+        *error = "Projectile.AI indisponivel para o carregamento automatico";
+        return false;
+    }
+    if (!hook::install(runtime::game().proj.aiMethod, hkAi, &g_original)) {
+        *error = "Hook automatico Projectile.AI recusado";
+        return false;
+    }
+    g_installed.store(true, std::memory_order_release);
+    return true;
+}
+
+int managedProjectileAutoPending() {
+    return g_autoPending.load(std::memory_order_acquire);
 }
 
 bool enableManagedProjectileCurve(const std::string& modId,
