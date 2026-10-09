@@ -17,6 +17,7 @@
 #include <dirent.h>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <sys/stat.h>
 #include <thread>
