@@ -18,6 +18,7 @@ public static class CompiledAssemblyProbe
             object projectile = VerifyProjectile(assembly);
             object weapon = VerifyWeapon(assembly);
             WriteRuntimeDefaults(projectile, weapon, diagnosticsPath);
+            WriteProjectileMotion(assembly, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
             return 2;
@@ -59,6 +60,32 @@ public static class CompiledAssemblyProbe
             throw new InvalidOperationException("SourceWand SetDefaults did not execute correctly");
         return instance;
     }
+    private static void WriteProjectileMotion(Assembly assembly, string diagnosticsPath)
+    {
+        Type type = assembly.GetType("SourceCSharpMod.SourceBoltMotion", throwOnError: true)!;
+        MethodInfo motion = type.GetMethod("TurnAtTick", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("SourceBoltMotion.TurnAtTick missing");
+        if (motion.ReturnType != typeof(float))
+            throw new InvalidOperationException("SourceBoltMotion.TurnAtTick must return float");
+        string[] samples = new string[120];
+        for (int i = 0; i < samples.Length; ++i)
+        {
+            object? result = motion.Invoke(null, new object[] { i });
+            if (result is not float angle || !float.IsFinite(angle) || MathF.Abs(angle) > 0.08f)
+                throw new InvalidOperationException("Invalid bounded C# AI angle at tick " + i);
+            int milliRadians = (int)MathF.Round(angle * 1000f);
+            samples[i] = milliRadians.ToString(CultureInfo.InvariantCulture);
+        }
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing managed diagnostics directory");
+        string destination = Path.Combine(folder, "source-ai-turns.txt");
+        string temp = destination + ".tmp";
+        File.WriteAllText(temp, "BUNNY_SOURCE_AI_TURNS_V1\nSourceBolt\n" +
+            string.Join("\t", samples) + "\n");
+        File.Move(temp, destination, true);
+        File.AppendAllText(diagnosticsPath, "\nAI_BUFFER_OK ticks=120 function=SourceBoltMotion.TurnAtTick");
+    }
+
     private static void WriteRuntimeDefaults(object projectile, object weapon, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
