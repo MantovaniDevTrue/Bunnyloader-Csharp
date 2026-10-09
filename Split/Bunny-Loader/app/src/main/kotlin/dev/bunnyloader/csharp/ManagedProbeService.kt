@@ -133,6 +133,8 @@ class ManagedProbeService : Service() {
                 File(dir, "source-homing-policy.txt.tmp").delete()
                 File(dir, "source-onhit-policy.txt").delete()
                 File(dir, "source-onhit-policy.txt.tmp").delete()
+                File(dir, "source-onkill-policy.txt").delete()
+                File(dir, "source-onkill-policy.txt.tmp").delete()
                 health.delete()
                 nativeTrace.delete()
                 nativeMaps.delete()
