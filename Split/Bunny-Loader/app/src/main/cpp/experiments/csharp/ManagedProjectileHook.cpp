@@ -441,6 +441,14 @@ ManagedProjectileHookStatus managedSourceBoltHookStatus() {
     result.homingLocks = g_locks.load(std::memory_order_relaxed);
     result.homingFrames = g_homingFrames.load(std::memory_order_relaxed);
     result.lastTarget = g_lastTarget.load(std::memory_order_relaxed);
+    const auto hit = sourceBoltHitStatus();
+    result.hitInstalled = hit.installed;
+    result.hitEnabled = hit.enabled;
+    result.hitEvents = hit.events;
+    result.buffsApplied = hit.applied;
+    result.buffErrors = hit.errors;
+    result.lastHitNpc = hit.lastNpc;
+    result.hitBuffId = hit.buffId;
     result.bufferSamples = result.buffered ? 120 : 0;
     result.type = g_type.load(std::memory_order_relaxed);
     result.callbacks = g_calls.load(std::memory_order_relaxed);
