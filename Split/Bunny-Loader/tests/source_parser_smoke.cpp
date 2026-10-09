@@ -44,6 +44,18 @@ int main(int argc, char** argv) {
     if (bl::csharp::parseCSharpSource(
         "class Bad : BunnyWeapon { public override void SetDefaults() { Damage = 10 + 2; } }",
         &unsupported, &error)) return 6;
+    std::vector<bl::csharp::ParsedSourceType> unsafeFields;
+    error.clear();
+    if (bl::csharp::parseCSharpSource(
+        "class Unsafe : BunnyProjectile { public override void SetDefaults() { Width = 10; } public int score = 1; }",
+        &unsafeFields, &error)) return 11;
+    std::vector<bl::csharp::ParsedSourceType> methods;
+    error.clear();
+    if (!bl::csharp::parseCSharpSource(
+        "class Safe : BunnyProjectile { public override void SetDefaults() { Width = 10; } public int OnHitBuffId() => 24; public override int OnHitNPC(int dmg) { return dmg + 1; } }",
+        &methods, &error)) return 12;
+    if (methods.size() != 1 || methods[0].properties.at("Width") != "10")
+        return 13;
     std::cout << "CSHARP_SOURCE_PARSER_SMOKE_PASS=YES" << std::endl;
     return 0;
 }
