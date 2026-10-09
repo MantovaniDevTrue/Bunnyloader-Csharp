@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
+#include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
