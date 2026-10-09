@@ -47,6 +47,19 @@ struct SourceBoltKillStatus {
     int buffId = 0;
 };
 
+struct SourceSparkAiStatus {
+    bool installed = false;
+    bool enabled = false;
+    int type = -1;
+    int samples = 0;
+    int spawns = 0;
+    int callbacks = 0;
+    int velocityWrites = 0;
+    int errors = 0;
+    int lastSlot = -1;
+    int lastTurn = 0;
+};
+
 struct ManagedProjectileHookStatus {
     bool installed = false;
     bool enabled = false;
@@ -73,6 +86,9 @@ struct ManagedProjectileHookStatus {
     int lastState = 0;
 };
 
+bool enableSourceSparkAi(const std::array<int, 120>& turnsMilliRadians, std::string* error);
+bool pauseSourceSparkAi();
+SourceSparkAiStatus sourceSparkAiStatus();
 bool enableManagedSourceBoltHook(std::string* error);
 bool enableBufferedSourceBoltHook(const std::array<int, 120>& turnsMilliRadians,
                                   std::string* error);
