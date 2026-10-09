@@ -10,5 +10,6 @@ void rearmNativeAbortProbe(const char* stage);
 std::string currentNativeAbortHandler();
 bool installDestroyedMutexTrace();
 bool installNativeSegvTrace();
+bool persistGameNativeModuleMaps(const std::string& directory);
 
 }
