@@ -508,9 +508,17 @@ void rearmNativeAbortProbe(const char* stage) {
     emit("ABORT_HANDLER_REARMED\n");
 }
 
-bool installNativeAbortProbe(const std::string& directory) {
-    if (directory.empty() || directory.size() > 2048 || g_trace >= 0) return false;
-    const std::string file = directory + "/native-abort-trace.txt";
+bool installNativeAbortProbe(const std::string& directory,
+                             const std::string& fileName) {
+    if (directory.empty() || directory.size() > 2048 || g_trace >= 0 ||
+        (fileName != "native-abort-trace.txt" &&
+         fileName != "native-game-abort-trace.txt")) return false;
+    const std::string file = directory + "/" + fileName;
+    if (fileName == "native-game-abort-trace.txt") {
+        const std::string previous = directory + "/native-game-abort-previous.txt";
+        if (std::rename(file.c_str(), previous.c_str()) != 0 &&
+            errno != ENOENT) return false;
+    }
     g_trace = open(file.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_CLOEXEC | O_DSYNC, 0600);
     if (g_trace < 0) return false;
     emit("NATIVE_ABORT_PROBE_INSTALLED\n");
