@@ -1,6 +1,7 @@
 #pragma once
 
 #include "experiments/csharp/CSharpHostTypes.h"
+#include <string>
 
 namespace bl::csharp {
 
