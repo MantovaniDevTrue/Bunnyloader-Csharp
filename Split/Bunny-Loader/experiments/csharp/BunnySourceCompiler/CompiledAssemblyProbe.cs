@@ -38,6 +38,7 @@ public static class CompiledAssemblyProbe
                     ? primaryWeapon! : CreateContent(type)).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
+            WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
             {
                 WriteProjectileMotion(assembly, diagnosticsPath);
@@ -166,6 +167,75 @@ public static class CompiledAssemblyProbe
             string.Join("\t", radii) + "\n" + string.Join("\t", durations) + "\n");
         File.Move(temp, path, true);
         File.AppendAllText(diagnosticsPath, "\nONKILL_POLICY_OK buff=24 radius=256 duration=256");
+    }
+
+
+    private static void WriteAutomaticCombatPolicies(object[] projectiles, string diagnosticsPath)
+    {
+        var policies = new List<string> { "BUNNY_COMBAT_POLICIES_V1" };
+        foreach (object projectile in projectiles)
+        {
+            Type type = projectile.GetType();
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+            MethodInfo? hit = type.GetMethod("OnHitNPC", flags, null,
+                new[] { typeof(int) }, null);
+            if (hit?.DeclaringType == type)
+            {
+                MethodInfo buff = type.GetMethod("OnHitBuffId", flags, null,
+                    Type.EmptyTypes, null)
+                    ?? throw new InvalidOperationException(type.Name + ": OnHitBuffId missing");
+                if (hit.ReturnType != typeof(int) || buff.ReturnType != typeof(int) ||
+                    buff.Invoke(projectile, null) is not int buffId || buffId != 24)
+                    throw new InvalidOperationException(type.Name + ": unsupported OnHitNPC buff");
+                string[] durations = new string[256];
+                for (int damage = 0; damage < 256; ++damage)
+                {
+                    if (hit.Invoke(projectile, new object[] { damage }) is not int ticks ||
+                        ticks < 30 || ticks > 180)
+                        throw new InvalidOperationException(type.Name + ": invalid OnHitNPC duration");
+                    durations[damage] = ticks.ToString(CultureInfo.InvariantCulture);
+                }
+                policies.Add("HIT\t" + type.Name + "\t24\t" + string.Join("\t", durations));
+            }
+            MethodInfo? kill = type.GetMethod("OnKill", flags, null,
+                new[] { typeof(int) }, null);
+            if (kill?.DeclaringType == type)
+            {
+                MethodInfo duration = type.GetMethod("OnKillDuration", flags, null,
+                    new[] { typeof(int) }, null)
+                    ?? throw new InvalidOperationException(type.Name + ": OnKillDuration missing");
+                MethodInfo buff = type.GetMethod("OnKillBuffId", flags, null,
+                    Type.EmptyTypes, null)
+                    ?? throw new InvalidOperationException(type.Name + ": OnKillBuffId missing");
+                if (kill.ReturnType != typeof(int) || duration.ReturnType != typeof(int) ||
+                    buff.ReturnType != typeof(int) ||
+                    buff.Invoke(projectile, null) is not int buffId || buffId != 24)
+                    throw new InvalidOperationException(type.Name + ": unsupported OnKill buff");
+                string[] radii = new string[256];
+                string[] durations = new string[256];
+                for (int damage = 0; damage < 256; ++damage)
+                {
+                    if (kill.Invoke(projectile, new object[] { damage }) is not int radius ||
+                        radius < 24 || radius > 120 ||
+                        duration.Invoke(projectile, new object[] { damage }) is not int ticks ||
+                        ticks < 30 || ticks > 180)
+                        throw new InvalidOperationException(type.Name + ": invalid OnKill effect");
+                    radii[damage] = radius.ToString(CultureInfo.InvariantCulture);
+                    durations[damage] = ticks.ToString(CultureInfo.InvariantCulture);
+                }
+                policies.Add("KILL\t" + type.Name + "\t24\t" +
+                    string.Join("\t", radii) + "\t" + string.Join("\t", durations));
+            }
+        }
+        if (policies.Count > 17)
+            throw new InvalidOperationException("Too many C# automatic combat effects");
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing C# diagnostics directory");
+        string path = Path.Combine(folder, "source-combat-policies.txt");
+        File.WriteAllText(path + ".tmp", string.Join("\n", policies) + "\n");
+        File.Move(path + ".tmp", path, true);
+        File.AppendAllText(diagnosticsPath,
+            "\nBUNNY_AUTO_COMBAT_POLICIES_V1_OK count=" + (policies.Count - 1));
     }
 
     private static void WriteProjectileMotionPolicies(
