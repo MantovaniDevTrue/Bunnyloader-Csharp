@@ -67,6 +67,23 @@ try
         !samples.Any(x => int.TryParse(x, out var n) && n < -15) ||
         !samples.All(x => int.TryParse(x, out var n) && Math.Abs(n) <= 80))
         throw new InvalidOperationException("Invalid 120-tick motion buffer: " + motionLines[2]);
+    string homingFile = File.ReadAllText(Path.Combine(scratch, "source-homing-policy.txt"));
+    string[] homingLines = homingFile.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (homingLines.Length != 4 ||
+        homingLines[0] != "BUNNY_SOURCE_HOMING_V1" ||
+        homingLines[1] != "SourceBolt" ||
+        homingLines[2] != "480\t8")
+        throw new InvalidOperationException("Invalid managed C# homing header");
+    string[] homingSamples = homingLines[3].Split('\t');
+    if (homingSamples.Length != 129 ||
+        !homingSamples.All(t => int.TryParse(t, out int value) && Math.Abs(value) <= 80) ||
+        homingSamples[64] != "0" ||
+        int.Parse(homingSamples[0]) >= -10 ||
+        int.Parse(homingSamples[128]) <= 10 ||
+        !Enumerable.Range(1, 128).All(i =>
+            int.Parse(homingSamples[i]) >= int.Parse(homingSamples[i - 1])))
+        throw new InvalidOperationException("C# homing LUT invalid or not monotonic");
+    Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_AI_BUFFER=PASS");
     Console.WriteLine("BUNNY_MANAGED_DEFAULTS_BRIDGE=PASS");
     Console.WriteLine("BUNNY_MANAGED_ASSEMBLY_EXECUTION=PASS");
