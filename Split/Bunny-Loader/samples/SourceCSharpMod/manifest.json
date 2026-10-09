@@ -2,7 +2,7 @@
   "uid": "57a98f20-7a35-4d19-8ce8-079e25bb36a1",
   "id": "sourcecsharp",
   "name": "Source C# Test",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Teste",
-  "summary": "Teste C# compilado no Android com SetDefaults, IA de perseguicao e OnHitNPC com duracao precisa por dano e OnFire aplicado via hook nativo.",
+  "summary": "Teste C# compilado no Android com SetDefaults, IA de perseguicao e Homing, OnHitNPC e OnKill em C# com queimadura em area via hooks nativos.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
