@@ -494,7 +494,7 @@ bool enableManagedProjectileCurve(const std::string& modId,
     if (menuField) {
         uint8_t menu = 0;
         il2cpp::api().field_static_get_value(menuField, &menu);
-        if (menu) {
+        if (menu && !allowInMenu) {
             *error = "Entre no mundo antes de ativar a IA C#";
             return false;
         }
