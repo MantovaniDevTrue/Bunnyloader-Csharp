@@ -21,6 +21,8 @@ namespace {
 using InitFn = void* (*)(const char*);
 using AssemblyPathFn = void (*)(const char*);
 using AttachFn = void* (*)(void*);
+using CurrentThreadFn = void* (*)();
+using DetachFn = void (*)(void*);
 using OpenFn = void* (*)(void*, const char*);
 using ImageFn = void* (*)(void*);
 using ClassFn = void* (*)(void*, const char*, const char*);
@@ -33,6 +35,8 @@ struct MonoApi {
     InitFn initialize = nullptr;
     AssemblyPathFn setAssembliesPath = nullptr;
     AttachFn attach = nullptr;
+    CurrentThreadFn currentThread = nullptr;
+    DetachFn detachThread = nullptr;
     OpenFn openAssembly = nullptr;
     ImageFn image = nullptr;
     ClassFn findClass = nullptr;
@@ -123,6 +127,8 @@ bool loadLibrary() {
     g_api.initialize = resolve<InitFn>("mono_jit_init");
     g_api.setAssembliesPath = resolve<AssemblyPathFn>("mono_set_assemblies_path");
     g_api.attach = resolve<AttachFn>("mono_thread_attach");
+    g_api.currentThread = resolve<CurrentThreadFn>("mono_thread_current");
+    g_api.detachThread = resolve<DetachFn>("mono_thread_detach");
     g_api.openAssembly = resolve<OpenFn>("mono_domain_assembly_open");
     g_api.image = resolve<ImageFn>("mono_assembly_get_image");
     g_api.findClass = resolve<ClassFn>("mono_class_from_name");
@@ -561,18 +567,41 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
         npcLife <= 0 || npcLife > 1000000) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
-        !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
+        !g_api.attach || !g_api.invoke || !g_api.unbox ||
+        !g_api.currentThread || !g_api.detachThread) return false;
     const auto found = g_sourceLiveEntries.find(modId);
     if (found == g_sourceLiveEntries.end()) return false;
     LiveEntry& entry = found->second;
     auto& status = entry.status;
     if (!entry.method || entry.path != assemblyPath || status.npcFailures >= 3)
         return false;
-    if (!g_api.attach(g_domain)) {
+    void* previouslyAttached = g_api.currentThread();
+    void* attachedThread = g_api.attach(g_domain);
+    if (!attachedThread) {
         ++status.npcFailures;
         status.error = "Live NPC MonoVM thread attach failed";
         return false;
     }
+    struct ScopedNativeMonoThread {
+        DetachFn detach;
+        LiveSourceStatus& status;
+        void* attached;
+        ~ScopedNativeMonoThread() {
+            if (!attached) return;
+#ifdef __ANDROID__
+            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                "live NPC mono_thread_detach begin");
+#endif
+            detach(attached);
+            ++status.npcThreadDetaches;
+#ifdef __ANDROID__
+            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                "live NPC mono_thread_detach finished");
+#endif
+        }
+    } guard{g_api.detachThread, status, previouslyAttached ? nullptr : attachedThread};
+    if (guard.attached) ++status.npcThreadAttaches;
+    else ++status.npcThreadAlreadyAttached;
     if (!entry.npcAiMethod) {
         void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
         void* image = assembly ? g_api.image(assembly) : nullptr;
