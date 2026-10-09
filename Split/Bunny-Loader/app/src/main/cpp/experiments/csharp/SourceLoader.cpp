@@ -1,6 +1,8 @@
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "content/buffs/ModBuffs.h"
+#include "content/items/ModItems.h"
 #include "experiments/csharp/SourceParser.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
@@ -291,9 +293,12 @@ bool applyManagedSourceDefaults(
     }
 
     std::map<std::string, int> projectilesByName;
+    std::map<std::string, int> buffsByName;
     std::map<std::string, bool> seen;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
+    std::vector<ManagedBuffEntry> buffs;
+    std::vector<ManagedPotionEntry> potions;
     std::vector<std::string> shootNames;
     std::string line;
     while (std::getline(lines, line)) {
@@ -342,17 +347,49 @@ bool applyManagedSourceDefaults(
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
+        } else if (fields[0] == "BUFF" && fields.size() == 3) {
+            ManagedBuffEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.defenseBonus) ||
+                record.defenseBonus < -50 || record.defenseBonus > 100 ||
+                runtime::modBuffTypeByName(modId, record.name) != record.type) {
+                *error = "Valores invalidos de buff C#: " + record.name;
+                return false;
+            }
+            buffsByName[record.name] = record.type;
+            buffs.push_back(std::move(record));
+        } else if (fields[0] == "POTION" && fields.size() == 4) {
+            ManagedPotionEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.duration) ||
+                record.duration < 1 || record.duration > 216000 ||
+                runtime::modItemTypeByKey(modId + "/" + record.name) != record.type) {
+                *error = "Duracao ou registro da pocao C# invalido";
+                return false;
+            }
+            auto target = buffsByName.find(fields[3]);
+            if (target == buffsByName.end()) {
+                *error = "Buff da pocao C# inexistente: " + fields[3];
+                return false;
+            }
+            record.buffType = target->second;
+            potions.push_back(std::move(record));
         } else {
             *error = "Linha V2 inesperada no resultado do C#";
             return false;
         }
-        if (projectiles.size() > 16 || weapons.size() > 16) {
+        if (projectiles.size() > 16 || weapons.size() > 16 ||
+            buffs.size() > 16 || potions.size() > 16) {
             *error = "Quantidade de conteudo C# excede 16 por categoria";
             return false;
         }
     }
     if (projectiles.size() != static_cast<size_t>(mod->projectiles) ||
-        weapons.size() != static_cast<size_t>(mod->items) ||
+        weapons.size() + potions.size() != static_cast<size_t>(mod->items) ||
+        buffs.size() != static_cast<size_t>(mod->buffs) ||
+        potions.size() != static_cast<size_t>(mod->potions) ||
         seen.size() != mod->registeredTypes.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
@@ -364,6 +401,10 @@ bool applyManagedSourceDefaults(
             return false;
         }
         weapons[i].shootType = projectile->second;
+    }
+    if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
+        *error = "Falha ao validar buffs e pocoes C# gerenciados";
+        return false;
     }
     if (!applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
         *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
