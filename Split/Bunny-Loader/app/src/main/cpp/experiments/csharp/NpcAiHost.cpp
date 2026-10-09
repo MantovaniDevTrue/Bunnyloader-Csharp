@@ -292,82 +292,139 @@ void runNativeAi(Il2CppObject* npc) {
 }
 
 void runLiveNpcAi(Il2CppObject* npc) {
-    if (!g_liveNpcEnabled.load(std::memory_order_relaxed) || !npc) return;
+    if (!g_liveNpcEnabled.load(std::memory_order_acquire) || !npc) return;
     const auto& r = refs();
     if (!r.ok) return;
     const int type = runtime::field<int>(npc, r.type);
-    std::string modId;
-    std::string path;
     {
-        std::lock_guard<std::mutex> guard(g_liveNpcMutex);
-        if (type != g_liveNpcStatus.npcType ||
-            g_liveNpcStatus.events >= kLiveNpcMaxCalls) return;
-        modId = g_liveNpcStatus.modId;
-        path = g_liveNpcPath;
+        std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+        if (type != g_liveNpcStatus.npcType) return;
+    }
+    bool inMenu = false;
+    if (r.gameMenu) il2cpp::api().field_static_get_value(r.gameMenu, &inMenu);
+    if (inMenu) {
+        pauseLiveNpcAi();
+        std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+        g_liveNpcStatus.phase = "paused-world-transition";
+        return;
     }
     int netMode = -1;
     il2cpp::api().field_static_get_value(r.netMode, &netMode);
     if (netMode != 0 || !runtime::field<uint8_t>(npc, r.active)) return;
+    const auto& game = runtime::game();
+    const int slot = runtime::field<int>(npc, game.entity.whoAmI);
+    if (slot < 0 || slot >= 512) return;
     const int life = runtime::field<int>(npc, r.life);
     if (life <= 0) return;
-    const auto& g = runtime::game();
-    const int slot = runtime::field<int>(npc, g.entity.whoAmI);
-    if (slot < 0 || slot >= 512) return;
-    const auto player = captureTerrariaSnapshot(false, false);
-    if (!player.ready || player.player.life <= 0) return;
-    const Vector2 position = runtime::field<Vector2>(npc, g.entity.position);
-    const int width = runtime::field<int>(npc, g.entity.width);
-    const float deltaF = player.player.x - (position.x + width * 0.5f);
-    if (!std::isfinite(deltaF)) return;
-    const int deltaX = static_cast<int>(std::clamp(deltaF, -100000.f, 100000.f));
-    int velocityTenths = 0;
-    const auto started = std::chrono::steady_clock::now();
-    const bool ok = invokeLiveSourceNpcAi(modId, path, deltaX, life, &velocityTenths);
-    const double ms = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - started).count();
-    std::lock_guard<std::mutex> guard(g_liveNpcMutex);
-    if (!g_liveNpcEnabled.load(std::memory_order_relaxed) ||
-        type != g_liveNpcStatus.npcType) return;
-    auto& status = g_liveNpcStatus;
-    ++status.events;
-    status.lastSlot = slot;
-    status.lastDeltaX = deltaX;
-    status.maxCallbackMs = std::max(status.maxCallbackMs, ms);
-    if (!ok) {
-        ++status.errors;
-        status.phase = "callback-error";
-        if (status.errors >= 3) {
-            g_liveNpcEnabled.store(false, std::memory_order_relaxed);
-            status.phase = "disabled-errors";
+
+    LiveNpcCompletion completed;
+    bool haveCompletion = false;
+    bool timedOut = false;
+    {
+        std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+        if (g_liveHasCompletion) {
+            completed = std::move(g_liveCompletion);
+            g_liveHasCompletion = false;
+            haveCompletion = true;
         }
+        if (g_liveWorkerBusy && !g_liveHasJob &&
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - g_liveJobTime).count() >
+                kLiveNpcWorkerTimeoutMs) timedOut = true;
+    }
+    if (timedOut) {
+        g_liveNpcEnabled.store(false, std::memory_order_release);
+        std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+        g_liveNpcStatus.phase = "paused-worker-timeout";
+        ++g_liveNpcStatus.errors;
         return;
     }
-    status.lastVelocityTenths = velocityTenths;
-    if (runtime::field<uint8_t>(npc, r.active) &&
-        runtime::field<int>(npc, r.type) == type &&
-        runtime::field<int>(npc, g.entity.whoAmI) == slot) {
-        const Vector2 previous = runtime::field<Vector2>(npc, g.entity.velocity);
-        const float horizontal = std::clamp(
-            previous.x * 0.7f + velocityTenths * 0.03f, -6.f, 6.f);
-        if (std::isfinite(previous.y)) {
-            runtime::field<Vector2>(npc, g.entity.velocity) = {horizontal, previous.y};
-            ++status.writes;
-            if (std::fabs(horizontal) > 0.1f && r.direction >= 0) {
-                const int direction = horizontal >= 0.f ? 1 : -1;
-                runtime::field<int>(npc, r.direction) = direction;
-                if (r.spriteDirection >= 0)
-                    runtime::field<int>(npc, r.spriteDirection) = direction;
+    if (haveCompletion) {
+        std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+        auto& status = g_liveNpcStatus;
+        ++status.events;
+        status.lastSlot = completed.job.slot;
+        status.lastDeltaX = completed.job.deltaX;
+        status.maxCallbackMs = std::max(status.maxCallbackMs, completed.callbackMs);
+        if (!completed.ok) {
+            ++status.errors;
+            status.phase = "callback-error";
+        } else if (completed.job.slot == slot &&
+                   completed.job.npcPointer == reinterpret_cast<uintptr_t>(npc) &&
+                   completed.job.type == type &&
+                   runtime::field<int>(npc, r.life) > 0 &&
+                   runtime::field<uint8_t>(npc, r.active)) {
+            const Vector2 previous =
+                runtime::field<Vector2>(npc, game.entity.velocity);
+            if (std::isfinite(previous.x) && std::isfinite(previous.y)) {
+                const float horizontal = std::clamp(
+                    previous.x * 0.7f + completed.velocityTenths * 0.03f,
+                    -6.f, 6.f);
+                runtime::field<Vector2>(npc, game.entity.velocity) = {
+                    horizontal, previous.y};
+                status.lastVelocityTenths = completed.velocityTenths;
+                ++status.writes;
+                if (std::fabs(horizontal) > 0.1f && r.direction >= 0) {
+                    const int direction = horizontal >= 0.f ? 1 : -1;
+                    runtime::field<int>(npc, r.direction) = direction;
+                    if (r.spriteDirection >= 0)
+                        runtime::field<int>(npc, r.spriteDirection) = direction;
+                }
+                status.phase = "running-async";
             }
+        } else {
+            ++status.discarded;
+        }
+        if (status.errors >= 3 ||
+            status.events >= kLiveNpcMaxCalls ||
+            (status.events > 2 && completed.callbackMs > 20.0)) {
+            g_liveNpcEnabled.store(false, std::memory_order_release);
+            status.limitReached = status.events >= kLiveNpcMaxCalls;
+            status.phase = status.limitReached ? "completed-limit" :
+                status.errors >= 3 ? "disabled-errors" : "paused-slow-callback";
+            return;
         }
     }
-    status.phase = "running";
-    if (status.events >= kLiveNpcMaxCalls) {
-        g_liveNpcEnabled.store(false, std::memory_order_relaxed);
-        status.phase = "completed-limit";
-        status.limitReached = true;
-    } else if (status.events > 5 && ms > 20.0) {
-        g_liveNpcEnabled.store(false, std::memory_order_relaxed);
-        status.phase = "paused-slow-callback";
+
+    if (!g_liveNpcEnabled.load(std::memory_order_acquire) ||
+        ++g_liveSampleCounter % kLiveNpcSampleInterval != 0) return;
+    const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
+    if (!snapshot.ready || snapshot.player.life <= 0) return;
+    const Vector2 pos = runtime::field<Vector2>(npc, game.entity.position);
+    const int width = runtime::field<int>(npc, game.entity.width);
+    const float dx = snapshot.player.x - (pos.x + width * 0.5f);
+    if (!std::isfinite(dx)) return;
+
+    std::string modId;
+    std::string path;
+    {
+        std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+        if (!g_liveNpcEnabled.load(std::memory_order_acquire)) return;
+        modId = g_liveNpcStatus.modId;
+        path = g_liveNpcPath;
+    }
+    bool submitted = false;
+    {
+        std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+        if (!g_liveWorkerBusy && !g_liveHasCompletion) {
+            g_liveJob = {
+                modId, path, reinterpret_cast<uintptr_t>(npc),
+                g_liveSession, slot, type,
+                static_cast<int>(std::clamp(dx, -100000.f, 100000.f)), life
+            };
+            g_liveJobTime = std::chrono::steady_clock::now();
+            g_liveWorkerBusy = true;
+            g_liveHasJob = true;
+            submitted = true;
+        }
+    }
+    if (submitted) {
+        {
+            std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+            ++g_liveNpcStatus.queued;
+            g_liveNpcStatus.phase = "queued-async";
+        }
+        g_liveDispatchCv.notify_one();
     }
 }
 
