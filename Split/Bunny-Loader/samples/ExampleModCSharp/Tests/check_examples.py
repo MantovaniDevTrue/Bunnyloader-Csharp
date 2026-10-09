@@ -66,4 +66,18 @@ doc = (EXAMPLE / "Docs" / "SupportedAPI.md").read_text(encoding="utf-8")
 for name in ("BunnyWeapon", "BunnyProjectile", "OnHitNPC", "OnKill", "TurnAtTick"):
     assert name in doc, f"Missing supported API documentation: {name}"
 
+playable = EXAMPLE / "Playable"
+manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
+assert manifest2["uid"] != manifest["uid"]
+assert manifest2["id"] == "examplemodcsharp"
+assert manifest2["entry"] == "main.cs"
+assert manifest2["version"] == "0.1.0"
+playable_files = list((playable / "content").rglob("*.cs"))
+assert len(playable_files) == 3
+source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
+for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
+                 "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)"):
+    assert expected in source_text, expected
+assert "SourceCSharpMod" not in source_text
+print("EXAMPLEMOD_CSHARP_INDEPENDENT_SOURCE=PASS")
 print(f"EXAMPLEMOD_CSHARP_STATIC_CHECK=PASS examples={len(MIRRORS)} features={len(features)}")
