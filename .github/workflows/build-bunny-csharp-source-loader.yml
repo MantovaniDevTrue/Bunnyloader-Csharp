@@ -63,6 +63,7 @@ on:
       - bunny-csharp-source-0.1.10.16.40-auto-combat
       - bunny-csharp-source-0.1.10.16.41-buff
       - bunny-csharp-source-0.1.10.16.42-player-accessory
+      - bunny-csharp-source-0.1.10.16.43-npc
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -240,7 +241,7 @@ jobs:
           PY
           sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
 
-      - name: Package independent ExampleMod CSharp 0.1.3
+      - name: Package independent ExampleMod CSharp 0.1.4
         shell: bash
         run: |
           set -euo pipefail
@@ -249,7 +250,7 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           mkdir -p "$PKG/content/Content/Projectiles" "$PKG/content/Content/Items/Weapons" \
             "$PKG/content/Content/Buffs" "$PKG/content/Content/Items/Consumables" \
-            "$PKG/content/Content/Items/Accessories"
+            "$PKG/content/Content/Items/Accessories" "$PKG/content/Content/NPCs"
           cp "$ROOT/samples/SourceCSharpMod/content/Content/Projectiles/SourceBolt.png" \
             "$PKG/content/Content/Projectiles/SourceBolt.png"
           cp "$ROOT/samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.png" \
@@ -260,12 +261,14 @@ jobs:
             "$PKG/content/Content/Items/Consumables/ExampleBuffPotion.png"
           cp "$ROOT/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png" \
             "$PKG/content/Content/Items/Accessories/ExampleFocusAccessory.png"
+          cp "$ROOT/samples/ExampleMod/content/Content/NPCs/ExampleSlimeNPC.png" \
+            "$PKG/content/Content/NPCs/ExampleSlimeNPC.png"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.3.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.4.bl"
           test -s "$SOURCE"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -273,7 +276,7 @@ jobs:
               assert manifest["id"]=="examplemodcsharp"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
-              assert len([n for n in names if n.endswith(".cs")])==7
+              assert len([n for n in names if n.endswith(".cs")])==8
               assert "content/main.cs" in names
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
@@ -284,12 +287,14 @@ jobs:
               assert "content/Content/Items/Accessories/ExampleFocusAccessory.cs" in names
               assert "content/Common/Players/ExampleFocusPlayer.cs" in names
               assert "content/Content/Items/Accessories/ExampleFocusAccessory.png" in names
-              assert len([n for n in names if n.endswith(".png")])==5
+              assert "content/Content/NPCs/ExampleSlimeNPC.cs" in names
+              assert "content/Content/NPCs/ExampleSlimeNPC.png" in names
+              assert len([n for n in names if n.endswith(".png")])==6
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod.sha256"
 
       - name: Validate generic C# projectile policy integration
         shell: bash
@@ -349,7 +354,7 @@ jobs:
           assert "kFixtureId" in native
           assert "source-compile-status.txt" in native
           assert "modId=" in native and "executedTypes=" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_42" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_43" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -361,7 +366,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_42" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_43" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
@@ -388,6 +393,14 @@ jobs:
           assert "applyManagedNativePlayerDefaultsBatch" in nativeContent
           assert "mod.players" in native
           print("CSHARP_BUNNYPLAYER_EQUIPMENT_STATIC_CHECK=PASS")
+          assert "BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS" in smoke
+          assert "public abstract class BunnyNPC" in sdk
+          assert 'base == "BunnyNPC"' in parser
+          assert "NativeNpc" in source
+          assert "applyManagedNativeNpcDefaultsBatch" in source
+          assert "applyManagedNativeNpcDefaultsBatch" in nativeContent
+          assert "mod.npcs" in native
+          print("CSHARP_BUNNYNPC_SLIME_STATIC_CHECK=PASS")
           print("CSHARP_MANAGED_BUFF_POTION_STATIC_CHECK=PASS")
           print("CSHARP_AUTOMATIC_COMBAT_STATIC_CHECK=PASS")
           print("CSHARP_AUTOMATIC_LOADER_STATIC_CHECK=PASS")
@@ -518,7 +531,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='68' versionName='0.1.10.16.42-csharp-player'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='69' versionName='0.1.10.16.43-csharp-npc'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -541,13 +554,13 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.42-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.43-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod.sha256"
+          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod"
+          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod.sha256"
 
       - name: Publish signed APK as GitHub Release asset
         shell: bash
@@ -555,18 +568,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.42"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.43"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.42-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.43-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
-          test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod"
+          test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.42 — Automatic CSharp Source Loader" \
-              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.42 managed BunnyPlayer equipment policy: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile/BunnyBuff/BunnyBuffPotion defaults and enable validated projectile curves and OnHitNPC/OnKill damage-based OnFire effects automatically in singleplayer. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Includes ExampleModCSharp 0.1.3 with BunnyPlayer accessory defense, buff and potion. Requires Android device validation." \
+              --title "Bunny Loader C# v0.1.10.16.43 — Automatic CSharp Source Loader" \
+              --notes "Experimental automatic CSharp mod loading, v0.1.10.16.43 managed BunnyNPC slime defaults: enabled independent .bmod packages compile in an isolated MonoVM worker, apply verified BunnyWeapon/BunnyProjectile/BunnyBuff/BunnyBuffPotion defaults and enable validated projectile curves and OnHitNPC/OnKill damage-based OnFire effects automatically in singleplayer. Sequential background queue and source-content fingerprint cache avoid game-frame blocking and repeated Roslyn work. Source CSharp Test remains manual as a regression fixture. Includes ExampleModCSharp 0.1.4 with a BunnyNPC slime, BunnyPlayer accessory defense, buff and potion. Slime NPC uses vanilla AI; natural spawn and custom NPC AI are not implemented. Requires Android device validation." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -578,8 +591,8 @@ jobs:
             "$APK" "$APK.sha256" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.3.bmod.sha256" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.4.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
           echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
 
@@ -591,7 +604,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.42-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.43-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
