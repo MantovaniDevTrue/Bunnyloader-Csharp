@@ -2,6 +2,8 @@
 
 #include <csignal>
 #include <cstddef>
+#include <cerrno>
+#include <pthread.h>
 #include <cstdint>
 #include <cstdio>
 #include <dlfcn.h>
@@ -72,46 +74,57 @@ bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
 #endif
 }
 
+using MutexLockFn = int (*)(pthread_mutex_t*);
+void* g_originalMutexLock = nullptr;
 volatile sig_atomic_t g_mutexCaptureCount = 0;
 
-void onBeforeMutexLock(shadowhook_cpu_context_t* cpu, void*) {
+int observeMutexLock(pthread_mutex_t* mutex) {
 #if defined(__aarch64__)
-    if (cpu == nullptr || g_mutexCaptureCount != 0) return;
-    const uintptr_t address = static_cast<uintptr_t>(cpu->regs[0]);
-    if (address < 4096 || (address & 1u) != 0) return;
-    const auto* state = reinterpret_cast<const uint16_t*>(address);
-    if (__atomic_load_n(state, __ATOMIC_RELAXED) != 0xffffu) return;
-    if (__sync_lock_test_and_set(&g_mutexCaptureCount, 1) != 0) return;
-    emit("DESTROYED_MUTEX_PRECALL\n");
-    emit("tid=");
-    emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
-    emit("mutex=");
-    emitHex(address);
-    emit("caller_lr=");
-    emitHex(static_cast<uintptr_t>(cpu->regs[30]));
-    emit("caller_fp=");
-    emitHex(static_cast<uintptr_t>(cpu->regs[29]));
-    emit("caller_sp=");
-    emitHex(static_cast<uintptr_t>(cpu->sp));
-    uintptr_t fp = static_cast<uintptr_t>(cpu->regs[29]);
-    const uintptr_t sp = static_cast<uintptr_t>(cpu->sp);
-    for (int frame = 0; frame < 20; ++frame) {
-        if ((fp & 15u) != 0u || fp < sp || fp - sp > 8u * 1024u * 1024u) break;
-        uintptr_t pair[2]{};
-        if (!readFrame(fp, pair)) {
-            emit("mutex-frame-read-unavailable\n");
-            break;
+    const uintptr_t address = reinterpret_cast<uintptr_t>(mutex);
+    if (g_trace >= 0 && g_mutexCaptureCount == 0 &&
+        address >= 4096 && (address & 1u) == 0) {
+        const auto* state = reinterpret_cast<const uint16_t*>(address);
+        if (__atomic_load_n(state, __ATOMIC_RELAXED) == 0xffffu &&
+            __sync_lock_test_and_set(&g_mutexCaptureCount, 1) == 0) {
+            emit("DESTROYED_MUTEX_PRECALL\n");
+            emit("tid=");
+            emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+            emit("mutex=");
+            emitHex(address);
+            emit("caller_lr=");
+            emitHex(reinterpret_cast<uintptr_t>(__builtin_return_address(0)));
+            uintptr_t stackAnchor = 0;
+            const uintptr_t sp = reinterpret_cast<uintptr_t>(&stackAnchor);
+            uintptr_t fp = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+            emit("caller_fp=");
+            emitHex(fp);
+            emit("caller_sp=");
+            emitHex(sp);
+            for (int frame = 0; frame < 20; ++frame) {
+                if ((fp & 15u) != 0u || fp < sp || fp - sp > 8u * 1024u * 1024u) break;
+                uintptr_t pair[2]{};
+                if (!readFrame(fp, pair)) {
+                    emit("mutex-frame-read-unavailable\n");
+                    break;
+                }
+                emit("mutex_return=");
+                emitHex(pair[1]);
+                if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
+                fp = pair[0];
+            }
+            emit("DESTROYED_MUTEX_TRACE_DONE\n");
+            (void)fsync(g_trace);
         }
-        emit("mutex_return=");
-        emitHex(pair[1]);
-        if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
-        fp = pair[0];
     }
-    emit("DESTROYED_MUTEX_TRACE_DONE\n");
-    (void)fsync(g_trace);
 #else
-    (void)cpu;
+    (void)mutex;
 #endif
+    const auto original = reinterpret_cast<MutexLockFn>(g_originalMutexLock);
+    if (!original) {
+        emit("DESTROYED_MUTEX_ORIGINAL_UNAVAILABLE\n");
+        return EINVAL;
+    }
+    return original(mutex);
 }
 
 void onAbort(int signal, siginfo_t*, void* raw) {
@@ -181,9 +194,9 @@ bool installDestroyedMutexTrace() {
         emitDec(static_cast<uintptr_t>(init));
         return false;
     }
-    void* stub = shadowhook_intercept_sym_name(
-        "libc.so", "pthread_mutex_lock", &onBeforeMutexLock,
-        nullptr, SHADOWHOOK_INTERCEPT_DEFAULT);
+    void* stub = shadowhook_hook_sym_name(
+        "libc.so", "pthread_mutex_lock",
+        reinterpret_cast<void*>(&observeMutexLock), &g_originalMutexLock);
     if (!stub) {
         emit("DESTROYED_MUTEX_HOOK_FAILED\n");
         emitDec(static_cast<uintptr_t>(shadowhook_get_errno()));
