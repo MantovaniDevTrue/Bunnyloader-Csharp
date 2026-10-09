@@ -416,8 +416,8 @@ jobs:
           assert "BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS" in smoke
           assert "sourcecsharp.dll" not in worker
           print("CSHARP_LIVE_RUNTIME_PROTOTYPE_STATIC_CHECK=PASS")
-          npcHost=(root/"app/src/main/cpp/experiments/csharp/NpcAiHost.cpp").read_text()
-          npcHeader=(root/"app/src/main/cpp/experiments/csharp/NpcAiHost.h").read_text()
+          npcHost=(root/"experiments/csharp/NpcAiHost.cpp").read_text()
+          npcHeader=(root/"experiments/csharp/NpcAiHost.h").read_text()
           assert "BUNNY_CSHARP_LIVE_NPC_AI_CALLBACK=PASS" in smoke
           assert "BunnyLiveNpc" in mono and "invokeLiveSourceNpcAi" in mono
           assert "invokeLiveSourceNpcAi(" in npcHost
