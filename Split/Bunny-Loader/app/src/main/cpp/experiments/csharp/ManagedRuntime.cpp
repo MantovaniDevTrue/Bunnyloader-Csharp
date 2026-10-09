@@ -389,7 +389,49 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
     std::memcpy(&out.result, raw, sizeof(out.result));
-    out.phase = out.result > 0 ? "compile-verified" : "compile-failed";
+    if (out.result <= 0) {
+        out.phase = "compile-failed";
+        trace(out.phase.c_str());
+        return out;
+    }
+
+    trace("compiled-assembly-execution-start");
+    void* verifierClass = image ? g_api.findClass(
+        image, "BunnyLoader.SourceCompiler", "CompiledAssemblyProbe") : nullptr;
+    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 2) : nullptr;
+    if (!verifier) {
+        out.phase = "compiled-assembly-verifier-missing";
+        out.error = "CompiledAssemblyProbe.Verify indisponivel";
+        trace(out.phase.c_str(), out.error.c_str());
+        return out;
+    }
+    void* verifyArgumentsManaged[] = {
+        g_api.newString(g_domain, outputAssembly.c_str()),
+        g_api.newString(g_domain, diagnosticsPath.c_str())
+    };
+    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1]) {
+        out.phase = "compiled-assembly-verifier-arguments-failed";
+        trace(out.phase.c_str());
+        return out;
+    }
+    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1] };
+    void* verifyException = nullptr;
+    void* verifiedBoxed = g_api.invoke(verifier, nullptr, verifyArguments, &verifyException);
+    if (verifyException || !verifiedBoxed || !g_api.unbox(verifiedBoxed)) {
+        out.phase = "compiled-assembly-verifier-exception";
+        out.error = "Falha ao executar assembly C# compilado";
+        trace(out.phase.c_str(), out.error.c_str());
+        return out;
+    }
+    std::memcpy(&out.executedTypes, g_api.unbox(verifiedBoxed), sizeof(out.executedTypes));
+    if (out.executedTypes != 2) {
+        out.phase = "compiled-assembly-execution-failed";
+        out.error = "CompiledAssemblyProbe.Verify nao executou as duas classes esperadas";
+        trace(out.phase.c_str(), out.error.c_str());
+        return out;
+    }
+    trace("compiled-assembly-execution-verified");
+    out.phase = "compile-verified";
     trace(out.phase.c_str());
     return out;
 }
