@@ -21,8 +21,8 @@ android {
         applicationId = "com.bunnyloader.csharptest"
         minSdk = 24
         targetSdk = 34
-        versionCode = 53
-        versionName = "0.1.10.16.27-csharp-onhit-buff"
+        versionCode = 54
+        versionName = "0.1.10.16.28-csharp-onhit-precise"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
