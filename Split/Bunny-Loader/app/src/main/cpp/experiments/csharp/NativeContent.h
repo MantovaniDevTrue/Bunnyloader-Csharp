@@ -121,6 +121,23 @@ bool applyManagedNativePlayerDefaultsBatch(
     const std::vector<ManagedAccessoryEntry>& accessories,
     const std::vector<ManagedPlayerEntry>& players);
 
+struct ManagedNpcEntry {
+    std::string name;
+    int type = -1;
+    int width = 32;
+    int height = 24;
+    int damage = 7;
+    int defense = 2;
+    int lifeMax = 25;
+    int aiStyle = 1;
+    int animationType = 1;
+    int frames = 2;
+};
+
+bool applyManagedNativeNpcDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedNpcEntry>& npcs);
+
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
 
