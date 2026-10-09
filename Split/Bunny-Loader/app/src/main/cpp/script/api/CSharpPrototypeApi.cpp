@@ -78,8 +78,9 @@ std::string readManagedWorkerFile(const char* filename) {
     if (slash == std::string::npos) return {};
     std::ifstream stream(path.substr(0, slash + 1) + filename, std::ios::binary);
     if (!stream) return {};
-    char buffer[2049]{};
-    stream.read(buffer, 2048);
+    const bool fullNativeTrace = std::strcmp(filename, "native-abort-trace.txt") == 0;
+    char buffer[8193]{};
+    stream.read(buffer, fullNativeTrace ? 8192 : 2048);
     return std::string(buffer, static_cast<size_t>(stream.gcount()));
 }
 
