@@ -39,6 +39,7 @@ on:
       - bunny-csharp-source-0.1.10.16.16-exit-caller
       - bunny-csharp-source-0.1.10.16.17-sigsegv-origin
       - bunny-csharp-source-0.1.10.16.18-crypto-jni-init
+      - bunny-csharp-source-0.1.10.16.19-managed-execution
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -322,7 +323,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.18-CryptoJniInit.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -334,17 +335,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.18"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.19"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.18-CryptoJniInit.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.18 — Mono Crypto JNI Initialization Fix" \
-              --notes "Experimental fix for MonoVM Roslyn Android worker: load System.Security.Cryptography.Native.Android via Android Java System.loadLibrary before Mono compilation, triggering its required JNI_OnLoad to initialize JavaVM and cached JNI classes; include the exact upstream DotnetProxyTrustManager helper source (without comments). Keep native SIGSEGV/exit diagnostics and existing FORTIFY behavior. NativeAOT and JavaScript game runtime unchanged. Android device validation required." \
+              --title "Bunny Loader C# v0.1.10.16.19 — Managed Assembly Execution Test" \
+              --notes "Experimental follow-up after Roslyn compiled C# successfully on device: run compiled SourceCSharpMod.dll in isolated MonoVM using Assembly.Load, instantiate SourceBolt/SourceWand, execute their C# SetDefaults and verify values. Report executedTypes=2 and ASSEMBLY_EXEC_OK only on success. Preserve .NET Android crypto JNI initialization, native diagnostics, JavaScript and NativeAOT game code. This tests managed execution, not yet registration with the game." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -367,7 +368,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.18-CryptoJniInit.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
