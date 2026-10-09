@@ -98,7 +98,8 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     const bool weapon = type.base == "BunnyWeapon";
     const bool buff = type.base == "BunnyBuff";
     const bool potion = type.base == "BunnyBuffPotion";
-    if (!projectile && !weapon && !buff && !potion) {
+    const bool accessory = type.base == "BunnyAccessory";
+    if (!projectile && !weapon && !buff && !potion && !accessory) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
@@ -111,10 +112,12 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     spec->useTime = weapon ? 18 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
     spec->kind = projectile ? NativeProjectile :
-                 weapon ? NativeWeapon : buff ? NativeBuff : NativeBuffPotion;
+                 weapon ? NativeWeapon : buff ? NativeBuff :
+                 accessory ? NativeAccessory : NativeBuffPotion;
     *texture = projectile ? "Content/Projectiles/" + type.name + ".png" :
                weapon ? "Content/Items/Weapons/" + type.name + ".png" :
                buff ? "Content/Buffs/" + type.name + ".png" :
+               accessory ? "Content/Items/Accessories/" + type.name + ".png" :
                       "Content/Items/Consumables/" + type.name + ".png";
     *display = type.name;
     for (const auto& [key, value] : type.properties) {
@@ -138,6 +141,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         else if (weapon && key == "Damage") integerField = &spec->damage;
         else if (weapon && key == "UseTime") integerField = &spec->useTime;
         else if (buff && key == "DefenseBonus") integerField = &spec->damage;
+        else if (accessory && key == "DefenseBonus") integerField = &spec->damage;
         else if (potion && key == "Duration") integerField = &spec->timeLeft;
         if (integerField) {
             if (!integer(value, integerField)) {
@@ -202,8 +206,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 4> order = {
-        "BunnyBuff", "BunnyProjectile", "BunnyBuffPotion", "BunnyWeapon"
+    const std::array<std::string, 5> order = {
+        "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
+        "BunnyBuffPotion", "BunnyWeapon"
     };
     for (const auto& base : order) {
         for (const auto& def : defs) {
@@ -237,6 +242,27 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             types[def.name] = type;
         }
     }
+    for (const auto& def : defs) {
+        if (def.base != "BunnyPlayer") continue;
+        const auto link = def.properties.find("Accessory");
+        if (link == def.properties.end()) {
+            status->error = def.name + ": Accessory = nameof(Classe) obrigatorio";
+            return false;
+        }
+        bool valid = false;
+        for (const auto& other : defs)
+            if (other.base == "BunnyAccessory" && other.name == link->second &&
+                types.contains(link->second) && types[link->second] >= 0)
+                valid = true;
+        if (!valid || def.properties.size() != 1) {
+            status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
+            return false;
+        }
+        status->playerClasses.push_back(def.name);
+    }
+    for (const auto& name : status->playerClasses) types.erase(name);
+    status->players = static_cast<int>(status->playerClasses.size());
+    status->accessories = ctx.accessories;
     status->registeredTypes = types;
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
