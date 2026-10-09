@@ -6,7 +6,7 @@
 #include <vector>
 
 int main(int argc, char** argv) {
-    if (argc != 4) return 1;
+    if (argc != 6) return 1;
     std::vector<bl::csharp::ParsedSourceType> definitions;
     std::string error;
     for (int i = 1; i < argc; ++i) {
@@ -30,15 +30,23 @@ int main(int argc, char** argv) {
     error.clear();
     if (!bl::csharp::parseCSharpSource(helper, &helperOnly, &error, false)) return 9;
     if (!helperOnly.empty()) return 10;
-    if (definitions.size() != 2) return 4;
+    if (definitions.size() != 4) return 4;
     const auto& bolt = definitions[0];
     const auto& wand = definitions[1];
+    const auto& spark = definitions[2];
+    const auto& staff = definitions[3];
     if (bolt.name != "SourceBolt" || bolt.base != "BunnyProjectile" ||
         bolt.properties.at("Width") != "10" ||
         bolt.properties.at("Friendly") != "true" ||
         wand.name != "SourceWand" || wand.base != "BunnyWeapon" ||
         wand.properties.at("Shoot") != "SourceBolt" ||
-        wand.properties.at("ShootSpeed") != "13f")
+        wand.properties.at("ShootSpeed") != "13f" ||
+        spark.name != "SourceSpark" || spark.base != "BunnyProjectile" ||
+        spark.properties.at("Width") != "14" ||
+        spark.properties.at("Texture") != "Content/Projectiles/SourceBolt.png" ||
+        staff.name != "SourceStaff" || staff.base != "BunnyWeapon" ||
+        staff.properties.at("Shoot") != "SourceSpark" ||
+        staff.properties.at("Texture") != "Content/Items/Weapons/SourceWand.png")
         return 5;
     std::vector<bl::csharp::ParsedSourceType> unsupported;
     if (bl::csharp::parseCSharpSource(
