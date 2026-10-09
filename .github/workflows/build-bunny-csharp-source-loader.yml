@@ -33,7 +33,7 @@ on:
       - bunny-csharp-source-0.1.10.16.10-signal-stack
       - bunny-csharp-source-0.1.10.16.11-signal-rearm
       - bunny-csharp-source-0.1.10.16.12-sigaction-watch
-      - bunny-csharp-source-0.1.10.16.14-mutex-caller-trace
+      - bunny-csharp-source-0.1.10.16.13-mutex-caller-trace
       - bunny-csharp-source-0.1.10.16.14-mutex-map-trace
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
