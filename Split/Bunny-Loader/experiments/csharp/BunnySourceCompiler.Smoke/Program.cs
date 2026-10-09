@@ -50,6 +50,12 @@ try
         !File.ReadAllText(diag).Contains("ASSEMBLY_EXEC_OK"))
         throw new InvalidOperationException("Compiled C# classes were not executed: " +
             File.ReadAllText(diag));
+    string managedDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
+    if (!managedDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V1\n", StringComparison.Ordinal) ||
+        !managedDefaults.Contains("PROJECTILE\tSourceBolt\t10\t10\t1\t1\t360\t1\n", StringComparison.Ordinal) ||
+        !managedDefaults.Contains("WEAPON\tSourceWand\t22\t18\t13\tSourceBolt\n", StringComparison.Ordinal))
+        throw new InvalidOperationException("Unexpected managed Terraria defaults payload: " + managedDefaults);
+    Console.WriteLine("BUNNY_MANAGED_DEFAULTS_BRIDGE=PASS");
     Console.WriteLine("BUNNY_MANAGED_ASSEMBLY_EXECUTION=PASS");
     byte[] original = File.ReadAllBytes(output);
     if (original.Length < 1024) throw new InvalidOperationException("No assembly generated");
