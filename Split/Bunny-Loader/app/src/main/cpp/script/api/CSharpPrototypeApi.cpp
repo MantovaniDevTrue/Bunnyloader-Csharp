@@ -40,6 +40,8 @@ namespace bl::script {
 
 namespace {
 
+bool sourceAssemblyTypesVerified(const std::string& state);
+
 JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus& s) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "attempted", JS_NewBool(ctx, s.attempted));
