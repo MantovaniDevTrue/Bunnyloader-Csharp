@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Reflection;
 
 namespace BunnyLoader.SourceCompiler;
@@ -14,8 +15,9 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Compiled assembly missing or too large");
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
-            VerifyProjectile(assembly);
-            VerifyWeapon(assembly);
+            object projectile = VerifyProjectile(assembly);
+            object weapon = VerifyWeapon(assembly);
+            WriteRuntimeDefaults(projectile, weapon, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
             return 2;
@@ -28,7 +30,7 @@ public static class CompiledAssemblyProbe
         }
     }
 
-    private static void VerifyProjectile(Assembly assembly)
+    private static object VerifyProjectile(Assembly assembly)
     {
         Type type = assembly.GetType("SourceCSharpMod.SourceBolt", throwOnError: true)!;
         if (type.BaseType?.FullName != "BunnyLoader.Source.BunnyProjectile")
@@ -40,9 +42,10 @@ public static class CompiledAssemblyProbe
             (int)type.GetProperty("AiStyle")!.GetValue(instance)! != 1 ||
             !(bool)type.GetProperty("Friendly")!.GetValue(instance)!)
             throw new InvalidOperationException("SourceBolt SetDefaults did not execute correctly");
+        return instance;
     }
 
-    private static void VerifyWeapon(Assembly assembly)
+    private static object VerifyWeapon(Assembly assembly)
     {
         Type type = assembly.GetType("SourceCSharpMod.SourceWand", throwOnError: true)!;
         if (type.BaseType?.FullName != "BunnyLoader.Source.BunnyWeapon")
@@ -54,5 +57,52 @@ public static class CompiledAssemblyProbe
             (float)type.GetProperty("ShootSpeed")!.GetValue(instance)! != 13f ||
             (string)type.GetProperty("Shoot")!.GetValue(instance)! != "SourceBolt")
             throw new InvalidOperationException("SourceWand SetDefaults did not execute correctly");
+        return instance;
     }
+    private static void WriteRuntimeDefaults(object projectile, object weapon, string diagnosticsPath)
+    {
+        static T Value<T>(object instance, string name) =>
+            (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
+                ?? throw new InvalidOperationException("Missing C# property: " + name));
+
+        static void CheckName(string name)
+        {
+            if (name.Length == 0 || name.Length > 72)
+                throw new InvalidOperationException("Invalid content name length");
+            foreach (char ch in name)
+                if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+                      (ch >= '0' && ch <= '9') || ch == '_'))
+                    throw new InvalidOperationException("Invalid content name");
+        }
+
+        string projectileName = projectile.GetType().Name;
+        string weaponName = weapon.GetType().Name;
+        string shootName = Value<string>(weapon, "Shoot");
+        CheckName(projectileName);
+        CheckName(weaponName);
+        CheckName(shootName);
+        if (shootName != projectileName)
+            throw new InvalidOperationException("Shoot must target compiled projectile");
+
+        string lines = "BUNNY_MANAGED_DEFAULTS_V1\n" +
+            string.Join("\t", "PROJECTILE", projectileName,
+                Value<int>(projectile, "Width").ToString(CultureInfo.InvariantCulture),
+                Value<int>(projectile, "Height").ToString(CultureInfo.InvariantCulture),
+                Value<int>(projectile, "AiStyle").ToString(CultureInfo.InvariantCulture),
+                Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
+                Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
+                Value<bool>(projectile, "Friendly") ? "1" : "0") + "\n" +
+            string.Join("\t", "WEAPON", weaponName,
+                Value<int>(weapon, "Damage").ToString(CultureInfo.InvariantCulture),
+                Value<int>(weapon, "UseTime").ToString(CultureInfo.InvariantCulture),
+                Value<float>(weapon, "ShootSpeed").ToString("R", CultureInfo.InvariantCulture),
+                shootName) + "\n";
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing managed diagnostics directory");
+        string destination = Path.Combine(folder, "source-runtime-values.txt");
+        string temporary = destination + ".tmp";
+        File.WriteAllText(temporary, lines);
+        File.Move(temporary, destination, true);
+    }
+
 }
