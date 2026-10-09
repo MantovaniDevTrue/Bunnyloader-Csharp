@@ -100,6 +100,12 @@ struct ManagedProjectileHookStatus {
     int lastState = 0;
 };
 
+bool stageManagedProjectileAutoCurve(const std::string& modId,
+                                    const std::string& name,
+                                    const std::array<int, 120>& turns,
+                                    std::string* error);
+bool installManagedProjectileAutoHook(std::string* error);
+int managedProjectileAutoPending();
 bool enableManagedProjectileCurve(const std::string& modId,
                                   const std::string& projectileName,
                                   const std::array<int, 120>& turns,
