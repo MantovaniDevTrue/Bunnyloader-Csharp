@@ -48,7 +48,8 @@ bool bindMonoWorkerContext(JNIEnv* env, jobject context, std::string& error) {
     return true;
 }
 
-bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot) {
+bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot,
+                        const std::string& modId) {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_vm || !g_context || !g_serviceClass) {
         error = "worker nao inicializado";
@@ -97,6 +98,23 @@ bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot) {
                         }
                         if (key) env->DeleteLocalRef(key);
                         if (value) env->DeleteLocalRef(value);
+                        if (extrasReady && !modId.empty()) {
+                            jstring ownerKey = env->NewStringUTF("sourceModId");
+                            jstring ownerValue = env->NewStringUTF(modId.c_str());
+                            if (!ownerKey || !ownerValue) {
+                                extrasReady = false;
+                                error = "Identidade do mod C# sem memoria";
+                            } else {
+                                jobject updatedOwner = env->CallObjectMethod(
+                                    intent, putExtra, ownerKey, ownerValue);
+                                if (checkException(env, error, "Identidade do mod no worker falhou") ||
+                                    !updatedOwner)
+                                    extrasReady = false;
+                                if (updatedOwner) env->DeleteLocalRef(updatedOwner);
+                            }
+                            if (ownerKey) env->DeleteLocalRef(ownerKey);
+                            if (ownerValue) env->DeleteLocalRef(ownerValue);
+                        }
                     }
                 }
                 jclass contextClass = extrasReady
@@ -178,16 +196,23 @@ std::string historicalMonoWorkerTrace(int pid, long long minimumTimestampMs) {
 }
 
 bool requestIsolatedMonoProbe(std::string& error) {
-    return dispatchMonoWorker(error, "");
+    return dispatchMonoWorker(error, "", "");
 }
 
 bool requestIsolatedMonoCompile(const std::string& sourceRoot, std::string& error) {
+    return requestIsolatedMonoCompile(
+        sourceRoot, "57a98f20-7a35-4d19-8ce8-079e25bb36a1", error);
+}
+
+bool requestIsolatedMonoCompile(const std::string& sourceRoot,
+                               const std::string& modId, std::string& error) {
     if (sourceRoot.empty() || sourceRoot.size() > 2048 ||
-        sourceRoot.find("..") != std::string::npos) {
-        error = "Diretorio do mod C# invalido";
+        sourceRoot.find("..") != std::string::npos ||
+        modId.empty() || modId.size() > 128) {
+        error = "Diretorio ou identidade do mod C# invalida";
         return false;
     }
-    return dispatchMonoWorker(error, sourceRoot);
+    return dispatchMonoWorker(error, sourceRoot, modId);
 }
 
 }
