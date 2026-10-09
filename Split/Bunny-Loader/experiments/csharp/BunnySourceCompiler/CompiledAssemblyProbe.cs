@@ -19,6 +19,7 @@ public static class CompiledAssemblyProbe
             object weapon = VerifyWeapon(assembly);
             WriteRuntimeDefaults(projectile, weapon, diagnosticsPath);
             WriteProjectileMotion(assembly, diagnosticsPath);
+            WriteHomingPolicy(assembly, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
             return 2;
@@ -84,6 +85,52 @@ public static class CompiledAssemblyProbe
             string.Join("\t", samples) + "\n");
         File.Move(temp, destination, true);
         File.AppendAllText(diagnosticsPath, "\nAI_BUFFER_OK ticks=120 function=SourceBoltMotion.TurnAtTick");
+    }
+
+    private static void WriteHomingPolicy(Assembly assembly, string diagnosticsPath)
+    {
+        Type type = assembly.GetType("SourceCSharpMod.SourceBoltMotion", throwOnError: true)!;
+        MethodInfo turn = type.GetMethod("HomingTurn", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("SourceBoltMotion.HomingTurn missing");
+        MethodInfo range = type.GetMethod("HomingRange", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("SourceBoltMotion.HomingRange missing");
+        MethodInfo interval = type.GetMethod("RetargetInterval", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("SourceBoltMotion.RetargetInterval missing");
+        int radius = (int)(range.Invoke(null, null)
+            ?? throw new InvalidOperationException("HomingRange returned null"));
+        int retarget = (int)(interval.Invoke(null, null)
+            ?? throw new InvalidOperationException("RetargetInterval returned null"));
+        if (radius < 64 || radius > 720 || retarget < 4 || retarget > 24)
+            throw new InvalidOperationException("Invalid C# homing radius or retarget interval");
+
+        string[] lookup = new string[129];
+        for (int i = 0; i < lookup.Length; ++i)
+        {
+            float error = (i - 64) * MathF.PI / 64f;
+            object? response = turn.Invoke(null, new object[] { error });
+            if (response is not float angle || !float.IsFinite(angle) || MathF.Abs(angle) > 0.08f)
+                throw new InvalidOperationException("Invalid C# homing angle index " + i);
+            lookup[i] = ((int)MathF.Round(angle * 1000f)).ToString(CultureInfo.InvariantCulture);
+        }
+        if (lookup[64] != "0" ||
+            !int.TryParse(lookup[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int left) ||
+            !int.TryParse(lookup[128], NumberStyles.Integer, CultureInfo.InvariantCulture, out int right) ||
+            left >= 0 || right <= 0)
+            throw new InvalidOperationException("Homing response must steer toward signed angle error");
+
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string path = Path.Combine(folder, "source-homing-policy.txt");
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, "BUNNY_SOURCE_HOMING_V1\nSourceBolt\n" +
+            radius.ToString(CultureInfo.InvariantCulture) + "\t" +
+            retarget.ToString(CultureInfo.InvariantCulture) + "\n" +
+            string.Join("\t", lookup) + "\n");
+        File.Move(temp, path, true);
+        File.AppendAllText(diagnosticsPath,
+            "\nHOMING_POLICY_OK samples=129 radius=" +
+            radius.ToString(CultureInfo.InvariantCulture) + " retarget=" +
+            retarget.ToString(CultureInfo.InvariantCulture));
     }
 
     private static void WriteRuntimeDefaults(object projectile, object weapon, string diagnosticsPath)
