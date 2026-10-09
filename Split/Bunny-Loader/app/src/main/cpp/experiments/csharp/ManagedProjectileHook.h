@@ -13,7 +13,7 @@ struct SourceBoltHomingPolicy {
 
 struct SourceBoltHitPolicy {
     int buffId = 24;
-    std::array<int, 4> durations{};
+    std::array<int, 256> durations{};
 };
 
 struct SourceBoltHitStatus {
@@ -23,6 +23,8 @@ struct SourceBoltHitStatus {
     int applied = 0;
     int errors = 0;
     int lastNpc = -1;
+    int lastDamage = -1;
+    int lastDuration = 0;
     int buffId = 0;
 };
 
