@@ -99,22 +99,25 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     const bool buff = type.base == "BunnyBuff";
     const bool potion = type.base == "BunnyBuffPotion";
     const bool accessory = type.base == "BunnyAccessory";
-    if (!projectile && !weapon && !buff && !potion && !accessory) {
+    const bool npc = type.base == "BunnyNPC";
+    if (!projectile && !weapon && !buff && !potion && !accessory && !npc) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
-    spec->width = projectile ? 8 : 0;
-    spec->height = projectile ? 8 : 0;
-    spec->aiStyle = projectile ? 1 : 0;
-    spec->penetrate = projectile ? 1 : 0;
-    spec->timeLeft = projectile ? 360 : potion ? 600 : 0;
-    spec->damage = weapon ? 20 : 0;
-    spec->useTime = weapon ? 18 : 0;
+    spec->width = npc ? 32 : projectile ? 8 : 0;
+    spec->height = npc ? 24 : projectile ? 8 : 0;
+    spec->aiStyle = (projectile || npc) ? 1 : 0;
+    spec->penetrate = npc ? 1 : projectile ? 1 : 0;
+    spec->timeLeft = npc ? 2 : projectile ? 360 : potion ? 600 : 0;
+    spec->damage = npc ? 7 : weapon ? 20 : 0;
+    spec->useTime = npc ? 2 : weapon ? 18 : 0;
+    spec->shootType = npc ? 25 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
     spec->kind = projectile ? NativeProjectile :
                  weapon ? NativeWeapon : buff ? NativeBuff :
-                 accessory ? NativeAccessory : NativeBuffPotion;
-    *texture = projectile ? "Content/Projectiles/" + type.name + ".png" :
+                 accessory ? NativeAccessory : npc ? NativeNpc : NativeBuffPotion;
+    *texture = npc ? "Content/NPCs/" + type.name + ".png" :
+               projectile ? "Content/Projectiles/" + type.name + ".png" :
                weapon ? "Content/Items/Weapons/" + type.name + ".png" :
                buff ? "Content/Buffs/" + type.name + ".png" :
                accessory ? "Content/Items/Accessories/" + type.name + ".png" :
@@ -143,6 +146,14 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         else if (buff && key == "DefenseBonus") integerField = &spec->damage;
         else if (accessory && key == "DefenseBonus") integerField = &spec->damage;
         else if (potion && key == "Duration") integerField = &spec->timeLeft;
+        else if (npc && key == "Width") integerField = &spec->width;
+        else if (npc && key == "Height") integerField = &spec->height;
+        else if (npc && key == "Damage") integerField = &spec->damage;
+        else if (npc && key == "Defense") integerField = &spec->useTime;
+        else if (npc && key == "LifeMax") integerField = &spec->shootType;
+        else if (npc && key == "AiStyle") integerField = &spec->aiStyle;
+        else if (npc && key == "AnimationType") integerField = &spec->penetrate;
+        else if (npc && key == "Frames") integerField = &spec->timeLeft;
         if (integerField) {
             if (!integer(value, integerField)) {
                 *error = type.name + ": inteiro invalido em " + key;
@@ -206,9 +217,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 5> order = {
+    const std::array<std::string, 6> order = {
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
-        "BunnyBuffPotion", "BunnyWeapon"
+        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon"
     };
     for (const auto& base : order) {
         for (const auto& def : defs) {
@@ -267,6 +278,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
     status->buffs = ctx.buffs;
+    status->npcs = ctx.npcs;
     status->potions = ctx.potions;
     if (status->items < 1 || status->projectiles < 1) {
         status->error = "mod C# precisa registrar um BunnyWeapon e BunnyProjectile";
@@ -282,9 +294,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.id = mod.id;
     status.loaded = load(mod, &status);
     if (status.loaded) {
-        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes)",
+        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
-                status.projectiles, status.buffs, status.potions);
+                status.projectiles, status.buffs, status.potions, status.npcs);
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
