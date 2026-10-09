@@ -204,6 +204,36 @@ JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueCo
     return out;
 }
 
+JSValue jsSourceApplyCompiled(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceApplyCompiled('CONFIRM_MANAGED_DEFAULTS')");
+    const char* raw = JS_ToCString(ctx, argv[0]);
+    if (!raw) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(raw) == "CONFIRM_MANAGED_DEFAULTS";
+    JS_FreeCString(ctx, raw);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_MANAGED_DEFAULTS");
+
+    constexpr const char* uid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        state.find("executedTypes=2\n") == std::string::npos ||
+        state.find("assemblyReady=1\n") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compilar e executar o mod C# no worker antes de aplicar os valores");
+    const std::string values = readManagedWorkerFile("source-runtime-values.txt");
+    std::string error;
+    const bool applied = bl::csharp::applyManagedSourceDefaults(uid, values, &error);
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "applied", JS_NewBool(ctx, applied));
+    JS_SetPropertyStr(ctx, result, "engine",
+                      JS_NewString(ctx, applied ? "Roslyn-MonoVM-SetDefaults-v1" : "SetDefaults-literals-v1"));
+    JS_SetPropertyStr(ctx, result, "items", JS_NewInt32(ctx, applied ? 1 : 0));
+    JS_SetPropertyStr(ctx, result, "projectiles", JS_NewInt32(ctx, applied ? 1 : 0));
+    JS_SetPropertyStr(ctx, result, "error", JS_NewString(ctx, error.c_str()));
+    return result;
+}
+
 JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewObject(ctx);
     const auto state = readManagedWorkerFile("source-compile-status.txt");
@@ -285,7 +315,9 @@ JSValue jsSourceMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "files", JS_NewInt32(ctx, mods[i].sourceFiles));
         JS_SetPropertyStr(ctx, row, "items", JS_NewInt32(ctx, mods[i].items));
         JS_SetPropertyStr(ctx, row, "projectiles", JS_NewInt32(ctx, mods[i].projectiles));
-        JS_SetPropertyStr(ctx, row, "engine", JS_NewString(ctx, "SetDefaults-literals-v1"));
+        JS_SetPropertyStr(ctx, row, "engine", JS_NewString(ctx,
+        mods[i].runtimeApplied ? "Roslyn-MonoVM-SetDefaults-v1" : "SetDefaults-literals-v1"));
+    JS_SetPropertyStr(ctx, row, "runtimeApplied", JS_NewBool(ctx, mods[i].runtimeApplied));
         JS_SetPropertyStr(ctx, row, "error", JS_NewString(ctx, mods[i].error.c_str()));
         JS_SetPropertyUint32(ctx, out, i, row);
     }
@@ -964,6 +996,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedSourceCompile, "sourceCompile", 0));
     JS_SetPropertyStr(ctx, api, "sourceCompileStatus",
                       JS_NewCFunction(ctx, jsManagedSourceCompileStatus, "sourceCompileStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceApplyCompiled",
+                      JS_NewCFunction(ctx, jsSourceApplyCompiled, "sourceApplyCompiled", 1));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
