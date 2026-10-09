@@ -46,6 +46,7 @@ on:
       - bunny-csharp-source-0.1.10.16.23-helper-class-fix
       - bunny-csharp-source-0.1.10.16.24-homing-policy
       - bunny-csharp-source-0.1.10.16.25-npc-ref-hotfix
+      - bunny-csharp-source-0.1.10.16.26-local-player-fallback
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -336,7 +337,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='51' versionName='0.1.10.16.25-csharp-npc-ref-hotfix'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='52' versionName='0.1.10.16.26-csharp-local-player-fallback'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -359,7 +360,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.25-NpcRefsFix.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -371,17 +372,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.25"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.26"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.25-NpcRefsFix.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.25 — CSharp NPC Reference Hotfix" \
-              --notes "Fix C# homing startup failure on Terraria Android when NPC.dontTakeDamage reflection field is absent. Resolve required NPC/Main fields with precise per-field diagnostic failures; read optional damage flag only if present. Preserve existing 129-entry C# homing policy, 120-tick buffered fallback, player ownership protection, JavaScript and NativeAOT. No changes needed to SourceCSharpMod-v0.1.0.bmod. Device validation required." \
+              --title "Bunny Loader C# v0.1.10.16.26 — CSharp Local Player Fallback" \
+              --notes "Fix C# homing activation where Main.myPlayer does not exist on Terraria Android. Resolve local player through Main.LocalPlayer getter when available, or use Main.netMode-validated singleplayer-only fallback with continuous mode guard. Refuse unsafe multiplayer fallback. Preserve managed Roslyn homing policy, existing projectile ownership protection, NPC damage flag fallback, buffered AI, JavaScript and NativeAOT. Existing SourceCSharpMod.bmod is unchanged. Device validation required." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -404,7 +405,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.25-NpcRefsFix.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.26-LocalPlayerFix.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
