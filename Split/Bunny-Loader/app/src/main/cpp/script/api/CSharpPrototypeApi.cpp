@@ -1069,6 +1069,11 @@ JSValue jsSourceMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
         JS_SetPropertyStr(ctx, row, "files", JS_NewInt32(ctx, mods[i].sourceFiles));
         JS_SetPropertyStr(ctx, row, "items", JS_NewInt32(ctx, mods[i].items));
         JS_SetPropertyStr(ctx, row, "projectiles", JS_NewInt32(ctx, mods[i].projectiles));
+        JS_SetPropertyStr(ctx, row, "npcs", JS_NewInt32(ctx, mods[i].npcs));
+        JSValue registered = JS_NewObject(ctx);
+        for (const auto& [name, type] : mods[i].registeredTypes)
+            JS_SetPropertyStr(ctx, registered, name.c_str(), JS_NewInt32(ctx, type));
+        JS_SetPropertyStr(ctx, row, "registeredTypes", registered);
         JS_SetPropertyStr(ctx, row, "engine", JS_NewString(ctx,
         mods[i].runtimeApplied ? "Roslyn-MonoVM-SetDefaults-v1" : "SetDefaults-literals-v1"));
     JS_SetPropertyStr(ctx, row, "runtimeApplied", JS_NewBool(ctx, mods[i].runtimeApplied));
