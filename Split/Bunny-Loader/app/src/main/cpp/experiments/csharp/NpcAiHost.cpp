@@ -18,8 +18,8 @@
 #include <cmath>
 #include <cstdint>
 #include <mutex>
+#include <pthread.h>
 #include <string>
-#include <thread>
 
 namespace bl::csharp {
 namespace {
@@ -520,9 +520,12 @@ bool enableLiveNpcAi(const std::string& modId, int npcType,
         }
     }
     if (createWorker) {
-        try {
-            std::thread(liveNpcWorkerLoop).detach();
-        } catch (...) {
+        pthread_t worker{};
+        const int result = pthread_create(&worker, nullptr, [](void*) -> void* {
+            liveNpcWorkerLoop();
+            return nullptr;
+        }, nullptr);
+        if (result != 0) {
             g_liveNpcEnabled.store(false, std::memory_order_release);
             {
                 std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
@@ -533,6 +536,7 @@ bool enableLiveNpcAi(const std::string& modId, int npcType,
             *error = "Unable to launch managed NPC callback worker";
             return false;
         }
+        pthread_detach(worker);
     }
     BL_INFO("csharp live NPC: async MonoVM worker enabled mod=%s type=%d max=%d interval=%d",
             modId.c_str(), npcType, kLiveNpcMaxCalls, kLiveNpcSampleInterval);
