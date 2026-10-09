@@ -84,8 +84,18 @@ try
             int.Parse(homingSamples[i]) >= int.Parse(homingSamples[i - 1])))
         throw new InvalidOperationException("C# homing LUT invalid or not monotonic");
     string effectPolicy = File.ReadAllText(Path.Combine(scratch, "source-onhit-policy.txt"));
-    if (effectPolicy != "BUNNY_SOURCE_ONHIT_V1\nSourceBolt\n24\n60\t84\t108\t132\n")
-        throw new InvalidOperationException("C# OnHitNPC exported an unexpected buff policy: " + effectPolicy);
+    string[] effectLines = effectPolicy.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (effectLines.Length != 4 ||
+        effectLines[0] != "BUNNY_SOURCE_ONHIT_V2" ||
+        effectLines[1] != "SourceBolt" ||
+        effectLines[2] != "24")
+        throw new InvalidOperationException("C# OnHitNPC exported an invalid header");
+    string[] effectSamples = effectLines[3].Split('\t');
+    if (effectSamples.Length != 256 ||
+        !Enumerable.Range(0, 256).All(i =>
+            int.TryParse(effectSamples[i], out int value) &&
+            value == Math.Clamp(60 + i * 3, 60, 150)))
+        throw new InvalidOperationException("C# OnHitNPC precise damage table invalid");
     Console.WriteLine("BUNNY_CSHARP_ONHIT_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_AI_BUFFER=PASS");
