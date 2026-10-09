@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Globalization;
 using System.Reflection;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace BunnyLoader.SourceCompiler;
 
@@ -17,14 +19,29 @@ public static class CompiledAssemblyProbe
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
             object projectile = VerifyProjectile(assembly);
             object weapon = VerifyWeapon(assembly);
-            WriteRuntimeDefaults(projectile, weapon, diagnosticsPath);
+            var projectileTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyProjectile")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var weaponTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyWeapon")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            if (projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
+                weaponTypes.Length < 1 || weaponTypes.Length > 16)
+                throw new InvalidOperationException("C# content class count out of bounds");
+            object[] projectiles = projectileTypes.Select(type =>
+                type.Name == "SourceBolt" ? projectile : CreateContent(type)).ToArray();
+            object[] weapons = weaponTypes.Select(type =>
+                type.Name == "SourceWand" ? weapon : CreateContent(type)).ToArray();
+            WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
             WriteProjectileMotion(assembly, diagnosticsPath);
             WriteHomingPolicy(assembly, diagnosticsPath);
             WriteHitNPCPolicy(projectile, diagnosticsPath);
             WriteKillPolicy(projectile, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
-            return 2;
+                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length) +
+                " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
+                " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
+            return projectiles.Length + weapons.Length;
         }
         catch (Exception exception)
         {
@@ -32,6 +49,16 @@ public static class CompiledAssemblyProbe
                 "\nASSEMBLY_EXEC_FAILED " + exception.ToString()[..Math.Min(3000, exception.ToString().Length)]);
             return -1;
         }
+    }
+
+    private static object CreateContent(Type type)
+    {
+        object instance = Activator.CreateInstance(type)
+            ?? throw new InvalidOperationException("Failed to instantiate " + type.Name);
+        MethodInfo method = type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
+        method.Invoke(instance, null);
+        return instance;
     }
 
     private static object VerifyProjectile(Assembly assembly)
@@ -202,7 +229,7 @@ public static class CompiledAssemblyProbe
             retarget.ToString(CultureInfo.InvariantCulture));
     }
 
-    private static void WriteRuntimeDefaults(object projectile, object weapon, string diagnosticsPath)
+    private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -218,34 +245,51 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException("Invalid content name");
         }
 
-        string projectileName = projectile.GetType().Name;
-        string weaponName = weapon.GetType().Name;
-        string shootName = Value<string>(weapon, "Shoot");
-        CheckName(projectileName);
-        CheckName(weaponName);
-        CheckName(shootName);
-        if (shootName != projectileName)
-            throw new InvalidOperationException("Shoot must target compiled projectile");
-
-        string lines = "BUNNY_MANAGED_DEFAULTS_V1\n" +
-            string.Join("\t", "PROJECTILE", projectileName,
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var projectileNames = new HashSet<string>(StringComparer.Ordinal);
+        var lines = new List<string>(projectiles.Length + weapons.Length + 1)
+        {
+            "BUNNY_MANAGED_DEFAULTS_V2"
+        };
+        foreach (object projectile in projectiles)
+        {
+            string name = projectile.GetType().Name;
+            CheckName(name);
+            if (!names.Add(name))
+                throw new InvalidOperationException("Duplicate content class: " + name);
+            projectileNames.Add(name);
+            lines.Add(string.Join("\t", "PROJECTILE", name,
                 Value<int>(projectile, "Width").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Height").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "AiStyle").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
-                Value<bool>(projectile, "Friendly") ? "1" : "0") + "\n" +
-            string.Join("\t", "WEAPON", weaponName,
+                Value<bool>(projectile, "Friendly") ? "1" : "0"));
+        }
+        foreach (object weapon in weapons)
+        {
+            string name = weapon.GetType().Name;
+            string shootName = Value<string>(weapon, "Shoot");
+            CheckName(name);
+            CheckName(shootName);
+            if (!names.Add(name))
+                throw new InvalidOperationException("Duplicate content class: " + name);
+            if (!projectileNames.Contains(shootName))
+                throw new InvalidOperationException("Weapon target projectile not found: " + shootName);
+            lines.Add(string.Join("\t", "WEAPON", name,
                 Value<int>(weapon, "Damage").ToString(CultureInfo.InvariantCulture),
                 Value<int>(weapon, "UseTime").ToString(CultureInfo.InvariantCulture),
                 Value<float>(weapon, "ShootSpeed").ToString("R", CultureInfo.InvariantCulture),
-                shootName) + "\n";
+                shootName));
+        }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
         string destination = Path.Combine(folder, "source-runtime-values.txt");
         string temporary = destination + ".tmp";
-        File.WriteAllText(temporary, lines);
+        File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
         File.Move(temporary, destination, true);
+        File.AppendAllText(diagnosticsPath, "\nDEFAULTS_MULTI_OK projectiles=" +
+            projectiles.Length + " weapons=" + weapons.Length);
     }
 
 }
