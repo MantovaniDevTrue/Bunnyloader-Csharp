@@ -16,6 +16,8 @@ public sealed class SourceBolt : BunnyProjectile
         TimeLeft = 360;
     }
 
+    public int OnHitBuffId() => 24;
+
     public override int OnHitNPC(int hitCount)
     {
         return Math.Clamp(90 + hitCount * 15, 90, 135);
