@@ -9,6 +9,8 @@
 #endif
 #include <dlfcn.h>
 #include <mutex>
+#include <map>
+#include <limits>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -47,6 +49,14 @@ void* g_library = nullptr;
 void* g_domain = nullptr;
 std::string g_checkpointPath;
 void* g_liveAiMethod = nullptr;
+
+struct LiveEntry {
+    std::string path;
+    void* method = nullptr;
+    LiveSourceStatus status;
+};
+
+std::map<std::string, LiveEntry> g_sourceLiveEntries;
 
 template <typename T>
 T resolve(const char* name) {
@@ -434,6 +444,112 @@ ManagedSourceCompileResult compileManagedSource(
     out.phase = "compile-verified";
     trace(out.phase.c_str());
     return out;
+}
+
+LiveSourceStatus liveSourceStatus(const std::string& modId) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    const auto found = g_sourceLiveEntries.find(modId);
+    if (found != g_sourceLiveEntries.end()) return found->second.status;
+    LiveSourceStatus status;
+    status.modId = modId;
+    status.phase = g_domain && g_status.domainInitialized && g_status.methodExecuted
+        ? "waiting-assembly" : "waiting-game-mono";
+    return status;
+}
+
+LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
+                                     const std::string& assemblyPath,
+                                     int tick, int state) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    LiveSourceStatus invalid;
+    invalid.modId = modId;
+    invalid.phase = "rejected";
+    if (modId.empty() || modId.size() > 128 ||
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
+        tick < 0 || tick > 1000000 ||
+        state < -1000000 || state > 1000000) {
+        invalid.error = "Invalid mod identity or callback arguments";
+        return invalid;
+    }
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.invoke || !g_api.unbox) {
+        invalid.phase = "waiting-game-mono";
+        invalid.error = "Confirm managedGameProbe before trying live source callbacks";
+        return invalid;
+    }
+    if (!validAssembly(assemblyPath)) {
+        invalid.phase = "assembly-missing";
+        invalid.error = "Mod assembly missing: compile the .bmod before the dynamic probe";
+        return invalid;
+    }
+    auto existing = g_sourceLiveEntries.find(modId);
+    if (existing == g_sourceLiveEntries.end()) {
+        if (g_sourceLiveEntries.size() >= 16) {
+            invalid.error = "Dynamic prototype limit: 16 loaded C# mods";
+            return invalid;
+        }
+        existing = g_sourceLiveEntries.emplace(modId, LiveEntry{}).first;
+        existing->second.status.modId = modId;
+    }
+    LiveEntry& entry = existing->second;
+    auto& status = entry.status;
+    if (entry.method && entry.path != assemblyPath) {
+        status.phase = "restart-required";
+        status.error = "Live assembly path changed; restart Bunny before reloading";
+        ++status.failures;
+        return status;
+    }
+    if (status.failures >= 3) {
+        status.phase = "disabled";
+        status.error = "Managed callback fault limit reached for this mod";
+        return status;
+    }
+    if (!g_api.attach(g_domain)) {
+        status.phase = "attach-failed";
+        status.error = "mono_thread_attach failed";
+        ++status.failures;
+        return status;
+    }
+    if (!entry.method) {
+        void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLiveEntry") : nullptr;
+        entry.method = klass ? g_api.findMethod(klass, "Tick", 2) : nullptr;
+        if (!entry.method) {
+            status.phase = "entry-missing";
+            status.error = "Add public static BunnyLoader.Source.BunnyLiveEntry.Tick(int,int)";
+            ++status.failures;
+            return status;
+        }
+        entry.path = assemblyPath;
+        status.loaded = true;
+        status.ready = true;
+        status.phase = "ready";
+        status.error.clear();
+    }
+    int argTick = tick;
+    int argState = state;
+    void* args[] = { &argTick, &argState };
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(entry.method, nullptr, args, &exception);
+    void* value = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!value) {
+        status.phase = "managed-exception";
+        status.ready = false;
+        status.error = "Tick threw or did not return an int";
+        ++status.failures;
+        return status;
+    }
+    int32_t result = 0;
+    std::memcpy(&result, value, sizeof(result));
+    status.lastTick = tick;
+    status.lastState = state;
+    status.lastResult = result;
+    ++status.callbacks;
+    status.phase = "ready";
+    status.ready = true;
+    status.error.clear();
+    return status;
 }
 
 bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
