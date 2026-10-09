@@ -1,6 +1,8 @@
 #include "experiments/csharp/NativeAbortProbe.h"
 
 #include <csignal>
+#include <cstdlib>
+#include <sys/prctl.h>
 #include <cstddef>
 #include <cerrno>
 #include <pthread.h>
@@ -59,6 +61,11 @@ void emitDec(uintptr_t value) {
     }
     buffer[n++] = '\n';
     (void)write(g_trace, buffer, n);
+}
+
+void markProcessExit() {
+    emit("NATIVE_PROCESS_ATEXIT_BEGIN\n");
+    (void)fsync(g_trace);
 }
 
 bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
@@ -163,6 +170,12 @@ int observeMutexLock(pthread_mutex_t* mutex) {
             emit("DESTROYED_MUTEX_PRECALL\n");
             emit("tid=");
             emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+            char threadName[16]{};
+            if (syscall(__NR_prctl, PR_GET_NAME, threadName, 0, 0, 0) == 0) {
+                emit("mutex_thread=");
+                emit(threadName);
+                emit("\n");
+            }
             emit("mutex=");
             emitHex(address);
             emit("caller_lr=");
@@ -347,6 +360,10 @@ bool installNativeAbortProbe(const std::string& directory) {
     g_trace = open(file.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_CLOEXEC | O_DSYNC, 0600);
     if (g_trace < 0) return false;
     emit("NATIVE_ABORT_PROBE_INSTALLED\n");
+    if (std::atexit(markProcessExit) == 0)
+        emit("NATIVE_ATEXIT_WATCH_ARMED\n");
+    else
+        emit("NATIVE_ATEXIT_WATCH_FAILED\n");
     struct sigaction action{};
     sigemptyset(&action.sa_mask);
     action.sa_sigaction = &onAbort;
