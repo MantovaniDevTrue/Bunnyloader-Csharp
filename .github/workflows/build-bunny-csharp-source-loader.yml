@@ -50,6 +50,7 @@ on:
       - bunny-csharp-source-0.1.10.16.27-onhit-buff
       - bunny-csharp-source-0.1.10.16.28-onhit-precise
       - bunny-csharp-source-0.1.10.16.29-roslyn-memory
+      - bunny-csharp-source-0.1.10.16.30-onkill-burn
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -196,10 +197,10 @@ jobs:
           test ! -d "$PKG/native"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.2.bl"
+          PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.3.bl"
           test -f "$PACK"
-          cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod"
-          python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod" <<'PY'
+          cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod"
+          python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -213,7 +214,7 @@ jobs:
               assert not any(n.endswith((".js",".so",".dll")) for n in names)
               print("CSHARP_SOURCE_ONLY_PACKAGE=YES")
           PY
-          sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod.sha256"
 
       - name: Stage experimental MonoVM and managed probe
         shell: bash
@@ -340,7 +341,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='55' versionName='0.1.10.16.29-csharp-roslyn-memory'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='56' versionName='0.1.10.16.30-csharp-onkill-burn'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -363,11 +364,11 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.29-RoslynMemory.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.30-OnKillBurn.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod.sha256"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod"
+          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod.sha256"
 
       - name: Publish signed APK as GitHub Release asset
         shell: bash
@@ -375,17 +376,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.29"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.30"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.29-RoslynMemory.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.30-OnKillBurn.apk"
           test -s "$APK"
           test -s "$APK.sha256"
-          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod"
+          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.29 — Roslyn Memory Optimization" \
-              --notes "Optimize C# source compilation on Android after an isolated MonoVM worker low-memory exit. Skip optional Roslyn probe compilations and duplicate semantic passes by default; keep diagnostics available via BUNNY_ROSLYN_DIAGNOSTIC_PROBES=1. Enable atomic worker memory telemetry. Preserve 256-entry OnHitNPC policy, homing, JavaScript and NativeAOT. Requires device validation." \
+              --title "Bunny Loader C# v0.1.10.16.30 — CSharp OnKill Area Burn" \
+              --notes "Experimental C# OnKill callback policy: SourceBolt defines bounded area radius and OnFire duration in C#; Roslyn/MonoVM generates 256 samples. Terraria native Projectile.Kill hook applies AoE burning to up to six valid NPCs within range, solo only. Preserves low-memory Roslyn fix, homing, OnHitNPC, JavaScript and NativeAOT. Requires Android test." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -395,8 +396,8 @@ jobs:
           fi
           gh release upload "$DEST" \
             "$APK" "$APK.sha256" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod.sha256" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod" \
+            "$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
           echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
 
@@ -408,13 +409,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.29-RoslynMemory.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.30-OnKillBurn.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          MOD="$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod"
-          MODSHA="$RUNNER_TEMP/SourceCSharpMod-v0.1.2.bmod.sha256"
+          MOD="$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod"
+          MODSHA="$RUNNER_TEMP/SourceCSharpMod-v0.1.3.bmod.sha256"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" "$MOD" "$MODSHA" --repo "${{ github.repository }}" --clobber
           else
