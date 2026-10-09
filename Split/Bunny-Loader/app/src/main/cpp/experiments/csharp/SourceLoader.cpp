@@ -159,11 +159,15 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->error = "nao foi possivel ler " + path;
             return false;
         }
-        if (!parseCSharpSource(contents, &defs, &status->error)) {
+        if (!parseCSharpSource(contents, &defs, &status->error, false)) {
             status->error = path + ": " + status->error;
             return false;
         }
         ++status->sourceFiles;
+    }
+    if (defs.empty()) {
+        status->error = "mod C# sem nenhuma classe BunnyWeapon ou BunnyProjectile";
+        return false;
     }
     if (defs.size() > 128) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> types;
