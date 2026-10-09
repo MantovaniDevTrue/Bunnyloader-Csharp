@@ -163,14 +163,80 @@ std::atomic<int> g_errors{0};
 std::atomic<int> g_lastSlot{-1};
 std::atomic<int> g_lastState{0};
 
+std::array<Slot, 4096> g_sparkSlots{};
+std::array<int, 120> g_sparkTurns{};
+FieldInfo* g_sparkNetMode = nullptr;
+std::atomic<int> g_sparkType{-1};
+std::atomic<bool> g_sparkEnabled{false};
+std::atomic<int> g_sparkSpawns{0};
+std::atomic<int> g_sparkCalls{0};
+std::atomic<int> g_sparkWrites{0};
+std::atomic<int> g_sparkErrors{0};
+std::atomic<int> g_sparkLastSlot{-1};
+std::atomic<int> g_sparkLastTurn{0};
+
+void applySparkAi(Il2CppObject* projectile, const runtime::GameRefs& game) {
+    if (!g_sparkNetMode) return;
+    int mode = -1;
+    il2cpp::api().field_static_get_value(g_sparkNetMode, &mode);
+    if (mode != 0) {
+        g_sparkErrors.fetch_add(1, std::memory_order_relaxed);
+        g_sparkEnabled.store(false, std::memory_order_release);
+        return;
+    }
+    if (!runtime::field<uint8_t>(projectile, game.proj.active)) return;
+    const int timeLeft = runtime::field<int32_t>(projectile, game.proj.timeLeft);
+    if (timeLeft <= 0) return;
+    const int slot = runtime::field<int32_t>(projectile, game.entity.whoAmI);
+    if (slot < 0 || static_cast<size_t>(slot) >= g_sparkSlots.size()) return;
+    const int owner = runtime::field<int32_t>(projectile, game.proj.owner);
+    Slot& entry = g_sparkSlots[static_cast<size_t>(slot)];
+    if (entry.object != projectile || entry.owner != owner ||
+        timeLeft > entry.lastTimeLeft) {
+        entry = {projectile, owner, timeLeft, 0, 0};
+        g_sparkSpawns.fetch_add(1, std::memory_order_relaxed);
+    }
+    entry.lastTimeLeft = timeLeft;
+    if (entry.ticks >= 120 || g_sparkCalls.load(std::memory_order_relaxed) >= 30000) return;
+    const int turn = g_sparkTurns[static_cast<size_t>(entry.ticks)];
+    ++entry.ticks;
+    g_sparkCalls.fetch_add(1, std::memory_order_relaxed);
+    g_sparkLastSlot.store(slot, std::memory_order_relaxed);
+    g_sparkLastTurn.store(turn, std::memory_order_relaxed);
+
+    Vector2 velocity = runtime::field<Vector2>(projectile, game.entity.velocity);
+    if (!std::isfinite(velocity.x) || !std::isfinite(velocity.y)) return;
+    const float speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
+    if (!std::isfinite(speedSquared) || speedSquared < 0.01f ||
+        speedSquared > 4096.f) return;
+    const float angle = static_cast<float>(turn) * 0.001f;
+    const float sine = std::sin(angle);
+    const float cosine = std::cos(angle);
+    const Vector2 rotated{
+        velocity.x * cosine - velocity.y * sine,
+        velocity.x * sine + velocity.y * cosine
+    };
+    if (!std::isfinite(rotated.x) || !std::isfinite(rotated.y)) return;
+    runtime::field<Vector2>(projectile, game.entity.velocity) = rotated;
+    runtime::field<float>(projectile, game.proj.rotation) =
+        std::atan2(rotated.y, rotated.x);
+    g_sparkWrites.fetch_add(1, std::memory_order_relaxed);
+}
+
 void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
     if (original) original(projectile, method);
-    if (!g_enabled.load(std::memory_order_relaxed) || !projectile) return;
+    if (!projectile) return;
 
     const auto& game = runtime::game();
-    if (runtime::field<int32_t>(projectile, game.proj.type) !=
-        g_type.load(std::memory_order_relaxed)) return;
+    const int projectileType = runtime::field<int32_t>(projectile, game.proj.type);
+    if (g_sparkEnabled.load(std::memory_order_relaxed) &&
+        projectileType == g_sparkType.load(std::memory_order_relaxed)) {
+        applySparkAi(projectile, game);
+        return;
+    }
+    if (!g_enabled.load(std::memory_order_relaxed) ||
+        projectileType != g_type.load(std::memory_order_relaxed)) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int32_t>(projectile, game.proj.timeLeft) <= 0) return;
 
@@ -275,6 +341,106 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     g_writes.fetch_add(1, std::memory_order_relaxed);
 }
 
+}
+
+bool enableSourceSparkAi(const std::array<int, 120>& turnsMilliRadians, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    int nonzero = 0;
+    for (const int turn : turnsMilliRadians) {
+        if (turn < -60 || turn > 60) {
+            *error = "SourceSpark C# turn fora do limite de 60 mrad";
+            return false;
+        }
+        if (turn != 0) ++nonzero;
+    }
+    if (nonzero < 80) {
+        *error = "SourceSpark AI precisa de movimento C# independente";
+        return false;
+    }
+    if (!runtime::resolveGameRefs() || !runtime::modProjectilesSettled()) {
+        *error = "Tabelas Terraria indisponiveis";
+        return false;
+    }
+    constexpr const char* uid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
+    bool applied = false;
+    for (const auto& mod : sourceModStatuses()) {
+        if (mod.id == uid && mod.loaded && mod.runtimeApplied &&
+            mod.registeredTypes.contains("SourceSpark")) {
+            applied = true;
+            break;
+        }
+    }
+    const int type = runtime::modProjectileTypeByName(uid, "SourceSpark");
+    if (!applied || type < 0 || type >= runtime::projectileTypeCount()) {
+        *error = "SourceSpark nao registrado ou SetDefaults nao aplicado";
+        return false;
+    }
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    if (!main || !runtime::game().proj.aiMethod) {
+        *error = "Terraria.Main ou Projectile.AI indisponivel";
+        return false;
+    }
+    FieldInfo* modeField = il2cpp::findField(main, "netMode");
+    FieldInfo* menuField = il2cpp::findField(main, "gameMenu");
+    if (!modeField) {
+        *error = "Main.netMode ausente; SourceSpark AI precisa do singleplayer";
+        return false;
+    }
+    int mode = -1;
+    il2cpp::api().field_static_get_value(modeField, &mode);
+    if (mode != 0) {
+        *error = "SourceSpark AI exclusivo do singleplayer";
+        return false;
+    }
+    if (menuField) {
+        uint8_t inMenu = 0;
+        il2cpp::api().field_static_get_value(menuField, &inMenu);
+        if (inMenu) {
+            *error = "Entre no mundo antes de ativar SourceSpark AI";
+            return false;
+        }
+    }
+    g_sparkEnabled.store(false, std::memory_order_release);
+    if (!g_installed.load(std::memory_order_acquire)) {
+        if (!hook::install(runtime::game().proj.aiMethod, hkAi, &g_original)) {
+            *error = "Falha ao instalar hook Projectile.AI para SourceSpark";
+            return false;
+        }
+        g_installed.store(true, std::memory_order_release);
+    }
+    for (auto& slot : g_sparkSlots) slot = {};
+    g_sparkTurns = turnsMilliRadians;
+    g_sparkNetMode = modeField;
+    g_sparkType.store(type, std::memory_order_relaxed);
+    g_sparkSpawns.store(0, std::memory_order_relaxed);
+    g_sparkCalls.store(0, std::memory_order_relaxed);
+    g_sparkWrites.store(0, std::memory_order_relaxed);
+    g_sparkErrors.store(0, std::memory_order_relaxed);
+    g_sparkLastSlot.store(-1, std::memory_order_relaxed);
+    g_sparkLastTurn.store(0, std::memory_order_relaxed);
+    g_sparkEnabled.store(true, std::memory_order_release);
+    BL_INFO("csharp SourceSpark AI: tipo %d, buffer 120, independente do SourceBolt", type);
+    return true;
+}
+
+bool pauseSourceSparkAi() {
+    return g_sparkEnabled.exchange(false, std::memory_order_acq_rel);
+}
+
+SourceSparkAiStatus sourceSparkAiStatus() {
+    SourceSparkAiStatus status;
+    status.installed = g_installed.load(std::memory_order_acquire);
+    status.enabled = g_sparkEnabled.load(std::memory_order_acquire);
+    status.type = g_sparkType.load(std::memory_order_relaxed);
+    status.samples = status.enabled ? 120 : 0;
+    status.spawns = g_sparkSpawns.load(std::memory_order_relaxed);
+    status.callbacks = g_sparkCalls.load(std::memory_order_relaxed);
+    status.velocityWrites = g_sparkWrites.load(std::memory_order_relaxed);
+    status.errors = g_sparkErrors.load(std::memory_order_relaxed);
+    status.lastSlot = g_sparkLastSlot.load(std::memory_order_relaxed);
+    status.lastTurn = g_sparkLastTurn.load(std::memory_order_relaxed);
+    return status;
 }
 
 bool armSourceBoltHook(std::string* error, const std::array<int, 120>* turns) {
