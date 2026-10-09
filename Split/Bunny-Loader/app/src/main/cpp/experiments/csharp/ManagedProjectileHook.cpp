@@ -6,7 +6,10 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
+#include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -26,7 +29,95 @@ struct Slot {
     int lastTimeLeft = 0;
     int ticks = 0;
     int state = 0;
+    int target = -1;
+    float targetX = 0.f;
+    float targetY = 0.f;
 };
+
+struct NpcTargetRefs {
+    FieldInfo* npcArray = nullptr;
+    FieldInfo* myPlayer = nullptr;
+    int32_t active = -1;
+    int32_t friendly = -1;
+    int32_t dontTakeDamage = -1;
+    int32_t life = -1;
+    bool ready = false;
+};
+
+NpcTargetRefs g_targets{};
+SourceBoltHomingPolicy g_homingPolicy{};
+std::atomic<bool> g_homing{false};
+std::atomic<int> g_scans{0};
+std::atomic<int> g_locks{0};
+std::atomic<int> g_homingFrames{0};
+std::atomic<int> g_lastTarget{-1};
+int g_localPlayer = -1;
+
+bool prepareHomingTargetRefs(std::string* error) {
+    if (g_targets.ready) return true;
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* npc = il2cpp::findClass({"Terraria", "NPC", {}});
+    if (!main || !npc) {
+        *error = "Terraria.Main/NPC indisponiveis";
+        return false;
+    }
+    NpcTargetRefs refs{};
+    refs.npcArray = il2cpp::findField(main, "npc");
+    refs.myPlayer = il2cpp::findField(main, "myPlayer");
+    refs.active = il2cpp::fieldOffset(npc, "active");
+    refs.friendly = il2cpp::fieldOffset(npc, "friendly");
+    refs.dontTakeDamage = il2cpp::fieldOffset(npc, "dontTakeDamage");
+    refs.life = il2cpp::fieldOffset(npc, "life");
+    refs.ready = refs.npcArray && refs.myPlayer &&
+        refs.active >= 0 && refs.friendly >= 0 &&
+        refs.dontTakeDamage >= 0 && refs.life >= 0;
+    if (!refs.ready) {
+        *error = "Campos NPC ativos/inimigos nao encontrados";
+        return false;
+    }
+    g_targets = refs;
+    return true;
+}
+
+bool refreshTarget(Slot& entry, const Vector2& position, float maxDistanceSquared) {
+    ++g_scans;
+    entry.target = -1;
+    Il2CppArray* npcs = nullptr;
+    il2cpp::api().field_static_get_value(g_targets.npcArray, &npcs);
+    if (!npcs || npcs->length < 1 || npcs->length > 1024) return false;
+    auto** contents = static_cast<Il2CppObject**>(arrayData(npcs));
+    float bestDistance = maxDistanceSquared;
+    const size_t limit = std::min(static_cast<size_t>(npcs->length), size_t{200});
+    const auto& game = runtime::game();
+    for (size_t i = 0; i < limit; ++i) {
+        auto* npc = contents[i];
+        if (!npc || !runtime::field<uint8_t>(npc, g_targets.active) ||
+            runtime::field<uint8_t>(npc, g_targets.friendly) ||
+            runtime::field<uint8_t>(npc, g_targets.dontTakeDamage) ||
+            runtime::field<int32_t>(npc, g_targets.life) <= 0) continue;
+        const Vector2 npcPosition = runtime::field<Vector2>(npc, game.entity.position);
+        const int width = runtime::field<int32_t>(npc, game.entity.width);
+        const int height = runtime::field<int32_t>(npc, game.entity.height);
+        if (!std::isfinite(npcPosition.x) || !std::isfinite(npcPosition.y) ||
+            width <= 0 || width > 2048 || height <= 0 || height > 2048) continue;
+        const float x = npcPosition.x + static_cast<float>(width) * 0.5f;
+        const float y = npcPosition.y + static_cast<float>(height) * 0.5f;
+        const float dx = x - position.x;
+        const float dy = y - position.y;
+        const float d2 = dx * dx + dy * dy;
+        if (std::isfinite(d2) && d2 < bestDistance) {
+            bestDistance = d2;
+            entry.target = static_cast<int>(i);
+            entry.targetX = x;
+            entry.targetY = y;
+        }
+    }
+    if (entry.target >= 0) {
+        ++g_locks;
+        g_lastTarget.store(entry.target, std::memory_order_relaxed);
+    }
+    return entry.target >= 0;
+}
 
 using AiFn = void (*)(Il2CppObject*, const MethodInfo*);
 
@@ -58,6 +149,7 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     const int slotId = runtime::field<int32_t>(projectile, game.entity.whoAmI);
     if (slotId < 0 || static_cast<size_t>(slotId) >= g_slots.size()) return;
     const int owner = runtime::field<int32_t>(projectile, game.proj.owner);
+    if (g_homing.load(std::memory_order_relaxed) && owner != g_localPlayer) return;
     const int timeLeft = runtime::field<int32_t>(projectile, game.proj.timeLeft);
     Slot& entry = g_slots[static_cast<size_t>(slotId)];
     if (entry.object != projectile || entry.owner != owner ||
@@ -66,12 +158,43 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
         g_spawns.fetch_add(1, std::memory_order_relaxed);
     }
     entry.lastTimeLeft = timeLeft;
-    if (entry.ticks >= 120 || g_calls.load(std::memory_order_relaxed) >= 2400) return;
+    if (entry.ticks >= 120 || g_calls.load(std::memory_order_relaxed) >= 30000) return;
 
     int next = 0;
     float angle = 0.f;
     if (g_buffered.load(std::memory_order_acquire)) {
-        const int milliRadians = g_turns[static_cast<size_t>(entry.ticks)];
+        int milliRadians = g_turns[static_cast<size_t>(entry.ticks)];
+        if (g_homing.load(std::memory_order_relaxed)) {
+            const Vector2 projPos = runtime::field<Vector2>(projectile, game.entity.position);
+            const int width = runtime::field<int32_t>(projectile, game.entity.width);
+            const int height = runtime::field<int32_t>(projectile, game.entity.height);
+            const Vector2 center{
+                projPos.x + static_cast<float>(width) * 0.5f,
+                projPos.y + static_cast<float>(height) * 0.5f
+            };
+            if (std::isfinite(center.x) && std::isfinite(center.y)) {
+                if (entry.ticks % g_homingPolicy.retargetTicks == 0)
+                    refreshTarget(entry, center,
+                        static_cast<float>(g_homingPolicy.radius * g_homingPolicy.radius));
+                if (entry.target >= 0) {
+                    const Vector2 velocity = runtime::field<Vector2>(projectile, game.entity.velocity);
+                    const float dx = entry.targetX - center.x;
+                    const float dy = entry.targetY - center.y;
+                    if (std::isfinite(velocity.x) && std::isfinite(velocity.y) &&
+                        std::isfinite(dx) && std::isfinite(dy) &&
+                        dx * dx + dy * dy > 25.f) {
+                        const float error = std::atan2(
+                            velocity.x * dy - velocity.y * dx,
+                            velocity.x * dx + velocity.y * dy);
+                        const int lookup = std::clamp(
+                            static_cast<int>(std::lround(error * (64.f / 3.14159265358979323846f))) + 64,
+                            0, 128);
+                        milliRadians = g_homingPolicy.turnsMilliRadians[static_cast<size_t>(lookup)];
+                        ++g_homingFrames;
+                    }
+                }
+            }
+        }
         next = entry.state + milliRadians;
         angle = milliRadians * 0.001f;
     } else {
@@ -154,6 +277,11 @@ bool armSourceBoltHook(std::string* error, const std::array<int, 120>* turns) {
         g_installed.store(true, std::memory_order_release);
     }
     for (auto& slot : g_slots) slot = {};
+    g_homing.store(false, std::memory_order_release);
+    g_scans.store(0, std::memory_order_relaxed);
+    g_locks.store(0, std::memory_order_relaxed);
+    g_homingFrames.store(0, std::memory_order_relaxed);
+    g_lastTarget.store(-1, std::memory_order_relaxed);
     g_calls.store(0, std::memory_order_relaxed);
     g_writes.store(0, std::memory_order_relaxed);
     g_spawns.store(0, std::memory_order_relaxed);
@@ -190,6 +318,42 @@ bool enableBufferedSourceBoltHook(
     return armSourceBoltHook(error, &turnsMilliRadians);
 }
 
+bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
+                                 const std::array<int, 120>& fallbackTurns,
+                                 std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (policy.radius < 64 || policy.radius > 720 ||
+        policy.retargetTicks < 4 || policy.retargetTicks > 24) {
+        *error = "HomingRange/RetargetInterval fora dos limites";
+        return false;
+    }
+    for (int turn : policy.turnsMilliRadians)
+        if (turn < -80 || turn > 80) {
+            *error = "Curva de perseguição excede limite de 80 mrad";
+            return false;
+        }
+    for (int turn : fallbackTurns)
+        if (turn < -80 || turn > 80) {
+            *error = "Curva de movimento excede limite de 80 mrad";
+            return false;
+        }
+    if (!prepareHomingTargetRefs(error)) return false;
+    int localPlayer = -1;
+    il2cpp::api().field_static_get_value(g_targets.myPlayer, &localPlayer);
+    if (localPlayer < 0 || localPlayer >= 255) {
+        *error = "Entrar no mundo antes de ativar perseguicao C#";
+        return false;
+    }
+    if (!armSourceBoltHook(error, &fallbackTurns)) return false;
+    g_localPlayer = localPlayer;
+    g_homingPolicy = policy;
+    g_homing.store(true, std::memory_order_release);
+    BL_INFO("csharp AI: homing ativo radius=%d retarget=%d",
+            policy.radius, policy.retargetTicks);
+    return true;
+}
+
 bool pauseManagedSourceBoltHook() {
     return g_enabled.exchange(false, std::memory_order_acq_rel);
 }
@@ -199,6 +363,11 @@ ManagedProjectileHookStatus managedSourceBoltHookStatus() {
     result.installed = g_installed.load(std::memory_order_acquire);
     result.enabled = g_enabled.load(std::memory_order_acquire);
     result.buffered = g_buffered.load(std::memory_order_acquire);
+    result.homing = g_homing.load(std::memory_order_acquire);
+    result.homingScans = g_scans.load(std::memory_order_relaxed);
+    result.homingLocks = g_locks.load(std::memory_order_relaxed);
+    result.homingFrames = g_homingFrames.load(std::memory_order_relaxed);
+    result.lastTarget = g_lastTarget.load(std::memory_order_relaxed);
     result.bufferSamples = result.buffered ? 120 : 0;
     result.type = g_type.load(std::memory_order_relaxed);
     result.callbacks = g_calls.load(std::memory_order_relaxed);
