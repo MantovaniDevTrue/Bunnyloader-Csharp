@@ -35,7 +35,10 @@ public static class CompiledAssemblyProbe
             var playerTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyPlayer")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
+            var npcTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyNPC")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            if (npcTypes.Length > 16 || accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
                 projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
                 weaponTypes.Length < 1 || weaponTypes.Length > 16 ||
                 buffTypes.Length > 16 || potionTypes.Length > 16)
@@ -54,8 +57,9 @@ public static class CompiledAssemblyProbe
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
             object[] players = playerTypes.Select(CreateContent).ToArray();
+            object[] npcs = npcTypes.Select(CreateContent).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, diagnosticsPath);
+                accessories, players, npcs, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -67,15 +71,16 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
+                " npcs=" + npcs.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length;
+                accessories.Length + players.Length + npcs.Length;
         }
         catch (Exception exception)
         {
@@ -399,7 +404,7 @@ public static class CompiledAssemblyProbe
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
-        object[] players, string diagnosticsPath)
+        object[] players, object[] npcs, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -419,7 +424,7 @@ public static class CompiledAssemblyProbe
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
-            potions.Length + accessories.Length + players.Length + 1)
+            potions.Length + accessories.Length + players.Length + npcs.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
@@ -520,6 +525,34 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset defense");
             lines.Add(string.Join("\t", "PLAYER", name, accessoryName,
                 defense.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (object npc in npcs)
+        {
+            string name = npc.GetType().Name;
+            CheckName(name);
+            if (!names.Add(name))
+                throw new InvalidOperationException("Duplicate NPC C# class: " + name);
+            int width = Value<int>(npc, "Width");
+            int height = Value<int>(npc, "Height");
+            int damage = Value<int>(npc, "Damage");
+            int defense = Value<int>(npc, "Defense");
+            int life = Value<int>(npc, "LifeMax");
+            int ai = Value<int>(npc, "AiStyle");
+            int animation = Value<int>(npc, "AnimationType");
+            int frames = Value<int>(npc, "Frames");
+            if (width < 8 || width > 256 || height < 8 || height > 256 ||
+                damage < 0 || damage > 500 || defense < 0 || defense > 200 ||
+                life < 1 || life > 100000 || ai != 1 || animation != 1 || frames != 2)
+                throw new InvalidOperationException("BunnyNPC only supports validated slime AI defaults");
+            lines.Add(string.Join("\t", "NPC", name,
+                width.ToString(CultureInfo.InvariantCulture),
+                height.ToString(CultureInfo.InvariantCulture),
+                damage.ToString(CultureInfo.InvariantCulture),
+                defense.ToString(CultureInfo.InvariantCulture),
+                life.ToString(CultureInfo.InvariantCulture),
+                ai.ToString(CultureInfo.InvariantCulture),
+                animation.ToString(CultureInfo.InvariantCulture),
+                frames.ToString(CultureInfo.InvariantCulture)));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
