@@ -70,6 +70,22 @@ try
         !samples.Any(x => int.TryParse(x, out var n) && n < -15) ||
         !samples.All(x => int.TryParse(x, out var n) && Math.Abs(n) <= 80))
         throw new InvalidOperationException("Invalid 120-tick motion buffer: " + motionLines[2]);
+    string sparkFile = File.ReadAllText(Path.Combine(scratch, "source-spark-turns.txt"));
+    string[] sparkLines = sparkFile.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (sparkLines.Length != 3 ||
+        sparkLines[0] != "BUNNY_SOURCE_SPARK_TURNS_V1" ||
+        sparkLines[1] != "SourceSpark")
+        throw new InvalidOperationException("SourceSpark C# motion policy header invalid");
+    string[] sparkSamples = sparkLines[2].Split('\t');
+    if (sparkSamples.Length != 120 ||
+        !Enumerable.Range(0, 120).All(i =>
+            int.TryParse(sparkSamples[i], out var mrad) &&
+            mrad == (int)MathF.Round(MathF.Sin(i * 0.32f) * 45f)) ||
+        !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad > 30) ||
+        !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad < -30))
+        throw new InvalidOperationException("Independent C# SourceSpark AI curve failed validation");
+    Console.WriteLine("BUNNY_CSHARP_SPARK_AI_BUFFER=PASS");
+
     string homingFile = File.ReadAllText(Path.Combine(scratch, "source-homing-policy.txt"));
     string[] homingLines = homingFile.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     if (homingLines.Length != 4 ||
