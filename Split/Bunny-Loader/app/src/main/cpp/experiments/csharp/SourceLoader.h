@@ -16,6 +16,9 @@ struct SourceModStatus {
     int projectiles = 0;
     int buffs = 0;
     int potions = 0;
+    int accessories = 0;
+    int players = 0;
+    std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;
     std::map<std::string, int> registeredTypes;
