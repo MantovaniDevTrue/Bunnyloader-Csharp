@@ -23,8 +23,15 @@ public static class CompiledAssemblyProbe
             var weaponTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyWeapon")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var buffTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyBuff")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var potionTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyBuffPotion")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
-                weaponTypes.Length < 1 || weaponTypes.Length > 16)
+                weaponTypes.Length < 1 || weaponTypes.Length > 16 ||
+                buffTypes.Length > 16 || potionTypes.Length > 16)
                 throw new InvalidOperationException("C# content class count out of bounds");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -36,7 +43,9 @@ public static class CompiledAssemblyProbe
             object[] weapons = weaponTypes.Select(type =>
                 fixture && type.FullName == "SourceCSharpMod.SourceWand"
                     ? primaryWeapon! : CreateContent(type)).ToArray();
-            WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
+            object[] buffs = buffTypes.Select(CreateContent).ToArray();
+            object[] potions = potionTypes.Select(CreateContent).ToArray();
+            WriteRuntimeDefaults(projectiles, weapons, buffs, potions, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -48,12 +57,13 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
+                " buffs=" + buffs.Length + " potions=" + potions.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
-            return projectiles.Length + weapons.Length;
+            return projectiles.Length + weapons.Length + buffs.Length + potions.Length;
         }
         catch (Exception exception)
         {
@@ -375,7 +385,8 @@ public static class CompiledAssemblyProbe
             retarget.ToString(CultureInfo.InvariantCulture));
     }
 
-    private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons, string diagnosticsPath)
+    private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
+        object[] buffs, object[] potions, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -393,7 +404,8 @@ public static class CompiledAssemblyProbe
 
         var names = new HashSet<string>(StringComparer.Ordinal);
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
-        var lines = new List<string>(projectiles.Length + weapons.Length + 1)
+        var buffNames = new HashSet<string>(StringComparer.Ordinal);
+        var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length + potions.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
@@ -428,6 +440,33 @@ public static class CompiledAssemblyProbe
                 Value<float>(weapon, "ShootSpeed").ToString("R", CultureInfo.InvariantCulture),
                 shootName));
         }
+        foreach (object buff in buffs)
+        {
+            string name = buff.GetType().Name;
+            CheckName(name);
+            if (!names.Add(name))
+                throw new InvalidOperationException("Duplicate content class: " + name);
+            buffNames.Add(name);
+            int defense = Value<int>(buff, "DefenseBonus");
+            if (defense < -50 || defense > 100)
+                throw new InvalidOperationException("Invalid C# buff defense bonus");
+            lines.Add(string.Join("\t", "BUFF", name,
+                defense.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (object potion in potions)
+        {
+            string name = potion.GetType().Name;
+            string buffName = Value<string>(potion, "Buff");
+            CheckName(name);
+            CheckName(buffName);
+            if (!names.Add(name) || !buffNames.Contains(buffName))
+                throw new InvalidOperationException("C# buff potion target missing or duplicated");
+            int duration = Value<int>(potion, "Duration");
+            if (duration < 1 || duration > 216000)
+                throw new InvalidOperationException("Invalid C# buff potion duration");
+            lines.Add(string.Join("\t", "POTION", name,
+                duration.ToString(CultureInfo.InvariantCulture), buffName));
+        }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
         string destination = Path.Combine(folder, "source-runtime-values.txt");
@@ -435,7 +474,8 @@ public static class CompiledAssemblyProbe
         File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
         File.Move(temporary, destination, true);
         File.AppendAllText(diagnosticsPath, "\nDEFAULTS_MULTI_OK projectiles=" +
-            projectiles.Length + " weapons=" + weapons.Length);
+            projectiles.Length + " weapons=" + weapons.Length +
+            " buffs=" + buffs.Length + " potions=" + potions.Length);
     }
 
 }
