@@ -1,0 +1,101 @@
+name: Analyze Bunny Mono Exit Symbols
+
+on:
+  push:
+    branches:
+      - bunny-csharp-mono-exit-symbols-0.1.10.16.16
+    paths:
+      - ".github/workflows/analyze-bunny-mono-exit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download exact Android ARM64 MonoVM 8.0.23
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.android-arm64/8.0.23/microsoft.netcore.app.runtime.mono.android-arm64.8.0.23.nupkg"
+          curl -fLsS --retry 3 "$URL" -o /tmp/mono-android-8.0.23.nupkg
+          unzip -p /tmp/mono-android-8.0.23.nupkg \
+            "runtimes/android-arm64/native/libmonosgen-2.0.so" > /tmp/mono.so
+          test -s /tmp/mono.so
+          file /tmp/mono.so
+          sha256sum /tmp/mono.so
+          readelf -n /tmp/mono.so | head -45 || true
+          readelf -W -l /tmp/mono.so | grep -E 'Type|LOAD' | head -12
+          readelf -SW /tmp/mono.so | grep -E '(\.text|\.dynsym|\.symtab)' | head -12
+
+      - name: Symbolize captured libmonosgen caller addresses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          so = "/tmp/mono.so"
+          mapping = 0x769f68a000
+          pcs = [
+              ("exit_caller_lr", 0x769f81ec18),
+              ("exit_return_1", 0x769f81ec18),
+              ("exit_return_2", 0x769f7d4c7c),
+              ("exit_return_3", 0x769f7563c0)
+          ]
+          result = subprocess.run(["readelf", "-W", "-s", so], capture_output=True, text=True, check=True)
+          symbols = []
+          for line in result.stdout.splitlines():
+              cols = line.split(maxsplit=7)
+              if len(cols) < 8 or not cols[0].endswith(":") or cols[3] != "FUNC":
+                  continue
+              try:
+                  value = int(cols[1], 16)
+                  size = int(cols[2])
+              except ValueError:
+                  continue
+              if value:
+                  symbols.append((value, size, cols[7]))
+          symbols.sort()
+          print("SYMBOL_COUNT", len(symbols))
+          for label, address in pcs:
+              offset = address - mapping
+              print("\n"+"="*48)
+              print(label, hex(address), "ELF_OFFSET", hex(offset))
+              nearest = sorted(symbols, key=lambda x: abs(x[0] - offset))[:12]
+              below = [s for s in symbols if s[0] <= offset]
+              for kind, candidates in (("NEAREST", sorted(nearest)), ("BELOW", below[-10:])):
+                  print(kind)
+                  for val, size, name in candidates:
+                      print(f"  {val:#x} +{offset-val:#x} size={size:#x} {name}")
+              for x in [offset, offset-4]:
+                  sym = subprocess.run(["addr2line","-f","-C","-e",so,hex(x)],capture_output=True,text=True)
+                  print("ADDR2LINE",hex(x), sym.stdout.strip().replace("\n", " | "))
+          PY
+
+      - name: Disassemble entry and upstream frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          OBJDUMP=""
+          for tool in llvm-objdump llvm-objdump-20 llvm-objdump-19 llvm-objdump-18 llvm-objdump-17 aarch64-linux-gnu-objdump; do
+            if command -v "$tool" >/dev/null 2>&1; then OBJDUMP="$tool"; break; fi
+          done
+          if [ -z "$OBJDUMP" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq binutils-aarch64-linux-gnu
+            OBJDUMP="aarch64-linux-gnu-objdump"
+          fi
+          echo "DISASSEMBLER=$OBJDUMP"
+          for address in 0x194c18 0x14ac7c 0xcc3c0; do
+            start=$((address-144))
+            stop=$((address+48))
+            echo "===== FRAME_OFFSET=$address DECIMAL=$((address)) ====="
+            "$OBJDUMP" -d -C \
+              --start-address="$start" --stop-address="$stop" /tmp/mono.so | tail -100 || true
+          done
+          echo "===== LIKELY_EXIT_RELATED_SYMBOLS ====="
+          readelf -W --dyn-syms /tmp/mono.so |
+            grep -Ei '(^|[^a-z])(exit|fatal|assert|abort|fail|mono_trace)([^a-z]|$)' | head -75 || true
