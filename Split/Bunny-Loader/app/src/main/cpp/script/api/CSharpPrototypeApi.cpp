@@ -254,8 +254,9 @@ JSValue jsSourceEnableBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValue
 }
 
 JSValue jsSourceAIStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::managedSourceBoltHookStatus();
     JSValue result = makeSourceBoltHookStatus(ctx);
-    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-AI-Buffered-v1"));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, status.homing ? "Roslyn-MonoVM-Homing-Policy-v1" : "Roslyn-MonoVM-AI-Buffered-v1"));
     return result;
 }
 
