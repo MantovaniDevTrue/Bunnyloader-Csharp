@@ -14,6 +14,7 @@ struct ParsedSourceType {
 
 bool parseCSharpSource(const std::string& source,
                        std::vector<ParsedSourceType>* definitions,
-                       std::string* error);
+                       std::string* error,
+                       bool requireContent = true);
 
 }
