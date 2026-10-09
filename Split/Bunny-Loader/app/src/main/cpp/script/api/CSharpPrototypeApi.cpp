@@ -571,6 +571,91 @@ JSValue jsSourceEnableOnKill(JSContext* ctx, JSValueConst, int argc, JSValueCons
     return result;
 }
 
+JSValue jsSourceSparkStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::sourceSparkAiStatus();
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "type", JS_NewInt32(ctx, status.type));
+    JS_SetPropertyStr(ctx, result, "samples", JS_NewInt32(ctx, status.samples));
+    JS_SetPropertyStr(ctx, result, "spawns", JS_NewInt32(ctx, status.spawns));
+    JS_SetPropertyStr(ctx, result, "callbacks", JS_NewInt32(ctx, status.callbacks));
+    JS_SetPropertyStr(ctx, result, "velocityWrites", JS_NewInt32(ctx, status.velocityWrites));
+    JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, result, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
+    JS_SetPropertyStr(ctx, result, "lastTurn", JS_NewInt32(ctx, status.lastTurn));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-SourceSpark-AI-v1"));
+    return result;
+}
+
+JSValue jsSourcePauseSparkAI(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0)
+        return JS_ThrowTypeError(ctx, "sourcePauseSparkAI()");
+    bool previous = bl::csharp::pauseSourceSparkAi();
+    JSValue result = jsSourceSparkStatus(ctx, JS_UNDEFINED, 0, nullptr);
+    JS_SetPropertyStr(ctx, result, "wasEnabled", JS_NewBool(ctx, previous));
+    return result;
+}
+
+JSValue jsSourceEnableSparkAI(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceEnableSparkAI('CONFIRM_SPARK_CSHARP_AI')");
+    const char* supplied = JS_ToCString(ctx, argv[0]);
+    if (!supplied) return JS_EXCEPTION;
+    const bool approved = std::string_view(supplied) == "CONFIRM_SPARK_CSHARP_AI";
+    JS_FreeCString(ctx, supplied);
+    if (!approved)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_SPARK_CSHARP_AI");
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostics.find("SPARK_AI_BUFFER_OK ticks=120 source=SourceSparkMotion") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compile a politica SourceSparkMotion C# antes de ativar");
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.runtimeApplied && mod.registeredTypes.contains("SourceSpark")) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "Aplique os SetDefaults e registre SourceSpark antes");
+    std::istringstream input(readManagedWorkerFile("source-spark-turns.txt"));
+    std::string header, projectile, values, trailing;
+    if (!std::getline(input, header) || header != "BUNNY_SOURCE_SPARK_TURNS_V1" ||
+        !std::getline(input, projectile) || projectile != "SourceSpark" ||
+        !std::getline(input, values) || (std::getline(input, trailing) && !trailing.empty()))
+        return JS_ThrowInternalError(ctx, "Arquivo de IA C# SourceSpark invalido");
+    std::istringstream samples(values);
+    std::array<int, 120> turns{};
+    int nonzero = 0;
+    for (size_t i = 0; i < turns.size(); ++i) {
+        std::string part;
+        if (!std::getline(samples, part, '\t') || part.empty() || part.size() > 5)
+            return JS_ThrowInternalError(ctx, "Curva SourceSpark C# incompleta");
+        char* end = nullptr;
+        errno = 0;
+        long value = std::strtol(part.c_str(), &end, 10);
+        if (errno || end == part.c_str() || *end != 0 || value < -60 || value > 60)
+            return JS_ThrowInternalError(ctx, "Amostra SourceSpark C# invalida");
+        turns[i] = static_cast<int>(value);
+        if (value) ++nonzero;
+    }
+    std::string overflow;
+    if (std::getline(samples, overflow, '\t') || nonzero < 80)
+        return JS_ThrowInternalError(ctx, "Curva SourceSpark C# maior que 120 amostras ou sem movimento");
+    std::string error;
+    if (!bl::csharp::enableSourceSparkAi(turns, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    JSValue result = jsSourceSparkStatus(ctx, JS_UNDEFINED, 0, nullptr);
+    JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
+    return result;
+}
+
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0)
         return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
@@ -1409,6 +1494,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourcePauseBufferedAI, "sourcePauseBufferedAI", 0));
     JS_SetPropertyStr(ctx, api, "sourceEnableHomingAI",
                       JS_NewCFunction(ctx, jsSourceEnableHomingAI, "sourceEnableHomingAI", 1));
+    JS_SetPropertyStr(ctx, api, "sourceEnableSparkAI",
+                      JS_NewCFunction(ctx, jsSourceEnableSparkAI, "sourceEnableSparkAI", 1));
+    JS_SetPropertyStr(ctx, api, "sourceSparkStatus",
+                      JS_NewCFunction(ctx, jsSourceSparkStatus, "sourceSparkStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePauseSparkAI",
+                      JS_NewCFunction(ctx, jsSourcePauseSparkAI, "sourcePauseSparkAI", 0));
     JS_SetPropertyStr(ctx, api, "sourceEnableOnHit",
                       JS_NewCFunction(ctx, jsSourceEnableOnHit, "sourceEnableOnHit", 1));
     JS_SetPropertyStr(ctx, api, "sourceHitStatus",
