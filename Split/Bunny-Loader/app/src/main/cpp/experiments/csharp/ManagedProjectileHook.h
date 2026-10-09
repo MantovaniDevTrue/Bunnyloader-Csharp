@@ -28,6 +28,25 @@ struct SourceBoltHitStatus {
     int buffId = 0;
 };
 
+struct SourceBoltKillPolicy {
+    int buffId = 24;
+    std::array<int, 256> radii{};
+    std::array<int, 256> durations{};
+};
+
+struct SourceBoltKillStatus {
+    bool installed = false;
+    bool enabled = false;
+    int killEvents = 0;
+    int buffsApplied = 0;
+    int errors = 0;
+    int lastDamage = -1;
+    int lastRadius = 0;
+    int lastDuration = 0;
+    int lastAffected = 0;
+    int buffId = 0;
+};
+
 struct ManagedProjectileHookStatus {
     bool installed = false;
     bool enabled = false;
@@ -63,6 +82,9 @@ bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
 bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error);
 bool pauseSourceBoltOnHit();
 SourceBoltHitStatus sourceBoltHitStatus();
+bool enableSourceBoltOnKill(const SourceBoltKillPolicy& policy, std::string* error);
+bool pauseSourceBoltOnKill();
+SourceBoltKillStatus sourceBoltKillStatus();
 bool pauseManagedSourceBoltHook();
 ManagedProjectileHookStatus managedSourceBoltHookStatus();
 
