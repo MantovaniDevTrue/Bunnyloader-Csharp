@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.5",
+  "exampleModCSharpVersion": "0.1.6",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -130,6 +130,14 @@
       "status": "experimental",
       "examples": [
         "BunnyLiveEntry"
+      ]
+    },
+    {
+      "id": "live_npc_ai_callback",
+      "status": "experimental",
+      "examples": [
+        "BunnyLiveNpc",
+        "ExampleSlimeNPC"
       ]
     }
   ]
