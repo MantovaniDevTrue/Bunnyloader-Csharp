@@ -142,6 +142,7 @@ class ManagedProbeService : Service() {
             }
         }
         if (compileRoot == null) startLogCapture(log)
+        else startCompileHealthMonitor(health)
 
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
             try {
@@ -165,7 +166,7 @@ class ManagedProbeService : Service() {
                     outputDir.mkdirs()
                     val output = File(outputDir, "sourcecsharp.dll")
                     compileStatus.writeText(
-                        "state=compiling\npid=${Process.myPid()}\nwatchers=disabled\n"
+                        "state=compiling\npid=${Process.myPid()}\nwatchers=memory-monitor\n"
                     )
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
@@ -352,17 +353,24 @@ class ManagedProbeService : Service() {
                     val status = File("/proc/self/status").useLines { lines ->
                         lines.filter { it.startsWith("VmRSS:") ||
                             it.startsWith("VmHWM:") ||
+                            it.startsWith("VmSize:") ||
+                            it.startsWith("VmSwap:") ||
                             it.startsWith("Threads:") }.joinToString("\n")
                     }
-                    destination.writeText(
+                    val snapshot =
                         "pid=${Process.myPid()}\n" +
                         "elapsedMs=${android.os.SystemClock.elapsedRealtime() - started}\n" +
                         "managedJavaHeapBytes=${Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()}\n" +
                         status + "\n"
-                    )
+                    val pending = File(destination.parentFile, destination.name + ".tmp")
+                    pending.writeText(snapshot)
+                    if (!pending.renameTo(destination)) {
+                        destination.writeText(snapshot)
+                        pending.delete()
+                    }
                 }
                 try {
-                    Thread.sleep(4000L)
+                    Thread.sleep(1500L)
                 } catch (_: InterruptedException) {
                     break
                 }
