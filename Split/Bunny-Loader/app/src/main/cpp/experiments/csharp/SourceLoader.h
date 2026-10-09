@@ -14,6 +14,8 @@ struct SourceModStatus {
     int sourceFiles = 0;
     int items = 0;
     int projectiles = 0;
+    int buffs = 0;
+    int potions = 0;
     bool loaded = false;
     bool runtimeApplied = false;
     std::map<std::string, int> registeredTypes;
