@@ -455,6 +455,101 @@ JSValue jsSourcePauseOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     return result;
 }
 
+JSValue jsSourceKillStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::sourceBoltKillStatus();
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, result, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, result, "killEvents", JS_NewInt32(ctx, status.killEvents));
+    JS_SetPropertyStr(ctx, result, "buffsApplied", JS_NewInt32(ctx, status.buffsApplied));
+    JS_SetPropertyStr(ctx, result, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, result, "lastDamage", JS_NewInt32(ctx, status.lastDamage));
+    JS_SetPropertyStr(ctx, result, "lastRadius", JS_NewInt32(ctx, status.lastRadius));
+    JS_SetPropertyStr(ctx, result, "lastDuration", JS_NewInt32(ctx, status.lastDuration));
+    JS_SetPropertyStr(ctx, result, "lastAffected", JS_NewInt32(ctx, status.lastAffected));
+    JS_SetPropertyStr(ctx, result, "buffId", JS_NewInt32(ctx, status.buffId));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-OnKill-v1"));
+    return result;
+}
+
+JSValue jsSourcePauseOnKill(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0)
+        return JS_ThrowTypeError(ctx, "sourcePauseOnKill()");
+    const bool wasEnabled = bl::csharp::pauseSourceBoltOnKill();
+    JSValue result = jsSourceKillStatus(ctx, JS_UNDEFINED, 0, nullptr);
+    JS_SetPropertyStr(ctx, result, "wasEnabled", JS_NewBool(ctx, wasEnabled));
+    return result;
+}
+
+JSValue jsSourceEnableOnKill(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceEnableOnKill('CONFIRM_CSHARP_ONKILL')");
+    const char* token = JS_ToCString(ctx, argv[0]);
+    if (!token) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(token) == "CONFIRM_CSHARP_ONKILL";
+    JS_FreeCString(ctx, token);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_CSHARP_ONKILL");
+
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        state.find("executedTypes=2\n") == std::string::npos ||
+        state.find("assemblyReady=1\n") == std::string::npos ||
+        diagnostics.find("ONKILL_POLICY_OK buff=24 radius=256 duration=256") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compile o Source C# Test com OnKill antes da ativacao");
+
+    bool applied = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.runtimeApplied && mod.projectiles == 1) {
+            applied = true;
+            break;
+        }
+    }
+    if (!applied)
+        return JS_ThrowInternalError(ctx, "Aplique SetDefaults gerenciado antes de OnKill");
+
+    std::istringstream input(readManagedWorkerFile("source-onkill-policy.txt"));
+    std::string header, name, buff, radiusValues, durationValues, trailing;
+    if (!std::getline(input, header) || header != "BUNNY_SOURCE_ONKILL_V1" ||
+        !std::getline(input, name) || name != "SourceBolt" ||
+        !std::getline(input, buff) || buff != "24" ||
+        !std::getline(input, radiusValues) ||
+        !std::getline(input, durationValues) ||
+        (std::getline(input, trailing) && !trailing.empty()))
+        return JS_ThrowInternalError(ctx, "Arquivo C# OnKill invalido");
+
+    auto parseTable = [](const std::string& line, int* output, size_t count, int min, int max) {
+        std::istringstream values(line);
+        std::string piece;
+        for (size_t i = 0; i < count; ++i) {
+            if (!std::getline(values, piece, '\t') || piece.empty() || piece.size() > 4)
+                return false;
+            errno = 0;
+            char* end = nullptr;
+            const long value = std::strtol(piece.c_str(), &end, 10);
+            if (errno || end == piece.c_str() || *end || value < min || value > max)
+                return false;
+            output[i] = static_cast<int>(value);
+        }
+        return !std::getline(values, piece, '\t');
+    };
+
+    bl::csharp::SourceBoltKillPolicy policy{};
+    if (!parseTable(radiusValues, policy.radii.data(), policy.radii.size(), 24, 120) ||
+        !parseTable(durationValues, policy.durations.data(), policy.durations.size(), 30, 180))
+        return JS_ThrowInternalError(ctx, "Tabelas C# OnKill invalidas ou incompletas");
+
+    std::string error;
+    if (!bl::csharp::enableSourceBoltOnKill(policy, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    JSValue result = jsSourceKillStatus(ctx, JS_UNDEFINED, 0, nullptr);
+    JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
+    return result;
+}
+
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0)
         return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
@@ -1289,6 +1384,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceHitStatus, "sourceHitStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourcePauseOnHit",
                       JS_NewCFunction(ctx, jsSourcePauseOnHit, "sourcePauseOnHit", 0));
+    JS_SetPropertyStr(ctx, api, "sourceEnableOnKill",
+                      JS_NewCFunction(ctx, jsSourceEnableOnKill, "sourceEnableOnKill", 1));
+    JS_SetPropertyStr(ctx, api, "sourceKillStatus",
+                      JS_NewCFunction(ctx, jsSourceKillStatus, "sourceKillStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePauseOnKill",
+                      JS_NewCFunction(ctx, jsSourcePauseOnKill, "sourcePauseOnKill", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
