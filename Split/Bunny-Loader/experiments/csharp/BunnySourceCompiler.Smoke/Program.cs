@@ -46,6 +46,11 @@ try
         throw new InvalidOperationException("Mono preflight method contract failed");
     if (Compiler.Compile(sourceRoot, output, framework, diag) != 1)
         throw new InvalidOperationException(File.ReadAllText(diag));
+    if (CompiledAssemblyProbe.Verify(output, diag) != 2 ||
+        !File.ReadAllText(diag).Contains("ASSEMBLY_EXEC_OK"))
+        throw new InvalidOperationException("Compiled C# classes were not executed: " +
+            File.ReadAllText(diag));
+    Console.WriteLine("BUNNY_MANAGED_ASSEMBLY_EXECUTION=PASS");
     byte[] original = File.ReadAllBytes(output);
     if (original.Length < 1024) throw new InvalidOperationException("No assembly generated");
     if (Compiler.Compile(sourceRoot, output, framework, diag) != 2)
