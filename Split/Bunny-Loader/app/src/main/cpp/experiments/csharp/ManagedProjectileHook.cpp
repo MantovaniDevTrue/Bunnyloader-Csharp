@@ -608,6 +608,16 @@ bool enableSourceSparkAi(const std::array<int, 120>& turnsMilliRadians, std::str
         }
     }
     const int type = runtime::modProjectileTypeByName(uid, "SourceSpark");
+    if (type >= 0 && static_cast<size_t>(type) < g_curveByType.size()) {
+        const int index = g_curveByType[static_cast<size_t>(type)].load(
+            std::memory_order_acquire) - 1;
+        if (index >= 0 && index < g_curveCount.load(std::memory_order_acquire) &&
+            g_curveStates[static_cast<size_t>(index)].enabled.load(
+                std::memory_order_acquire)) {
+            *error = "Desative a curva generica do SourceSpark antes da IA antiga";
+            return false;
+        }
+    }
     if (!applied || type < 0 || type >= runtime::projectileTypeCount()) {
         *error = "SourceSpark nao registrado ou SetDefaults nao aplicado";
         return false;
@@ -704,6 +714,16 @@ bool armSourceBoltHook(std::string* error, const std::array<int, 120>* turns) {
     if (type >= runtime::projectileTypeCount()) {
         *error = "SourceBolt registrado, mas ainda nao instalado nas tabelas do jogo";
         return false;
+    }
+    if (static_cast<size_t>(type) < g_curveByType.size()) {
+        const int index = g_curveByType[static_cast<size_t>(type)].load(
+            std::memory_order_acquire) - 1;
+        if (index >= 0 && index < g_curveCount.load(std::memory_order_acquire) &&
+            g_curveStates[static_cast<size_t>(index)].enabled.load(
+                std::memory_order_acquire)) {
+            *error = "Desative a curva generica de SourceBolt antes do homing";
+            return false;
+        }
     }
     BL_INFO("csharp AI: SourceBolt localizado pelo UUID do mod, tipo %d", type);
     const auto& game = runtime::game();
