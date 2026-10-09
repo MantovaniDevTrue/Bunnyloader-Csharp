@@ -74,10 +74,10 @@ public static class CompiledAssemblyProbe
             throw new InvalidOperationException("C# OnHitNPC signature invalid");
         if (buff.Invoke(projectile, null) is not int buffId || buffId != 24)
             throw new InvalidOperationException("Only vanilla OnFire buff id 24 is allowed for this test");
-        string[] turns = new string[4];
+        string[] turns = new string[256];
         for (int i = 0; i < turns.Length; ++i)
         {
-            if (hit.Invoke(projectile, new object[] { i * 8 }) is not int duration ||
+            if (hit.Invoke(projectile, new object[] { i }) is not int duration ||
                 duration < 30 || duration > 180)
                 throw new InvalidOperationException("Invalid OnHitNPC effect duration");
             turns[i] = duration.ToString(CultureInfo.InvariantCulture);
@@ -86,10 +86,10 @@ public static class CompiledAssemblyProbe
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
         string path = Path.Combine(folder, "source-onhit-policy.txt");
         string temp = path + ".tmp";
-        File.WriteAllText(temp, "BUNNY_SOURCE_ONHIT_V1\nSourceBolt\n24\n" +
+        File.WriteAllText(temp, "BUNNY_SOURCE_ONHIT_V2\nSourceBolt\n24\n" +
             string.Join("\t", turns) + "\n");
         File.Move(temp, path, true);
-        File.AppendAllText(diagnosticsPath, "\nONHIT_POLICY_OK buff=24 hits=4");
+        File.AppendAllText(diagnosticsPath, "\nONHIT_POLICY_OK buff=24 hits=256");
     }
 
     private static void WriteProjectileMotion(Assembly assembly, string diagnosticsPath)
