@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <sstream>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -202,6 +203,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             types[def.name] = type;
         }
     }
+    status->registeredTypes = types;
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
     if (status->items < 1 || status->projectiles < 1) {
@@ -225,6 +227,90 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     }
     g_statuses.push_back(std::move(status));
     return g_statuses.back().loaded;
+}
+
+bool applyManagedSourceDefaults(
+    const std::string& modId, const std::string& runtimeValues, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (runtimeValues.empty() || runtimeValues.size() > 2048) {
+        *error = "Resultado gerenciado inexistente ou grande demais";
+        return false;
+    }
+    SourceModStatus* mod = nullptr;
+    for (auto& entry : g_statuses) {
+        if (entry.id == modId && entry.loaded) {
+            mod = &entry;
+            break;
+        }
+    }
+    if (!mod || mod->runtimeApplied || mod->registeredTypes.size() != 2) {
+        *error = "Mod fonte nao carregado, ja aplicado ou com tipos incompatíveis";
+        return false;
+    }
+    std::istringstream lines(runtimeValues);
+    std::string header;
+    if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V1") {
+        *error = "Formato do resultado gerenciado nao suportado";
+        return false;
+    }
+    ManagedProjectileDefaults projectile;
+    ManagedWeaponDefaults weapon;
+    std::string projectileName, weaponName, shootName;
+    bool seenProjectile = false;
+    bool seenWeapon = false;
+    std::string line;
+    while (std::getline(lines, line)) {
+        if (line.empty()) continue;
+        std::istringstream parts(line);
+        std::vector<std::string> fields;
+        std::string part;
+        while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (fields.size() == 8 && fields[0] == "PROJECTILE" && !seenProjectile) {
+            int friendly = 0;
+            if (!integer(fields[2], &projectile.width) ||
+                !integer(fields[3], &projectile.height) ||
+                !integer(fields[4], &projectile.aiStyle) ||
+                !integer(fields[5], &projectile.penetrate) ||
+                !integer(fields[6], &projectile.timeLeft) ||
+                !integer(fields[7], &friendly) || friendly != 1) {
+                *error = "Valores gerenciados invalidos para projetil";
+                return false;
+            }
+            projectileName = fields[1];
+            projectile.friendly = true;
+            seenProjectile = true;
+        } else if (fields.size() == 6 && fields[0] == "WEAPON" && !seenWeapon) {
+            if (!integer(fields[2], &weapon.damage) ||
+                !integer(fields[3], &weapon.useTime) ||
+                !real(fields[4], &weapon.shootSpeed)) {
+                *error = "Valores gerenciados invalidos para arma";
+                return false;
+            }
+            weaponName = fields[1];
+            shootName = fields[5];
+            seenWeapon = true;
+        } else {
+            *error = "Linha inesperada no resultado do C#";
+            return false;
+        }
+    }
+    if (!seenWeapon || !seenProjectile || projectileName != shootName) {
+        *error = "Arma ou projetil ausente, referencia Shoot invalida";
+        return false;
+    }
+    const auto projectileType = mod->registeredTypes.find(projectileName);
+    const auto weaponType = mod->registeredTypes.find(weaponName);
+    if (projectileType == mod->registeredTypes.end() ||
+        weaponType == mod->registeredTypes.end() ||
+        projectileType->second == weaponType->second ||
+        !applyManagedNativeDefaults(modId, projectileName, projectileType->second,
+                                    projectile, weaponName, weaponType->second, weapon)) {
+        *error = "IDs do Terraria ou dados do SetDefaults nao correspondem ao mod";
+        return false;
+    }
+    mod->runtimeApplied = true;
+    return true;
 }
 
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
