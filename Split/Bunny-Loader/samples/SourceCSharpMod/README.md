@@ -1,17 +1,20 @@
-# Source C# Test 0.1.0
+# Source C# Test 0.1.2
 
-Experimento para importar um mod com `main.cs` e `Content/Items/Weapons/SourceWand.cs`, sem bibliotecas nativas ou JavaScript no `.bmod`.
+Mod experimental em C# puro (`.cs`) para Bunny Loader Android, sem JavaScript, `.so` ou `.dll` no pacote.
 
-O carregador atual interpreta um **subconjunto declarativo de C#**, não executa qualquer programa C# completo: ele reconhece classes `BunnyProjectile` e `BunnyWeapon` e lê atribuições literais em `SetDefaults()`. A criação e o disparo são realizados pela Host API C++/IL2CPP já existente. A IA é a nativa do Terraria indicada por `AiStyle`.
+O Roslyn compila `SourceBolt`, `SourceWand` e a classe de homing. O MonoVM isolado executa `SetDefaults`, curvas de movimento e `SourceBolt.OnHitNPC(int damage)` antes da entrada no jogo. O host Native/IL2CPP aplica os resultados validados durante o jogo.
 
-Não há suporte inicial a `AI()`, `Update()`, blocos condicionais, expressões, chamadas de métodos, classes de NPC, C# dinâmico ou bibliotecas .NET. Essas funcionalidades exigirão a próxima etapa, com um runtime/interpretador C# capaz de executar código, e não apenas declarações.
+Nesta versao o worker prepara 256 duracoes de queimadura por dano base do projetil (0 a 255). O hook seleciona a duracao por dano do projetil sem MonoVM por impacto. Dano acima de 255 usa a ultima entrada. Nao e ainda callback C# ao vivo nem usa o dano final aplicado ao NPC.
 
-Instale o APK de teste 0.1.10.11 e importe `SourceCSharpMod-v0.1.0.bmod`. Teste a arma **Source C# Wand** e o projétil **Source C# Bolt**.
-
-Diagnóstico no console (console do aplicativo, não código JS dentro do mod):
+No console, dentro de um mundo solo:
 
 ```js
-JSON.stringify(bl.csharp.sourceMods(), null, 2)
+bl.csharp.sourceCompile()
+JSON.stringify(bl.csharp.sourceCompileStatus(), null, 2)
+bl.csharp.sourceApplyCompiled("CONFIRM_MANAGED_DEFAULTS")
+bl.csharp.sourceEnableHomingAI("CONFIRM_HOMING_CSHARP_AI")
+bl.csharp.sourceEnableOnHit("CONFIRM_CSHARP_ONHIT")
+JSON.stringify(bl.csharp.sourceHitStatus(), null, 2)
 ```
 
-Esperado: `loaded: true`, `files: 2`, `items: 1`, `projectiles: 1`, `engine: "SetDefaults-literals-v1"`.
+Aguarde a compilacao terminar antes de aplicar os valores. `sourceHitStatus()` inclui `lastDamage` e `lastDuration`. O teste continua solo e preserva o homing. A versao 0.1.10.16.27 segue como referencia estavel.
