@@ -23,7 +23,7 @@ const MethodInfo* g_addBuff = nullptr;
 int32_t g_npcActive = -1;
 int32_t g_npcFriendly = -1;
 int32_t g_npcLife = -1;
-std::array<int, 4> g_hitDurations{};
+std::array<int, 256> g_hitDurations{};
 std::atomic<bool> g_hitInstalled{false};
 std::atomic<bool> g_hitEnabled{false};
 std::atomic<int> g_hitType{-1};
@@ -31,6 +31,8 @@ std::atomic<int> g_hitEvents{0};
 std::atomic<int> g_hitApplied{0};
 std::atomic<int> g_hitErrors{0};
 std::atomic<int> g_lastNpc{-1};
+std::atomic<int> g_lastDamage{-1};
+std::atomic<int> g_lastDuration{0};
 std::atomic<int> g_hitBuffId{0};
 
 void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) {
@@ -69,7 +71,9 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         return;
     }
     g_lastNpc.store(index, std::memory_order_relaxed);
-    const int duration = g_hitDurations[static_cast<size_t>(std::clamp(damage / 8, 0, 3))];
+    const int duration = g_hitDurations[static_cast<size_t>(std::clamp(damage, 0, 255))];
+    g_lastDamage.store(damage, std::memory_order_relaxed);
+    g_lastDuration.store(duration, std::memory_order_relaxed);
     int id = g_hitBuffId.load(std::memory_order_relaxed);
     int time = duration;
     uint8_t quiet = 0;
@@ -168,6 +172,8 @@ bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error
     g_hitApplied.store(0, std::memory_order_relaxed);
     g_hitErrors.store(0, std::memory_order_relaxed);
     g_lastNpc.store(-1, std::memory_order_relaxed);
+    g_lastDamage.store(-1, std::memory_order_relaxed);
+    g_lastDuration.store(0, std::memory_order_relaxed);
     g_hitEnabled.store(true, std::memory_order_release);
     BL_INFO("csharp OnHitNPC: SourceBolt tipo %d, buff %d, modo solo", type, policy.buffId);
     return true;
@@ -185,6 +191,8 @@ SourceBoltHitStatus sourceBoltHitStatus() {
     status.applied = g_hitApplied.load(std::memory_order_relaxed);
     status.errors = g_hitErrors.load(std::memory_order_relaxed);
     status.lastNpc = g_lastNpc.load(std::memory_order_relaxed);
+    status.lastDamage = g_lastDamage.load(std::memory_order_relaxed);
+    status.lastDuration = g_lastDuration.load(std::memory_order_relaxed);
     status.buffId = g_hitBuffId.load(std::memory_order_relaxed);
     return status;
 }
