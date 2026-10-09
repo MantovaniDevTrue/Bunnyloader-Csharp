@@ -200,7 +200,8 @@ jobs:
               assert "content/main.cs" in names
               assert "content/Content/Items/Weapons/SourceWand.cs" in names
               assert len([n for n in names if n.endswith(".png")])==2
-              assert len([n for n in names if n.endswith(".cs")])==2
+              assert "content/SourceBoltMotion.cs" in names
+              assert len([n for n in names if n.endswith(".cs")])==3
               assert not any(n.endswith((".js",".so",".dll")) for n in names)
               print("CSHARP_SOURCE_ONLY_PACKAGE=YES")
           PY
