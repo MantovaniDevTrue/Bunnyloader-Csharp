@@ -136,7 +136,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 std::vector<ParsedSourceType>* definitions, std::string* error) {
     if (base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
-        base != "BunnyPlayer" && base != "BunnyAccessory") return true;
+        base != "BunnyPlayer" && base != "BunnyAccessory" &&
+        base != "BunnyNPC") return true;
     size_t method = end;
     for (size_t i = begin + 1; i < end; ++i) {
         if (tokens[i].value == "SetDefaults" && i + 1 < end &&
@@ -245,14 +246,15 @@ bool parseCSharpSource(const std::string& source,
         }
         if (base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
-            base == "BunnyPlayer" || base == "BunnyAccessory") {
+            base == "BunnyPlayer" || base == "BunnyAccessory" ||
+            base == "BunnyNPC") {
             if (!parseClass(tokens, brace, end, name, base, definitions, error)) return false;
             ++found;
         }
         i = end;
     }
     if (found == 0 && requireContent) {
-        *error = "nenhuma classe BunnyProjectile, BunnyWeapon, BunnyBuff, BunnyBuffPotion, BunnyPlayer ou BunnyAccessory encontrada";
+        *error = "nenhuma classe BunnyProjectile, BunnyWeapon, BunnyBuff, BunnyBuffPotion, BunnyPlayer, BunnyAccessory ou BunnyNPC encontrada";
         return false;
     }
     return true;
