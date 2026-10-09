@@ -77,7 +77,7 @@ public static class CompiledAssemblyProbe
         string[] turns = new string[4];
         for (int i = 0; i < turns.Length; ++i)
         {
-            if (hit.Invoke(projectile, new object[] { i + 1 }) is not int duration ||
+            if (hit.Invoke(projectile, new object[] { i * 8 }) is not int duration ||
                 duration < 30 || duration > 180)
                 throw new InvalidOperationException("Invalid OnHitNPC effect duration");
             turns[i] = duration.ToString(CultureInfo.InvariantCulture);
