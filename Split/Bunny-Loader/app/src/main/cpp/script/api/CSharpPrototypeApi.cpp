@@ -201,7 +201,7 @@ JSValue jsSourceEnableBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValue
     const auto diagnostic = readManagedWorkerFile("source-compile-diagnostics.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        state.find("executedTypes=2\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
         state.find("assemblyReady=1\n") == std::string::npos ||
         diagnostic.find("AI_BUFFER_OK ticks=120") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Source C# deve compilar, executar e exportar 120 ticks de IA");
@@ -274,7 +274,7 @@ JSValue jsSourceEnableHomingAI(JSContext* ctx, JSValueConst, int argc, JSValueCo
     const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        state.find("executedTypes=2\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
         state.find("assemblyReady=1\n") == std::string::npos ||
         diagnostics.find("HOMING_POLICY_OK samples=129") == std::string::npos ||
         diagnostics.find("AI_BUFFER_OK ticks=120") == std::string::npos)
@@ -365,6 +365,24 @@ JSValue jsSourcePauseBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValueC
     return result;
 }
 
+bool sourceAssemblyTypesVerified(const std::string& state) {
+    const std::string marker = "executedTypes=";
+    const auto at = state.find(marker);
+    if (at == std::string::npos) return false;
+    const char* start = state.c_str() + at + marker.size();
+    char* end = nullptr;
+    errno = 0;
+    const long types = std::strtol(start, &end, 10);
+    if (errno || end == start || (*end != '\n' && *end != '\r') ||
+        types < 2 || types > 32) return false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+            mod.loaded && mod.projectiles > 0 && mod.items > 0)
+            return types == mod.projectiles + mod.items;
+    }
+    return false;
+}
+
 JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc != 1 || !JS_IsString(argv[0]))
         return JS_ThrowTypeError(ctx, "sourceEnableOnHit('CONFIRM_CSHARP_ONHIT')");
@@ -379,14 +397,14 @@ JSValue jsSourceEnableOnHit(JSContext* ctx, JSValueConst, int argc, JSValueConst
     const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        state.find("executedTypes=2\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
         state.find("assemblyReady=1\n") == std::string::npos ||
         diagnostics.find("ONHIT_POLICY_OK buff=24 hits=256") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Compile o Source C# Test com OnHitNPC antes da ativacao");
     bool applied = false;
     for (const auto& mod : bl::csharp::sourceModStatuses()) {
         if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
-            mod.loaded && mod.runtimeApplied && mod.projectiles == 1) {
+            mod.loaded && mod.runtimeApplied && mod.projectiles > 0) {
             applied = true;
             break;
         }
@@ -495,7 +513,7 @@ JSValue jsSourceEnableOnKill(JSContext* ctx, JSValueConst, int argc, JSValueCons
     const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        state.find("executedTypes=2\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
         state.find("assemblyReady=1\n") == std::string::npos ||
         diagnostics.find("ONKILL_POLICY_OK buff=24 radius=256 duration=256") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Compile o Source C# Test com OnKill antes da ativacao");
@@ -503,7 +521,7 @@ JSValue jsSourceEnableOnKill(JSContext* ctx, JSValueConst, int argc, JSValueCons
     bool applied = false;
     for (const auto& mod : bl::csharp::sourceModStatuses()) {
         if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
-            mod.loaded && mod.runtimeApplied && mod.projectiles == 1) {
+            mod.loaded && mod.runtimeApplied && mod.projectiles > 0) {
             applied = true;
             break;
         }
@@ -590,7 +608,7 @@ JSValue jsSourceApplyCompiled(JSContext* ctx, JSValueConst, int argc, JSValueCon
     const std::string state = readManagedWorkerFile("source-compile-status.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        state.find("executedTypes=2\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state) ||
         state.find("assemblyReady=1\n") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Compilar e executar o mod C# no worker antes de aplicar os valores");
     const std::string values = readManagedWorkerFile("source-runtime-values.txt");
@@ -600,8 +618,18 @@ JSValue jsSourceApplyCompiled(JSContext* ctx, JSValueConst, int argc, JSValueCon
     JS_SetPropertyStr(ctx, result, "applied", JS_NewBool(ctx, applied));
     JS_SetPropertyStr(ctx, result, "engine",
                       JS_NewString(ctx, applied ? "Roslyn-MonoVM-SetDefaults-v1" : "SetDefaults-literals-v1"));
-    JS_SetPropertyStr(ctx, result, "items", JS_NewInt32(ctx, applied ? 1 : 0));
-    JS_SetPropertyStr(ctx, result, "projectiles", JS_NewInt32(ctx, applied ? 1 : 0));
+    int itemCount = 0;
+    int projectileCount = 0;
+    if (applied) {
+        for (const auto& mod : bl::csharp::sourceModStatuses())
+            if (mod.id == uid && mod.loaded && mod.runtimeApplied) {
+                itemCount = mod.items;
+                projectileCount = mod.projectiles;
+                break;
+            }
+    }
+    JS_SetPropertyStr(ctx, result, "items", JS_NewInt32(ctx, itemCount));
+    JS_SetPropertyStr(ctx, result, "projectiles", JS_NewInt32(ctx, projectileCount));
     JS_SetPropertyStr(ctx, result, "error", JS_NewString(ctx, error.c_str()));
     return result;
 }
