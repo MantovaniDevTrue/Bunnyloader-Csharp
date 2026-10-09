@@ -20,6 +20,7 @@ public static class CompiledAssemblyProbe
             WriteRuntimeDefaults(projectile, weapon, diagnosticsPath);
             WriteProjectileMotion(assembly, diagnosticsPath);
             WriteHomingPolicy(assembly, diagnosticsPath);
+            WriteHitNPCPolicy(projectile, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
             return 2;
@@ -61,6 +62,36 @@ public static class CompiledAssemblyProbe
             throw new InvalidOperationException("SourceWand SetDefaults did not execute correctly");
         return instance;
     }
+    private static void WriteHitNPCPolicy(object projectile, string diagnosticsPath)
+    {
+        Type type = projectile.GetType();
+        MethodInfo hit = type.GetMethod("OnHitNPC", BindingFlags.Public | BindingFlags.Instance,
+            null, new[] { typeof(int) }, null)
+            ?? throw new InvalidOperationException("SourceBolt.OnHitNPC(int) missing");
+        MethodInfo buff = type.GetMethod("OnHitBuffId", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("SourceBolt.OnHitBuffId missing");
+        if (hit.ReturnType != typeof(int) || buff.ReturnType != typeof(int))
+            throw new InvalidOperationException("C# OnHitNPC signature invalid");
+        if (buff.Invoke(projectile, null) is not int buffId || buffId != 24)
+            throw new InvalidOperationException("Only vanilla OnFire buff id 24 is allowed for this test");
+        string[] turns = new string[4];
+        for (int i = 0; i < turns.Length; ++i)
+        {
+            if (hit.Invoke(projectile, new object[] { i + 1 }) is not int duration ||
+                duration < 30 || duration > 180)
+                throw new InvalidOperationException("Invalid OnHitNPC effect duration");
+            turns[i] = duration.ToString(CultureInfo.InvariantCulture);
+        }
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing managed diagnostics directory");
+        string path = Path.Combine(folder, "source-onhit-policy.txt");
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, "BUNNY_SOURCE_ONHIT_V1\nSourceBolt\n24\n" +
+            string.Join("\t", turns) + "\n");
+        File.Move(temp, path, true);
+        File.AppendAllText(diagnosticsPath, "\nONHIT_POLICY_OK buff=24 hits=4");
+    }
+
     private static void WriteProjectileMotion(Assembly assembly, string diagnosticsPath)
     {
         Type type = assembly.GetType("SourceCSharpMod.SourceBoltMotion", throwOnError: true)!;
