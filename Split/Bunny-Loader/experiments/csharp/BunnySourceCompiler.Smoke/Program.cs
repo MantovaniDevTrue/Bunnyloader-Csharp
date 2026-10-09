@@ -96,6 +96,22 @@ try
             int.TryParse(effectSamples[i], out int value) &&
             value == Math.Clamp(60 + i * 3, 60, 150)))
         throw new InvalidOperationException("C# OnHitNPC precise damage table invalid");
+    string killPolicy = File.ReadAllText(Path.Combine(scratch, "source-onkill-policy.txt"));
+    string[] killLines = killPolicy.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (killLines.Length != 5 ||
+        killLines[0] != "BUNNY_SOURCE_ONKILL_V1" ||
+        killLines[1] != "SourceBolt" || killLines[2] != "24")
+        throw new InvalidOperationException("C# OnKill policy header invalid");
+    string[] radiusSamples = killLines[3].Split('\t');
+    string[] durationSamples = killLines[4].Split('\t');
+    if (radiusSamples.Length != 256 || durationSamples.Length != 256 ||
+        !Enumerable.Range(0, 256).All(i =>
+            int.TryParse(radiusSamples[i], out int radius) &&
+            radius == Math.Clamp(24 + i * 2, 24, 100) &&
+            int.TryParse(durationSamples[i], out int duration) &&
+            duration == Math.Clamp(60 + i * 2, 60, 160)))
+        throw new InvalidOperationException("C# OnKill policy sample validation failed");
+    Console.WriteLine("BUNNY_CSHARP_ONKILL_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_ONHIT_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_AI_BUFFER=PASS");
