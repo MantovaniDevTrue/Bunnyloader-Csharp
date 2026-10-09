@@ -34,6 +34,7 @@ public static class CompiledAssemblyProbe
                 type.Name == "SourceWand" ? weapon : CreateContent(type)).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
             WriteProjectileMotion(assembly, diagnosticsPath);
+            WriteSparkMotion(assembly, diagnosticsPath);
             WriteHomingPolicy(assembly, diagnosticsPath);
             WriteHitNPCPolicy(projectile, diagnosticsPath);
             WriteKillPolicy(projectile, diagnosticsPath);
@@ -155,6 +156,36 @@ public static class CompiledAssemblyProbe
             string.Join("\t", radii) + "\n" + string.Join("\t", durations) + "\n");
         File.Move(temp, path, true);
         File.AppendAllText(diagnosticsPath, "\nONKILL_POLICY_OK buff=24 radius=256 duration=256");
+    }
+
+    private static void WriteSparkMotion(Assembly assembly, string diagnosticsPath)
+    {
+        Type type = assembly.GetType("SourceCSharpMod.SourceSparkMotion", throwOnError: true)!;
+        MethodInfo motion = type.GetMethod("TurnAtTick", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("SourceSparkMotion.TurnAtTick missing");
+        if (motion.ReturnType != typeof(float))
+            throw new InvalidOperationException("SourceSparkMotion.TurnAtTick must return float");
+        string[] samples = new string[120];
+        int nonzero = 0;
+        for (int tick = 0; tick < samples.Length; ++tick)
+        {
+            if (motion.Invoke(null, new object[] { tick }) is not float radians ||
+                !float.IsFinite(radians) || MathF.Abs(radians) > 0.06f)
+                throw new InvalidOperationException("Invalid SourceSpark C# AI at tick " + tick);
+            int milliRadians = (int)MathF.Round(radians * 1000f);
+            if (milliRadians != 0) ++nonzero;
+            samples[tick] = milliRadians.ToString(CultureInfo.InvariantCulture);
+        }
+        if (nonzero < 80)
+            throw new InvalidOperationException("SourceSpark AI curve has insufficient motion");
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string path = Path.Combine(folder, "source-spark-turns.txt");
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, "BUNNY_SOURCE_SPARK_TURNS_V1\nSourceSpark\n" +
+            string.Join("\t", samples) + "\n");
+        File.Move(temp, path, true);
+        File.AppendAllText(diagnosticsPath, "\nSPARK_AI_BUFFER_OK ticks=120 source=SourceSparkMotion");
     }
 
     private static void WriteProjectileMotion(Assembly assembly, string diagnosticsPath)
