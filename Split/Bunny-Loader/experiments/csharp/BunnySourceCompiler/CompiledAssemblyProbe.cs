@@ -21,6 +21,7 @@ public static class CompiledAssemblyProbe
             WriteProjectileMotion(assembly, diagnosticsPath);
             WriteHomingPolicy(assembly, diagnosticsPath);
             WriteHitNPCPolicy(projectile, diagnosticsPath);
+            WriteKillPolicy(projectile, diagnosticsPath);
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=2 projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
             return 2;
@@ -90,6 +91,43 @@ public static class CompiledAssemblyProbe
             string.Join("\t", turns) + "\n");
         File.Move(temp, path, true);
         File.AppendAllText(diagnosticsPath, "\nONHIT_POLICY_OK buff=24 hits=256");
+    }
+
+    private static void WriteKillPolicy(object projectile, string diagnosticsPath)
+    {
+        Type type = projectile.GetType();
+        MethodInfo radius = type.GetMethod("OnKill", BindingFlags.Public | BindingFlags.Instance,
+            null, new[] { typeof(int) }, null)
+            ?? throw new InvalidOperationException("SourceBolt.OnKill(int) missing");
+        MethodInfo duration = type.GetMethod("OnKillDuration", BindingFlags.Public | BindingFlags.Instance,
+            null, new[] { typeof(int) }, null)
+            ?? throw new InvalidOperationException("SourceBolt.OnKillDuration(int) missing");
+        MethodInfo buff = type.GetMethod("OnKillBuffId", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("SourceBolt.OnKillBuffId missing");
+        if (radius.ReturnType != typeof(int) || duration.ReturnType != typeof(int) ||
+            buff.ReturnType != typeof(int) || buff.Invoke(projectile, null) is not int buffId ||
+            buffId != 24)
+            throw new InvalidOperationException("C# OnKill signature or buff invalid");
+        string[] radii = new string[256];
+        string[] durations = new string[256];
+        for (int i = 0; i < 256; ++i)
+        {
+            if (radius.Invoke(projectile, new object[] { i }) is not int r ||
+                r < 24 || r > 120 ||
+                duration.Invoke(projectile, new object[] { i }) is not int ticks ||
+                ticks < 30 || ticks > 180)
+                throw new InvalidOperationException("C# OnKill radius or duration invalid");
+            radii[i] = r.ToString(CultureInfo.InvariantCulture);
+            durations[i] = ticks.ToString(CultureInfo.InvariantCulture);
+        }
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing managed diagnostics directory");
+        string path = Path.Combine(folder, "source-onkill-policy.txt");
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, "BUNNY_SOURCE_ONKILL_V1\nSourceBolt\n24\n" +
+            string.Join("\t", radii) + "\n" + string.Join("\t", durations) + "\n");
+        File.Move(temp, path, true);
+        File.AppendAllText(diagnosticsPath, "\nONKILL_POLICY_OK buff=24 radius=256 duration=256");
     }
 
     private static void WriteProjectileMotion(Assembly assembly, string diagnosticsPath)
