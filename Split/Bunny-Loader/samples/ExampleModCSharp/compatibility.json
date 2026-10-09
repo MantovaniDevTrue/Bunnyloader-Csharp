@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.2",
+  "exampleModCSharpVersion": "0.1.3",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -92,13 +92,17 @@
     },
     {
       "id": "custom_accessory_csharp",
-      "status": "not_implemented",
-      "examples": []
+      "status": "experimental",
+      "examples": [
+        "ExampleFocusAccessory"
+      ]
     },
     {
       "id": "custom_player_csharp",
-      "status": "not_implemented",
-      "examples": []
+      "status": "experimental",
+      "examples": [
+        "ExampleFocusPlayer"
+      ]
     },
     {
       "id": "experimental_csharp_multiplayer",
