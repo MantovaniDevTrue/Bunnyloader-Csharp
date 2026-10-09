@@ -47,6 +47,30 @@ struct SourceBoltKillStatus {
     int buffId = 0;
 };
 
+struct AutoCombatEffectStatus {
+    bool registered = false;
+    bool installed = false;
+    bool enabled = false;
+    int type = -1;
+    int events = 0;
+    int buffsApplied = 0;
+    int errors = 0;
+    int buffId = 0;
+};
+
+bool enableAutoProjectileOnHit(const std::string& modId,
+                               const std::string& projectileName,
+                               const SourceBoltHitPolicy& policy,
+                               std::string* error);
+bool enableAutoProjectileOnKill(const std::string& modId,
+                                const std::string& projectileName,
+                                const SourceBoltKillPolicy& policy,
+                                std::string* error);
+AutoCombatEffectStatus autoProjectileHitStatus(
+    const std::string& modId, const std::string& projectileName);
+AutoCombatEffectStatus autoProjectileKillStatus(
+    const std::string& modId, const std::string& projectileName);
+
 struct ManagedProjectileCurveStatus {
     bool registered = false;
     bool installed = false;
