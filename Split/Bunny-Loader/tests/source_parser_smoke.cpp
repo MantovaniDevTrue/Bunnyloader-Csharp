@@ -6,7 +6,7 @@
 #include <vector>
 
 int main(int argc, char** argv) {
-    if (argc != 3) return 1;
+    if (argc != 4) return 1;
     std::vector<bl::csharp::ParsedSourceType> definitions;
     std::string error;
     for (int i = 1; i < argc; ++i) {
@@ -18,11 +18,18 @@ int main(int argc, char** argv) {
         for (size_t n; (n = std::fread(buffer, 1, sizeof(buffer), file)) > 0;)
             source.append(buffer, n);
         std::fclose(file);
-        if (!bl::csharp::parseCSharpSource(source, &definitions, &error)) {
+        if (!bl::csharp::parseCSharpSource(source, &definitions, &error, false)) {
             std::cerr << error << std::endl;
             return 3;
         }
     }
+    std::vector<bl::csharp::ParsedSourceType> helperOnly;
+    std::string helper = "namespace Example; public static class Motion { public static float Curve(int t) { return MathF.Sin(t * 0.22f) * 0.03f; } }";
+    if (bl::csharp::parseCSharpSource(helper, &helperOnly, &error)) return 7;
+    if (!helperOnly.empty()) return 8;
+    error.clear();
+    if (!bl::csharp::parseCSharpSource(helper, &helperOnly, &error, false)) return 9;
+    if (!helperOnly.empty()) return 10;
     if (definitions.size() != 2) return 4;
     const auto& bolt = definitions[0];
     const auto& wand = definitions[1];
