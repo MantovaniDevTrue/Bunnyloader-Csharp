@@ -194,7 +194,7 @@ jobs:
           test ! -d "$PKG/native"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.0.bl"
+          PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.1.bl"
           test -f "$PACK"
           cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod"
           python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.1.bmod" <<'PY'
