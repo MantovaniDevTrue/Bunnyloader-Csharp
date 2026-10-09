@@ -137,6 +137,63 @@ JSValue jsManagedCallbackProbe(JSContext* ctx, JSValueConst, int argc, JSValueCo
     return makeManagedStatus(ctx, bl::csharp::probeManagedCallbacks(assembly, count));
 }
 
+JSValue makeLiveSourceStatus(JSContext* ctx, const bl::csharp::LiveSourceStatus& s) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "modId", JS_NewString(ctx, s.modId.c_str()));
+    JS_SetPropertyStr(ctx, out, "loaded", JS_NewBool(ctx, s.loaded));
+    JS_SetPropertyStr(ctx, out, "ready", JS_NewBool(ctx, s.ready));
+    JS_SetPropertyStr(ctx, out, "callbacks", JS_NewInt32(ctx, s.callbacks));
+    JS_SetPropertyStr(ctx, out, "failures", JS_NewInt32(ctx, s.failures));
+    JS_SetPropertyStr(ctx, out, "lastTick", JS_NewInt32(ctx, s.lastTick));
+    JS_SetPropertyStr(ctx, out, "lastState", JS_NewInt32(ctx, s.lastState));
+    JS_SetPropertyStr(ctx, out, "lastResult", JS_NewInt32(ctx, s.lastResult));
+    JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
+    return out;
+}
+
+JSValue jsSourceLiveStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceLiveStatus(modId)");
+    const char* name = JS_ToCString(ctx, argv[0]);
+    if (!name) return JS_EXCEPTION;
+    const std::string id(name);
+    JS_FreeCString(ctx, name);
+    return makeLiveSourceStatus(ctx, bl::csharp::liveSourceStatus(id));
+}
+
+JSValue jsSourceLiveTick(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 3 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceLiveTick(modId, tick, state)");
+    const char* name = JS_ToCString(ctx, argv[0]);
+    if (!name) return JS_EXCEPTION;
+    const std::string id(name);
+    JS_FreeCString(ctx, name);
+    int32_t tick = 0, state = 0;
+    if (JS_ToInt32(ctx, &tick, argv[1]) < 0 ||
+        JS_ToInt32(ctx, &state, argv[2]) < 0) return JS_EXCEPTION;
+    if (id.empty() || id.size() > 128 ||
+        id.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos)
+        return JS_ThrowTypeError(ctx, "Invalid C# mod ID");
+    bool loaded = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == id && mod.loaded && mod.runtimeApplied) {
+            loaded = true;
+            break;
+        }
+    }
+    if (!loaded)
+        return JS_ThrowInternalError(ctx, "C# source mod is not loaded or applied");
+    const auto& checkpoint = bl::config().managedCheckpointPath;
+    const size_t slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos)
+        return JS_ThrowInternalError(ctx, "MonoVM data path missing");
+    const std::string path = checkpoint.substr(0, slash + 1) +
+        "compiled/" + id + ".dll";
+    return makeLiveSourceStatus(ctx,
+        bl::csharp::invokeLiveSourceTick(id, path, tick, state));
+}
+
 JSValue makeSourceBoltHookStatus(JSContext* ctx) {
     const auto status = bl::csharp::managedSourceBoltHookStatus();
     JSValue result = JS_NewObject(ctx);
@@ -1751,6 +1808,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 0));
     JS_SetPropertyStr(ctx, api, "managedWorkerStatus",
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveStatus",
+                      JS_NewCFunction(ctx, jsSourceLiveStatus, "sourceLiveStatus", 1));
+    JS_SetPropertyStr(ctx, api, "sourceLiveTick",
+                      JS_NewCFunction(ctx, jsSourceLiveTick, "sourceLiveTick", 3));
     JS_SetPropertyStr(ctx, api, "sourceCompile",
                       JS_NewCFunction(ctx, jsManagedSourceCompile, "sourceCompile", 0));
     JS_SetPropertyStr(ctx, api, "sourceCompileMod",
