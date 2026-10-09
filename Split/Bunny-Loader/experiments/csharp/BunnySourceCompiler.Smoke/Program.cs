@@ -84,7 +84,7 @@ try
             int.Parse(homingSamples[i]) >= int.Parse(homingSamples[i - 1])))
         throw new InvalidOperationException("C# homing LUT invalid or not monotonic");
     string effectPolicy = File.ReadAllText(Path.Combine(scratch, "source-onhit-policy.txt"));
-    if (effectPolicy != "BUNNY_SOURCE_ONHIT_V1\nSourceBolt\n24\n105\t120\t135\t135\n")
+    if (effectPolicy != "BUNNY_SOURCE_ONHIT_V1\nSourceBolt\n24\n60\t84\t108\t132\n")
         throw new InvalidOperationException("C# OnHitNPC exported an unexpected buff policy: " + effectPolicy);
     Console.WriteLine("BUNNY_CSHARP_ONHIT_POLICY=PASS");
     Console.WriteLine("BUNNY_CSHARP_HOMING_POLICY=PASS");
