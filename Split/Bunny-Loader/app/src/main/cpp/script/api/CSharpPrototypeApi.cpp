@@ -254,6 +254,15 @@ JSValue jsSourceAIStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return result;
 }
 
+JSValue jsSourcePauseBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0)
+        return JS_ThrowTypeError(ctx, "sourcePauseBufferedAI()");
+    const bool wasEnabled = bl::csharp::pauseManagedSourceBoltHook();
+    JSValue result = makeSourceBoltHookStatus(ctx);
+    JS_SetPropertyStr(ctx, result, "wasEnabled", JS_NewBool(ctx, wasEnabled));
+    return result;
+}
+
 JSValue jsManagedSourceCompile(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0)
         return JS_ThrowTypeError(ctx, "bl.csharp.sourceCompile()");
@@ -1078,6 +1087,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceEnableBufferedAI, "sourceEnableBufferedAI", 1));
     JS_SetPropertyStr(ctx, api, "sourceAIStatus",
                       JS_NewCFunction(ctx, jsSourceAIStatus, "sourceAIStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePauseBufferedAI",
+                      JS_NewCFunction(ctx, jsSourcePauseBufferedAI, "sourcePauseBufferedAI", 0));
     JS_SetPropertyStr(ctx, api, "managedGameProbe",
                       JS_NewCFunction(ctx, jsManagedGameProbe, "managedGameProbe", 1));
     JS_SetPropertyStr(ctx, api, "managedCallbackProbe",
