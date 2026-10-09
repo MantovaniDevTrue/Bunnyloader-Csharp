@@ -23,6 +23,7 @@ assert "public abstract class BunnyBuff" in sdk
 assert "public abstract class BunnyBuffPotion" in sdk
 assert "public abstract class BunnyPlayer" in sdk
 assert "public abstract class BunnyAccessory" in sdk
+assert "public abstract class BunnyNPC" in sdk
 for signature in (
     "public abstract void SetDefaults()",
     "public virtual int OnHitNPC(int damage)",
@@ -41,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.3"
+assert catalog["exampleModCSharpVersion"] == "0.1.4"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -54,7 +55,7 @@ ids = set()
 example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "SourceBoltMotion", "SourceSparkMotion",
                    "ExampleDefenseBuff", "ExampleBuffPotion",
-                   "ExampleFocusAccessory", "ExampleFocusPlayer"}
+                   "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSlimeNPC"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
@@ -77,13 +78,14 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.3"
+assert manifest2["version"] == "0.1.4"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 7
+assert len(playable_files) == 8
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
                  "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)",
-                 "BunnyBuff", "BunnyBuffPotion", "BunnyPlayer", "BunnyAccessory",
+                 "BunnyBuff", "BunnyBuffPotion", "BunnyPlayer", "BunnyAccessory", "BunnyNPC",
+                 "AnimationType = 1", "LifeMax = 25",
                  "DefenseBonus = 10", "DefenseBonus = 7", "ResetEffects()",
                  "UpdateEquips(bool accessoryEquipped)",
                  "Buff = nameof(ExampleDefenseBuff)",
