@@ -4,14 +4,20 @@
 #include "content/npcs/ModNpcs.h"
 #include "core/Log.h"
 #include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
+#include <algorithm>
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <mutex>
+#include <string>
 
 namespace bl::csharp {
 namespace {
@@ -63,6 +69,14 @@ NpcFn g_origAi = nullptr;
 NpcFn g_origCheckActive = nullptr;
 NpcFn g_origLoot = nullptr;
 bool g_installed = false;
+bool g_liveNpcInstallRequested = false;
+std::atomic<bool> g_liveNpcEnabled{false};
+std::mutex g_liveNpcMutex;
+LiveNpcAiStatus g_liveNpcStatus;
+std::string g_liveNpcPath;
+constexpr int kLiveNpcMaxCalls = 240;
+
+
 
 struct Instance {
     Il2CppObject* object = nullptr;
@@ -212,9 +226,90 @@ void runNativeAi(Il2CppObject* npc) {
     ++g_attacksQueued;
 }
 
+void runLiveNpcAi(Il2CppObject* npc) {
+    if (!g_liveNpcEnabled.load(std::memory_order_relaxed) || !npc) return;
+    const auto& r = refs();
+    if (!r.ok) return;
+    const int type = runtime::field<int>(npc, r.type);
+    std::string modId;
+    std::string path;
+    {
+        std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+        if (type != g_liveNpcStatus.npcType ||
+            g_liveNpcStatus.events >= kLiveNpcMaxCalls) return;
+        modId = g_liveNpcStatus.modId;
+        path = g_liveNpcPath;
+    }
+    int netMode = -1;
+    il2cpp::api().field_static_get_value(r.netMode, &netMode);
+    if (netMode != 0 || !runtime::field<uint8_t>(npc, r.active)) return;
+    const int life = runtime::field<int>(npc, r.life);
+    if (life <= 0) return;
+    const auto& g = runtime::game();
+    const int slot = runtime::field<int>(npc, g.entity.whoAmI);
+    if (slot < 0 || slot >= 512) return;
+    const auto player = captureTerrariaSnapshot(false, false);
+    if (!player.ready || player.player.life <= 0) return;
+    const Vector2 position = runtime::field<Vector2>(npc, g.entity.position);
+    const int width = runtime::field<int>(npc, g.entity.width);
+    const float deltaF = player.player.x - (position.x + width * 0.5f);
+    if (!std::isfinite(deltaF)) return;
+    const int deltaX = static_cast<int>(std::clamp(deltaF, -100000.f, 100000.f));
+    int velocityTenths = 0;
+    const auto started = std::chrono::steady_clock::now();
+    const bool ok = invokeLiveSourceNpcAi(modId, path, deltaX, life, &velocityTenths);
+    const double ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - started).count();
+    std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+    if (!g_liveNpcEnabled.load(std::memory_order_relaxed) ||
+        type != g_liveNpcStatus.npcType) return;
+    auto& status = g_liveNpcStatus;
+    ++status.events;
+    status.lastSlot = slot;
+    status.lastDeltaX = deltaX;
+    status.maxCallbackMs = std::max(status.maxCallbackMs, ms);
+    if (!ok) {
+        ++status.errors;
+        status.phase = "callback-error";
+        if (status.errors >= 3) {
+            g_liveNpcEnabled.store(false, std::memory_order_relaxed);
+            status.phase = "disabled-errors";
+        }
+        return;
+    }
+    status.lastVelocityTenths = velocityTenths;
+    if (runtime::field<uint8_t>(npc, r.active) &&
+        runtime::field<int>(npc, r.type) == type &&
+        runtime::field<int>(npc, g.entity.whoAmI) == slot) {
+        const Vector2 previous = runtime::field<Vector2>(npc, g.entity.velocity);
+        const float horizontal = std::clamp(
+            previous.x * 0.7f + velocityTenths * 0.03f, -6.f, 6.f);
+        if (std::isfinite(previous.y)) {
+            runtime::field<Vector2>(npc, g.entity.velocity) = {horizontal, previous.y};
+            ++status.writes;
+            if (std::fabs(horizontal) > 0.1f && r.direction >= 0) {
+                const int direction = horizontal >= 0.f ? 1 : -1;
+                runtime::field<int>(npc, r.direction) = direction;
+                if (r.spriteDirection >= 0)
+                    runtime::field<int>(npc, r.spriteDirection) = direction;
+            }
+        }
+    }
+    status.phase = "running";
+    if (status.events >= kLiveNpcMaxCalls) {
+        g_liveNpcEnabled.store(false, std::memory_order_relaxed);
+        status.phase = "completed-limit";
+        status.limitReached = true;
+    } else if (status.events > 5 && ms > 20.0) {
+        g_liveNpcEnabled.store(false, std::memory_order_relaxed);
+        status.phase = "paused-slow-callback";
+    }
+}
+
 void hookAi(Il2CppObject* npc, const MethodInfo* method) {
     g_origAi(npc, method);
     runNativeAi(npc);
+    runLiveNpcAi(npc);
 }
 
 void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
@@ -227,6 +322,61 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
     g_origLoot(npc, method);
 }
 
+}
+
+LiveNpcAiStatus liveNpcAiStatus() {
+    std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+    LiveNpcAiStatus result = g_liveNpcStatus;
+    result.installed = g_installed;
+    result.enabled = g_liveNpcEnabled.load(std::memory_order_relaxed);
+    return result;
+}
+
+void pauseLiveNpcAi() {
+    g_liveNpcEnabled.store(false, std::memory_order_relaxed);
+    std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+    if (g_liveNpcStatus.phase == "running" ||
+        g_liveNpcStatus.phase == "armed")
+        g_liveNpcStatus.phase = "paused";
+}
+
+bool enableLiveNpcAi(const std::string& modId, int npcType,
+                     const std::string& assemblyPath, std::string* error) {
+    if (!error) return false;
+    if (modId.empty() || assemblyPath.empty() ||
+        npcType < runtime::kVanillaNpcCount ||
+        !runtime::modNpcBelongsTo(npcType, modId)) {
+        *error = "NPC type does not belong to the C# source mod";
+        return false;
+    }
+    const auto live = liveSourceStatus(modId);
+    if (!live.loaded || !live.ready || live.failures || live.npcFailures) {
+        *error = "Run successful sourceLiveTick for this mod before enabling NPC AI";
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+        if (g_liveNpcEnabled.load(std::memory_order_relaxed)) {
+            *error = "Another live NPC AI session is already running";
+            return false;
+        }
+        g_liveNpcInstallRequested = true;
+    }
+    if (!installNpcAiHost()) {
+        *error = "Unable to install selective Terraria.NPC.AI native hook";
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> guard(g_liveNpcMutex);
+        g_liveNpcStatus = {};
+        g_liveNpcStatus.installed = true;
+        g_liveNpcStatus.npcType = npcType;
+        g_liveNpcStatus.modId = modId;
+        g_liveNpcStatus.phase = "armed";
+        g_liveNpcPath = assemblyPath;
+        g_liveNpcEnabled.store(true, std::memory_order_relaxed);
+    }
+    return true;
 }
 
 bool takeNpcAttack(int slot, int type, HostNpcAttack* out) {
@@ -258,7 +408,7 @@ NpcAiStatus npcAiStatus() {
 bool installNpcAiHost() {
     if (g_installed) return true;
     Refs& r = refs();
-    if (!r.ok || !csharpmods::hasNpcBehavior()) return false;
+    if (!r.ok || (!csharpmods::hasNpcBehavior() && !g_liveNpcInstallRequested)) return false;
     if (!hook::install(r.ai, hookAi, &g_origAi)) {
         BL_WARN("csharp NPC: falha no hook NPC.AI");
         return false;
@@ -268,7 +418,7 @@ bool installNpcAiHost() {
     if (r.loot && !hook::install(r.loot, hookLoot, &g_origLoot))
         BL_WARN("csharp NPC: hook NPCLoot indisponivel");
     g_installed = true;
-    BL_INFO("csharp NPC: AI NativeAOT seletiva instalada");
+    BL_INFO("csharp NPC: seletivo AI nativo e/ou MonoVM C# instalado");
     return true;
 }
 
