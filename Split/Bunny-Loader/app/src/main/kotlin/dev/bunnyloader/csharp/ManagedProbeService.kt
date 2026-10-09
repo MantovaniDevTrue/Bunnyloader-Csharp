@@ -133,7 +133,7 @@ class ManagedProbeService : Service() {
                 compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
             }
         }
-        startLogCapture(log)
+        if (compileRoot == null) startLogCapture(log)
 
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
             try {
@@ -148,10 +148,9 @@ class ManagedProbeService : Service() {
                     val outputDir = File(dir, "compiled")
                     outputDir.mkdirs()
                     val output = File(outputDir, "sourcecsharp.dll")
-                    compileStatus.writeText("state=compiling\npid=${Process.myPid()}\n")
-                    startCompileHealthMonitor(health)
-                    startNativeAbortSampler(nativeMaps, nativeThreads)
-                    startAbortHandlerWatch(abortWatch)
+                    compileStatus.writeText(
+                        "state=compiling\npid=${Process.myPid()}\nwatchers=disabled\n"
+                    )
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
                         output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
