@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.4",
+  "exampleModCSharpVersion": "0.1.5",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -123,6 +123,13 @@
       "status": "experimental",
       "examples": [
         "ExampleBuffPotion"
+      ]
+    },
+    {
+      "id": "persistent_mono_live_callback",
+      "status": "experimental",
+      "examples": [
+        "BunnyLiveEntry"
       ]
     }
   ]
