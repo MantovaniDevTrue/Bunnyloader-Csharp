@@ -298,6 +298,59 @@ bool parseCurves(const std::string& id, const std::string& input,
     return true;
 }
 
+bool parseCombat(const std::string& id, const std::string& input,
+                 const SourceModStatus& mod, std::vector<Combat>* output) {
+    std::istringstream stream(input);
+    std::string header, line;
+    if (!std::getline(stream, header) || header != "BUNNY_COMBAT_POLICIES_V1")
+        return false;
+    std::set<std::string> names;
+    int total = 0;
+    while (std::getline(stream, line)) {
+        if (line.empty()) continue;
+        if (++total > 16 || line.size() > 3200) return false;
+        std::istringstream row(line);
+        std::vector<std::string> parts;
+        std::string part;
+        while (std::getline(row, part, '\t')) parts.push_back(part);
+        if (parts.size() < 3 || !mod.registeredTypes.contains(parts[1]) ||
+            !names.insert(parts[0] + ":" + parts[1]).second)
+            return false;
+        const bool hit = parts[0] == "HIT";
+        const bool kill = parts[0] == "KILL";
+        if ((!hit && !kill) || parts.size() != (hit ? 259u : 515u) ||
+            parts[2] != "24") return false;
+        Combat entry;
+        entry.modId = id;
+        entry.name = parts[1];
+        entry.kill = kill;
+        entry.hit.buffId = 24;
+        entry.onKill.buffId = 24;
+        auto parse = [](const std::string& field, int low, int high, int* dest) {
+            if (field.empty() || field.size() > 5) return false;
+            errno = 0;
+            char* end = nullptr;
+            long value = std::strtol(field.c_str(), &end, 10);
+            if (errno || end == field.c_str() || *end || value < low || value > high)
+                return false;
+            *dest = static_cast<int>(value);
+            return true;
+        };
+        for (size_t i = 0; i < 256; ++i) {
+            if (hit) {
+                if (!parse(parts[3 + i], 30, 180, &entry.hit.durations[i]))
+                    return false;
+            } else {
+                if (!parse(parts[3 + i], 24, 120, &entry.onKill.radii[i]) ||
+                    !parse(parts[259 + i], 30, 180, &entry.onKill.durations[i]))
+                    return false;
+            }
+        }
+        output->push_back(std::move(entry));
+    }
+    return true;
+}
+
 struct ActivationContext {
     int netMode = -1;
     int gameMenu = -1;
@@ -326,6 +379,7 @@ void run() {
     const std::string cacheDir = work + "auto-source-cache";
     mkdir(cacheDir.c_str(), 0700);
     std::vector<Curve> pending;
+    std::vector<Combat> pendingCombat;
     for (const auto& mod : sourceModStatuses()) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
@@ -357,12 +411,12 @@ void run() {
             note(&status, "failed", "Arquivos C# nao encontrados");
             continue;
         }
-        std::string defaults, curves, error;
+        std::string defaults, curves, combat, error;
         const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
-        status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves);
+        status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves, &combat);
         if (!status.cached) {
             note(&status, "compiling");
-            if (!compile(root, mod.id, mod, work, &defaults, &curves, &error)) {
+            if (!compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error)) {
                 note(&status, "failed", error);
                 continue;
             }
@@ -378,12 +432,22 @@ void run() {
             note(&status, "failed", "Curvas de projeteis C# invalidas");
             continue;
         }
+        std::vector<Combat> effects;
+        if (!parseCombat(mod.id, combat, mod, &effects)) {
+            note(&status, "failed", "Tabela automatica OnHitNPC/OnKill invalida");
+            continue;
+        }
         status.curves = static_cast<int>(entries.size());
+        for (const auto& effect : effects) {
+            if (effect.kill) ++status.killPolicies;
+            else ++status.hitPolicies;
+        }
         pending.insert(pending.end(), entries.begin(), entries.end());
-        if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves);
-        note(&status, entries.empty() ? "ready" : "waiting-world");
+        pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
+        if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
+        note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
-    if (pending.empty()) return;
+    if (pending.empty() && pendingCombat.empty()) return;
     const ActivationContext context = readActivationContext();
     BL_INFO("csharp auto: preparando curvas C#, netMode=%d gameMenu=%d (opcional)",
             context.netMode, context.gameMenu);
@@ -405,7 +469,9 @@ void run() {
             state.gameMenu = context.gameMenu;
             if (enabled) {
                 ++state.enabledCurves;
-                state.phase = state.enabledCurves == state.curves ? "ready" : "enabling";
+                state.phase = state.enabledCurves == state.curves &&
+                    state.enabledHits == state.hitPolicies &&
+                    state.enabledKills == state.killPolicies ? "ready" : "enabling";
             } else {
                 state.phase = context.netMode > 0 ? "singleplayer-only" : "failed";
                 state.error = error;
@@ -415,7 +481,40 @@ void run() {
             BL_WARN("csharp auto: curva %s/%s recusada: %s",
                     curve.modId.c_str(), curve.name.c_str(), error.c_str());
     }
-    BL_INFO("csharp auto: registro automatico das curvas concluido");
+    for (const auto& effect : pendingCombat) {
+        std::string error;
+        bool enabled = false;
+        if (context.netMode != 0) {
+            error = "Efeitos C# automaticos requerem singleplayer";
+        } else if (effect.kill) {
+            enabled = enableAutoProjectileOnKill(
+                effect.modId, effect.name, effect.onKill, &error);
+        } else {
+            enabled = enableAutoProjectileOnHit(
+                effect.modId, effect.name, effect.hit, &error);
+        }
+        std::lock_guard<std::mutex> guard(g_lock);
+        for (auto& status : g_statuses) {
+            if (status.modId != effect.modId) continue;
+            status.netMode = context.netMode;
+            status.gameMenu = context.gameMenu;
+            if (enabled) {
+                if (effect.kill) ++status.enabledKills;
+                else ++status.enabledHits;
+                if (status.phase != "failed")
+                    status.phase = status.enabledCurves == status.curves &&
+                        status.enabledHits == status.hitPolicies &&
+                        status.enabledKills == status.killPolicies ? "ready" : "enabling";
+            } else {
+                status.phase = context.netMode > 0 ? "singleplayer-only" : "failed";
+                status.error = error;
+            }
+        }
+        if (!enabled)
+            BL_WARN("csharp auto: efeito %s/%s recusado: %s",
+                    effect.modId.c_str(), effect.name.c_str(), error.c_str());
+    }
+    BL_INFO("csharp auto: curvas e efeitos OnHitNPC/OnKill registrados");
 }
 
 }
