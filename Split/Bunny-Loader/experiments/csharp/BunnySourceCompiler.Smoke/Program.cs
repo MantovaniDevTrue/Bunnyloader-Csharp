@@ -253,6 +253,20 @@ try
             exampleKill[3 + i] == Math.Clamp(28 + i, 28, 96).ToString() &&
             exampleKill[259 + i] == Math.Clamp(50 + i * 2, 50, 150).ToString()))
         throw new InvalidOperationException("Independent OnHitNPC/OnKill C# tables incorrect");
+    var liveAssembly = Assembly.LoadFrom(independentOut);
+    var liveType = liveAssembly.GetType("BunnyLoader.Source.BunnyLiveEntry")
+        ?? throw new InvalidOperationException("Independent live C# callback class missing");
+    var liveTick = liveType.GetMethod("Tick", BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("Independent live C# Tick(int,int) missing");
+    int firstLive = (int)(liveTick.Invoke(null, new object[] { 5, 10 })
+        ?? throw new InvalidOperationException("Live Tick did not return int"));
+    int secondLive = (int)(liveTick.Invoke(null, new object[] { 5, 10 })
+        ?? throw new InvalidOperationException("Live Tick did not return int"));
+    if (firstLive != 13 || secondLive != 14)
+        throw new InvalidOperationException(
+            "C# live callbacks did not retain managed static state: " +
+            firstLive + ", " + secondLive);
+    Console.WriteLine("BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
