@@ -212,7 +212,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 4)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 6)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -221,7 +221,9 @@ try
         !independentDefaults.Contains("WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("BUFF\tExampleDefenseBuff\t10\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 5)
+        !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\n", StringComparison.Ordinal) ||
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 7)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -250,6 +252,7 @@ try
             exampleKill[3 + i] == Math.Clamp(28 + i, 28, 96).ToString() &&
             exampleKill[259 + i] == Math.Clamp(50 + i * 2, 50, 150).ToString()))
         throw new InvalidOperationException("Independent OnHitNPC/OnKill C# tables incorrect");
+    Console.WriteLine("BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
     Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
