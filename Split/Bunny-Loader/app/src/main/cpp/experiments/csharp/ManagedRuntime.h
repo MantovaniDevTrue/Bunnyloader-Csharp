@@ -23,6 +23,24 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count);
 bool invokeManagedProjectileAI(int tick, int state, int* nextState);
 
+struct LiveSourceStatus {
+    bool loaded = false;
+    bool ready = false;
+    int callbacks = 0;
+    int failures = 0;
+    int lastTick = -1;
+    int lastState = 0;
+    int lastResult = 0;
+    std::string modId;
+    std::string phase = "idle";
+    std::string error;
+};
+
+LiveSourceStatus liveSourceStatus();
+LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
+                                     const std::string& assemblyPath,
+                                     int tick, int state);
+
 struct ManagedSourceCompileResult {
     int result = 0;
     int executedTypes = 0;
