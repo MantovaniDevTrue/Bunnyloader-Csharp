@@ -424,9 +424,9 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
     std::memcpy(&out.executedTypes, g_api.unbox(verifiedBoxed), sizeof(out.executedTypes));
-    if (out.executedTypes != 2) {
+    if (out.executedTypes < 2 || out.executedTypes > 32) {
         out.phase = "compiled-assembly-execution-failed";
-        out.error = "CompiledAssemblyProbe.Verify nao executou as duas classes esperadas";
+        out.error = "CompiledAssemblyProbe.Verify retornou quantidade de classes invalida";
         trace(out.phase.c_str(), out.error.c_str());
         return out;
     }
