@@ -37,7 +37,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.0"
+assert catalog["exampleModCSharpVersion"] == "0.1.1"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -71,12 +71,13 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.0"
+assert manifest2["version"] == "0.1.1"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert len(playable_files) == 3
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
-                 "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)"):
+                 "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)",
+         "OnHitNPC(int damage)", "OnKill(int damage)", "OnKillDuration(int damage)"):
     assert expected in source_text, expected
 assert "SourceCSharpMod" not in source_text
 print("EXAMPLEMOD_CSHARP_INDEPENDENT_SOURCE=PASS")
