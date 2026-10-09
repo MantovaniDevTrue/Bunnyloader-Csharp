@@ -156,9 +156,48 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         }
     }
     const size_t close = closing(tokens, method + 3, "{", "}");
-    if (close >= end || close + 1 != end) {
-        *error = name + ": somente SetDefaults() esta disponivel neste prototipo";
+    if (close >= end) {
+        *error = name + ": corpo SetDefaults sem fechamento";
         return false;
+    }
+    size_t next = close + 1;
+    while (next < end) {
+        const size_t start = next;
+        size_t open = next;
+        while (open < end && tokens[open].value != "(" &&
+               tokens[open].value != ";" && tokens[open].value != "{")
+            ++open;
+        if (open >= end || tokens[open].value != "(" || open == start) {
+            *error = name + ": membro adicional C# deve ser um metodo";
+            return false;
+        }
+        const size_t signatureEnd = closing(tokens, open, "(", ")");
+        if (signatureEnd >= end || signatureEnd + 1 >= end) {
+            *error = name + ": assinatura de metodo adicional invalida";
+            return false;
+        }
+        const size_t bodyStart = signatureEnd + 1;
+        if (tokens[bodyStart].value == "{") {
+            const size_t bodyEnd = closing(tokens, bodyStart, "{", "}");
+            if (bodyEnd >= end) {
+                *error = name + ": metodo adicional sem fechamento";
+                return false;
+            }
+            next = bodyEnd + 1;
+        } else if (bodyStart + 1 < end &&
+                   tokens[bodyStart].value == "=" &&
+                   tokens[bodyStart + 1].value == ">") {
+            size_t semicolon = bodyStart + 2;
+            while (semicolon < end && tokens[semicolon].value != ";") ++semicolon;
+            if (semicolon >= end) {
+                *error = name + ": expressao de metodo sem terminador";
+                return false;
+            }
+            next = semicolon + 1;
+        } else {
+            *error = name + ": somente metodos adicionais sao permitidos";
+            return false;
+        }
     }
     ParsedSourceType def;
     def.name = name;
