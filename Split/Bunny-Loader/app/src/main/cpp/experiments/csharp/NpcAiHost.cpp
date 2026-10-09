@@ -451,13 +451,19 @@ LiveNpcAiStatus liveNpcAiStatus() {
     LiveNpcAiStatus result = g_liveNpcStatus;
     result.installed = g_installed;
     result.enabled = g_liveNpcEnabled.load(std::memory_order_relaxed);
+    {
+        std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+        result.workerPending = g_liveWorkerBusy || g_liveHasCompletion;
+        result.workerStarted = g_liveWorkerStarted;
+    }
     return result;
 }
 
 void pauseLiveNpcAi() {
     g_liveNpcEnabled.store(false, std::memory_order_relaxed);
     std::lock_guard<std::mutex> guard(g_liveNpcMutex);
-    if (g_liveNpcStatus.phase == "running" ||
+    if (g_liveNpcStatus.phase == "running-async" ||
+        g_liveNpcStatus.phase == "queued-async" ||
         g_liveNpcStatus.phase == "armed")
         g_liveNpcStatus.phase = "paused";
 }
@@ -492,12 +498,37 @@ bool enableLiveNpcAi(const std::string& modId, int npcType,
         std::lock_guard<std::mutex> guard(g_liveNpcMutex);
         g_liveNpcStatus = {};
         g_liveNpcStatus.installed = true;
+        g_liveNpcStatus.workerStarted = true;
         g_liveNpcStatus.npcType = npcType;
         g_liveNpcStatus.modId = modId;
         g_liveNpcStatus.phase = "armed";
         g_liveNpcPath = assemblyPath;
-        g_liveNpcEnabled.store(true, std::memory_order_relaxed);
+        g_liveNpcEnabled.store(true, std::memory_order_release);
     }
+    bool createWorker = false;
+    {
+        std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
+        ++g_liveSession;
+        g_liveHasCompletion = false;
+        g_liveSampleCounter = 0;
+        if (!g_liveWorkerStarted) {
+            g_liveWorkerStarted = true;
+            createWorker = true;
+        }
+    }
+    if (createWorker) {
+        try {
+            std::thread(liveNpcWorkerLoop).detach();
+        } catch (...) {
+            g_liveNpcEnabled.store(false, std::memory_order_release);
+            std::lock_guard<std::mutex> lock(g_liveNpcMutex);
+            g_liveNpcStatus.phase = "worker-start-failed";
+            *error = "Unable to launch managed NPC callback worker";
+            return false;
+        }
+    }
+    BL_INFO("csharp live NPC: async MonoVM worker enabled mod=%s type=%d max=%d interval=%d",
+            modId.c_str(), npcType, kLiveNpcMaxCalls, kLiveNpcSampleInterval);
     return true;
 }
 
