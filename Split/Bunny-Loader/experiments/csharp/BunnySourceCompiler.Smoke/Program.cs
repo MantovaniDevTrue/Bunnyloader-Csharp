@@ -84,6 +84,24 @@ try
         !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad > 30) ||
         !sparkSamples.Any(x => int.TryParse(x, out int mrad) && mrad < -30))
         throw new InvalidOperationException("Independent C# SourceSpark AI curve failed validation");
+    string genericCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
+    string[] genericLines = genericCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (genericLines.Length != 3 || genericLines[0] != "BUNNY_PROJECTILE_TURNS_V1")
+        throw new InvalidOperationException("Generic projectile policy header or curve count invalid");
+    var genericRecords = genericLines.Skip(1).Select(line => line.Split('\t')).ToArray();
+    if (genericRecords[0].Length != 121 || genericRecords[1].Length != 121 ||
+        genericRecords[0][0] != "SourceBolt" || genericRecords[1][0] != "SourceSpark")
+        throw new InvalidOperationException("Generic projectile motion class mapping invalid");
+    for (int tick = 0; tick < 120; tick++)
+    {
+        int bolt = (int)MathF.Round(MathF.Sin(tick * 0.22f) * 0.03f * 1000f);
+        int spark = (int)MathF.Round((MathF.Sin(tick * 0.32f) * 0.045f) * 1000f);
+        if (!int.TryParse(genericRecords[0][tick + 1], out int actualBolt) ||
+            !int.TryParse(genericRecords[1][tick + 1], out int actualSpark) ||
+            actualBolt != bolt || actualSpark != spark)
+            throw new InvalidOperationException("Generic projectile curve values incorrect");
+    }
+    Console.WriteLine("BUNNY_CSHARP_GENERIC_PROJECTILE_POLICIES=PASS");
     Console.WriteLine("BUNNY_CSHARP_SPARK_AI_BUFFER=PASS");
 
     string homingFile = File.ReadAllText(Path.Combine(scratch, "source-homing-policy.txt"));
