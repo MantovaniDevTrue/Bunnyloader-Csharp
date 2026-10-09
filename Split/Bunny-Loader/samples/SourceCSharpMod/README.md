@@ -1,30 +1,33 @@
-# Source C# Test 0.1.3
+# Source C# Test 0.1.4
 
-Teste de arma e projétil escritos em C# puro para o Bunny Loader Android, sem JavaScript, DLL nem .so no mod.
+Teste de mod Bunny Loader com duas armas e dois projeteis escritos em C# puro.
 
-O Roslyn/MonoVM executa SetDefaults, homing, OnHitNPC e os novos métodos OnKill antes da partida. O Native/IL2CPP aplica os resultados durante as colisões e ao destruir projéteis, sem executar MonoVM a cada evento.
+A versao inclui SourceWand + SourceBolt e SourceStaff + SourceSpark. SourceSpark e SourceStaff reutilizam os sprites existentes e possuem SetDefaults independentes, compilados pelo Roslyn e executados pelo MonoVM. O host Native valida o conjunto e aplica os valores ao Terraria em lote, sem exigir DLL ou .so dentro do mod.
 
-Nesta versão, SourceBolt aplica On Fire! (buff 24) a NPCs próximos ao desaparecer. O C# define raio e duração a partir do dano do projétil. O teste usa 256 valores pré-calculados, raio de 24 a 100 pixels, duração de 60 a 160 ticks, até seis NPCs por morte. Com dano 22: raio 68 pixels e duração 104 ticks. Uso apenas em singleplayer.
+SourceBolt preserva homing, OnHitNPC e OnKill. Os hooks especificos continuam afetando somente SourceBolt. SourceSpark usa o comportamento normal de projetil configurado pelo Bunny Loader; ainda nao tem IA e efeitos C# individuais.
 
-No console do Bunny Loader, compile o mod e aguarde terminar:
+No console, em mundo singleplayer:
 
 ```js
 bl.csharp.sourceCompile()
 JSON.stringify(bl.csharp.sourceCompileStatus(), null, 2)
 ```
 
-Depois ative:
+Espere aparecer state=finished e assemblyReady=1. Em seguida:
 
 ```js
 bl.csharp.sourceApplyCompiled("CONFIRM_MANAGED_DEFAULTS")
+JSON.stringify(bl.csharp.sourceMods(), null, 2)
+```
+
+O retorno de sourceApplyCompiled deve ter items=2 e projectiles=2. As duas armas devem aparecer no jogo e disparar seus projeteis separados. Para testar os efeitos antigos:
+
+```js
 bl.csharp.sourceEnableHomingAI("CONFIRM_HOMING_CSHARP_AI")
 bl.csharp.sourceEnableOnHit("CONFIRM_CSHARP_ONHIT")
 bl.csharp.sourceEnableOnKill("CONFIRM_CSHARP_ONKILL")
-JSON.stringify(bl.csharp.sourceKillStatus(), null, 2)
 ```
 
-O OnKill registra mortes, buffs aplicados, dano, raio, duração e erros. Para interromper: `bl.csharp.sourcePauseOnKill()`.
+O teste usa somente a base Bunny Loader e ExampleModBunny. A arquitetura de callbacks C# continua baseada em politicas antecipadas e hooks nativos, sem chamadas gerenciadas a cada frame de projeteis.
 
-O C# ainda prepara políticas antecipadamente; não é um callback gerenciado executado em tempo real.
-
-Referência estável: Bunny Loader C# 0.1.10.16.29, Source C# Test 0.1.2.
+Referencia estavel anterior: v0.1.10.16.30 com Source C# Test 0.1.3.
