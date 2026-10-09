@@ -91,7 +91,7 @@ object BootLog {
         val out = logcatFile(ctx)
         runCatching {
             rotateLogcat(ctx)
-            out.writeText("SESSION_START pid=${android.os.Process.myPid()} unixMs=${System.currentTimeMillis()}\\n".replace("\\n", "\n"))
+            out.writeText("SESSION_START pid=${android.os.Process.myPid()} unixMs=${System.currentTimeMillis()}\n")
         }
         Thread {
             runCatching {
