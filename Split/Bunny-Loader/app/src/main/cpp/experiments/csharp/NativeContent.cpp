@@ -521,6 +521,34 @@ bool applyManagedNativePlayerDefaultsBatch(
     return true;
 }
 
+bool applyManagedNativeNpcDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedNpcEntry>& npcs) {
+    if (npcs.empty()) return true;
+    if (!g_npcReady || npcs.size() > 16) return false;
+    std::map<int, NativeNpcDefaults> staged;
+    for (const auto& npc : npcs) {
+        if (npc.type < 0 ||
+            bl::runtime::modNpcTypeByName(modId, npc.name) != npc.type ||
+            g_npcs.count(npc.type) != 1 ||
+            npc.width < 8 || npc.width > 256 ||
+            npc.height < 8 || npc.height > 256 ||
+            npc.damage < 0 || npc.damage > 500 ||
+            npc.defense < 0 || npc.defense > 200 ||
+            npc.lifeMax < 1 || npc.lifeMax > 100000 ||
+            npc.aiStyle != 1 || npc.animationType != 1 ||
+            npc.frames != 2 ||
+            !staged.emplace(npc.type, NativeNpcDefaults{
+                npc.width, npc.height, npc.damage, npc.defense,
+                npc.lifeMax, npc.aiStyle}).second) return false;
+    }
+    for (const auto& entry : staged)
+        g_npcs[entry.first] = entry.second;
+    BL_INFO("csharp native: managed NPC defaults applied for %s (%zu NPC)",
+            modId.c_str(), staged.size());
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
