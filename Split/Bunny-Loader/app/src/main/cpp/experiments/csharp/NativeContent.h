@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace bl::csharp {
 
@@ -66,6 +67,23 @@ bool applyManagedNativeDefaults(
     const std::string& modId, const std::string& projectileName, int projectileType,
     const ManagedProjectileDefaults& projectile, const std::string& weaponName,
     int weaponType, const ManagedWeaponDefaults& weapon);
+
+struct ManagedProjectileEntry {
+    std::string name;
+    int type = -1;
+    ManagedProjectileDefaults values;
+};
+
+struct ManagedWeaponEntry {
+    std::string name;
+    int type = -1;
+    int shootType = -1;
+    ManagedWeaponDefaults values;
+};
+
+bool applyManagedNativeDefaultsBatch(const std::string& modId,
+                                     const std::vector<ManagedProjectileEntry>& projectiles,
+                                     const std::vector<ManagedWeaponEntry>& weapons);
 
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
