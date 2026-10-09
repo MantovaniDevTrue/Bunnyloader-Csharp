@@ -1,3 +1,4 @@
+using System;
 using BunnyLoader.Source;
 
 namespace SourceCSharpMod;
@@ -13,5 +14,10 @@ public sealed class SourceBolt : BunnyProjectile
         Friendly = true;
         Penetrate = 1;
         TimeLeft = 360;
+    }
+
+    public override int OnHitNPC(int hitCount)
+    {
+        return Math.Clamp(90 + hitCount * 15, 90, 135);
     }
 }
