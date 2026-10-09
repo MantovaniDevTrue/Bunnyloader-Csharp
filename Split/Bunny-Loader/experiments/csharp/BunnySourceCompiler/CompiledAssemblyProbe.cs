@@ -29,7 +29,14 @@ public static class CompiledAssemblyProbe
             var potionTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyBuffPotion")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
+            var accessoryTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyAccessory")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var playerTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyPlayer")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            if (accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
+                projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
                 weaponTypes.Length < 1 || weaponTypes.Length > 16 ||
                 buffTypes.Length > 16 || potionTypes.Length > 16)
                 throw new InvalidOperationException("C# content class count out of bounds");
@@ -45,7 +52,10 @@ public static class CompiledAssemblyProbe
                     ? primaryWeapon! : CreateContent(type)).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
-            WriteRuntimeDefaults(projectiles, weapons, buffs, potions, diagnosticsPath);
+            object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
+            object[] players = playerTypes.Select(CreateContent).ToArray();
+            WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
+                accessories, players, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -57,13 +67,15 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
+                " accessories=" + accessories.Length + " players=" + players.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
-            return projectiles.Length + weapons.Length + buffs.Length + potions.Length;
+            return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
+                accessories.Length + players.Length;
         }
         catch (Exception exception)
         {
@@ -386,7 +398,8 @@ public static class CompiledAssemblyProbe
     }
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
-        object[] buffs, object[] potions, string diagnosticsPath)
+        object[] buffs, object[] potions, object[] accessories,
+        object[] players, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -405,7 +418,8 @@ public static class CompiledAssemblyProbe
         var names = new HashSet<string>(StringComparer.Ordinal);
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
-        var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length + potions.Length + 1)
+        var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
+            potions.Length + accessories.Length + players.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
@@ -466,6 +480,46 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Invalid C# buff potion duration");
             lines.Add(string.Join("\t", "POTION", name,
                 duration.ToString(CultureInfo.InvariantCulture), buffName));
+        }
+        var accessoryNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (object accessory in accessories)
+        {
+            string name = accessory.GetType().Name;
+            CheckName(name);
+            if (!names.Add(name)) throw new InvalidOperationException("Duplicated C# accessory");
+            accessoryNames.Add(name);
+            int defense = Value<int>(accessory, "DefenseBonus");
+            if (defense < 0 || defense > 100)
+                throw new InvalidOperationException("Invalid C# accessory defense bonus");
+            lines.Add(string.Join("\t", "ACCESSORY", name,
+                defense.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (object player in players)
+        {
+            string name = player.GetType().Name;
+            string accessoryName = Value<string>(player, "Accessory");
+            CheckName(name);
+            CheckName(accessoryName);
+            if (!names.Add(name) || !accessoryNames.Contains(accessoryName))
+                throw new InvalidOperationException("BunnyPlayer linked accessory not found");
+            var reset = player.GetType().GetMethod("ResetEffects")
+                ?? throw new InvalidOperationException("BunnyPlayer.ResetEffects missing");
+            var update = player.GetType().GetMethod("UpdateEquips")
+                ?? throw new InvalidOperationException("BunnyPlayer.UpdateEquips missing");
+            reset.Invoke(player, null);
+            update.Invoke(player, new object[] { false });
+            if (Value<int>(player, "DefenseBonus") != 0)
+                throw new InvalidOperationException("BunnyPlayer must not change defense when unequipped");
+            reset.Invoke(player, null);
+            update.Invoke(player, new object[] { true });
+            int defense = Value<int>(player, "DefenseBonus");
+            if (defense < 0 || defense > 100)
+                throw new InvalidOperationException("BunnyPlayer equipped defense bonus out of bounds");
+            reset.Invoke(player, null);
+            if (Value<int>(player, "DefenseBonus") != 0)
+                throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset defense");
+            lines.Add(string.Join("\t", "PLAYER", name, accessoryName,
+                defense.ToString(CultureInfo.InvariantCulture)));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
