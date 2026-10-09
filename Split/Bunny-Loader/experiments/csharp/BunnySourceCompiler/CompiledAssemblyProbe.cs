@@ -35,6 +35,7 @@ public static class CompiledAssemblyProbe
             WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
             WriteProjectileMotion(assembly, diagnosticsPath);
             WriteSparkMotion(assembly, diagnosticsPath);
+            WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteHomingPolicy(assembly, diagnosticsPath);
             WriteHitNPCPolicy(projectile, diagnosticsPath);
             WriteKillPolicy(projectile, diagnosticsPath);
@@ -156,6 +157,41 @@ public static class CompiledAssemblyProbe
             string.Join("\t", radii) + "\n" + string.Join("\t", durations) + "\n");
         File.Move(temp, path, true);
         File.AppendAllText(diagnosticsPath, "\nONKILL_POLICY_OK buff=24 radius=256 duration=256");
+    }
+
+    private static void WriteProjectileMotionPolicies(
+        Assembly assembly, Type[] projectileTypes, string diagnosticsPath)
+    {
+        var policies = new List<string>();
+        foreach (Type projectile in projectileTypes)
+        {
+            string fullname = projectile.Namespace + "." + projectile.Name + "Motion";
+            Type? motionType = assembly.GetType(fullname, throwOnError: false);
+            if (motionType == null) continue;
+            MethodInfo? turnMethod = motionType.GetMethod("TurnAtTick",
+                BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(int) }, null);
+            if (turnMethod == null || turnMethod.ReturnType != typeof(float))
+                throw new InvalidOperationException("Invalid TurnAtTick(int) on " + fullname);
+            string[] samples = new string[120];
+            for (int tick = 0; tick < samples.Length; ++tick)
+            {
+                if (turnMethod.Invoke(null, new object[] { tick }) is not float angle ||
+                    !float.IsFinite(angle) || MathF.Abs(angle) > 0.08f)
+                    throw new InvalidOperationException("Invalid projectile motion from " + fullname);
+                samples[tick] = ((int)MathF.Round(angle * 1000f)).ToString(CultureInfo.InvariantCulture);
+            }
+            policies.Add(projectile.Name + "\t" + string.Join("\t", samples));
+        }
+        if (policies.Count < 1 || policies.Count > 16)
+            throw new InvalidOperationException("Expected 1-16 independent projectile motion curves");
+        string dir = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string destination = Path.Combine(dir, "source-projectile-turns.txt");
+        string temporary = destination + ".tmp";
+        File.WriteAllText(temporary, "BUNNY_PROJECTILE_TURNS_V1\n" +
+            string.Join("\n", policies) + "\n");
+        File.Move(temporary, destination, true);
+        File.AppendAllText(diagnosticsPath, "\nPROJECTILE_TURNS_V1_OK curves=" + policies.Count);
     }
 
     private static void WriteSparkMotion(Assembly assembly, string diagnosticsPath)
