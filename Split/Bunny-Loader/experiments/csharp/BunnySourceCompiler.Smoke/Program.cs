@@ -94,11 +94,11 @@ try
         throw new InvalidOperationException("Generic projectile motion class mapping invalid");
     for (int tick = 0; tick < 120; tick++)
     {
-        int bolt = (int)MathF.Round(MathF.Sin(tick * 0.22f) * 0.03f * 1000f);
-        int spark = (int)MathF.Round((MathF.Sin(tick * 0.32f) * 0.045f) * 1000f);
+        int curveBolt = (int)MathF.Round(MathF.Sin(tick * 0.22f) * 0.03f * 1000f);
+        int curveSpark = (int)MathF.Round((MathF.Sin(tick * 0.32f) * 0.045f) * 1000f);
         if (!int.TryParse(genericRecords[0][tick + 1], out int actualBolt) ||
             !int.TryParse(genericRecords[1][tick + 1], out int actualSpark) ||
-            actualBolt != bolt || actualSpark != spark)
+            actualBolt != curveBolt || actualSpark != curveSpark)
             throw new InvalidOperationException("Generic projectile curve values incorrect");
     }
     Console.WriteLine("BUNNY_CSHARP_GENERIC_PROJECTILE_POLICIES=PASS");
