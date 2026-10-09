@@ -22,4 +22,16 @@ public sealed class SourceBolt : BunnyProjectile
     {
         return Math.Clamp(60 + damage * 3, 60, 150);
     }
+
+    public int OnKillBuffId() => 24;
+
+    public override int OnKill(int damage)
+    {
+        return Math.Clamp(24 + damage * 2, 24, 100);
+    }
+
+    public override int OnKillDuration(int damage)
+    {
+        return Math.Clamp(60 + damage * 2, 60, 160);
+    }
 }
