@@ -192,6 +192,30 @@ try
         throw new InvalidOperationException("Source update did not change compiled DLL");
     Console.WriteLine("BUNNY_ROSLYN_COMPILE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_SOURCE_UPDATE=PASS");
+    string independentRoot = Path.GetFullPath(Path.Combine(sourceRoot, "..", "ExampleModCSharp", "Playable"));
+    string independentOut = Path.Combine(scratch, "IndependentExample.dll");
+    string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
+    if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 2)
+        throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
+            File.ReadAllText(independentDiag));
+    string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
+    if (!independentDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n", StringComparison.Ordinal) ||
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 3)
+        throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
+    string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
+    string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (independentRows.Length != 2 || independentRows[0] != "BUNNY_PROJECTILE_TURNS_V1")
+        throw new InvalidOperationException("Independent ExampleMod curve header invalid");
+    string[] independentSamples = independentRows[1].Split('\t');
+    if (independentSamples.Length != 121 || independentSamples[0] != "ExampleBolt" ||
+        !Enumerable.Range(0, 120).All(i =>
+            int.TryParse(independentSamples[i + 1], out int value) &&
+            value == (int)MathF.Round(MathF.Sin(i * 0.25f) * 0.025f * 1000f)))
+        throw new InvalidOperationException("Independent ExampleMod C# curve is incorrect");
+    Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
 finally
