@@ -66,15 +66,31 @@ bool prepareHomingTargetRefs(std::string* error) {
     refs.myPlayer = il2cpp::findField(main, "myPlayer");
     refs.active = il2cpp::fieldOffset(npc, "active");
     refs.friendly = il2cpp::fieldOffset(npc, "friendly");
-    refs.dontTakeDamage = il2cpp::fieldOffset(npc, "dontTakeDamage");
     refs.life = il2cpp::fieldOffset(npc, "life");
-    refs.ready = refs.npcArray && refs.myPlayer &&
-        refs.active >= 0 && refs.friendly >= 0 &&
-        refs.dontTakeDamage >= 0 && refs.life >= 0;
-    if (!refs.ready) {
-        *error = "Campos NPC ativos/inimigos nao encontrados";
+    if (FieldInfo* damageFlag = il2cpp::findField(npc, "dontTakeDamage"))
+        refs.dontTakeDamage = static_cast<int32_t>(
+            il2cpp::api().field_get_offset(damageFlag));
+
+    std::string missing;
+    auto require = [&missing](bool present, const char* field) {
+        if (!present) {
+            if (!missing.empty()) missing += ", ";
+            missing += field;
+        }
+    };
+    require(refs.npcArray != nullptr, "Main.npc");
+    require(refs.myPlayer != nullptr, "Main.myPlayer");
+    require(refs.active >= 0, "NPC.active");
+    require(refs.friendly >= 0, "NPC.friendly");
+    require(refs.life >= 0, "NPC.life");
+    if (!missing.empty()) {
+        *error = "Campos obrigatorios ausentes: " + missing;
+        BL_ERROR("csharp homing: %s", error->c_str());
         return false;
     }
+    refs.ready = true;
+    BL_INFO("csharp homing: refs NPC resolvidas; dontTakeDamage=%s",
+            refs.dontTakeDamage >= 0 ? "disponivel" : "opcional-ausente");
     g_targets = refs;
     return true;
 }
@@ -93,8 +109,9 @@ bool refreshTarget(Slot& entry, const Vector2& position, float maxDistanceSquare
         auto* npc = contents[i];
         if (!npc || !runtime::field<uint8_t>(npc, g_targets.active) ||
             runtime::field<uint8_t>(npc, g_targets.friendly) ||
-            runtime::field<uint8_t>(npc, g_targets.dontTakeDamage) ||
             runtime::field<int32_t>(npc, g_targets.life) <= 0) continue;
+        if (g_targets.dontTakeDamage >= 0 &&
+            runtime::field<uint8_t>(npc, g_targets.dontTakeDamage)) continue;
         const Vector2 npcPosition = runtime::field<Vector2>(npc, game.entity.position);
         const int width = runtime::field<int32_t>(npc, game.entity.width);
         const int height = runtime::field<int32_t>(npc, game.entity.height);
