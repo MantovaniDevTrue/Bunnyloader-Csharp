@@ -12,6 +12,8 @@ public abstract class BunnyProjectile
     public int TimeLeft { get; set; } = 360;
     public abstract void SetDefaults();
     public virtual int OnHitNPC(int damage) => 0;
+    public virtual int OnKill(int damage) => 0;
+    public virtual int OnKillDuration(int damage) => 0;
 }
 
 public abstract class BunnyWeapon
