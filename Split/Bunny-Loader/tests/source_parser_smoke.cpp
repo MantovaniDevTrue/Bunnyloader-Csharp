@@ -1,12 +1,14 @@
 #include "experiments/csharp/SourceParser.h"
 
 #include <cstdio>
+#include <fstream>
+#include <iterator>
 #include <iostream>
 #include <string>
 #include <vector>
 
 int main(int argc, char** argv) {
-    if (argc != 6) return 1;
+    if (argc != 7) return 1;
     std::vector<bl::csharp::ParsedSourceType> definitions;
     std::string error;
     for (int i = 1; i < argc; ++i) {
@@ -64,6 +66,23 @@ int main(int argc, char** argv) {
         &methods, &error)) return 12;
     if (methods.size() != 1 || methods[0].properties.at("Width") != "10")
         return 13;
+    std::ifstream liveInput(argv[6], std::ios::binary);
+    if (!liveInput) return 14;
+    const std::string liveSource(
+        (std::istreambuf_iterator<char>(liveInput)),
+        std::istreambuf_iterator<char>());
+    if (liveSource.find("||") == std::string::npos ||
+        liveSource.find("&&") == std::string::npos ||
+        liveSource.find('?') == std::string::npos)
+        return 15;
+    std::vector<bl::csharp::ParsedSourceType> liveDefinitions;
+    error.clear();
+    if (!bl::csharp::parseCSharpSource(liveSource, &liveDefinitions, &error, false)) {
+        std::cerr << "Live NPC C# rejected: " << error << std::endl;
+        return 16;
+    }
+    if (!liveDefinitions.empty()) return 17;
+    std::cout << "CSHARP_LIVE_NPC_SOURCE_PARSER_PASS=YES" << std::endl;
     std::cout << "CSHARP_SOURCE_PARSER_SMOKE_PASS=YES" << std::endl;
     return 0;
 }
