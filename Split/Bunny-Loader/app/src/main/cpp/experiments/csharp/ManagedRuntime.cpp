@@ -372,6 +372,7 @@ ManagedSourceCompileResult compileManagedSource(
     };
     void* exception = nullptr;
     rearmNativeAbortProbe("after-mono-preflight-before-roslyn");
+    installDestroyedMutexTrace();
     trace("compiling-source");
     void* boxed = g_api.invoke(method, nullptr, args, &exception);
     if (exception || !boxed) {

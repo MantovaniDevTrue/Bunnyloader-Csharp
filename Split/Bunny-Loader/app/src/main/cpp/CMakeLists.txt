@@ -118,7 +118,7 @@ add_library(bunnymonoprobe SHARED
     experiments/csharp/NativeAbortProbe.cpp)
 target_include_directories(bunnymonoprobe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(bunnymonoprobe PRIVATE -O2 -fno-exceptions -fno-rtti -fno-omit-frame-pointer)
-target_link_libraries(bunnymonoprobe log dl)
+target_link_libraries(bunnymonoprobe shadowhook::shadowhook log dl)
 
 add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})
 

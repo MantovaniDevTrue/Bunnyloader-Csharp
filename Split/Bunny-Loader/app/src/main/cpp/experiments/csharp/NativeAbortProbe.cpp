@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <dlfcn.h>
+#include "shadowhook.h"
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -71,6 +72,48 @@ bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
 #endif
 }
 
+volatile sig_atomic_t g_mutexCaptureCount = 0;
+
+void onBeforeMutexLock(shadowhook_cpu_context_t* cpu, void*) {
+#if defined(__aarch64__)
+    if (cpu == nullptr || g_mutexCaptureCount != 0) return;
+    const uintptr_t address = static_cast<uintptr_t>(cpu->regs[0]);
+    if (address < 4096 || (address & 1u) != 0) return;
+    const auto* state = reinterpret_cast<const uint16_t*>(address);
+    if (__atomic_load_n(state, __ATOMIC_RELAXED) != 0xffffu) return;
+    if (__sync_lock_test_and_set(&g_mutexCaptureCount, 1) != 0) return;
+    emit("DESTROYED_MUTEX_PRECALL\\n");
+    emit("tid=");
+    emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    emit("mutex=");
+    emitHex(address);
+    emit("caller_lr=");
+    emitHex(static_cast<uintptr_t>(cpu->regs[30]));
+    emit("caller_fp=");
+    emitHex(static_cast<uintptr_t>(cpu->regs[29]));
+    emit("caller_sp=");
+    emitHex(static_cast<uintptr_t>(cpu->sp));
+    uintptr_t fp = static_cast<uintptr_t>(cpu->regs[29]);
+    const uintptr_t sp = static_cast<uintptr_t>(cpu->sp);
+    for (int frame = 0; frame < 20; ++frame) {
+        if ((fp & 15u) != 0u || fp < sp || fp - sp > 8u * 1024u * 1024u) break;
+        uintptr_t pair[2]{};
+        if (!readFrame(fp, pair)) {
+            emit("mutex-frame-read-unavailable\\n");
+            break;
+        }
+        emit("mutex_return=");
+        emitHex(pair[1]);
+        if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
+        fp = pair[0];
+    }
+    emit("DESTROYED_MUTEX_TRACE_DONE\\n");
+    (void)fsync(g_trace);
+#else
+    (void)cpu;
+#endif
+}
+
 void onAbort(int signal, siginfo_t*, void* raw) {
     if (g_handling) _exit(128 + signal);
     g_handling = 1;
@@ -128,6 +171,27 @@ void onAbort(int signal, siginfo_t*, void* raw) {
 
 }
 
+
+bool installDestroyedMutexTrace() {
+    if (g_trace < 0) return false;
+    emit("DESTROYED_MUTEX_HOOK_ATTEMPT\\n");
+    const int init = shadowhook_init(SHADOWHOOK_MODE_UNIQUE, false);
+    if (init != 0) {
+        emit("DESTROYED_MUTEX_SHADOWHOOK_INIT_FAILED\\n");
+        emitDec(static_cast<uintptr_t>(init));
+        return false;
+    }
+    void* stub = shadowhook_intercept_sym_name(
+        "libc.so", "pthread_mutex_lock", &onBeforeMutexLock,
+        nullptr, SHADOWHOOK_INTERCEPT_DEFAULT);
+    if (!stub) {
+        emit("DESTROYED_MUTEX_HOOK_FAILED\\n");
+        emitDec(static_cast<uintptr_t>(shadowhook_get_errno()));
+        return false;
+    }
+    emit("DESTROYED_MUTEX_HOOK_ACTIVE\\n");
+    return true;
+}
 
 std::string currentNativeAbortHandler() {
     struct sigaction current{};
