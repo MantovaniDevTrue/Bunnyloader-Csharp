@@ -47,6 +47,26 @@ struct NativeRegisterContext {
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);
 
+struct ManagedProjectileDefaults {
+    int width = 0;
+    int height = 0;
+    int aiStyle = 0;
+    int penetrate = 0;
+    int timeLeft = 0;
+    bool friendly = true;
+};
+
+struct ManagedWeaponDefaults {
+    int damage = 0;
+    int useTime = 0;
+    float shootSpeed = 0.f;
+};
+
+bool applyManagedNativeDefaults(
+    const std::string& modId, const std::string& projectileName, int projectileType,
+    const ManagedProjectileDefaults& projectile, const std::string& weaponName,
+    int weaponType, const ManagedWeaponDefaults& weapon);
+
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
 
