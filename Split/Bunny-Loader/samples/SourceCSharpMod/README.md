@@ -1,33 +1,41 @@
-# Source C# Test 0.1.4
+# Source C# Test 0.1.5
 
-Teste de mod Bunny Loader com duas armas e dois projeteis escritos em C# puro.
+Mod de teste com duas armas, dois projeteis e seis arquivos C# para o Bunny Loader Android.
 
-A versao inclui SourceWand + SourceBolt e SourceStaff + SourceSpark. SourceSpark e SourceStaff reutilizam os sprites existentes e possuem SetDefaults independentes, compilados pelo Roslyn e executados pelo MonoVM. O host Native valida o conjunto e aplica os valores ao Terraria em lote, sem exigir DLL ou .so dentro do mod.
+SourceWand dispara SourceBolt: homing, OnHitNPC e OnKill continuam funcionando sem alterações.
+SourceStaff dispara SourceSpark, que agora possui sua própria curva C# em SourceSparkMotion.cs. O Roslyn compila os arquivos e o MonoVM gera 120 amostras de movimento. O hook nativo Projectile.AI aplica a curva ao SourceSpark sem invocar MonoVM por frame. Os dois projeteis usam estados, contadores e tipos independentes. Os sprites são reutilizados, sem imagens novas.
 
-SourceBolt preserva homing, OnHitNPC e OnKill. Os hooks especificos continuam afetando somente SourceBolt. SourceSpark usa o comportamento normal de projetil configurado pelo Bunny Loader; ainda nao tem IA e efeitos C# individuais.
-
-No console, em mundo singleplayer:
+Teste em um mundo singleplayer:
 
 ```js
 bl.csharp.sourceCompile()
 JSON.stringify(bl.csharp.sourceCompileStatus(), null, 2)
 ```
 
-Espere aparecer state=finished e assemblyReady=1. Em seguida:
+Aguarde estado finished e assemblyReady=1 e execute:
 
 ```js
 bl.csharp.sourceApplyCompiled("CONFIRM_MANAGED_DEFAULTS")
-JSON.stringify(bl.csharp.sourceMods(), null, 2)
-```
-
-O retorno de sourceApplyCompiled deve ter items=2 e projectiles=2. As duas armas devem aparecer no jogo e disparar seus projeteis separados. Para testar os efeitos antigos:
-
-```js
 bl.csharp.sourceEnableHomingAI("CONFIRM_HOMING_CSHARP_AI")
 bl.csharp.sourceEnableOnHit("CONFIRM_CSHARP_ONHIT")
 bl.csharp.sourceEnableOnKill("CONFIRM_CSHARP_ONKILL")
+bl.csharp.sourceEnableSparkAI("CONFIRM_SPARK_CSHARP_AI")
 ```
 
-O teste usa somente a base Bunny Loader e ExampleModBunny. A arquitetura de callbacks C# continua baseada em politicas antecipadas e hooks nativos, sem chamadas gerenciadas a cada frame de projeteis.
+Dispare com SourceWand e SourceStaff e verifique:
 
-Referencia estavel anterior: v0.1.10.16.30 com Source C# Test 0.1.3.
+```js
+JSON.stringify({
+  mods: bl.csharp.sourceMods(),
+  bolt: bl.csharp.sourceAIStatus(),
+  spark: bl.csharp.sourceSparkStatus(),
+  hit: bl.csharp.sourceHitStatus(),
+  kill: bl.csharp.sourceKillStatus()
+}, null, 2)
+```
+
+No SourceSpark, callbacks e velocityWrites devem crescer. Verifique errors=0 e FPS durante os disparos. É possível desligar apenas a nova curva com `bl.csharp.sourcePauseSparkAI()`.
+
+Este é o primeiro comportamento C# de movimento independente do SourceBolt; os hooks ainda possuem integração específica por nome de classe e não são um sistema genérico de callbacks MonoVM ao vivo.
+
+Base estável anterior: Bunny Loader C# v0.1.10.16.32 e Source C# Test 0.1.4.
