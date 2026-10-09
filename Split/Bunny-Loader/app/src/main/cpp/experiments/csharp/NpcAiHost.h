@@ -15,6 +15,27 @@ struct NpcAiStatus {
     int attacksRejected = 0;
 };
 
+struct LiveNpcAiStatus {
+    bool installed = false;
+    bool enabled = false;
+    bool limitReached = false;
+    int npcType = -1;
+    int events = 0;
+    int writes = 0;
+    int errors = 0;
+    int lastSlot = -1;
+    int lastDeltaX = 0;
+    int lastVelocityTenths = 0;
+    double maxCallbackMs = 0.0;
+    std::string modId;
+    std::string phase = "idle";
+};
+
+bool enableLiveNpcAi(const std::string& modId, int npcType,
+                     const std::string& assemblyPath, std::string* error);
+void pauseLiveNpcAi();
+LiveNpcAiStatus liveNpcAiStatus();
+
 bool takeNpcAttack(int slot, int type, HostNpcAttack* out);
 bool installNpcAiHost();
 NpcAiStatus npcAiStatus();
