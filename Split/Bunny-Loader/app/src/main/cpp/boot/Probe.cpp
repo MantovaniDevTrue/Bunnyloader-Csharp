@@ -80,7 +80,6 @@ void probeThread() {
             }
             mods::loadAll(config().modsDir, config().enabledMods);
             csharpmods::loadAll();
-            csharp::startAutoSourceRuntime();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
             // pelo launcher significa que o usuario desativou todos os mods.
             if (config().modsDir.empty() && mods::loadedCount() == 0) {
@@ -92,6 +91,7 @@ void probeThread() {
             registerUnloadedPool();
             registerUnloadedWall();
             prepareModNpcs();
+            csharp::startAutoSourceRuntime();
             if (csharpmods::hasProjectileBehavior()) {
                 csharp::installProjectileWriteTest();
             }
