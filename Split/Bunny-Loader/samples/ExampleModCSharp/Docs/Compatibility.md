@@ -11,7 +11,8 @@ Estados: `device_verified` significa validado no Terraria Android; `ci_verified`
 | OnKill C# + queimadura em area | device_verified | SourceBolt |
 | Duas politicas de movimento independentes | device_verified | SourceBolt + SourceSpark |
 | Dispatcher generico de curvas | device_verified | SourceSpark no mod de teste |
-| UUID arbitrario de mod C# | not_implemented | — |
+| Compilacao por UUID registrado em 0.1.10.16.35 | experimental | ExampleModCSharp/Playable |
+| Carregamento de mods C# arbitrarios testado no Android | not_implemented | — |
 | OnHitNPC/OnKill genericos em todo mod | experimental | Integracao SourceBolt apenas |
 | NPCs C# personalizados | not_implemented | — |
 | Buffs C# personalizados | not_implemented | — |
@@ -21,4 +22,4 @@ Estados: `device_verified` significa validado no Terraria Android; `ci_verified`
 
 As confirmacoes de desempenho em 60 FPS foram feitas no aparelho do desenvolvedor com os exemplos descritos, nao em todos os celulares ou todas as condicoes.
 
-Este documento deve permanecer sincronizado com `compatibility.json` e com os testes automatizados.
+Este documento deve permanecer sincronizado com `compatibility.json` e com os testes automatizados. O pacote independente ainda nao recebe estado `device_verified` ate ser testado no aparelho.
