@@ -110,7 +110,7 @@ bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error
     constexpr const char* uid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
     bool loaded = false;
     for (const auto& item : sourceModStatuses())
-        if (item.id == uid && item.loaded && item.runtimeApplied && item.projectiles == 1)
+        if (item.id == uid && item.loaded && item.runtimeApplied && item.projectiles > 0)
             loaded = true;
     const int type = runtime::modProjectileTypeByName(uid, "SourceBolt");
     if (!loaded || type < 0 || type >= runtime::projectileTypeCount()) {
