@@ -32,7 +32,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_37";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_38";
 std::mutex g_lock;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
@@ -283,16 +283,24 @@ bool parseCurves(const std::string& id, const std::string& input,
     return true;
 }
 
-bool canActivateCurves() {
+struct ActivationContext {
+    int netMode = -1;
+    int gameMenu = -1;
+};
+
+ActivationContext readActivationContext() {
+    ActivationContext result;
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     FieldInfo* netMode = main ? il2cpp::findField(main, "netMode") : nullptr;
     FieldInfo* menu = main ? il2cpp::findField(main, "gameMenu") : nullptr;
-    if (!netMode || !menu) return false;
-    int mode = -1;
-    uint8_t inMenu = 1;
-    il2cpp::api().field_static_get_value(netMode, &mode);
-    il2cpp::api().field_static_get_value(menu, &inMenu);
-    return mode == 0 && inMenu == 0;
+    if (netMode)
+        il2cpp::api().field_static_get_value(netMode, &result.netMode);
+    if (menu) {
+        uint8_t inMenu = 1;
+        il2cpp::api().field_static_get_value(menu, &inMenu);
+        result.gameMenu = inMenu ? 1 : 0;
+    }
+    return result;
 }
 
 void run() {
@@ -361,19 +369,30 @@ void run() {
         note(&status, entries.empty() ? "ready" : "waiting-world");
     }
     if (pending.empty()) return;
-    while (!canActivateCurves()) std::this_thread::sleep_for(600ms);
+    const ActivationContext context = readActivationContext();
+    BL_INFO("csharp auto: ativacao sem espera pelo mundo, netMode=%d gameMenu=%d",
+            context.netMode, context.gameMenu);
     for (const auto& curve : pending) {
         std::string error;
-        bool enabled = enableManagedProjectileCurve(
-            curve.modId, curve.name, curve.turns, &error);
+        bool enabled = false;
+        if (context.netMode < 0 || context.gameMenu < 0) {
+            error = "Campos Terraria.Main.netMode/gameMenu indisponiveis";
+        } else if (context.netMode != 0) {
+            error = "IA automatica C# requer singleplayer";
+        } else {
+            enabled = enableManagedProjectileCurve(
+                curve.modId, curve.name, curve.turns, &error, true);
+        }
         std::lock_guard<std::mutex> lock(g_lock);
         for (auto& state : g_statuses) {
             if (state.modId != curve.modId) continue;
+            state.netMode = context.netMode;
+            state.gameMenu = context.gameMenu;
             if (enabled) {
                 ++state.enabledCurves;
                 state.phase = state.enabledCurves == state.curves ? "ready" : "enabling";
             } else {
-                state.phase = "failed";
+                state.phase = context.netMode > 0 ? "singleplayer-only" : "failed";
                 state.error = error;
             }
         }
@@ -381,7 +400,7 @@ void run() {
             BL_WARN("csharp auto: curva %s/%s recusada: %s",
                     curve.modId.c_str(), curve.name.c_str(), error.c_str());
     }
-    BL_INFO("csharp auto: inicializacao em segundo plano concluida");
+    BL_INFO("csharp auto: registro automatico das curvas concluido");
 }
 
 }
