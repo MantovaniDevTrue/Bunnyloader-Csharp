@@ -260,6 +260,8 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     JS_SetPropertyStr(ctx, out, "nativeAbort", JS_NewString(ctx, nativeAbort.c_str()));
     JS_SetPropertyStr(ctx, out, "nativeMaps", JS_NewString(ctx, nativeMaps.c_str()));
     JS_SetPropertyStr(ctx, out, "nativeThreads", JS_NewString(ctx, nativeThreads.c_str()));
+    const auto abortWatch = readManagedWorkerFile("native-abort-watch.txt");
+    JS_SetPropertyStr(ctx, out, "abortWatch", JS_NewString(ctx, abortWatch.c_str()));
     return out;
 }
 

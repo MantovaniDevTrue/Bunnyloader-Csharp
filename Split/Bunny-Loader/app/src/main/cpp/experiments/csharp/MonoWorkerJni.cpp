@@ -5,6 +5,13 @@
 #include <string>
 
 extern "C" JNIEXPORT jstring JNICALL
+Java_dev_bunnyloader_csharp_ManagedProbeService_signalHandlerSnapshot(
+    JNIEnv* env, jobject) {
+    const auto value = bl::csharp::currentNativeAbortHandler();
+    return env->NewStringUTF(value.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
 Java_dev_bunnyloader_csharp_ManagedProbeService_runNative(
     JNIEnv* env, jobject, jstring assemblyPath, jstring checkpointPath) {
     if (!assemblyPath || !checkpointPath) return env->NewStringUTF("missing-arguments");

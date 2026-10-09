@@ -94,6 +94,7 @@ class ManagedProbeService : Service() {
 
     private val running = AtomicBoolean(false)
 
+    private external fun signalHandlerSnapshot(): String
     private external fun runNative(assemblyPath: String, checkpointPath: String): String
     private external fun compileNative(
         probePath: String, compilerPath: String, sourceRoot: String,
@@ -115,6 +116,7 @@ class ManagedProbeService : Service() {
         val nativeTrace = File(dir, "native-abort-trace.txt")
         val nativeMaps = File(dir, "native-abort-maps.txt")
         val nativeThreads = File(dir, "native-abort-threads.txt")
+        val abortWatch = File(dir, "native-abort-watch.txt")
         dir.mkdirs()
         checkpoint.delete()
         log.delete()
@@ -127,6 +129,7 @@ class ManagedProbeService : Service() {
                 nativeTrace.delete()
                 nativeMaps.delete()
                 nativeThreads.delete()
+                abortWatch.delete()
                 compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
             }
         }
@@ -148,6 +151,7 @@ class ManagedProbeService : Service() {
                     compileStatus.writeText("state=compiling\npid=${Process.myPid()}\n")
                     startCompileHealthMonitor(health)
                     startNativeAbortSampler(nativeMaps, nativeThreads)
+                    startAbortHandlerWatch(abortWatch)
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
                         output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
@@ -210,6 +214,38 @@ class ManagedProbeService : Service() {
         marker.writeText(version)
         Log.i("BunnyCSharp", "framework carregado: ${names.size} assemblies")
         return File(dir, "BunnyManagedProbe.dll").absolutePath
+    }
+
+
+    private fun startAbortHandlerWatch(destination: File) {
+        thread(name = "BunnyMonoAbortWatch", isDaemon = true) {
+            val started = android.os.SystemClock.elapsedRealtime()
+            var previous = ""
+            var transitions = 0
+            repeat(200) {
+                if (!running.get()) return@thread
+                val state = runCatching { signalHandlerSnapshot() }
+                    .getOrElse { "snapshot-error=" + it.javaClass.simpleName }
+                if (state != previous) {
+                    previous = state
+                    if (transitions < 20) {
+                        runCatching {
+                            destination.appendText(
+                                "elapsedMs=" +
+                                    (android.os.SystemClock.elapsedRealtime() - started) +
+                                    " " + state.take(450) + "\n"
+                            )
+                        }
+                        transitions++
+                    }
+                }
+                try {
+                    Thread.sleep(30L)
+                } catch (_: InterruptedException) {
+                    return@thread
+                }
+            }
+        }
     }
 
     private fun startNativeAbortSampler(maps: File, threads: File) {

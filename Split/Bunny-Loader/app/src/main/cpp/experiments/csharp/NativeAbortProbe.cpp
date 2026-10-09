@@ -3,6 +3,8 @@
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -124,6 +126,30 @@ void onAbort(int signal, siginfo_t*, void* raw) {
     _exit(128 + signal);
 }
 
+}
+
+
+std::string currentNativeAbortHandler() {
+    struct sigaction current{};
+    if (sigaction(SIGABRT, nullptr, &current) != 0)
+        return "sigaction-error";
+    const void* handler = (current.sa_flags & SA_SIGINFO)
+        ? reinterpret_cast<const void*>(current.sa_sigaction)
+        : reinterpret_cast<const void*>(current.sa_handler);
+    const char* kind = "custom";
+    if (current.sa_handler == SIG_DFL)
+        kind = "default";
+    else if (current.sa_handler == SIG_IGN)
+        kind = "ignored";
+    else if ((current.sa_flags & SA_SIGINFO) && current.sa_sigaction == &onAbort)
+        kind = "ours";
+    Dl_info info{};
+    const char* library = (handler != nullptr && dladdr(handler, &info) != 0
+        && info.dli_fname != nullptr) ? info.dli_fname : "unmapped";
+    char output[768]{};
+    snprintf(output, sizeof(output), "type=%s handler=%p flags=0x%x library=%s",
+        kind, handler, static_cast<unsigned int>(current.sa_flags), library);
+    return output;
 }
 
 void rearmNativeAbortProbe(const char* stage) {
