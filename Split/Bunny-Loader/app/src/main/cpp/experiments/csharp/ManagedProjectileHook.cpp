@@ -38,6 +38,7 @@ struct NpcTargetRefs {
     FieldInfo* npcArray = nullptr;
     FieldInfo* myPlayer = nullptr;
     FieldInfo* netMode = nullptr;
+    const MethodInfo* localPlayerGetter = nullptr;
     FieldInfo* gameMenu = nullptr;
     int32_t active = -1;
     int32_t friendly = -1;
@@ -68,6 +69,7 @@ bool prepareHomingTargetRefs(std::string* error) {
     refs.npcArray = il2cpp::findField(main, "npc");
     refs.myPlayer = il2cpp::findField(main, "myPlayer");
     refs.netMode = il2cpp::findField(main, "netMode");
+    refs.localPlayerGetter = il2cpp::api().class_get_method_from_name(main, "get_LocalPlayer", 0);
     refs.gameMenu = il2cpp::findField(main, "gameMenu");
     refs.active = il2cpp::fieldOffset(npc, "active");
     refs.friendly = il2cpp::fieldOffset(npc, "friendly");
@@ -84,8 +86,8 @@ bool prepareHomingTargetRefs(std::string* error) {
         }
     };
     require(refs.npcArray != nullptr, "Main.npc");
-    require(refs.myPlayer != nullptr || refs.netMode != nullptr,
-            "Main.myPlayer ou Main.netMode (fallback solo)");
+    require(refs.myPlayer != nullptr || refs.localPlayerGetter != nullptr || refs.netMode != nullptr,
+            "Main.myPlayer, Main.LocalPlayer ou Main.netMode (fallback solo)");
     require(refs.active >= 0, "NPC.active");
     require(refs.friendly >= 0, "NPC.friendly");
     require(refs.life >= 0, "NPC.life");
@@ -95,10 +97,11 @@ bool prepareHomingTargetRefs(std::string* error) {
         return false;
     }
     refs.ready = true;
-    BL_INFO("csharp homing: refs NPC resolvidas; dontTakeDamage=%s, myPlayer=%s, netMode=%s",
-            refs.dontTakeDamage >= 0 ? "disponivel" : "opcional-ausente",
-            refs.myPlayer ? "disponivel" : "ausente",
-            refs.netMode ? "disponivel" : "ausente");
+    BL_INFO("csharp homing: refs NPC ok; dontTakeDamage=%s myPlayer=%s LocalPlayer=%s netMode=%s",
+            refs.dontTakeDamage >= 0 ? "presente" : "ausente",
+            refs.myPlayer ? "presente" : "ausente",
+            refs.localPlayerGetter ? "presente" : "ausente",
+            refs.netMode ? "presente" : "ausente");
     g_targets = refs;
     return true;
 }
@@ -391,9 +394,18 @@ bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
     bool singlePlayerFallback = false;
     if (g_targets.myPlayer)
         il2cpp::api().field_static_get_value(g_targets.myPlayer, &localPlayer);
+    if ((localPlayer < 0 || localPlayer >= 255) && g_targets.localPlayerGetter) {
+        if (runtime::resolveGameRefs()) {
+            Il2CppObject* exception = nullptr;
+            Il2CppObject* player = il2cpp::api().runtime_invoke(
+                g_targets.localPlayerGetter, nullptr, nullptr, &exception);
+            if (!exception && player)
+                localPlayer = runtime::field<int32_t>(player, runtime::game().entity.whoAmI);
+        }
+    }
     if (localPlayer < 0 || localPlayer >= 255) {
         if (!g_targets.netMode) {
-            *error = "Main.myPlayer invalido e Main.netMode indisponivel";
+            *error = "Main.myPlayer/LocalPlayer invalidos e Main.netMode indisponivel";
             return false;
         }
         int mode = -1;
