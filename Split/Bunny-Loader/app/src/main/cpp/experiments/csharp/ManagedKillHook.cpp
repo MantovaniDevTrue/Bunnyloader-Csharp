@@ -154,7 +154,7 @@ bool enableSourceBoltOnKill(const SourceBoltKillPolicy& policy, std::string* err
     constexpr const char* uid = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
     bool loaded = false;
     for (const auto& item : sourceModStatuses()) {
-        if (item.id == uid && item.loaded && item.runtimeApplied && item.projectiles == 1) {
+        if (item.id == uid && item.loaded && item.runtimeApplied && item.projectiles > 0) {
             loaded = true;
             break;
         }
