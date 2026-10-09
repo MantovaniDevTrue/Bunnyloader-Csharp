@@ -43,3 +43,20 @@ public abstract class BunnyBuffPotion
     public int Duration { get; set; } = 600;
     public abstract void SetDefaults();
 }
+
+public abstract class BunnyAccessory
+{
+    public string DisplayName { get; set; } = "";
+    public string Texture { get; set; } = "";
+    public int DefenseBonus { get; set; } = 0;
+    public abstract void SetDefaults();
+}
+
+public abstract class BunnyPlayer
+{
+    public string Accessory { get; set; } = "";
+    public int DefenseBonus { get; protected set; } = 0;
+    public abstract void SetDefaults();
+    public virtual void ResetEffects() => DefenseBonus = 0;
+    public abstract void UpdateEquips(bool accessoryEquipped);
+}
