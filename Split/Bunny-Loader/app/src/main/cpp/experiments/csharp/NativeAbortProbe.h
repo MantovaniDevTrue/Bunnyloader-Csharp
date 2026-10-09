@@ -4,7 +4,8 @@
 
 namespace bl::csharp {
 
-bool installNativeAbortProbe(const std::string& directory);
+bool installNativeAbortProbe(const std::string& directory,
+                             const std::string& fileName = "native-abort-trace.txt");
 void rearmNativeAbortProbe(const char* stage);
 std::string currentNativeAbortHandler();
 bool installDestroyedMutexTrace();
