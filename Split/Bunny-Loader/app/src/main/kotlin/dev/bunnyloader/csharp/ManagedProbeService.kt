@@ -125,6 +125,8 @@ class ManagedProbeService : Service() {
         } else {
             runCatching {
                 diagnostic.delete()
+                File(dir, "source-runtime-values.txt").delete()
+                File(dir, "source-runtime-values.txt.tmp").delete()
                 health.delete()
                 nativeTrace.delete()
                 nativeMaps.delete()
