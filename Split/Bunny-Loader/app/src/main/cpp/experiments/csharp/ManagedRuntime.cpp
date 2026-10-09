@@ -603,8 +603,8 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
                                 "live NPC mono_thread_detach finished");
 #endif
         }
-    } guard{g_api.detachThread, status, previouslyAttached ? nullptr : attachedThread};
-    if (guard.attached) ++status.npcThreadAttaches;
+    } monoThreadScope{g_api.detachThread, status, previouslyAttached ? nullptr : attachedThread};
+    if (monoThreadScope.attached) ++status.npcThreadAttaches;
     else ++status.npcThreadAlreadyAttached;
     if (!entry.npcAiMethod) {
         void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
