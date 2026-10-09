@@ -155,6 +155,65 @@ void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
     emit("DESTROYED_MUTEX_MAPS_END\n");
 }
 
+struct sigaction g_previousSegv{};
+volatile sig_atomic_t g_segvCount = 0;
+
+void onSegv(int signo, siginfo_t* info, void* raw) {
+    const int count = __sync_add_and_fetch(&g_segvCount, 1);
+    if (count <= 8 && g_trace >= 0) {
+        emit("NATIVE_SIGSEGV_PRECALL\n");
+        emit("segv_sequence=");
+        emitDec(static_cast<uintptr_t>(count));
+        emit("segv_tid=");
+        emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+        if (info) {
+            emit("segv_code_hex=");
+            emitHex(static_cast<uintptr_t>(static_cast<uint32_t>(info->si_code)));
+            emit("segv_fault_address=");
+            emitHex(reinterpret_cast<uintptr_t>(info->si_addr));
+        }
+#if defined(__aarch64__)
+        const auto* context = static_cast<const ucontext_t*>(raw);
+        if (context) {
+            const uintptr_t pc = static_cast<uintptr_t>(context->uc_mcontext.pc);
+            const uintptr_t lr = static_cast<uintptr_t>(context->uc_mcontext.regs[30]);
+            const uintptr_t fp = static_cast<uintptr_t>(context->uc_mcontext.regs[29]);
+            const uintptr_t sp = static_cast<uintptr_t>(context->uc_mcontext.sp);
+            emit("segv_pc=");
+            emitHex(pc);
+            emit("segv_lr=");
+            emitHex(lr);
+            emit("segv_fp=");
+            emitHex(fp);
+            emit("segv_sp=");
+            emitHex(sp);
+            uintptr_t targets[3]{pc, lr, info ? reinterpret_cast<uintptr_t>(info->si_addr) : 0};
+            emitMatchingMaps(targets, 3);
+        }
+#else
+        (void)raw;
+#endif
+        emit("NATIVE_SIGSEGV_TRACE_DONE\n");
+        (void)fsync(g_trace);
+    }
+    if ((g_previousSegv.sa_flags & SA_SIGINFO) && g_previousSegv.sa_sigaction) {
+        if (g_previousSegv.sa_sigaction != &onSegv)
+            g_previousSegv.sa_sigaction(signo, info, raw);
+        return;
+    }
+    if (g_previousSegv.sa_handler == SIG_IGN) return;
+    if (g_previousSegv.sa_handler && g_previousSegv.sa_handler != SIG_DFL) {
+        g_previousSegv.sa_handler(signo);
+        return;
+    }
+    struct sigaction restore = g_previousSegv;
+    restore.sa_handler = SIG_DFL;
+    restore.sa_flags &= ~SA_SIGINFO;
+    (void)sigaction(signo, &restore, nullptr);
+    (void)syscall(__NR_tgkill, getpid(), syscall(__NR_gettid), signo);
+    _exit(128 + signo);
+}
+
 using ExitFn = void (*)(int);
 void* g_originalExit = nullptr;
 volatile sig_atomic_t g_exitCaptureCount = 0;
@@ -329,6 +388,38 @@ void onAbort(int signal, siginfo_t*, void* raw) {
 
 }
 
+
+bool installNativeSegvTrace() {
+    if (g_trace < 0) return false;
+    struct sigaction previous{};
+    if (sigaction(SIGSEGV, nullptr, &previous) != 0) {
+        emit("NATIVE_SIGSEGV_READ_FAILED\n");
+        return false;
+    }
+    emit("NATIVE_SIGSEGV_HOOK_ATTEMPT\n");
+    const void* previousHandler = (previous.sa_flags & SA_SIGINFO)
+        ? reinterpret_cast<const void*>(previous.sa_sigaction)
+        : reinterpret_cast<const void*>(previous.sa_handler);
+    emit("segv_previous_handler=");
+    emitHex(reinterpret_cast<uintptr_t>(previousHandler));
+    Dl_info library{};
+    if (previousHandler && dladdr(previousHandler, &library) != 0
+        && library.dli_fname) {
+        emit("segv_previous_library=");
+        emit(library.dli_fname);
+        emit("\n");
+    }
+    struct sigaction action{};
+    action.sa_mask = previous.sa_mask;
+    action.sa_sigaction = &onSegv;
+    action.sa_flags = (previous.sa_flags & ~SA_RESETHAND) | SA_SIGINFO;
+    if (sigaction(SIGSEGV, &action, &g_previousSegv) != 0) {
+        emit("NATIVE_SIGSEGV_HOOK_FAILED\n");
+        return false;
+    }
+    emit("NATIVE_SIGSEGV_HOOK_ACTIVE\n");
+    return true;
+}
 
 bool installDestroyedMutexTrace() {
     if (g_trace < 0) return false;
