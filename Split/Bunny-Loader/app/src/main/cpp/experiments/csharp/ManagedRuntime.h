@@ -31,12 +31,22 @@ struct LiveSourceStatus {
     int lastTick = -1;
     int lastState = 0;
     int lastResult = 0;
+    int npcCallbacks = 0;
+    int npcFailures = 0;
+    int npcLastLife = 0;
+    int npcLastDeltaX = 0;
+    int npcLastVelocityTenths = 0;
     std::string modId;
     std::string phase = "idle";
     std::string error;
 };
 
 LiveSourceStatus liveSourceStatus(const std::string& modId);
+bool invokeLiveSourceNpcAi(const std::string& modId,
+                           const std::string& assemblyPath,
+                           int playerDeltaX, int npcLife,
+                           int* velocityTenths);
+
 LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
                                      const std::string& assemblyPath,
                                      int tick, int state);
