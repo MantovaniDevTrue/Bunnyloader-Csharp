@@ -567,14 +567,18 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
         npcLife <= 0 || npcLife > 1000000) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
-        !g_api.attach || !g_api.invoke || !g_api.unbox ||
-        !g_api.currentThread || !g_api.detachThread) return false;
+        !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
     const auto found = g_sourceLiveEntries.find(modId);
     if (found == g_sourceLiveEntries.end()) return false;
     LiveEntry& entry = found->second;
     auto& status = entry.status;
     if (!entry.method || entry.path != assemblyPath || status.npcFailures >= 3)
         return false;
+    if (!g_api.currentThread || !g_api.detachThread) {
+        ++status.npcFailures;
+        status.error = "MonoVM lacks mono_thread_current or mono_thread_detach";
+        return false;
+    }
     void* previouslyAttached = g_api.currentThread();
     void* attachedThread = g_api.attach(g_domain);
     if (!attachedThread) {
