@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 32;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v8-native-exit-metadata";
+    private const string CacheVersion = "roslyn-net8-source-v9-memory-optimized";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -139,9 +139,18 @@ public static class Compiler
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
         var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
         Stage(diagnosticsFile, "metadata-references-created-" + references.Length);
-        int probeResult = RunMinimalProbes(runtimeDir, diagnosticsFile);
-        if (probeResult != 0)
-            return probeResult;
+        bool extendedDiagnostics =
+            Environment.GetEnvironmentVariable("BUNNY_ROSLYN_DIAGNOSTIC_PROBES") == "1";
+        if (extendedDiagnostics)
+        {
+            int probeResult = RunMinimalProbes(runtimeDir, diagnosticsFile);
+            if (probeResult != 0)
+                return probeResult;
+        }
+        else
+        {
+            Stage(diagnosticsFile, "minimal-probes-skipped-low-memory");
+        }
         Stage(diagnosticsFile, "main-compilation-create-start");
         var compilation = CSharpCompilation.Create(
             assemblyName: "BunnySource_" + hash.Substring(0, 16),
@@ -155,27 +164,30 @@ public static class Compiler
                 allowUnsafe: false));
 
         Stage(diagnosticsFile, "compilation-created");
-        Stage(diagnosticsFile, "declaration-diagnostics-start");
-        string[] declarationErrors = compilation.GetDeclarationDiagnostics()
-            .Where(item => item.Severity == DiagnosticSeverity.Error)
-            .Take(60).Select(item => item.ToString()).ToArray();
-        Stage(diagnosticsFile, "declaration-diagnostics-complete-" + declarationErrors.Length);
-        if (declarationErrors.Length > 0)
+        if (extendedDiagnostics)
         {
-            WriteDiagnostic(diagnosticsFile, "COMPILE_DECLARATION_FAILED\n" +
-                string.Join("\n", declarationErrors));
-            return -8;
-        }
-        Stage(diagnosticsFile, "methodbody-diagnostics-start");
-        string[] bodyErrors = compilation.GetMethodBodyDiagnostics()
-            .Where(item => item.Severity == DiagnosticSeverity.Error)
-            .Take(60).Select(item => item.ToString()).ToArray();
-        Stage(diagnosticsFile, "methodbody-diagnostics-complete-" + bodyErrors.Length);
-        if (bodyErrors.Length > 0)
-        {
-            WriteDiagnostic(diagnosticsFile, "COMPILE_BODY_FAILED\n" +
-                string.Join("\n", bodyErrors));
-            return -8;
+            Stage(diagnosticsFile, "declaration-diagnostics-start");
+            string[] declarationErrors = compilation.GetDeclarationDiagnostics()
+                .Where(item => item.Severity == DiagnosticSeverity.Error)
+                .Take(60).Select(item => item.ToString()).ToArray();
+            Stage(diagnosticsFile, "declaration-diagnostics-complete-" + declarationErrors.Length);
+            if (declarationErrors.Length > 0)
+            {
+                WriteDiagnostic(diagnosticsFile, "COMPILE_DECLARATION_FAILED\n" +
+                    string.Join("\n", declarationErrors));
+                return -8;
+            }
+            Stage(diagnosticsFile, "methodbody-diagnostics-start");
+            string[] bodyErrors = compilation.GetMethodBodyDiagnostics()
+                .Where(item => item.Severity == DiagnosticSeverity.Error)
+                .Take(60).Select(item => item.ToString()).ToArray();
+            Stage(diagnosticsFile, "methodbody-diagnostics-complete-" + bodyErrors.Length);
+            if (bodyErrors.Length > 0)
+            {
+                WriteDiagnostic(diagnosticsFile, "COMPILE_BODY_FAILED\n" +
+                    string.Join("\n", bodyErrors));
+                return -8;
+            }
         }
         Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
         string temporary = outputFile + ".tmp";
