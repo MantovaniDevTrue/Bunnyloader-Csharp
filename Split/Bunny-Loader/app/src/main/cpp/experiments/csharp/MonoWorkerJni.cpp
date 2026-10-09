@@ -56,6 +56,8 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     const auto result = bl::csharp::compileManagedSource(
         probePath, compilerPath, sourceRoot, outputPath, diagnosticPath);
     const std::string status = "result=" + std::to_string(result.result) +
-        "\nphase=" + result.phase + "\nerror=" + result.error;
+        "\nphase=" + result.phase +
+        "\nexecutedTypes=" + std::to_string(result.executedTypes) +
+        "\nerror=" + result.error;
     return env->NewStringUTF(status.c_str());
 }
