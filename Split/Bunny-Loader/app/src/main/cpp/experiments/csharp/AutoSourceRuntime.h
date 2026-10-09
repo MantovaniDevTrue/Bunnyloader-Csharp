@@ -13,6 +13,10 @@ struct AutoSourceStatus {
     bool applied = false;
     int curves = 0;
     int enabledCurves = 0;
+    int hitPolicies = 0;
+    int killPolicies = 0;
+    int enabledHits = 0;
+    int enabledKills = 0;
     int netMode = -1;
     int gameMenu = -1;
 };
