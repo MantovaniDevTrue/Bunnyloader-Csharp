@@ -1,20 +1,30 @@
-# Source C# Test 0.1.2
+# Source C# Test 0.1.3
 
-Mod experimental em C# puro (`.cs`) para Bunny Loader Android, sem JavaScript, `.so` ou `.dll` no pacote.
+Teste de arma e projétil escritos em C# puro para o Bunny Loader Android, sem JavaScript, DLL nem .so no mod.
 
-O Roslyn compila `SourceBolt`, `SourceWand` e a classe de homing. O MonoVM isolado executa `SetDefaults`, curvas de movimento e `SourceBolt.OnHitNPC(int damage)` antes da entrada no jogo. O host Native/IL2CPP aplica os resultados validados durante o jogo.
+O Roslyn/MonoVM executa SetDefaults, homing, OnHitNPC e os novos métodos OnKill antes da partida. O Native/IL2CPP aplica os resultados durante as colisões e ao destruir projéteis, sem executar MonoVM a cada evento.
 
-Nesta versao o worker prepara 256 duracoes de queimadura por dano base do projetil (0 a 255). O hook seleciona a duracao por dano do projetil sem MonoVM por impacto. Dano acima de 255 usa a ultima entrada. Nao e ainda callback C# ao vivo nem usa o dano final aplicado ao NPC.
+Nesta versão, SourceBolt aplica On Fire! (buff 24) a NPCs próximos ao desaparecer. O C# define raio e duração a partir do dano do projétil. O teste usa 256 valores pré-calculados, raio de 24 a 100 pixels, duração de 60 a 160 ticks, até seis NPCs por morte. Com dano 22: raio 68 pixels e duração 104 ticks. Uso apenas em singleplayer.
 
-No console, dentro de um mundo solo:
+No console do Bunny Loader, compile o mod e aguarde terminar:
 
 ```js
 bl.csharp.sourceCompile()
 JSON.stringify(bl.csharp.sourceCompileStatus(), null, 2)
+```
+
+Depois ative:
+
+```js
 bl.csharp.sourceApplyCompiled("CONFIRM_MANAGED_DEFAULTS")
 bl.csharp.sourceEnableHomingAI("CONFIRM_HOMING_CSHARP_AI")
 bl.csharp.sourceEnableOnHit("CONFIRM_CSHARP_ONHIT")
-JSON.stringify(bl.csharp.sourceHitStatus(), null, 2)
+bl.csharp.sourceEnableOnKill("CONFIRM_CSHARP_ONKILL")
+JSON.stringify(bl.csharp.sourceKillStatus(), null, 2)
 ```
 
-Aguarde a compilacao terminar antes de aplicar os valores. `sourceHitStatus()` inclui `lastDamage` e `lastDuration`. O teste continua solo e preserva o homing. A versao 0.1.10.16.27 segue como referencia estavel.
+O OnKill registra mortes, buffs aplicados, dano, raio, duração e erros. Para interromper: `bl.csharp.sourcePauseOnKill()`.
+
+O C# ainda prepara políticas antecipadamente; não é um callback gerenciado executado em tempo real.
+
+Referência estável: Bunny Loader C# 0.1.10.16.29, Source C# Test 0.1.2.
