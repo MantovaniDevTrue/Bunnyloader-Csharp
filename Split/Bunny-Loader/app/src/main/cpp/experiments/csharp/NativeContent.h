@@ -85,6 +85,24 @@ bool applyManagedNativeDefaultsBatch(const std::string& modId,
                                      const std::vector<ManagedProjectileEntry>& projectiles,
                                      const std::vector<ManagedWeaponEntry>& weapons);
 
+struct ManagedBuffEntry {
+    std::string name;
+    int type = -1;
+    int defenseBonus = 0;
+};
+
+struct ManagedPotionEntry {
+    std::string name;
+    int type = -1;
+    int buffType = -1;
+    int duration = 600;
+};
+
+bool applyManagedNativeBuffDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedBuffEntry>& buffs,
+    const std::vector<ManagedPotionEntry>& potions);
+
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
 
