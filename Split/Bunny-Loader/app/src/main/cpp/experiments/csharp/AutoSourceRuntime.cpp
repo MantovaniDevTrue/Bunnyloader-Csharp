@@ -370,13 +370,13 @@ void run() {
     }
     if (pending.empty()) return;
     const ActivationContext context = readActivationContext();
-    BL_INFO("csharp auto: ativacao sem espera pelo mundo, netMode=%d gameMenu=%d",
+    BL_INFO("csharp auto: preparando curvas C#, netMode=%d gameMenu=%d (opcional)",
             context.netMode, context.gameMenu);
     for (const auto& curve : pending) {
         std::string error;
         bool enabled = false;
-        if (context.netMode < 0 || context.gameMenu < 0) {
-            error = "Campos Terraria.Main.netMode/gameMenu indisponiveis";
+        if (context.netMode < 0) {
+            error = "Terraria.Main.netMode indisponivel";
         } else if (context.netMode != 0) {
             error = "IA automatica C# requer singleplayer";
         } else {
