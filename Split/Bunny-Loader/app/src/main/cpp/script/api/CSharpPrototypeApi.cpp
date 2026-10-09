@@ -285,13 +285,14 @@ JSValue jsSourceEnableHomingAI(JSContext* ctx, JSValueConst, int argc, JSValueCo
     bool applied = false;
     for (const auto& mod : bl::csharp::sourceModStatuses()) {
         if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
-            mod.loaded && mod.runtimeApplied && mod.sourceFiles == 3) {
+            mod.loaded && mod.runtimeApplied && mod.sourceFiles > 0 &&
+            mod.registeredTypes.contains("SourceBolt")) {
             applied = true;
             break;
         }
     }
     if (!applied)
-        return JS_ThrowInternalError(ctx, "sourceApplyCompiled precisa estar aplicado e o mod conter 3 arquivos C#");
+        return JS_ThrowInternalError(ctx, "sourceApplyCompiled precisa estar aplicado e SourceBolt registrado");
 
     auto parseTurns = [](const std::string& line, int* values, size_t count) -> bool {
         if (line.empty() || line.size() > count * 6) return false;
