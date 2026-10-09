@@ -958,6 +958,8 @@ JSValue jsSourceAutoStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         JS_SetPropertyStr(ctx, item, "applied", JS_NewBool(ctx, status.applied));
         JS_SetPropertyStr(ctx, item, "curves", JS_NewInt32(ctx, status.curves));
         JS_SetPropertyStr(ctx, item, "enabledCurves", JS_NewInt32(ctx, status.enabledCurves));
+        JS_SetPropertyStr(ctx, item, "netMode", JS_NewInt32(ctx, status.netMode));
+        JS_SetPropertyStr(ctx, item, "gameMenu", JS_NewInt32(ctx, status.gameMenu));
         JS_SetPropertyStr(ctx, item, "error", JS_NewString(ctx, status.error.c_str()));
         JS_SetPropertyUint32(ctx, output, index++, item);
     }
