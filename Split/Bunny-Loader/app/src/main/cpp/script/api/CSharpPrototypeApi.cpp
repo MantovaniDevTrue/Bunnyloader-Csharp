@@ -194,6 +194,69 @@ JSValue jsSourceLiveTick(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
         bl::csharp::invokeLiveSourceTick(id, path, tick, state));
 }
 
+JSValue jsSourceLiveNpcStatus(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto status = bl::csharp::liveNpcAiStatus();
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "installed", JS_NewBool(ctx, status.installed));
+    JS_SetPropertyStr(ctx, out, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, out, "limitReached", JS_NewBool(ctx, status.limitReached));
+    JS_SetPropertyStr(ctx, out, "npcType", JS_NewInt32(ctx, status.npcType));
+    JS_SetPropertyStr(ctx, out, "events", JS_NewInt32(ctx, status.events));
+    JS_SetPropertyStr(ctx, out, "writes", JS_NewInt32(ctx, status.writes));
+    JS_SetPropertyStr(ctx, out, "errors", JS_NewInt32(ctx, status.errors));
+    JS_SetPropertyStr(ctx, out, "lastSlot", JS_NewInt32(ctx, status.lastSlot));
+    JS_SetPropertyStr(ctx, out, "lastDeltaX", JS_NewInt32(ctx, status.lastDeltaX));
+    JS_SetPropertyStr(ctx, out, "lastVelocityTenths",
+                      JS_NewInt32(ctx, status.lastVelocityTenths));
+    JS_SetPropertyStr(ctx, out, "maxCallbackMs", JS_NewFloat64(ctx, status.maxCallbackMs));
+    JS_SetPropertyStr(ctx, out, "modId", JS_NewString(ctx, status.modId.c_str()));
+    JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, status.phase.c_str()));
+    return out;
+}
+
+JSValue jsSourceLiveNpcPause(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    bl::csharp::pauseLiveNpcAi();
+    return jsSourceLiveNpcStatus(ctx, JS_UNDEFINED, 0, nullptr);
+}
+
+JSValue jsSourceLiveNpcEnable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]) || !JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx,
+            "sourceLiveNpcEnable(modId, 'CONFIRM_LIVE_NPC_AI')");
+    const char* uid = JS_ToCString(ctx, argv[0]);
+    const char* confirmation = JS_ToCString(ctx, argv[1]);
+    if (!uid || !confirmation) {
+        if (uid) JS_FreeCString(ctx, uid);
+        if (confirmation) JS_FreeCString(ctx, confirmation);
+        return JS_EXCEPTION;
+    }
+    const std::string modId(uid);
+    const std::string confirm(confirmation);
+    JS_FreeCString(ctx, uid);
+    JS_FreeCString(ctx, confirmation);
+    if (confirm != "CONFIRM_LIVE_NPC_AI")
+        return JS_ThrowTypeError(ctx, "Live NPC AI requires explicit confirmation");
+    int npcType = -1;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id != modId || !mod.loaded || !mod.runtimeApplied) continue;
+        const auto it = mod.registeredTypes.find("ExampleSlimeNPC");
+        if (it != mod.registeredTypes.end()) npcType = it->second;
+        break;
+    }
+    if (npcType < 0)
+        return JS_ThrowInternalError(ctx, "ExampleSlimeNPC source class not registered");
+    const std::string& checkpoint = bl::config().managedCheckpointPath;
+    const size_t slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos)
+        return JS_ThrowInternalError(ctx, "MonoVM framework directory missing");
+    const std::string dll = checkpoint.substr(0, slash + 1) +
+        "compiled/" + modId + ".dll";
+    std::string error;
+    if (!bl::csharp::enableLiveNpcAi(modId, npcType, dll, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    return jsSourceLiveNpcStatus(ctx, JS_UNDEFINED, 0, nullptr);
+}
+
 JSValue makeSourceBoltHookStatus(JSContext* ctx) {
     const auto status = bl::csharp::managedSourceBoltHookStatus();
     JSValue result = JS_NewObject(ctx);
@@ -1812,6 +1875,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceLiveStatus, "sourceLiveStatus", 1));
     JS_SetPropertyStr(ctx, api, "sourceLiveTick",
                       JS_NewCFunction(ctx, jsSourceLiveTick, "sourceLiveTick", 3));
+    JS_SetPropertyStr(ctx, api, "sourceLiveNpcStatus",
+                      JS_NewCFunction(ctx, jsSourceLiveNpcStatus, "sourceLiveNpcStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveNpcEnable",
+                      JS_NewCFunction(ctx, jsSourceLiveNpcEnable, "sourceLiveNpcEnable", 2));
+    JS_SetPropertyStr(ctx, api, "sourceLiveNpcPause",
+                      JS_NewCFunction(ctx, jsSourceLiveNpcPause, "sourceLiveNpcPause", 0));
     JS_SetPropertyStr(ctx, api, "sourceCompile",
                       JS_NewCFunction(ctx, jsManagedSourceCompile, "sourceCompile", 0));
     JS_SetPropertyStr(ctx, api, "sourceCompileMod",
