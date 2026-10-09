@@ -458,6 +458,35 @@ bool applyManagedNativeDefaultsBatch(
     return true;
 }
 
+bool applyManagedNativeBuffDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedBuffEntry>& buffs,
+    const std::vector<ManagedPotionEntry>& potions) {
+    if (!g_effectsReady) return false;
+    for (const auto& buff : buffs) {
+        const auto it = g_buffs.find(buff.type);
+        if (it == g_buffs.end() ||
+            bl::runtime::modBuffTypeByName(modId, buff.name) != buff.type ||
+            buff.defenseBonus < -50 || buff.defenseBonus > 100)
+            return false;
+    }
+    for (const auto& potion : potions) {
+        const auto it = g_potions.find(potion.type);
+        if (it == g_potions.end() ||
+            bl::runtime::modItemTypeByKey(modId + "/" + potion.name) != potion.type ||
+            it->second.buffType != potion.buffType ||
+            potion.duration < 1 || potion.duration > 216000)
+            return false;
+    }
+    for (const auto& buff : buffs)
+        g_buffs[buff.type].defenseBonus = buff.defenseBonus;
+    for (const auto& potion : potions)
+        g_potions[potion.type].duration = potion.duration;
+    BL_INFO("csharp native: managed buffs applied for %s (%zu buffs, %zu potions)",
+            modId.c_str(), buffs.size(), potions.size());
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
