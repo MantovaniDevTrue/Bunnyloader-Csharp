@@ -110,7 +110,7 @@ bool g_liveWorkerBusy = false;
 bool g_liveHasCompletion = false;
 bool g_liveWorkerStarted = false;
 uint64_t g_liveSession = 0;
-int g_liveSampleCounter = 0;
+std::atomic<int> g_liveSampleCounter{0};
 std::chrono::steady_clock::time_point g_liveJobTime{};
 
 void liveNpcWorkerLoop() {
@@ -390,7 +390,7 @@ void runLiveNpcAi(Il2CppObject* npc) {
     }
 
     if (!g_liveNpcEnabled.load(std::memory_order_acquire) ||
-        ++g_liveSampleCounter % kLiveNpcSampleInterval != 0) return;
+        (g_liveSampleCounter.fetch_add(1, std::memory_order_relaxed) + 1) % kLiveNpcSampleInterval != 0) return;
     const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
     if (!snapshot.ready || snapshot.player.life <= 0) return;
     const Vector2 pos = runtime::field<Vector2>(npc, game.entity.position);
@@ -513,7 +513,7 @@ bool enableLiveNpcAi(const std::string& modId, int npcType,
         std::lock_guard<std::mutex> lock(g_liveDispatchMutex);
         ++g_liveSession;
         g_liveHasCompletion = false;
-        g_liveSampleCounter = 0;
+        g_liveSampleCounter.store(0, std::memory_order_relaxed);
         if (!g_liveWorkerStarted) {
             g_liveWorkerStarted = true;
             createWorker = true;
