@@ -34,6 +34,8 @@ std::array<Slot, 4096> g_slots{};
 AiFn g_original = nullptr;
 std::atomic<bool> g_enabled{false};
 std::atomic<bool> g_installed{false};
+std::atomic<bool> g_buffered{false};
+std::array<int, 120> g_turns{};
 std::atomic<int> g_type{-1};
 std::atomic<int> g_calls{0};
 std::atomic<int> g_writes{0};
@@ -67,14 +69,21 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     if (entry.ticks >= 120 || g_calls.load(std::memory_order_relaxed) >= 2400) return;
 
     int next = 0;
-    if (!invokeManagedProjectileAI(entry.ticks, entry.state, &next)) {
-        g_errors.fetch_add(1, std::memory_order_relaxed);
-        g_enabled.store(false, std::memory_order_release);
-        BL_ERROR("csharp AI: SourceBolt desativado apos falha gerenciada");
-        return;
+    float angle = 0.f;
+    if (g_buffered.load(std::memory_order_acquire)) {
+        const int milliRadians = g_turns[static_cast<size_t>(entry.ticks)];
+        next = entry.state + milliRadians;
+        angle = milliRadians * 0.001f;
+    } else {
+        if (!invokeManagedProjectileAI(entry.ticks, entry.state, &next)) {
+            g_errors.fetch_add(1, std::memory_order_relaxed);
+            g_enabled.store(false, std::memory_order_release);
+            BL_ERROR("csharp AI: SourceBolt desativado apos falha gerenciada");
+            return;
+        }
+        angle = static_cast<float>(next - entry.state) * 0.006f;
     }
 
-    const int delta = next - entry.state;
     entry.state = next;
     ++entry.ticks;
     g_calls.fetch_add(1, std::memory_order_relaxed);
@@ -87,7 +96,6 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     if (!std::isfinite(speedSquared) || speedSquared < 0.01f ||
         speedSquared > 4096.0f) return;
 
-    const float angle = static_cast<float>(delta) * 0.006f;
     const float sine = std::sin(angle);
     const float cosine = std::cos(angle);
     const Vector2 nextVelocity{
@@ -104,13 +112,9 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
 
 }
 
-bool enableManagedSourceBoltHook(std::string* error) {
+bool armSourceBoltHook(std::string* error, const std::array<int, 120>* turns) {
     if (!error) return false;
     error->clear();
-    if (!managedRuntimeStatus().domainInitialized) {
-        *error = "Primeiro executar managedGameProbe no processo do jogo";
-        return false;
-    }
     if (!runtime::resolveGameRefs() || !runtime::modProjectilesSettled()) {
         *error = "Tabelas de projeteis do Terraria ainda indisponiveis";
         return false;
@@ -157,9 +161,33 @@ bool enableManagedSourceBoltHook(std::string* error) {
     g_lastSlot.store(-1, std::memory_order_relaxed);
     g_lastState.store(0, std::memory_order_relaxed);
     g_type.store(type, std::memory_order_relaxed);
+    if (turns) g_turns = *turns;
+    g_buffered.store(turns != nullptr, std::memory_order_release);
     g_enabled.store(true, std::memory_order_release);
-    BL_INFO("csharp AI: SourceBolt hook ativado apenas para tipo %d", type);
+    BL_INFO("csharp AI: SourceBolt hook ativado para tipo %d (buffer=%d)",
+            type, turns ? 1 : 0);
     return true;
+}
+
+bool enableManagedSourceBoltHook(std::string* error) {
+    if (!error) return false;
+    if (!managedRuntimeStatus().domainInitialized) {
+        *error = "Primeiro executar managedGameProbe no processo do jogo";
+        return false;
+    }
+    return armSourceBoltHook(error, nullptr);
+}
+
+bool enableBufferedSourceBoltHook(
+    const std::array<int, 120>& turnsMilliRadians, std::string* error) {
+    if (!error) return false;
+    for (int turn : turnsMilliRadians) {
+        if (turn < -80 || turn > 80) {
+            *error = "Curva de IA C# excedeu 80 milirradianos por tick";
+            return false;
+        }
+    }
+    return armSourceBoltHook(error, &turnsMilliRadians);
 }
 
 bool pauseManagedSourceBoltHook() {
@@ -170,6 +198,8 @@ ManagedProjectileHookStatus managedSourceBoltHookStatus() {
     ManagedProjectileHookStatus result;
     result.installed = g_installed.load(std::memory_order_acquire);
     result.enabled = g_enabled.load(std::memory_order_acquire);
+    result.buffered = g_buffered.load(std::memory_order_acquire);
+    result.bufferSamples = result.buffered ? 120 : 0;
     result.type = g_type.load(std::memory_order_relaxed);
     result.callbacks = g_calls.load(std::memory_order_relaxed);
     result.velocityWrites = g_writes.load(std::memory_order_relaxed);
