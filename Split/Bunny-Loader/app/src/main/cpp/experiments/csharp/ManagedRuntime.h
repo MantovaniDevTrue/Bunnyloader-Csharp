@@ -36,6 +36,9 @@ struct LiveSourceStatus {
     int npcLastLife = 0;
     int npcLastDeltaX = 0;
     int npcLastVelocityTenths = 0;
+    int npcThreadAttaches = 0;
+    int npcThreadDetaches = 0;
+    int npcThreadAlreadyAttached = 0;
     std::string modId;
     std::string phase = "idle";
     std::string error;
