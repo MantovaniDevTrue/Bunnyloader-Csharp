@@ -63,6 +63,30 @@ void emitDec(uintptr_t value) {
     (void)write(g_trace, buffer, n);
 }
 
+void emitAbortHeader() {
+    if (g_trace < 0) return;
+    char buffer[128]{};
+    size_t used = 0;
+    auto appendText = [&](const char* str) {
+        for (size_t i = 0; str[i] != '\0'; ++i) buffer[used++] = str[i];
+    };
+    auto appendDecimal = [&](uintptr_t value) {
+        char digits[3 * sizeof(uintptr_t) + 2]{};
+        size_t count = 0;
+        do {
+            digits[count++] = static_cast<char>('0' + value % 10);
+            value /= 10;
+        } while (value);
+        while (count != 0) buffer[used++] = digits[--count];
+    };
+    appendText("NATIVE_ABORT_SIGNAL pid=");
+    appendDecimal(static_cast<uintptr_t>(getpid()));
+    appendText(" tid=");
+    appendDecimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    buffer[used++] = '\n';
+    (void)write(g_trace, buffer, used);
+}
+
 void markProcessExit() {
     emit("NATIVE_PROCESS_ATEXIT_BEGIN\n");
     (void)fsync(g_trace);
@@ -334,10 +358,7 @@ int observeMutexLock(pthread_mutex_t* mutex) {
 void onAbort(int signal, siginfo_t*, void* raw) {
     if (g_handling) _exit(128 + signal);
     g_handling = 1;
-    emit("NATIVE_ABORT_SIGNAL\npid=");
-    emitDec(static_cast<uintptr_t>(getpid()));
-    emit("tid=");
-    emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    emitAbortHeader();
 #if defined(__aarch64__)
     const auto* context = static_cast<const ucontext_t*>(raw);
     if (context) {
