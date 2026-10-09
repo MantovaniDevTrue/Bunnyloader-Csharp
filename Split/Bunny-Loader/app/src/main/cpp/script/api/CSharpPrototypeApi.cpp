@@ -40,7 +40,9 @@ namespace bl::script {
 
 namespace {
 
-bool sourceAssemblyTypesVerified(const std::string& state);
+bool sourceAssemblyTypesVerified(
+    const std::string& state,
+    const std::string& expectedModId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1");
 
 JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus& s) {
     JSValue out = JS_NewObject(ctx);
@@ -368,7 +370,11 @@ JSValue jsSourcePauseBufferedAI(JSContext* ctx, JSValueConst, int argc, JSValueC
     return result;
 }
 
-bool sourceAssemblyTypesVerified(const std::string& state) {
+bool sourceAssemblyTypesVerified(
+    const std::string& state, const std::string& expectedModId) {
+    if (expectedModId.empty() ||
+        state.find("modId=" + expectedModId + "\n") == std::string::npos)
+        return false;
     const std::string marker = "executedTypes=";
     const auto at = state.find(marker);
     if (at == std::string::npos) return false;
@@ -379,7 +385,7 @@ bool sourceAssemblyTypesVerified(const std::string& state) {
     if (errno || end == start || (*end != '\n' && *end != '\r') ||
         types < 2 || types > 32) return false;
     for (const auto& mod : bl::csharp::sourceModStatuses()) {
-        if (mod.id == "57a98f20-7a35-4d19-8ce8-079e25bb36a1" &&
+        if (mod.id == expectedModId &&
             mod.loaded && mod.projectiles > 0 && mod.items > 0)
             return types == mod.projectiles + mod.items;
     }
@@ -732,14 +738,11 @@ JSValue jsSourceEnableProjectileAI(JSContext* ctx, JSValueConst,
     if (!confirmed)
         return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_CSHARP_PROJECTILE_AI");
 
-    constexpr const char* sourceTestId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-    if (id != sourceTestId)
-        return JS_ThrowTypeError(ctx, "Compilacao multi-mod ainda nao habilitada; use o Source C# Test");
     const std::string state = readManagedWorkerFile("source-compile-status.txt");
     const std::string diagnostics = readManagedWorkerFile("source-compile-diagnostics.txt");
     if (state.find("state=finished\n") == std::string::npos ||
         state.find("phase=compile-verified\n") == std::string::npos ||
-        !sourceAssemblyTypesVerified(state) ||
+        !sourceAssemblyTypesVerified(state, id) ||
         state.find("assemblyReady=1\n") == std::string::npos ||
         diagnostics.find("PROJECTILE_TURNS_V1_OK curves=") == std::string::npos)
         return JS_ThrowInternalError(ctx, "Compile novamente as politicas C# antes de ativar");
@@ -795,6 +798,84 @@ JSValue jsSourceEnableProjectileAI(JSContext* ctx, JSValueConst,
         return JS_ThrowInternalError(ctx, "%s", error.c_str());
     JSValue result = makeProjectileCurveStatus(ctx, id, name);
     JS_SetPropertyStr(ctx, result, "soloOnly", JS_NewBool(ctx, true));
+    return result;
+}
+
+JSValue jsSourceCompileMod(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "sourceCompileMod('MOD_UUID')");
+    const char* raw = JS_ToCString(ctx, argv[0]);
+    if (!raw) return JS_EXCEPTION;
+    const std::string id(raw);
+    JS_FreeCString(ctx, raw);
+    if (id.empty() || id.size() > 128)
+        return JS_ThrowTypeError(ctx, "ID do mod C# invalido");
+    bool loaded = false;
+    for (const auto& status : bl::csharp::sourceModStatuses()) {
+        if (status.id == id && status.loaded && status.sourceFiles > 0 &&
+            status.projectiles > 0 && status.items > 0) {
+            loaded = true;
+            break;
+        }
+    }
+    if (!loaded)
+        return JS_ThrowInternalError(ctx, "Mod C# nao encontrado ou conteudo nao registrado");
+    const std::string root = bl::mods::rootOf(id);
+    if (root.empty())
+        return JS_ThrowInternalError(ctx, "Diretorio do mod C# indisponivel");
+    std::string error;
+    const bool queued = bl::csharp::requestIsolatedMonoCompile(root, id, error);
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "modId", JS_NewString(ctx, id.c_str()));
+    JS_SetPropertyStr(ctx, out, "queued", JS_NewBool(ctx, queued));
+    JS_SetPropertyStr(ctx, out, "isolated", JS_NewBool(ctx, true));
+    JS_SetPropertyStr(ctx, out, "engine", JS_NewString(ctx, "Roslyn-net8"));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, error.c_str()));
+    return out;
+}
+
+JSValue jsSourceApplyMod(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]) || !JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx, "sourceApplyMod('MOD_UUID', 'CONFIRM_MANAGED_DEFAULTS')");
+    const char* mod = JS_ToCString(ctx, argv[0]);
+    if (!mod) return JS_EXCEPTION;
+    const std::string id(mod);
+    JS_FreeCString(ctx, mod);
+    const char* confirm = JS_ToCString(ctx, argv[1]);
+    if (!confirm) return JS_EXCEPTION;
+    const bool approved = std::string_view(confirm) == "CONFIRM_MANAGED_DEFAULTS";
+    JS_FreeCString(ctx, confirm);
+    if (!approved)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_MANAGED_DEFAULTS");
+    if (id.empty() || id.size() > 128)
+        return JS_ThrowTypeError(ctx, "ID do mod C# invalido");
+    const std::string state = readManagedWorkerFile("source-compile-status.txt");
+    if (state.find("state=finished\n") == std::string::npos ||
+        state.find("phase=compile-verified\n") == std::string::npos ||
+        !sourceAssemblyTypesVerified(state, id) ||
+        state.find("assemblyReady=1\n") == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Compile este mesmo mod C# e aguarde a verificacao");
+    const std::string values = readManagedWorkerFile("source-runtime-values.txt");
+    std::string error;
+    const bool applied = bl::csharp::applyManagedSourceDefaults(id, values, &error);
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "modId", JS_NewString(ctx, id.c_str()));
+    JS_SetPropertyStr(ctx, result, "applied", JS_NewBool(ctx, applied));
+    JS_SetPropertyStr(ctx, result, "engine", JS_NewString(ctx, "Roslyn-MonoVM-SetDefaults-v2"));
+    int items = 0;
+    int projectiles = 0;
+    if (applied) {
+        for (const auto& status : bl::csharp::sourceModStatuses()) {
+            if (status.id == id && status.loaded && status.runtimeApplied) {
+                items = status.items;
+                projectiles = status.projectiles;
+                break;
+            }
+        }
+    }
+    JS_SetPropertyStr(ctx, result, "items", JS_NewInt32(ctx, items));
+    JS_SetPropertyStr(ctx, result, "projectiles", JS_NewInt32(ctx, projectiles));
+    JS_SetPropertyStr(ctx, result, "error", JS_NewString(ctx, error.c_str()));
     return result;
 }
 
@@ -1624,6 +1705,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceCompile",
                       JS_NewCFunction(ctx, jsManagedSourceCompile, "sourceCompile", 0));
+    JS_SetPropertyStr(ctx, api, "sourceCompileMod",
+                      JS_NewCFunction(ctx, jsSourceCompileMod, "sourceCompileMod", 1));
+    JS_SetPropertyStr(ctx, api, "sourceApplyMod",
+                      JS_NewCFunction(ctx, jsSourceApplyMod, "sourceApplyMod", 2));
     JS_SetPropertyStr(ctx, api, "sourceCompileStatus",
                       JS_NewCFunction(ctx, jsManagedSourceCompileStatus, "sourceCompileStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceApplyCompiled",
