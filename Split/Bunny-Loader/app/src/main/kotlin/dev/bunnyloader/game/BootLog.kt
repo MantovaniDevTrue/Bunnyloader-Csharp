@@ -145,7 +145,8 @@ object BootLog {
 
     private fun gameCrashTraces(ctx: Context): String = buildString {
         val dir = File(ctx.filesDir, "bunny-csharp")
-        for (name in listOf("native-game-abort-trace.txt", "native-game-abort-previous.txt")) {
+        for (name in listOf("native-game-probe-mode.txt", "native-game-module-maps.txt",
+            "native-game-abort-trace.txt", "native-game-abort-previous.txt")) {
             append(name).append(":\n")
             val value = runCatching { File(dir, name).readText().takeLast(8192) }
                 .getOrDefault("(sem registro)")
