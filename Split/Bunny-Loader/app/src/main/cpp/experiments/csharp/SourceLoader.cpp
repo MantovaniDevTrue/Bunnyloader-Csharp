@@ -339,6 +339,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPotionEntry> potions;
     std::vector<ManagedAccessoryEntry> accessories;
     std::vector<ManagedPlayerEntry> players;
+    std::vector<ManagedNpcEntry> npcs;
     std::map<std::string, int> accessoryTypes;
     std::vector<std::string> shootNames;
     std::string line;
@@ -420,6 +421,30 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
+        } else if (fields[0] == "NPC" && fields.size() == 10) {
+            ManagedNpcEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.width) ||
+                !integer(fields[3], &record.height) ||
+                !integer(fields[4], &record.damage) ||
+                !integer(fields[5], &record.defense) ||
+                !integer(fields[6], &record.lifeMax) ||
+                !integer(fields[7], &record.aiStyle) ||
+                !integer(fields[8], &record.animationType) ||
+                !integer(fields[9], &record.frames) ||
+                record.width < 8 || record.width > 256 ||
+                record.height < 8 || record.height > 256 ||
+                record.damage < 0 || record.damage > 500 ||
+                record.defense < 0 || record.defense > 200 ||
+                record.lifeMax < 1 || record.lifeMax > 100000 ||
+                record.aiStyle != 1 || record.animationType != 1 ||
+                record.frames != 2 ||
+                runtime::modNpcTypeByName(modId, record.name) != record.type) {
+                *error = "Atributos ou registro do BunnyNPC invalido: " + record.name;
+                return false;
+            }
+            npcs.push_back(std::move(record));
         } else if (fields[0] == "BUFF" && fields.size() == 3) {
             ManagedBuffEntry record;
             record.name = fields[1];
@@ -455,7 +480,8 @@ bool applyManagedSourceDefaults(
         }
         if (projectiles.size() > 16 || weapons.size() > 16 ||
             buffs.size() > 16 || potions.size() > 16 ||
-            accessories.size() > 16 || players.size() > 16) {
+            accessories.size() > 16 || players.size() > 16 ||
+            npcs.size() > 16) {
             *error = "Quantidade de conteudo C# excede 16 por categoria";
             return false;
         }
@@ -467,6 +493,7 @@ bool applyManagedSourceDefaults(
         potions.size() != static_cast<size_t>(mod->potions) ||
         accessories.size() != static_cast<size_t>(mod->accessories) ||
         players.size() != static_cast<size_t>(mod->players) ||
+        npcs.size() != static_cast<size_t>(mod->npcs) ||
         seen.size() != mod->registeredTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
@@ -489,6 +516,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedNativePlayerDefaultsBatch(modId, accessories, players)) {
         *error = "Falha ao validar ou aplicar politica BunnyPlayer C#";
+        return false;
+    }
+    if (!applyManagedNativeNpcDefaultsBatch(modId, npcs)) {
+        *error = "Falha ao validar ou aplicar os valores BunnyNPC gerenciados";
         return false;
     }
     mod->runtimeApplied = true;
