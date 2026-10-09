@@ -40,6 +40,7 @@ on:
       - bunny-csharp-source-0.1.10.16.17-sigsegv-origin
       - bunny-csharp-source-0.1.10.16.18-crypto-jni-init
       - bunny-csharp-source-0.1.10.16.19-managed-execution
+      - bunny-csharp-source-0.1.10.16.20-dll-cache-fingerprint
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -241,6 +242,19 @@ jobs:
           test -s "$ASSETS/Microsoft.CodeAnalysis.CSharp.dll"
           echo "BUNNY_ROSLYN_IN_APK=YES"
           echo "MANAGED_ASSEMBLY_BUNDLED=YES"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path("Split/Bunny-Loader/app/src/main/assets/managed")
+          libraries = sorted(root.glob("*.dll"))
+          assert libraries, "No managed assemblies for manifest"
+          manifest = "".join(
+              f"{file.name}\t{hashlib.sha256(file.read_bytes()).hexdigest()}\n"
+              for file in libraries
+          )
+          (root / "framework.sha256").write_text(manifest, encoding="utf-8")
+          print(f"MANAGED_FRAMEWORK_FINGERPRINT_READY=YES files={len(libraries)}")
+          PY
 
       - name: Integrate Terraria runtime
         shell: bash
@@ -314,6 +328,20 @@ jobs:
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunnymonoprobe.so"
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
+          unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
+          python3 - "$APK" <<'PY'
+          import hashlib
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as package:
+              lines = package.read("assets/managed/framework.sha256").decode("utf-8").splitlines()
+              assert lines, "Empty framework fingerprint"
+              for line in lines:
+                  name, checksum = line.split("\\t", 1)
+                  content = package.read("assets/managed/" + name)
+                  assert hashlib.sha256(content).hexdigest() == checksum, name
+              print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
+          PY
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceSdk.dll"
           unzip -l "$APK" | grep -q "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
           unzip -l "$APK" | grep -q "assets/managed/System.Private.CoreLib.dll"
@@ -323,7 +351,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.20-DllCacheFix.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
@@ -335,17 +363,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.19"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.20"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.20-DllCacheFix.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.19 — Managed Assembly Execution Test" \
-              --notes "Experimental follow-up after Roslyn compiled C# successfully on device: run compiled SourceCSharpMod.dll in isolated MonoVM using Assembly.Load, instantiate SourceBolt/SourceWand, execute their C# SetDefaults and verify values. Report executedTypes=2 and ASSEMBLY_EXEC_OK only on success. Preserve .NET Android crypto JNI initialization, native diagnostics, JavaScript and NativeAOT game code. This tests managed execution, not yet registration with the game." \
+              --title "Bunny Loader C# v0.1.10.16.20 — Managed DLL Cache Fingerprint Fix" \
+              --notes "Fix verified C# compiler but stale managed assembly cache on Android. Update internal version to 0.1.10.16.20 and generate SHA-256 fingerprints for every bundled MonoVM managed DLL. Validate cached DLL bytes before reuse; atomically refresh mismatched assemblies and retain managed SourceBolt/SourceWand execution checks. NativeAOT, JavaScript and JNI initialization unchanged. Requires Android device validation." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -368,7 +396,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.19-ManagedExecution.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.20-DllCacheFix.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
