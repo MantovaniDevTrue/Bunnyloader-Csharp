@@ -487,6 +487,40 @@ bool applyManagedNativeBuffDefaultsBatch(
     return true;
 }
 
+bool applyManagedNativePlayerDefaultsBatch(
+    const std::string& modId,
+    const std::vector<ManagedAccessoryEntry>& accessories,
+    const std::vector<ManagedPlayerEntry>& players) {
+    if (!g_effectsReady || accessories.size() > 16 || players.size() > 16)
+        return false;
+    std::map<int, int> values;
+    for (const auto& accessory : accessories) {
+        if (accessory.type < 0 || accessory.defenseBonus < 0 ||
+            accessory.defenseBonus > 100 ||
+            bl::runtime::modItemTypeByKey(modId + "/" + accessory.name) != accessory.type ||
+            g_accessories.count(accessory.type) != 1 ||
+            !values.emplace(accessory.type, accessory.defenseBonus).second)
+            return false;
+    }
+    std::map<int, bool> linked;
+    for (const auto& player : players) {
+        if (player.accessoryType < 0 ||
+            player.equippedDefenseBonus < 0 || player.equippedDefenseBonus > 100 ||
+            bl::runtime::modItemTypeByKey(modId + "/" + player.accessoryName) != player.accessoryType ||
+            !values.contains(player.accessoryType) ||
+            !linked.emplace(player.accessoryType, true).second)
+            return false;
+        int& bonus = values[player.accessoryType];
+        if (bonus + player.equippedDefenseBonus > 100) return false;
+        bonus += player.equippedDefenseBonus;
+    }
+    for (const auto& [type, defense] : values)
+        g_accessories[type].defenseBonus = defense;
+    BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
+            modId.c_str(), accessories.size(), players.size());
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
