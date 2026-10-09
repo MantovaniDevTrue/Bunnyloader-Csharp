@@ -246,17 +246,17 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) 
     Il2CppArray* types = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffType);
     Il2CppArray* times = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffTime);
     if (!types || !times) return;
-    const uintptr_t count = types->length < times->length ? types->length : times->length;
-    if (count > 60) return;
+    const uintptr_t count = std::min(types->length, times->length);
+    if (count == 0 || count > 60 || index < 0 ||
+        static_cast<uintptr_t>(index) >= count) return;
     const auto* typeValues = reinterpret_cast<const int32_t*>(arrayData(types));
     const auto* timeValues = reinterpret_cast<const int32_t*>(arrayData(times));
-    int bonus = 0;
-    for (uintptr_t i = 0; i < count; ++i) {
-        if (timeValues[i] < 1) continue;
-        const auto it = g_buffs.find(typeValues[i]);
-        if (it != g_buffs.end()) bonus += it->second.defenseBonus;
-    }
-    bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) += bonus;
+    const auto slot = static_cast<uintptr_t>(index);
+    if (timeValues[slot] <= 0) return;
+    const auto it = g_buffs.find(typeValues[slot]);
+    if (it != g_buffs.end())
+        bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) +=
+            it->second.defenseBonus;
 }
 
 }
