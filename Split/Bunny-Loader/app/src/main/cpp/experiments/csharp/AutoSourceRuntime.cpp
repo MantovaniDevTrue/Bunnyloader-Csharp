@@ -14,6 +14,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <dirent.h>
@@ -31,7 +32,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_36";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_37";
 std::mutex g_lock;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
@@ -105,7 +106,7 @@ bool safeId(const std::string& id) {
     for (char ch : id) {
         if (!((ch >= '0' && ch <= '9') ||
               (ch >= 'a' && ch <= 'z') ||
-              (ch >= 'A' && ch <= 'Z') || ch == '-')) return false;
+              (ch >= 'A' && ch <= 'Z') || ch == '-' || ch == '_')) return false;
     }
     return true;
 }
@@ -122,7 +123,7 @@ void hashString(uint64_t* hash, const std::string& value) {
 
 bool hashSources(const std::string& dir, const std::string& relative,
                  uint64_t* hash, int* count, int depth) {
-    if (depth > 6 || *count > 32) return false;
+    if (depth > 7 || *count > 32) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
     if (!listing) return false;
@@ -178,11 +179,18 @@ bool readCache(const std::string& path, const std::string& id,
         !std::getline(input, counts)) return false;
     size_t separator = counts.find(' ');
     if (separator == std::string::npos) return false;
+    const std::string defaultLength = counts.substr(0, separator);
+    const std::string curveLength = counts.substr(separator + 1);
+    if (defaultLength.empty() || curveLength.empty()) return false;
     char* end1 = nullptr;
     char* end2 = nullptr;
-    unsigned long a = std::strtoul(counts.substr(0, separator).c_str(), &end1, 10);
-    unsigned long b = std::strtoul(counts.c_str() + separator + 1, &end2, 10);
-    if (a < 10 || a > 8192 || b > 22000 || !end2 || *end2) return false;
+    errno = 0;
+    const unsigned long a = std::strtoul(defaultLength.c_str(), &end1, 10);
+    if (errno || end1 == defaultLength.c_str() || *end1) return false;
+    errno = 0;
+    const unsigned long b = std::strtoul(curveLength.c_str(), &end2, 10);
+    if (errno || end2 == curveLength.c_str() || *end2 ||
+        a < 10 || a > 8192 || b > 22000) return false;
     size_t header = value.find('\n', value.find('\n', value.find('\n', value.find('\n') + 1) + 1) + 1);
     if (header == std::string::npos || value.size() != header + 1 + a + b) return false;
     *defaults = value.substr(header + 1, a);
