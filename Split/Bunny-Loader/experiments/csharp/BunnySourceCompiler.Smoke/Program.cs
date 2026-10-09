@@ -55,6 +55,19 @@ try
         !managedDefaults.Contains("PROJECTILE\tSourceBolt\t10\t10\t1\t1\t360\t1\n", StringComparison.Ordinal) ||
         !managedDefaults.Contains("WEAPON\tSourceWand\t22\t18\t13\tSourceBolt\n", StringComparison.Ordinal))
         throw new InvalidOperationException("Unexpected managed Terraria defaults payload: " + managedDefaults);
+    string motionBuffer = File.ReadAllText(Path.Combine(scratch, "source-ai-turns.txt"));
+    string[] motionLines = motionBuffer.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (motionLines.Length != 3 ||
+        motionLines[0] != "BUNNY_SOURCE_AI_TURNS_V1" ||
+        motionLines[1] != "SourceBolt")
+        throw new InvalidOperationException("Missing managed AI motion header");
+    string[] samples = motionLines[2].Split('\t');
+    if (samples.Length != 120 || samples[0] != "0" ||
+        !samples.Any(x => int.TryParse(x, out var n) && n > 15) ||
+        !samples.Any(x => int.TryParse(x, out var n) && n < -15) ||
+        !samples.All(x => int.TryParse(x, out var n) && Math.Abs(n) <= 80))
+        throw new InvalidOperationException("Invalid 120-tick motion buffer: " + motionLines[2]);
+    Console.WriteLine("BUNNY_CSHARP_AI_BUFFER=PASS");
     Console.WriteLine("BUNNY_MANAGED_DEFAULTS_BRIDGE=PASS");
     Console.WriteLine("BUNNY_MANAGED_ASSEMBLY_EXECUTION=PASS");
     byte[] original = File.ReadAllBytes(output);
