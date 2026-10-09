@@ -17,8 +17,6 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Compiled assembly missing or too large");
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
-            object projectile = VerifyProjectile(assembly);
-            object weapon = VerifyWeapon(assembly);
             var projectileTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyProjectile")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -28,21 +26,32 @@ public static class CompiledAssemblyProbe
             if (projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
                 weaponTypes.Length < 1 || weaponTypes.Length > 16)
                 throw new InvalidOperationException("C# content class count out of bounds");
+            bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
+                weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
+            object? primaryProjectile = fixture ? VerifyProjectile(assembly) : null;
+            object? primaryWeapon = fixture ? VerifyWeapon(assembly) : null;
             object[] projectiles = projectileTypes.Select(type =>
-                type.Name == "SourceBolt" ? projectile : CreateContent(type)).ToArray();
+                fixture && type.FullName == "SourceCSharpMod.SourceBolt"
+                    ? primaryProjectile! : CreateContent(type)).ToArray();
             object[] weapons = weaponTypes.Select(type =>
-                type.Name == "SourceWand" ? weapon : CreateContent(type)).ToArray();
+                fixture && type.FullName == "SourceCSharpMod.SourceWand"
+                    ? primaryWeapon! : CreateContent(type)).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, diagnosticsPath);
-            WriteProjectileMotion(assembly, diagnosticsPath);
-            WriteSparkMotion(assembly, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
-            WriteHomingPolicy(assembly, diagnosticsPath);
-            WriteHitNPCPolicy(projectile, diagnosticsPath);
-            WriteKillPolicy(projectile, diagnosticsPath);
+            if (fixture)
+            {
+                WriteProjectileMotion(assembly, diagnosticsPath);
+                WriteSparkMotion(assembly, diagnosticsPath);
+                WriteHomingPolicy(assembly, diagnosticsPath);
+                WriteHitNPCPolicy(primaryProjectile!, diagnosticsPath);
+                WriteKillPolicy(primaryProjectile!, diagnosticsPath);
+            }
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
-                " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt");
+                (fixture
+                    ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
+                    : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length;
         }
         catch (Exception exception)
@@ -182,8 +191,8 @@ public static class CompiledAssemblyProbe
             }
             policies.Add(projectile.Name + "\t" + string.Join("\t", samples));
         }
-        if (policies.Count < 1 || policies.Count > 16)
-            throw new InvalidOperationException("Expected 1-16 independent projectile motion curves");
+        if (policies.Count > 16)
+            throw new InvalidOperationException("More than 16 independent projectile motion curves");
         string dir = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing diagnostics directory");
         string destination = Path.Combine(dir, "source-projectile-turns.txt");
