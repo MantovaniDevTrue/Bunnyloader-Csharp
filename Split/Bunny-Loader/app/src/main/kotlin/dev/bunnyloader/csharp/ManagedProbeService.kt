@@ -110,6 +110,7 @@ class ManagedProbeService : Service() {
         val status = File(dir, "isolated-worker-status.txt")
         val log = File(dir, "isolated-worker-logcat.txt")
         val compileRoot = intent?.getStringExtra("sourceRoot")
+        val compileModId = intent?.getStringExtra("sourceModId") ?: ""
         val compileStatus = File(dir, "source-compile-status.txt")
         val diagnostic = File(dir, "source-compile-diagnostics.txt")
         val health = File(dir, "source-compile-health.txt")
@@ -120,6 +121,12 @@ class ManagedProbeService : Service() {
         dir.mkdirs()
         checkpoint.delete()
         log.delete()
+        if (compileRoot != null && (compileModId.isBlank() ||
+            compileModId.length > 128 || compileModId.contains('\n'))) {
+            running.set(false)
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         if (compileRoot == null) {
             runCatching { status.writeText("state=starting\npid=${Process.myPid()}\n") }
         } else {
@@ -182,6 +189,7 @@ class ManagedProbeService : Service() {
                         (result.contains("result=1\n") || result.contains("result=2\n"))
                     compileStatus.writeText(
                         "state=${if (passed) "finished" else "failed"}\n" +
+                            "modId=$compileModId\n" +
                             "pid=${Process.myPid()}\n$result\n" +
                             "assemblyReady=${if (passed && output.isFile) 1 else 0}\n"
                     )
