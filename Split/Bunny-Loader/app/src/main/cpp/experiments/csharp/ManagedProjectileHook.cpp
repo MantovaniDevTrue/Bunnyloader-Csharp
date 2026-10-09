@@ -37,6 +37,8 @@ struct Slot {
 struct NpcTargetRefs {
     FieldInfo* npcArray = nullptr;
     FieldInfo* myPlayer = nullptr;
+    FieldInfo* netMode = nullptr;
+    FieldInfo* gameMenu = nullptr;
     int32_t active = -1;
     int32_t friendly = -1;
     int32_t dontTakeDamage = -1;
@@ -47,6 +49,7 @@ struct NpcTargetRefs {
 NpcTargetRefs g_targets{};
 SourceBoltHomingPolicy g_homingPolicy{};
 std::atomic<bool> g_homing{false};
+std::atomic<bool> g_singlePlayerFallback{false};
 std::atomic<int> g_scans{0};
 std::atomic<int> g_locks{0};
 std::atomic<int> g_homingFrames{0};
@@ -64,6 +67,8 @@ bool prepareHomingTargetRefs(std::string* error) {
     NpcTargetRefs refs{};
     refs.npcArray = il2cpp::findField(main, "npc");
     refs.myPlayer = il2cpp::findField(main, "myPlayer");
+    refs.netMode = il2cpp::findField(main, "netMode");
+    refs.gameMenu = il2cpp::findField(main, "gameMenu");
     refs.active = il2cpp::fieldOffset(npc, "active");
     refs.friendly = il2cpp::fieldOffset(npc, "friendly");
     refs.life = il2cpp::fieldOffset(npc, "life");
@@ -79,7 +84,8 @@ bool prepareHomingTargetRefs(std::string* error) {
         }
     };
     require(refs.npcArray != nullptr, "Main.npc");
-    require(refs.myPlayer != nullptr, "Main.myPlayer");
+    require(refs.myPlayer != nullptr || refs.netMode != nullptr,
+            "Main.myPlayer ou Main.netMode (fallback solo)");
     require(refs.active >= 0, "NPC.active");
     require(refs.friendly >= 0, "NPC.friendly");
     require(refs.life >= 0, "NPC.life");
@@ -89,8 +95,10 @@ bool prepareHomingTargetRefs(std::string* error) {
         return false;
     }
     refs.ready = true;
-    BL_INFO("csharp homing: refs NPC resolvidas; dontTakeDamage=%s",
-            refs.dontTakeDamage >= 0 ? "disponivel" : "opcional-ausente");
+    BL_INFO("csharp homing: refs NPC resolvidas; dontTakeDamage=%s, myPlayer=%s, netMode=%s",
+            refs.dontTakeDamage >= 0 ? "disponivel" : "opcional-ausente",
+            refs.myPlayer ? "disponivel" : "ausente",
+            refs.netMode ? "disponivel" : "ausente");
     g_targets = refs;
     return true;
 }
@@ -166,7 +174,21 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     const int slotId = runtime::field<int32_t>(projectile, game.entity.whoAmI);
     if (slotId < 0 || static_cast<size_t>(slotId) >= g_slots.size()) return;
     const int owner = runtime::field<int32_t>(projectile, game.proj.owner);
-    if (g_homing.load(std::memory_order_relaxed) && owner != g_localPlayer) return;
+    if (g_homing.load(std::memory_order_relaxed)) {
+        if (g_singlePlayerFallback.load(std::memory_order_relaxed)) {
+            if (owner < 0 || owner >= 255) return;
+            int mode = -1;
+            il2cpp::api().field_static_get_value(g_targets.netMode, &mode);
+            if (mode != 0) {
+                g_enabled.store(false, std::memory_order_release);
+                g_errors.fetch_add(1, std::memory_order_relaxed);
+                BL_ERROR("csharp homing: modo solo encerrado; hook desativado");
+                return;
+            }
+        } else if (owner != g_localPlayer) {
+            return;
+        }
+    }
     const int timeLeft = runtime::field<int32_t>(projectile, game.proj.timeLeft);
     Slot& entry = g_slots[static_cast<size_t>(slotId)];
     if (entry.object != projectile || entry.owner != owner ||
@@ -295,6 +317,7 @@ bool armSourceBoltHook(std::string* error, const std::array<int, 120>* turns) {
     }
     for (auto& slot : g_slots) slot = {};
     g_homing.store(false, std::memory_order_release);
+    g_singlePlayerFallback.store(false, std::memory_order_release);
     g_scans.store(0, std::memory_order_relaxed);
     g_locks.store(0, std::memory_order_relaxed);
     g_homingFrames.store(0, std::memory_order_relaxed);
@@ -356,18 +379,39 @@ bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
             return false;
         }
     if (!prepareHomingTargetRefs(error)) return false;
+    if (g_targets.gameMenu) {
+        uint8_t inMenu = 0;
+        il2cpp::api().field_static_get_value(g_targets.gameMenu, &inMenu);
+        if (inMenu) {
+            *error = "Entre em um mundo antes de ativar perseguicao C#";
+            return false;
+        }
+    }
     int localPlayer = -1;
-    il2cpp::api().field_static_get_value(g_targets.myPlayer, &localPlayer);
+    bool singlePlayerFallback = false;
+    if (g_targets.myPlayer)
+        il2cpp::api().field_static_get_value(g_targets.myPlayer, &localPlayer);
     if (localPlayer < 0 || localPlayer >= 255) {
-        *error = "Entrar no mundo antes de ativar perseguicao C#";
-        return false;
+        if (!g_targets.netMode) {
+            *error = "Main.myPlayer invalido e Main.netMode indisponivel";
+            return false;
+        }
+        int mode = -1;
+        il2cpp::api().field_static_get_value(g_targets.netMode, &mode);
+        if (mode != 0) {
+            *error = "Main.myPlayer ausente: modo alternativo permitido apenas no mundo solo";
+            return false;
+        }
+        singlePlayerFallback = true;
     }
     if (!armSourceBoltHook(error, &fallbackTurns)) return false;
     g_localPlayer = localPlayer;
     g_homingPolicy = policy;
+    g_singlePlayerFallback.store(singlePlayerFallback, std::memory_order_release);
     g_homing.store(true, std::memory_order_release);
-    BL_INFO("csharp AI: homing ativo radius=%d retarget=%d",
-            policy.radius, policy.retargetTicks);
+    BL_INFO("csharp AI: homing ativo radius=%d retarget=%d player=%d soloFallback=%d",
+            policy.radius, policy.retargetTicks, localPlayer,
+            singlePlayerFallback ? 1 : 0);
     return true;
 }
 
