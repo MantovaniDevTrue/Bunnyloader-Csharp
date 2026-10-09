@@ -11,7 +11,7 @@ public abstract class BunnyProjectile
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
     public abstract void SetDefaults();
-    public virtual int OnHitNPC(int hitCount) => 0;
+    public virtual int OnHitNPC(int damage) => 0;
 }
 
 public abstract class BunnyWeapon
