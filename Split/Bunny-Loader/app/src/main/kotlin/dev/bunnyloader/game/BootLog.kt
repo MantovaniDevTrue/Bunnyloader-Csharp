@@ -63,7 +63,21 @@ object BootLog {
         }
     }
 
-    private fun logcatFile(ctx: Context) = File(ctx.filesDir, "hosted-logcat.log")
+    private fun logcatFile(ctx: Context, generation: Int = 0) =
+        File(ctx.filesDir, if (generation == 0) "hosted-logcat.log" else "hosted-logcat-prev$generation.log")
+
+    private fun rotateLogcat(ctx: Context) {
+        for (generation in 3 downTo 1) {
+            val source = logcatFile(ctx, generation - 1)
+            if (!source.exists()) continue
+            val destination = logcatFile(ctx, generation)
+            if (destination.exists()) destination.delete()
+            if (!source.renameTo(destination)) {
+                source.copyTo(destination, overwrite = true)
+                source.delete()
+            }
+        }
+    }
 
     /**
      * Captura o logcat DO PRÓPRIO processo para arquivo.
@@ -75,7 +89,10 @@ object BootLog {
      */
     fun captureLogcat(ctx: Context) {
         val out = logcatFile(ctx)
-        runCatching { out.writeText("") }
+        runCatching {
+            rotateLogcat(ctx)
+            out.writeText("SESSION_START pid=${android.os.Process.myPid()} unixMs=${System.currentTimeMillis()}\\n".replace("\\n", "\n"))
+        }
         Thread {
             runCatching {
                 val pid = android.os.Process.myPid()
@@ -114,6 +131,7 @@ object BootLog {
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
             "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
+            "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
@@ -124,6 +142,16 @@ object BootLog {
         if (!checkpoint.isFile) "(nenhuma tentativa registrada)\n"
         else checkpoint.readText().take(2048).ifBlank { "(registro vazio)\n" }
     }.getOrElse { "(erro ao ler checkpoint MonoVM: ${it.javaClass.simpleName})\n" }
+
+    private fun gameCrashTraces(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        for (name in listOf("native-game-abort-trace.txt", "native-game-abort-previous.txt")) {
+            append(name).append(":\n")
+            val value = runCatching { File(dir, name).readText().takeLast(8192) }
+                .getOrDefault("(sem registro)")
+            append(value).append('\n')
+        }
+    }
 
     private fun lastIsolatedMonoWorker(ctx: Context): String = buildString {
         val dir = File(ctx.filesDir, "bunny-csharp")
@@ -187,28 +215,35 @@ object BootLog {
      * logo depois — e cortar pelo fim justamente esconde a mensagem, que vem
      * antes. Então destacamos as linhas de causa e só depois mostramos a cauda.
      */
-    private fun lastLogcat(ctx: Context): String = runCatching {
-        val lines = logcatFile(ctx).readLines()
-        if (lines.isEmpty()) return@runCatching "(vazio)"
-        val causes = lines.filter { l ->
-            l.contains("FatalError called") || l.contains("JNI DETECTED") ||
-                l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
-                l.contains("dlopen") || l.contains("mono phase=") || l.contains("Unable to") ||
-                l.contains("Failed to") || l.contains("E/Unity") ||
-                l.contains("E Unity") || l.contains("could not") ||
-                l.startsWith("E/$TAG")  // erro do próprio núcleo
-        }.distinct().take(15)
-        buildString {
+    private fun lastLogcat(ctx: Context): String = buildString {
+        var found = false
+        for (generation in 0..3) {
+            val capture = logcatFile(ctx, generation)
+            val lines = runCatching { capture.readLines() }.getOrDefault(emptyList())
+            if (lines.isEmpty()) continue
+            found = true
+            append(if (generation == 0) ">>> SESSAO ATUAL" else ">>> SESSAO ANTERIOR $generation")
+            append(" | ").append(lines.first().trim()).append('\n')
+            val causes = lines.filter { line ->
+                line.contains("F/libc") || line.contains("FORTIFY") ||
+                    line.contains("Fatal signal") || line.contains("FatalError called") ||
+                    line.contains("JNI DETECTED") || line.contains("Abort message") ||
+                    line.contains("UnsatisfiedLink") || line.contains("dlopen") ||
+                    line.contains("mono phase=") || line.contains("Unable to") ||
+                    line.contains("Failed to") || line.contains("E/Unity") ||
+                    line.contains("E Unity") || line.contains("could not") ||
+                    line.startsWith("E/$TAG")
+            }.distinct().take(18)
             if (causes.isNotEmpty()) {
                 append(">>> CAUSA:\n")
-                causes.forEach { append("  ").append(it.trim()).append("\n") }
-                append(">>> resto:\n")
+                causes.forEach { append("  ").append(it.trim()).append('\n') }
+                append(">>> RESTO:\n")
             }
-            // Sem os quadros de stack repetidos, que não acrescentam nada.
             lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
-                .takeLast(25).forEach { append(it).append("\n") }
+                .takeLast(30).forEach { append(it).append('\n') }
         }
-    }.getOrElse { "(sem captura)" }
+        if (!found) append("(sem captura)")
+    }
 
     /**
      * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por
