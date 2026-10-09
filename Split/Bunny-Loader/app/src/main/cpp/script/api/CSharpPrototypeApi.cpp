@@ -7,6 +7,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
@@ -85,7 +86,10 @@ std::string readManagedWorkerFile(const char* filename) {
     if (slash == std::string::npos) return {};
     std::ifstream stream(path.substr(0, slash + 1) + filename, std::ios::binary);
     if (!stream) return {};
-    const bool fullNativeTrace = std::string_view(filename) == "native-abort-trace.txt";
+    const bool fullNativeTrace =
+        std::string_view(filename) == "native-abort-trace.txt" ||
+        std::string_view(filename) == "native-game-abort-trace.txt" ||
+        std::string_view(filename) == "native-game-abort-previous.txt";
     char buffer[8193]{};
     stream.read(buffer, fullNativeTrace ? 8192 : 2048);
     return std::string(buffer, static_cast<size_t>(stream.gcount()));
@@ -117,7 +121,23 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     if (!probeFile)
         return JS_ThrowInternalError(ctx, "BunnyManagedProbe.dll ausente; executar worker antes");
 
-    return makeManagedStatus(ctx, bl::csharp::probeManagedRuntime(assembly));
+    static bool gameAbortTraceInstalled = false;
+    if (!gameAbortTraceInstalled)
+        gameAbortTraceInstalled = bl::csharp::installNativeAbortProbe(
+            checkpoint.substr(0, slash), "native-game-abort-trace.txt");
+    const auto result = bl::csharp::probeManagedRuntime(assembly);
+    static bool gameMutexTraceInstalled = false;
+    if (gameAbortTraceInstalled) {
+        bl::csharp::rearmNativeAbortProbe("after-game-mono-probe");
+        if (result.methodExecuted && !gameMutexTraceInstalled)
+            gameMutexTraceInstalled = bl::csharp::installDestroyedMutexTrace();
+    }
+    JSValue out = makeManagedStatus(ctx, result);
+    JS_SetPropertyStr(ctx, out, "gameAbortTraceInstalled",
+                      JS_NewBool(ctx, gameAbortTraceInstalled));
+    JS_SetPropertyStr(ctx, out, "gameMutexTraceInstalled",
+                      JS_NewBool(ctx, gameMutexTraceInstalled));
+    return out;
 }
 
 JSValue jsManagedCallbackProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
@@ -1167,6 +1187,12 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     }
     JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
     JS_SetPropertyStr(ctx, out, "exitTrace", JS_NewString(ctx, exitTrace.c_str()));
+    const auto gameNativeAbort = readManagedWorkerFile("native-game-abort-trace.txt");
+    const auto gameNativePrevious = readManagedWorkerFile("native-game-abort-previous.txt");
+    JS_SetPropertyStr(ctx, out, "gameNativeAbort",
+                      JS_NewString(ctx, gameNativeAbort.c_str()));
+    JS_SetPropertyStr(ctx, out, "gameNativePrevious",
+                      JS_NewString(ctx, gameNativePrevious.c_str()));
     const auto nativeAbort = readManagedWorkerFile("native-abort-trace.txt");
     const auto nativeMaps = readManagedWorkerFile("native-abort-maps.txt");
     const auto nativeThreads = readManagedWorkerFile("native-abort-threads.txt");
