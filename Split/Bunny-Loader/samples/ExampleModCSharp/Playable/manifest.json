@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplo independente C# com arma, projetil e IA gerenciada precomputada.",
+  "summary": "Exemplo independente C# com arma, projetil, IA gerenciada e efeitos automaticos OnHitNPC/OnKill.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
