@@ -2,12 +2,13 @@
 
 Exemplos C# baseados nos arquivos que passaram nos testes reais do Bunny Loader Android. O objetivo e ensinar os recursos suportados sem inventar APIs.
 
-Este diretorio e a **primeira versao da documentacao e da suite de compatibilidade**. Ainda nao e um .bmod independente. O executavel de teste continua sendo `samples/SourceCSharpMod` (v0.1.5), porque a compilacao e a aplicacao gerenciada nesta fase ainda possuem dependencias do ID e das classes desse mod.
+Este diretorio agora inclui o prototipo executavel em `Playable/`, com UUID e classes proprias. A compilacao independente chegou a branch experimental v0.1.10.16.35, ainda aguardando validacao no aparelho. O antigo `samples/SourceCSharpMod` continua como fixture estavel de regressao.
 
-Os seis arquivos em `Examples/` sao copias exatas das fontes verificadas, mantidas por teste automatico. Nao instale estas copias como um segundo mod junto do Source C# Test.
+Os seis arquivos em `Examples/` sao copias exatas dos fontes verificados. `Playable/` e um pacote diferente, com ExampleWand, ExampleBolt e ExampleBoltMotion. Para testar o pacote independente, utilize somente o `.bmod` gerado na Release e os comandos do novo tutorial.
 
 ## Organizacao
 
+- `Playable/`: ExampleModCSharp 0.1.0 independente, em validacao Android
 - `Examples/Items/`: SourceWand e SourceStaff, com `BunnyWeapon.SetDefaults()`
 - `Examples/Projectiles/`: SourceBolt e SourceSpark, com `BunnyProjectile.SetDefaults()`
 - `Examples/Projectiles/AI/`: politica homing e curvas `TurnAtTick(int)`
@@ -19,8 +20,8 @@ Os seis arquivos em `Examples/` sao copias exatas das fontes verificadas, mantid
 
 ## Como usar
 
-Comece por `Docs/GettingStarted.md`. Para criar seu primeiro mod C# por enquanto, use `SourceCSharpMod` como referencia exata, nao copie API do tModLoader e nao presuma que um ID diferente ja e compilavel.
+Comece por `Docs/GettingStarted.md`. Na branch 0.1.10.16.35, a nova API experimental aceita a compilacao por UUID. Veja o tutorial antes de testar e nao copie APIs de tModLoader.
 
 Cada recurso novo deve passar pelos testes do compilador e depois ser validado no Terraria Android antes de mudar seu estado para `device_verified`.
 
-Referencia estavel: Bunny Loader C# 0.1.10.16.34, com o Source C# Test 0.1.5.
+Referencia estavel confirmada: 0.1.10.16.34. Prototipo independente: 0.1.10.16.35, ainda nao validado no aparelho.
