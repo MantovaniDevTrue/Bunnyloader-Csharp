@@ -427,7 +427,8 @@ jobs:
           assert "runLiveNpcAi(npc);" in npcHost
           assert "kLiveNpcMaxCalls = 24" in npcHost
           assert "kLiveNpcSampleInterval = 12" in npcHost
-          assert "std::thread(liveNpcWorkerLoop).detach()" in npcHost
+          assert "pthread_create(&worker, nullptr" in npcHost
+          assert "pthread_detach(worker)" in npcHost
           assert "std::condition_variable g_liveDispatchCv" in npcHost
           assert "g_liveHasCompletion" in npcHost
           assert "paused-world-transition" in npcHost
