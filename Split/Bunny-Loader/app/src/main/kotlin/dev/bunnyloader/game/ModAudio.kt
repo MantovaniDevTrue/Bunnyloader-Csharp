@@ -4,6 +4,9 @@ import android.media.AudioAttributes
 import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.media.SoundPool
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.SystemClock
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 
@@ -129,45 +132,69 @@ object ModAudio {
         var player: MediaPlayer? = null
         var prepared = false
         var failed = false
-        var volume = 0f            // o que o jogo pediu por ultimo
-        var pausedByApp = false    // tocava quando o app foi para o fundo
+        var volume = 0f
+        var pausedByApp = false
+        var generation = 0
+        var rampFrom = 0f
+        var rampTo = 0f
+        var rampStart = 0L
+        var rampDuration = 1L
+        var prepareQueued = false
     }
 
     private val tracks = ConcurrentHashMap<Int, Track>()
     @Volatile private var nextTrack = 1
 
-    /** Registra uma musica (nada e lido ainda). O id. */
+    private val musicThread: HandlerThread by lazy {
+        HandlerThread("BunnyModMusic").apply { start() }
+    }
+
+    private val musicHandler: Handler by lazy {
+        Handler(musicThread.looper)
+    }
+
     @JvmStatic
     @Synchronized
     fun musicRegister(path: String): Int {
         val id = nextTrack++
         tracks[id] = Track(path)
+        queuePrepare(id)
         return id
     }
 
-    /**
-     * O volume da musica agora (0..1), chamado a cada quadro pelo jogo com o
-     * fade ja aplicado. Acima de 0 ela toca (prepara na primeira vez, sem
-     * travar o jogo); em 0 ela para e volta ao comeco, como a faixa do jogo.
-     */
     @JvmStatic
     @Synchronized
     fun musicVolume(id: Int, volume: Float) {
         val t = tracks[id] ?: return
         if (t.failed) return
-        t.volume = volume
-        val p = t.player ?: if (volume > 0f) prepare(id, t) else return
-        if (!t.prepared) return
-        if (volume > 0f) {
-            p.setVolume(volume, volume)
-            if (!p.isPlaying && !t.pausedByApp) p.start()
-        } else if (p.isPlaying) {
-            p.pause()
-            p.seekTo(0)
-        }
+        t.generation++
+        t.volume = volume.coerceIn(0f, 1f)
+        applyTrackVolume(id, t)
     }
 
-    /** -1 falhou, 0 parada, 1 preparando, 2 tocando. */
+    @JvmStatic
+    @Synchronized
+    fun musicRamp(id: Int, from: Float, to: Float, delayMs: Int, durationMs: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed) return
+
+        val start = from.coerceIn(0f, 1f)
+        val end = to.coerceIn(0f, 1f)
+        val delay = delayMs.coerceAtLeast(0).toLong()
+        t.generation++
+        val generation = t.generation
+        t.rampFrom = start
+        t.rampTo = end
+        t.rampStart = SystemClock.uptimeMillis() + delay
+        t.rampDuration = durationMs.coerceAtLeast(1).toLong()
+        t.volume = start
+
+        if (t.player == null && (start > 0f || end > 0f)) queuePrepare(id)
+        if (t.prepared) applyTrackVolume(id, t)
+
+        musicHandler.postDelayed({ runRamp(id, generation) }, delay)
+    }
+
     @JvmStatic
     @Synchronized
     fun musicState(id: Int): Int {
@@ -181,7 +208,25 @@ object ModAudio {
         }
     }
 
+    private fun queuePrepare(id: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed || t.prepared || t.player != null || t.prepareQueued) return
+        t.prepareQueued = true
+        musicHandler.post {
+            synchronized(this) {
+                val current = tracks[id] ?: return@synchronized
+                if (current.failed || current.prepared || current.player != null) {
+                    current.prepareQueued = false
+                    return@synchronized
+                }
+                current.prepareQueued = false
+                prepare(id, current)
+            }
+        }
+    }
+
     private fun prepare(id: Int, t: Track): MediaPlayer {
+        t.prepareQueued = false
         val p = MediaPlayer()
         t.player = p
         try {
@@ -206,7 +251,44 @@ object ModAudio {
     private fun onPrepared(id: Int) {
         val t = tracks[id] ?: return
         t.prepared = true
-        musicVolume(id, t.volume)
+        applyTrackVolume(id, t)
+    }
+
+    @Synchronized
+    private fun runRamp(id: Int, generation: Int) {
+        val t = tracks[id] ?: return
+        if (t.failed || t.generation != generation) return
+
+        val now = SystemClock.uptimeMillis()
+        if (now < t.rampStart) {
+            musicHandler.postDelayed({ runRamp(id, generation) }, t.rampStart - now)
+            return
+        }
+
+        val elapsed = now - t.rampStart
+        val progress = (elapsed.toFloat() / t.rampDuration.toFloat()).coerceIn(0f, 1f)
+        t.volume = t.rampFrom + (t.rampTo - t.rampFrom) * progress
+        applyTrackVolume(id, t)
+
+        if (progress >= 1f) return
+        musicHandler.postDelayed({ runRamp(id, generation) }, 16L)
+    }
+
+    private fun applyTrackVolume(id: Int, t: Track) {
+        if (t.failed) return
+        val p = t.player ?: run {
+            if (t.volume > 0f) queuePrepare(id)
+            return
+        }
+        if (!t.prepared) return
+
+        if (t.volume > 0f) {
+            p.setVolume(t.volume, t.volume)
+            if (!p.isPlaying && !t.pausedByApp) p.start()
+        } else {
+            if (p.isPlaying) p.pause()
+            p.seekTo(0)
+        }
     }
 
     // ------------------------------- app -------------------------------
