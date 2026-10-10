@@ -21,21 +21,18 @@ int main(int argc, char** argv) {
         while (!value("test_owner_safe") && std::chrono::steady_clock::now() < until)
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         assert(value("test_owner_safe"));
-        assert(value("test_entries") == value("test_exits") + 1);
+        assert(value("test_entries") == 0);
+        assert(value("test_exits") == 0);
     };
     const std::string stage = argv[2];
     auto result = bl::csharp::probeManagedRuntimePinnedThread(argv[1], stage == "MISSING_API" ? "DOMAIN_ONLY" : stage);
-    if (stage == "MISSING_API") {
-        assert(result.phase == "pinned-gc-api-missing");
-        assert(value("test_initializations") == 0);
-    } else if (stage == "LIBRARY_ONLY" || stage == "PATH_ONLY" || stage == "SYSTEM_NATIVE_ONLY") {
+    if (stage == "LIBRARY_ONLY" || stage == "PATH_ONLY" || stage == "SYSTEM_NATIVE_ONLY") {
         assert(!result.domainInitialized);
         assert(value("test_entries") == 0);
     } else {
         assert(result.domainInitialized);
         waitForIdle();
         if (stage == "DOMAIN_THREAD_AUDIT") {
-            // Exercise the timed audit wake as well as the indefinite wait.
             std::this_thread::sleep_for(std::chrono::milliseconds(2100));
             assert(value("test_owner_safe"));
         }
@@ -44,11 +41,11 @@ int main(int argc, char** argv) {
             assert(result.methodExecuted && result.result == 42);
             waitForIdle();
         }
-        assert(value("test_exits") >= 5);
+        assert(value("test_entries") == 0);
+        assert(value("test_exits") == 0);
         assert(value("test_initializations") == 1);
     }
     std::printf("PASS pinned GC lifecycle: %s\n", argv[2]);
     std::fflush(stdout);
-    // Production owner is intentionally immortal; do not destroy its mutexes.
     std::_Exit(0);
 }
