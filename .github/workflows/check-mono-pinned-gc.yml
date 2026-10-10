@@ -1,0 +1,19 @@
+name: Check Mono pinned worker GC transitions
+on:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*'
+      - 'Split/Bunny-Loader/tests/managed_pinned_gc_*'
+      - 'Split/Bunny-Loader/tests/run_managed_pinned_gc.py'
+      - '.github/workflows/check-mono-pinned-gc.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise native Mono owner wait/resume states
+        run: python3 Split/Bunny-Loader/tests/run_managed_pinned_gc.py
