@@ -235,13 +235,17 @@ JSValue makeLiveSourceStatus(JSContext* ctx, const bl::csharp::LiveSourceStatus&
 JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHitStatus& status) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, out, "automatic", JS_NewBool(ctx, status.automatic));
     JS_SetPropertyStr(ctx, out, "projectileType", JS_NewInt32(ctx, status.projectileType));
     JS_SetPropertyStr(ctx, out, "queued", JS_NewInt32(ctx, status.queued));
     JS_SetPropertyStr(ctx, out, "processed", JS_NewInt32(ctx, status.processed));
+    JS_SetPropertyStr(ctx, out, "hitProcessed", JS_NewInt32(ctx, status.hitProcessed));
+    JS_SetPropertyStr(ctx, out, "killProcessed", JS_NewInt32(ctx, status.killProcessed));
     JS_SetPropertyStr(ctx, out, "dropped", JS_NewInt32(ctx, status.dropped));
     JS_SetPropertyStr(ctx, out, "failures", JS_NewInt32(ctx, status.failures));
     JS_SetPropertyStr(ctx, out, "lastDamage", JS_NewInt32(ctx, status.lastDamage));
     JS_SetPropertyStr(ctx, out, "lastResult", JS_NewInt32(ctx, status.lastResult));
+    JS_SetPropertyStr(ctx, out, "lastEvent", JS_NewString(ctx, status.lastEvent.c_str()));
     JS_SetPropertyStr(ctx, out, "modId", JS_NewString(ctx, status.modId.c_str()));
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, status.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, status.error.c_str()));
