@@ -142,12 +142,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-stable-no-modinput-v0195"
-          OUT="BunnyLoader-v0.1.9.5-NoModInput-Upstream-b93871a.apk"
+          OUT="Bunny Loader 0.1.9.5.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release delete-asset "$TAG" "BunnyLoader-v0.1.9.5-NoModInput-Upstream-b93871a.apk" --repo "${{ github.repository }}" -y >/dev/null 2>&1 || true
+            gh release delete-asset "$TAG" "BunnyLoader-v0.1.9.5-NoModInput-Upstream-b93871a.apk.sha256" --repo "${{ github.repository }}" -y >/dev/null 2>&1 || true
             gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" --repo "${{ github.repository }}" --clobber
+            gh release edit "$TAG" --repo "${{ github.repository }}" --title "Bunny Loader 0.1.9.5"
           else
-            gh release create "$TAG"               "$RUNNER_TEMP/$OUT#$OUT"               "$RUNNER_TEMP/$OUT.sha256#SHA-256"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader v0.1.9.5 No ModInput"               --notes "Stable update based on upstream b93871a. Keeps the v0.1.9.4 native music prewarm/ramps, uses the new upstream SFX queue, and does not include ModInput. Android versionCode 15 installs directly over v0.1.9.4."               --prerelease
+            gh release create "$TAG"               "$RUNNER_TEMP/$OUT#$OUT"               "$RUNNER_TEMP/$OUT.sha256#SHA-256"               --repo "${{ github.repository }}"               --target "$GITHUB_SHA"               --title "Bunny Loader 0.1.9.5"               --notes "Stable update based on upstream b93871a. Keeps the v0.1.9.4 native music prewarm/ramps, uses the new upstream SFX queue, and does not include ModInput. Android versionCode 15 installs directly over v0.1.9.4."               --prerelease
           fi
