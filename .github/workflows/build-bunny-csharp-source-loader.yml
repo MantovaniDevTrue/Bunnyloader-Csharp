@@ -207,7 +207,7 @@ jobs:
           log = (root / "app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt").read_text()
           assert all(mode in api for mode in ("MONO_ONLY", "ABORT_ONLY", "FULL_DIAGNOSTICS"))
           assert 'selectedMode != "MONO_ONLY" && selectedMode != "NO_MONO"' in api
-          assert 'selectedMode != "PINNED_MONO" && !gameAbortTraceInstalled' in api
+          assert 'selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY"' in api
           assert 'selectedMode == "FULL_DIAGNOSTICS"' in api
           assert 'gameProbeMode' in api and 'gameModuleMaps' in api
           assert 'ABORT_CRITICAL_V2 pid=' in native
