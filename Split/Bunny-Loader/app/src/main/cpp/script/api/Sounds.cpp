@@ -2,6 +2,7 @@
 
 #if BL_HAVE_QUICKJS
 #include "content/sounds/AndroidAudio.h"
+#include "content/sounds/NativeMusicRouter.h"
 #include "core/Log.h"
 #include "script/api/Texture.h"
 
@@ -120,6 +121,7 @@ JSValue music_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     }
     const int id = runtime::content::registerMusic(path);
     if (id <= 0) return JS_ThrowInternalError(ctx, "bl.music.register: o Android recusou %s (ver o log)", path.c_str());
+    runtime::content::registerNativeMusicTrack(id);
     BL_DEBUG("musica: %s (id %d)", path.c_str(), id);
     return JS_NewInt32(ctx, id);
 }
@@ -138,6 +140,21 @@ JSValue music_state(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     int32_t id = 0;
     if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.state(id)");
     return JS_NewInt32(ctx, runtime::content::musicState(id));
+}
+
+JSValue music_target(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0;
+    float masterVolume = 1;
+    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.target(id, masterVolume)");
+    if (argc > 1 && !argFloat(ctx, argc, argv, 1, &masterVolume)) return JS_EXCEPTION;
+    runtime::content::setNativeMusicTarget(id, masterVolume);
+    return JS_UNDEFINED;
+}
+
+JSValue music_fade(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0;
+    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.fade(id)");
+    return JS_NewFloat64(ctx, runtime::content::nativeMusicFade(id));
 }
 
 } // namespace
@@ -159,6 +176,8 @@ void installSoundsApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("register", 1, music_register),
         JS_CFUNC_DEF("setVolume", 2, music_setVolume),
         JS_CFUNC_DEF("state", 1, music_state),
+        JS_CFUNC_DEF("target", 2, music_target),
+        JS_CFUNC_DEF("fade", 1, music_fade),
     };
     JSValue sounds = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, sounds, soundFns, sizeof soundFns / sizeof soundFns[0]);
