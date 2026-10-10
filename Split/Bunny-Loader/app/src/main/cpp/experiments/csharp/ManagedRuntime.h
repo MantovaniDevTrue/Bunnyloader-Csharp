@@ -20,7 +20,8 @@ void setManagedCheckpointPath(const std::string& path);
 ManagedRuntimeStatus managedRuntimeStatus();
 ManagedRuntimeStatus inspectManagedRuntime();
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
-ManagedRuntimeStatus probeManagedRuntimePinnedThread(const std::string& assemblyPath);
+ManagedRuntimeStatus probeManagedRuntimePinnedThread(
+    const std::string& assemblyPath, const std::string& stage = "PINNED_MONO");
 long managedRuntimePinnedThreadTid();
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count);
 bool invokeManagedProjectileAI(int tick, int state, int* nextState);
