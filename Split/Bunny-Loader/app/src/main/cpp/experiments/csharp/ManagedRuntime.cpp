@@ -1,4 +1,5 @@
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 
 #include <cstdio>
@@ -318,6 +319,8 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
         }
         trace("system-native-ready");
 #endif
+        const auto conflict = monoAndroidSignalConflict();
+        if (!conflict.empty()) return failure("mono-signal-conflict", conflict);
         trace("initializing-domain");
         g_domain = g_api.initialize("BunnyCSharp");
         if (!g_domain)
@@ -404,6 +407,8 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
             trace("system-native-only-verified");
             return g_status;
         }
+        const auto conflict = monoAndroidSignalConflict();
+        if (!conflict.empty()) return failure("mono-signal-conflict", conflict);
         if (stage == "DOMAIN_THREAD_AUDIT")
             recordDomainThreads("before-mono-jit-init", -1, true);
         trace("stage-initializing-domain");
@@ -905,3 +910,4 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
 }
 
 }
+

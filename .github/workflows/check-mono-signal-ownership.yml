@@ -1,0 +1,20 @@
+name: Check Mono Android signal ownership
+on:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/MonoSignalOwnership.h'
+      - 'Split/Bunny-Loader/tests/managed_signal_*'
+      - 'Split/Bunny-Loader/tests/run_managed_signal_ownership.py'
+      - '.github/workflows/check-mono-signal-ownership.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signal-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify handlers are preserved before domain initialization
+        run: python3 Split/Bunny-Loader/tests/run_managed_signal_ownership.py
