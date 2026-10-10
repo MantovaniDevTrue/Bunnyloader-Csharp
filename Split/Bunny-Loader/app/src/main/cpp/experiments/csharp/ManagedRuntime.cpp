@@ -11,6 +11,9 @@
 #include <mutex>
 #include <condition_variable>
 #include <pthread.h>
+#include <dirent.h>
+#include <chrono>
+#include <cstdlib>
 #include <sys/syscall.h>
 #include <map>
 #include <limits>
@@ -157,6 +160,51 @@ bool loadLibrary() {
 }
 
 
+
+void recordDomainThreads(const char* phase, int seconds = -1, bool reset = false) {
+    const auto slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return;
+    const auto dir = g_checkpointPath.substr(0, slash + 1);
+    std::string data = "unix=" + std::to_string(static_cast<long long>(std::time(nullptr))) +
+        " pid=" + std::to_string(static_cast<long>(getpid())) +
+        " tid=" + std::to_string(static_cast<long>(syscall(__NR_gettid))) +
+        " phase=" + phase + " elapsed=" + std::to_string(seconds) + "\n";
+    DIR* tasks = opendir("/proc/self/task");
+    int count = 0;
+    if (tasks) {
+        while (dirent* entry = readdir(tasks)) {
+            char* end = nullptr;
+            const long tid = std::strtol(entry->d_name, &end, 10);
+            if (tid <= 0 || !end || *end) continue;
+            char location[100]{};
+            std::snprintf(location, sizeof(location), "/proc/self/task/%ld/comm", tid);
+            char name[100]{};
+            if (FILE* source = std::fopen(location, "rb")) {
+                if (std::fgets(name, sizeof(name), source))
+                    name[std::strcspn(name, "\r\n")] = '\0';
+                std::fclose(source);
+            }
+            data += "thread=" + std::to_string(tid) + " name=" + name + "\n";
+            if (++count >= 256) break;
+        }
+        closedir(tasks);
+    }
+    data += "total=" + std::to_string(count) + "\nEND\n";
+    for (int n = 0; n < 2; ++n) {
+        const auto fileName = dir + (n ? "mono-domain-thread-audit-latest.txt" : "mono-domain-thread-audit.txt");
+        FILE* out = std::fopen(fileName.c_str(), n == 0 && !reset ? "ab" : "wb");
+        if (!out) continue;
+        if (std::fwrite(data.data(), 1, data.size(), out) == data.size() &&
+            std::fflush(out) == 0) fsync(fileno(out));
+        std::fclose(out);
+    }
+}
+
+constexpr int kAuditSamples[] = {2, 5, 15, 30, 60, 120};
+bool g_auditEnabled = false;
+size_t g_auditIndex = 0;
+std::chrono::steady_clock::time_point g_auditStart;
+
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
@@ -183,7 +231,22 @@ void* pinnedMonoWorker(void*) {
         std::string stage;
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
-            g_pinnedWake.wait(lock, [] { return g_pinnedPending; });
+            while (!g_pinnedPending) {
+                if (!g_auditEnabled) {
+                    g_pinnedWake.wait(lock);
+                    continue;
+                }
+                const int seconds = kAuditSamples[g_auditIndex];
+                const auto until = g_auditStart + std::chrono::seconds(seconds);
+                if (g_pinnedWake.wait_until(lock, until, [] { return g_pinnedPending; }))
+                    continue;
+                ++g_auditIndex;
+                if (g_auditIndex >= sizeof(kAuditSamples) / sizeof(kAuditSamples[0]))
+                    g_auditEnabled = false;
+                lock.unlock();
+                recordDomainThreads("heartbeat", seconds);
+                lock.lock();
+            }
             assembly = g_pinnedAssembly;
             stage = g_pinnedStage;
             g_pinnedPending = false;
@@ -194,6 +257,9 @@ void* pinnedMonoWorker(void*) {
         {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
             g_pinnedResult = std::move(result);
+            g_auditEnabled = stage == "DOMAIN_THREAD_AUDIT" && result.domainInitialized;
+            g_auditIndex = 0;
+            g_auditStart = std::chrono::steady_clock::now();
             g_pinnedBusy = false;
             g_pinnedResultReady = true;
         }
@@ -305,7 +371,7 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     trace("stage-checking-assembly");
     if (stage != "LIBRARY_ONLY" && stage != "PATH_ONLY" &&
         stage != "SYSTEM_NATIVE_ONLY" && stage != "DOMAIN_ONLY" &&
-        stage != "ATTACH_ONLY")
+        stage != "ATTACH_ONLY" && stage != "DOMAIN_THREAD_AUDIT")
         return failure("stage-invalid", "Unsupported staged MonoVM probe");
     if (!validAssembly(assemblyPath))
         return failure("stage-assembly-invalid", "Managed probe DLL missing");
@@ -338,12 +404,20 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
             trace("system-native-only-verified");
             return g_status;
         }
+        if (stage == "DOMAIN_THREAD_AUDIT")
+            recordDomainThreads("before-mono-jit-init", -1, true);
         trace("stage-initializing-domain");
         g_domain = g_api.initialize("BunnyCSharp");
         if (!g_domain)
             return failure("stage-domain-failed", "mono_jit_init returned null");
+        if (stage == "DOMAIN_THREAD_AUDIT")
+            recordDomainThreads("after-mono-jit-init");
     }
     g_status.domainInitialized = true;
+    if (stage == "DOMAIN_THREAD_AUDIT") {
+        trace("domain-thread-audit-running");
+        return g_status;
+    }
     if (stage == "DOMAIN_ONLY") {
         trace("domain-only-verified");
         return g_status;
