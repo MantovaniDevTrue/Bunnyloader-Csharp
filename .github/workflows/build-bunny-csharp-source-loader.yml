@@ -740,18 +740,18 @@ jobs:
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
           "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 "$APK"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.bunnyloader.csharptest'"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "application-label:'Bunny Loader C# Test'"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunny.so"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunnycs.so"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libmonosgen-2.0.so"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libSystem.Native.so"
-          unzip -l "$APK" | grep -q "assets/managed/System.Runtime.dll"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunnymonoprobe.so"
-          unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
-          unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
-          unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='81' versionName='0.1.10.16.57-csharp-mono-arm64-signals'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.bunnyloader.csharptest'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnycs.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libmonosgen-2.0.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libSystem.Native.so"
+          unzip -l "$APK" | grep -F "assets/managed/System.Runtime.dll"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnymonoprobe.so"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyManagedProbe.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
+          unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='82' versionName='0.1.10.16.57-csharp-mono-arm64-signals'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -765,11 +765,11 @@ jobs:
                   assert hashlib.sha256(content).hexdigest() == checksum, name
               print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
           PY
-          unzip -l "$APK" | grep -q "assets/managed/BunnySourceSdk.dll"
-          unzip -l "$APK" | grep -q "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
-          unzip -l "$APK" | grep -q "assets/managed/System.Private.CoreLib.dll"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
-          unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
+          unzip -l "$APK" | grep -F "assets/managed/BunnySourceSdk.dll"
+          unzip -l "$APK" | grep -F "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
+          unzip -l "$APK" | grep -F "assets/managed/System.Private.CoreLib.dll"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
+          unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
 
       - name: Export source-loader test artifacts
         shell: bash
