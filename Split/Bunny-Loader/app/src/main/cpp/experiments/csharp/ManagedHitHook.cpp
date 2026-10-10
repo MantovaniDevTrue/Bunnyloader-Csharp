@@ -4,6 +4,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -141,6 +142,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
             1, std::memory_order_relaxed);
     else
         g_hitApplied.fetch_add(1, std::memory_order_relaxed);
+    queueManagedLiveHit(type, damage);
 }
 }
 

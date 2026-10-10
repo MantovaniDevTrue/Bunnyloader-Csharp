@@ -57,6 +57,26 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
                                      const std::string& assemblyPath,
                                      int tick, int state);
 
+struct ManagedLiveHitStatus {
+    bool enabled = false;
+    int projectileType = -1;
+    int queued = 0;
+    int processed = 0;
+    int dropped = 0;
+    int failures = 0;
+    int lastDamage = 0;
+    int lastResult = 0;
+    std::string modId;
+    std::string phase = "idle";
+    std::string error;
+};
+
+bool enableManagedLiveHit(const std::string& modId, const std::string& assemblyPath,
+                          int projectileType, std::string* error);
+ManagedLiveHitStatus managedLiveHitStatus();
+ManagedLiveHitStatus pauseManagedLiveHit();
+void queueManagedLiveHit(int projectileType, int damage);
+
 struct ManagedSourceCompileResult {
     int result = 0;
     int executedTypes = 0;

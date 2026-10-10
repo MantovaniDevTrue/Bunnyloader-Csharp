@@ -44,6 +44,31 @@ int main(int argc, char** argv) {
         assert(value("test_entries") == 0);
         assert(value("test_exits") == 0);
         assert(value("test_initializations") == 1);
+        std::string error;
+        const std::string testMod = "68c3115f-62f4-49f2-a56b-388256781d5f";
+        assert(bl::csharp::enableManagedLiveHit(testMod, argv[1], 1136, &error));
+        auto live = bl::csharp::managedLiveHitStatus();
+        assert(live.enabled && live.phase == "armed");
+        for (int attempt = 0; attempt < 10 && live.queued == 0; ++attempt) {
+            bl::csharp::queueManagedLiveHit(1136, 17);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            live = bl::csharp::managedLiveHitStatus();
+        }
+        assert(live.queued == 1);
+        const auto eventDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (live.processed == 0 && std::chrono::steady_clock::now() < eventDeadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            live = bl::csharp::managedLiveHitStatus();
+        }
+        assert(live.processed == 1);
+        assert(live.lastDamage == 17);
+        assert(live.lastResult == 18);
+        assert(live.failures == 0);
+        assert(value("test_entries") == 0 && value("test_exits") == 0);
+        live = bl::csharp::pauseManagedLiveHit();
+        assert(!live.enabled && live.phase == "paused");
+        bl::csharp::queueManagedLiveHit(1136, 30);
+        assert(bl::csharp::managedLiveHitStatus().queued == 1);
     }
     std::printf("PASS pinned GC lifecycle: %s\n", argv[2]);
     std::fflush(stdout);
