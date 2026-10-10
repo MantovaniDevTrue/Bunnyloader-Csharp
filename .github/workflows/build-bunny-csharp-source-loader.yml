@@ -228,7 +228,7 @@ jobs:
           header = (root / "experiments/csharp/ManagedRuntime.h").read_text()
           assert "NO_MONO" in api and "PINNED_MONO" in api
           assert 'result.phase = "no-mono-control"' in api
-          assert "probeManagedRuntimePinnedThread(assembly)" in api
+          assert "probeManagedRuntimePinnedThread(assembly, selectedMode)" in api
           assert "pinnedOwnerTid" in api
           assert "pthread_create(&thread" in runtime
           assert "pthread_detach(thread)" in runtime
