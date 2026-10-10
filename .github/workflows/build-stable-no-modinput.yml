@@ -67,16 +67,7 @@ jobs:
           DIR="$RUNNER_TEMP/bunny-signing"
           mkdir -p "$DIR"
           gh release download bunny-signing-key-v1 --repo "${{ github.repository }}" --pattern "bunny-release.jks" --dir "$DIR"
-          PASS="$(python3 - <<'PY'
-          import re
-          from pathlib import Path
-          s = Path(".github/workflows/build-split-full.yml").read_text()
-          m = re.search(r'PASS="([^"]+)"', s)
-          if not m:
-              raise SystemExit("signing password not found")
-          print(m.group(1))
-          PY
-          )"
+          PASS="BunnyLoaderStable2026"
           echo "BUNNY_SIGNING_STORE=$DIR/bunny-release.jks" >> "$GITHUB_ENV"
           echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
           echo "BUNNY_SIGNING_ALIAS=bunnyrelease" >> "$GITHUB_ENV"
