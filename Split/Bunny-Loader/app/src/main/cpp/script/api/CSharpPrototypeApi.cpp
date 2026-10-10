@@ -157,7 +157,7 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY" &&
         selectedMode != "PATH_ONLY" && selectedMode != "SYSTEM_NATIVE_ONLY" &&
         selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY" &&
-        selectedMode != "DOMAIN_THREAD_AUDIT" && !gameAbortTraceInstalled
+        selectedMode != "DOMAIN_THREAD_AUDIT" && !gameAbortTraceInstalled)
         gameAbortTraceInstalled = bl::csharp::installNativeAbortProbe(
             checkpoint.substr(0, slash), "native-game-abort-trace.txt");
     bl::csharp::ManagedRuntimeStatus result;
