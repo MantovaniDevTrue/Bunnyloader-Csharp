@@ -58,6 +58,7 @@ Leia na ordem; cada um usa o anterior.
 | [9. Blocos](09-blocos.md) | `ModTile`: blocos e móveis (`TileObjectData`), e como o mundo salvo continua abrindo sem o mod. |
 | [10. Sons e música](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine.PlaySound`, música de chefe. |
 | [15. Classes de dano](15-classes-de-dano.md) | `DamageClass`: a classe de uma arma, bônus por classe no jogador e classes novas. |
+| [16. Golpes](16-golpes.md) | `CanHit`, `ModifyHit` e `OnHit` de item, projétil, NPC e jogador (também nos Globais); `HitModifiers` e `HurtModifiers`. |
 | **Entre mods** | |
 | [11. Conversa entre mods](11-conversa-entre-mods.md) | Achar outro mod e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`). |
 | [12. Globais e o mundo](12-globais-e-mundo.md) | Mexer no que o jogo já tem (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, e o `ModSystem` com os dados do mundo. |
@@ -98,8 +99,8 @@ MeuMod/
   authors/           as fotos dos autores (opcional)
   icon.png           ícone quadrado, aparece na lista (recomendado)
   icon.gif           o mesmo ícone, animado, só no launcher (opcional)
-  banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional)
-  thumbnails/        imagens extras da ficha, .png ou .jpg (opcional)
+  banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional; .gif anima)
+  thumbnails/        imagens extras da ficha: png, gif, webp ou jpg (opcional)
   content/           o mod em si
     main.js          o arquivo de entrada: a classe Mod (o nome vem do manifesto)
     Assets/
@@ -187,7 +188,7 @@ export class Espada extends ModItem {
 | `category` | Texto livre. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` e `Itens` ganham cor e ícone próprios. |
 | `type` | Opcional. A lista do launcher em que o pacote aparece (Explorar e Pacotes): `"mod"` (o padrão), `"texture"` ou `"font"`. Aceita português e plural (`"textura"`, `"fontes"`). Sem o campo, ou com outro valor, é mod. Só separa as listas: todo pacote instala e carrega do mesmo jeito. |
 | `summary`, `updated` | A linha do cartão da lista e a data da última versão (`AAAA-MM-DD`). A descrição longa vai em `description.md` ([guia 13](13-pagina-do-pacote.md)); o campo `description` antigo só vale sem ele. |
-| `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e as cores da ficha. Ver o [guia 13](13-pagina-do-pacote.md). |
+| `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e o tema da ficha: cores do texto, dos painéis e dos botões, e um fundo próprio (cor ou imagem, GIF anima). Ver o [guia 13](13-pagina-do-pacote.md#as-cores-theme). |
 | `blVersion` | O formato do pacote. Hoje, `2`: a estrutura acima, com a classe `Mod` no arquivo de entrada. O `1` (sem a classe `Mod`) não carrega mais: o app o mostra como "Formato antigo" e recusa na importação, assim como um pacote que pede uma versão maior que a do app. |
 | `entry` | O arquivo de entrada, relativo a `content/`. Padrão: `main.js`. |
 
@@ -250,17 +251,18 @@ no mundo caiu de ~17 s só para chegar ao título para ~11 s já no mundo. A
 opção "Nenhum: parar no título" deixa só a abertura rápida.
 
 Na mesma seção há três interruptores para o que aparece dentro do jogo: o
-**Mod Menu** (o coelho), o **Editor de JS** e o **Reiniciar**. Sem o Mod Menu e
-com o Editor, o botão flutuante vira o de JS e abre direto o Editor; sem o Mod
-Menu, nenhum poder volta ligado da partida anterior.
+**Mod Menu** (o coelho), o **Editor de JS** e o **Reiniciar**. Com o Editor
+ativado, seu ícone flutuante de JS fica disponível desde o menu inicial do
+Terraria, com ou sem o Mod Menu. Fechar ou minimizar o Editor traz o ícone de
+volta; sem o Mod Menu, nenhum poder volta ligado da partida anterior.
 
 Se o personagem ou o mundo não existe mais (ou um é de Jornada e o outro não),
 o jogo avisa no painel de erro e para no título ou na lista de mundos. O log
 de sessão mostra os tempos de cada etapa, nas linhas `inicio rapido: ...`.
 
-Para testar uma linha sem reiniciar, há o **Editor** de JavaScript: no Mod Menu, ou
-**segurando** o botão do coelho. Ele fica no pé da tela, e o jogo continua
-visível e jogável acima dele.
+Para testar uma linha sem reiniciar, há o **Editor** de JavaScript: pelo ícone
+flutuante de JS ou pelo botão **Editor** no Mod Menu. Ele fica no pé da tela,
+e o jogo continua visível e jogável acima dele.
 
 ![O editor de JavaScript, com o resultado de cada linha, o chat e o log](../imagens/console.jpg)
 
@@ -286,8 +288,9 @@ visível e jogável acima dele.
   inventário aberto): nada anda no mundo até você minimizar ou fechar. O
   código que você roda continua valendo. Só no modo um jogador; num mundo com
   outras pessoas o jogo não para.
-- `_` minimiza: o painel vira um ícone flutuante de JS, que dá para arrastar e
-  que reabre o Editor em tela cheia. O X fecha o Editor e tira o ícone.
+- `_` minimiza e o X fecha o painel. Nos dois casos, o ícone flutuante de JS
+  volta a aparecer: dá para arrastá-lo e reabrir o Editor como estava, em
+  janela ou tela cheia.
 
 ## Vendo o que o mod faz
 

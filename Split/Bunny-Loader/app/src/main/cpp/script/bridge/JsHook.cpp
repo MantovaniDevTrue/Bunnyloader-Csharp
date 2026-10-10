@@ -139,6 +139,8 @@ struct HookCtx {
     bool wallMode = false;
     // HookFilter::argParam: o x do parametro que ja e o tipo.
     int argReg = -1, argBytes = 4;
+    // HookFilter::firstByteParam: o x do byte[] cujo primeiro byte e o tipo.
+    int firstByteReg = -1;
     // HookFilter::marks: o tipo lido tambem tem de estar marcado aqui.
     const std::atomic<uint8_t>* marks = nullptr;
     // HookFilter::flag: desligada, o metodo roda sem o JS.
@@ -333,7 +335,16 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     }
     ArgScratch scratch;   // vive ate o original voltar
     for (size_t i = 0; i < c->abi.params.size() && at < argc; ++i, ++at) {
-        if (jsToParam(ctx, argv[at], c->abi.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
+        const ParamPlan& param = c->abi.params[i];
+        // As with self above, IL2CPP may leave an unused reference argument
+        // uninitialized (e.g. IEntitySource in Item.NewItem). Passing the exact
+        // incoming pointer back must not dereference it for assignability.
+        // A replacement object still goes through the normal type checks.
+        if (!param.opaque && !param.floatQueue && param.d.prim == Prim::Object) {
+            Il2CppObject* incoming = objectFromJS(argv[at]);
+            if (incoming && reinterpret_cast<intptr_t>(incoming) == a[param.reg]) continue;
+        }
+        if (jsToParam(ctx, argv[at], param, a, d, &scratch) < 0) return JS_EXCEPTION;
     }
 
     g_frames[frame].ranOriginal = true;
@@ -378,6 +389,13 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         const int32_t t = c->argBytes == 2 ? static_cast<int32_t>(static_cast<uint16_t>(raw))
                         : c->argBytes == 1 ? static_cast<int32_t>(static_cast<uint8_t>(raw))
                                            : static_cast<int32_t>(raw);
+        if (t < c->filterMin) return callOriginal(c, rawA, rawD);
+        seen = t;
+    }
+    if (c->firstByteReg >= 0) {
+        const auto* array = reinterpret_cast<const Il2CppArray*>(rawA[c->firstByteReg]);
+        const int32_t t = array && array->length > 0
+            ? *(reinterpret_cast<const uint8_t*>(array) + sizeof(Il2CppArray)) : -1;
         if (t < c->filterMin) return callOriginal(c, rawA, rawD);
         seen = t;
     }
@@ -711,9 +729,19 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             probe.filterMin = filter->minType;
         }
     }
+    if (err.empty() && filter && filter->firstByteParam >= 0) {
+        const size_t i = static_cast<size_t>(filter->firstByteParam);
+        const ParamPlan* p = i < probe.abi.params.size() ? &probe.abi.params[i] : nullptr;
+        if (!p || p->d.prim != Prim::Array || p->floatQueue || p->opaque || p->structByRef) {
+            err = "filtro 'firstByte': o parametro tem de ser um byte[]";
+        } else {
+            probe.firstByteReg = p->reg;
+            probe.filterMin = filter->minType;
+        }
+    }
     if (err.empty() && filter && !filter->marks.empty()) {
-        if (probe.tileReg < 0 && probe.tileAtIReg < 0 && probe.argReg < 0 && probe.filterReg < 0) {
-            err = "filtro 'marks' precisa de outro que leia o tipo (tile, tileAt, arg ou minType)";
+        if (probe.tileReg < 0 && probe.tileAtIReg < 0 && probe.argReg < 0 && probe.firstByteReg < 0 && probe.filterReg < 0) {
+            err = "filtro 'marks' precisa de outro que leia o tipo (tile, tileAt, arg, firstByte ou minType)";
         } else {
             probe.marks = hookMarks(filter->marks);
         }

@@ -14,6 +14,14 @@ class ModItem {
 
     Clone(newItem) { return Entities.Clone(this); }
 
+    SaveData(tag) {}
+
+    LoadData(tag) {}
+
+    NetSend(writer) {}
+
+    NetReceive(reader) {}
+
     // No registro, com o tipo já dado (o Load do tModLoader: AddEquipTexture...).
     Load() {}
     SetStaticDefaults() {}
@@ -84,7 +92,8 @@ class ModItem {
     CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
     MeleeEffects(item, player, hitbox) {}
     UseItemHitbox(item, player, hitbox, noHitbox) {}
-    OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
+    // hit: HitInfo (Damage, SourceDamage, Crit, Knockback, HitDirection...).
+    OnHitNPC(item, player, target, hit, damageDone) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
     // false recusa o par (arrastar para o slot e a troca pelo toque, que vai
@@ -315,7 +324,18 @@ class ModItem {
             // A chama na mão (flame = true, as tochas), como o `_Flame` do tModLoader.
             flame: ModFiles.Texture(inst.Texture + '_Flame'),
             displayName: inst.DisplayName || Lang.Localized('ItemName', name) || name,
+            saveData(item) {
+                return ItemDataLoader.Save(item);
+            },
+
+            loadData(item, data) {
+                ItemDataLoader.Load(item, data);
+            },
+
             setDefaults(item) {
+                item.__blItemData = undefined;
+                item.__blItemDataLoadFailed = false;
+
                 EquipLoader.Install();
                 EquipLoader.Apply(item, inst.Type);
                 // O jogo faz isso no SetDefaults dele, que o item de mod não
@@ -357,6 +377,7 @@ class ModItem {
         });
 
         ItemLoader.Hook(cls, type);
+        ItemDataLoader.Install(cls);
         Hooks.Once('item.Clone', ItemLoader.HookClone);
         Hooks.Once('item.anglerQuest', () => AnglerQuestLoader.Watch());
         PrefixLoader.WantRollable();

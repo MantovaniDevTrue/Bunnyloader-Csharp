@@ -37,7 +37,7 @@ class ProjectileLoader {
             return { minType: FIRST_PROJECTILE, marks: key };
         };
 
-        if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity();
+        if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity(27);
 
         // Sempre: o AIType e o OnSpawn podem vir de qualquer projétil.
         Hooks.Once('proj.AI', () => {
@@ -87,26 +87,7 @@ class ProjectileLoader {
 
         ProjectileLoader.#SharedHooks(has, type, false);
 
-        const onHitNPC = marked('proj.OnHitNPC', 'OnHitNPC');
-        if (has('OnHitNPC')) Hooks.Once('proj.OnHitNPC', () => {
-            Pr['void StatusNPC(int i)'].hook((original, p, i) => {
-                original(p, i);
-
-                const m = of(p);
-                if (m) Safe.Run(m.constructor.name + '.OnHitNPC', () => m.OnHitNPC(p, Terraria.Main.npc[i]));
-            }, onHitNPC);
-        });
-
-        const onHitPlayer = marked('proj.OnHitPlayer', 'OnHitPlayer');
-        if (has('OnHitPlayer')) Hooks.Once('proj.OnHitPlayer', () => {
-            Pr['void StatusPlayer(Player player)'].hook((original, p, player) => {
-                original(p, player);
-
-                const m = of(p);
-                if (m) Safe.Run(m.constructor.name + '.OnHitPlayer', () => m.OnHitPlayer(p, player));
-            }, onHitPlayer);
-        });
-
+        CombatLoader.WantProjectile(cls, ModProjectile);
     }
 
     static #globalGroups = new Set();
@@ -516,16 +497,12 @@ class ProjectileLoader {
             }
             if (sprite) sprite = ProjectileLoader.#Invoke(m, 'PreDraw', p, light) !== false;
 
-            // Só uma das partes do desenho do jogo: precisa dos filtros. Sem
-            // eles (a classe não tinha extras no SetDefaults), o PreDraw false
-            // tira tudo, e o PreDrawExtras false não acontece (instala sempre).
             const split = ProjectileLoader.#extrasHooked && hasExtras && sprite !== extras;
             if (sprite || split) {
                 const outerSplit = ProjectileLoader.#split, outerLight = ProjectileLoader.#drawLight;
                 if (split) {
                     const own = Terraria.GameContent.TextureAssets.Projectile[p.type].Value;
                     ProjectileLoader.#split = { own: bl.addressOf(own), extras, sprite, reached: false };
-                    // Os filtros de desenho só entram no JS agora (ver #HookDrawExtras).
                     bl.hookFlags.set('proj.split', true);
                 }
                 if (pre.length) ProjectileLoader.#drawLight = { address: bl.addressOf(p), color: light };
