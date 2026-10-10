@@ -360,7 +360,7 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
         }
         trace("system-native-ready");
 #endif
-        const auto* signalPolicy = reinterpret_cast<int (*)()>(
+        auto signalPolicy = reinterpret_cast<int (*)()>(
             dlsym(g_library, "mono_bunny_android_signal_policy_v1"));
         const bool alternativeSignals = signalPolicy && signalPolicy() == 1;
         const auto conflict = monoAndroidSignalConflict(alternativeSignals);
@@ -453,7 +453,7 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
         }
         if (stage == "DOMAIN_THREAD_AUDIT")
             recordDomainThreads("before-mono-jit-init", -1, true);
-        const auto* signalPolicy = reinterpret_cast<int (*)()>(
+        auto signalPolicy = reinterpret_cast<int (*)()>(
             dlsym(g_library, "mono_bunny_android_signal_policy_v1"));
         const bool alternativeSignals = signalPolicy && signalPolicy() == 1;
         const auto conflict = monoAndroidSignalConflict(alternativeSignals);
