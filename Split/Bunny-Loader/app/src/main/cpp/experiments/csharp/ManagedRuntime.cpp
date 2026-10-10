@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <atomic>
+#include <cstdint>
 #include <ctime>
 #include <cstring>
 #ifdef __ANDROID__
