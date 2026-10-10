@@ -79,15 +79,17 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.6"
+assert manifest2["version"] == "0.1.7"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 10
+assert len(playable_files) == 11
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
                  "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)",
                  "BunnyBuff", "BunnyBuffPotion", "BunnyPlayer", "BunnyAccessory", "BunnyNPC",
                  "AnimationType = 1", "LifeMax = 25",
-                 "static class BunnyLiveEntry", "static int Tick(int tick, int state)",
+                 "static class BunnyLiveEntry", "static class BunnyLiveEvents", "static int Tick(int tick, int state)",
+                 "static int OnHitNPC(int call, int damage)",
+                 "static int OnKill(int call, int damage)",
                  "static class BunnyLiveNpc", "static int AI(int playerDeltaX, int npcLife)",
                  "DefenseBonus = 10", "DefenseBonus = 7", "ResetEffects()",
                  "UpdateEquips(bool accessoryEquipped)",
