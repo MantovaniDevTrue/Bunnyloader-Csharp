@@ -9,6 +9,9 @@
 #endif
 #include <dlfcn.h>
 #include <mutex>
+#include <condition_variable>
+#include <pthread.h>
+#include <sys/syscall.h>
 #include <map>
 #include <limits>
 #include <string>
@@ -150,6 +153,47 @@ bool loadLibrary() {
     return true;
 }
 
+
+std::mutex g_pinnedMutex;
+std::condition_variable g_pinnedWake;
+std::condition_variable g_pinnedResultWake;
+bool g_pinnedStarted = false;
+bool g_pinnedBusy = false;
+bool g_pinnedPending = false;
+bool g_pinnedResultReady = false;
+long g_pinnedTid = 0;
+std::string g_pinnedAssembly;
+ManagedRuntimeStatus g_pinnedResult;
+
+void* pinnedMonoWorker(void*) {
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        g_pinnedTid = static_cast<long>(syscall(__NR_gettid));
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "pinned MonoVM owner started tid=%ld", g_pinnedTid);
+#endif
+    }
+    for (;;) {
+        std::string assembly;
+        {
+            std::unique_lock<std::mutex> lock(g_pinnedMutex);
+            g_pinnedWake.wait(lock, [] { return g_pinnedPending; });
+            assembly = g_pinnedAssembly;
+            g_pinnedPending = false;
+        }
+        ManagedRuntimeStatus result = probeManagedRuntime(assembly);
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            g_pinnedResult = std::move(result);
+            g_pinnedBusy = false;
+            g_pinnedResultReady = true;
+        }
+        g_pinnedResultWake.notify_one();
+    }
+    return nullptr;
+}
+
 }
 
 void setManagedCheckpointPath(const std::string& path) {
@@ -240,6 +284,43 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
     g_status.methodExecuted = true;
     trace("verified");
     return g_status;
+}
+
+
+ManagedRuntimeStatus probeManagedRuntimePinnedThread(const std::string& assemblyPath) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex);
+    if (!g_pinnedStarted) {
+        pthread_t thread{};
+        const int result = pthread_create(&thread, nullptr, &pinnedMonoWorker, nullptr);
+        if (result != 0) {
+            ManagedRuntimeStatus failed;
+            failed.attempted = true;
+            failed.phase = "pinned-worker-create-failed";
+            failed.error = "pthread_create failed: " + std::to_string(result);
+            return failed;
+        }
+        pthread_detach(thread);
+        g_pinnedStarted = true;
+    }
+    if (g_pinnedBusy) {
+        ManagedRuntimeStatus failed;
+        failed.attempted = true;
+        failed.phase = "pinned-worker-busy";
+        failed.error = "Pinned MonoVM worker is already running";
+        return failed;
+    }
+    g_pinnedBusy = true;
+    g_pinnedResultReady = false;
+    g_pinnedAssembly = assemblyPath;
+    g_pinnedPending = true;
+    g_pinnedWake.notify_one();
+    g_pinnedResultWake.wait(lock, [] { return g_pinnedResultReady; });
+    return g_pinnedResult;
+}
+
+long managedRuntimePinnedThreadTid() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    return g_pinnedTid;
 }
 
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count) {
