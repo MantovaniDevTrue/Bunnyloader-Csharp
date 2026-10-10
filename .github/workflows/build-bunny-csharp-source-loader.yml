@@ -593,7 +593,7 @@ jobs:
           export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           cd "$SRC"
-          ./build.sh mono -os android -arch arm64 -c Release -p:MonoEnableLLVM=false -p:DisableCrossgen=true
+          ./build.sh mono -os android -arch arm64 -c Release -p:MonoEnableLLVM=false -p:BuildMonoAOTCrossCompiler=false -p:DisableCrossgen=true
           OUT="$RUNNER_TEMP/bunny-mono-arm64"
           mkdir -p "$OUT"
           FOUND=0
