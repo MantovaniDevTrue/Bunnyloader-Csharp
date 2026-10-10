@@ -100,7 +100,7 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     if ((argc != 1 && argc != 2) || !JS_IsString(argv[0]) ||
         (argc == 2 && !JS_IsString(argv[1])))
         return JS_ThrowTypeError(ctx,
-            "managedGameProbe('CONFIRM_IN_PROCESS', 'NO_MONO'|'PINNED_MONO'|'MONO_ONLY'|'ABORT_ONLY'|'FULL_DIAGNOSTICS')");
+            "managedGameProbe('CONFIRM_IN_PROCESS', 'NO_MONO'|'LIBRARY_ONLY'|'DOMAIN_ONLY'|'ATTACH_ONLY'|'PINNED_MONO'|'MONO_ONLY'|'ABORT_ONLY'|'FULL_DIAGNOSTICS')");
     std::string selectedMode = "FULL_DIAGNOSTICS";
     if (argc == 2) {
         const char* rawMode = JS_ToCString(ctx, argv[1]);
@@ -110,8 +110,9 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     }
     if (selectedMode != "MONO_ONLY" && selectedMode != "ABORT_ONLY" &&
         selectedMode != "FULL_DIAGNOSTICS" && selectedMode != "NO_MONO" &&
-        selectedMode != "PINNED_MONO")
-        return JS_ThrowTypeError(ctx, "Modo invalido: NO_MONO, PINNED_MONO, MONO_ONLY, ABORT_ONLY ou FULL_DIAGNOSTICS");
+        selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY" &&
+        selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY")
+        return JS_ThrowTypeError(ctx, "Modo invalido: NO_MONO, LIBRARY_ONLY, DOMAIN_ONLY, ATTACH_ONLY, PINNED_MONO, MONO_ONLY, ABORT_ONLY ou FULL_DIAGNOSTICS");
     static std::string lockedMode;
     if (!lockedMode.empty() && lockedMode != selectedMode)
         return JS_ThrowInternalError(ctx,
@@ -150,15 +151,20 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     static bool gameAbortTraceInstalled = false;
     static bool gameMutexTraceInstalled = false;
     if (selectedMode != "MONO_ONLY" && selectedMode != "NO_MONO" &&
-        selectedMode != "PINNED_MONO" && !gameAbortTraceInstalled)
+        selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY" &&
+        selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY" &&
+        !gameAbortTraceInstalled)
         gameAbortTraceInstalled = bl::csharp::installNativeAbortProbe(
             checkpoint.substr(0, slash), "native-game-abort-trace.txt");
     bl::csharp::ManagedRuntimeStatus result;
     if (selectedMode == "NO_MONO") {
         result = bl::csharp::managedRuntimeStatus();
         result.phase = "no-mono-control";
-    } else if (selectedMode == "PINNED_MONO") {
-        result = bl::csharp::probeManagedRuntimePinnedThread(assembly);
+    } else if (selectedMode == "PINNED_MONO" ||
+               selectedMode == "LIBRARY_ONLY" ||
+               selectedMode == "DOMAIN_ONLY" ||
+               selectedMode == "ATTACH_ONLY") {
+        result = bl::csharp::probeManagedRuntimePinnedThread(assembly, selectedMode);
     } else {
         result = bl::csharp::probeManagedRuntime(assembly);
     }
