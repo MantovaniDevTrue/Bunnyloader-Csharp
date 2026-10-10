@@ -19,6 +19,9 @@
 #include <unistd.h>
 
 namespace bl::csharp {
+ManagedRuntimeStatus probeManagedRuntimeStartupStage(
+    const std::string& assemblyPath, const std::string& stage);
+
 namespace {
 
 using InitFn = void* (*)(const char*);
