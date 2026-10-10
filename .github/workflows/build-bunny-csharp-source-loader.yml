@@ -73,6 +73,7 @@ on:
       - bunny-csharp-source-0.1.10.16.51-crash-session-preservation
       - bunny-csharp-source-0.1.10.16.52-mono-isolation-early-abort
       - bunny-csharp-source-0.1.10.16.53-mono-pinned-thread-control
+      - bunny-csharp-source-0.1.10.16.54-mono-startup-stages
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -235,6 +236,27 @@ jobs:
           assert "probeManagedRuntime(assembly)" in runtime
           assert "probeManagedRuntimePinnedThread" in header
           print("MONOVM_PINNED_THREAD_CONTROL_CHECK=PASS")
+          PY
+
+      - name: Verify staged MonoVM startup isolation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          cpp = Path("Split/Bunny-Loader/app/src/main/cpp")
+          api = (cpp / "script/api/CSharpPrototypeApi.cpp").read_text()
+          runtime = (cpp / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (cpp / "experiments/csharp/ManagedRuntime.h").read_text()
+          for mode in ("LIBRARY_ONLY", "DOMAIN_ONLY", "ATTACH_ONLY", "PINNED_MONO", "NO_MONO"):
+              assert mode in api
+          assert "probeManagedRuntimeStartupStage(assembly, stage)" in runtime
+          assert "trace(\"library-only-verified\")" in runtime
+          assert "trace(\"domain-only-verified\")" in runtime
+          assert "trace(\"attach-only-verified\")" in runtime
+          assert "g_pinnedStage = stage;" in runtime
+          assert "probeManagedRuntimePinnedThread" in header
+          assert 'selectedMode != "ATTACH_ONLY"' in api
+          print("MONOVM_STARTUP_STAGE_ISOLATION=PASS")
           PY
 
       - name: Build CSharp NativeAOT library
@@ -660,7 +682,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='78' versionName='0.1.10.16.53-csharp-mono-pinned-control'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='79' versionName='0.1.10.16.54-csharp-mono-startup-stages'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -683,7 +705,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.53-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.54-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -697,9 +719,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.53"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.54"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.53-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.54-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -707,8 +729,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.53 — MonoVM Thread Owner Control" \
-              --notes "Diagnostic v0.1.10.16.53: New NO_MONO game control without in-process MonoVM initialization; PINNED_MONO experimental test initializes C# on a persistent pthread, preserving the managed thread lifetime. Existing dynamic C# APIs and game mods are unchanged. Observed mono_thread_info_current assertion and destroyed mutex FORTIFY require controlled Android comparison before conclusions. Test NO_MONO first, then PINNED_MONO after restarting the game process, without NPC AI." \
+              --title "Bunny Loader C# v0.1.10.16.54 — Staged MonoVM Startup Isolation" \
+              --notes "v0.1.10.16.54 diagnostics: isolate MonoVM stages individually using opt-in persistent native thread: LIBRARY_ONLY loads libmonosgen without initializing the runtime, DOMAIN_ONLY also creates a managed domain, ATTACH_ONLY additionally attaches the owner thread. Preserve PINNED_MONO and NO_MONO modes, CSharp source compilation, JS mod loader, all game content, and callback implementations unchanged. Avoid experimental NPC AI while testing. These stage probes deliberately do not execute CSharp or return 42. Test one stage per fresh process; JNI Modified UTF-8 error and Mono thread_info_current assertion are observed, but primary cause not yet established." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -733,7 +755,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.53-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.54-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
