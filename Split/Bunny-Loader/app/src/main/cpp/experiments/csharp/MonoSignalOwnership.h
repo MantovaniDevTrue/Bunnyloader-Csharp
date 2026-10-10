@@ -8,7 +8,7 @@
 #endif
 
 namespace bl::csharp {
-inline std::string monoAndroidSignalConflict(bool alternativeSignals = false) {
+inline std::string monoAndroidSignalConflict([[maybe_unused]] bool alternativeSignals = false) {
 #if defined(__ANDROID__) || defined(BUNNY_TEST_ANDROID_SIGNALS)
     if (alternativeSignals) {
         int available = 0;
