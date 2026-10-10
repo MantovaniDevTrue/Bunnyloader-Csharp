@@ -24,6 +24,15 @@
 #include <unistd.h>
 
 namespace bl::csharp {
+struct LiveCallbackResult {
+    bool ready = false;
+    int value = 0;
+    std::string phase;
+    std::string error;
+};
+LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
+                                         const std::string& assemblyPath,
+                                         bool isKill, int tick, int damage);
 ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     const std::string& assemblyPath, const std::string& stage);
 
@@ -69,6 +78,8 @@ struct LiveEntry {
     std::string path;
     void* method = nullptr;
     void* npcAiMethod = nullptr;
+    void* hitMethod = nullptr;
+    void* killMethod = nullptr;
     LiveSourceStatus status;
 };
 
@@ -223,6 +234,8 @@ std::atomic<int> g_liveHitType{-1};
 bool g_liveHitPending = false;
 int g_liveHitPendingDamage = 0;
 int g_liveHitPendingTick = 0;
+bool g_liveHitPendingKill = false;
+uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
 
 
@@ -246,16 +259,30 @@ void* pinnedMonoWorker(void*) {
                     const std::string dll = g_liveHitAssembly;
                     const int damage = g_liveHitPendingDamage;
                     const int tick = g_liveHitPendingTick;
+                    const bool automatic = g_liveHitStatus.automatic;
+                    const bool isKill = g_liveHitPendingKill;
+                    const uint64_t generation = g_liveHitGeneration;
                     g_liveHitPending = false;
                     lock.unlock();
-                    const LiveSourceStatus callback =
-                        invokeLiveSourceTick(modId, dll, tick, damage);
+                    const LiveCallbackResult callback = automatic
+                        ? invokeLiveSourceEvent(modId, dll, isKill, tick, damage)
+                        : [&]() {
+                            const LiveSourceStatus status =
+                                invokeLiveSourceTick(modId, dll, tick, damage);
+                            return LiveCallbackResult{
+                                status.ready && status.phase == "ready",
+                                status.lastResult, status.phase, status.error};
+                        }();
                     lock.lock();
-                    if (g_liveHitStatus.modId == modId) {
+                    if (g_liveHitStatus.modId == modId &&
+                        g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
                         if (callback.ready && callback.phase == "ready") {
                             ++g_liveHitStatus.processed;
+                            if (isKill) ++g_liveHitStatus.killProcessed;
+                            else ++g_liveHitStatus.hitProcessed;
                             g_liveHitStatus.lastDamage = damage;
-                            g_liveHitStatus.lastResult = callback.lastResult;
+                            g_liveHitStatus.lastResult = callback.value;
+                            g_liveHitStatus.lastEvent = isKill ? "OnKill" : "OnHitNPC";
                             g_liveHitStatus.phase = "ready";
                             g_liveHitStatus.error.clear();
                         } else {
@@ -521,7 +548,7 @@ ManagedRuntimeStatus probeManagedRuntimePinnedThread(
 
 bool enableManagedLiveHit(const std::string& modId,
                           const std::string& assemblyPath,
-                          int projectileType, std::string* error) {
+                          int projectileType, std::string* error, bool automatic) {
     if (!error) return false;
     error->clear();
     if (modId.empty() || modId.size() > 128 ||
@@ -542,7 +569,9 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     g_liveHitType.store(-1, std::memory_order_release);
+    ++g_liveHitGeneration;
     g_liveHitStatus = {};
+    g_liveHitStatus.automatic = automatic;
     g_liveHitStatus.modId = modId;
     g_liveHitStatus.projectileType = projectileType;
     g_liveHitStatus.enabled = true;
@@ -560,18 +589,20 @@ ManagedLiveHitStatus managedLiveHitStatus() {
 ManagedLiveHitStatus pauseManagedLiveHit() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_liveHitType.store(-1, std::memory_order_release);
+    ++g_liveHitGeneration;
     g_liveHitPending = false;
     g_liveHitStatus.enabled = false;
     g_liveHitStatus.phase = "paused";
     return g_liveHitStatus;
 }
 
-void queueManagedLiveHit(int projectileType, int damage) {
+void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     if (g_liveHitType.load(std::memory_order_acquire) != projectileType ||
         damage < 0 || damage > 100000) return;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock()) return;
-    if (!g_liveHitStatus.enabled || g_liveHitPending ||
+    if (!g_liveHitStatus.enabled ||
+        (isKill && !g_liveHitStatus.automatic) || g_liveHitPending ||
         g_liveHitStatus.queued >= 512) {
         ++g_liveHitStatus.dropped;
         if (g_liveHitStatus.queued >= 512) {
@@ -581,10 +612,19 @@ void queueManagedLiveHit(int projectileType, int damage) {
         }
         return;
     }
+    g_liveHitPendingKill = isKill;
     g_liveHitPendingDamage = damage;
     g_liveHitPendingTick = ++g_liveHitStatus.queued;
     g_liveHitPending = true;
     g_pinnedWake.notify_one();
+}
+
+void queueManagedLiveHit(int projectileType, int damage) {
+    queueManagedLiveEvent(projectileType, damage, false);
+}
+
+void queueManagedLiveKill(int projectileType, int damage) {
+    queueManagedLiveEvent(projectileType, damage, true);
 }
 
 long managedRuntimePinnedThreadTid() {
@@ -907,6 +947,79 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
     status.ready = true;
     status.error.clear();
     return status;
+}
+
+LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
+                                         const std::string& assemblyPath,
+                                         bool isKill, int tick, int damage) {
+    LiveCallbackResult result;
+    result.phase = "rejected";
+    if (modId.empty() || modId.size() > 128 ||
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
+        tick < 0 || tick > 512 || damage < 0 || damage > 100000 ||
+        !validAssembly(assemblyPath)) {
+        result.error = "Invalid C# event parameters or assembly";
+        return result;
+    }
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.invoke || !g_api.unbox) {
+        result.phase = "waiting-mono";
+        result.error = "MonoVM not initialized";
+        return result;
+    }
+    if (!g_api.attach(g_domain)) {
+        result.phase = "attach-failed";
+        result.error = "mono_thread_attach failed";
+        return result;
+    }
+    auto entry = g_sourceLiveEntries.find(modId);
+    if (entry == g_sourceLiveEntries.end()) {
+        if (g_sourceLiveEntries.size() >= 16) {
+            result.error = "CSharp live entry limit reached";
+            return result;
+        }
+        entry = g_sourceLiveEntries.emplace(modId, LiveEntry{}).first;
+        entry->second.status.modId = modId;
+    }
+    LiveEntry& target = entry->second;
+    if (!target.path.empty() && target.path != assemblyPath) {
+        result.phase = "restart-required";
+        result.error = "Managed assembly changed; restart Bunny Loader";
+        return result;
+    }
+    void*& method = isKill ? target.killMethod : target.hitMethod;
+    if (!method) {
+        void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyLiveEvents") : nullptr;
+        method = klass ? g_api.findMethod(
+            klass, isKill ? "OnKill" : "OnHitNPC", 2) : nullptr;
+        if (!method) {
+            result.phase = "entry-missing";
+            result.error = isKill
+                ? "BunnyLiveEvents.OnKill(int,int) not found"
+                : "BunnyLiveEvents.OnHitNPC(int,int) not found";
+            return result;
+        }
+        target.path = assemblyPath;
+    }
+    int call = tick;
+    int value = damage;
+    void* args[] = {&call, &value};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    void* unboxed = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!unboxed) {
+        result.phase = "managed-exception";
+        result.error = isKill ? "OnKill CSharp threw" : "OnHitNPC CSharp threw";
+        return result;
+    }
+    std::memcpy(&result.value, unboxed, sizeof(result.value));
+    result.ready = true;
+    result.phase = "ready";
+    return result;
 }
 
 bool invokeLiveSourceNpcAi(const std::string& modId,
