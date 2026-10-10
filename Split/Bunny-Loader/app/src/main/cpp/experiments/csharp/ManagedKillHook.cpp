@@ -4,6 +4,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -116,6 +117,7 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
         g_enabled.store(false, std::memory_order_release);
         return;
     }
+    queueManagedLiveKill(type, damage);
     const size_t damageIndex = static_cast<size_t>(std::clamp(damage, 0, 255));
     const int radius = policy->radii[damageIndex];
     const int duration = policy->durations[damageIndex];
