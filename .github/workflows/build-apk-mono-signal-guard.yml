@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: bunny-signal-apk-${{ github.ref }}
@@ -90,6 +90,7 @@ jobs:
           print(m.group(1))
           PY
           )"
+          echo "::add-mask::$PASS"
           echo "BUNNY_SIGNING_STORE=$DIR/bunny-release.jks" >> "$GITHUB_ENV"
           echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
           echo "BUNNY_SIGNING_ALIAS=bunnyrelease" >> "$GITHUB_ENV"
@@ -665,13 +666,18 @@ jobs:
           test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.6.bmod"
           test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.6.bmod.sha256"
 
-      - name: Upload signed APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BunnyLoader-CSharp-0.1.10.16.57-MonoSignalGuard
-          path: |
-            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.16.57-MonoSignalGuard.apk
-            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.16.57-MonoSignalGuard.apk.sha256
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
+      - name: Publish signed test APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="bunny-csharp-0.1.10.16.57-mono-signal-guard"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.57-MonoSignalGuard.apk"
+          test -s "$APK"
+          test -s "$APK.sha256"
+          gh release create "$TAG" "$APK" "$APK.sha256" \
+            --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
+            --title "Bunny Loader C# 0.1.10.16.57 — Mono Signal Guard" \
+            --notes "APK de teste com a proteção do PR #9. Preserva handlers existentes de SIGPWR/SIGXCPU/SIGTTIN e impede a criação do domínio Mono quando detecta conflito. Não inclui o PR #8. Compilação e assinatura verificadas; execução no aparelho ainda não validada. Essa proteção não resolve toda a convivência Mono/Unity." \
+            --prerelease
