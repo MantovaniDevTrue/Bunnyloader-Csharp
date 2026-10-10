@@ -232,6 +232,72 @@ JSValue makeLiveSourceStatus(JSContext* ctx, const bl::csharp::LiveSourceStatus&
     return out;
 }
 
+JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHitStatus& status) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "enabled", JS_NewBool(ctx, status.enabled));
+    JS_SetPropertyStr(ctx, out, "projectileType", JS_NewInt32(ctx, status.projectileType));
+    JS_SetPropertyStr(ctx, out, "queued", JS_NewInt32(ctx, status.queued));
+    JS_SetPropertyStr(ctx, out, "processed", JS_NewInt32(ctx, status.processed));
+    JS_SetPropertyStr(ctx, out, "dropped", JS_NewInt32(ctx, status.dropped));
+    JS_SetPropertyStr(ctx, out, "failures", JS_NewInt32(ctx, status.failures));
+    JS_SetPropertyStr(ctx, out, "lastDamage", JS_NewInt32(ctx, status.lastDamage));
+    JS_SetPropertyStr(ctx, out, "lastResult", JS_NewInt32(ctx, status.lastResult));
+    JS_SetPropertyStr(ctx, out, "modId", JS_NewString(ctx, status.modId.c_str()));
+    JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, status.phase.c_str()));
+    JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, status.error.c_str()));
+    return out;
+}
+
+JSValue jsSourceLiveHitStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitStatus()");
+    return makeManagedLiveHitStatus(ctx, bl::csharp::managedLiveHitStatus());
+}
+
+JSValue jsSourceLiveHitPause(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitPause()");
+    return makeManagedLiveHitStatus(ctx, bl::csharp::pauseManagedLiveHit());
+}
+
+JSValue jsSourceLiveHitEnable(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]) || !JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx,
+            "sourceLiveHitEnable(modId, 'CONFIRM_LIVE_ONHIT')");
+    const char* rawId = JS_ToCString(ctx, argv[0]);
+    if (!rawId) return JS_EXCEPTION;
+    const std::string modId(rawId);
+    JS_FreeCString(ctx, rawId);
+    const char* rawConfirm = JS_ToCString(ctx, argv[1]);
+    if (!rawConfirm) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(rawConfirm) == "CONFIRM_LIVE_ONHIT";
+    JS_FreeCString(ctx, rawConfirm);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "Confirmacao exigida: CONFIRM_LIVE_ONHIT");
+    if (modId != "68c3115f-62f4-49f2-a56b-388256781d5f")
+        return JS_ThrowTypeError(ctx, "Teste experimental restrito ao ExampleMod CSharp");
+    bool loaded = false;
+    for (const auto& mod : bl::csharp::sourceModStatuses()) {
+        if (mod.id == modId && mod.loaded && mod.runtimeApplied &&
+            mod.registeredTypes.contains("ExampleBolt")) {
+            loaded = true;
+            break;
+        }
+    }
+    const auto hit = bl::csharp::autoProjectileHitStatus(modId, "ExampleBolt");
+    if (!loaded || !hit.registered || !hit.installed || !hit.enabled || hit.type < 0)
+        return JS_ThrowInternalError(ctx,
+            "ExampleBolt OnHitNPC nao esta registrado; aguarde o auto loader em um mundo solo");
+    const std::string& checkpoint = bl::config().managedCheckpointPath;
+    const size_t slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos)
+        return JS_ThrowInternalError(ctx, "Diretorio do MonoVM nao configurado");
+    const std::string dll = checkpoint.substr(0, slash + 1) +
+        "compiled/" + modId + ".dll";
+    std::string error;
+    if (!bl::csharp::enableManagedLiveHit(modId, dll, hit.type, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    return makeManagedLiveHitStatus(ctx, bl::csharp::managedLiveHitStatus());
+}
+
 JSValue jsSourceLiveStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc != 1 || !JS_IsString(argv[0]))
         return JS_ThrowTypeError(ctx, "sourceLiveStatus(modId)");
@@ -1969,6 +2035,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedProbe, "managedProbe", 0));
     JS_SetPropertyStr(ctx, api, "managedWorkerStatus",
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveHitEnable",
+                      JS_NewCFunction(ctx, jsSourceLiveHitEnable, "sourceLiveHitEnable", 2));
+    JS_SetPropertyStr(ctx, api, "sourceLiveHitStatus",
+                      JS_NewCFunction(ctx, jsSourceLiveHitStatus, "sourceLiveHitStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
+                      JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveStatus",
                       JS_NewCFunction(ctx, jsSourceLiveStatus, "sourceLiveStatus", 1));
     JS_SetPropertyStr(ctx, api, "sourceLiveTick",
