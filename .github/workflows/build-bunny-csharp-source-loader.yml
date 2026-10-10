@@ -77,6 +77,7 @@ on:
       - bunny-csharp-source-0.1.10.16.55-mono-pre-domain-controls
       - bunny-csharp-source-0.1.10.16.56-mono-domain-thread-audit
       - bunny-csharp-source-0.1.10.16.57-mono-arm64-signals
+      - bunny-csharp-source-0.1.10.16.58-mono-gc-blocking-fix
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -751,7 +752,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='82' versionName='0.1.10.16.57-csharp-mono-arm64-signals'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='83' versionName='0.1.10.16.58-csharp-mono-gc-blocking-fix'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -774,7 +775,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.58-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -788,9 +789,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.57"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.58"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.58-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -798,8 +799,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.57 — MonoVM ARM64 Alternative Signals" \
-              --notes "v0.1.10.16.57 Experimental Mono 8.0.23 ARM64 rebuilt with real-time signals, guarded by preflight; pinned Mono owner GC-safe wait preserved. This test requires Android validation and is not yet stable." \
+              --title "Bunny Loader C# v0.1.10.16.58 — MonoVM ARM64 GC Blocking Fix" \
+              --notes "v0.1.10.16.58 Experimental ARM64 Mono 8.0.23 alternative signals plus fix for embedded pinned owner nested GC-safe transition (STATE_BLOCKING/DO_BLOCKING). Preserves JS, NativeAOT and C# loader. Not yet validated for in-game stability; test DOMAIN_ONLY, method execution and pause/resume." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -824,7 +825,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.58-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
