@@ -33,8 +33,6 @@ using AssemblyPathFn = void (*)(const char*);
 using AttachFn = void* (*)(void*);
 using CurrentThreadFn = void* (*)();
 using DetachFn = void (*)(void*);
-using EnterGcSafeFn = void* (*)(void**);
-using ExitGcSafeFn = void (*)(void*, void**);
 using OpenFn = void* (*)(void*, const char*);
 using ImageFn = void* (*)(void*);
 using ClassFn = void* (*)(void*, const char*, const char*);
@@ -49,8 +47,6 @@ struct MonoApi {
     AttachFn attach = nullptr;
     CurrentThreadFn currentThread = nullptr;
     DetachFn detachThread = nullptr;
-    EnterGcSafeFn enterGcSafe = nullptr;
-    ExitGcSafeFn exitGcSafe = nullptr;
     OpenFn openAssembly = nullptr;
     ImageFn image = nullptr;
     ClassFn findClass = nullptr;
@@ -143,8 +139,6 @@ bool loadLibrary() {
     g_api.attach = resolve<AttachFn>("mono_thread_attach");
     g_api.currentThread = resolve<CurrentThreadFn>("mono_thread_current");
     g_api.detachThread = resolve<DetachFn>("mono_thread_detach");
-    g_api.enterGcSafe = resolve<EnterGcSafeFn>("mono_threads_enter_gc_safe_region");
-    g_api.exitGcSafe = resolve<ExitGcSafeFn>("mono_threads_exit_gc_safe_region");
     g_api.openAssembly = resolve<OpenFn>("mono_domain_assembly_open");
     g_api.image = resolve<ImageFn>("mono_assembly_get_image");
     g_api.findClass = resolve<ClassFn>("mono_class_from_name");
@@ -224,30 +218,7 @@ std::string g_pinnedAssembly;
 std::string g_pinnedStage = "PINNED_MONO";
 ManagedRuntimeStatus g_pinnedResult;
 
-// mono_jit_init/mono_thread_attach leave the owner in GC-unsafe mode.
-// Keep it attached for process lifetime, but make native waits visible to GC.
-// Declare this BEFORE locks: exiting GC-safe may wait for collection to finish.
-class PinnedGcSafeScope {
-    void* stackMarker_ = nullptr;
-    void* cookie_ = nullptr;
-    ExitGcSafeFn exit_ = nullptr;
-public:
-    explicit PinnedGcSafeScope(bool attached) {
-        if (attached) {
-            exit_ = g_api.exitGcSafe;
-            cookie_ = g_api.enterGcSafe(&stackMarker_);
-        }
-    }
-    ~PinnedGcSafeScope() {
-        // A null cookie is valid; entry/exit must still be balanced.
-        if (exit_) exit_(cookie_, &stackMarker_);
-    }
-    PinnedGcSafeScope(const PinnedGcSafeScope&) = delete;
-    PinnedGcSafeScope& operator=(const PinnedGcSafeScope&) = delete;
-};
-
 void* pinnedMonoWorker(void*) {
-    bool attached = false;
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         g_pinnedTid = static_cast<long>(syscall(__NR_gettid));
@@ -260,7 +231,6 @@ void* pinnedMonoWorker(void*) {
         std::string assembly;
         std::string stage;
         {
-            PinnedGcSafeScope gcSafe(attached);
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
                 if (!g_auditEnabled) {
@@ -284,17 +254,14 @@ void* pinnedMonoWorker(void*) {
         }
         // Check the transition API before creating a domain on this owner.
         ManagedRuntimeStatus result = inspectManagedRuntime();
-        if (result.symbolsReady && g_api.currentThread &&
-            g_api.enterGcSafe && g_api.exitGcSafe) {
+        if (result.symbolsReady && g_api.currentThread) {
             result = stage == "PINNED_MONO"
                 ? probeManagedRuntime(assembly)
                 : probeManagedRuntimeStartupStage(assembly, stage);
-            if (result.domainInitialized)
-                attached = g_api.currentThread() != nullptr;
         } else if (result.symbolsReady) {
             std::lock_guard<std::mutex> lock(g_mutex);
-            result = failure("pinned-gc-api-missing",
-                             "MonoVM lacks current-thread or GC-safe transition API");
+            result = failure("pinned-thread-api-missing",
+                             "MonoVM lacks mono_thread_current");
         }
         {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
