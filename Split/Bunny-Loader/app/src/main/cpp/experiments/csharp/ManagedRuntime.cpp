@@ -163,6 +163,7 @@ bool g_pinnedPending = false;
 bool g_pinnedResultReady = false;
 long g_pinnedTid = 0;
 std::string g_pinnedAssembly;
+std::string g_pinnedStage = "PINNED_MONO";
 ManagedRuntimeStatus g_pinnedResult;
 
 void* pinnedMonoWorker(void*) {
@@ -176,13 +177,17 @@ void* pinnedMonoWorker(void*) {
     }
     for (;;) {
         std::string assembly;
+        std::string stage;
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             g_pinnedWake.wait(lock, [] { return g_pinnedPending; });
             assembly = g_pinnedAssembly;
+            stage = g_pinnedStage;
             g_pinnedPending = false;
         }
-        ManagedRuntimeStatus result = probeManagedRuntime(assembly);
+        ManagedRuntimeStatus result = stage == "PINNED_MONO"
+            ? probeManagedRuntime(assembly)
+            : probeManagedRuntimeStartupStage(assembly, stage);
         {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
             g_pinnedResult = std::move(result);
@@ -287,7 +292,59 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath) {
 }
 
 
-ManagedRuntimeStatus probeManagedRuntimePinnedThread(const std::string& assemblyPath) {
+ManagedRuntimeStatus probeManagedRuntimeStartupStage(
+    const std::string& assemblyPath, const std::string& stage) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_status.attempted = true;
+    g_status.methodExecuted = false;
+    g_status.result = 0;
+    g_status.error.clear();
+    trace("stage-checking-assembly");
+    if (stage != "LIBRARY_ONLY" && stage != "DOMAIN_ONLY" &&
+        stage != "ATTACH_ONLY")
+        return failure("stage-invalid", "Unsupported staged MonoVM probe");
+    if (!validAssembly(assemblyPath))
+        return failure("stage-assembly-invalid", "Managed probe DLL missing");
+    if (!loadLibrary()) return g_status;
+    if (stage == "LIBRARY_ONLY") {
+        trace("library-only-verified");
+        return g_status;
+    }
+    if (!g_domain) {
+        const auto slash = assemblyPath.find_last_of('/');
+        if (g_api.setAssembliesPath && slash != std::string::npos) {
+            trace("stage-setting-assembly-path");
+            g_api.setAssembliesPath(assemblyPath.substr(0, slash).c_str());
+        }
+#ifdef __ANDROID__
+        trace("stage-checking-system-native");
+        void* systemNative = dlopen("libSystem.Native.so", RTLD_NOW | RTLD_LOCAL);
+        if (!systemNative) {
+            const char* message = dlerror();
+            return failure("stage-system-native-missing",
+                           message ? message : "libSystem.Native.so unavailable");
+        }
+        trace("stage-system-native-ready");
+#endif
+        trace("stage-initializing-domain");
+        g_domain = g_api.initialize("BunnyCSharp");
+        if (!g_domain)
+            return failure("stage-domain-failed", "mono_jit_init returned null");
+    }
+    g_status.domainInitialized = true;
+    if (stage == "DOMAIN_ONLY") {
+        trace("domain-only-verified");
+        return g_status;
+    }
+    trace("stage-attaching-thread");
+    if (!g_api.attach(g_domain))
+        return failure("stage-attach-failed", "mono_thread_attach returned null");
+    trace("attach-only-verified");
+    return g_status;
+}
+
+ManagedRuntimeStatus probeManagedRuntimePinnedThread(
+    const std::string& assemblyPath, const std::string& stage) {
     std::unique_lock<std::mutex> lock(g_pinnedMutex);
     if (!g_pinnedStarted) {
         pthread_t thread{};
@@ -312,6 +369,7 @@ ManagedRuntimeStatus probeManagedRuntimePinnedThread(const std::string& assembly
     g_pinnedBusy = true;
     g_pinnedResultReady = false;
     g_pinnedAssembly = assemblyPath;
+    g_pinnedStage = stage;
     g_pinnedPending = true;
     g_pinnedWake.notify_one();
     g_pinnedResultWake.wait(lock, [] { return g_pinnedResultReady; });
