@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplo independente C# com arma, projetil, IA, efeitos automaticos e buff de defesa C# com pocao, acessorio BunnyPlayer e NPC tipo slime criado em C#. Contem callback C# dinamico e IA real de NPC em teste experimental.",
+  "summary": "Exemplo independente C# com arma, projetil, IA, efeitos automaticos e buff de defesa C# com pocao, acessorio BunnyPlayer e NPC tipo slime criado em C#. Contem callbacks C# OnHitNPC e OnKill automaticos e IA de NPC experimental.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

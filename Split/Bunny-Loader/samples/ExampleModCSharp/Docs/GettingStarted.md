@@ -1,3 +1,25 @@
+# Bunny Loader C# 0.1.10.16.60 — eventos automáticos
+
+Na versão experimental .60, o ExampleMod CSharp 0.1.7 descobre e vincula `BunnyLiveEvents.OnHitNPC(int,int)` e `BunnyLiveEvents.OnKill(int,int)` automaticamente em singleplayer, após a inicialização do mundo e da biblioteca Mono. Não é necessário executar os comandos de ativação da .59.
+
+O arquivo `content/Common/Live/BunnyLiveEvents.cs` é o exemplo de convenção C# suportada nesta etapa. Os callbacks só registram resultados; os efeitos visuais, dano e buffs continuam tratados pelas políticas automáticas anteriores.
+
+Para testar, entre no mundo com o mod 0.1.7 ativado, use a ExampleWand contra um inimigo e consulte:
+
+```javascript
+JSON.stringify({
+  mono: bl.csharp.managedRuntime(),
+  live: bl.csharp.sourceLiveHitStatus(),
+  auto: bl.csharp.sourceAutoStatus()
+}, null, 2)
+```
+
+Esperado: `live.automatic: true`, `live.hitProcessed > 0`, `live.killProcessed > 0`, `live.failures: 0`. Para parar: `bl.csharp.sourceLiveHitPause()`.
+
+A implementação inicial mantém o limite de um tipo de projétil por processo, até a validação no dispositivo. A IA de projéteis continua usando curvas C# pré-calculadas, não métodos Mono por frame.
+
+---
+
 # Primeiro teste C# no Bunny Loader
 
 O pacote usado para verificar os exemplos e o `SourceCSharpMod-v0.1.5.bmod` da versao 0.1.10.16.34. Os arquivos de `Examples/` sao espelhos educativos e nao substituem o pacote.

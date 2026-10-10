@@ -4,6 +4,7 @@
 #include "core/Config.h"
 #include "core/Log.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "il2cpp/Api.h"
@@ -371,6 +372,38 @@ ActivationContext readActivationContext() {
     return result;
 }
 
+void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
+                           const std::string& work) {
+    il2cpp::api().thread_attach(il2cpp::api().domain_get());
+    const std::string dll = work + "compiled/" + modId + ".dll";
+    const std::string probe = work + "BunnyManagedProbe.dll";
+    for (int attempt = 0; attempt < 14400; ++attempt) {
+        const ActivationContext context = readActivationContext();
+        if (context.netMode == 0 && context.gameMenu == 0) {
+            if (managedLiveHitStatus().enabled) return;
+            ManagedRuntimeStatus mono = managedRuntimeStatus();
+            if (!mono.domainInitialized || !mono.methodExecuted)
+                mono = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
+            if (!mono.domainInitialized || !mono.methodExecuted || mono.result != 42) {
+                BL_WARN("csharp auto live %s: MonoVM nao pronto (%s)",
+                        modId.c_str(), mono.phase.c_str());
+                return;
+            }
+            std::string error;
+            if (enableManagedLiveHit(modId, dll, projectileType, &error, true)) {
+                BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d",
+                        modId.c_str(), projectileType);
+            } else {
+                BL_WARN("csharp auto live %s: nao vinculado (%s)",
+                        modId.c_str(), error.c_str());
+            }
+            return;
+        }
+        if (context.netMode > 0 && context.gameMenu == 0) return;
+        std::this_thread::sleep_for(1000ms);
+    }
+}
+
 void run() {
     auto& api = il2cpp::api();
     api.thread_attach(api.domain_get());
@@ -515,6 +548,28 @@ void run() {
                     effect.modId.c_str(), effect.name.c_str(), error.c_str());
     }
     BL_INFO("csharp auto: curvas e efeitos OnHitNPC/OnKill registrados");
+    for (const auto& effect : pendingCombat) {
+        if (effect.kill) continue;
+        const std::string root = mods::rootOf(effect.modId);
+        if (root.empty()) continue;
+        const std::string declared = readText(
+            root + "/content/Common/Live/BunnyLiveEvents.cs", 16384);
+        if (declared.find("class BunnyLiveEvents") == std::string::npos ||
+            declared.find("static int OnHitNPC(") == std::string::npos ||
+            declared.find("static int OnKill(") == std::string::npos)
+            continue;
+        const auto hit = autoProjectileHitStatus(effect.modId, effect.name);
+        const auto kill = autoProjectileKillStatus(effect.modId, effect.name);
+        if (!hit.registered || !hit.enabled || !hit.installed ||
+            !kill.registered || !kill.enabled || !kill.installed ||
+            hit.type < 0 || hit.type != kill.type) continue;
+        const std::string id = effect.modId;
+        const int type = hit.type;
+        std::thread([id, type, work] {
+            bindLiveEventsOnWorld(id, type, work);
+        }).detach();
+        break;
+    }
 }
 
 }
