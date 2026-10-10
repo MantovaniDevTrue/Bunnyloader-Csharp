@@ -90,7 +90,8 @@ std::string readManagedWorkerFile(const char* filename) {
     const bool fullNativeTrace =
         std::string_view(filename) == "native-abort-trace.txt" ||
         std::string_view(filename) == "native-game-abort-trace.txt" ||
-        std::string_view(filename) == "native-game-abort-previous.txt";
+        std::string_view(filename) == "native-game-abort-previous.txt" ||
+        std::string_view(filename) == "mono-domain-thread-audit-latest.txt";
     char buffer[8193]{};
     stream.read(buffer, fullNativeTrace ? 8192 : 2048);
     return std::string(buffer, static_cast<size_t>(stream.gcount()));
@@ -100,7 +101,7 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     if ((argc != 1 && argc != 2) || !JS_IsString(argv[0]) ||
         (argc == 2 && !JS_IsString(argv[1])))
         return JS_ThrowTypeError(ctx,
-            "managedGameProbe('CONFIRM_IN_PROCESS', 'NO_MONO'|'LIBRARY_ONLY'|'PATH_ONLY'|'SYSTEM_NATIVE_ONLY'|'DOMAIN_ONLY'|'ATTACH_ONLY'|'PINNED_MONO'|'MONO_ONLY'|'ABORT_ONLY'|'FULL_DIAGNOSTICS')");
+            "managedGameProbe('CONFIRM_IN_PROCESS', 'NO_MONO'|'LIBRARY_ONLY'|'PATH_ONLY'|'SYSTEM_NATIVE_ONLY'|'DOMAIN_ONLY'|'ATTACH_ONLY'|'DOMAIN_THREAD_AUDIT'|'PINNED_MONO'|'MONO_ONLY'|'ABORT_ONLY'|'FULL_DIAGNOSTICS')");
     std::string selectedMode = "FULL_DIAGNOSTICS";
     if (argc == 2) {
         const char* rawMode = JS_ToCString(ctx, argv[1]);
@@ -112,8 +113,9 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         selectedMode != "FULL_DIAGNOSTICS" && selectedMode != "NO_MONO" &&
         selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY" &&
         selectedMode != "PATH_ONLY" && selectedMode != "SYSTEM_NATIVE_ONLY" &&
-        selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY")
-        return JS_ThrowTypeError(ctx, "Modo invalido: NO_MONO, LIBRARY_ONLY, PATH_ONLY, SYSTEM_NATIVE_ONLY, DOMAIN_ONLY, ATTACH_ONLY, PINNED_MONO, MONO_ONLY, ABORT_ONLY ou FULL_DIAGNOSTICS");
+        selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY" &&
+        selectedMode != "DOMAIN_THREAD_AUDIT")
+        return JS_ThrowTypeError(ctx, "Modo invalido: NO_MONO, LIBRARY_ONLY, PATH_ONLY, SYSTEM_NATIVE_ONLY, DOMAIN_ONLY, ATTACH_ONLY, DOMAIN_THREAD_AUDIT, PINNED_MONO, MONO_ONLY, ABORT_ONLY ou FULL_DIAGNOSTICS");
     static std::string lockedMode;
     if (!lockedMode.empty() && lockedMode != selectedMode)
         return JS_ThrowInternalError(ctx,
@@ -155,7 +157,7 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY" &&
         selectedMode != "PATH_ONLY" && selectedMode != "SYSTEM_NATIVE_ONLY" &&
         selectedMode != "DOMAIN_ONLY" && selectedMode != "ATTACH_ONLY" &&
-        !gameAbortTraceInstalled)
+        selectedMode != "DOMAIN_THREAD_AUDIT" && !gameAbortTraceInstalled
         gameAbortTraceInstalled = bl::csharp::installNativeAbortProbe(
             checkpoint.substr(0, slash), "native-game-abort-trace.txt");
     bl::csharp::ManagedRuntimeStatus result;
@@ -167,7 +169,8 @@ JSValue jsManagedGameProbe(JSContext* ctx, JSValueConst, int argc, JSValueConst*
                selectedMode == "PATH_ONLY" ||
                selectedMode == "SYSTEM_NATIVE_ONLY" ||
                selectedMode == "DOMAIN_ONLY" ||
-               selectedMode == "ATTACH_ONLY") {
+               selectedMode == "ATTACH_ONLY" ||
+               selectedMode == "DOMAIN_THREAD_AUDIT") {
         result = bl::csharp::probeManagedRuntimePinnedThread(assembly, selectedMode);
     } else {
         result = bl::csharp::probeManagedRuntime(assembly);
@@ -1240,6 +1243,8 @@ JSValue jsManagedSourceCompileStatus(JSContext* ctx, JSValueConst, int, JSValueC
     }
     JS_SetPropertyStr(ctx, out, "exitInfo", JS_NewString(ctx, exitInfo.c_str()));
     JS_SetPropertyStr(ctx, out, "exitTrace", JS_NewString(ctx, exitTrace.c_str()));
+    const auto audit = readManagedWorkerFile("mono-domain-thread-audit-latest.txt");
+    JS_SetPropertyStr(ctx, out, "monoThreadAudit", JS_NewString(ctx, audit.c_str()));
     const auto gameProbeMode = readManagedWorkerFile("native-game-probe-mode.txt");
     const auto gameModuleMaps = readManagedWorkerFile("native-game-module-maps.txt");
     JS_SetPropertyStr(ctx, out, "gameProbeMode",
