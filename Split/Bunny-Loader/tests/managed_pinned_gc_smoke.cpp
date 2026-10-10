@@ -69,6 +69,41 @@ int main(int argc, char** argv) {
         assert(!live.enabled && live.phase == "paused");
         bl::csharp::queueManagedLiveHit(1136, 30);
         assert(bl::csharp::managedLiveHitStatus().queued == 1);
+        assert(bl::csharp::enableManagedLiveHit(testMod, argv[1], 1136, &error, true));
+        live = bl::csharp::managedLiveHitStatus();
+        assert(live.automatic && live.enabled && live.phase == "armed");
+        auto waitEvent = [&](int expected) {
+            const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+            while (std::chrono::steady_clock::now() < until) {
+                live = bl::csharp::managedLiveHitStatus();
+                if (live.processed >= expected) return;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            assert(false);
+        };
+        for (int i = 0; i < 10 && live.queued == 0; ++i) {
+            bl::csharp::queueManagedLiveHit(1136, 17);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            live = bl::csharp::managedLiveHitStatus();
+        }
+        waitEvent(1);
+        assert(live.hitProcessed == 1 && live.killProcessed == 0);
+        assert(live.lastEvent == "OnHitNPC" && live.lastDamage == 17);
+        assert(live.lastResult == 19);
+        for (int i = 0; i < 10 && live.queued < 2; ++i) {
+            bl::csharp::queueManagedLiveKill(1136, 18);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            live = bl::csharp::managedLiveHitStatus();
+        }
+        waitEvent(2);
+        assert(live.hitProcessed == 1 && live.killProcessed == 1);
+        assert(live.lastEvent == "OnKill" && live.lastDamage == 18);
+        assert(live.lastResult == 21 && live.failures == 0);
+        live = bl::csharp::pauseManagedLiveHit();
+        assert(!live.enabled && live.phase == "paused");
+        bl::csharp::queueManagedLiveKill(1136, 30);
+        assert(bl::csharp::managedLiveHitStatus().queued == 2);
+        assert(value("test_entries") == 0 && value("test_exits") == 0);
     }
     std::printf("PASS pinned GC lifecycle: %s\n", argv[2]);
     std::fflush(stdout);
