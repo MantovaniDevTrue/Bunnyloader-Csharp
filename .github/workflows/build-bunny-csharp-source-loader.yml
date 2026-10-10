@@ -76,6 +76,7 @@ on:
       - bunny-csharp-source-0.1.10.16.54-mono-startup-stages
       - bunny-csharp-source-0.1.10.16.55-mono-pre-domain-controls
       - bunny-csharp-source-0.1.10.16.56-mono-domain-thread-audit
+      - bunny-csharp-source-0.1.10.16.57-mono-arm64-signals
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -90,7 +91,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150
     env:
       RUNTIME_TAG: runtime-1.4.5.8.6
       RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
@@ -578,6 +579,41 @@ jobs:
           print("CSHARP_AUTOMATIC_LOADER_STATIC_CHECK=PASS")
           PY
 
+      - name: Build patched MonoVM 8.0.23 Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/Split/Bunny-Loader"
+          SRC="$RUNNER_TEMP/dotnet-runtime"
+          git clone --filter=blob:none --depth 1 --branch v8.0.23 https://github.com/dotnet/runtime.git "$SRC"
+          TARGET="$SRC/src/mono/mono/utils/mono-threads-posix-signals.c"
+          python3 "$ROOT/tools/mono/patch_mono_android_signals.py" "$TARGET"
+          python3 "$ROOT/tests/test_mono_android_signals_patch.py" "$TARGET"
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/30.0.16248370"
+          export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          cd "$SRC"
+          ./build.sh mono -os android -arch arm64 -c Release -p:MonoEnableLLVM=false -p:DisableCrossgen=true
+          OUT="$RUNNER_TEMP/bunny-mono-arm64"
+          mkdir -p "$OUT"
+          FOUND=0
+          while IFS= read -r candidate; do
+            if readelf -Ws "$candidate" | grep 'mono_bunny_android_signal_policy_v1' >/dev/null; then
+              cp "$candidate" "$OUT/libmonosgen-2.0.so"
+              FOUND=1
+              break
+            fi
+          done < <(find "$SRC/artifacts" -type f -name libmonosgen-2.0.so)
+          if [ "$FOUND" != 1 ]; then
+            echo "No ARM64 Mono library with exported alternative signal policy was produced" >&2
+            exit 1
+          fi
+          file "$OUT/libmonosgen-2.0.so"
+          readelf -h "$OUT/libmonosgen-2.0.so" | grep -q AArch64
+          readelf -Ws "$OUT/libmonosgen-2.0.so" | grep 'mono_jit_init' >/dev/null
+          echo "MONO_PATCHED_SO=$OUT/libmonosgen-2.0.so" >> "$GITHUB_ENV"
+          sha256sum "$OUT/libmonosgen-2.0.so"
+
       - name: Stage experimental MonoVM and managed probe
         shell: bash
         run: |
@@ -629,6 +665,18 @@ jobs:
           (root / "framework.sha256").write_text(manifest, encoding="utf-8")
           print(f"MANAGED_FRAMEWORK_FINGERPRINT_READY=YES files={len(libraries)}")
           PY
+
+      - name: Install patched MonoVM ARM64 in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so"
+          test -s "$MONO_PATCHED_SO"
+          cp "$MONO_PATCHED_SO" "$DEST"
+          readelf -h "$DEST" | grep -q AArch64
+          readelf -Ws "$DEST" | grep 'mono_bunny_android_signal_policy_v1' >/dev/null
+          readelf -Ws "$DEST" | grep 'mono_thread_attach' >/dev/null
+          echo "BUNNY_MONO_ARM64_RT_SIGNAL_LIBRARY_STAGED=YES"
 
       - name: Integrate Terraria runtime
         shell: bash
@@ -703,7 +751,7 @@ jobs:
           unzip -l "$APK" | grep -q "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -q "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -q "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='81' versionName='0.1.10.16.56-csharp-mono-domain-thread-audit'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -q "versionCode='81' versionName='0.1.10.16.57-csharp-mono-arm64-signals'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -726,7 +774,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.56-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -740,9 +788,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.56"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.57"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.56-AutoSourceLoader.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -750,8 +798,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.56 — MonoVM Domain Thread Audit" \
-              --notes "v0.1.10.16.56 DOMAIN_THREAD_AUDIT captures native thread snapshots before and after mono_jit_init, then at 2, 5, 15, 30, 60, and 120 seconds. This opt-in diagnostic may reproduce SIGABRT. Safe pre-domain controls are preserved; no invasive trace hooks installed." \
+              --title "Bunny Loader C# v0.1.10.16.57 — MonoVM ARM64 Alternative Signals" \
+              --notes "v0.1.10.16.57 Experimental Mono 8.0.23 ARM64 rebuilt with real-time signals, guarded by preflight; pinned Mono owner GC-safe wait preserved. This test requires Android validation and is not yet stable." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -776,7 +824,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.56-AutoSourceLoader.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.57-AutoSourceLoader.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
