@@ -303,7 +303,8 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     g_status.result = 0;
     g_status.error.clear();
     trace("stage-checking-assembly");
-    if (stage != "LIBRARY_ONLY" && stage != "DOMAIN_ONLY" &&
+    if (stage != "LIBRARY_ONLY" && stage != "PATH_ONLY" &&
+        stage != "SYSTEM_NATIVE_ONLY" && stage != "DOMAIN_ONLY" &&
         stage != "ATTACH_ONLY")
         return failure("stage-invalid", "Unsupported staged MonoVM probe");
     if (!validAssembly(assemblyPath))
@@ -319,6 +320,10 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
             trace("stage-setting-assembly-path");
             g_api.setAssembliesPath(assemblyPath.substr(0, slash).c_str());
         }
+        if (stage == "PATH_ONLY") {
+            trace("path-only-verified");
+            return g_status;
+        }
 #ifdef __ANDROID__
         trace("stage-checking-system-native");
         void* systemNative = dlopen("libSystem.Native.so", RTLD_NOW | RTLD_LOCAL);
@@ -329,6 +334,10 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
         }
         trace("stage-system-native-ready");
 #endif
+        if (stage == "SYSTEM_NATIVE_ONLY") {
+            trace("system-native-only-verified");
+            return g_status;
+        }
         trace("stage-initializing-domain");
         g_domain = g_api.initialize("BunnyCSharp");
         if (!g_domain)
