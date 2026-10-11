@@ -4,7 +4,9 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
-**.76 experimental (11/10/2026):** CI e APK aprovados para teste de reentrada em mundos e pausa seletiva dos callbacks de um mod adicional; `worldEpoch`, FIFO64 e worker MonoVM preservados. Aguardando teste Android para promover. A .75 segue baseline para dois mods/60 FPS e a pausa **não** equivale a unload gerenciado real.
+**.76 validada funcionalmente (11/10/2026):** pausa do segundo mod com `paused=true`, `SecondBolt.enabled=false` e primeiro mod ativo; após saída e reentrada, `SecondBolt.enabled=true`. Ambos os mods `ready` e `cached=true`; 200/200 eventos globais, zero falhas/descartes, sem quedas de FPS relatadas. A .76 agora é baseline para esse fluxo; .75 fica como rollback. Ainda faltam hot-unload efetivo, alteração segura de mods ativos, medição de RSS/frametime e multiplayer.
+
+**.76 — histórico do CI:** APK aprovada, com `worldEpoch`, FIFO64 e worker MonoVM preservados; Android foi validado posteriormente conforme registro acima. A pausa **não** equivale a unload gerenciado real.
 
 **.75 validada funcionalmente no Android (11/10/2026):** dois mods C# ativos, 256/256 eventos processados e SecondBolt 100/100 sem falhas/descartes. **100 inimigos numa Blood Moon e 60 FPS sem quedas relatadas pelo usuário.** A .75 é a baseline para dois mods no cenário comprovado; a .74 permanece rollback. Testes de pausa, hot-unload real, reinício de mundo e multiplayer seguem pendentes.
 
