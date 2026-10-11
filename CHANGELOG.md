@@ -2,6 +2,13 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## 0.1.10.16.69 — simulações de IA de projéteis e NPCs em QuickJS × MonoVM (aguarda Android)
+- Adiciona `bl.csharp.vmGameplayCompareStart("projectile", ticks)` e `vmGameplayCompareStart("npc", ticks)`, mantendo `vmCompareStart` da .68.
+- Ambos usam 64 estados de entidades simuladas, operações determinísticas de perseguição, movimentação/limites e decisão/cooldown, e checam igualdade exata do resultado calculado em QuickJS e na DLL C# gerenciada `BunnyVmGameplay69.dll`.
+- Novos status `kind`, `entities`, `updates`, latência CPU/parede e checksums no `vmCompareStatus()`. Até quatro testes por sessão, com 64–5.000 ticks por teste de IA, sem mutar o mundo Terraria ou os mods instalados.
+- Build verifica DLL contra as funções JS usando três durações e SHA-256 de entrega ao processo do jogo.
+- **Não é IA executando dentro do Terraria nem medição de FPS/custo total da ponte de mod**. Após validar .69, próxima fase será comparar callbacks e gameplay reais.
+
 ## 0.1.10.16.68 — correção e paridade QuickJS × MonoVM VALIDADAS no Android
 - Corrige uma lacuna de instalação da .67: embora o APK e o CI contivessem `BunnyVmBenchmark67.dll`, o processo de jogo não garantia extrair novas DLLs caso o serviço/worker C# não fosse iniciado após atualização.
 - `GameActivity` agora confere SHA-256 do manifesto, copia a DLL apenas quando ausente/desatualizada, valida após instalar e registra o resultado no log. Executa antes do início dos hooks nativos, sem depender de recompilar mods.

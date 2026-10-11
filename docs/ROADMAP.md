@@ -15,7 +15,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | 6 | Estudar sincronização multiplayer | Implementação e testes próprios; não ativar por suposição |
 | 7 — concluída para o kernel isolado | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | Android: `matched`, checksum idêntico, 1 milhão de iterações, 445,536 ms QuickJS contra 6,040 ms MonoVM; razão 73,764× válida apenas para o algoritmo testado |
 | 7a — parcialmente concluída | Repetir benchmarks e obter distribuição | 500 mil, 1 milhão e 2 milhões de iterações aprovados; três repetições adicionais de 1M com 73,75×/74,27×/75,86× e paridade exata; faltam repetições de 500 mil e 2M e testes de integração em gameplay |
-| 7b — próxima | Comparar gameplay e ponte completa | Mesmo evento/cena/carga, FPS/p90/RSS e overhead de integração por método, além de cálculos isolados |
+| 7b — em desenvolvimento | Comparar IA computacional QuickJS × MonoVM (.69) | Duas cargas de 64 entidades simuladas, paridade exata por checksum e custo CPU/parede; ainda requer build/Android, não representa IA Terraria real |
+| 7c — próxima | Comparar callbacks e gameplay reais | Mesmo evento/cena/carga, FPS/p90/RSS e overhead de integração por método, sem confundir simulação com mundo Terraria |
 | 8 | Preparar publicação para usuários | API documentada, compatibilidade declarada por recurso, estabilidade demonstrada |
 
 ## Princípios

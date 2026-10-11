@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .69 — simulações equivalentes de IA QuickJS × MonoVM (aguarda build/Android)
+
+Implementados dois benchmarks novos, **opt-in**, com o mesmo estado inicial/algoritmo em JavaScript QuickJS e C# no MonoVM real: **64 projéteis** simulados (aceleração em direção ao alvo, arrasto, limites/rebote) e **64 NPCs** simulados (seleção de alvo, deslocamento, cooldown e estados de ataque). O resultado inteiro é verificado exatamente em cada ambiente; medimos tempo de parede, CPU por thread e RSS global. O workflow compara os 2 algoritmos × 3 durações antes de publicar.
+
+**Distinção obrigatória:** são simulações de lógica **inspiradas** nas interfaces de `ProjectileLoader`/`NPCLoader` do Bunny Loader; **não são instâncias reais do Terraria, nem equivalem a executar o callback completo do mod**. O profiler `.65` continua medindo callbacks verdadeiros separadamente. A `.68` permanece validada e preservada; `.69` ainda requer teste Android. [Protocolo .69](vm-ai-parity-v69.md).
+
 ## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
 **Repetibilidade preliminar na mesma carga confirmada (três execuções × 1 milhão):** todos os checksums iguais `1336190628`, `passed=true`, `phase="matched"`, erros vazios. QuickJS: **334,217 / 334,131 / 340,668 ms**; MonoVM: **4,532 / 4,499 / 4,491 ms**; razões por execução **73,746× / 74,268× / 75,856×**. Médias: **336,339 ms** e **4,507 ms**, razão das médias ~**74,62×**. Resultado restrito a algoritmo matemático isolado, não gameplay nem ganho de FPS. [Tabela com métricas completas](vm-parity-v68.md).

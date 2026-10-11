@@ -4,7 +4,7 @@
 
 > **Projeto independente de pesquisa e desenvolvimento.** Esta extensão **não é o Bunny Loader oficial**, não é uma implementação do tModLoader e ainda não oferece compatibilidade geral com mods de PC. O projeto original do Jonata continua sendo a referência do loader; os componentes de C# são experimentais.
 
-## Estado atual — 10/10/2026
+## Estado atual — 11/10/2026
 
 | Etapa | Situação comprovada |
 | --- | --- |
