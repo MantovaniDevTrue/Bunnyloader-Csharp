@@ -28,7 +28,7 @@ struct ManagedLiveQueuedEvent {
     uint64_t enqueuedAtNs = 0;
     int bindingSlot = -1;
     int npcIndex = -1;
-    ManagedNpcSnapshot npc;
+    ManagedNpcSnapshot npc{};
 };
 
 class ManagedLiveEventQueue {
