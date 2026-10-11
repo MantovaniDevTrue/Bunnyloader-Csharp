@@ -462,7 +462,8 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                     if (state.modId == modId)
                         state.worldReady = context.worldReady;
             }
-            if (managedLiveHitStatus().enabled) return;
+            const auto live = managedLiveHitStatus();
+            if (live.enabled && live.modId == modId) return;
             ManagedRuntimeStatus mono = managedRuntimeStatus();
             if (!mono.domainInitialized || !mono.methodExecuted)
                 mono = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
@@ -472,9 +473,19 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 return;
             }
             std::string error;
-            if (enableManagedLiveHit(modId, dll, projectileType, &error, true)) {
-                BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d",
-                        modId.c_str(), projectileType);
+            const bool success = live.enabled
+                ? enableManagedLiveMod(modId, dll, projectileType, [&] {
+                      for (const auto& sourceMod : sourceModStatuses())
+                          if (sourceMod.id == modId)
+                              for (const auto& [name, unused] : sourceMod.registeredTypes)
+                                  if (runtime::modProjectileTypeByName(modId, name) == projectileType)
+                                      return name;
+                      return std::string();
+                  }(), &error)
+                : enableManagedLiveHit(modId, dll, projectileType, &error, true);
+            if (success) {
+                BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d%s",
+                        modId.c_str(), projectileType, live.enabled ? " (mod adicional)" : "");
                 const std::string root = mods::rootOf(modId);
                 for (const auto& mod : sourceModStatuses()) {
                     if (mod.id != modId || !mod.loaded || !mod.runtimeApplied)
@@ -658,8 +669,10 @@ void run() {
                     effect.modId.c_str(), effect.name.c_str(), error.c_str());
     }
     BL_INFO("csharp auto: curvas e efeitos OnHitNPC/OnKill registrados");
+    std::set<std::string> liveMods;
+    std::vector<std::pair<std::string, int>> bindings;
     for (const auto& effect : pendingCombat) {
-        if (effect.kill) continue;
+        if (effect.kill || liveMods.contains(effect.modId)) continue;
         const std::string root = mods::rootOf(effect.modId);
         if (root.empty()) continue;
         const std::string declared = readText(
@@ -673,12 +686,14 @@ void run() {
         if (!hit.registered || !hit.enabled || !hit.installed ||
             !kill.registered || !kill.enabled || !kill.installed ||
             hit.type < 0 || hit.type != kill.type) continue;
-        const std::string id = effect.modId;
-        const int type = hit.type;
-        std::thread([id, type, work] {
-            bindLiveEventsOnWorld(id, type, work);
+        liveMods.insert(effect.modId);
+        bindings.emplace_back(effect.modId, hit.type);
+    }
+    if (!bindings.empty()) {
+        std::thread([bindings = std::move(bindings), work] {
+            for (const auto& [id, type] : bindings)
+                bindLiveEventsOnWorld(id, type, work);
         }).detach();
-        break;
     }
 }
 
