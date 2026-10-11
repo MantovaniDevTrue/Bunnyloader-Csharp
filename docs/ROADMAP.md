@@ -4,6 +4,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
+**.75 experimental (11/10/2026):** CI e APK aprovados para roteamento por modId e assembly em um único worker; segundo ExampleMod compilado com UID próprio. Aguardando teste de dois mods simultâneos no celular, antes de declarar a arquitetura multi-mod estável.
+
 - **.73** é referência funcional Android para dois projéteis e callbacks separados: 985/985 eventos totais e 879/879 secundários sem falhas/descartes, sem FPS medido nesta rodada.
 - **.74** remove NativeAOT apenas do build e startup principais, preserva C++ e biblioteca de mods nativos legados; realizar regressão no celular antes de promover.
 - Próximos passos após .74: múltiplos mods independentes, ciclo de vida de world unload/reload, benchmark RSS/CPU, multiplayer e métodos C# adicionais baseados no ExampleModBunny.
