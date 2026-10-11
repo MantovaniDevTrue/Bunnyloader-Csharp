@@ -1394,7 +1394,25 @@ jobs:
           test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
           test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
 
+      - name: Upload verified APK and CSharp mods as Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: BunnyLoader-CSharp-v0.1.10.16.83-NpcSnapshot
+          path: |
+            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.16.83-NpcSnapshot.apk
+            ${{ runner.temp }}/BunnyLoader-CSharp-Test-v0.1.10.16.83-NpcSnapshot.apk.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.11.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.11.bmod.sha256
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish signed APK as GitHub Release asset
+        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
