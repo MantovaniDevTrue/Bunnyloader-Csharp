@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.8",
+  "exampleModCSharpVersion": "0.1.9",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -147,6 +147,14 @@
         "ExampleWaveWand",
         "ExampleWaveBolt",
         "ExampleWaveBoltMotion"
+      ]
+    },
+    {
+      "id": "secondary_managed_live_callbacks",
+      "status": "experimental",
+      "examples": [
+        "ExampleWaveBoltLiveEvents",
+        "ExampleWaveBolt"
       ]
     }
   ]
