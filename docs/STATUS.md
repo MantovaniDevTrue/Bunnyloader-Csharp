@@ -1,10 +1,14 @@
 # Estado real do desenvolvimento
 
-## .69 — simulações equivalentes de IA QuickJS × MonoVM (aguarda build/Android)
+## .69 — simulações equivalentes de IA QuickJS × MonoVM VALIDADAS no Android
+
+**Primeiro teste Android de cada kernel aprovado:** 64 estados × 2.000 ticks = 128.000 atualizações por modo. Projéteis: QuickJS 126,129 ms / MonoVM 4,598 ms, razão 27,431× e checksum `-639270423`. NPCs: QuickJS 141,222 ms / MonoVM 6,566 ms, razão 21,508× e checksum `-698099503`. Ambos com `passed=true`, `phase="matched"`, `error=""`. **São simulações sem NPCs/projéteis reais**. [Relatório completo](vm-ai-parity-v69.md).
+
+
 
 Implementados dois benchmarks novos, **opt-in**, com o mesmo estado inicial/algoritmo em JavaScript QuickJS e C# no MonoVM real: **64 projéteis** simulados (aceleração em direção ao alvo, arrasto, limites/rebote) e **64 NPCs** simulados (seleção de alvo, deslocamento, cooldown e estados de ataque). O resultado inteiro é verificado exatamente em cada ambiente; medimos tempo de parede, CPU por thread e RSS global. O workflow compara os 2 algoritmos × 3 durações antes de publicar.
 
-**Distinção obrigatória:** são simulações de lógica **inspiradas** nas interfaces de `ProjectileLoader`/`NPCLoader` do Bunny Loader; **não são instâncias reais do Terraria, nem equivalem a executar o callback completo do mod**. O profiler `.65` continua medindo callbacks verdadeiros separadamente. A `.68` permanece validada e preservada; `.69` ainda requer teste Android. [Protocolo .69](vm-ai-parity-v69.md).
+**Distinção obrigatória:** são simulações de lógica **inspiradas** nas interfaces de `ProjectileLoader`/`NPCLoader` do Bunny Loader; **não são instâncias reais do Terraria, nem equivalem a executar o callback completo do mod**. O profiler `.65` continua medindo callbacks verdadeiros separadamente. A `.68` permanece validada e preservada; os dois modos da `.69` passaram na primeira amostra Android, faltando repetições e medições de gameplay real. [Protocolo .69](vm-ai-parity-v69.md).
 
 ## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
