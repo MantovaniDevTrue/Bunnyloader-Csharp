@@ -88,6 +88,7 @@ on:
       - bunny-csharp-source-0.1.10.16.66-quickjs-monovm-parity
       - bunny-csharp-source-0.1.10.16.67-unique-benchmark-assembly
       - bunny-csharp-source-0.1.10.16.68-game-benchmark-asset-install
+      - bunny-csharp-source-0.1.10.16.69-managed-ai-parity
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -352,8 +353,8 @@ jobs:
                     "vmCompareStart", "vmCompareStatus"]:
               assert t in api, t
           assert "struct VmCompareStatus" in h
-          assert 'image, "BunnyLoader.VmBenchmark67", "Kernel"' in cpp
-          assert '"Execute", 2' in cpp
+          assert 'math ? "BunnyLoader.VmBenchmark67" : "BunnyLoader.VmGameplay69"' in cpp
+          assert '"Execute"' in cpp and 'g_api.findMethod(klass, methodName, 2)' in cpp
           assert "g_vmCompare.monoResult" in cpp
           assert "done.result == g_vmCompare.jsResult" in cpp
           assert "JS_EVAL_TYPE_GLOBAL" in api
@@ -374,12 +375,38 @@ jobs:
               assert constant in kernel and constant in (
                   root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
           assert '"BunnyVmBenchmark67.dll"' in native
-          assert '"BunnyLoader.VmBenchmark67", "Kernel"' in native
-          assert '"Execute", 2' in native
+          assert '"BunnyLoader.VmBenchmark67"' in native
+          assert '"Execute"' in native and 'g_api.findMethod(klass, methodName, 2)' in native
           assert "AssemblyName>BunnyVmBenchmark67</AssemblyName" in project
           assert "public static int Execute(int iterations, int seed)" in kernel
           assert "result == g_vmCompare.jsResult" in native or "done.result == g_vmCompare.jsResult" in native
           print("BUNNY_BENCHMARK67_UNIQUE_MANAGED_ASSEMBLY_SOURCE=PASS")
+          PY
+
+      - name: Verify AI benchmark parity API and original Bunny JS AI patterns
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          native = (root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text()
+          bridge = (root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          ai = (root/"experiments/csharp/BunnyVmGameplay69/Kernel.cs").read_text()
+          for name in ["kVmProjectileJs", "kVmNpcJs", "jsVmGameplayCompareStart", "vmGameplayCompareStart"]:
+              assert name in bridge, name
+          for name in ["Projectile(int ticks, int seed)", "Npc(int ticks, int seed)", "Math.Abs(dx)"]:
+              assert name in ai, name
+          assert "int kind = 0;" in header
+          assert '"BunnyVmGameplay69.dll"' in native
+          assert 'g_api.findMethod(klass, methodName, 2)' in native
+          assert 'kind == 1 ? "Projectile" : kind == 2 ? "Npc" : "Execute"' in native
+          assert 'sample.kind = kind;' in bridge
+          assert 'kind == 0 ? 4096 : 64' in native and 'kind == 0 ? 4096 : 64' in bridge
+          for loader, name in [("ProjectileLoader.js", "m.AI(p)"), ("NPCLoader.js", "m.AI(npc)")]:
+              folder = root/"app/src/main/cpp/script/js/mod/Loaders"
+              assert name in (folder/loader).read_text(), loader
+          print("CSHARP_AI_SIMULATION_PARITY_SOURCE_GUARDS=PASS")
           PY
 
       - name: Verify benchmark assembly extracted before game core loads
@@ -390,10 +417,10 @@ jobs:
           src = Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/GameActivity.kt").read_text()
           worker = Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt").read_text()
           required = [
-              'ensureVmBenchmarkAssembly()',
+              'ensureVmBenchmarkAssembly(assembly)',
               'assets.open("managed/framework.sha256")',
               'assets.open("managed/$name")',
-              'val name = "BunnyVmBenchmark67.dll"',
+              'listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll")',
               'val dir = File(filesDir, "bunny-csharp")',
               'sha256(temporary) == expected',
               'sha256(target) == expected',
@@ -402,7 +429,7 @@ jobs:
           ]
           for token in required:
               assert token in src, token
-          assert src.index('runCatching { ensureVmBenchmarkAssembly() }') < src.index('startNativeCore() else')
+          assert src.index('runCatching { ensureVmBenchmarkAssembly(assembly) }') < src.index('startNativeCore() else')
           assert 'private fun installManagedFramework(dir: File)' in worker
           assert 'assets.list("managed")' in worker
           print("BUNNY_CSHARP_GAME_ASSEMBLY_EXTRACTION_GUARDS=PASS")
@@ -849,6 +876,10 @@ jobs:
             -c Release --nologo
           cp "$ROOT/experiments/csharp/BunnyVmBenchmark67/bin/Release/net8.0/BunnyVmBenchmark67.dll" \
             "$ASSETS/BunnyVmBenchmark67.dll"
+          dotnet build "$ROOT/experiments/csharp/BunnyVmGameplay69/BunnyVmGameplay69.csproj" \
+            -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnyVmGameplay69/bin/Release/net8.0/BunnyVmGameplay69.dll" \
+            "$ASSETS/BunnyVmGameplay69.dll"
           VERIFIER="$RUNNER_TEMP/bunny-managed-benchmark-verify"
           mkdir -p "$VERIFIER"
           cat > "$VERIFIER/Verify.csproj" <<'CSHTML'
@@ -878,6 +909,64 @@ jobs:
           dotnet run --project "$VERIFIER/Verify.csproj" --configuration Release \
             -- "$ASSETS/BunnyVmBenchmark67.dll"
           test -s "$ASSETS/BunnyVmBenchmark67.dll"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, json, re
+          cpp = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          found = {}
+          for name in ("kVmProjectileJs", "kVmNpcJs"):
+              m = re.search(r'constexpr char ' + name + r'\[\] = R"JS\(\n(.*?)\n\)JS";', cpp, re.S)
+              assert m, name
+              found[name] = m.group(1)
+          Path(os.environ["RUNNER_TEMP"], "vm-ai-kernels-69.json").write_text(json.dumps(found))
+          print("BUNNY_AI_JS_KERNELS_EXTRACTED=PASS")
+          PY
+          node - <<'NODE'
+          const fs = require("fs");
+          const path = process.env.RUNNER_TEMP;
+          const source = JSON.parse(fs.readFileSync(path + "/vm-ai-kernels-69.json", "utf8"));
+          const rows = [];
+          for (const [key, method] of [["kVmProjectileJs", "Projectile"], ["kVmNpcJs", "Npc"]]) {
+              const routine = eval(source[key]);
+              for (const ticks of [64, 512, 2000]) {
+                  const checksum = routine(ticks, 0x12345678);
+                  if (!Number.isInteger(checksum)) throw new Error("invalid JS checksum");
+                  rows.push([method, ticks, checksum].join("\t"));
+              }
+          }
+          fs.writeFileSync(path + "/vm-ai-expected-69.tsv", rows.join("\n") + "\n");
+          console.log("BUNNY_AI_JAVASCRIPT_CHECKSUMS=PASS\n" + rows.join("\n"));
+          NODE
+          AIVERIFIER="$RUNNER_TEMP/bunny-managed-ai-verify"
+          mkdir -p "$AIVERIFIER"
+          cp "$VERIFIER/Verify.csproj" "$AIVERIFIER/Verify.csproj"
+          cat > "$AIVERIFIER/Program.cs" <<'CSCODE'
+          using System;
+          using System.IO;
+          using System.Reflection;
+          var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
+          var type = assembly.GetType("BunnyLoader.VmGameplay69.Kernel", true)!;
+          int checkedCount = 0;
+          foreach (var line in File.ReadLines(args[1]))
+          {
+              var cells = line.Split('\t');
+              var method = type.GetMethod(cells[0], BindingFlags.Public | BindingFlags.Static,
+                  null, new[] {typeof(int), typeof(int)}, null);
+              if (method == null) throw new Exception("Missing managed " + cells[0]);
+              int ticks = int.Parse(cells[1]);
+              int expected = int.Parse(cells[2]);
+              int actual = (int)method.Invoke(null, new object[] {ticks, 0x12345678})!;
+              if (actual != expected)
+                  throw new Exception("AI mismatch " + cells[0] + " ticks=" + ticks +
+                      " JS=" + expected + " Mono=" + actual);
+              checkedCount++;
+          }
+          if (checkedCount != 6) throw new Exception("Expected 6 parity cases, got " + checkedCount);
+          Console.WriteLine("BUNNY_AI_MANAGED_JS_CHECKSUM_MATCH=PASS cases=" + checkedCount);
+          CSCODE
+          dotnet run --project "$AIVERIFIER/Verify.csproj" -c Release -- \
+            "$ASSETS/BunnyVmGameplay69.dll" "$RUNNER_TEMP/vm-ai-expected-69.tsv"
+          test -s "$ASSETS/BunnyVmGameplay69.dll"
           test -s "$ASSETS/System.Private.CoreLib.dll"
           test -s "$ASSETS/BunnyManagedProbe.dll"
           echo "MONO_LIBRARY_BUNDLED=YES"
@@ -992,9 +1081,10 @@ jobs:
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnymonoprobe.so"
           unzip -l "$APK" | grep -F "assets/managed/BunnyManagedProbe.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmBenchmark67.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='93' versionName='0.1.10.16.68-csharp-benchmark-game-asset-install'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='94' versionName='0.1.10.16.69-csharp-managed-ai-parity'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1017,7 +1107,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.68-VMParityAssetInstall.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1031,9 +1121,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.68"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.69"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.68-VMParityAssetInstall.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1041,8 +1131,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.68 — Benchmark Assembly Game Startup Fix" \
-              --notes "v0.1.10.16.68 Fix .67 Android file-not-found by extracting the SHA-256 verified bundled BunnyVmBenchmark67.dll at game activity startup, before native core; no worker invocation required. Existing .67 unique benchmark code, QuickJS math, .65 gameplay and ExampleModCSharp 0.1.7 unchanged. Android comparison pending." \
+              --title "Bunny Loader C# v0.1.10.16.69 — Managed AI Workload Parity" \
+              --notes "v0.1.10.16.69 Adds controlled QuickJS vs genuine MonoVM AI-style simulation comparisons for 64 projectile and 64 NPC states, with exact integer checksums, wall/CPU time and bounded iteration count. Dedicated BunnyVmGameplay69.dll is bundled, SHA256 installed at game startup and verified against QuickJS in CI. Simulated workload only, NOT Terraria live entity AI/FPS equivalence. .68 math and .65 live profiler preserved; ExampleModCSharp 0.1.7 unchanged." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -1067,7 +1157,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.68-VMParityAssetInstall.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
