@@ -22,6 +22,7 @@
 #include <dirent.h>
 #include <fstream>
 #include <iomanip>
+#include <cstdint>
 #include <mutex>
 #include <sstream>
 #include <set>
@@ -42,6 +43,11 @@ std::atomic<bool> g_started{false};
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
 std::atomic<int> g_worldReadyFrames{0};
+std::atomic<int> g_worldMenuPollFrames{0};
+std::atomic<uint64_t> g_worldEpoch{0};
+std::atomic<uint64_t> g_liveBoundEpoch{0};
+std::vector<std::pair<std::string, int>> g_pendingLiveSpecs;
+std::string g_pendingLiveWork;
 
 struct Curve {
     std::string modId;
@@ -447,11 +453,13 @@ ActivationContext readActivationContext() {
 }
 
 void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
-                           const std::string& work) {
+                           const std::string& work, uint64_t epoch) {
     il2cpp::api().thread_attach(il2cpp::api().domain_get());
     const std::string dll = work + "compiled/" + modId + ".dll";
     const std::string probe = work + "BunnyManagedProbe.dll";
     for (int attempt = 0; attempt < 14400; ++attempt) {
+        if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
+            !g_worldSessionReady.load(std::memory_order_acquire)) return;
         const ActivationContext context = readActivationContext();
         if (context.netMode == 0 &&
             (context.gameMenu == 0 ||
@@ -472,6 +480,8 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                         modId.c_str(), mono.phase.c_str());
                 return;
             }
+            if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
+                !g_worldSessionReady.load(std::memory_order_acquire)) return;
             std::string error;
             const bool success = live.enabled
                 ? enableManagedLiveMod(modId, dll, projectileType, [&] {
@@ -523,6 +533,29 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                     modId.c_str());
         std::this_thread::sleep_for(1000ms);
     }
+}
+
+void scheduleAutoLiveBindings() {
+    if (!g_worldSessionReady.load(std::memory_order_acquire)) return;
+    const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+    if (epoch == 0) return;
+    std::vector<std::pair<std::string, int>> bindings;
+    std::string work;
+    {
+        std::lock_guard<std::mutex> guard(g_lock);
+        if (g_pendingLiveSpecs.empty() ||
+            g_liveBoundEpoch.load(std::memory_order_relaxed) == epoch) return;
+        g_liveBoundEpoch.store(epoch, std::memory_order_release);
+        bindings = g_pendingLiveSpecs;
+        work = g_pendingLiveWork;
+    }
+    std::thread([bindings = std::move(bindings), work, epoch] {
+        for (const auto& [id, type] : bindings) {
+            if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
+                !g_worldSessionReady.load(std::memory_order_acquire)) return;
+            bindLiveEventsOnWorld(id, type, work, epoch);
+        }
+    }).detach();
 }
 
 void run() {
@@ -690,25 +723,48 @@ void run() {
         bindings.emplace_back(effect.modId, hit.type);
     }
     if (!bindings.empty()) {
-        std::thread([bindings = std::move(bindings), work] {
-            for (const auto& [id, type] : bindings)
-                bindLiveEventsOnWorld(id, type, work);
-        }).detach();
+        {
+            std::lock_guard<std::mutex> guard(g_lock);
+            g_pendingLiveSpecs = std::move(bindings);
+            g_pendingLiveWork = work;
+        }
+        scheduleAutoLiveBindings();
     }
 }
 
 }
 
 void noteAutoWorldTilesLoaded() {
+    g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
+    g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
+    if (managedLiveHitStatus().enabled)
+        pauseManagedLiveHit();
     g_worldTilesLoaded.store(true, std::memory_order_release);
 }
 
 void noteAutoGameUpdate() {
-    if (!g_worldTilesLoaded.load(std::memory_order_acquire) ||
-        g_worldSessionReady.load(std::memory_order_acquire))
+    if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
+    if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        if (g_worldMenuPollFrames.fetch_add(
+                1, std::memory_order_relaxed) % 30 != 0) return;
+        const ActivationContext context = readActivationContext();
+        if (context.gameMenu != 1 && context.netMode == 0) return;
+        g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
+        g_worldSessionReady.store(false, std::memory_order_release);
+        g_worldTilesLoaded.store(false, std::memory_order_release);
+        g_worldReadyFrames.store(0, std::memory_order_relaxed);
+        if (managedLiveHitStatus().enabled)
+            pauseManagedLiveHit();
+        {
+            std::lock_guard<std::mutex> guard(g_lock);
+            for (auto& state : g_statuses)
+                state.worldReady = false;
+        }
+        BL_INFO("csharp auto live: callbacks pausados ao sair do mundo");
         return;
+    }
     if (!worldPlayerReady()) {
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         return;
@@ -716,6 +772,7 @@ void noteAutoGameUpdate() {
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         g_worldSessionReady.store(true, std::memory_order_release);
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
+        scheduleAutoLiveBindings();
     }
 }
 
