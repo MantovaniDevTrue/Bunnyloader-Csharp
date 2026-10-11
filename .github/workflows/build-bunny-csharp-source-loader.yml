@@ -330,7 +330,9 @@ jobs:
               assert f'"{function}"' in api
           assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
           assert "g_liveHitType.load(std::memory_order_acquire)" in runtime
-          assert "std::try_to_lock" in runtime
+          assert "std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock)" in runtime
+          assert "attempt < 3 && !lock.owns_lock()" in runtime
+          assert "lock.try_lock()" in runtime
           print("CSHARP_GAMEPLAY_PROFILER_AND_LOCK_GUARDS=PASS")
           PY
 
