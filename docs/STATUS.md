@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .80 — Profiler opcional por projétil C# (experimental, Android pendente)
+## .80 — Profiler opcional por projétil C# (CI/APK success; Android pendente)
 
-Branch `csharp-per-projectile-profiler-v80-experiment` sobre a **.79.1 Android-validada**. Acrescenta a `sourcePerfStatus()` e `sourcePerfStop()` o array `projectiles` com amostras de cada callback dos três tipos de projéteis: fila, tempo wall/CPU, máximos, P90 aproximado, hits/kills e falhas. **Ativado só durante os 15 segundos do profiler**: sem modificação do loop normal de eventos, política de fila, MonoVM, sons ou efeitos. CI inicial passou; **APK e FPS Android ainda em teste**. [Roteiro .80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-per-projectile-profiler-v80-experiment/docs/csharp-per-projectile-profiler-v80.md). A .79.1 continua estável e rollback.
+Branch `csharp-per-projectile-profiler-v80-experiment` sobre a **.79.1 Android-validada**. Acrescenta a `sourcePerfStatus()` e `sourcePerfStop()` o array `projectiles` com amostras de cada callback dos três tipos de projéteis: fila, tempo wall/CPU, máximos, P90 aproximado, hits/kills e falhas. **Ativado só durante os 15 segundos do profiler**: sem modificação do loop normal de eventos, política de fila, MonoVM, sons ou efeitos. **CI e build APK concluídos com sucesso:** [workflow #38171225259](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38171225259); [APK .80 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.80-projectile-profiler) (versionCode 106, 223301581 bytes). **FPS e callbacks da .80 ainda aguardam teste no Android.** [Roteiro .80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-per-projectile-profiler-v80-experiment/docs/csharp-per-projectile-profiler-v80.md). A .79.1 continua estável e rollback.
 
 ## .79.1 — Correções Codex PR #15: CI/APK e Android aprovados (11/10/2026)
 
