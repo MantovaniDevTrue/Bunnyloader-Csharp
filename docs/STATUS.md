@@ -1,5 +1,13 @@
 # Estado real do desenvolvimento
 
+## .76 — World Lifecycle: CI e APK aprovados, aguardando Android (11/10/2026)
+
+O GitHub Actions [#38153843425](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38153843425) terminou **success**. APK `0.1.10.16.76-csharp-world-lifecycle` (versionCode 101, 223.292.081 bytes) e os dois ExampleMods inalterados foram publicados como [prévia .76](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.76-world-lifecycle).
+
+**Implementado:** pausa seletiva de callbacks por `modId`, descartando somente eventos pendentes daquele vínculo enquanto preserva FIFO dos outros; detecção de saída do mundo a cada 30 updates e desarme de callbacks; ciclo `worldEpoch` para impedir binds antigos e rearmar as duas assemblies após nova entrada; sincronização da troca de sessão sem novo worker MonoVM nem alteração da FIFO64. Testes host de pausa, fila, 25 mil eventos e Roslyn passaram; compilação Android aprovada.
+
+**Ainda não testado no celular:** saída e reentrada, nova geração de callbacks, pausa seletiva com um mod continuando ativo e estabilidade de 60 FPS neste fluxo. **Não é hot-unload**, assemblies e conteúdos permanecem no processo. A .75, que passou 100 inimigos na Blood Moon a 60 FPS, permanece como baseline estável e rollback. [Roteiro Android](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-lifecycle-v76-experiment/docs/csharp-world-lifecycle-v76.md).
+
 ## .75 — Multi-Mod Android APROVADO no cenário observado (11/10/2026)
 
 O usuário testou **dois mods C# simultâneos** com **100 inimigos durante Blood Moon**, informando **60 FPS sem quedas observadas**. Prints do editor: `sourceModCount=2`, MonoVM pronto, ambos os mods `ready`; fila global **256/256**, 142 hits, 114 kills, `dropped=0`, `lockDrops=0`, `failures=0`, fila máxima 3/64. `ExampleWaveBolt`: 92/92, 60 hits e 32 kills. `SecondBolt`, de outro UID/assembly: **100/100**, 50 hits e 50 kills, `lastResult=4074`, zero falhas e perdas. Os vínculos adicionais estão incluídos no total global. FPS é **relato do testador**, não um trace; pausa/descarregamento, sessões prolongadas e multiplayer não foram validados.
