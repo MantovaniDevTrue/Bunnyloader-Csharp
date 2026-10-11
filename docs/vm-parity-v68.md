@@ -63,6 +63,21 @@ Razão desta execução: **74,4358×** em tempo decorrido e **73,6405×** em CPU
 
 As três **cargas distintas** mostraram paridade exata e tempos menores no MonoVM, porém ainda há somente uma medição de cada carga; não são três repetições do mesmo teste. Frequência da CPU, aquecimento JIT/GC, execução em threads diferentes e ruído externo podem influenciar os tempos. O RSS mostrado é de todo o processo Android, não uma medição isolada de consumo de memória por linguagem. Não generalizar a razão de ~70–74× a FPS, IA, renderização, filas ou todos os mods. Próxima etapa: repetir cada tamanho algumas vezes e depois medir custos reais da ponte Terraria/JS/MonoVM.
 
+## Repetibilidade no Android — três execuções de 1.000.000 de iterações (11/10/2026)
+
+Na versão .68, três novas execuções com **exatamente a mesma carga** terminaram com `finished=true`, `passed=true`, `phase="matched"`, `error=""`, `jsResult=monoResult=1336190628`. O benchmark usa a mesma rotina de aritmética inteira nos dois runtimes, aquece antes da medição e executa QuickJS e MonoVM em threads distintas.
+
+| Execução | QuickJS decorrido | MonoVM decorrido | Razão de tempo | QuickJS CPU thread | MonoVM CPU thread |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 334.217 µs | 4.532 µs | 73,746× | 331.357 µs | 4.491 µs |
+| 2 | 334.131 µs | 4.499 µs | 74,268× | 331.706 µs | 4.480 µs |
+| 3 | 340.668 µs | 4.491 µs | 75,856× | 336.944 µs | 4.475 µs |
+| Média | 336.339 µs | 4.507 µs | **74,62×** (razão das médias) | 333.336 µs | 4.482 µs |
+
+O QuickJS variou de **334,131 a 340,668 ms** e o MonoVM de **4,491 a 4,532 ms**, mantendo a comparação nesse kernel entre **73,75× e 75,86×**. A razão entre as médias de CPU por thread foi aproximadamente **74,37×**. Valores de memória RSS fornecidos nos screenshots referem-se ao processo Android inteiro, não à memória isolada de JS ou C#.
+
+**Conclusão limitada:** agora existe repetibilidade preliminar na mesma carga (n=3), confirmando uma vantagem de tempo do MonoVM para este cálculo isolado. Isso **não demonstra** ganho equivalente em FPS, renderização, IA, projéteis ou mods completos; uma comparação integrada precisa medir a ponte e os callbacks em condições de gameplay reais. Não usar esses resultados como comparação absoluta entre linguagens.
+
 ## Testar Android
 
 Atualizar para o APK .68 e entrar em um mundo singleplayer com ExampleModCSharp 0.1.7. Consultar o log de boot procurando:
