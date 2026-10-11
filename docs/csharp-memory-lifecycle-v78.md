@@ -1,6 +1,6 @@
 # Bunny Loader C# .78 — monitoramento de memória e ciclo de vida
 
-**Estado:** versão experimental em CI; Android ainda não testado. **Baseline funcional:** .77, dois mods C# com pausa e retomada no mesmo mundo e 379/379 eventos, 60 FPS relatados sem quedas.
+**Estado:** [CI #38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) **success**, APK assinada e [release .78 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) (versionCode 103, 223.294.805 bytes); **Android ainda não testado**. **Baseline funcional:** .77, dois mods C# com pausa e retomada no mesmo mundo e 379/379 eventos, 60 FPS relatados sem quedas.
 
 ## Escopo
 
