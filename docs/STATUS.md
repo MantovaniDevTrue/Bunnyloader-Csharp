@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .77 — Same-world callback resume (experimental; CI e Android pendentes)
+
+Nova branch `csharp-managed-mod-resume-v77-experiment` preparada a partir da **.76 aprovada no Android**. Adiciona `bl.csharp.sourceLiveModResume(modId, "CONFIRM_RESUME_MOD")` para rearmar callbacks de um mod adicional **no mesmo mundo**, sem recarregar assembly nem itens. A pausa agora desarma e remove eventos pendentes do mod sob o mutex da própria FIFO64, fechando uma janela de concorrência no pause/resume rápido; testes host com produtor concorrente e reentrada mantidos. **Ainda não validado no celular; .76 segue baseline.** [Roteiro de validação .77](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-mod-resume-v77-experiment/docs/csharp-managed-mod-resume-v77.md).
+
 ## .76 — Pausa de callbacks por mod e reentrada APROVADAS no Android (11/10/2026)
 
 Com os dois ExampleMods C# ativos, o usuário verificou `sourceLiveModPause` = `{"paused":true,"error":""}`; `SecondBolt.enabled=false`, enquanto `ExampleWaveBolt.enabled=true`. Depois de sair e entrar no mundo, `SecondBolt.enabled=true` novamente e ambos os mods `ready`, `cached=true`, `applied=true`, `worldReady=true`. Contadores de uma captura: fila **200/200** processados (111 hits, 89 kills), pico 3/64, `dropped=0`, `lockDrops=0`, `failures=0`, `ExampleWaveBolt` 66/66 e `SecondBolt` 58/58; eventos secundários inclusos no total. O usuário relatou **nenhuma queda de FPS** nos testes. A restauração `enabled=true` foi comprovada; a medição isolada de novos eventos após a reentrada não consta das capturas.
