@@ -222,6 +222,7 @@ void applyManagedCurve(Il2CppObject* projectile, const runtime::GameRefs& game,
         return;
     const int angleMrad = policy.turns[static_cast<size_t>(entry.ticks++)];
     policy.callbacks.fetch_add(1, std::memory_order_relaxed);
+    noteManagedLivePerfProjectileCurveUpdate();
     policy.lastSlot.store(slot, std::memory_order_relaxed);
     policy.lastTurn.store(angleMrad, std::memory_order_relaxed);
     const Vector2 velocity = runtime::field<Vector2>(projectile, game.entity.velocity);
@@ -240,6 +241,7 @@ void applyManagedCurve(Il2CppObject* projectile, const runtime::GameRefs& game,
     runtime::field<float>(projectile, game.proj.rotation) =
         std::atan2(rotated.y, rotated.x);
     policy.velocityWrites.fetch_add(1, std::memory_order_relaxed);
+    noteManagedLivePerfProjectileVelocityWrite();
 }
 
 void applySparkAi(Il2CppObject* projectile, const runtime::GameRefs& game) {

@@ -99,13 +99,29 @@ struct ManagedLivePerfStatus {
     int updateSamples = 0;
     double updateHz = 0;
     double updateP90Ms = 0;
+    double updateP99Ms = 0;
     int updatesOver25Ms = 0;
     int updatesOver33Ms = 0;
     int callbacksSampled = 0;
     double queueWaitAvgUs = 0;
     int queueWaitMaxUs = 0;
+    int queueWaitSamples = 0;
+    int queueWaitP90Us = 0;
+    int queueWaitP99Us = 0;
     double callbackAvgUs = 0;
     int callbackMaxUs = 0;
+    int callbackP90Us = 0;
+    int callbackP99Us = 0;
+    double callbackCpuAvgUs = 0;
+    int callbackCpuMaxUs = 0;
+    int callbackCpuP90Us = 0;
+    int eventsAccepted = 0;
+    int eventsProcessed = 0;
+    int eventsFailed = 0;
+    int eventsQueueDropped = 0;
+    int maxQueueDepth = 0;
+    int projectileCurveUpdates = 0;
+    int projectileVelocityWrites = 0;
     int lockDrops = 0;
 };
 
@@ -113,6 +129,8 @@ bool startManagedLivePerf(std::string* error);
 ManagedLivePerfStatus managedLivePerfStatus();
 ManagedLivePerfStatus stopManagedLivePerf();
 void noteManagedLivePerfUpdate();
+void noteManagedLivePerfProjectileCurveUpdate();
+void noteManagedLivePerfProjectileVelocityWrite();
 
 struct VmCompareStatus {
     bool started = false;

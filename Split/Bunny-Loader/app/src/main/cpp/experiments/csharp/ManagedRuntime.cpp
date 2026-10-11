@@ -259,6 +259,24 @@ std::atomic<int> g_perfQueueMaxUs{0};
 std::atomic<int> g_perfCallbackMaxUs{0};
 std::atomic<int> g_perfCallbacks{0};
 std::atomic<int> g_perfLockDropBaseline{0};
+std::atomic<int> g_perfQueueSamples{0};
+std::atomic<int64_t> g_perfCallbackCpuTotalUs{0};
+std::atomic<int> g_perfCallbackCpuMaxUs{0};
+std::atomic<int> g_perfAccepted{0};
+std::atomic<int> g_perfProcessed{0};
+std::atomic<int> g_perfFailed{0};
+std::atomic<int> g_perfQueueDropped{0};
+std::atomic<int> g_perfMaxQueueDepth{0};
+std::atomic<int> g_perfProjectileCurveUpdates{0};
+std::atomic<int> g_perfProjectileVelocityWrites{0};
+using PerfUsBuckets = std::array<std::atomic<uint32_t>, 20>;
+PerfUsBuckets g_perfQueueBins{};
+PerfUsBuckets g_perfCallbackBins{};
+PerfUsBuckets g_perfCallbackCpuBins{};
+constexpr std::array<int, 20> kPerfUsThresholds{{
+    25, 50, 75, 100, 150, 200, 250, 350, 500, 700,
+    1000, 1500, 2250, 3500, 5000, 7500, 12000, 20000, 50000, 2147483647
+}};
 constexpr int64_t kPerfDurationNs = 15000000000LL;
 
 int64_t perfNowNs() {
@@ -270,6 +288,33 @@ void updatePerfMax(std::atomic<int>& high, int value) {
     int previous = high.load(std::memory_order_relaxed);
     while (value > previous && !high.compare_exchange_weak(
         previous, value, std::memory_order_relaxed)) {}
+}
+
+int64_t perfThreadCpuNs() {
+    timespec time{};
+    return clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time) == 0
+        ? static_cast<int64_t>(time.tv_sec) * 1000000000LL + time.tv_nsec : 0;
+}
+
+void perfRecordUs(PerfUsBuckets& histogram, int64_t us) {
+    if (us < 0) return;
+    for (size_t i = 0; i < kPerfUsThresholds.size(); ++i) {
+        if (us <= kPerfUsThresholds[i]) {
+            histogram[i].fetch_add(1, std::memory_order_relaxed);
+            break;
+        }
+    }
+}
+
+int perfPercentileUs(const PerfUsBuckets& histogram, int observations, int percentile) {
+    if (observations <= 0) return 0;
+    const int target = (observations * percentile + 99) / 100;
+    int cumulative = 0;
+    for (size_t i = 0; i < kPerfUsThresholds.size(); ++i) {
+        cumulative += static_cast<int>(histogram[i].load(std::memory_order_relaxed));
+        if (cumulative >= target) return kPerfUsThresholds[i];
+    }
+    return 0;
 }
 
 void resetPerfCounters() {
@@ -287,6 +332,19 @@ void resetPerfCounters() {
     g_perfQueueMaxUs.store(0, std::memory_order_relaxed);
     g_perfCallbackMaxUs.store(0, std::memory_order_relaxed);
     g_perfCallbacks.store(0, std::memory_order_relaxed);
+    g_perfQueueSamples.store(0, std::memory_order_relaxed);
+    g_perfCallbackCpuTotalUs.store(0, std::memory_order_relaxed);
+    g_perfCallbackCpuMaxUs.store(0, std::memory_order_relaxed);
+    g_perfAccepted.store(0, std::memory_order_relaxed);
+    g_perfProcessed.store(0, std::memory_order_relaxed);
+    g_perfFailed.store(0, std::memory_order_relaxed);
+    g_perfQueueDropped.store(0, std::memory_order_relaxed);
+    g_perfMaxQueueDepth.store(0, std::memory_order_relaxed);
+    g_perfProjectileCurveUpdates.store(0, std::memory_order_relaxed);
+    g_perfProjectileVelocityWrites.store(0, std::memory_order_relaxed);
+    for (auto& histogram : {&g_perfQueueBins, &g_perfCallbackBins, &g_perfCallbackCpuBins})
+        for (auto& bucket : *histogram)
+            bucket.store(0, std::memory_order_relaxed);
 }
 
 ManagedLiveBenchmarkStatus g_liveBenchmark;
@@ -519,11 +577,14 @@ void* pinnedMonoWorker(void*) {
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
                     const int64_t perfBeginNs = samplePerf ? perfNowNs() : 0;
+                    const int64_t cpuBeginNs = samplePerf ? perfThreadCpuNs() : 0;
                     if (samplePerf && event.enqueuedAtNs && perfBeginNs >= 0 &&
                         perfBeginNs >= static_cast<int64_t>(event.enqueuedAtNs)) {
                         const int64_t delay = (perfBeginNs -
                             static_cast<int64_t>(event.enqueuedAtNs)) / 1000;
                         g_perfQueueTotalUs.fetch_add(delay, std::memory_order_relaxed);
+                        g_perfQueueSamples.fetch_add(1, std::memory_order_relaxed);
+                        perfRecordUs(g_perfQueueBins, delay);
                         updatePerfMax(g_perfQueueMaxUs,
                             static_cast<int>(std::min<int64_t>(delay, 2147483647)));
                     }
@@ -538,11 +599,24 @@ void* pinnedMonoWorker(void*) {
                                 status.lastResult, status.phase, status.error};
                         }();
                     if (samplePerf) {
+                        const int64_t cpuEndNs = perfThreadCpuNs();
                         const int64_t elapsed = (perfNowNs() - perfBeginNs) / 1000;
+                        const int64_t cpuUs = cpuBeginNs > 0 && cpuEndNs >= cpuBeginNs
+                            ? (cpuEndNs - cpuBeginNs) / 1000 : -1;
                         g_perfCallbackTotalUs.fetch_add(elapsed, std::memory_order_relaxed);
+                        perfRecordUs(g_perfCallbackBins, elapsed);
                         updatePerfMax(g_perfCallbackMaxUs,
                             static_cast<int>(std::min<int64_t>(elapsed, 2147483647)));
+                        if (cpuUs >= 0) {
+                            g_perfCallbackCpuTotalUs.fetch_add(cpuUs, std::memory_order_relaxed);
+                            perfRecordUs(g_perfCallbackCpuBins, cpuUs);
+                            updatePerfMax(g_perfCallbackCpuMaxUs,
+                                static_cast<int>(std::min<int64_t>(cpuUs, 2147483647)));
+                        }
                         g_perfCallbacks.fetch_add(1, std::memory_order_relaxed);
+                        g_perfProcessed.fetch_add(1, std::memory_order_relaxed);
+                        if (!callback.ready || callback.phase != "ready")
+                            g_perfFailed.fetch_add(1, std::memory_order_relaxed);
                     }
                     lock.lock();
                     g_liveHitInFlight = false;
@@ -911,7 +985,13 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     if (!g_liveHitQueue.push({
             g_liveHitStatus.queued + 1, damage, isKill, profiledAtNs})) {
         ++g_liveHitStatus.dropped;
+        if (profiledAtNs)
+            g_perfQueueDropped.fetch_add(1, std::memory_order_relaxed);
         return;
+    }
+    if (profiledAtNs) {
+        g_perfAccepted.fetch_add(1, std::memory_order_relaxed);
+        updatePerfMax(g_perfMaxQueueDepth, g_liveHitQueue.size());
     }
     ++g_liveHitStatus.queued;
     g_liveHitStatus.maxQueueDepth = std::max(
@@ -1050,7 +1130,8 @@ bool startManagedLivePerf(std::string* error) {
         return false;
     }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
-        g_liveBenchmark.running || g_liveHitStatus.failures != 0 ||
+        g_liveBenchmark.running || g_vmComparePending || g_vmCompare.running ||
+        g_liveHitStatus.failures != 0 ||
         g_liveHitStatus.modId != kBenchmarkModId) {
         *error = "Aguarde o ExampleModCSharp e os callbacks automaticos em singleplayer";
         return false;
@@ -1101,6 +1182,16 @@ void noteManagedLivePerfUpdate() {
         g_perfOver33.fetch_add(1, std::memory_order_relaxed);
 }
 
+void noteManagedLivePerfProjectileCurveUpdate() {
+    if (g_perfState.load(std::memory_order_relaxed) == 2)
+        g_perfProjectileCurveUpdates.fetch_add(1, std::memory_order_relaxed);
+}
+
+void noteManagedLivePerfProjectileVelocityWrite() {
+    if (g_perfState.load(std::memory_order_relaxed) == 2)
+        g_perfProjectileVelocityWrites.fetch_add(1, std::memory_order_relaxed);
+}
+
 ManagedLivePerfStatus managedLivePerfStatus() {
     ManagedLivePerfStatus result;
     const int state = g_perfState.load(std::memory_order_acquire);
@@ -1133,6 +1224,16 @@ ManagedLivePerfStatus managedLivePerfStatus() {
                 break;
             }
         }
+        const int target99 = (result.updateSamples * 99 + 99) / 100;
+        count = 0;
+        for (int i = 0; i < 26; ++i) {
+            count += static_cast<int>(
+                g_perfUpdateBins[i].load(std::memory_order_relaxed));
+            if (count >= target99) {
+                result.updateP99Ms = static_cast<double>((i + 1) * 4);
+                break;
+            }
+        }
     }
     result.callbacksSampled =
         g_perfCallbacks.load(std::memory_order_relaxed);
@@ -1143,9 +1244,38 @@ ManagedLivePerfStatus managedLivePerfStatus() {
         result.callbackAvgUs = static_cast<double>(
             g_perfCallbackTotalUs.load(std::memory_order_relaxed)) /
             result.callbacksSampled;
+        result.callbackCpuAvgUs = static_cast<double>(
+            g_perfCallbackCpuTotalUs.load(std::memory_order_relaxed)) /
+            result.callbacksSampled;
+        result.callbackP90Us = perfPercentileUs(
+            g_perfCallbackBins, result.callbacksSampled, 90);
+        result.callbackP99Us = perfPercentileUs(
+            g_perfCallbackBins, result.callbacksSampled, 99);
+        result.callbackCpuP90Us = perfPercentileUs(
+            g_perfCallbackCpuBins, result.callbacksSampled, 90);
+    }
+    result.queueWaitSamples = g_perfQueueSamples.load(std::memory_order_relaxed);
+    if (result.queueWaitSamples > 0) {
+        result.queueWaitAvgUs = static_cast<double>(
+            g_perfQueueTotalUs.load(std::memory_order_relaxed)) /
+            result.queueWaitSamples;
+        result.queueWaitP90Us = perfPercentileUs(
+            g_perfQueueBins, result.queueWaitSamples, 90);
+        result.queueWaitP99Us = perfPercentileUs(
+            g_perfQueueBins, result.queueWaitSamples, 99);
     }
     result.queueWaitMaxUs = g_perfQueueMaxUs.load(std::memory_order_relaxed);
     result.callbackMaxUs = g_perfCallbackMaxUs.load(std::memory_order_relaxed);
+    result.callbackCpuMaxUs = g_perfCallbackCpuMaxUs.load(std::memory_order_relaxed);
+    result.eventsAccepted = g_perfAccepted.load(std::memory_order_relaxed);
+    result.eventsProcessed = g_perfProcessed.load(std::memory_order_relaxed);
+    result.eventsFailed = g_perfFailed.load(std::memory_order_relaxed);
+    result.eventsQueueDropped = g_perfQueueDropped.load(std::memory_order_relaxed);
+    result.maxQueueDepth = g_perfMaxQueueDepth.load(std::memory_order_relaxed);
+    result.projectileCurveUpdates =
+        g_perfProjectileCurveUpdates.load(std::memory_order_relaxed);
+    result.projectileVelocityWrites =
+        g_perfProjectileVelocityWrites.load(std::memory_order_relaxed);
     const int currentDrops =
         g_liveHitLockDrops.load(std::memory_order_relaxed);
     const int baseline =
