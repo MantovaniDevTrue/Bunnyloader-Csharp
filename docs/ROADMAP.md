@@ -14,7 +14,7 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | 5 | Cobrir mais eventos gerenciados com segurança | Comparação entre nativo/precalculado e callback real; política de execução clara |
 | 6 | Estudar sincronização multiplayer | Implementação e testes próprios; não ativar por suposição |
 | 7 — concluída para o kernel isolado | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | Android: `matched`, checksum idêntico, 1 milhão de iterações, 445,536 ms QuickJS contra 6,040 ms MonoVM; razão 73,764× válida apenas para o algoritmo testado |
-| 7a — próxima | Repetir benchmarks e obter distribuição | 500k, 1M, 2M iterações, múltiplas amostras e resultados matemáticos idênticos; separar variação da CPU/JIT/GC |
+| 7a — em andamento | Repetir benchmarks e obter distribuição | Segundo teste no Android aprovado: 500 mil iterações, checksums idênticos, 171,763 ms QuickJS / 2,462 ms MonoVM; faltam 2 milhões e repetição de cada tamanho para avaliar variação |
 | 7b — próxima | Comparar gameplay e ponte completa | Mesmo evento/cena/carga, FPS/p90/RSS e overhead de integração por método, além de cálculos isolados |
 | 8 | Preparar publicação para usuários | API documentada, compatibilidade declarada por recurso, estabilidade demonstrada |
 

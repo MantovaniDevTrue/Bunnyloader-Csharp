@@ -29,6 +29,18 @@ Razão observada nesse **núcleo matemático isolado e nesta execução**: **73,
 
 **Limitações essenciais:** esta é uma única amostra, medida em threads distintas, com runtimes, intérprete/JIT e estratégias de otimização diferentes; não constitui superioridade geral de C# em 74×, medição de FPS, custo de integração nativa, uso de memória exclusivo de cada linguagem ou comportamento de mods grandes. A queda de ~1 MB de RSS no QuickJS é ruído do processo inteiro, não uma prova de economia de memória do MonoVM. Não há medição de CPU/RSS em combate simultâneo. Próximas etapas: repetir 500.000/1.000.000/2.000.000 iterações, conferir integridade e dispersão das amostras e então comparar cenários de gameplay equivalentes.
 
+## Segunda amostra Android — 500.000 iterações (11/10/2026)
+
+O mesmo APK .68 produziu **`finished=true`, `passed=true`, `phase="matched"`, `error=""`** em uma segunda carga, 500 mil iterações, com checksums **idênticos** `jsResult=monoResult=-799234484`.
+
+| Métrica | QuickJS | MonoVM |
+| --- | ---: | ---: |
+| Tempo decorrido | `jsWallUs=171763` (171,763 ms) | `monoWallUs=2462` (2,462 ms) |
+| CPU da thread | `jsThreadCpuUs=170302` (170,302 ms) | `monoThreadCpuUs=2275` (2,275 ms) |
+| RSS total do processo antes/depois | 225.816 → 226.088 KB | 227.020 → 227.020 KB |
+
+Razões da segunda amostra: **69,7656× em tempo decorrido** e **74,8580× em tempo de CPU por thread**, a favor do MonoVM, **somente para essa rotina matemática**. A amostra de 1 milhão anterior indicou 73,7642×/75,8205×. Ambas têm resultado correto, porém são duas cargas diferentes, e não repetições controladas suficientes para significância estatística. As diferenças de RSS entre capturas são de condições do processo e não estabelecem custo de memória de uma linguagem. Continua pendente testar 2 milhões de iterações e múltiplas execuções de cada tamanho, sob condições semelhantes.
+
 ## Testar Android
 
 Atualizar para o APK .68 e entrar em um mundo singleplayer com ExampleModCSharp 0.1.7. Consultar o log de boot procurando:
