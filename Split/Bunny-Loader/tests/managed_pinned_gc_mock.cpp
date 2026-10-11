@@ -7,7 +7,7 @@ thread_local bool attached = false;
 thread_local bool safe = false;
 std::atomic<int> entries{0}, exits{0}, initializations{0};
 std::atomic<bool> ownerSafe{false};
-std::atomic<int> hits{0}, hitsV2{0}, kills{0};
+std::atomic<int> hits{0}, hitsV2{0}, hitsV3{0}, kills{0};
 }
 extern "C" {
 void* mono_jit_init(const char*) {
@@ -50,6 +50,10 @@ void* mono_class_get_method_from_name(void*, const char* name, int params) {
         assert(params == 3);
         return reinterpret_cast<void*>(4);
     }
+    if (!std::strcmp(name, "OnHitNPCV3")) {
+        assert(params == 7);
+        return reinterpret_cast<void*>(5);
+    }
     if (!std::strcmp(name, "OnKill")) {
         assert(params == 2);
         return reinterpret_cast<void*>(3);
@@ -66,6 +70,11 @@ void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
         result = damage + tick % 7 + ++hits;
     else if (method == reinterpret_cast<void*>(4))
         result = damage + tick % 7 + *static_cast<int*>(args[2]) + ++hitsV2;
+    else if (method == reinterpret_cast<void*>(5))
+        result = 5000 + damage + tick % 7 +
+            *static_cast<int*>(args[2]) + *static_cast<int*>(args[3]) +
+            *static_cast<int*>(args[4]) + static_cast<int>(*static_cast<float*>(args[5])) +
+            static_cast<int>(*static_cast<float*>(args[6])) + ++hitsV3;
     else if (method == reinterpret_cast<void*>(3))
         result = damage + tick % 5 + ++kills;
     else
@@ -80,5 +89,6 @@ int test_initializations() { return initializations; }
 int test_owner_safe() { return ownerSafe; }
 int test_legacy_hits() { return hits; }
 int test_v2_hits() { return hitsV2; }
+int test_v3_hits() { return hitsV3; }
 int test_kills() { return kills; }
 }

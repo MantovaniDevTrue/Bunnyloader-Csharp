@@ -237,6 +237,13 @@ JSValue makeManagedHitContextStatus(
     JSContext* ctx, const bl::csharp::ManagedHitContextStats& stats) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "v2Calls", JS_NewInt32(ctx, stats.v2Calls));
+    JS_SetPropertyStr(ctx, out, "v3Calls", JS_NewInt32(ctx, stats.v3Calls));
+    JS_SetPropertyStr(ctx, out, "v3Successes", JS_NewInt32(ctx, stats.v3Successes));
+    JS_SetPropertyStr(ctx, out, "v3Failures", JS_NewInt32(ctx, stats.v3Failures));
+    JS_SetPropertyStr(ctx, out, "lastNpcType", JS_NewInt32(ctx, stats.lastNpcType));
+    JS_SetPropertyStr(ctx, out, "lastNpcLife", JS_NewInt32(ctx, stats.lastNpcLife));
+    JS_SetPropertyStr(ctx, out, "lastNpcX", JS_NewFloat64(ctx, stats.lastNpcX));
+    JS_SetPropertyStr(ctx, out, "lastNpcY", JS_NewFloat64(ctx, stats.lastNpcY));
     JS_SetPropertyStr(ctx, out, "v2Successes", JS_NewInt32(ctx, stats.v2Successes));
     JS_SetPropertyStr(ctx, out, "v2Failures", JS_NewInt32(ctx, stats.v2Failures));
     JS_SetPropertyStr(ctx, out, "legacyCalls", JS_NewInt32(ctx, stats.legacyCalls));
