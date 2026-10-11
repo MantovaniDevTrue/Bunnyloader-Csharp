@@ -4,6 +4,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
+**.78 experimental:** instrumentação sob demanda de memória RSS/processo, cache de métodos MonoVM e contagem de ciclos de mundo. Validar 5 reentradas com dois mods C# e 60 FPS antes de priorizar hot-unload; sem GC forçado e sem mudar o dispatcher. A .77 permanece baseline enquanto a APK .78 não for aprovada no Android.
+
 **.77 APROVADA em Android (11/10/2026):** pausa e retomada seletivas do segundo mod **sem sair do mundo**, `paused=true`, `resumed=true`, `SecondBolt.enabled=true`; 379/379 eventos globais (219 hits, 160 kills), 0 perdas, 0 `lockDrops`, 0 falhas, pico 3/64. **60 FPS durante todo o processo**, segundo o usuário. Agora baseline para esse teste, com .76 como rollback. Próximos trabalhos: ciclo de vida real de mods e assemblies, medição de memória/latência, multiplayer e testes mais longos.
 
 **.77 — histórico CI (aprovada posteriormente no Android):** reativação segura de callbacks de um mod adicional no mesmo mundo, com proteção de concorrência na FIFO64. Pausa/retomada e 60 FPS foram validados no cenário acima; **não** equivale a hot-unload nem a desativar itens do mod. A .76 permanece baseline.
