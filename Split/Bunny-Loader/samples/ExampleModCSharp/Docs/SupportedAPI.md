@@ -21,9 +21,9 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 
 Os métodos de instância do BunnyProjectile que geram políticas nativas não são os mesmos callbacks estáticos do worker MonoVM. Não confundir políticas nativas com execução gerenciada.
 
-A fila compartilhada permanece com capacidade 64 e limite agregado de 25.000 eventos por sessão. Atualmente há suporte experimental a um tipo principal e até sete adicionais **do mesmo mod**. Vários mods independentes no mesmo worker ainda não foram validados.
+A fila compartilhada permanece com capacidade 64 e limite agregado de 25.000 eventos por sessão. Há um tipo principal e até sete vínculos adicionais, compartilhados entre mods e projéteis. Dois mods independentes foram validados na .75; pausa/retomada na .77 e reentradas de mundo na .78. Esses resultados cobrem os cenários descritos em [STATUS](../../../../../docs/STATUS.md), sem garantir isolamento completo de falhas, multiplayer ou hot-unload.
 
-## Diagnóstico na .74
+## Diagnóstico (.74 em diante)
 
 Use **bl.csharp.managedAvailable()** para verificar inicialização do MonoVM e **bl.csharp.hostInfo()** para consultar runtimeMode, monoVmReady, sourceModCount, nativeAotPrototypeAvailable e nativeAotExternalCount.
 
@@ -33,6 +33,18 @@ Para eventos e movimento, consulte bl.csharp.sourceAutoStatus(), bl.csharp.sourc
 
 ## Limites importantes
 
-A .73 foi validada funcionalmente no Android para 985 callbacks processados de 985 aceitos, incluindo 879/879 de ExampleWaveBolt. Zero falhas, descartes e lockDrops. O FPS da .73 não foi informado nesta rodada. A .74 precisa de nova validação de gameplay porque muda a inicialização do APK.
+A .73 foi validada funcionalmente no Android para 985 callbacks processados de 985 aceitos, incluindo 879/879 de ExampleWaveBolt. Zero falhas, descartes e lockDrops. O FPS da .73 não foi informado nesta rodada. A .74 também foi validada em gameplay; o histórico atualizado está em [STATUS](../../../../../docs/STATUS.md). A telemetria adicional da .79 ainda precisa da validação específica indicada ali e nas notas dessa versão.
 
 Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tModLoader, nem afirmar compatibilidade automática com mods de PC, netcode ou APIs .NET não testadas.
+
+
+## Contrato atual para novos exemplos
+
+- Callbacks estáticos `OnHitNPC(int call, int damage)` e `OnKill(int call, int damage)` executam no worker Mono, fora da thread do jogo. `call` é uma sequência da sessão compartilhada, não o ID do NPC nem do projétil. O retorno `int` é diagnóstico; ele não altera automaticamente dano ou objetos do Terraria.
+- O caminho de políticas nativas de `BunnyProjectile.OnHitNPC/OnKill` é separado desses callbacks. Cada exemplo deve dizer qual dos dois utiliza.
+- A fila de 64 posições pode recusar eventos quando cheia. Não prometer entrega garantida. O teto agregado de 25.000 eventos continua sendo uma limitação experimental por sessão; não é um limite por mod.
+- Pausar um mod adicional descarta eventos pendentes desse mod; não descarrega sua assembly nem reinicializa os campos estáticos C#. A pausa é recusada se um callback desse mod estiver em execução. O mod principal ainda não possui pausa independente.
+- A troca de mundo refaz os vínculos, mas mantém o runtime e os caches. O estado estático de um exemplo deve considerar essa duração de vida.
+- A API de mod não deve chamar comandos `bl.csharp.*` do console para se inicializar. Esses comandos servem a diagnóstico e controle do loader.
+
+Veja a [base para a API de modders](../../../../../docs/csharp-api-foundation-v79.md) para as correções de lifecycle e os próximos contratos a estabilizar.
