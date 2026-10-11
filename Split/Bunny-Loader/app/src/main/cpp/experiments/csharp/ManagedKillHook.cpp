@@ -63,6 +63,7 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
     int type = -1;
     int autoSlot = -1;
     bool legacy = false;
+    bool additionalLive = false;
     Vec2 position{};
     int width = 0, height = 0, damage = 0;
     bool selected = false;
@@ -79,7 +80,8 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
         }
         legacy = g_enabled.load(std::memory_order_acquire) &&
             type == g_type.load(std::memory_order_relaxed);
-        selected = (legacy || autoSlot >= 0) &&
+        additionalLive = isManagedLiveProjectileBound(type);
+        selected = (legacy || autoSlot >= 0 || additionalLive) &&
             runtime::field<uint8_t>(projectile, game.proj.active) != 0;
         if (selected) {
             position = runtime::field<Vec2>(projectile, game.entity.position);
@@ -103,6 +105,10 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
             g_errors.fetch_add(1, std::memory_order_relaxed);
             g_enabled.store(false, std::memory_order_release);
         }
+        return;
+    }
+    if (additionalLive && !legacy && autoSlot < 0) {
+        queueManagedLiveKill(type, damage);
         return;
     }
     const SourceBoltKillPolicy* policy = &g_policy;
