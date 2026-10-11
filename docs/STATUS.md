@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .77 — Same-world callback resume (APK/CI aprovados; Android pendente)
+## .77 — Pausa e retomada no mesmo mundo APROVADAS no Android (11/10/2026)
+
+O usuário testou com dois ExampleMods C# e relatou **60 FPS durante todo o processo, sem quedas**. `sourceLiveModPause()` retornou `{"paused":true,"error":""}` e `sourceLiveModResume()` retornou `{"resumed":true,"error":""}`, **sem sair do mundo**. Ambos os mods `ready`, `cached=true`, `applied=true` e `worldReady=true`; `SecondBolt.enabled=true`. Captura final: **379/379 eventos globais**, 219 hits, 160 kills, pico de fila 3/64, `dropped=0`, `lockDrops=0`, `failures=0`; ExampleWaveBolt 195/195 (128 hits/67 kills), SecondBolt 135/135 (67 hits/68 kills, `lastResult=4085`). Os vínculos adicionais já estão inclusos nos totais globais. FPS informado visualmente, sem benchmark contínuo. Uma medição separada do incremento após resume não foi capturada, embora o usuário tenha confirmado funcionamento.
+
+**.77 promovida à baseline funcional desse cenário; .76 preservada para rollback.** Ainda sem hot-unload real de assemblies, descarregamento de conteúdos, multiplayer ou medição de memória. [Relatório técnico](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-mod-resume-v77-experiment/docs/csharp-managed-mod-resume-v77.md).
+
+## .77 — Histórico do build experimental (antes da validação Android)
 
 Nova branch `csharp-managed-mod-resume-v77-experiment` preparada a partir da **.76 aprovada no Android**. Adiciona `bl.csharp.sourceLiveModResume(modId, "CONFIRM_RESUME_MOD")` para rearmar callbacks de um mod adicional **no mesmo mundo**, sem recarregar assembly nem itens. A pausa agora desarma e remove eventos pendentes do mod sob o mutex da própria FIFO64, fechando uma janela de concorrência no pause/resume rápido; testes host com produtor concorrente e reentrada mantidos. **GitHub Actions [#38157993987](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38157993987) success; APK .77 assinada/publicada, versionCode 102, 223.293.245 bytes; ainda não validada no celular. A .76 segue baseline.** [Roteiro de validação .77](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-mod-resume-v77-experiment/docs/csharp-managed-mod-resume-v77.md).
 
