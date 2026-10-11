@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - csharp-managed-memory-v78-experiment
-      - csharp-managed-memory-snapshot-v77-experiment
+      - csharp-managed-mod-resume-v77-experiment
       - csharp-managed-lifecycle-v76-experiment
       - csharp-world-lifecycle-v75-experiment
       - csharp-world-lifecycle-v74-cleanup
