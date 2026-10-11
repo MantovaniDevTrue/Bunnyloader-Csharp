@@ -1816,7 +1816,21 @@ JSValue jsExternalMods(JSContext* ctx, JSValueConst, int, JSValueConst*) {
 
 JSValue jsHostInfo(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     JSValue out = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, out, "available", JS_NewBool(ctx, bl::csharp::available() || bl::csharpmods::loadedCount() > 0));
+    const auto mono = bl::csharp::managedRuntimeStatus();
+    const bool monoReady = mono.domainInitialized && mono.methodExecuted;
+    int managedMods = 0;
+    for (const auto& mod : bl::csharp::sourceModStatuses())
+        if (mod.loaded && mod.runtimeApplied) ++managedMods;
+    const bool legacyAvailable = bl::csharp::available();
+    JS_SetPropertyStr(ctx, out, "available",
+                      JS_NewBool(ctx, monoReady || managedMods > 0 ||
+                                       legacyAvailable || bl::csharpmods::loadedCount() > 0));
+    JS_SetPropertyStr(ctx, out, "runtimeMode", JS_NewString(ctx, "Roslyn+MonoVM"));
+    JS_SetPropertyStr(ctx, out, "monoVmReady", JS_NewBool(ctx, monoReady));
+    JS_SetPropertyStr(ctx, out, "sourceModCount", JS_NewInt32(ctx, managedMods));
+    JS_SetPropertyStr(ctx, out, "nativeAotPrototypeAvailable", JS_NewBool(ctx, legacyAvailable));
+    JS_SetPropertyStr(ctx, out, "nativeAotExternalCount",
+                      JS_NewInt32(ctx, static_cast<int32_t>(bl::csharpmods::loadedCount())));
     JS_SetPropertyStr(ctx, out, "runtimeAbi", JS_NewInt32(ctx, bl::csharp::version()));
     JS_SetPropertyStr(ctx, out, "hostApi", JS_NewInt32(ctx, bl::csharp::hostApiVersion()));
     JS_SetPropertyStr(ctx, out, "projectileStage", JS_NewString(ctx, "Projectile.UpdatePosition"));
@@ -1832,6 +1846,12 @@ JSValue jsHostInfo(JSContext* ctx, JSValueConst, int, JSValueConst*) {
 
 JSValue jsAvailable(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return JS_NewBool(ctx, bl::csharp::available());
+}
+
+JSValue jsManagedAvailable(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "managedAvailable()");
+    const auto runtime = bl::csharp::managedRuntimeStatus();
+    return JS_NewBool(ctx, runtime.domainInitialized && runtime.methodExecuted);
 }
 
 JSValue jsVersion(JSContext* ctx, JSValueConst, int, JSValueConst*) {
@@ -2441,6 +2461,8 @@ JSValue makeSuite(JSContext* ctx) {
 void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JSValue api = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
+    JS_SetPropertyStr(ctx, api, "managedAvailable",
+                      JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
     JS_SetPropertyStr(ctx, api, "sourceMods", JS_NewCFunction(ctx, jsSourceMods, "sourceMods", 0));
     JS_SetPropertyStr(ctx, api, "managedRuntime",
