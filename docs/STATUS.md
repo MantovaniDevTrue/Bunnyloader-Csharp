@@ -1,10 +1,10 @@
 # Estado real do desenvolvimento
 
-## .68 — instalação verificada da DLL no processo do jogo (aguarda Android)
+## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
-A .67 compilou no GitHub com o DLL válido, mas no teste Android o comparador não o encontrou: `BunnyVmBenchmark67.dll missing or invalid`. QuickJS executou 1 milhão de iterações em `jsWallUs=338166` µs, checksum `1336190628`; MonoVM permaneceu inicializado (`result=42`), mas não executou o benchmark. **Não há comparação de velocidade válida até agora.**
+A .67 compilou no GitHub com o DLL válido, mas no Android não o encontrou: `BunnyVmBenchmark67.dll missing or invalid`. **A .68 corrigiu o caminho da assembly e validou a paridade no Android**: 1 milhão de iterações em QuickJS (`jsWallUs=445536` µs, CPU 439607 µs) e MonoVM (`monoWallUs=6040` µs, CPU 5798 µs), checksums **iguais a `1336190628`**, `passed=true`, `phase="matched"`, `error=""`. A razão nessa única execução foi **73,764× em tempo de parede**, **75,820× em CPU por thread** a favor do MonoVM para *esse kernel isolado*. **Não é um resultado geral de FPS ou de todos os mods**.
 
-Análise do código-base: `ManagedProbeService.installManagedFramework()` extrai as assemblies somente quando o serviço/worker é acionado. O processo `:game` chamava o MonoVM usando o arquivo antigo já existente em `filesDir/bunny-csharp`, sem garantir que a nova DLL do APK fosse instalada. A .68 instala/verifica especificamente `BunnyVmBenchmark67.dll` **no início de `GameActivity.onCreate`, antes de iniciar o núcleo nativo**, com SHA-256 do manifesto `assets/managed/framework.sha256`, cópia temporária e verificação final. Evita reinstalações desnecessárias e não mexe no gameplay normal. [Protocolo .68](vm-parity-v68.md).
+Análise do código-base: `ManagedProbeService.installManagedFramework()` extrai as assemblies somente quando o serviço/worker é acionado. O processo `:game` chamava o MonoVM usando o arquivo antigo já existente em `filesDir/bunny-csharp`, sem garantir que a nova DLL do APK fosse instalada. A .68 instala/verifica especificamente `BunnyVmBenchmark67.dll` **no início de `GameActivity.onCreate`, antes de iniciar o núcleo nativo**, com SHA-256 do manifesto `assets/managed/framework.sha256`, cópia temporária e verificação final. Evita reinstalações desnecessárias e não mexe no gameplay normal. O benchmark agora executa em ambos os runtimes; ainda precisamos de repetições e comparação em gameplay real. [Resultados completos .68](vm-parity-v68.md).
 
 ## .67 — corrigindo a busca do método MonoVM na comparação QuickJS × C# (aguarda Android)
 

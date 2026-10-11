@@ -13,7 +13,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | 4 | Ampliar o ExampleModCSharp por APIs confirmadas | Métodos pequenos, compilação automática, exemplos reproduzíveis e testes |
 | 5 | Cobrir mais eventos gerenciados com segurança | Comparação entre nativo/precalculado e callback real; política de execução clara |
 | 6 | Estudar sincronização multiplayer | Implementação e testes próprios; não ativar por suposição |
-| 7 — em desenvolvimento | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | .66: método faltando; .67: DLL ausente em disco do processo Android apesar de contida no APK; .68: garantir cópia/hash na abertura do jogo, validar em Android |
+| 7 — concluída para o kernel isolado | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | Android: `matched`, checksum idêntico, 1 milhão de iterações, 445,536 ms QuickJS contra 6,040 ms MonoVM; razão 73,764× válida apenas para o algoritmo testado |
+| 7a — próxima | Repetir benchmarks e obter distribuição | 500k, 1M, 2M iterações, múltiplas amostras e resultados matemáticos idênticos; separar variação da CPU/JIT/GC |
 | 7b — próxima | Comparar gameplay e ponte completa | Mesmo evento/cena/carga, FPS/p90/RSS e overhead de integração por método, além de cálculos isolados |
 | 8 | Preparar publicação para usuários | API documentada, compatibilidade declarada por recurso, estabilidade demonstrada |
 

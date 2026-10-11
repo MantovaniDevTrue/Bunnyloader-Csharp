@@ -14,6 +14,21 @@ O código real tinha a lógica de extração e atualização completa do framewo
 
 Não altera `BunnyManagedProbe.dll`, os algoritmos do benchmark, a compilação de mods C#, nem as proteções e recursos validados anteriormente.
 
+## Resultado Android da .68 — paridade QuickJS × MonoVM validada
+
+**VALIDADO no Android, carga de 1.000.000 de iterações, mesmo seed e checksum:** capturas do editor mostram `compare.finished=true`, `passed=true`, `phase="matched"`, `error=""`; o MonoVM conseguiu carregar e executar `BunnyVmBenchmark67.Kernel.Execute(int,int)` na .68. O probe principal permaneceu verificado (`result=42`).
+
+| Métrica | QuickJS | MonoVM |
+| --- | ---: | ---: |
+| Cálculo determinístico, 1.000.000 iterações | `jsResult=1336190628` | `monoResult=1336190628` |
+| Tempo decorrido | `jsWallUs=445536` (445,536 ms) | `monoWallUs=6040` (6,040 ms) |
+| Tempo CPU da thread | `jsThreadCpuUs=439607` (439,607 ms) | `monoThreadCpuUs=5798` (5,798 ms) |
+| RSS de todo o processo antes/depois | 759.780 → 758.728 KB | 758.728 → 758.728 KB |
+
+Razão observada nesse **núcleo matemático isolado e nesta execução**: **73,764× menor tempo decorrido** no MonoVM (`jsOverMonoWallRatio=73.76423841059602`) e **75,820× menor tempo de CPU da thread** (`jsOverMonoCpuRatio=75.82045532942394`).
+
+**Limitações essenciais:** esta é uma única amostra, medida em threads distintas, com runtimes, intérprete/JIT e estratégias de otimização diferentes; não constitui superioridade geral de C# em 74×, medição de FPS, custo de integração nativa, uso de memória exclusivo de cada linguagem ou comportamento de mods grandes. A queda de ~1 MB de RSS no QuickJS é ruído do processo inteiro, não uma prova de economia de memória do MonoVM. Não há medição de CPU/RSS em combate simultâneo. Próximas etapas: repetir 500.000/1.000.000/2.000.000 iterações, conferir integridade e dispersão das amostras e então comparar cenários de gameplay equivalentes.
+
 ## Testar Android
 
 Atualizar para o APK .68 e entrar em um mundo singleplayer com ExampleModCSharp 0.1.7. Consultar o log de boot procurando:
@@ -44,4 +59,4 @@ O resultado correto exige `compare.phase="matched"`, `passed=true`, `monoWallUs>
 
 Mesmo com resultado coincidente, o teste representa apenas um kernel de matemática isolado, não FPS ou desempenho geral de mods.
 
-**Estado:** compilação e teste no Android pendentes.
+**Estado:** build e teste real de paridade no Android **aprovados**. A `.68` eliminou a falha de localização da DLL e ambas as linguagens retornaram checksum idêntico; comparação ainda limitada ao cálculo isolado e a uma única amostra.
