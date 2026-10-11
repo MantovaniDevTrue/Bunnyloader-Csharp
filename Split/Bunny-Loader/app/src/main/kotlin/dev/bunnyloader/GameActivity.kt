@@ -89,12 +89,14 @@ class GameActivity : Activity() {
             return
         }
         BootLog.add(this, "runtime carregado")
-        runCatching { ensureVmBenchmarkAssembly() }
-            .onSuccess { BootLog.add(this, "csharp benchmark: $it") }
-            .onFailure {
-                Log.w(TAG, "csharp benchmark assembly setup failed", it)
-                BootLog.add(this, "csharp benchmark: ${it.message ?: it.javaClass.simpleName}")
-            }
+        listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll").forEach { assembly ->
+            runCatching { ensureVmBenchmarkAssembly(assembly) }
+                .onSuccess { BootLog.add(this, "csharp benchmark: $it") }
+                .onFailure {
+                    Log.w(TAG, "csharp benchmark assembly setup failed: $assembly", it)
+                    BootLog.add(this, "csharp benchmark $assembly: ${it.message ?: it.javaClass.simpleName}")
+                }
+        }
 
         // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
         if (ENABLE_NATIVE_CORE) startNativeCore() else
@@ -141,8 +143,10 @@ class GameActivity : Activity() {
         return File(dir, "bunny_$stamp.txt")
     }
 
-    private fun ensureVmBenchmarkAssembly(): String {
-        val name = "BunnyVmBenchmark67.dll"
+    private fun ensureVmBenchmarkAssembly(name: String): String {
+        require(name == "BunnyVmBenchmark67.dll" || name == "BunnyVmGameplay69.dll") {
+            "unexpected benchmark assembly"
+        }
         val manifest = assets.open("managed/framework.sha256").bufferedReader().use { it.readText() }
         val line = manifest.lineSequence().firstOrNull { it.startsWith("$name\t") }
             ?: error("benchmark assembly absent from APK manifest")
