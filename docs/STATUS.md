@@ -1,5 +1,13 @@
 # Estado real do desenvolvimento
 
+## Diagnóstico posterior — a .60 compilou e aplicou, mas não ativou o MonoVM
+
+No teste das 21:28 (BRT), o worker concluiu `state=finished`, `phase=compile-verified`, `assemblyReady=1`, `executedTypes=7`; o loader registrou `auto.phase=ready`, `applied=true`, `curves=1/1`, `hitPolicies=1/1`, `killPolicies=1/1`, `netMode=0`, **`gameMenu=-1`**. O processo do jogo permaneceu `mono=idle` e `live=idle`.
+
+A revisão revelou que a ponte automática condiciona o início a `gameMenu==0`, mas a .60 procura `Main.gameMenu` como campo, enquanto no Bunny Loader `Main.get_gameMenu()` é a propriedade correta. **A .61 corrige essa consulta; ainda requer teste Android.** O worker apresentou um registro de `LOW_MEMORY` após a compilação ter sido verificada; investigar separadamente, sem classificar a compilação como falha.
+
+Veja [hotfix e teste .61](mono-auto-live-menu-getter-v61.md).
+
 ## Teste Android inicial da .60 — 10/10/2026, 21:18 (BRT)
 
 **Resultado: parcial / não aprovado ainda.** No Xiaomi 2109119DG, Android 14, com `ExampleModCSharp 0.1.7`, o status no editor mostrou:

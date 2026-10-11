@@ -362,11 +362,26 @@ ActivationContext readActivationContext() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     FieldInfo* netMode = main ? il2cpp::findField(main, "netMode") : nullptr;
     FieldInfo* menu = main ? il2cpp::findField(main, "gameMenu") : nullptr;
+    auto& api = il2cpp::api();
     if (netMode)
-        il2cpp::api().field_static_get_value(netMode, &result.netMode);
-    if (menu) {
+        api.field_static_get_value(netMode, &result.netMode);
+    if (main) {
+        const MethodInfo* getter = api.class_get_method_from_name(
+            main, "get_gameMenu", 0);
+        if (getter) {
+            Il2CppObject* exception = nullptr;
+            Il2CppObject* boxed = api.runtime_invoke(
+                getter, nullptr, nullptr, &exception);
+            if (!exception && boxed) {
+                const auto* value = reinterpret_cast<const uint8_t*>(boxed) +
+                    sizeof(Il2CppObject);
+                result.gameMenu = *value ? 1 : 0;
+            }
+        }
+    }
+    if (result.gameMenu < 0 && menu) {
         uint8_t inMenu = 1;
-        il2cpp::api().field_static_get_value(menu, &inMenu);
+        api.field_static_get_value(menu, &inMenu);
         result.gameMenu = inMenu ? 1 : 0;
     }
     return result;
@@ -400,6 +415,9 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
             return;
         }
         if (context.netMode > 0 && context.gameMenu == 0) return;
+        if (context.netMode == 0 && context.gameMenu < 0 && attempt == 10)
+            BL_WARN("csharp auto live %s: Main.get_gameMenu indisponivel; aguardando estado do mundo",
+                    modId.c_str());
         std::this_thread::sleep_for(1000ms);
     }
 }
