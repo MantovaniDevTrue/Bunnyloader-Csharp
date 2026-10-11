@@ -1,5 +1,13 @@
 # Estado real do desenvolvimento
 
+## ExampleModCSharp 0.1.8 — duas armas e dois projéteis C# validados no Android (11/10/2026)
+
+**VALIDADO no cenário observado, com APK .72:** `sourceAutoStatus` apresentou `phase=ready`, `applied=true`, `curves=2/2`, `enabledHits=1/1`, `enabledKills=1/1`, sem erro. `ExampleBolt`: 47 spawns, 360 atualizações de curva e 360 escritas de velocidade, 0 erros; `ExampleWaveBolt`: 107 spawns, **2.393 atualizações/escritas de velocidade**, 0 erros. `sourceLiveHitStatus`: **161/161 eventos gerenciados** (79 hits, 82 kills), 0 `dropped`, 0 `lockDrops`, 0 falhas, fila máxima 2/64; `projectileType=1137` corresponde ao projétil original. O usuário relatou **60 FPS** durante o teste; não foi medido o FPS de renderização por profiler nem informada duração.
+
+O segundo projétil tem curvas independentes, mas **não** possui `OnHitNPC`/`OnKill` gerenciados próprios; a política de eventos live da .72 segue vinculada a um único tipo por processo. Os contadores de curva referem-se ao hook nativo que reproduz uma tabela pré-calculada pelo Roslyn, não a chamadas MonoVM por frame. **Próxima etapa:** multi-vínculo de eventos por mod/tipo com isolamento de ciclo de vida, testes de carga e nenhuma regressão na fila .72.
+
+[Registro de teste e limites](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-examplemod-dual-projectile-0.1.8/docs/examplemod-csharp-dual-projectile-018.md) · [Pacote 0.1.8 experimental](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-examplemod-0.1.8-dual-projectile-test).
+
 ## .72 — Managed Ingress: primeiro perfil Android aprovado (11/10/2026)
 
 **VALIDADO no cenário observado:** janela de 15.010 ms com 899 atualizações de `Main.DoUpdate` (**59,9583 Hz**), 0 acima de 25/33 ms; **82/82 callbacks C# aceitos/processados**, `eventsQueueDropped=0`, `lockDrops=0`, `eventsFailed=0`, fila máxima 2/64. Tempo médio de espera **77,37 µs**, tempo médio do callback **91,80 µs**. Os contadores acumulados do dispatcher registraram **224/224** eventos (112 `OnHitNPC`, 112 `OnKill`), `dropped=0`, `failures=0`, `phase=ready`. Não confundir `updateHz` com FPS do renderizador. A fila separada removeu as perdas por mutex **neste ensaio**, mas não há prova de ausência de perdas sob saturação, em múltiplos mods ou em longo prazo. [Relatório .72](managed-ingress-v72-android.md) · [Release .72](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress).
