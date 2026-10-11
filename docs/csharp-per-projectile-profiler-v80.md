@@ -1,6 +1,6 @@
 # Bunny Loader C# .80 — profiler opcional por arma / projétil
 
-**Estado:** branch `csharp-per-projectile-profiler-v80-experiment` criada em cima da **.79.1 validada no Android**. A .79.1 continua sendo a baseline e rollback até a nova APK passar em testes reais.
+**Estado:** implementação de .80 sobre .79.1, **validada no Android e promovida a baseline funcional no escopo de seis testes**. O código da APK testada está preservado na [branch estável .80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-android-validated-v80), commit `ae787455f3f7adada861d211809cf8bf60c99438`. A .79.1 é rollback.
 
 ## Primeiro resultado Android — 11/10/2026
 
@@ -20,7 +20,8 @@
 
 **FPS visual confirmado pelo usuário:** 60 FPS durante a medição, com apenas uma queda momentânea para 59 FPS. Uma oscilação isolada de 1 FPS não é evidência de regressão.
 
-**Estado:** o profiler individual da .80, os callbacks das três armas e o FPS visual durante a janela instrumentada estão validados neste teste; ainda faltam desempenho com profiler desligado, pausa/retomada, reentrada e Blood Moon prolongada na .80. **.79.1 segue baseline e rollback.**
+**Validação adicional informada pelo usuário:** concluídos seis testes de regressão: FPS sem quedas relevantes, três armas com profiler desligado, pausa seletiva do segundo mod, retomada, salvamento/reentrada e ausência de perdas/erros. Logs registram MonoVM verificado e rebinding automático dos tipos 1137, 1136 e 1138 ao entrar no mundo. **.80 aprovada como baseline funcional destes cenários; .79.1 rollback**. Testes longos, multiplayer, hot-unload real e prova de ausência de vazamento continuam pendentes. [Registro completo](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-development/docs/csharp-v80-android-validation.md).
+
 ## Finalidade
 
 O profiler `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()` já mediam uma janela de aproximadamente 15 segundos no total do C#. A .80 adiciona ao mesmo retorno o vetor `projectiles`, com as medições de cada registro de callback independentemente (incluindo as três armas de dois mods). Nenhum comando novo é obrigatório para obter esses dados.
