@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.7"
+assert catalog["exampleModCSharpVersion"] == "0.1.8"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -56,7 +56,8 @@ example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "SourceBoltMotion", "SourceSparkMotion",
                    "ExampleDefenseBuff", "ExampleBuffPotion",
                    "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSlimeNPC",
-                   "BunnyLiveEntry", "BunnyLiveNpc"}
+                   "BunnyLiveEntry", "BunnyLiveNpc", "ExampleWaveWand",
+                   "ExampleWaveBolt", "ExampleWaveBoltMotion"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
@@ -79,11 +80,12 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.7"
+assert manifest2["version"] == "0.1.8"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 11
+assert len(playable_files) == 14
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
-for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon",
+for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
+                 "ExampleWaveWand", "ExampleWaveBolt", "ExampleWaveBoltMotion", "BunnyWeapon",
                  "BunnyProjectile", "SetDefaults()", "TurnAtTick(int tick)",
                  "BunnyBuff", "BunnyBuffPotion", "BunnyPlayer", "BunnyAccessory", "BunnyNPC",
                  "AnimationType = 1", "LifeMax = 25",
@@ -96,6 +98,16 @@ for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion", "BunnyWeapon
                  "Buff = nameof(ExampleDefenseBuff)",
          "OnHitNPC(int damage)", "OnKill(int damage)", "OnKillDuration(int damage)"):
     assert expected in source_text, expected
+wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
+wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
+wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")
+assert "Shoot = nameof(ExampleWaveBolt);" in wave_weapon
+assert "Texture = \"Content/Items/Weapons/SourceWand.png\";" in wave_weapon
+assert "Texture = \"Content/Projectiles/SourceBolt.png\";" in wave_projectile
+assert "AiStyle = 1;" in wave_projectile
+assert "return MathF.Sin(tick * 0.20f) * 0.018f;" in wave_motion
+assert "OnHitNPC" not in wave_projectile
+assert "OnKill" not in wave_projectile
 assert "SourceCSharpMod" not in source_text
 print("EXAMPLEMOD_CSHARP_INDEPENDENT_SOURCE=PASS")
 print(f"EXAMPLEMOD_CSHARP_STATIC_CHECK=PASS examples={len(MIRRORS)} features={len(features)}")
