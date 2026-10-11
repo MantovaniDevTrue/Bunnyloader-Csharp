@@ -6,6 +6,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
 | [managed-live-benchmark-v64.md](managed-live-benchmark-v64.md) | Teste opt-in de 25 mil callbacks reais do MonoVM (.64) |
+| [gameplay-perf-v65.md](gameplay-perf-v65.md) | Medir latência, contagem de callbacks e ritmo de atualização durante gameplay (.65) |
 | [ARQUITETURA.md](ARQUITETURA.md) | MonoVM, Roslyn, host nativo e limites de execução |
 | [mono-auto-live-world-signal-v62.md](mono-auto-live-world-signal-v62.md) | **Teste Android validado .62**: 512 callbacks, 0 falhas, limite controlado |
 | [TESTE-ANDROID-v60.md](TESTE-ANDROID-v60.md) | Protocolo histórico da versão .60 |

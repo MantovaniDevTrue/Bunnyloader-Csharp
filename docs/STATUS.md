@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .65 — instrumentação de desempenho durante gameplay (aguarda Android)
+
+Implementado profiler opt-in de 15 segundos com medidas de `Main.DoUpdate` (frequência estimada, p90 por faixas de 4 ms), duração dos callbacks C#, espera FIFO64 e descartes de contenção. Nenhuma coleta detalhada por frame é feita por padrão. O profiler inicia no primeiro frame após fechar o editor. As cópias de string `modId`/DLL em cada callback foram eliminadas com proteção `inFlight`. **Ainda não medimos melhora de FPS** nem executamos a .65 no aparelho. [Protocolo Android](gameplay-perf-v65.md).
+
 ## .64 — 25 mil callbacks C# comprovados no Android (11/10/2026, 00:26 BRT)
 
 **VALIDADO no Xiaomi Android 14, singleplayer:** benchmark `passed=true`, `phase="completed"`, **25.000 callbacks gerenciados** (`OnHitNPC=12500`, `OnKill=12500`), `failures=0`, `dropped=0`, `lockDrops=0`, `elapsedMs=12336`. Média aproximada de 2.026 callbacks/s. A fila de capacidade 64 teve ocupação máxima de **13**; ao final, `queueDepth=0`. O limite foi alcançado, o dispatcher foi desligado normalmente (`limit-reached`) e o usuário confirmou que o Terraria continuou funcionando após a conclusão.

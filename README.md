@@ -15,7 +15,7 @@
 | `OnHitNPC` e `OnKill` automáticos na **.62** | **Confirmados no Android**: 512 callbacks gerenciados (187 hits, 325 kills), 0 falhas; jogo continuou funcional após o limite de segurança |
 | Compatibilidade universal, AI C# por frame, multiplayer | **Não comprovados/não liberados** |
 
-**Baseline de combate validada:** [v0.1.10.16.63](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.63), 1.156 callbacks de combate real, 0 falhas, 60 FPS relatados, 12 descartes de contenção. **Benchmark MonoVM validado:** [v0.1.10.16.64](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.64), **25 mil callbacks C# reais** em carga sintética, 0 falhas ou descartes, 12,336 segundos e jogo funcional após o teto. Ainda falta medir FPS/memória enquanto o gameplay está ativo.
+**Baseline de combate validada:** [v0.1.10.16.63](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.63), 1.156 callbacks de combate real, 0 falhas, 60 FPS relatados, 12 descartes de contenção. **Benchmark MonoVM validado:** [v0.1.10.16.64](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.64), 25.000 callbacks C# reais, 0 falhas ou descartes, 12,336 segundos. **Experimental .65:** telemetria opt-in de latência e ritmo de atualização durante jogo, com otimização das cópias de strings por callback, ainda sem validação Android.
 
 ## Navegação do repositório
 

@@ -40,8 +40,9 @@ int main() {
     for (int i = 1; i <= 64; ++i) assert(queue.push({i, 0, false}));
     queue.clear();
     assert(queue.empty());
-    assert(queue.push({1, 123, true}));
+    assert(queue.push({1, 123, true, 123456789ULL}));
     assert(queue.pop(&event) && event.tick == 1 && event.isKill);
+    assert(event.enqueuedAtNs == 123456789ULL);
     std::cout << "BUNNY_MANAGED_LIVE_QUEUE_25000_FIFO64=PASS\n";
     return 0;
 }
