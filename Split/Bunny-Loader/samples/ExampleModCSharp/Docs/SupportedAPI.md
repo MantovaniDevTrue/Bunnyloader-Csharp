@@ -1,37 +1,38 @@
-# API C# comprovável do Bunny Loader
+# API C# suportada: Bunny Loader Roslyn + MonoVM
 
-Fonte canônica do SDK: `experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs`. Estes exemplos usam o Bunny Loader e seu ExampleModBunny como base; não usam classes do tModLoader.
+Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs). O ExampleModBunny é a referência de estrutura e comportamento, não as classes do tModLoader.
 
-## BunnyWeapon
+| API do Bunny | Arquivo do ExampleModCSharp | Prova no Android |
+| --- | --- | --- |
+| BunnyWeapon.SetDefaults | ExampleWand.cs, ExampleWaveWand.cs | duas armas registradas na .72/.73 |
+| BunnyProjectile.SetDefaults | ExampleBolt e ExampleWaveBolt | dois tipos ativos na .72/.73 |
+| ProjetoMotion.TurnAtTick(int) | ExampleBoltMotion e ExampleWaveBoltMotion | duas curvas independentes, 120 amostras |
+| BunnyProjectile.OnHitNPC / OnKill | ExampleBolt, efeito nativo OnFire 24 | efeitos e callbacks preservados |
+| BunnyLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/BunnyLiveEvents.cs | callback primário .72/.73 |
+| ProjetoLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/ExampleWaveBoltLiveEvents.cs | callback independente .73: 879/879 |
+| BunnyBuff, BunnyBuffPotion, BunnyAccessory, BunnyPlayer, BunnyNPC | Content/ e Common/Players | exemplos presentes, validação específica por API |
+| BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
 
-`public override void SetDefaults()` define `DisplayName`, `Texture`, `Damage`, `UseTime`, `ShootSpeed` e `Shoot`. O valor de `Shoot = nameof(ClasseDoProjetil)` vincula a arma a um `BunnyProjectile` **do mesmo mod**.
+## Diferença entre três rotas
 
-Exemplos do pacote 0.1.8: `ExampleWand` e `ExampleWaveWand`. O teste com duas armas foi compilado no CI; gameplay Android ainda depende da validação no aparelho.
+1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.
+2. **Movimento pré-calculado:** a curva TurnAtTick é avaliada em 120 amostras pelo compilador Roslyn, e o código nativo aplica as amostras sem chamar MonoVM a cada tick. O movimento do segundo projétil foi validado com 2.393 atualizações em .72 + mod 0.1.8.
+3. **Eventos reais no MonoVM:** métodos estáticos OnHitNPC e OnKill recebem (call, damage) no worker. BunnyLiveEvents é a classe primária; cada tipo adicional pode implementar uma classe NomeDoProjetilLiveEvents em content/Common/Live/ com métodos públicos estáticos retornando int.
 
-## BunnyProjectile
+Os métodos de instância do BunnyProjectile que geram políticas nativas não são os mesmos callbacks estáticos do worker MonoVM. Não confundir políticas nativas com execução gerenciada.
 
-`public override void SetDefaults()` define `DisplayName`, `Texture`, `Width`, `Height`, `AiStyle`, `Friendly`, `Penetrate` e `TimeLeft`.
+A fila compartilhada permanece com capacidade 64 e limite agregado de 25.000 eventos por sessão. Atualmente há suporte experimental a um tipo principal e até sete adicionais **do mesmo mod**. Vários mods independentes no mesmo worker ainda não foram validados.
 
-`OnHitNPC(int damage)`, `OnKill(int damage)` e `OnKillDuration(int damage)` são contratos opcionais: as implementações reconhecidas podem gerar tabelas de efeito nativo durante a compilação; **não** são chamadas gerenciadas a cada quadro. O exemplo `ExampleBolt` usa tabelas para buff 24. O novo `ExampleWaveBolt` não sobrescreve esses métodos, isolando o teste de movimento da aplicação de efeitos.
+## Diagnóstico na .74
 
-Os métodos estáticos `BunnyLiveEvents.OnHitNPC(int call, int damage)` e `OnKill(int call, int damage)` pertencem a uma **convenção experimental separada**, ligada automaticamente a um único tipo de projétil no processo atual. Não afirmar que o segundo projétil já possui callbacks live independentes.
+Use **bl.csharp.managedAvailable()** para verificar inicialização do MonoVM e **bl.csharp.hostInfo()** para consultar runtimeMode, monoVmReady, sourceModCount, nativeAotPrototypeAvailable e nativeAotExternalCount.
 
-## Movimento C# com curva por tipo
+**bl.csharp.available() é uma API legada**: verifica o protótipo NativeAOT libbunnycs.so, que não será embutido nem inicializado por padrão na .74. Um resultado false não significa que o MonoVM ou a compilação C# falhou.
 
-A classe `<NomeDoProjetil>Motion` com método `public static float TurnAtTick(int tick)` gera 120 amostras no Roslyn. O hook nativo seleciona a curva pelo tipo registrado, sem invocar o MonoVM a cada tick. No teste 0.1.8:
+Para eventos e movimento, consulte bl.csharp.sourceAutoStatus(), bl.csharp.sourceLiveHitStatus(), bl.csharp.sourceLiveProjectileStatus() e bl.csharp.sourceProjectileAIStatus(modId, nome).
 
-- `ExampleBoltMotion`: curva já validada como baseline no Android .72.
-- `ExampleWaveBoltMotion`: curva senoidal independente de `0.018f` radianos no máximo por amostra, compilada e verificada pelo teste automático.
+## Limites importantes
 
-A arquitetura atual permite até oito políticas de curva ativas por sessão. Isso não elimina o limite independente de **um vínculo de eventos live por processo** no fluxo automático atual.
+A .73 foi validada funcionalmente no Android para 985 callbacks processados de 985 aceitos, incluindo 879/879 de ExampleWaveBolt. Zero falhas, descartes e lockDrops. O FPS da .73 não foi informado nesta rodada. A .74 precisa de nova validação de gameplay porque muda a inicialização do APK.
 
-## Outros contratos presentes no SDK
-
-`BunnyBuff`, `BunnyBuffPotion`, `BunnyAccessory`, `BunnyPlayer` e `BunnyNPC` possuem implementações de exemplo. Seus registros e propriedades são experimentais; `BunnyNPC` expõe propriedades de registro e `SetDefaults()`, não uma API C# genérica `AI()` por frame. O callback estático `BunnyLiveNpc.AI(int,int)` é um experimento separado com limites de segurança.
-
-## Limites
-
-- A .72 foi validada no Android para o ExampleModCSharp 0.1.7 com um único projétil principal de callbacks live, sem perdas nos cenários observados.
-- O ExampleModCSharp 0.1.8 amplia para duas armas e dois projéteis. **CI aprovado não equivale a gameplay aprovado.**
-- Modos multiplayer, compatibilidade irrestrita com mods C# de PC, IA Mono arbitrária por quadro e callbacks live separados por tipo/mod não estão validados.
-- `ModItem`, `ModProjectile`, `ModNPC` e `ModBuff` do tModLoader não pertencem à API do Bunny Loader.
+Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tModLoader, nem afirmar compatibilidade automática com mods de PC, netcode ou APIs .NET não testadas.
