@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .64 — teste opt-in de 25 mil callbacks MonoVM (aguarda Android)
+
+Implementado um benchmark com confirmação explícita, produtor nativo separado e 25 mil execuções reais de `BunnyLiveEvents.OnHitNPC`/`OnKill` no MonoVM sem criar NPCs/projéteis, com cancelamento, observação de progresso e timeout de 120 segundos. **Não há validação Android ainda.** [Instruções](managed-live-benchmark-v64.md).
+
 ## Teste Android da .63 — validada parcialmente em 11/10/2026, 00:01 (BRT)
 
 **APROVADO para execução contínua acima de 512 callbacks com fila FIFO64 no ExampleModCSharp 0.1.7 em singleplayer Android 14.** O teste ultrapassou o antigo limite sem desativar callbacks e o usuário confirmou Terraria a 60 FPS no cenário observado.
