@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-managed-mod-resume-v77-experiment
       - csharp-managed-lifecycle-v76-experiment
       - csharp-world-lifecycle-v75-experiment
       - csharp-world-lifecycle-v74-cleanup
@@ -330,8 +331,8 @@ jobs:
           runtime=(root/"ManagedRuntime.cpp").read_text()
           ingress=(root/"ManagedLiveIngressQueue.h").read_text()
           auto=(root/"AutoSourceRuntime.cpp").read_text()
-          assert "discardBinding(int bindingSlot)" in ingress
-          assert "g_liveIngress.discardBinding(i)" in runtime
+          assert "pauseBinding(int bindingSlot, std::atomic<int>& armedType)" in ingress
+          assert "g_liveIngress.pauseBinding(i, entry.armedType)" in runtime
           assert "g_liveHitActiveBindingSlot" in runtime
           assert "pauseManagedLiveMod(" in runtime
           assert "g_worldEpoch.fetch_add(1" in auto
@@ -343,6 +344,11 @@ jobs:
           assert "bindLiveEventsOnWorld(id, type, work, epoch)" in auto
           assert "g_pendingLiveSpecs = std::move(bindings)" in auto
           assert "g_worldMenuPollFrames" in auto
+          assert "resumeManagedLiveMod(" in runtime
+          assert "entry.armedType.store(entry.type" in runtime
+          api = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          assert 'sourceLiveModResume' in api
+          assert 'CONFIRM_RESUME_MOD' in api
           print("BUNNY_CSHARP_WORLD_EPOCH_AND_MOD_PAUSE_GUARDS=PASS")
           PY
 
@@ -1208,7 +1214,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
           if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
-            echo "NativeAOT prototype was unexpectedly bundled in world-lifecycle APK" >&2
+            echo "NativeAOT prototype was unexpectedly bundled in mod-resume APK" >&2
             exit 1
           fi
           echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
@@ -1221,7 +1227,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='101' versionName='0.1.10.16.76-csharp-world-lifecycle'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='102' versionName='0.1.10.16.77-csharp-mod-resume'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1262,7 +1268,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.76-WorldLifecycle.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.77-ModResume.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1278,8 +1284,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.76-world-lifecycle"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.76-WorldLifecycle.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.77-mod-resume"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.77-ModResume.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1288,8 +1294,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.76 — World Lifecycle and Per-Mod Callback Pause" \
-              --notes "v0.1.10.16.76 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and preserves the two-mod CSharp callback isolation and adds per-mod pending event discard, world-session epoch reset and rebind of callbacks after entering another world; NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 101 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
+              --title "Bunny Loader C# v0.1.10.16.77 — Same-World CSharp Mod Callback Resume" \
+              --notes "v0.1.10.16.77 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and preserves the two-mod CSharp callback isolation and retains world-session rearm and adds an explicit same-world resume command for a previously paused CSharp mod; producer queue synchronization prevents stale callbacks after a quick pause/resume. NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 102 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
               --prerelease
           fi
           gh release upload "$TAG" \
