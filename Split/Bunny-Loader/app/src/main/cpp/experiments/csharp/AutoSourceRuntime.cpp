@@ -774,6 +774,8 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
+        const ActivationContext context = readActivationContext();
+        if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         scheduleAutoLiveBindings();
