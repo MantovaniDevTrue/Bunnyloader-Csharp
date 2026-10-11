@@ -1,27 +1,29 @@
-# ExampleModCSharp 0.1.0 — Bunny Loader
+# ExampleModCSharp — exemplos reais para Bunny Loader C#
 
-Exemplos C# baseados nos arquivos que passaram nos testes reais do Bunny Loader Android. O objetivo e ensinar os recursos suportados sem inventar APIs.
+**Versão do pacote de teste:** `0.1.7` (release do Bunny Loader C# **0.1.10.16.60**).
 
-Este diretorio agora inclui o prototipo executavel em `Playable/`, com UUID e classes proprias. A compilacao independente chegou a branch experimental v0.1.10.16.35, ainda aguardando validacao no aparelho. O antigo `samples/SourceCSharpMod` continua como fixture estavel de regressao.
+Este exemplo existe para **ensinar e testar somente as APIs já implementadas na integração C# experimental do Bunny Loader**, sem copiar código do tModLoader. Ele não prova compatibilidade geral com mods de PC.
 
-Os seis arquivos em `Examples/` sao copias exatas dos fontes verificados. `Playable/` e um pacote diferente, com ExampleWand, ExampleBolt e ExampleBoltMotion. Para testar o pacote independente, utilize somente o `.bmod` gerado na Release e os comandos do novo tutorial.
+## Onde estão os arquivos
 
-## Organizacao
+| Local | Finalidade |
+| --- | --- |
+| [`Playable/content/`](Playable/content/) | Fontes C# utilizados para montar o `.bmod` |
+| [`Playable/manifest.json`](Playable/manifest.json) | Manifesto do pacote |
+| [`Playable/content/Content/`](Playable/content/Content/) | Arma, consumível, acessório, buffs, NPC de exemplo |
+| [`Playable/content/Common/`](Playable/content/Common/) | Player e demonstrações gerenciadas/eventos |
+| [`Playable/content/Common/Live/BunnyLiveEvents.cs`](Playable/content/Common/Live/BunnyLiveEvents.cs) | `OnHitNPC` e `OnKill` automáticos da .60 |
+| [`Examples/`](Examples/) | Exemplos históricos e didáticos de versões anteriores |
+| [`Docs/`](Docs/) | Como testar e APIs documentadas |
+| [`Tests/`](Tests/) | Verificações automáticas de pacote/fontes |
+| [`compatibility.json`](compatibility.json) | Registro da cobertura declarada |
 
-- `Playable/`: ExampleModCSharp 0.1.0 independente, em validacao Android
-- `Examples/Items/`: SourceWand e SourceStaff, com `BunnyWeapon.SetDefaults()`
-- `Examples/Projectiles/`: SourceBolt e SourceSpark, com `BunnyProjectile.SetDefaults()`
-- `Examples/Projectiles/AI/`: politica homing e curvas `TurnAtTick(int)`
-- `Docs/GettingStarted.md`: rodar o mod C# validado no Android
-- `Docs/SupportedAPI.md`: somente as APIs presentes nos fontes
-- `Docs/Compatibility.md`: status de cada recurso e limitacoes
-- `Tests/ManualAndroid.md`: verificacoes de gameplay e FPS
-- `Tests/check_examples.py`: garante sincronismo entre SDK, fontes, manifest e catalogo
+## Como testar a versão atual
 
-## Como usar
+Instale os dois artefatos da [release .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60): APK **.60** e `ExampleModCSharp-v0.1.7.bmod`. Entre em **singleplayer**. Use a ExampleWand para atingir um inimigo e aguarde o projétil se destruir.
 
-Comece por `Docs/GettingStarted.md`. Na branch 0.1.10.16.35, a nova API experimental aceita a compilacao por UUID. Veja o tutorial antes de testar e nao copie APIs de tModLoader.
+A .60 deve detectar e vincular `BunnyLiveEvents.OnHitNPC(int,int)` e `BunnyLiveEvents.OnKill(int,int)` **sem ativação manual no editor**. Consulte [o roteiro e os critérios](../../../../docs/TESTE-ANDROID-v60.md).
 
-Cada recurso novo deve passar pelos testes do compilador e depois ser validado no Terraria Android antes de mudar seu estado para `device_verified`.
+**Limite atual:** um tipo de projétil por processo para esses callbacks automáticos; eles contabilizam eventos sem alterar por si só o gameplay. Build aprovado no GitHub Actions; **o teste Android da .60 ainda está pendente**.
 
-Referencia estavel confirmada: 0.1.10.16.34. Prototipo independente: 0.1.10.16.35, ainda nao validado no aparelho.
+O histórico dos testes manuais e comandos de versões anteriores permanece em [`Docs/GettingStarted.md`](Docs/GettingStarted.md), inclusive os modos opt-in que **não** devem ser utilizados para comprovar a detecção automática da .60.
