@@ -1,5 +1,16 @@
 # Estado real do desenvolvimento
 
+## .70 — medição de callbacks e projéteis reais durante gameplay (build/Android pendentes)
+
+O profiler de 15 s `sourcePerfStart` da .65 foi estendido, **sem modificar comportamento** de NPCs, projéteis ou buffs:
+- Média, máximos, p90/p99 (histogramas aproximados) de espera em fila e tempo de callbacks gerenciados reais `OnHitNPC`/`OnKill`.
+- Tempo de **CPU da thread MonoVM** usado pela execução dos callbacks, distinto do tempo decorrido.
+- Atualizações de jogo amostradas, frequência de atualização, p90/p99 dos intervalos, intervalos acima de 25/33 ms.
+- Contagens de eventos aceitos, callbacks terminados, falhas, descartes de fila e pico de ocupação **durante a janela perfilada**. `lockDrops` acompanha falhas de aquisição de mutex da fila.
+- Contadores opt-in de chamadas à curva automática de projéteis C# do ExampleMod e escritas reais de velocidade no Terraria. Sem novas chamadas gerenciadas por frame e sem alocações por evento.
+
+**O ritmo de atualização não é FPS renderizado.** O perfil dos callbacks é real, mas não corresponde à comparação direta de IA JavaScript × C# no mesmo cenário. O teste será medido em Android com cena leve e cena de combate. [Protocolo .70](gameplay-perf-v70.md).
+
 ## .69 — simulações equivalentes de IA QuickJS × MonoVM VALIDADAS no Android
 
 **Três execuções por kernel aprovadas no Android (6/6 paridades):** 64 estados × 2.000 ticks = 128.000 atualizações por modo. Projéteis: QuickJS 126,129 ms / MonoVM 4,598 ms, razão 27,431× e checksum `-639270423`. NPCs: QuickJS 141,222 ms / MonoVM 6,566 ms, razão 21,508× e checksum `-698099503`. Ambos com `passed=true`, `phase="matched"`, `error=""`. **São simulações sem NPCs/projéteis reais**. Projéteis nas três execuções: 27,43×, 36,79×, 27,37× em tempo decorrido, mas **26,65×–28,97× por CPU da thread** (a segunda execução apresentou espera adicional). NPCs: 21,51×, 21,39×, 21,97×. **Todas as seis execuções com checksum idêntico e sem erros**, faltando medir o caminho completo dos callbacks reais. [Relatório completo](vm-ai-parity-v69.md).

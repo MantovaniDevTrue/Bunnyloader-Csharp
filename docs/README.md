@@ -11,6 +11,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | [vm-parity-v67.md](vm-parity-v67.md) | .67: DLL específica validada no build, mas ausente na pasta do processo Android |
 | [vm-parity-v68.md](vm-parity-v68.md) | .68: paridade matemática confirmada, incluindo repetições no Android |
 | [vm-ai-parity-v69.md](vm-ai-parity-v69.md) | .69: simulações equivalentes de IA de 64 projéteis/NPCs, teste de CPU QuickJS × MonoVM |
+| [gameplay-perf-v70.md](gameplay-perf-v70.md) | .70: percentis de callbacks C# reais, CPU da thread e curvas de projéteis no jogo |
 | [ARQUITETURA.md](ARQUITETURA.md) | MonoVM, Roslyn, host nativo e limites de execução |
 | [mono-auto-live-world-signal-v62.md](mono-auto-live-world-signal-v62.md) | **Teste Android validado .62**: 512 callbacks, 0 falhas, limite controlado |
 | [TESTE-ANDROID-v60.md](TESTE-ANDROID-v60.md) | Protocolo histórico da versão .60 |

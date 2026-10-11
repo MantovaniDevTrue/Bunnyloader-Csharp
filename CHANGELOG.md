@@ -2,6 +2,14 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## 0.1.10.16.70 — profiler de gameplay real (aguarda build/Android)
+- Reutiliza `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()` da .65. Janela opt-in de 15 s, sem alterações em combate ou efeitos e sem geração artificial de 25 mil eventos.
+- Adiciona `updateP99Ms`, percentis p90/p99 de fila e duração de callback C#, média/máximo/p90 de CPU da thread MonoVM, contadores de eventos aceitos/processados/falhos/descartados e pico de fila na janela.
+- Instrumenta **curvas reais de projéteis C#** em `applyManagedCurve` somente quando o monitor está ativo, contando `projectileCurveUpdates` e `projectileVelocityWrites`, sem mudar trajetória, dano ou quantidade de efeitos.
+- Histogramas de tamanho fixo e atomics sem alocação por evento; resultados detalhados só são construídos ao solicitar status. Proíbe iniciar o profiler junto com benchmark de VM.
+- **O Hz aqui é frequência de updates, não FPS de renderização.** Não interpretar como prova de C# mais rápido que JS no gameplay; exige amostra Android em cena semelhante e contabilização de callbacks reais.
+- Mantém .69 (simulações), .68 (matemática), limites de segurança, MonoVM e ExampleModCSharp 0.1.7.
+
 ## 0.1.10.16.69 — simulações de IA de projéteis e NPCs em QuickJS × MonoVM (Android validado)
 - Adiciona `bl.csharp.vmGameplayCompareStart("projectile", ticks)` e `vmGameplayCompareStart("npc", ticks)`, mantendo `vmCompareStart` da .68.
 - Ambos usam 64 estados de entidades simuladas, operações determinísticas de perseguição, movimentação/limites e decisão/cooldown, e checam igualdade exata do resultado calculado em QuickJS e na DLL C# gerenciada `BunnyVmGameplay69.dll`.

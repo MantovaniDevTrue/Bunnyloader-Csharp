@@ -16,7 +16,7 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | 7 — concluída para o kernel isolado | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | Android: `matched`, checksum idêntico, 1 milhão de iterações, 445,536 ms QuickJS contra 6,040 ms MonoVM; razão 73,764× válida apenas para o algoritmo testado |
 | 7a — parcialmente concluída | Repetir benchmarks e obter distribuição | 500 mil, 1 milhão e 2 milhões de iterações aprovados; três repetições adicionais de 1M com 73,75×/74,27×/75,86× e paridade exata; faltam repetições de 500 mil e 2M e testes de integração em gameplay |
 | 7b — concluída para a simulação testada | Comparar IA computacional QuickJS × MonoVM (.69) | Android, 64 estados × 2.000 ticks: 3 execuções por modo, 6/6 checksums idênticos; projéteis 27,37×–36,79× (tempo total), 26,65×–28,97× (CPU thread); NPCs 21,39×–21,97×; não representa IA real do Terraria |
-| 7c — próxima | Comparar callbacks e gameplay reais | Mesmo evento/cena/carga, FPS/p90/RSS e overhead de integração por método, sem confundir simulação com mundo Terraria |
+| 7c — instrumentada, Android pendente (.70) | Medir callbacks e projéteis reais no jogo | Profiler 15 s opt-in: CPU, p90/p99 de fila e callbacks, contagens de curva/escrita de velocidade; testar cena leve e combate, registrar FPS renderizado separadamente |
 | 8 | Preparar publicação para usuários | API documentada, compatibilidade declarada por recurso, estabilidade demonstrada |
 
 ## Princípios
