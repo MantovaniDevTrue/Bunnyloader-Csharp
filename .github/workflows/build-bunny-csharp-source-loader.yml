@@ -339,10 +339,10 @@ jobs:
           cpp=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
           api=(root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
           h=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text()
-          cs=(root/"experiments/csharp/BunnyManagedProbe/Probe.cs").read_text()
+          cs=(root/"experiments/csharp/BunnyVmBenchmark67/Kernel.cs").read_text()
           for t in ["0xA5A5A5A5","0x9E3779B9","0x85EBCA6B"]:
               assert t in api and t.lower() in cs.lower(), t
-          for t in ["BenchmarkMath", "g_vmComparePending", "runVmCompareMono",
+          for t in ["BunnyVmBenchmark67.dll", "g_vmComparePending", "runVmCompareMono",
                     "compareThreadCpuNs", "compareRssKb", "beginVmCompare",
                     "vmCompareStatus", "g_pinnedWake.notify_one()"]:
               assert t in cpp, t
@@ -351,8 +351,8 @@ jobs:
                     "vmCompareStart", "vmCompareStatus"]:
               assert t in api, t
           assert "struct VmCompareStatus" in h
-          assert 'image, "BunnyLoader.ManagedProbe", "Probe"' in cpp
-          assert '"BenchmarkMath", 2' in cpp
+          assert 'image, "BunnyLoader.VmBenchmark67", "Kernel"' in cpp
+          assert '"Execute", 2' in cpp
           assert "g_vmCompare.monoResult" in cpp
           assert "done.result == g_vmCompare.jsResult" in cpp
           assert "JS_EVAL_TYPE_GLOBAL" in api
