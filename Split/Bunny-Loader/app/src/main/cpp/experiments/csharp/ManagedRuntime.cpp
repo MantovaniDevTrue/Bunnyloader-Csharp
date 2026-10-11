@@ -1248,15 +1248,67 @@ bool pauseManagedLiveMod(const std::string& modId, std::string* error) {
     for (int i = 0; i < count; ++i) {
         auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
         if (entry.modId != modId) continue;
-        if (entry.armedType.exchange(-1, std::memory_order_acq_rel) != entry.type)
+        if (entry.armedType.load(std::memory_order_acquire) != entry.type)
             continue;
         changed = true;
-        const int discarded = g_liveIngress.discardBinding(i);
+        const int discarded = g_liveIngress.pauseBinding(i, entry.armedType);
         entry.dropped += discarded;
         g_liveHitStatus.dropped += discarded;
     }
     if (!changed) *error = "Mod not armed or already paused";
     return changed;
+}
+
+bool resumeManagedLiveMod(const std::string& modId, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (modId.empty() || modId.size() > 128 ||
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos) {
+        *error = "Invalid C# mod identity";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
+        g_liveHitType.load(std::memory_order_acquire) != g_liveHitStatus.projectileType ||
+        g_liveHitStatus.phase == "draining" ||
+        g_liveBenchmark.running || g_liveBenchmarkAttempted ||
+        g_liveIngress.accepted() >= ManagedLiveEventQueue::kEventLimit) {
+        *error = "Live C# session unavailable; re-enter the world";
+        return false;
+    }
+    if (modId == g_liveHitStatus.modId) {
+        *error = "Primary mod cannot be resumed independently";
+        return false;
+    }
+    const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+    bool hasPrimary = false;
+    bool hasPaused = false;
+    for (int i = 0; i < count; ++i) {
+        const auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+        if (entry.modId != modId) continue;
+        if (entry.callbackClass == "BunnyLiveEvents") hasPrimary = true;
+        if (entry.type < 0 ||
+            static_cast<size_t>(entry.type) >= g_additionalLiveByType.size() ||
+            g_additionalLiveByType[static_cast<size_t>(entry.type)].load(
+                std::memory_order_acquire) != i + 1 ||
+            entry.armedType.load(std::memory_order_acquire) == entry.type ||
+            entry.failures >= 3 || !entry.error.empty() ||
+            !validAssembly(entry.assemblyPath)) {
+            *error = "Mod bindings are not safely paused; cannot resume";
+            return false;
+        }
+        hasPaused = true;
+    }
+    if (!hasPrimary || !hasPaused) {
+        *error = "No paused secondary C# mod found";
+        return false;
+    }
+    for (int i = 0; i < count; ++i) {
+        auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+        if (entry.modId != modId) continue;
+        entry.armedType.store(entry.type, std::memory_order_release);
+    }
+    return true;
 }
 
 std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses() {
