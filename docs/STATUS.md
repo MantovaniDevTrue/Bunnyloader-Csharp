@@ -1,5 +1,17 @@
 # Estado real do desenvolvimento
 
+## Teste Android inicial da .60 — 10/10/2026, 21:18 (BRT)
+
+**Resultado: parcial / não aprovado ainda.** No Xiaomi 2109119DG, Android 14, com `ExampleModCSharp 0.1.7`, o status no editor mostrou:
+
+- `auto[0].phase = "compiling"`, `cached = false`, `applied = false`; identidade do mod detectada: `68c3115f-62f4-49f2-a56b-388256781d5f`.
+- `live.phase = "idle"`, `enabled = false`, `automatic = false`, `hitProcessed = 0`, `killProcessed = 0`, `failures = 0`.
+- `mono.phase = "idle"` e `attempted = false` no **processo atual**. O relatório também contém um checkpoint Mono anterior com `phase = verified`, `result = 42` e um checkpoint do worker desta sequência com `phase = compiling-source`. **Não confundir checkpoints anteriores com a sessão atual.**
+- `auto.error = ""`; não havia falha de compilação confirmada na leitura. `netMode = -1` e `gameMenu = -1` são valores iniciais do status; no código da .60 só são preenchidos após a compilação.
+- O relatório inclui encerramentos históricos (`SINAL status=9` e ocorrência de memória insuficiente no processo `mono_probe`), mas a causa desses registros não pode ser atribuída a este teste sem correlacionar PID/tempo.
+
+O `AutoSourceRuntime::compile` aguarda até **180 segundos** pelo arquivo de status do worker. **Diagnóstico pendente**: `bl.csharp.sourceCompileStatus()` com `status`, `diagnostics`, `workerPid`, `workerAlive`, `staleCompilingState`, `exitInfo` e `exitTrace`, de preferência após aguardar o prazo. Sem isso, não afirmar travamento definitivo nem erro do callback.
+
 Atualização de referência: **10 de outubro de 2026**. Estado ancorado no código da branch `bunny-csharp-source-0.1.10.16.60-auto-live-events`, na release .60, nos testes automatizados e nos resultados de aparelho registrados no histórico do projeto.
 
 ## Matriz de validação
