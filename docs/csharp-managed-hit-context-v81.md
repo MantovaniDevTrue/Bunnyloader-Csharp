@@ -1,6 +1,13 @@
 # Bunny Loader C# .81 — plano técnico para contexto de evento gerenciado
 
-**Status: planejamento/auditoria concluídos; funcionalidade ainda não implementada nem validada.** Este documento pertence à branch experimental `csharp-managed-event-context-v81-experiment`. A fonte de regressão é a branch `csharp-android-validated-v80`, apontada ao commit de APK `ae787455f3f7adada861d211809cf8bf60c99438`; não modificá-la.
+**Status: base de transporte e teste de compatibilidade implementados com CI aprovado; callback C# V2 ainda NÃO implementado nem testado no Android.** Este documento pertence à branch experimental `csharp-managed-event-context-v81-experiment`. A fonte de regressão é a branch `csharp-android-validated-v80`, apontada ao commit de APK `ae787455f3f7adada861d211809cf8bf60c99438`; não modificá-la.
+
+## Implementação inicial já concluída nesta branch
+
+- `ManagedLiveQueuedEvent` recebeu **`npcIndex=-1`** como último campo, mantendo compatíveis todos os inicializadores antigos de 5 argumentos.
+- Teste nativo de fila `Split/Bunny-Loader/tests/test_managed_hit_context_v81.cpp`: verifica valores do índice na FIFO64 e na ingress queue de ambos os mods; eventos antigos continuam com `-1`, hit válido conserva seu slot, pausa elimina eventos pendentes e invalida tickets antigos, reentrada lógica aceita ticket novo, kill não recebe um NPC inventado.
+- [CI de regressão v81 #38174850848](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38174850848) **success** (compilação C++ host e confirmação estática de que o MonoVM ainda resolve `OnHitNPC(int,int)` e `OnKill(int,int)`).
+- **NÃO IMPLEMENTADO:** o hook nativo ainda não preenche o novo campo, o worker ainda não o encaminha e nenhuma classe C# possui novo método de hit ativo. A APK .80 validada continua igual. Não publicar APK .81 até realizar essas etapas e obter CI Android.
 
 ## Problema confirmado nos fontes da .80
 
