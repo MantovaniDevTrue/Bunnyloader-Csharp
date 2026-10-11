@@ -233,6 +233,22 @@ JSValue makeLiveSourceStatus(JSContext* ctx, const bl::csharp::LiveSourceStatus&
     return out;
 }
 
+JSValue makeManagedHitContextStatus(
+    JSContext* ctx, const bl::csharp::ManagedHitContextStats& stats) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "v2Calls", JS_NewInt32(ctx, stats.v2Calls));
+    JS_SetPropertyStr(ctx, out, "v2Successes", JS_NewInt32(ctx, stats.v2Successes));
+    JS_SetPropertyStr(ctx, out, "v2Failures", JS_NewInt32(ctx, stats.v2Failures));
+    JS_SetPropertyStr(ctx, out, "legacyCalls", JS_NewInt32(ctx, stats.legacyCalls));
+    JS_SetPropertyStr(ctx, out, "legacyFailures", JS_NewInt32(ctx, stats.legacyFailures));
+    JS_SetPropertyStr(ctx, out, "lastNpcIndex", JS_NewInt32(ctx, stats.lastNpcIndex));
+    JS_SetPropertyStr(ctx, out, "minNpcIndex", JS_NewInt32(ctx, stats.minNpcIndex));
+    JS_SetPropertyStr(ctx, out, "maxNpcIndex", JS_NewInt32(ctx, stats.maxNpcIndex));
+    JS_SetPropertyStr(ctx, out, "uniqueNpcIndices", JS_NewInt32(ctx, stats.uniqueNpcIndices));
+    JS_SetPropertyStr(ctx, out, "invalidV2Indices", JS_NewInt32(ctx, stats.invalidV2Indices));
+    return out;
+}
+
 JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHitStatus& status) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "enabled", JS_NewBool(ctx, status.enabled));
@@ -241,6 +257,8 @@ JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHi
     JS_SetPropertyStr(ctx, out, "queued", JS_NewInt32(ctx, status.queued));
     JS_SetPropertyStr(ctx, out, "processed", JS_NewInt32(ctx, status.processed));
     JS_SetPropertyStr(ctx, out, "hitProcessed", JS_NewInt32(ctx, status.hitProcessed));
+    JS_SetPropertyStr(ctx, out, "hitContext",
+                      makeManagedHitContextStatus(ctx, status.hitContext));
     JS_SetPropertyStr(ctx, out, "killProcessed", JS_NewInt32(ctx, status.killProcessed));
     JS_SetPropertyStr(ctx, out, "dropped", JS_NewInt32(ctx, status.dropped));
     JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
@@ -753,6 +771,8 @@ JSValue jsSourceLiveProjectileStatus(JSContext* ctx, JSValueConst,
         JS_SetPropertyStr(ctx, row, "queued", JS_NewInt32(ctx, value.queued));
         JS_SetPropertyStr(ctx, row, "processed", JS_NewInt32(ctx, value.processed));
         JS_SetPropertyStr(ctx, row, "hits", JS_NewInt32(ctx, value.hits));
+        JS_SetPropertyStr(ctx, row, "hitContext",
+                          makeManagedHitContextStatus(ctx, value.hitContext));
         JS_SetPropertyStr(ctx, row, "kills", JS_NewInt32(ctx, value.kills));
         JS_SetPropertyStr(ctx, row, "failures", JS_NewInt32(ctx, value.failures));
         JS_SetPropertyStr(ctx, row, "dropped", JS_NewInt32(ctx, value.dropped));
