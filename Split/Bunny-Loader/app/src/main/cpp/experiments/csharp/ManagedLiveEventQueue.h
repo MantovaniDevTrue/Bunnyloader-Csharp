@@ -11,6 +11,7 @@ struct ManagedLiveQueuedEvent {
     bool isKill = false;
     uint64_t enqueuedAtNs = 0;
     int bindingSlot = -1;
+    int npcIndex = -1;
 };
 
 class ManagedLiveEventQueue {
