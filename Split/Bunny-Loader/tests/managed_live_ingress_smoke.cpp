@@ -30,7 +30,7 @@ int main() {
     });
 
     for (int tick = 1; tick <= 25000; ) {
-        const auto result = ingress.push(
+        const auto result = ingress.push(ingress.admission(),
             {tick, 18, (tick & 1) == 0}, 1136, type, automatic);
         if (result.accepted) ++tick;
         else assert(result.queueDropped);
@@ -42,13 +42,13 @@ int main() {
     assert(ingress.depth() == 0);
     assert(ingress.maxDepth() <= 64);
     assert(type.load(std::memory_order_acquire) == -1);
-    assert(!ingress.push({25001, 18, false}, 1136, type, automatic).accepted);
+    assert(!ingress.push(ingress.admission(), {25001, 18, false}, 1136, type, automatic).accepted);
 
     ingress.reset();
     type.store(1136, std::memory_order_release);
     automatic.store(false, std::memory_order_release);
-    assert(!ingress.push({1, 18, true}, 1136, type, automatic).accepted);
-    assert(ingress.push({1, 18, false}, 1136, type, automatic).accepted);
+    assert(!ingress.push(ingress.admission(), {1, 18, true}, 1136, type, automatic).accepted);
+    assert(ingress.push(ingress.admission(), {1, 18, false}, 1136, type, automatic).accepted);
     assert(ingress.clear() == 1);
     assert(ingress.depth() == 0);
 
@@ -76,7 +76,7 @@ int main() {
     for (int producer = 0; producer < kThreads; ++producer) {
         producers.emplace_back([&, producer] {
             for (int i = 0; i < kPerThread; ++i) {
-                const auto result = ingress.push(
+                const auto result = ingress.push(ingress.admission(),
                     {0, producer * kPerThread + i, false}, 1136, type, automatic);
                 assert(result.accepted || result.queueDropped);
             }
@@ -89,3 +89,4 @@ int main() {
     assert(drained == ingress.accepted());
     assert(ingress.depth() == 0);
 }
+
