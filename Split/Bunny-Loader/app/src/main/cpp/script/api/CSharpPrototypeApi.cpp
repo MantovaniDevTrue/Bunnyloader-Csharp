@@ -691,6 +691,29 @@ JSValue jsSourceLiveModPause(JSContext* ctx, JSValueConst,
     return status;
 }
 
+JSValue jsSourceLiveModResume(JSContext* ctx, JSValueConst,
+                               int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]) || !JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx,
+            "sourceLiveModResume(modId, 'CONFIRM_RESUME_MOD')");
+    const char* raw = JS_ToCString(ctx, argv[0]);
+    if (!raw) return JS_EXCEPTION;
+    const std::string modId(raw);
+    JS_FreeCString(ctx, raw);
+    const char* token = JS_ToCString(ctx, argv[1]);
+    if (!token) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(token) == "CONFIRM_RESUME_MOD";
+    JS_FreeCString(ctx, token);
+    if (!confirmed)
+        return JS_ThrowTypeError(ctx, "CONFIRM_RESUME_MOD required");
+    std::string error;
+    const bool resumed = bl::csharp::resumeManagedLiveMod(modId, &error);
+    JSValue status = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, status, "resumed", JS_NewBool(ctx, resumed));
+    JS_SetPropertyStr(ctx, status, "error", JS_NewString(ctx, error.c_str()));
+    return status;
+}
+
 JSValue jsSourceLiveHitPause(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitPause()");
     return makeManagedLiveHitStatus(ctx, bl::csharp::pauseManagedLiveHit());
@@ -2506,6 +2529,9 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "sourceLiveModPause",
                       JS_NewCFunction(ctx, jsSourceLiveModPause,
                                       "sourceLiveModPause", 2));
+    JS_SetPropertyStr(ctx, api, "sourceLiveModResume",
+                      JS_NewCFunction(ctx, jsSourceLiveModResume,
+                                      "sourceLiveModResume", 2));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
     JS_SetPropertyStr(ctx, api, "vmCompareStart",
