@@ -10,6 +10,7 @@ struct ManagedLiveQueuedEvent {
     int damage = 0;
     bool isKill = false;
     uint64_t enqueuedAtNs = 0;
+    int bindingSlot = -1;
 };
 
 class ManagedLiveEventQueue {
