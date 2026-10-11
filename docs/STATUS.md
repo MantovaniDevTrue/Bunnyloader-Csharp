@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .74 — Managed Default (APK CI aprovada; Android pendente)
+## .74 — Managed Default APROVADA no Android (11/10/2026)
+
+A APK v0.1.10.16.74, sem o protótipo `libbunnycs.so` no boot, foi testada com ExampleModCSharp 0.1.9 e **60 FPS relatados**. `hostInfo()` indicou `runtimeMode="Roslyn+MonoVM"`, `monoVmReady=true`, `sourceModCount=1`, `nativeAotPrototypeAvailable=false`, `nativeAotExternalCount=0`; `managedAvailable()=true`. Auto: `ready`, `cached=true`, `curves=enabledCurves=2`. Eventos globais **559/559** (359 hits, 200 kills) com `dropped=0`, `lockDrops=0`, `failures=0`, pico 3/64 e fila vazia no final. `ExampleWaveBoltLiveEvents` no tipo 1136 processou **477/477** (318 hits, 159 kills, `lastResult=2171`, zero falhas), **já incluídos** nos totais globais. Os zeros `runtimeAbi=0`/`hostApi=0` pertencem ao protótipo legado e não significam falha MonoVM.
+
+Observação não bloqueante: mensagens do C# aparecem em momentos separados no editor; causa não verificada, **nenhuma modificação solicitada agora**. A .74 é baseline estável dos recursos testados; multi-mod, multiplayer, reentrada e compatibilidade NativeAOT externa continuam sem teste específico. [Relatório completo](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md).
+
+## .74 — Histórico do build (anterior à validação Android)
 
 Objetivo: tornar **Roslyn + MonoVM o caminho principal de C#**, retirando a publicação obrigatória de BunnyCsPrototype/libbunnycs.so e a inicialização NativeAOT do processo, sem apagar o carregador legado de mods externos libmod.so nem as pontes C++ de conteúdo. Melhorias de diagnóstico: managedAvailable(), hostInfo().monoVmReady e campos explícitos de legado. VersionCode 99, ExampleModCSharp 0.1.9 funcionalmente preservado e guia atualizado. **GitHub Actions [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) aprovado e [release .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.74-managed-default) com APK de 223.287.037 bytes e ExampleModCSharp 0.1.9 publicados. O APK não contém libbunnycs.so. Ainda não promover até testar no Android.** [Fonte e testes .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md).
 
