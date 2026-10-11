@@ -4,6 +4,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
+**.79.1 experimental:** as correções de eventos antigos após pausa/reentrada e isolamento da contagem de falhas do callback principal (Codex PR #15) passaram nos testes de regressão e CI Android. A APK assinada com versionCode 105 foi publicada; **faltam testes de FPS, ataques de ambos os mods, pausa/retomada e Blood Moon no celular antes de substituir a .79**. Nenhum unload de DLL ou GC forçado.
+
 **.79 Android aprovado no escopo observado (11/10/2026):** 60 FPS relatados, 3 entradas/2 saídas, 367/367 callbacks de SecondBolt, sem falhas/descartes. Heap GC disponível e estável nos snapshots (21495808/4199632 bytes); hits 641→938→1305, misses 2 e opens 2/2 fixos. **O usuário usou apenas uma arma:** 1 caminho de DLL no cache e zero eventos de ExampleWaveBolt são esperados, não bugs. Manter .78 como rollback; próximos testes podem validar ambas as DLLs simultaneamente e o PR #15 isoladamente.
 
 **.79 — histórico CI antes do teste Android:** medir heap de GC gerenciada quando o MonoVM expuser a API, e hits/misses de resolução de métodos e abertura de assemblies nos mesmos dois mods C#. Verificar se os números de miss/open se estabilizam após os callbacks iniciais em várias reentradas. Sem forçar GC ou alterar fila/efeitos. **.79 validada posteriormente no cenário descrito acima; .78 permanece fallback.**
