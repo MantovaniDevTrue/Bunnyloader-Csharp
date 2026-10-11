@@ -31,7 +31,253 @@ jobs:
           gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
             --jq '.artifacts[] | [.id, .name, .size_in_bytes, .created_at] | @tsv' \
             > "$RUNNER_TEMP/old-artifacts.tsv"
-          while IFS=$'\t' read -r id name size created; do
+          echo "ARTIFACT INVENTORY count=$(wc -l < "$RUNNER_TEMP/old-artifacts.tsv")"
+          sort -t 
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          echo "CACHE INVENTORY count=$(wc -l < "$RUNNER_TEMP/old-caches.tsv")"
+          sort -t 
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' -k3,3nr "$RUNNER_TEMP/old-artifacts.tsv" | head -30
+          while IFS=
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          while IFS=$'\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' read -r id name size created; do
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          while IFS=$'\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' -k3,3nr "$RUNNER_TEMP/old-caches.tsv" | head -30
+          while IFS=
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' -k3,3nr "$RUNNER_TEMP/old-artifacts.tsv" | head -30
+          while IFS=
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          while IFS=$'\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' read -r id name size created; do
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          while IFS=$'\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' -k3,3nr "$RUNNER_TEMP/old-artifacts.tsv" | head -30
+          while IFS=
+            [[ -n "$id" ]] || continue
+            [[ "$created" < "$limit" ]] || continue
+            case "$name" in
+              *0.1.10.16.80*|*0.1.10.16.81*|*0.1.10.16.82*|*0.1.10.16.83*|*v80*|*v81*|*v82*|*v83*)
+                echo "KEEP artifact $id ($name)"
+                continue
+                ;;
+            esac
+            echo "DELETE old Actions artifact $id ($name, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-artifacts.tsv"
+          echo "Removed $count artifacts, accounting size $bytes bytes."
+      - name: Remove unused old Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          limit="$(date -u -d '21 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          count=0
+          bytes=0
+          gh api --paginate "repos/$REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .size_in_bytes, .last_accessed_at] | @tsv' \
+            > "$RUNNER_TEMP/old-caches.tsv"
+          while IFS=$'\t' read -r id key size lastUsed; do
+            [[ -n "$id" ]] || continue
+            [[ "$lastUsed" < "$limit" ]] || continue
+            echo "DELETE unused cache $id ($key, $size bytes)"
+            gh api -X DELETE "repos/$REPO/actions/caches/$id" --silent
+            count=$((count + 1))
+            bytes=$((bytes + size))
+          done < "$RUNNER_TEMP/old-caches.tsv"
+          echo "Removed $count caches, accounting size $bytes bytes."
+\t' read -r id name size created; do
             [[ -n "$id" ]] || continue
             [[ "$created" < "$limit" ]] || continue
             case "$name" in
