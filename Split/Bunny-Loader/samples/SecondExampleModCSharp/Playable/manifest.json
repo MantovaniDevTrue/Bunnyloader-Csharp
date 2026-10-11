@@ -1,0 +1,22 @@
+{
+  "uid": "2e508d4f-f192-4a21-83b2-496e6c482c75",
+  "id": "secondexamplecsharp",
+  "name": "Second Example CSharp",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "C# Multi-Mod Isolation Test"
+    }
+  ],
+  "category": "Example",
+  "summary": "Segundo mod C# de teste com assembly e BunnyLiveEvents independentes, destinado a validar o isolamento entre mods no MonoVM.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}
