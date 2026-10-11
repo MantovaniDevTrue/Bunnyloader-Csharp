@@ -57,6 +57,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
     int damage = 0;
     int autoSlot = -1;
     bool legacy = false;
+    bool additionalLive = false;
     if (projectile) {
         const auto& game = runtime::game();
         type = runtime::field<int32_t>(projectile, game.proj.type);
@@ -71,11 +72,12 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         }
         legacy = g_hitEnabled.load(std::memory_order_acquire) &&
             type == g_hitType.load(std::memory_order_relaxed);
-        if (legacy || autoSlot >= 0)
+        additionalLive = isManagedLiveProjectileBound(type);
+        if (legacy || autoSlot >= 0 || additionalLive)
             damage = runtime::field<int32_t>(projectile, game.proj.damage);
     }
     if (g_originalHit) g_originalHit(projectile, index, method);
-    if ((!legacy && autoSlot < 0) || index < 0 || index >= 200 ||
+    if ((!legacy && autoSlot < 0 && !additionalLive) || index < 0 || index >= 200 ||
         !g_addBuff || !g_npcs || !g_netMode) return;
 
     int mode = -1;
@@ -99,6 +101,11 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
     if (!npc || !runtime::field<uint8_t>(npc, g_npcActive) ||
         runtime::field<uint8_t>(npc, g_npcFriendly) ||
         runtime::field<int32_t>(npc, g_npcLife) <= 0) return;
+
+    if (additionalLive && !legacy && autoSlot < 0) {
+        queueManagedLiveHit(type, damage);
+        return;
+    }
 
     int duration = 0;
     int buff = 24;
