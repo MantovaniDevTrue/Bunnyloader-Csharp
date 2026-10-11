@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .78 — Diagnósticos de memória CI/APK aprovados; Android pendente
+## .78 — Validação Android de memória e reentrada aprovada (11/10/2026)
+
+Com os dois ExampleMods C#, o usuário confirmou **60 FPS durante todos os testes** em sequência de **5 entradas e 4 saídas** do mundo. Capturas 3/4/5: `rssKb` **240260 / 567512 / 569524 KiB**; `swapKb` **560372 / 241176 / 230224 KiB**; 3 entradas do cache de métodos, 2 caminhos de assemblies no cache, 3 tipos de projéteis ativos e worker TID 13148 em todos os pontos. Sessões registradas: epoch 5→7→9, worldLoads 3→4→5, worldExits 2→3→4, rebindSchedules 3→4→5; 78→79→79 threads. Snapshot de combate **104/104** eventos, 51 hits, 53 kills, `lockDrops=0`, `dropped=0`, `failures=0`. Entre testes 4 e 5, RSS cresce só **2012 KiB**; o salto 3→4 acompanha redução quase igual de swap, consistente com troca de páginas Android. Falta o snapshot inicial; isso **não é prova de ausência de vazamento**, apenas estabilidade observada na sequência. [Relatório completo da .78](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md).
+
+**.78 vira baseline funcional para diagnóstico e reentrada testados; .77 mantida como rollback.** Sem hot-unload real de assemblies, sem medição de heap MonoVM isolada, sem multiplayer validado.
+
+## .78 — Histórico de CI/APK antes da validação Android
 
 Nova branch `csharp-managed-memory-v78-experiment`, baseada na **.77 aprovada no Android**, adiciona `bl.csharp.sourceMemoryBaseline()` e `bl.csharp.sourceMemoryStatus()`: leitura **sob demanda** de RSS/VmHWM/VmSize/VmData/VmSwap/threads do processo, contagem de entradas do cache de callbacks, caminhos de assemblies no cache e vínculos ativos; inclui `world.epoch`, entradas, saídas e agendamentos de callbacks. **Nenhum GC forçado, unload de assembly, thread MonoVM adicional ou trabalho por frame**. **GitHub Actions [#38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) success**, [APK .78](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) publicada (versionCode 103, 223.294.805 bytes). **Nenhum FPS Android medido na .78**. [Procedimento de teste em cinco reentradas](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md). A .77 permanece baseline/rollback.
 
