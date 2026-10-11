@@ -1,10 +1,14 @@
 # Estado real do desenvolvimento
 
-## .73 — callbacks C# independentes por projétil (CI aprovado, aguarda Android)
+## .74 — Managed Default (build experimental; teste Android pendente)
+
+Objetivo: tornar **Roslyn + MonoVM o caminho principal de C#**, retirando a publicação obrigatória de BunnyCsPrototype/libbunnycs.so e a inicialização NativeAOT do processo, sem apagar o carregador legado de mods externos libmod.so nem as pontes C++ de conteúdo. Melhorias de diagnóstico: managedAvailable(), hostInfo().monoVmReady e campos explícitos de legado. VersionCode 99, ExampleModCSharp 0.1.9 funcionalmente preservado e guia atualizado. **Não promover antes de testar no Android.** [Fonte e testes .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md).
+
+## .73 — callbacks C# independentes por projétil APROVADOS no Android (11/10/2026)
 
 **Build GitHub Actions aprovado:** [APK 0.1.10.16.73 MultiLiveProjectiles + ExampleModCSharp 0.1.9](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles), [job #38147299182](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147299182) concluído com sucesso e [suíte rápida #38147095615](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147095615) também aprovada. Base: .72 Managed Ingress preservada. Novidade: callbacks live `OnHitNPC`/`OnKill` de `ExampleWaveBoltLiveEvents` selecionados por tipo de projétil através da **mesma FIFO64 e do mesmo worker MonoVM**, com contadores isolados em `bl.csharp.sourceLiveProjectileStatus()`. Máximo inicial: 7 vínculos extras no mesmo mod da sessão principal, limite agregado 25.000; arquitetura multi-mod não está validada. O APK incrementa `versionCode` de 97 para 98 e reutiliza o MonoVM patchado validado da .72.
 
-**Ainda NÃO aprovado em gameplay Android:** confirmar dois tipos com seus próprios contadores, sem perdas, sem crash e FPS estável, antes de promover .73 à referência. [Protocolo de testes](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multi-live-projectiles-v73-experiment/docs/multi-live-projectiles-v73.md).
+**VALIDAÇÃO REAL:** fonte e filas demonstraram 985/985 eventos processados (620 hits, 365 kills), 0 dropped, 0 lockDrops, 0 failures, fila final vazia, pico 3/64. ExampleWaveBolt recebeu **879/879 eventos independentes** (571 hits, 308 kills), tipo 1136, lastResult 2330, e sem falhas. **FPS e duração da .73 não foram informados**; permanecem pendentes os testes de vários mods, multiplayer e reinícios. [Protocolo de testes](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multi-live-projectiles-v73-experiment/docs/multi-live-projectiles-v73.md).
 
 ## ExampleModCSharp 0.1.8 — duas armas e dois projéteis C# validados no Android (11/10/2026)
 
