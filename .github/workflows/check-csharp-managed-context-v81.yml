@@ -1,0 +1,44 @@
+name: Check CSharp managed hit context v81
+
+on:
+  push:
+    branches:
+      - csharp-managed-event-context-v81-experiment
+  workflow_dispatch:
+
+jobs:
+  check-context:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Compile and exercise FIFO64 target slot regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/test_managed_hit_context_v81.cpp \
+            -o /tmp/bunny-managed-hit-context-v81
+          /tmp/bunny-managed-hit-context-v81
+      - name: Ensure game dispatcher remains on legacy callback ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          header = (root / "ManagedLiveEventQueue.h").read_text()
+          runtime = (root / "ManagedRuntime.cpp").read_text()
+          hit = (root / "ManagedHitHook.cpp").read_text()
+          kill = (root / "ManagedKillHook.cpp").read_text()
+          assert "int npcIndex = -1;" in header
+          assert "queueManagedLiveHit(int projectileType, int damage)" in runtime
+          assert "queueManagedLiveKill(int projectileType, int damage)" in runtime
+          assert "findMethod(" in runtime
+          assert '"OnHitNPC", 2' in runtime
+          assert '"OnKill", 2' in runtime
+          assert "queueManagedLiveHit(type, damage);" in hit
+          assert "queueManagedLiveKill(type, damage);" in kill
+          print("CSHARP_V81_EVENT_CONTEXT_FOUNDATION=PASS")
+          PY
