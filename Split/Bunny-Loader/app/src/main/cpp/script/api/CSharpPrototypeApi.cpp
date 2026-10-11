@@ -638,6 +638,58 @@ JSValue jsSourcePerfStop(JSContext* ctx, JSValueConst, int argc, JSValueConst*) 
     return makeManagedLivePerfStatus(ctx, bl::csharp::stopManagedLivePerf());
 }
 
+JSValue makeManagedMemoryStatus(JSContext* ctx,
+                                const bl::csharp::ManagedMemoryStatus& mem) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "available", JS_NewBool(ctx, mem.available));
+    JS_SetPropertyStr(ctx, out, "monoReady", JS_NewBool(ctx, mem.monoReady));
+    JS_SetPropertyStr(ctx, out, "rssKb", JS_NewInt64(ctx, mem.rssKb));
+    JS_SetPropertyStr(ctx, out, "peakRssKb", JS_NewInt64(ctx, mem.peakRssKb));
+    JS_SetPropertyStr(ctx, out, "virtualKb", JS_NewInt64(ctx, mem.virtualKb));
+    JS_SetPropertyStr(ctx, out, "dataKb", JS_NewInt64(ctx, mem.dataKb));
+    JS_SetPropertyStr(ctx, out, "swapKb", JS_NewInt64(ctx, mem.swapKb));
+    JS_SetPropertyStr(ctx, out, "threads", JS_NewInt32(ctx, mem.threads));
+    JS_SetPropertyStr(ctx, out, "baselineRssKb", JS_NewInt64(ctx, mem.baselineRssKb));
+    JS_SetPropertyStr(ctx, out, "rssDeltaKb", JS_NewInt64(ctx, mem.rssDeltaKb));
+    JS_SetPropertyStr(ctx, out, "cachedCallbackEntries",
+                      JS_NewInt32(ctx, mem.cachedCallbackEntries));
+    JS_SetPropertyStr(ctx, out, "cachedAssemblyPaths",
+                      JS_NewInt32(ctx, mem.cachedAssemblyPaths));
+    JS_SetPropertyStr(ctx, out, "boundProjectileTypes",
+                      JS_NewInt32(ctx, mem.boundProjectileTypes));
+    JS_SetPropertyStr(ctx, out, "activeProjectileTypes",
+                      JS_NewInt32(ctx, mem.activeProjectileTypes));
+    JS_SetPropertyStr(ctx, out, "workerTid", JS_NewInt64(ctx, mem.workerTid));
+    const auto lifecycle = bl::csharp::autoWorldLifecycleStatus();
+    JSValue world = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, world, "epoch",
+                      JS_NewInt64(ctx, static_cast<int64_t>(lifecycle.epoch)));
+    JS_SetPropertyStr(ctx, world, "worldLoads",
+                      JS_NewInt32(ctx, lifecycle.worldLoads));
+    JS_SetPropertyStr(ctx, world, "worldExits",
+                      JS_NewInt32(ctx, lifecycle.worldExits));
+    JS_SetPropertyStr(ctx, world, "rebindSchedules",
+                      JS_NewInt32(ctx, lifecycle.rebindSchedules));
+    JS_SetPropertyStr(ctx, world, "configuredBindings",
+                      JS_NewInt32(ctx, lifecycle.configuredBindings));
+    JS_SetPropertyStr(ctx, world, "worldReady",
+                      JS_NewBool(ctx, lifecycle.worldReady));
+    JS_SetPropertyStr(ctx, out, "world", world);
+    return out;
+}
+
+JSValue jsSourceMemoryStatus(JSContext* ctx, JSValueConst,
+                             int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceMemoryStatus()");
+    return makeManagedMemoryStatus(ctx, bl::csharp::managedMemoryStatus());
+}
+
+JSValue jsSourceMemoryBaseline(JSContext* ctx, JSValueConst,
+                               int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceMemoryBaseline()");
+    return makeManagedMemoryStatus(ctx, bl::csharp::managedMemoryStatus(true));
+}
+
 JSValue jsSourceLiveHitStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitStatus()");
     return makeManagedLiveHitStatus(ctx, bl::csharp::managedLiveHitStatus());
@@ -2521,6 +2573,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedWorkerStatus, "managedWorkerStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitEnable",
                       JS_NewCFunction(ctx, jsSourceLiveHitEnable, "sourceLiveHitEnable", 2));
+    JS_SetPropertyStr(ctx, api, "sourceMemoryStatus",
+                      JS_NewCFunction(ctx, jsSourceMemoryStatus, "sourceMemoryStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceMemoryBaseline",
+                      JS_NewCFunction(ctx, jsSourceMemoryBaseline, "sourceMemoryBaseline", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitStatus",
                       JS_NewCFunction(ctx, jsSourceLiveHitStatus, "sourceLiveHitStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveProjectileStatus",
