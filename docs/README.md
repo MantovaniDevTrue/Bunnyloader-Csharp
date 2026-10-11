@@ -5,6 +5,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | Documento | Finalidade |
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
+| [ExampleModCSharp 0.1.8: dois projéteis no Android](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-examplemod-dual-projectile-0.1.8/docs/examplemod-csharp-dual-projectile-018.md) | 2 curvas ativas, 2.393 atualizações da curva nova, 161/161 callbacks antigos, 0 perdas e 60 FPS relatados |
 | [managed-ingress-v72-android.md](managed-ingress-v72-android.md) | .72: perfil de 15 s e combate de ~7–8 min (2.897 eventos, 0 perdas, 60 FPS relatados) |
 | [managed-live-benchmark-v64.md](managed-live-benchmark-v64.md) | Teste opt-in de 25 mil callbacks reais do MonoVM (.64) |
 | [gameplay-perf-v65.md](gameplay-perf-v65.md) | Medir latência, contagem de callbacks e ritmo de atualização durante gameplay (.65) |
