@@ -86,6 +86,7 @@ on:
       - bunny-csharp-source-0.1.10.16.64-managed-live-benchmark
       - bunny-csharp-source-0.1.10.16.65-gameplay-perf-telemetry
       - bunny-csharp-source-0.1.10.16.66-quickjs-monovm-parity
+      - bunny-csharp-source-0.1.10.16.67-unique-benchmark-assembly
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -357,6 +358,27 @@ jobs:
           assert "JS_EVAL_TYPE_GLOBAL" in api
           assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
           print("BUNNY_CSHARP_QUICKJS_MONOVM_MATCHED_MATH_GUARDS=PASS")
+          PY
+
+      - name: Verify distinct versioned benchmark source binding
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader")
+          native=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          kernel=(root/"experiments/csharp/BunnyVmBenchmark67/Kernel.cs").read_text()
+          project=(root/"experiments/csharp/BunnyVmBenchmark67/BunnyVmBenchmark67.csproj").read_text()
+          for constant in ("0xA5A5A5A5", "0x9E3779B9", "0x85EBCA6B"):
+              assert constant in kernel and constant in (
+                  root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          assert '"BunnyVmBenchmark67.dll"' in native
+          assert '"BunnyLoader.VmBenchmark67", "Kernel"' in native
+          assert '"Execute", 2' in native
+          assert "AssemblyName>BunnyVmBenchmark67</AssemblyName" in project
+          assert "public static int Execute(int iterations, int seed)" in kernel
+          assert "result == g_vmCompare.jsResult" in native or "done.result == g_vmCompare.jsResult" in native
+          print("BUNNY_BENCHMARK67_UNIQUE_MANAGED_ASSEMBLY_SOURCE=PASS")
           PY
 
       - name: Verify native MonoVM owner controls
@@ -796,6 +818,39 @@ jobs:
             -c Release --nologo
           cp "$ROOT/experiments/csharp/BunnyManagedProbe/bin/Release/net8.0/BunnyManagedProbe.dll" \
             "$ASSETS/BunnyManagedProbe.dll"
+          dotnet build "$ROOT/experiments/csharp/BunnyVmBenchmark67/BunnyVmBenchmark67.csproj" \
+            -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnyVmBenchmark67/bin/Release/net8.0/BunnyVmBenchmark67.dll" \
+            "$ASSETS/BunnyVmBenchmark67.dll"
+          VERIFIER="$RUNNER_TEMP/bunny-managed-benchmark-verify"
+          mkdir -p "$VERIFIER"
+          cat > "$VERIFIER/Verify.csproj" <<'CSHTML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net8.0</TargetFramework>
+            </PropertyGroup>
+          </Project>
+          CSHTML
+          cat > "$VERIFIER/Program.cs" <<'CSCODE'
+          using System;
+          using System.IO;
+          using System.Reflection;
+          var path = Path.GetFullPath(args[0]);
+          var asm = Assembly.LoadFrom(path);
+          var type = asm.GetType("BunnyLoader.VmBenchmark67.Kernel", throwOnError: true)!;
+          var method = type.GetMethod("Execute",
+              BindingFlags.Public | BindingFlags.Static,
+              binder: null, types: new[] {typeof(int), typeof(int)}, modifiers: null);
+          if (method == null) throw new Exception("Kernel.Execute(int,int) is absent in bundled binary");
+          var value = (int)method.Invoke(null, new object[] {1000000, 0x12345678})!;
+          if (value != 1336190628)
+              throw new Exception("Managed binary checksum mismatch: " + value);
+          Console.WriteLine("BUNNY_MANAGED_BENCHMARK_DLL_INVOKE=PASS value=" + value);
+          CSCODE
+          dotnet run --project "$VERIFIER/Verify.csproj" --configuration Release \
+            -- "$ASSETS/BunnyVmBenchmark67.dll"
+          test -s "$ASSETS/BunnyVmBenchmark67.dll"
           test -s "$ASSETS/System.Private.CoreLib.dll"
           test -s "$ASSETS/BunnyManagedProbe.dll"
           echo "MONO_LIBRARY_BUNDLED=YES"
@@ -909,9 +964,10 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/System.Runtime.dll"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnymonoprobe.so"
           unzip -l "$APK" | grep -F "assets/managed/BunnyManagedProbe.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyVmBenchmark67.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='91' versionName='0.1.10.16.66-csharp-quickjs-monovm-parity'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='92' versionName='0.1.10.16.67-csharp-unique-benchmark-assembly'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -934,7 +990,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.66-QuickJS-MonoVM-Compare.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.67-VMParityAssemblyFix.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -948,9 +1004,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.66"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.67"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.66-QuickJS-MonoVM-Compare.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.67-VMParityAssemblyFix.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -958,8 +1014,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.66 — QuickJS vs MonoVM Math Parity" \
-              --notes "v0.1.10.16.66 Experimental apples-to-apples arithmetic kernel executed once on QuickJS and MonoVM pinned owner (same iterations, same checksum) with warm-up, wall time, thread CPU time and process-wide RSS snapshots. Not a full game-FPS or cross-runtime bridge benchmark. .65 Android observed Main.DoUpdate ~60.5Hz, 30 callbacks, zero drops. ExampleModCSharp 0.1.7 unchanged; Android parity test pending." \
+              --title "Bunny Loader C# v0.1.10.16.67 — Unique Managed Benchmark Assembly Fix" \
+              --notes "v0.1.10.16.67 Fix the .66 MonoVM BenchmarkMath lookup failure using a dedicated versioned BunnyVmBenchmark67.dll with Kernel.Execute(int,int). Build-time reflection invokes the bundled assembly and verifies checksum 1336190628 before APK packaging. QuickJS benchmark and .65 gameplay callbacks unchanged. Android verification pending." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -984,7 +1040,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.66-QuickJS-MonoVM-Compare.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.67-VMParityAssemblyFix.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
