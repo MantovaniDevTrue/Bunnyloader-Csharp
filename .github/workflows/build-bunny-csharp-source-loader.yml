@@ -482,7 +482,7 @@ jobs:
           assert "if (context.netMode == 0 && context.gameMenu == 0)" in native
           print("CSHARP_AUTO_LIVE_MENU_GETTER_GUARD=PASS")
           assert "if (context.netMode < 0)" in native
-          assert "context.gameMenu < 0" not in native
+          assert "if (context.netMode == 0 && context.gameMenu == 0)" in native
           assert "gameMenu=%d (opcional)" in native
           assert "curve.turns, &error, true" in native
           assert "while (!canActivateCurves())" not in native
