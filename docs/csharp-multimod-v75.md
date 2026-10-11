@@ -4,7 +4,31 @@
 
 **Objetivo da .75:** permitir que **dois mods C# distintos**, com UIDs, DLLs e classes `BunnyLoader.Source.BunnyLiveEvents` independentes, usem o mesmo worker MonoVM e a fila FIFO64 sem misturar o estado estático gerenciado.
 
-**Estado:** APK compilada, assinada e publicada no [GitHub Release .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed); [CI #38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551) **success**. **Ainda não validada em gameplay Android.** A .74 continua sendo a referência estável.
+**Estado:** APK compilada, assinada e publicada no [GitHub Release .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed); [CI #38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551) **success**. **Validação Android concluída para 2 mods, Blood Moon com 100 inimigos, 60 FPS sem quedas relatadas e 256/256 eventos, zero falhas.** A .74 permanece como rollback.
+
+## Validação real Android: dois mods + 100 inimigos em Blood Moon (11/10/2026)
+
+**APROVADA para o cenário observado.** O usuário testou **ExampleModCSharp 0.1.9** e **SecondExampleModCSharp 0.1.0** habilitados simultaneamente, durante uma **Blood Moon com 100 inimigos**, e relatou **60 FPS sem quedas observadas**. Os FPS são observação do jogador; não há trace contínuo de frametime, duração exata ou medição de RSS.
+
+Cinco capturas do editor confirmam `runtimeMode="Roslyn+MonoVM"`, `monoVmReady=true`, `managedAvailable()=true`, `sourceModCount=2`, protótipo NativeAOT desativado e os dois mods `phase=ready`, `applied=true`.
+
+| Métrica | Resultado |
+| --- | --- |
+| Primeiro mod (UID `68c3115f-62f4-49f2-a56b-388256781d5f`) | `cached=true`, `curves=enabledCurves=2`, políticas hit/kill 1/1 |
+| Segundo mod (UID `2e508d4f-f192-4a21-83b2-496e6c482c75`) | `cached=false`, `curves=0` esperado, políticas hit/kill 1/1 |
+| Fila global `queued/processed` | **256/256** |
+| Eventos globais hit/kill | 142/114 |
+| `dropped/lockDrops/failures` globais | **0/0/0** |
+| `queueDepth/maxQueueDepth/queueCapacity` | 0/3/64 |
+| `phase/inFlight` | ready/false |
+| ExampleWaveBolt (mod 1, tipo 1136) | 92/92 eventos, 60 hits, 32 kills, `lastResult=2054`, zero erros e descartes |
+| SecondBolt (mod 2, tipo 1138) | **100/100** eventos, 50 hits, 50 kills, `lastResult=4074`, zero erros e descartes |
+| ExampleBolt primário (tipo 1137) | **64** eventos, 32 hits e 32 kills (diferença dos totais globais) |
+| Cenário e FPS relatados | **Blood Moon, 100 inimigos, 60 FPS sem quedas observadas** |
+
+O retorno `4074` corresponde à implementação própria da segunda assembly, que retorna valores na faixa 4000+ em `OnKill`. Confirma execução do callback gerenciado do segundo mod de forma distinta dos callbacks do primeiro. **Os eventos dos dois vínculos adicionais já estão incluídos nos 256 globais**, não devem ser somados novamente.
+
+**Conclusão:** referência funcional e de desempenho para **dois mods C# simultâneos no cenário observado**, sem sinais de regressão ou perda de eventos. A .74 permanece referência anterior e alternativa de rollback. Ainda precisam de testes específicos: pausa por mod, reinício de mundo, descarregamento real da assembly, longas sessões, múltiplos mods além de dois, multiplayer, latência/RSS/p90 e stress acima dessa carga. O comando `sourceLiveModPause` ainda não foi testado no celular; pausa callbacks, **não** descarrega o mod.
 
 ## Arquitetura
 
@@ -61,4 +85,4 @@ bl.csharp.sourceLiveModPause(
 
 Verificar que o binding da segunda assembly fica `enabled=false`, enquanto os callbacks originais continuam processando. A pausa é somente dos eventos gerenciados; os itens e projéteis permanecem registrados, sem reinicialização da assembly. É esperado que novos eventos da segunda arma deixem de ser contabilizados após a pausa.
 
-**Preservação:** a .74 continua a referência estável até a .75 passar no Android. Nenhuma alteração de logs do editor foi incluída na .75.
+**Preservação:** a .75 foi aprovada para o teste Android registrado; mantenha a .74 para rollback e não presuma que multi-mod além de dois, multiplayer ou hot-unload foram validados. Nenhuma alteração de logs do editor foi incluída na .75.
