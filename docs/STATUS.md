@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .78 — Leitura de memória e ciclo de mundo (experimental, Android pendente)
+
+Nova branch `csharp-managed-memory-v78-experiment`, baseada na **.77 aprovada no Android**, adiciona `bl.csharp.sourceMemoryBaseline()` e `bl.csharp.sourceMemoryStatus()`: leitura **sob demanda** de RSS/VmHWM/VmSize/VmData/VmSwap/threads do processo, contagem de entradas do cache de callbacks, caminhos de assemblies no cache e vínculos ativos; inclui `world.epoch`, entradas, saídas e agendamentos de callbacks. **Nenhum GC forçado, unload de assembly, thread MonoVM adicional ou trabalho por frame**. CI em validação, **nenhum FPS Android medido na .78**. [Procedimento de teste em cinco reentradas](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md). A .77 permanece baseline/rollback.
+
 ## .77 — Pausa e retomada no mesmo mundo APROVADAS no Android (11/10/2026)
 
 O usuário testou com dois ExampleMods C# e relatou **60 FPS durante todo o processo, sem quedas**. `sourceLiveModPause()` retornou `{"paused":true,"error":""}` e `sourceLiveModResume()` retornou `{"resumed":true,"error":""}`, **sem sair do mundo**. Ambos os mods `ready`, `cached=true`, `applied=true` e `worldReady=true`; `SecondBolt.enabled=true`. Captura final: **379/379 eventos globais**, 219 hits, 160 kills, pico de fila 3/64, `dropped=0`, `lockDrops=0`, `failures=0`; ExampleWaveBolt 195/195 (128 hits/67 kills), SecondBolt 135/135 (67 hits/68 kills, `lastResult=4085`). Os vínculos adicionais já estão inclusos nos totais globais. FPS informado visualmente, sem benchmark contínuo. Uma medição separada do incremento após resume não foi capturada, embora o usuário tenha confirmado funcionamento.
