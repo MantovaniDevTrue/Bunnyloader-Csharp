@@ -1,6 +1,6 @@
 # Bunny Loader C# 0.1.10.16.73 — múltiplos callbacks live por projétil
 
-**Estado:** APK .73, ExampleModCSharp 0.1.9 e testes host **compilados/aprovados no GitHub Actions** (build [#38147299182](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147299182), testes rápidos [#38147095615](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147095615)); **ainda sem validação de gameplay no Android**. [APK e mod](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles). Base da implementação: .72 Managed Ingress (já testada), ExampleModCSharp .018 (duas curvas validadas no Android).
+**Estado:** APK .73, ExampleModCSharp 0.1.9 e testes host **compilados/aprovados no GitHub Actions** (build [#38147299182](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147299182), testes rápidos [#38147095615](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147095615)); **VALIDADO funcionalmente no Android em 11/10/2026**. [APK e mod](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles). Base da implementação: .72 Managed Ingress (já testada), ExampleModCSharp .018 (duas curvas validadas no Android).
 
 ## O que muda
 
@@ -46,4 +46,32 @@ JSON.stringify({
 - Gameplay de 60 FPS conforme medido visualmente nas versões .72 + ExampleModCSharp 0.1.8.
 - Nenhum registro automático no multiplayer sem validação específica.
 
-**Não substituir o estado estável .72 até a .73 ser testada no dispositivo.**
+## Resultado do teste real — 11/10/2026
+
+O usuário testou a APK .73 com o ExampleModCSharp 0.1.9 e enviou três capturas do status do editor.
+
+| Campo | Valor |
+| --- | --- |
+| auto.phase / applied | ready / true |
+| auto.curves / enabledCurves | 2 / 2 |
+| auto.hitPolicies / enabledHits | 1 / 1 |
+| auto.killPolicies / enabledKills | 1 / 1 |
+| eventos.projectileType | 1137 |
+| eventos.queued / processed | **985 / 985** |
+| eventos.hitProcessed / killProcessed | 620 / 365 |
+| eventos.dropped / lockDrops / failures | **0 / 0 / 0** |
+| eventos.maxQueueDepth / queueCapacity | 3 / 64 |
+| eventos.queueDepth / inFlight | 0 / false |
+| eventos.phase / error | ready / vazio |
+| projeteis[0].projectile / projectileType | ExampleWaveBolt / 1136 |
+| projeteis[0].callbackClass | ExampleWaveBoltLiveEvents |
+| projeteis[0].queued / processed | **879 / 879** |
+| projeteis[0].hits / kills | **571 / 308** |
+| projeteis[0].failures / lastResult / error | 0 / 2330 / vazio |
+
+O resultado 2330 é coerente com o método OnKill próprio de ExampleWaveBoltLiveEvents, diferente de BunnyLiveEvents. Logo, os 879 eventos secundários foram roteados e processados pela classe C# adicional no MonoVM durante o ensaio. A contagem global **inclui** esses 879, não deve ser somada como se fosse independente.
+
+**Resultado:** .73 aprovada funcionalmente para callbacks por projétil no cenário verificado, sem eventos perdidos, lockDrops ou falhas registrados. O usuário não informou duração nem FPS desta rodada; **não** atribuir 60 FPS à .73. O teste não prova carga extrema, reinício/descarregamento, multiplayer ou vários mods gerenciados simultâneos.
+
+**Próxima etapa:** .74 Managed Default remove o protótipo NativeAOT da inicialização e do APK principal; preservar .73 como referência funcional até teste em dispositivo. [Procedimento da .74](csharp-managed-default-v74.md).
+
