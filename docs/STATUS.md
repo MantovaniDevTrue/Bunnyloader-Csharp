@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .72 — Managed Ingress: primeiro perfil Android aprovado (11/10/2026)
+
+**VALIDADO no cenário observado:** janela de 15.010 ms com 899 atualizações de `Main.DoUpdate` (**59,9583 Hz**), 0 acima de 25/33 ms; **82/82 callbacks C# aceitos/processados**, `eventsQueueDropped=0`, `lockDrops=0`, `eventsFailed=0`, fila máxima 2/64. Tempo médio de espera **77,37 µs**, tempo médio do callback **91,80 µs**. Os contadores acumulados do dispatcher registraram **224/224** eventos (112 `OnHitNPC`, 112 `OnKill`), `dropped=0`, `failures=0`, `phase=ready`. Não confundir `updateHz` com FPS do renderizador. A fila separada removeu as perdas por mutex **neste ensaio**, mas não há prova de ausência de perdas sob saturação, em múltiplos mods ou em longo prazo. [Relatório .72](managed-ingress-v72-android.md) · [Release .72](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress).
+
 ## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
 **Carga máxima de 5 milhões aprovada:** QuickJS 1.657.350 µs (CPU 1.646.433 µs) versus MonoVM 23.067 µs (CPU 22.444 µs), checksums iguais `-70193220`, `passed=true`, `phase="matched"`, `error=""`; vantagem **71,85×** no tempo de parede e **73,36×** na CPU da thread nesse único kernel. Quatro tamanhos de carga testados, sem falhas. [Resultados](vm-parity-v68.md).
