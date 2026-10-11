@@ -5,7 +5,7 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | Ordem | Etapa | Critério de avanço |
 | --- | --- | --- |
 | 1 — concluída | Validar **.62 auto live** no Android | **512 callbacks reais**, 0 falhas; jogo continuou funcional após o limite |
-| 2 — próxima | Medir FPS/latência/memória e revisar fila e limite de eventos | Preservar segurança e gameplay; medir descartes, não aumentar arbitrariamente 512 nem bloquear thread do jogo |
+| 2 — em desenvolvimento | Avaliar no Android a .63 com fila FIFO64 e teto experimental de 25 mil | Medir FPS/latência/memória e eventos descartados; testar drenagem, sem alterar os efeitos ou bloquear a thread do jogo |
 | 3 | Generalizar registro por mod/projétil com isolamento | Identidade correta, vários tipos sem interferência, descarregamento seguro |
 | 4 | Ampliar o ExampleModCSharp por APIs confirmadas | Métodos pequenos, compilação automática, exemplos reproduzíveis e testes |
 | 5 | Cobrir mais eventos gerenciados com segurança | Comparação entre nativo/precalculado e callback real; política de execução clara |

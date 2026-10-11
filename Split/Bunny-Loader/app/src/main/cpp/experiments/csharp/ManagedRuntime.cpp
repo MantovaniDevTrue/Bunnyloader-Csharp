@@ -1,8 +1,10 @@
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 
 #include <cstdio>
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <ctime>
@@ -232,10 +234,9 @@ std::string g_pinnedStage = "PINNED_MONO";
 ManagedRuntimeStatus g_pinnedResult;
 ManagedLiveHitStatus g_liveHitStatus;
 std::atomic<int> g_liveHitType{-1};
-bool g_liveHitPending = false;
-int g_liveHitPendingDamage = 0;
-int g_liveHitPendingTick = 0;
-bool g_liveHitPendingKill = false;
+std::atomic<int> g_liveHitLockDrops{0};
+ManagedLiveEventQueue g_liveHitQueue;
+bool g_liveHitInFlight = false;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
 
@@ -255,35 +256,34 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
-                if (g_liveHitPending) {
+                ManagedLiveQueuedEvent event;
+                if (g_liveHitQueue.pop(&event)) {
+                    g_liveHitInFlight = true;
                     const std::string modId = g_liveHitStatus.modId;
                     const std::string dll = g_liveHitAssembly;
-                    const int damage = g_liveHitPendingDamage;
-                    const int tick = g_liveHitPendingTick;
                     const bool automatic = g_liveHitStatus.automatic;
-                    const bool isKill = g_liveHitPendingKill;
                     const uint64_t generation = g_liveHitGeneration;
-                    g_liveHitPending = false;
                     lock.unlock();
                     const LiveCallbackResult callback = automatic
-                        ? invokeLiveSourceEvent(modId, dll, isKill, tick, damage)
+                        ? invokeLiveSourceEvent(modId, dll, event.isKill, event.tick, event.damage)
                         : [&]() {
                             const LiveSourceStatus status =
-                                invokeLiveSourceTick(modId, dll, tick, damage);
+                                invokeLiveSourceTick(modId, dll, event.tick, event.damage);
                             return LiveCallbackResult{
                                 status.ready && status.phase == "ready",
                                 status.lastResult, status.phase, status.error};
                         }();
                     lock.lock();
+                    g_liveHitInFlight = false;
                     if (g_liveHitStatus.modId == modId &&
                         g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
                         if (callback.ready && callback.phase == "ready") {
                             ++g_liveHitStatus.processed;
-                            if (isKill) ++g_liveHitStatus.killProcessed;
+                            if (event.isKill) ++g_liveHitStatus.killProcessed;
                             else ++g_liveHitStatus.hitProcessed;
-                            g_liveHitStatus.lastDamage = damage;
+                            g_liveHitStatus.lastDamage = event.damage;
                             g_liveHitStatus.lastResult = callback.value;
-                            g_liveHitStatus.lastEvent = isKill ? "OnKill" : "OnHitNPC";
+                            g_liveHitStatus.lastEvent = event.isKill ? "OnKill" : "OnHitNPC";
                             g_liveHitStatus.phase = "ready";
                             g_liveHitStatus.error.clear();
                         } else {
@@ -293,8 +293,17 @@ void* pinnedMonoWorker(void*) {
                             if (g_liveHitStatus.failures >= 3) {
                                 g_liveHitType.store(-1, std::memory_order_release);
                                 g_liveHitStatus.enabled = false;
+                                g_liveHitStatus.dropped += g_liveHitQueue.size();
+                                g_liveHitQueue.clear();
                                 g_liveHitStatus.phase = "disabled";
                             }
+                        }
+                        if (g_liveHitStatus.enabled &&
+                            g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit &&
+                            g_liveHitQueue.empty()) {
+                            g_liveHitType.store(-1, std::memory_order_release);
+                            g_liveHitStatus.enabled = false;
+                            g_liveHitStatus.phase = "limit-reached";
                         }
                     }
                     continue;
@@ -305,7 +314,7 @@ void* pinnedMonoWorker(void*) {
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                if (g_pinnedWake.wait_until(lock, until, [] { return g_pinnedPending; }))
+                if (g_pinnedWake.wait_until(lock, until, [] { return g_pinnedPending || !g_liveHitQueue.empty(); }))
                     continue;
                 ++g_auditIndex;
                 if (g_auditIndex >= sizeof(kAuditSamples) / sizeof(kAuditSamples[0]))
@@ -565,12 +574,15 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (!g_pinnedStarted || g_pinnedBusy || g_liveHitPending) {
+    if (!g_pinnedStarted || g_pinnedBusy ||
+        g_liveHitInFlight || !g_liveHitQueue.empty()) {
         *error = "MonoVM owner ocupado ou indisponivel";
         return false;
     }
     g_liveHitType.store(-1, std::memory_order_release);
     ++g_liveHitGeneration;
+    g_liveHitQueue.clear();
+    g_liveHitLockDrops.store(0, std::memory_order_relaxed);
     g_liveHitStatus = {};
     g_liveHitStatus.automatic = automatic;
     g_liveHitStatus.modId = modId;
@@ -584,14 +596,20 @@ bool enableManagedLiveHit(const std::string& modId,
 
 ManagedLiveHitStatus managedLiveHitStatus() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    return g_liveHitStatus;
+    ManagedLiveHitStatus status = g_liveHitStatus;
+    status.queueDepth = g_liveHitQueue.size();
+    status.inFlight = g_liveHitInFlight;
+    status.lockDrops = g_liveHitLockDrops.load(std::memory_order_relaxed);
+    status.dropped += status.lockDrops;
+    return status;
 }
 
 ManagedLiveHitStatus pauseManagedLiveHit() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_liveHitType.store(-1, std::memory_order_release);
     ++g_liveHitGeneration;
-    g_liveHitPending = false;
+    g_liveHitStatus.dropped += g_liveHitQueue.size();
+    g_liveHitQueue.clear();
     g_liveHitStatus.enabled = false;
     g_liveHitStatus.phase = "paused";
     return g_liveHitStatus;
@@ -601,22 +619,28 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     if (g_liveHitType.load(std::memory_order_acquire) != projectileType ||
         damage < 0 || damage > 100000) return;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
-    if (!lock.owns_lock()) return;
-    if (!g_liveHitStatus.enabled ||
-        (isKill && !g_liveHitStatus.automatic) || g_liveHitPending ||
-        g_liveHitStatus.queued >= 512) {
-        ++g_liveHitStatus.dropped;
-        if (g_liveHitStatus.queued >= 512) {
-            g_liveHitType.store(-1, std::memory_order_release);
-            g_liveHitStatus.enabled = false;
-            g_liveHitStatus.phase = "limit-reached";
-        }
+    if (!lock.owns_lock()) {
+        g_liveHitLockDrops.fetch_add(1, std::memory_order_relaxed);
         return;
     }
-    g_liveHitPendingKill = isKill;
-    g_liveHitPendingDamage = damage;
-    g_liveHitPendingTick = ++g_liveHitStatus.queued;
-    g_liveHitPending = true;
+    if (!g_liveHitStatus.enabled || (isKill && !g_liveHitStatus.automatic))
+        return;
+    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
+        g_liveHitType.store(-1, std::memory_order_release);
+        return;
+    }
+    if (!g_liveHitQueue.push({
+            g_liveHitStatus.queued + 1, damage, isKill})) {
+        ++g_liveHitStatus.dropped;
+        return;
+    }
+    ++g_liveHitStatus.queued;
+    g_liveHitStatus.maxQueueDepth = std::max(
+        g_liveHitStatus.maxQueueDepth, g_liveHitQueue.size());
+    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
+        g_liveHitType.store(-1, std::memory_order_release);
+        g_liveHitStatus.phase = "draining";
+    }
     g_pinnedWake.notify_one();
 }
 
@@ -957,7 +981,7 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
     result.phase = "rejected";
     if (modId.empty() || modId.size() > 128 ||
         modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
-        tick < 0 || tick > 512 || damage < 0 || damage > 100000 ||
+        tick < 0 || tick > ManagedLiveEventQueue::kEventLimit || damage < 0 || damage > 100000 ||
         !validAssembly(assemblyPath)) {
         result.error = "Invalid C# event parameters or assembly";
         return result;

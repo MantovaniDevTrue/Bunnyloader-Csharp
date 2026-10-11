@@ -15,7 +15,7 @@
 | `OnHitNPC` e `OnKill` automáticos na **.62** | **Confirmados no Android**: 512 callbacks gerenciados (187 hits, 325 kills), 0 falhas; jogo continuou funcional após o limite de segurança |
 | Compatibilidade universal, AI C# por frame, multiplayer | **Não comprovados/não liberados** |
 
-**Build mais recente validado para esse cenário:** [v0.1.10.16.62 — APK e ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62). Os **512 eventos C# reais** foram processados sem falha de execução; há **9 descartes** contabilizados pela fila/limite. O jogo continuou funcionando após a desativação prevista. **FPS e memória ainda não foram medidos quantitativamente.**
+**Baseline comprovada no Android:** [v0.1.10.16.62](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62), com 512 callbacks automáticos e 0 falhas. **Próxima etapa experimental:** v0.1.10.16.63 com FIFO64 e até 25 mil callbacks aceitos; aguarda validação no aparelho. Os 9 descartes registrados na .62 e o custo em FPS/memória motivam esse teste.
 
 ## Navegação do repositório
 

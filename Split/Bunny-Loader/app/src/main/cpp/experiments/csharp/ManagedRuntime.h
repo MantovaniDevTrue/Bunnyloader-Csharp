@@ -66,6 +66,12 @@ struct ManagedLiveHitStatus {
     int hitProcessed = 0;
     int killProcessed = 0;
     int dropped = 0;
+    int lockDrops = 0;
+    int queueDepth = 0;
+    int maxQueueDepth = 0;
+    int queueCapacity = 64;
+    int eventLimit = 25000;
+    bool inFlight = false;
     int failures = 0;
     int lastDamage = 0;
     int lastResult = 0;

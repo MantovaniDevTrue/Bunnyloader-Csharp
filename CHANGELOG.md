@@ -2,6 +2,12 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## 0.1.10.16.63 — aguardando validação Android
+- Fila circular FIFO de capacidade 64 para eventos gerenciados e limite experimental de 25 mil callbacks aceitos.
+- Em caso de limite, bloqueia a entrada e drena eventos aceitos; mantém a thread de jogo não bloqueante e falhas limitadas a 3.
+- Novas métricas de ocupação/descartes; os efeitos, a compilação Roslyn e o ExampleModCSharp 0.1.7 não foram modificados.
+- CI não substitui medição real de FPS/memória nem verificação de 25 mil execuções no Android.
+
 ## 0.1.10.16.62 — VALIDADA no Android (callbacks experimentais)
 - Sinal de mundo carregado via WorldFile.LoadWorldTiles + jogador ativo por três quadros de Main.DoUpdate.
 - Suporte a detecção do mundo quando Main.get_gameMenu está indisponível.

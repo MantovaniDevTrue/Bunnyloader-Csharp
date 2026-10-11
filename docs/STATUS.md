@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## Próxima build .63 — em validação
+
+Fila FIFO de 64 eventos e limite experimental de 25 mil callbacks C# implementados sobre a baseline `.62`, com descarte sob sobrecarga, `try_to_lock` e esvaziamento seguro ao atingir o limite. Os testes automatizados não substituem o teste no Android. [Especificação e procedimento](managed-event-queue-v63.md).
+
 ## Teste Android v0.1.10.16.62 — validado em 10/10/2026, 22:25 (BRT)
 
 **Resultado: APROVADO para a execução automática gerenciada de `OnHitNPC` e `OnKill` neste ExampleModCSharp 0.1.7, em singleplayer.** O usuário testou no Xiaomi 2109119DG / Android 14 / arm64-v8a, Terraria 1.4.5.8.6. O jogo permaneceu jogável após o encerramento automático dos callbacks no limite.

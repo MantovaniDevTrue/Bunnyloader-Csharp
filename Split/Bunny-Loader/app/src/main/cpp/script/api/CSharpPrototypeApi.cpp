@@ -242,6 +242,12 @@ JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHi
     JS_SetPropertyStr(ctx, out, "hitProcessed", JS_NewInt32(ctx, status.hitProcessed));
     JS_SetPropertyStr(ctx, out, "killProcessed", JS_NewInt32(ctx, status.killProcessed));
     JS_SetPropertyStr(ctx, out, "dropped", JS_NewInt32(ctx, status.dropped));
+    JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
+    JS_SetPropertyStr(ctx, out, "queueDepth", JS_NewInt32(ctx, status.queueDepth));
+    JS_SetPropertyStr(ctx, out, "maxQueueDepth", JS_NewInt32(ctx, status.maxQueueDepth));
+    JS_SetPropertyStr(ctx, out, "queueCapacity", JS_NewInt32(ctx, status.queueCapacity));
+    JS_SetPropertyStr(ctx, out, "eventLimit", JS_NewInt32(ctx, status.eventLimit));
+    JS_SetPropertyStr(ctx, out, "inFlight", JS_NewBool(ctx, status.inFlight));
     JS_SetPropertyStr(ctx, out, "failures", JS_NewInt32(ctx, status.failures));
     JS_SetPropertyStr(ctx, out, "lastDamage", JS_NewInt32(ctx, status.lastDamage));
     JS_SetPropertyStr(ctx, out, "lastResult", JS_NewInt32(ctx, status.lastResult));
