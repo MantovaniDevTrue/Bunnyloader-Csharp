@@ -5,6 +5,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | Documento | Finalidade |
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
+| [managed-ingress-v72-android.md](managed-ingress-v72-android.md) | .72: primeiro perfil real do Managed Ingress no Android, 15 s, 82/82 callbacks, 0 perdas, 59,96 atualizações/s |
 | [managed-live-benchmark-v64.md](managed-live-benchmark-v64.md) | Teste opt-in de 25 mil callbacks reais do MonoVM (.64) |
 | [gameplay-perf-v65.md](gameplay-perf-v65.md) | Medir latência, contagem de callbacks e ritmo de atualização durante gameplay (.65) |
 | [vm-parity-v66.md](vm-parity-v66.md) | Histórico: .66 compilou, mas a chamada do método MonoVM falhou no Android |
