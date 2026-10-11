@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstdio>
+#include <ctime>
 #include <cerrno>
 #include <cstdlib>
 #include <csignal>
@@ -337,6 +338,138 @@ JSValue makeManagedLivePerfStatus(JSContext* ctx,
     JS_SetPropertyStr(ctx, out, "callbackMaxUs", JS_NewInt32(ctx, status.callbackMaxUs));
     JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
     return out;
+}
+
+int64_t vmCompareJsThreadCpuNs() {
+    timespec time{};
+    return clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time) == 0
+        ? static_cast<int64_t>(time.tv_sec) * 1000000000LL + time.tv_nsec : 0;
+}
+
+int vmCompareProcessRssKb() {
+    FILE* file = std::fopen("/proc/self/status", "rb");
+    if (!file) return 0;
+    char line[128]{};
+    int value = 0;
+    while (std::fgets(line, sizeof(line), file)) {
+        if (std::sscanf(line, "VmRSS: %d", &value) == 1) break;
+    }
+    std::fclose(file);
+    return value;
+}
+
+JSValue vmCompareStatusToJs(JSContext* ctx, const bl::csharp::VmCompareStatus& status) {
+    JSValue result = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, result, "started", JS_NewBool(ctx, status.started));
+    JS_SetPropertyStr(ctx, result, "running", JS_NewBool(ctx, status.running));
+    JS_SetPropertyStr(ctx, result, "finished", JS_NewBool(ctx, status.finished));
+    JS_SetPropertyStr(ctx, result, "passed", JS_NewBool(ctx, status.passed));
+    JS_SetPropertyStr(ctx, result, "iterations", JS_NewInt32(ctx, status.iterations));
+    JS_SetPropertyStr(ctx, result, "jsResult", JS_NewInt32(ctx, status.jsResult));
+    JS_SetPropertyStr(ctx, result, "monoResult", JS_NewInt32(ctx, status.monoResult));
+    JS_SetPropertyStr(ctx, result, "jsWallUs", JS_NewInt64(ctx, status.jsWallUs));
+    JS_SetPropertyStr(ctx, result, "jsThreadCpuUs", JS_NewInt64(ctx, status.jsThreadCpuUs));
+    JS_SetPropertyStr(ctx, result, "monoWallUs", JS_NewInt64(ctx, status.monoWallUs));
+    JS_SetPropertyStr(ctx, result, "monoThreadCpuUs", JS_NewInt64(ctx, status.monoThreadCpuUs));
+    JS_SetPropertyStr(ctx, result, "rssBeforeJsKb", JS_NewInt32(ctx, status.rssBeforeJsKb));
+    JS_SetPropertyStr(ctx, result, "rssAfterJsKb", JS_NewInt32(ctx, status.rssAfterJsKb));
+    JS_SetPropertyStr(ctx, result, "rssBeforeMonoKb", JS_NewInt32(ctx, status.rssBeforeMonoKb));
+    JS_SetPropertyStr(ctx, result, "rssAfterMonoKb", JS_NewInt32(ctx, status.rssAfterMonoKb));
+    JS_SetPropertyStr(ctx, result, "phase", JS_NewString(ctx, status.phase.c_str()));
+    JS_SetPropertyStr(ctx, result, "error", JS_NewString(ctx, status.error.c_str()));
+    const double wallRatio = status.monoWallUs > 0
+        ? static_cast<double>(status.jsWallUs) / status.monoWallUs : 0.0;
+    const double cpuRatio = status.monoThreadCpuUs > 0
+        ? static_cast<double>(status.jsThreadCpuUs) / status.monoThreadCpuUs : 0.0;
+    JS_SetPropertyStr(ctx, result, "jsOverMonoWallRatio",
+        JS_NewFloat64(ctx, wallRatio));
+    JS_SetPropertyStr(ctx, result, "jsOverMonoCpuRatio",
+        JS_NewFloat64(ctx, cpuRatio));
+    return result;
+}
+
+constexpr char kVmCompareMathJs[] = R"JS(
+(function(iterations, seed) {
+    let x = (seed ^ 0xA5A5A5A5) >>> 0;
+    for (let i = 0; i < iterations; ++i) {
+        x = (x + Math.imul(i, 0x9E3779B9)) >>> 0;
+        x = ((x << 7) | (x >>> 25)) >>> 0;
+        x = (x ^ (x >>> 13)) >>> 0;
+        x = Math.imul(x, 0x85EBCA6B) >>> 0;
+        x = (x ^ (x << 5)) >>> 0;
+    }
+    return x | 0;
+})
+)JS";
+
+JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t iterations = 1000000;
+    if (argc > 1 || (argc == 1 && JS_ToInt32(ctx, &iterations, argv[0]) < 0))
+        return JS_ThrowTypeError(ctx, "vmCompareStart(iterations)");
+    if (iterations < 1000 || iterations > 5000000)
+        return JS_ThrowRangeError(ctx, "iterations: 1000..5000000");
+    bool ready = false;
+    for (const auto& mod : bl::csharp::autoSourceStatuses()) {
+        if (mod.modId == "68c3115f-62f4-49f2-a56b-388256781d5f" &&
+            mod.applied && mod.worldReady && mod.netMode == 0) {
+            ready = true;
+            break;
+        }
+    }
+    if (!ready)
+        return JS_ThrowInternalError(ctx,
+            "Enter a singleplayer world with ExampleModCSharp 0.1.7");
+    const auto live = bl::csharp::managedLiveHitStatus();
+    if (!live.enabled || !live.automatic || live.inFlight || live.queueDepth)
+        return JS_ThrowInternalError(ctx, "Managed callbacks must be idle and ready");
+
+    JSValue routine = JS_Eval(ctx, kVmCompareMathJs, sizeof(kVmCompareMathJs) - 1,
+                             "vm-compare-math.js", JS_EVAL_TYPE_GLOBAL);
+    if (JS_IsException(routine)) return routine;
+    const int32_t seed = 0x12345678;
+    JSValue warmArgs[] = {JS_NewInt32(ctx, 4096), JS_NewInt32(ctx, seed)};
+    JSValue warm = JS_Call(ctx, routine, JS_UNDEFINED, 2, warmArgs);
+    JS_FreeValue(ctx, warmArgs[0]);
+    JS_FreeValue(ctx, warmArgs[1]);
+    if (JS_IsException(warm)) {
+        JS_FreeValue(ctx, routine);
+        return warm;
+    }
+    JS_FreeValue(ctx, warm);
+
+    bl::csharp::VmCompareStatus sample;
+    sample.iterations = iterations;
+    sample.seed = seed;
+    sample.rssBeforeJsKb = vmCompareProcessRssKb();
+    const int64_t cpuBefore = vmCompareJsThreadCpuNs();
+    const auto before = std::chrono::steady_clock::now();
+    JSValue args[] = {JS_NewInt32(ctx, iterations), JS_NewInt32(ctx, seed)};
+    JSValue value = JS_Call(ctx, routine, JS_UNDEFINED, 2, args);
+    const auto after = std::chrono::steady_clock::now();
+    const int64_t cpuAfter = vmCompareJsThreadCpuNs();
+    sample.rssAfterJsKb = vmCompareProcessRssKb();
+    JS_FreeValue(ctx, args[0]);
+    JS_FreeValue(ctx, args[1]);
+    JS_FreeValue(ctx, routine);
+    if (JS_IsException(value)) return value;
+    if (JS_ToInt32(ctx, &sample.jsResult, value) < 0) {
+        JS_FreeValue(ctx, value);
+        return JS_EXCEPTION;
+    }
+    JS_FreeValue(ctx, value);
+    sample.jsWallUs = std::chrono::duration_cast<
+        std::chrono::microseconds>(after - before).count();
+    sample.jsThreadCpuUs = cpuAfter >= cpuBefore
+        ? (cpuAfter - cpuBefore) / 1000 : 0;
+    std::string error;
+    if (!bl::csharp::beginVmCompare(sample, &error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    return vmCompareStatusToJs(ctx, bl::csharp::vmCompareStatus());
+}
+
+JSValue jsVmCompareStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "vmCompareStatus()");
+    return vmCompareStatusToJs(ctx, bl::csharp::vmCompareStatus());
 }
 
 JSValue jsSourcePerfStart(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2162,6 +2295,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceLiveHitStatus, "sourceLiveHitStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
+    JS_SetPropertyStr(ctx, api, "vmCompareStart",
+                      JS_NewCFunction(ctx, jsVmCompareStart, "vmCompareStart", 1));
+    JS_SetPropertyStr(ctx, api, "vmCompareStatus",
+                      JS_NewCFunction(ctx, jsVmCompareStatus, "vmCompareStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourcePerfStart",
                       JS_NewCFunction(ctx, jsSourcePerfStart, "sourcePerfStart", 0));
     JS_SetPropertyStr(ctx, api, "sourcePerfStatus",
