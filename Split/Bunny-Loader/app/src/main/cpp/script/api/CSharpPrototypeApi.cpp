@@ -655,6 +655,22 @@ JSValue makeManagedMemoryStatus(JSContext* ctx,
                       JS_NewInt32(ctx, mem.cachedCallbackEntries));
     JS_SetPropertyStr(ctx, out, "cachedAssemblyPaths",
                       JS_NewInt32(ctx, mem.cachedAssemblyPaths));
+    JS_SetPropertyStr(ctx, out, "monoGcStatsAvailable",
+                      JS_NewBool(ctx, mem.monoGcStatsAvailable));
+    JS_SetPropertyStr(ctx, out, "monoGcHeapBytes",
+                      JS_NewInt64(ctx, mem.monoGcHeapBytes));
+    JS_SetPropertyStr(ctx, out, "monoGcUsedBytes",
+                      JS_NewInt64(ctx, mem.monoGcUsedBytes));
+    JS_SetPropertyStr(ctx, out, "liveMethodCacheHits",
+                      JS_NewInt64(ctx, static_cast<int64_t>(mem.liveMethodCacheHits)));
+    JS_SetPropertyStr(ctx, out, "liveMethodCacheMisses",
+                      JS_NewInt64(ctx, static_cast<int64_t>(mem.liveMethodCacheMisses)));
+    JS_SetPropertyStr(ctx, out, "liveAssemblyOpenAttempts",
+                      JS_NewInt64(ctx, static_cast<int64_t>(mem.liveAssemblyOpenAttempts)));
+    JS_SetPropertyStr(ctx, out, "liveAssemblyOpenSuccesses",
+                      JS_NewInt64(ctx, static_cast<int64_t>(mem.liveAssemblyOpenSuccesses)));
+    JS_SetPropertyStr(ctx, out, "distinctLiveOpenedAssemblyPaths",
+                      JS_NewInt32(ctx, mem.distinctLiveOpenedAssemblyPaths));
     JS_SetPropertyStr(ctx, out, "boundProjectileTypes",
                       JS_NewInt32(ctx, mem.boundProjectileTypes));
     JS_SetPropertyStr(ctx, out, "activeProjectileTypes",
