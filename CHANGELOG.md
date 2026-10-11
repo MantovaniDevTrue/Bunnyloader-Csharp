@@ -7,8 +7,9 @@ As alterações abaixo referem-se ao **protótipo C# neste repositório**, não 
 - Ambos usam 64 estados de entidades simuladas, operações determinísticas de perseguição, movimentação/limites e decisão/cooldown, e checam igualdade exata do resultado calculado em QuickJS e na DLL C# gerenciada `BunnyVmGameplay69.dll`.
 - Novos status `kind`, `entities`, `updates`, latência CPU/parede e checksums no `vmCompareStatus()`. Até quatro testes por sessão, com 64–5.000 ticks por teste de IA, sem mutar o mundo Terraria ou os mods instalados.
 - Build verifica DLL contra as funções JS usando três durações e SHA-256 de entrega ao processo do jogo.
-- **Android confirmado:** ambos os kernels (64 entidades simuladas, 2.000 ticks) passaram, sem erro. Projéteis: QuickJS 126.129 µs / MonoVM 4.598 µs (27,431×), checksum igual -639270423. NPCs: QuickJS 141.222 µs / MonoVM 6.566 µs (21,508×), checksum igual -698099503. Uma amostra de cada tipo.
-- **Não é IA executando dentro do Terraria nem medição de FPS/custo total da ponte de mod**. Próximas fases: repetir as simulações e medir callbacks e gameplay reais.
+- **Android confirmado:** ambos os kernels (64 entidades simuladas, 2.000 ticks) passaram, sem erro. Projéteis: QuickJS 126.129 µs / MonoVM 4.598 µs (27,431×), checksum igual -639270423. NPCs: QuickJS 141.222 µs / MonoVM 6.566 µs (21,508×), checksum igual -698099503. Mais duas repetições por tipo confirmadas (total três execuções por modo); todas passaram.
+- **Repetições Android (2.000 ticks, 128.000 atualizações):** projéteis #2 223.459/6.074 µs (JS/MonoVM), #3 131.655/4.811 µs; NPCs #2 165.476/7.737 µs, #3 162.301/7.388 µs. Checksums idênticos nas seis execuções; `phase=matched`, erro vazio. Razão de CPU por thread no modo projéteis entre 26,65×–28,97× e no modo NPCs entre 21,06×–21,90×. Outlier em tempo decorrido de QuickJS projéteis #2 acompanhado de aumento do tempo não-CPU da thread.
+- **Não é IA executando dentro do Terraria nem medição de FPS/custo total da ponte de mod**. Próxima fase: medir callbacks e gameplay reais.
 
 ## 0.1.10.16.68 — correção e paridade QuickJS × MonoVM VALIDADAS no Android
 - Corrige uma lacuna de instalação da .67: embora o APK e o CI contivessem `BunnyVmBenchmark67.dll`, o processo de jogo não garantia extrair novas DLLs caso o serviço/worker C# não fosse iniciado após atualização.
