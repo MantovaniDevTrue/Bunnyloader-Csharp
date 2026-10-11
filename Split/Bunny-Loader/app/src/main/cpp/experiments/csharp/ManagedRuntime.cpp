@@ -59,6 +59,7 @@ using MethodFn = void* (*)(void*, const char*, int);
 using InvokeFn = void* (*)(void*, void*, void**, void**);
 using UnboxFn = void* (*)(void*);
 using NewStringFn = void* (*)(void*, const char*);
+using MonoGcSizeFn = int64_t (*)();
 
 struct MonoApi {
     InitFn initialize = nullptr;
@@ -73,6 +74,8 @@ struct MonoApi {
     InvokeFn invoke = nullptr;
     UnboxFn unbox = nullptr;
     NewStringFn newString = nullptr;
+    MonoGcSizeFn gcHeapSize = nullptr;
+    MonoGcSizeFn gcUsedSize = nullptr;
 };
 
 std::mutex g_mutex;
@@ -93,6 +96,11 @@ struct LiveEntry {
 };
 
 std::map<std::string, LiveEntry> g_sourceLiveEntries;
+uint64_t g_liveMethodCacheHits = 0;
+uint64_t g_liveMethodCacheMisses = 0;
+uint64_t g_liveAssemblyOpenAttempts = 0;
+uint64_t g_liveAssemblyOpenSuccesses = 0;
+std::set<std::string> g_liveAssemblyOpenPaths;
 std::mutex g_memoryBaselineMutex;
 int64_t g_memoryBaselineRssKb = 0;
 
@@ -169,6 +177,8 @@ bool loadLibrary() {
     g_api.invoke = resolve<InvokeFn>("mono_runtime_invoke");
     g_api.unbox = resolve<UnboxFn>("mono_object_unbox");
     g_api.newString = resolve<NewStringFn>("mono_string_new");
+    g_api.gcHeapSize = resolve<MonoGcSizeFn>("mono_gc_get_heap_size");
+    g_api.gcUsedSize = resolve<MonoGcSizeFn>("mono_gc_get_used_size");
     if (!g_api.initialize || !g_api.attach || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) {
         failure("abi-incompatible", "Mono Embedding API incompleta");
@@ -1067,6 +1077,23 @@ ManagedMemoryStatus managedMemoryStatus(bool resetBaseline) {
         for (const auto& [key, entry] : g_sourceLiveEntries)
             if (!entry.path.empty()) paths.insert(entry.path);
         status.cachedAssemblyPaths = static_cast<int>(paths.size());
+        status.monoGcStatsAvailable = status.monoReady &&
+            g_api.gcHeapSize && g_api.gcUsedSize;
+        if (status.monoGcStatsAvailable) {
+            status.monoGcHeapBytes = g_api.gcHeapSize();
+            status.monoGcUsedBytes = g_api.gcUsedSize();
+            if (status.monoGcHeapBytes < 0 || status.monoGcUsedBytes < 0) {
+                status.monoGcStatsAvailable = false;
+                status.monoGcHeapBytes = 0;
+                status.monoGcUsedBytes = 0;
+            }
+        }
+        status.liveMethodCacheHits = g_liveMethodCacheHits;
+        status.liveMethodCacheMisses = g_liveMethodCacheMisses;
+        status.liveAssemblyOpenAttempts = g_liveAssemblyOpenAttempts;
+        status.liveAssemblyOpenSuccesses = g_liveAssemblyOpenSuccesses;
+        status.distinctLiveOpenedAssemblyPaths =
+            static_cast<int>(g_liveAssemblyOpenPaths.size());
     }
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -2044,8 +2071,16 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         return result;
     }
     void*& method = isKill ? target.killMethod : target.hitMethod;
-    if (!method) {
+    if (method) {
+        ++g_liveMethodCacheHits;
+    } else {
+        ++g_liveMethodCacheMisses;
+        ++g_liveAssemblyOpenAttempts;
         void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+        if (assembly) {
+            ++g_liveAssemblyOpenSuccesses;
+            g_liveAssemblyOpenPaths.insert(assemblyPath);
+        }
         void* image = assembly ? g_api.image(assembly) : nullptr;
         void* klass = image ? g_api.findClass(
             image, "BunnyLoader.Source", callbackClass.c_str()) : nullptr;
