@@ -1,6 +1,6 @@
 # Bunny Loader C# .79.1 — endurecimento do ciclo de vida
 
-**Origem:** integração isolada das correções técnicas do [PR #15](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/15) do Codex sobre a `.79` validada no Android. Branch `csharp-managed-lifecycle-v79-1-experiment`. A `.79` permanece como rollback. **Ainda é necessária validação Android específica da .79.1.**
+**Origem:** integração isolada das correções técnicas do [PR #15](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/15) do Codex sobre a `.79` validada no Android. Branch `csharp-managed-lifecycle-v79-1-experiment`. A `.79` permanece como rollback. **CI e APK assinada aprovados:** [workflow #38166213994](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38166213994) terminou com **success**. [Release .79.1](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79.1-lifecycle-hardening), versionCode 105, APK 223296221 bytes. **Ainda falta teste de gameplay/FPS no Android**.
 
 ## Mudanças no código
 
