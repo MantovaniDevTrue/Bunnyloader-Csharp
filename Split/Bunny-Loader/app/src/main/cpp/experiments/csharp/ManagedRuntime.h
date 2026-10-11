@@ -147,7 +147,7 @@ bool enableManagedLiveProjectile(const std::string& modId,
                                 std::string* error);
 bool isManagedLiveProjectileBound(int projectileType);
 std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses();
-void queueManagedLiveHit(int projectileType, int damage);
+void queueManagedLiveHit(int projectileType, int damage, int npcIndex = -1);
 void queueManagedLiveKill(int projectileType, int damage);
 
 struct ManagedLivePerfProjectileStatus {

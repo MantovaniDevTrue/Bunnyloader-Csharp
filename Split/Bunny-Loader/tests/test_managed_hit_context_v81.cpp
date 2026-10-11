@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
+#include "experiments/csharp/ManagedHitCallbackDispatch.h"
 
 #include <atomic>
 #include <cassert>
@@ -9,6 +10,18 @@ using namespace bl::csharp;
 
 int main() {
     static_assert(std::is_trivially_copyable_v<ManagedLiveQueuedEvent>);
+
+    int oldHandler = 1;
+    int v2Handler = 2;
+    const auto oldOnly = chooseManagedHitCallback(&oldHandler, nullptr, 137);
+    assert(oldOnly.method == &oldHandler && !oldOnly.usesV2);
+    const auto v2 = chooseManagedHitCallback(&oldHandler, &v2Handler, 137);
+    assert(v2.method == &v2Handler && v2.usesV2);
+    assert(chooseManagedHitCallback(&oldHandler, &v2Handler, 0).usesV2);
+    assert(chooseManagedHitCallback(&oldHandler, &v2Handler, 199).usesV2);
+    assert(!chooseManagedHitCallback(&oldHandler, &v2Handler, -1).usesV2);
+    assert(!chooseManagedHitCallback(&oldHandler, &v2Handler, 200).usesV2);
+    assert(chooseManagedHitCallback(nullptr, &v2Handler, 42).method == &v2Handler);
 
     const ManagedLiveQueuedEvent legacy{0, 18, false, 0, -1};
     assert(legacy.npcIndex == -1);

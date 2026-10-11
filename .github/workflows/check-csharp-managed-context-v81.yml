@@ -21,7 +21,7 @@ jobs:
             Split/Bunny-Loader/tests/test_managed_hit_context_v81.cpp \
             -o /tmp/bunny-managed-hit-context-v81
           /tmp/bunny-managed-hit-context-v81
-      - name: Ensure game dispatcher remains on legacy callback ABI
+      - name: Verify native to MonoVM dispatch and legacy fallback
         shell: bash
         run: |
           set -euo pipefail
@@ -33,11 +33,18 @@ jobs:
           hit = (root / "ManagedHitHook.cpp").read_text()
           kill = (root / "ManagedKillHook.cpp").read_text()
           assert "int npcIndex = -1;" in header
-          assert "queueManagedLiveHit(int projectileType, int damage)" in runtime
+          sample = Path("Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs").read_text()
+          assert "queueManagedLiveHit(int projectileType, int damage, int npcIndex)" in runtime
           assert "queueManagedLiveKill(int projectileType, int damage)" in runtime
-          assert "findMethod(" in runtime
-          assert 'isKill ? "OnKill" : "OnHitNPC", 2' in runtime
-          assert "queueManagedLiveHit(type, damage);" in hit
+          assert "queueManagedLiveHit(type, damage, index);" in hit
           assert "queueManagedLiveKill(type, damage);" in kill
-          print("CSHARP_V81_EVENT_CONTEXT_FOUNDATION=PASS")
+          assert "event.damage, event.npcIndex, callbackClass" in runtime
+          assert 'g_api.findMethod(klass, "OnHitNPCV2", 3)' in runtime
+          assert 'g_api.findMethod(klass, "OnHitNPC", 2)' in runtime
+          assert 'g_api.findMethod(klass, "OnKill", 2)' in runtime
+          assert "useV2 ? argsV2 : argsLegacy" in runtime
+          assert "(isKill && npcIndex != -1)" in runtime
+          assert "int npcIndex = -1;" in header
+          assert "OnHitNPCV2(int call, int damage, int npcIndex)" in sample
+          print("CSHARP_V81_EVENT_CONTEXT_BRIDGE=PASS")
           PY

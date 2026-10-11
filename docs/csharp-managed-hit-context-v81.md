@@ -1,13 +1,16 @@
 # Bunny Loader C# .81 — plano técnico para contexto de evento gerenciado
 
-**Status: base de transporte e teste de compatibilidade implementados com CI aprovado; callback C# V2 ainda NÃO implementado nem testado no Android.** Este documento pertence à branch experimental `csharp-managed-event-context-v81-experiment`. A fonte de regressão é a branch `csharp-android-validated-v80`, apontada ao commit de APK `ae787455f3f7adada861d211809cf8bf60c99438`; não modificá-la.
+**Status: bridge V2 experimental implementada no código; CI e testes Android desta alteração ainda não verificados.** Este documento pertence à branch experimental `csharp-managed-event-context-v81-experiment`. A fonte de regressão é a branch `csharp-android-validated-v80`, apontada ao commit de APK `ae787455f3f7adada861d211809cf8bf60c99438`; não modificá-la.
 
 ## Implementação inicial já concluída nesta branch
 
 - `ManagedLiveQueuedEvent` recebeu **`npcIndex=-1`** como último campo, mantendo compatíveis todos os inicializadores antigos de 5 argumentos.
 - Teste nativo de fila `Split/Bunny-Loader/tests/test_managed_hit_context_v81.cpp`: verifica valores do índice na FIFO64 e na ingress queue de ambos os mods; eventos antigos continuam com `-1`, hit válido conserva seu slot, pausa elimina eventos pendentes e invalida tickets antigos, reentrada lógica aceita ticket novo, kill não recebe um NPC inventado.
 - [CI de regressão v81 #38174850848](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38174850848) **success** (compilação C++ host e confirmação estática de que o MonoVM ainda resolve `OnHitNPC(int,int)` e `OnKill(int,int)`).
-- **NÃO IMPLEMENTADO:** o hook nativo ainda não preenche o novo campo, o worker ainda não o encaminha e nenhuma classe C# possui novo método de hit ativo. A APK .80 validada continua igual. Não publicar APK .81 até realizar essas etapas e obter CI Android.
+- Implementado no código desta branch: `hkStatusNPC` encaminha o slot validado, o ingresso FIFO64 guarda `npcIndex`, o worker o repassa à resolução MonoVM e o método `OnHitNPCV2(int,int,int)` é procurado opcionalmente, com cache por classe/mod e fallback para `OnHitNPC(int,int)`. `OnKill(int,int)` segue inalterado e usa `npcIndex=-1`.
+- Um exemplo opt-in V2 foi adicionado ao `ExampleWaveBoltLiveEvents.cs`; o método legado permanece presente. `BunnyLiveEvents` dos dois mods continua usando a assinatura antiga para verificar compatibilidade.
+- Teste host atualizado para validar o roteamento legacy/V2, sentinela e faixa de slots. O novo workflow da branch deverá comprovar a execução em CI; **não equivale a teste em Android.**
+- A APK .80 validada continua inalterada. Não publicar APK .81 até verificar CI Android e realizar testes no dispositivo.
 
 ## Problema confirmado nos fontes da .80
 
@@ -21,7 +24,7 @@ O SDK `Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs`
 
 A documentação e o conteúdo de ExampleModBunny.zip são a referência da organização dos mods JS, **não** fonte de APIs tModLoader para copiar. O trabalho do C# deve partir das assinaturas e hooks já implementados no Bunny, com paridade de comportamento gradualmente verificada.
 
-## Design escolhido para a próxima implementação — revisão obrigatória
+## Design de implementação V2 — experimental
 
 Adicionar um contrato **opt-in e versionado** exclusivamente para hits com o alvo identificado: `OnHitNPCV2(int call, int damage, int npcIndex)` em uma classe `*LiveEvents`. Um callback que só declare a assinatura antiga continuará operando exatamente como na .80. `OnKill(int call, int damage)` permanece inalterado neste estágio.
 
@@ -47,11 +50,11 @@ A identidade entregue é um **snapshot primitivo** do slot `npcIndex` validado n
 
 ## Plano de execução
 
-1. Criar o teste que hoje falha porque `ManagedLiveQueuedEvent` não contém `npcIndex`, e revisar os guardas do hook atual.
-2. Implementar a passagem do slot de NPC para os eventos de hit, preservando `OnKill` e as APIs antigas.
-3. Adicionar descoberta/caching de `OnHitNPCV2(int,int,int)` com fallback seguro para `OnHitNPC(int,int)`.
-4. Criar exemplo V2 e testes de integração na estrutura real do ExampleModCSharp.
-5. Preparar APK `.81` somente após CI e revisão de regressão; testar 2 mods/3 armas, 100 NPCs Blood Moon, 60 FPS, reentrada, pausa/retomada e relatar contadores.
+1. Implementado: fila com `npcIndex`, teste da FIFO64, ingresso com duas bindings e proteção de pausa/reentrada.
+2. Implementado: hook nativo transmite `index` validado somente para hits; kills preservam `-1`.
+3. Implementado: descoberta cacheada de `OnHitNPCV2(int,int,int)` por classe, sem afetar a chamada antiga `OnHitNPC(int,int)`. Quando `npcIndex=-1`, usa apenas o callback legado.
+4. Implementado: exemplo opt-in V2 e smoke nativo de seleção. Pendente: CI atualizado, compilação Android ARM64 e teste de integração no aparelho.
+5. Pendente: APK experimental `.81` após CI e revisão; validar 2 mods/3 armas, 100 NPCs Blood Moon, 60 FPS, reentrada, pausa/retomada e contadores.
 
 **Limitações assumidas:** a primeira evolução é um contexto primitivo de *hit*; contexto tipado com identidade estável de NPC, efeitos no mundo, NPC AI por frame e multiplayer são etapas independentes e **não** são implementados aqui. Qualquer sugestão de suporte a mods genéricos do PC exige evidências específicas.
 

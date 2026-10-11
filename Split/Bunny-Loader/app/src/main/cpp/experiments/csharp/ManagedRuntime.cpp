@@ -1,6 +1,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
+#include "experiments/csharp/ManagedHitCallbackDispatch.h"
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
@@ -40,7 +41,7 @@ struct LiveCallbackResult {
 };
 LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
                                          const std::string& assemblyPath,
-                                         bool isKill, int tick, int damage,
+                                         bool isKill, int tick, int damage, int npcIndex,
                                          const std::string& callbackClass = "BunnyLiveEvents");
 ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     const std::string& assemblyPath, const std::string& stage);
@@ -91,6 +92,8 @@ struct LiveEntry {
     void* method = nullptr;
     void* npcAiMethod = nullptr;
     void* hitMethod = nullptr;
+    void* hitV2Method = nullptr;
+    bool hitMethodsResolved = false;
     void* killMethod = nullptr;
     LiveSourceStatus status;
 };
@@ -703,7 +706,7 @@ void* pinnedMonoWorker(void*) {
                     lock.unlock();
                     const LiveCallbackResult callback = automatic
                         ? invokeLiveSourceEvent(modId, dll, event.isKill, event.tick,
-                                                 event.damage, callbackClass)
+                                                 event.damage, event.npcIndex, callbackClass)
                         : [&]() {
                             const LiveSourceStatus status =
                                 invokeLiveSourceTick(modId, dll, event.tick, event.damage);
@@ -1200,9 +1203,10 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
     return g_liveHitStatus;
 }
 
-void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
+void queueManagedLiveEvent(int projectileType, int damage, bool isKill, int npcIndex) {
     const auto admission = g_liveIngress.admission();
-    if (damage < 0 || damage > 100000 || projectileType < 0 ||
+    if (npcIndex < -1 || npcIndex >= 200 || (isKill && npcIndex != -1) ||
+        damage < 0 || damage > 100000 || projectileType < 0 ||
         static_cast<size_t>(projectileType) >= g_additionalLiveByType.size()) return;
     const bool original = g_liveHitType.load(std::memory_order_acquire) == projectileType;
     const int bindingSlot = original ? -1 :
@@ -1216,13 +1220,13 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     ManagedLiveIngressPush result;
     if (original) {
         result = g_liveIngress.push(admission,
-            {0, damage, isKill, profiledAtNs, -1},
+            {0, damage, isKill, profiledAtNs, -1, npcIndex},
             projectileType, g_liveHitType, g_liveHitAutomatic);
     } else {
         AdditionalLiveBinding& binding =
             g_additionalLiveBindings[static_cast<size_t>(bindingSlot)];
         result = g_liveIngress.pushAdditional(admission,
-            {0, damage, isKill, profiledAtNs, bindingSlot},
+            {0, damage, isKill, profiledAtNs, bindingSlot, npcIndex},
             projectileType, binding.armedType);
         if (result.accepted)
             binding.queued.fetch_add(1, std::memory_order_relaxed);
@@ -1240,12 +1244,12 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     g_pinnedWake.notify_one();
 }
 
-void queueManagedLiveHit(int projectileType, int damage) {
-    queueManagedLiveEvent(projectileType, damage, false);
+void queueManagedLiveHit(int projectileType, int damage, int npcIndex) {
+    queueManagedLiveEvent(projectileType, damage, false, npcIndex);
 }
 
 void queueManagedLiveKill(int projectileType, int damage) {
-    queueManagedLiveEvent(projectileType, damage, true);
+    queueManagedLiveEvent(projectileType, damage, true, -1);
 }
 
 bool isManagedLiveProjectileBound(int projectileType) {
@@ -2128,13 +2132,14 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
 
 LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
                                          const std::string& assemblyPath,
-                                         bool isKill, int tick, int damage,
+                                         bool isKill, int tick, int damage, int npcIndex,
                                          const std::string& callbackClass) {
     LiveCallbackResult result;
     result.phase = "rejected";
     if (modId.empty() || modId.size() > 128 ||
         modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
         tick < 0 || tick > ManagedLiveEventQueue::kEventLimit || damage < 0 || damage > 100000 ||
+        npcIndex < -1 || npcIndex >= 200 || (isKill && npcIndex != -1) ||
         !validAssembly(assemblyPath) || callbackClass.empty() || callbackClass.size() > 72 ||
         callbackClass.find_first_not_of(
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
@@ -2170,8 +2175,8 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         result.error = "Managed assembly changed; restart Bunny Loader";
         return result;
     }
-    void*& method = isKill ? target.killMethod : target.hitMethod;
-    if (method) {
+    const bool cached = isKill ? target.killMethod != nullptr : target.hitMethodsResolved;
+    if (cached) {
         ++g_liveMethodCacheHits;
     } else {
         ++g_liveMethodCacheMisses;
@@ -2184,26 +2189,39 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         void* image = assembly ? g_api.image(assembly) : nullptr;
         void* klass = image ? g_api.findClass(
             image, "BunnyLoader.Source", callbackClass.c_str()) : nullptr;
-        method = klass ? g_api.findMethod(
-            klass, isKill ? "OnKill" : "OnHitNPC", 2) : nullptr;
-        if (!method) {
-            result.phase = "entry-missing";
-            result.error = isKill
-                ? callbackClass + ".OnKill(int,int) not found"
-                : callbackClass + ".OnHitNPC(int,int) not found";
-            return result;
+        if (isKill) {
+            target.killMethod = klass ? g_api.findMethod(klass, "OnKill", 2) : nullptr;
+        } else if (klass) {
+            target.hitMethod = g_api.findMethod(klass, "OnHitNPC", 2);
+            target.hitV2Method = g_api.findMethod(klass, "OnHitNPCV2", 3);
+            target.hitMethodsResolved = true;
         }
-        target.path = assemblyPath;
+        if (target.hitMethod || target.hitV2Method || target.killMethod)
+            target.path = assemblyPath;
+    }
+    const ManagedHitCallbackChoice hitChoice = chooseManagedHitCallback(
+        target.hitMethod, target.hitV2Method, npcIndex);
+    const bool useV2 = !isKill && hitChoice.usesV2;
+    void* method = isKill ? target.killMethod : hitChoice.method;
+    if (!method) {
+        result.phase = "entry-missing";
+        result.error = isKill
+            ? callbackClass + ".OnKill(int,int) not found"
+            : callbackClass + ".OnHitNPC(int,int) or OnHitNPCV2(int,int,int) not found";
+        return result;
     }
     int call = tick;
     int value = damage;
-    void* args[] = {&call, &value};
+    int targetIndex = npcIndex;
+    void* argsLegacy[] = {&call, &value};
+    void* argsV2[] = {&call, &value, &targetIndex};
     void* exception = nullptr;
-    void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    void* boxed = g_api.invoke(method, nullptr, useV2 ? argsV2 : argsLegacy, &exception);
     void* unboxed = exception || !boxed ? nullptr : g_api.unbox(boxed);
     if (!unboxed) {
         result.phase = "managed-exception";
-        result.error = isKill ? "OnKill CSharp threw" : "OnHitNPC CSharp threw";
+        result.error = isKill ? "OnKill CSharp threw" :
+            useV2 ? "OnHitNPCV2 CSharp threw" : "OnHitNPC CSharp threw";
         return result;
     }
     std::memcpy(&result.value, unboxed, sizeof(result.value));

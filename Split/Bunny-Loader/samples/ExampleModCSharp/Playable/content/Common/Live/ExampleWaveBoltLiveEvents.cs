@@ -11,6 +11,12 @@ public static class ExampleWaveBoltLiveEvents
         return 1000 + damage + (call % 11) + hits;
     }
 
+    public static int OnHitNPCV2(int call, int damage, int npcIndex)
+    {
+        hits++;
+        return 10000 + damage + (call % 11) + hits + npcIndex;
+    }
+
     public static int OnKill(int call, int damage)
     {
         kills++;

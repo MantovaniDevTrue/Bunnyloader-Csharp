@@ -103,7 +103,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         runtime::field<int32_t>(npc, g_npcLife) <= 0) return;
 
     if (additionalLive && !legacy && autoSlot < 0) {
-        queueManagedLiveHit(type, damage);
+        queueManagedLiveHit(type, damage, index);
         return;
     }
 
@@ -149,7 +149,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
             1, std::memory_order_relaxed);
     else
         g_hitApplied.fetch_add(1, std::memory_order_relaxed);
-    queueManagedLiveHit(type, damage);
+    queueManagedLiveHit(type, damage, index);
 }
 }
 
