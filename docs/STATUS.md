@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .73 — callbacks C# independentes por projétil (CI aprovado, aguarda Android)
+
+**Build GitHub Actions aprovado:** [APK 0.1.10.16.73 MultiLiveProjectiles + ExampleModCSharp 0.1.9](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles), [job #38147299182](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147299182) concluído com sucesso e [suíte rápida #38147095615](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147095615) também aprovada. Base: .72 Managed Ingress preservada. Novidade: callbacks live `OnHitNPC`/`OnKill` de `ExampleWaveBoltLiveEvents` selecionados por tipo de projétil através da **mesma FIFO64 e do mesmo worker MonoVM**, com contadores isolados em `bl.csharp.sourceLiveProjectileStatus()`. Máximo inicial: 7 vínculos extras no mesmo mod da sessão principal, limite agregado 25.000; arquitetura multi-mod não está validada. O APK incrementa `versionCode` de 97 para 98 e reutiliza o MonoVM patchado validado da .72.
+
+**Ainda NÃO aprovado em gameplay Android:** confirmar dois tipos com seus próprios contadores, sem perdas, sem crash e FPS estável, antes de promover .73 à referência. [Protocolo de testes](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multi-live-projectiles-v73-experiment/docs/multi-live-projectiles-v73.md).
+
 ## ExampleModCSharp 0.1.8 — duas armas e dois projéteis C# validados no Android (11/10/2026)
 
 **VALIDADO no cenário observado, com APK .72:** `sourceAutoStatus` apresentou `phase=ready`, `applied=true`, `curves=2/2`, `enabledHits=1/1`, `enabledKills=1/1`, sem erro. `ExampleBolt`: 47 spawns, 360 atualizações de curva e 360 escritas de velocidade, 0 erros; `ExampleWaveBolt`: 107 spawns, **2.393 atualizações/escritas de velocidade**, 0 erros. `sourceLiveHitStatus`: **161/161 eventos gerenciados** (79 hits, 82 kills), 0 `dropped`, 0 `lockDrops`, 0 falhas, fila máxima 2/64; `projectileType=1137` corresponde ao projétil original. O usuário relatou **60 FPS** durante o teste; não foi medido o FPS de renderização por profiler nem informada duração.
