@@ -89,6 +89,7 @@ on:
       - bunny-csharp-source-0.1.10.16.67-unique-benchmark-assembly
       - bunny-csharp-source-0.1.10.16.68-game-benchmark-asset-install
       - bunny-csharp-source-0.1.10.16.69-managed-ai-parity
+      - bunny-csharp-source-0.1.10.16.70-live-gameplay-profiler
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - "Split/Bunny-Loader/**"
@@ -330,6 +331,45 @@ jobs:
           assert "g_liveHitType.load(std::memory_order_acquire)" in runtime
           assert "std::try_to_lock" in runtime
           print("CSHARP_GAMEPLAY_PROFILER_AND_LOCK_GUARDS=PASS")
+          PY
+
+      - name: Verify real gameplay profiling extensions have safe sampling guards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          header=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          bridge=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          projectile=(root/"experiments/csharp/ManagedProjectileHook.cpp").read_text()
+          for name in (
+              "g_perfCallbackCpuTotalUs", "perfThreadCpuNs",
+              "g_perfQueueBins", "g_perfCallbackBins", "g_perfCallbackCpuBins",
+              "perfRecordUs", "perfPercentileUs", "g_perfAccepted",
+              "g_perfProcessed", "g_perfFailed", "g_perfQueueDropped",
+              "g_perfProjectileCurveUpdates", "g_perfProjectileVelocityWrites",
+              "g_perfState.load(std::memory_order_relaxed) == 2",
+              "g_vmComparePending || g_vmCompare.running",
+          ):
+              assert name in runtime, name
+          for name in (
+              "updateP99Ms", "callbackP90Us", "callbackP99Us", "callbackCpuAvgUs",
+              "callbackCpuMaxUs", "callbackCpuP90Us", "queueWaitP90Us",
+              "queueWaitP99Us", "eventsAccepted", "eventsProcessed",
+              "eventsQueueDropped", "projectileCurveUpdates",
+              "projectileVelocityWrites",
+          ):
+              assert name in header and name in bridge, name
+          assert "noteManagedLivePerfProjectileCurveUpdate();" in projectile
+          assert "noteManagedLivePerfProjectileVelocityWrite();" in projectile
+          assert 'if (g_perfState.load(std::memory_order_relaxed) == 2)' in runtime
+          assert 'g_perfCallbacks.fetch_add(1' in runtime
+          assert 'g_perfQueueSamples.fetch_add(1' in runtime
+          assert 'g_perfCallbackCpuTotalUs.fetch_add(cpuUs' in runtime
+          assert 'g_perfState.store(1, std::memory_order_release)' in runtime
+          assert 'sourcePerfStart' in bridge and 'sourcePerfStatus' in bridge
+          print("BUNNY_CSHARP_V70_REAL_GAMEPLAY_PROFILER_GUARDS=PASS")
           PY
 
       - name: Verify identical QuickJS and MonoVM math benchmark
@@ -1084,7 +1124,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='94' versionName='0.1.10.16.69-csharp-managed-ai-parity'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='95' versionName='0.1.10.16.70-csharp-live-gameplay-profiler'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1107,7 +1147,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1121,9 +1161,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.69"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.70"
           FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1131,8 +1171,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.69 — Managed AI Workload Parity" \
-              --notes "v0.1.10.16.69 Adds controlled QuickJS vs genuine MonoVM AI-style simulation comparisons for 64 projectile and 64 NPC states, with exact integer checksums, wall/CPU time and bounded iteration count. Dedicated BunnyVmGameplay69.dll is bundled, SHA256 installed at game startup and verified against QuickJS in CI. Simulated workload only, NOT Terraria live entity AI/FPS equivalence. .68 math and .65 live profiler preserved; ExampleModCSharp 0.1.7 unchanged." \
+              --title "Bunny Loader C# v0.1.10.16.70 — Real Gameplay Callback Profiler" \
+              --notes "v0.1.10.16.70 Extends opt-in 15-second real-world gameplay profiler: OnHitNPC/OnKill callback wall and thread CPU times, p90/p99 queue and callback histograms, update-cadence p99, accepted/processed/failed/dropped events, real C# projectile curve updates and velocity writes. No changes to gameplay effects or mod behavior, no automatic stress test. Measured update cadence is not rendered FPS. .69 simulations and .68 math maintained; ExampleModCSharp 0.1.7 unchanged." \
               --prerelease || true
           fi
           DEST="$TAG"
@@ -1157,7 +1197,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.69-ManagedAIParity.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
