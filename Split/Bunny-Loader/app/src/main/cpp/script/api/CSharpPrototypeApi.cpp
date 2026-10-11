@@ -661,11 +661,34 @@ JSValue jsSourceLiveProjectileStatus(JSContext* ctx, JSValueConst,
         JS_SetPropertyStr(ctx, row, "hits", JS_NewInt32(ctx, value.hits));
         JS_SetPropertyStr(ctx, row, "kills", JS_NewInt32(ctx, value.kills));
         JS_SetPropertyStr(ctx, row, "failures", JS_NewInt32(ctx, value.failures));
+        JS_SetPropertyStr(ctx, row, "dropped", JS_NewInt32(ctx, value.dropped));
         JS_SetPropertyStr(ctx, row, "lastResult", JS_NewInt32(ctx, value.lastResult));
         JS_SetPropertyStr(ctx, row, "error", JS_NewString(ctx, value.error.c_str()));
         JS_SetPropertyUint32(ctx, result, i, row);
     }
     return result;
+}
+
+JSValue jsSourceLiveModPause(JSContext* ctx, JSValueConst,
+                              int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]) || !JS_IsString(argv[1]))
+        return JS_ThrowTypeError(ctx,
+            "sourceLiveModPause(modId, 'CONFIRM_PAUSE_MOD')");
+    const char* raw = JS_ToCString(ctx, argv[0]);
+    if (!raw) return JS_EXCEPTION;
+    const std::string modId(raw);
+    JS_FreeCString(ctx, raw);
+    const char* token = JS_ToCString(ctx, argv[1]);
+    if (!token) return JS_EXCEPTION;
+    const bool confirmed = std::string_view(token) == "CONFIRM_PAUSE_MOD";
+    JS_FreeCString(ctx, token);
+    if (!confirmed) return JS_ThrowTypeError(ctx, "CONFIRM_PAUSE_MOD required");
+    std::string error;
+    const bool paused = bl::csharp::pauseManagedLiveMod(modId, &error);
+    JSValue status = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, status, "paused", JS_NewBool(ctx, paused));
+    JS_SetPropertyStr(ctx, status, "error", JS_NewString(ctx, error.c_str()));
+    return status;
 }
 
 JSValue jsSourceLiveHitPause(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2480,6 +2503,9 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "sourceLiveProjectileStatus",
                       JS_NewCFunction(ctx, jsSourceLiveProjectileStatus,
                                       "sourceLiveProjectileStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveModPause",
+                      JS_NewCFunction(ctx, jsSourceLiveModPause,
+                                      "sourceLiveModPause", 2));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
     JS_SetPropertyStr(ctx, api, "vmCompareStart",
