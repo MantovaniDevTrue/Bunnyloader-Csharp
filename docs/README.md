@@ -5,6 +5,9 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | Documento | Finalidade |
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
+| [Relatório de callbacks por projétil .73](multi-live-projectiles-v73.md) | Android: 985/985 eventos, 879/879 secundários, 0 perdas/falhas; FPS não informado |
+| [Managed Default .74](csharp-managed-default-v74.md) | Roslyn/MonoVM como runtime primário, sem protótipo NativeAOT no boot, legado externo preservado; teste Android pendente |
+| [ExampleModCSharp 0.1.9](../Split/Bunny-Loader/samples/ExampleModCSharp/README.md) | Exemplos reais de 2 armas, 2 projéteis e 2 classes de callbacks; guia atualizado |
 | [managed-live-benchmark-v64.md](managed-live-benchmark-v64.md) | Teste opt-in de 25 mil callbacks reais do MonoVM (.64) |
 | [gameplay-perf-v65.md](gameplay-perf-v65.md) | Medir latência, contagem de callbacks e ritmo de atualização durante gameplay (.65) |
 | [vm-parity-v66.md](vm-parity-v66.md) | Histórico: .66 compilou, mas a chamada do método MonoVM falhou no Android |
