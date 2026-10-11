@@ -2,7 +2,6 @@
 #include "core/Log.h"
 #include "boot/LibWatcher.h"
 #include "boot/Probe.h"
-#include "experiments/csharp/CSharpPrototype.h"
 
 // Ponto de entrada do caminho B (lançar + injetar).
 //
@@ -37,8 +36,6 @@ void bl_on_load() {
         BL_INFO("  modsDir=%s  mods habilitados=%zu",
                 c.modsDir.c_str(), c.enabledMods.size());
     }
-
-    bl::csharp::installPrototype();
 
     // Caminho ARM real: hook pendente de il2cpp_init dispara runtime::boot().
     if (bl::loader::installWatcher()) {
