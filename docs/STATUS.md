@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .77 — Retomada no mesmo mundo APROVADA no Android (11/10/2026)
+
+Pausa `paused=true` seguida de retomada `resumed=true`, **sem sair do mundo**. Dois mods C# `ready` e `SecondBolt.enabled=true` após retomada. Eventos globais **379/379** (219 hits, 160 kills), `dropped=0`, `lockDrops=0`, `failures=0`, pico de fila 3/64. ExampleWaveBolt **195/195** (128/67); SecondBolt **135/135** (67/68, `lastResult=4085`); ExampleBolt primário 49 por diferença. **60 FPS durante todo o processo**, segundo o usuário. Não houve comparação temporal isolada de novos eventos pós-resume, mas a sequência e funcionamento foram confirmados pelo testador. [Relatório .77](csharp-managed-mod-resume-v77.md).
+
+**.77 é baseline para esse fluxo; .76 fica para rollback.** Não é hot-unload real de C#.
+
 ## .76 — APROVADA Android: pausa seletiva e reentrada (11/10/2026)
 
 O usuário confirmou que `sourceLiveModPause` retornou **`paused=true`**, `SecondBolt.enabled=false` e o primeiro mod continuou vinculado. Após salvar/sair e retornar ao mundo, `SecondBolt.enabled=true` novamente, dois mods `ready`, `cached=true`, `applied=true`, `worldReady=true`, 2/2 curvas do primeiro mod, e **nenhuma queda de FPS observada**. Contadores capturados: eventos globais **200/200** (111 hits/89 kills), fila máxima 3/64, `dropped=0`, `lockDrops=0`, `failures=0`; ExampleWaveBolt **66/66** (44 hits/22 kills) e SecondBolt **58/58** (29 hits/29 kills, `lastResult=4066`). Contagens adicionais inclusas no total global. A comparação quantitativa de novos callbacks após a reentrada e o verdadeiro hot-unload continuam pendentes; o usuário confirmou o funcionamento.
