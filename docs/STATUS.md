@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .74 — Managed Default (build experimental; teste Android pendente)
+## .74 — Managed Default (APK CI aprovada; Android pendente)
 
-Objetivo: tornar **Roslyn + MonoVM o caminho principal de C#**, retirando a publicação obrigatória de BunnyCsPrototype/libbunnycs.so e a inicialização NativeAOT do processo, sem apagar o carregador legado de mods externos libmod.so nem as pontes C++ de conteúdo. Melhorias de diagnóstico: managedAvailable(), hostInfo().monoVmReady e campos explícitos de legado. VersionCode 99, ExampleModCSharp 0.1.9 funcionalmente preservado e guia atualizado. **Não promover antes de testar no Android.** [Fonte e testes .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md).
+Objetivo: tornar **Roslyn + MonoVM o caminho principal de C#**, retirando a publicação obrigatória de BunnyCsPrototype/libbunnycs.so e a inicialização NativeAOT do processo, sem apagar o carregador legado de mods externos libmod.so nem as pontes C++ de conteúdo. Melhorias de diagnóstico: managedAvailable(), hostInfo().monoVmReady e campos explícitos de legado. VersionCode 99, ExampleModCSharp 0.1.9 funcionalmente preservado e guia atualizado. **GitHub Actions [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) aprovado e [release .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.74-managed-default) com APK de 223.287.037 bytes e ExampleModCSharp 0.1.9 publicados. O APK não contém libbunnycs.so. Ainda não promover até testar no Android.** [Fonte e testes .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md).
 
 ## .73 — callbacks C# independentes por projétil APROVADOS no Android (11/10/2026)
 
