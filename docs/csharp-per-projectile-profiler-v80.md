@@ -2,6 +2,23 @@
 
 **Estado:** branch `csharp-per-projectile-profiler-v80-experiment` criada em cima da **.79.1 validada no Android**. A .79.1 continua sendo a baseline e rollback até a nova APK passar em testes reais.
 
+## Primeiro resultado Android — 11/10/2026
+
+**Validação inicial aprovada para a instrumentação individual.** Quatro capturas do editor, três armas C# durante uma janela de 15 segundos.
+
+- phase=completed, updateHz=59,77559069 (atualizações/s, não FPS visual).
+- callbacksSampled=85, eventsProcessed=85, eventsFailed=0, eventsQueueDropped=0, lockDrops=0.
+- Três vínculos enabled=true: tipos 1137, 1136 e 1138; callbacks por vínculo 23+35+27=85; hits + kills = total em cada vínculo.
+
+| Tipo | Amostras | Hits/kills | Fila média/máx. (µs) | Callback médio/máx. (µs) | P90 wall (faixa, µs) | CPU média/máx. (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1137 (BunnyLiveEvents principal) | 23 | 11 / 12 | 30,43 / 208 | 71,78 / 318 | 200 | 67,04 / 314 |
+| 1136 (ExampleWaveBoltLiveEvents) | 35 | 18 / 17 | 38,63 / 377 | 148,63 / 2421 | 200 | 87,4 / 863 |
+| 1138 (BunnyLiveEvents segundo mod) | 27 | 13 / 14 | 68,74 / 1119 | 97,78 / 1380 | 75 | 76,89 / 878 |
+
+**Interpretação:** os picos isolados elevam as médias e podem fazer média > P90. Amostras pequenas e cargas diferentes não permitem atribuir a diferença apenas ao código C#.
+
+**Estado:** o profiler individual da .80 e os callbacks das três armas estão validados neste teste; ainda faltam FPS visual, desempenho com profiler desligado, pausa/retomada, reentrada e Blood Moon prolongada na .80. **.79.1 segue baseline e rollback.**
 ## Finalidade
 
 O profiler `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()` já mediam uma janela de aproximadamente 15 segundos no total do C#. A .80 adiciona ao mesmo retorno o vetor `projectiles`, com as medições de cada registro de callback independentemente (incluindo as três armas de dois mods). Nenhum comando novo é obrigatório para obter esses dados.
