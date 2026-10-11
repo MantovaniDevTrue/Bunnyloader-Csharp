@@ -1801,13 +1801,16 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
 
 LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
                                          const std::string& assemblyPath,
-                                         bool isKill, int tick, int damage) {
+                                         bool isKill, int tick, int damage,
+                                         const std::string& callbackClass) {
     LiveCallbackResult result;
     result.phase = "rejected";
     if (modId.empty() || modId.size() > 128 ||
         modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
         tick < 0 || tick > ManagedLiveEventQueue::kEventLimit || damage < 0 || damage > 100000 ||
-        !validAssembly(assemblyPath)) {
+        !validAssembly(assemblyPath) || callbackClass.empty() || callbackClass.size() > 72 ||
+        callbackClass.find_first_not_of(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
         result.error = "Invalid C# event parameters or assembly";
         return result;
     }
@@ -1823,13 +1826,15 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         result.error = "mono_thread_attach failed";
         return result;
     }
-    auto entry = g_sourceLiveEntries.find(modId);
+    const std::string methodKey = callbackClass == "BunnyLiveEvents" ?
+        modId : modId + ":" + callbackClass;
+    auto entry = g_sourceLiveEntries.find(methodKey);
     if (entry == g_sourceLiveEntries.end()) {
-        if (g_sourceLiveEntries.size() >= 16) {
+        if (g_sourceLiveEntries.size() >= 32) {
             result.error = "CSharp live entry limit reached";
             return result;
         }
-        entry = g_sourceLiveEntries.emplace(modId, LiveEntry{}).first;
+        entry = g_sourceLiveEntries.emplace(methodKey, LiveEntry{}).first;
         entry->second.status.modId = modId;
     }
     LiveEntry& target = entry->second;
@@ -1843,14 +1848,14 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
         void* image = assembly ? g_api.image(assembly) : nullptr;
         void* klass = image ? g_api.findClass(
-            image, "BunnyLoader.Source", "BunnyLiveEvents") : nullptr;
+            image, "BunnyLoader.Source", callbackClass.c_str()) : nullptr;
         method = klass ? g_api.findMethod(
             klass, isKill ? "OnKill" : "OnHitNPC", 2) : nullptr;
         if (!method) {
             result.phase = "entry-missing";
             result.error = isKill
-                ? "BunnyLiveEvents.OnKill(int,int) not found"
-                : "BunnyLiveEvents.OnHitNPC(int,int) not found";
+                ? callbackClass + ".OnKill(int,int) not found"
+                : callbackClass + ".OnHitNPC(int,int) not found";
             return result;
         }
         target.path = assemblyPath;
