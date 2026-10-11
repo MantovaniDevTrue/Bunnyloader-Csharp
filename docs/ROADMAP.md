@@ -4,6 +4,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
+**.80 (experimental, aguardando Android):** profiler opt-in de 15 s detalhado por projétil C#, com tempos de espera na fila, wall/CPU, P90 e falhas, utilizando os dois mods e três armas já validados na .79.1. CI de guardas inicial aprovado; sem adição de custo no caminho de gameplay quando o profiler estiver desligado. Comparar o resultado com o FPS visual e o profiler agregado, mantendo **.79.1 estável/rollback** até teste no Android.
+
 **.79.1 APROVADA no Android (11/10/2026):** três armas em dois mods C#, cerca de 100 inimigos na Blood Moon, pausa/retomada do segundo mod, salvamento/reentrada e 60 FPS relatados. Fila principal 340/340→563/563→885/885 eventos, 0 dropped/lockDrops/failures; tipos ativos 3→2 durante a pausa→3 após retomada, SecondBolt 141→205 eventos após reativação. Cache hits 1702→1925→2247, misses 6 e 2 caminhos de DLL estáveis, heap GC 21495808/4199752 bytes constante nos snapshots. **.79.1 baseline funcional para esses cenários; .79 rollback**. A concorrência rara e exceções simuladas estão cobertas pelo CI, não foram injetadas no Android; sem unload real, GC forçado ou comprovação de ausência de vazamento longo.
 
 **.79 Android aprovado no escopo observado (11/10/2026):** 60 FPS relatados, 3 entradas/2 saídas, 367/367 callbacks de SecondBolt, sem falhas/descartes. Heap GC disponível e estável nos snapshots (21495808/4199632 bytes); hits 641→938→1305, misses 2 e opens 2/2 fixos. **O usuário usou apenas uma arma:** 1 caminho de DLL no cache e zero eventos de ExampleWaveBolt são esperados, não bugs. Manter .78 como rollback; próximos testes podem validar ambas as DLLs simultaneamente e o PR #15 isoladamente.
