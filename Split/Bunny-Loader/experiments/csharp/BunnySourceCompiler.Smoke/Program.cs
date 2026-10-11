@@ -212,23 +212,25 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 7)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 9)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
     if (!independentDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PROJECTILE\tExampleWaveBolt\t10\t10\t1\t2\t180\t1\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("WEAPON\tExampleWaveWand\t12\t16\t9\tExampleWaveBolt\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("BUFF\tExampleDefenseBuff\t10\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 8)
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 10)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (independentRows.Length != 2 || independentRows[0] != "BUNNY_PROJECTILE_TURNS_V1")
+    if (independentRows.Length != 3 || independentRows[0] != "BUNNY_PROJECTILE_TURNS_V1")
         throw new InvalidOperationException("Independent ExampleMod curve header invalid");
     string[] independentSamples = independentRows[1].Split('\t');
     if (independentSamples.Length != 121 || independentSamples[0] != "ExampleBolt" ||
@@ -236,6 +238,12 @@ try
             int.TryParse(independentSamples[i + 1], out int value) &&
             value == (int)MathF.Round(MathF.Sin(i * 0.25f) * 0.025f * 1000f)))
         throw new InvalidOperationException("Independent ExampleMod C# curve is incorrect");
+    string[] waveSamples = independentRows[2].Split('\t');
+    if (waveSamples.Length != 121 || waveSamples[0] != "ExampleWaveBolt" ||
+        !Enumerable.Range(0, 120).All(i =>
+            int.TryParse(waveSamples[i + 1], out int value) &&
+            value == (int)MathF.Round(MathF.Sin(i * 0.20f) * 0.018f * 1000f)))
+        throw new InvalidOperationException("Independent ExampleWaveBolt C# curve is incorrect");
     string independentCombat = File.ReadAllText(Path.Combine(scratch, "source-combat-policies.txt"));
     string[] independentCombatRows = independentCombat.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     if (independentCombatRows.Length != 3 ||
