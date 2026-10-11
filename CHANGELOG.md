@@ -2,10 +2,15 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
-## 0.1.10.16.66 — teste QuickJS × MonoVM de cálculo equivalente (aguarda Android)
+## 0.1.10.16.67 — correção de assembly para benchmark QuickJS × MonoVM (aguarda Android)
+- Corrige a procura do método da .66: passa a usar uma assembly versionada `BunnyVmBenchmark67.dll`, `Kernel.Execute(int,int)`, com namespace independente do probe principal.
+- GitHub Actions compila o novo DLL, carrega a assembly resultante por reflexão e **executa 1 milhão de iterações em C#**, exigindo checksum `1336190628`, antes de empacotar o APK e gerar o manifesto SHA-256.
+- Mantém as fórmulas QuickJS/C#, os métodos de gameplay, o ExampleModCSharp 0.1.7 e as medições anteriores; nenhum resultado de velocidade MonoVM foi validado no Android ainda.
+
+## 0.1.10.16.66 — benchmark executado parcialmente no Android (sem comparação)
 - `vmCompareStart(iterations)` e `vmCompareStatus()` executam o mesmo algoritmo de inteiros em QuickJS e no BunnyManagedProbe.dll através da thread MonoVM persistente.
 - Aquecimento fora da janela; resultado exato obrigatório; tempos de parede/CPU da thread e RSS do processo, sem alterar o fluxo de combate e o ExampleModCSharp 0.1.7.
-- Não confundir cálculo isolado com FPS, custo por callback ou memória exclusiva da linguagem. Só após teste real no Android poderemos comparar números.
+- **Android da .66:** QuickJS concluiu 1.000.000 de iterações (`jsWallUs=341098`, `jsThreadCpuUs=338308`, checksum `1336190628`), mas o MonoVM falhou na busca de `BenchmarkMath(int,int)` (`monoWallUs=0`). Comparação inconclusiva; runtime inicializou com `result=42`.
 
 ## 0.1.10.16.65 — gameplay performance profiler VALIDADO no Android
 - Profiler opt-in de 15 segundos: taxa/p90 aproximado de `Main.DoUpdate`, atraso na fila FIFO64 e duração média/máxima de callbacks gerenciados, sem logs por evento.

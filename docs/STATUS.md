@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .67 — corrigindo a busca do método MonoVM na comparação QuickJS × C# (aguarda Android)
+
+O teste real da .66 executou 1.000.000 de iterações em QuickJS (`jsWallUs=341098`, `jsThreadCpuUs=338308`, checksum `1336190628`), mas o MonoVM não conseguiu encontrar o método `BunnyManagedProbe.Probe.BenchmarkMath(int,int)`. O próprio MonoVM permaneceu inicializado e verificou `result=42`. **A comparação da .66 foi inconclusiva**; não houve medição de desempenho C#.
+
+A .67 utiliza assembly exclusiva `BunnyVmBenchmark67.dll`, tipo `BunnyLoader.VmBenchmark67.Kernel`, método `Execute(int,int)`. O GitHub valida o arquivo DLL gerado **por reflexão e chamada gerenciada**, exigindo checksum `1336190628` antes de empacotá-lo no APK; também verifica a presença do arquivo no APK. A busca em Android permanece pendente de validação real. A .65 segue preservada como baseline de gameplay. [Protocolo da .67](vm-parity-v67.md).
+
 ## .66 — QuickJS × MonoVM: comparação controlada (aguarda Android)
 
 Implementado teste opt-in de cálculo determinístico com o mesmo algoritmo e entradas para os dois runtimes: QuickJS no editor e MonoVM na thread proprietária. Mede tempo de parede, CPU da thread e instantâneos de RSS do processo, confere checksums. Até quatro execuções por inicialização. **Ainda não significa medir FPS em combate nem a sobrecarga da ponte por evento.** [Protocolo](vm-parity-v66.md).

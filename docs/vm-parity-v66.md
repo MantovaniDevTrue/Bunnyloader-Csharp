@@ -1,5 +1,9 @@
 # Bunny Loader C# .66 — QuickJS × MonoVM: mesmo algoritmo, mesma carga
 
+**Resultado Android da .66:** QuickJS concluiu 1 milhão de iterações (`jsResult=1336190628`, `jsWallUs=341098` µs, `jsThreadCpuUs=338308` µs), mas MonoVM falhou com `BunnyManagedProbe.Probe.BenchmarkMath(int,int) missing`; `monoWallUs=0`. O runtime MonoVM estava operacional (`result=42`), porém o benchmark de paridade **não foi validado**. A versão .67 separa a DLL de benchmark para evitar ambiguidade com o probe principal.
+
+
+
 O teste compara uma rotina determinística de inteiros **idêntica** nas linguagens JavaScript e C#, executada no QuickJS do Bunny Loader e no `BunnyManagedProbe.dll` do MonoVM do aplicativo.
 
 ## Escopo
