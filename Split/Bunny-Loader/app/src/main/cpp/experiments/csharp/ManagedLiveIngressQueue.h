@@ -72,8 +72,9 @@ public:
         return pending;
     }
 
-    int discardBinding(int bindingSlot) {
+    int pauseBinding(int bindingSlot, std::atomic<int>& armedType) {
         std::lock_guard<std::mutex> lock(mutex_);
+        armedType.store(-1, std::memory_order_release);
         ManagedLiveEventQueue retained;
         ManagedLiveQueuedEvent next;
         int removed = 0;
