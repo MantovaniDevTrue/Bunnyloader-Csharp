@@ -2,6 +2,12 @@
 
 Este é um plano de desenvolvimento, **não uma lista de funcionalidades já entregues**.
 
+## Prioridade atual
+
+- **.73** é referência funcional Android para dois projéteis e callbacks separados: 985/985 eventos totais e 879/879 secundários sem falhas/descartes, sem FPS medido nesta rodada.
+- **.74** remove NativeAOT apenas do build e startup principais, preserva C++ e biblioteca de mods nativos legados; realizar regressão no celular antes de promover.
+- Próximos passos após .74: múltiplos mods independentes, ciclo de vida de world unload/reload, benchmark RSS/CPU, multiplayer e métodos C# adicionais baseados no ExampleModBunny.
+
 | Ordem | Etapa | Critério de avanço |
 | --- | --- | --- |
 | 1 — concluída | Validar **.62 auto live** no Android | **512 callbacks reais**, 0 falhas; jogo continuou funcional após o limite |
@@ -9,8 +15,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 | 2b — concluída para a carga observada | Medir gameplay com profiler opt-in da .65 | 907 atualizações em 15 s (~60,50 Hz); 30 callbacks perfilados, média 50,2 µs fila e 195,8 µs execução, 0 falhas/descartes, gameplay fluido relatado |
 | 2b.1 — próxima | Comparar cenários equivalentes e medir CPU/memória | Registrar FPS visual e ritmo de atualização sem profiler, em combate leve e pesado; avaliar QuickJS vs MonoVM sem inferências por linguagem |
 | 2c — próxima | Reduzir gargalos confirmados por medição | Otimizar mutex/ponte com testes regressivos e verificar uso de memória/CPU sem remover efeitos |
-| 3 — parcialmente validada | Generalizar registro por mod/projétil com isolamento | **Duas armas e duas curvas de projéteis no mesmo mod confirmadas no Android (.72 + ExampleModCSharp 0.1.8, 60 FPS relatados, zero erros); faltam callbacks live separados por tipo, múltiplos mods e descarregamento seguro** |
-| 4 — em andamento | Ampliar o ExampleModCSharp por APIs confirmadas | Segunda arma, segundo projétil e curva independente validados no Android com 0.1.8; ampliar com exemplos e testes reproduzíveis sem importar APIs de tModLoader |
+| 3 — parcialmente validada | Generalizar registro por mod/projétil com isolamento | **Duas armas e duas curvas de projéteis no mesmo mod confirmadas no Android (.72 + ExampleModCSharp 0.1.8, 60 FPS relatados, zero erros); callbacks live por tipo confirmados na .73; faltam múltiplos mods, descarregamento seguro e multiplayer** |
+| 4 — em andamento | Ampliar o ExampleModCSharp por APIs confirmadas | ExampleModCSharp 0.1.9 e classes gerenciadas por tipo validados na .73; guias reorganizados na .74; ampliar somente pelas APIs realmente implementadas |
 | 5 | Cobrir mais eventos gerenciados com segurança | Comparação entre nativo/precalculado e callback real; política de execução clara |
 | 6 | Estudar sincronização multiplayer | Implementação e testes próprios; não ativar por suposição |
 | 7 — concluída para o kernel isolado | Corrigir entrega do benchmark QuickJS × MonoVM (.68) | Android: `matched`, checksum idêntico, 1 milhão de iterações, 445,536 ms QuickJS contra 6,040 ms MonoVM; razão 73,764× válida apenas para o algoritmo testado |
