@@ -1,5 +1,15 @@
 # Estado real do desenvolvimento
 
+## .73 — APROVADA funcionalmente em Android: eventos C# por projétil (11/10/2026)
+
+Capturas de `sourceAutoStatus`, `sourceLiveHitStatus` e `sourceLiveProjectileStatus` confirmaram duas curvas ativas, `phase=ready`, **985/985 eventos processados**, sendo **879/879** da classe secundária `ExampleWaveBoltLiveEvents` (`projectileType=1136`, 571 hits e 308 kills, `lastResult=2330`); sem falhas, descartes ou `lockDrops`, fila final vazia, pico de 3/64. A rotina principal do ExampleBolt permaneceu ligada ao tipo 1137.
+
+**FPS e duração da sessão .73 não informados pelo usuário**, não inferir 60 FPS desta rodada. Faltam testes de vários mods, multiplayer, stress e reinício. [Relatório .73](multi-live-projectiles-v73.md).
+
+## .74 — Managed Default em preparação (CI/Android pendentes)
+
+O caminho principal de C# fica Roslyn + MonoVM; o protótipo NativeAOT não será compilado, embutido nem inicializado automaticamente. As APIs/ponte C++ e o carregador legado de mods externos `libmod.so` permanecem no código, sem alterar a FIFO64 nem os callbacks de .73. Incluído diagnóstico `bl.csharp.managedAvailable()` e campos explícitos no `hostInfo()`. VersionCode 99 para atualização sobre .73. **Não aprovado em Android até teste real.** [Mudanças, segurança e rollback](csharp-managed-default-v74.md).
+
 ## .70 — medição de callbacks e projéteis reais durante gameplay (build/Android pendentes)
 
 O profiler de 15 s `sourcePerfStart` da .65 foi estendido, **sem modificar comportamento** de NPCs, projéteis ou buffs:
