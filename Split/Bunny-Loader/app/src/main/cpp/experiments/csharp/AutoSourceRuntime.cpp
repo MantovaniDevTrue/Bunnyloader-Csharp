@@ -38,6 +38,7 @@ namespace {
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
 constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49";
 std::mutex g_lock;
+std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
 std::atomic<bool> g_worldTilesLoaded{false};
@@ -480,6 +481,7 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                         modId.c_str(), mono.phase.c_str());
                 return;
             }
+            std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
             if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
                 !g_worldSessionReady.load(std::memory_order_acquire)) return;
             std::string error;
@@ -735,6 +737,7 @@ void run() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -751,6 +754,7 @@ void noteAutoGameUpdate() {
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
         if (context.gameMenu != 1 && context.netMode == 0) return;
+        std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
