@@ -38,6 +38,25 @@ public:
         return {true, false, depth};
     }
 
+    ManagedLiveIngressPush pushAdditional(const ManagedLiveQueuedEvent& event,
+                                          int projectileType,
+                                          const std::atomic<int>& armedType) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (armedType.load(std::memory_order_acquire) != projectileType ||
+            accepted_.load(std::memory_order_relaxed) >= ManagedLiveEventQueue::kEventLimit)
+            return {};
+        if (!queue_.push(event)) {
+            dropped_.fetch_add(1, std::memory_order_relaxed);
+            return {false, true, queue_.size()};
+        }
+        const int depth = queue_.size();
+        depth_.store(depth, std::memory_order_release);
+        if (depth > maxDepth_.load(std::memory_order_relaxed))
+            maxDepth_.store(depth, std::memory_order_relaxed);
+        accepted_.fetch_add(1, std::memory_order_relaxed);
+        return {true, false, depth};
+    }
+
     bool pop(ManagedLiveQueuedEvent* event) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (!queue_.pop(event)) return false;
