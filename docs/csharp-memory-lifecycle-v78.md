@@ -1,6 +1,31 @@
 # Bunny Loader C# .78 — monitoramento de memória e ciclo de vida
 
-**Estado:** [CI #38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) **success**, APK assinada e [release .78 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) (versionCode 103, 223.294.805 bytes); **Android ainda não testado**. **Baseline funcional:** .77, dois mods C# com pausa e retomada no mesmo mundo e 379/379 eventos, 60 FPS relatados sem quedas.
+**Estado:** [CI #38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) **success**, APK assinada e [release .78 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) (versionCode 103, 223.294.805 bytes); **Android testado: 5 entradas/4 saídas, FPS 60 relatado**. **Baseline funcional:** .77, dois mods C# com pausa e retomada no mesmo mundo e 379/379 eventos, 60 FPS relatados sem quedas.
+
+## Validação Android .78 — cinco entradas, quatro saídas (11/10/2026)
+
+**Aprovada funcionalmente no cenário observado.** O usuário confirmou **60 FPS durante todos os testes** com os dois mods de exemplo C# e enviou capturas dos estados 3, 4 e 5. Não há captura da primeira entrada, mas a comparação sequencial 3 → 4 → 5 e o `baselineRssKb` registrado são suficientes para validar estes diagnósticos e a continuidade da sessão. Isso **não prova ausência de vazamento em execução prolongada**.
+
+| Captura | 3 entradas/2 saídas | 4 entradas/3 saídas | 5 entradas/4 saídas |
+| --- | ---: | ---: | ---: |
+| RSS `rssKb` (KiB) | 240260 | 567512 | 569524 |
+| Swap `swapKb` (KiB) | 560372 | 241176 | 230224 |
+| `rssDeltaKb` (KiB) | -520624 | -193372 | -191360 |
+| `threads` | 78 | 79 | 79 |
+| `cachedCallbackEntries` | 3 | 3 | 3 |
+| `cachedAssemblyPaths` | 2 | 2 | 2 |
+| `boundProjectileTypes` | 3 | 3 | 3 |
+| `activeProjectileTypes` | 3 | 3 | 3 |
+| `world.epoch` | 5 | 7 | 9 |
+| `world.rebindSchedules` | 3 | 4 | 5 |
+| `world.configuredBindings` | 2 | 2 | 2 |
+| `monoReady`, `worldReady` | true / true | true / true | true / true |
+
+Todos os snapshots exibem `baselineRssKb=760884` KiB, `peakRssKb=797836` KiB e `workerTid=13148`. A contagem `worldLoads` chega a **5**, mas isso é **uma entrada inicial + quatro reentradas**, não cinco reentradas adicionais. Captura de combate mostra **104/104 eventos processados**, 51 hits, 53 kills, `dropped=0`, `lockDrops=0`, `failures=0`, fila atual 0 e pico 2/64; não há sequência de todos os eventos das cinco sessões.
+
+Entre as capturas 3 e 4, RSS aumentou **327252 KiB** enquanto swap caiu **319196 KiB**, compatível com páginas de memória movimentadas pelo Android. Entre as capturas 4 e 5, RSS cresceu **2012 KiB** (~1,96 MiB) e swap caiu **10952 KiB**. Não se observou crescimento progressivo do cache (3 entradas/2 caminhos) nem acréscimo de threads depois da quarta entrada. As métricas de RSS e swap são do **processo inteiro**, não da heap MonoVM e não identificam por si só vazamentos de memória.
+
+**Decisão:** .78 é a referência funcional Android para diagnóstico de memória e quatro reentradas sem degradação de FPS observada; .77 segue preservada como rollback. Antes de hot-unload, recomenda-se coletar uma sequência mais longa ou períodos de repouso iguais para comparação; **não forçar GC** com base nestes três snapshots. O descarregamento real de assemblies e o multiplayer permanecem fora do escopo.
 
 ## Escopo
 
@@ -55,4 +80,4 @@ JSON.stringify({
 
 Dois mods C# ativos após várias reentradas, nenhum crash, fila drenada e sem `lockDrops`/falhas, cache com limite e contagem coerentes e 60 FPS relatados. **Não existe valor máximo garantido de RSS neste estágio**; se RSS crescer continuamente, coletar mais amostras antes de modificar GC ou MonoVM.
 
-**Não implementado:** descarregamento real de assemblies, GC forçado, rastreamento da heap interna do MonoVM, desativação de mod pelo gerenciador em tempo real e multiplayer completo. A .77 continua como rollback estável até conclusão dos testes Android da .78.
+**Não implementado:** descarregamento real de assemblies, GC forçado, rastreamento da heap interna do MonoVM, desativação de mod pelo gerenciador em tempo real e multiplayer completo. A .78 passou nos testes Android limitados descritos; a .77 permanece como rollback estável.
