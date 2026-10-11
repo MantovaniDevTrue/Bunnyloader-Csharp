@@ -5,6 +5,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | Documento | Finalidade |
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
+| [Multi-Mod Managed .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multimod-managed-v75-experiment/docs/csharp-multimod-v75.md) | APK CI aprovada, dois pacotes C# independentes; Android ainda pendente |
 | [Verificação Android .73](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/multi-live-projectiles-v73.md) | 985/985 eventos, 879/879 do segundo projétil; falhas e descartes zero, FPS não informado |
 | [Arquitetura .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md) | MonoVM padrão, NativeAOT legado preservado fora do build principal, teste Android pendente |
 | [ExampleModCSharp 0.1.8: dois projéteis no Android](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-examplemod-dual-projectile-0.1.8/docs/examplemod-csharp-dual-projectile-018.md) | 2 curvas ativas, 2.393 atualizações da curva nova, 161/161 callbacks antigos, 0 perdas e 60 FPS relatados |
