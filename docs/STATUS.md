@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .79 — Estatísticas opcionais da heap MonoVM e reutilização de métodos (experimental)
+## .79 — Mono heap/cache diagnostics: APK e CI aprovados; Android pendente
 
-Branch `csharp-managed-heap-v79-experiment` baseada na **.78 validada no Android**. Novos campos nos diagnósticos sob demanda: `monoGcStatsAvailable`, `monoGcHeapBytes`, `monoGcUsedBytes` (resolução opcional via `dlsym`), hits/misses do cache de métodos de callbacks, chamadas e sucesso de `mono_domain_assembly_open` e quantidade de caminhos de DLL abertos. Estes contadores permitem investigar reutilização entre mundos **sem GC forçado, unload de DLL, thread adicional ou trabalho por frame**. CI e APK em preparação; **.79 ainda não foi testada no Android**. A .78 segue a baseline/rollback. [Roteiro .79](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-heap-v79-experiment/docs/csharp-managed-heap-v79.md).
+Branch `csharp-managed-heap-v79-experiment` baseada na **.78 validada no Android**. Novos campos nos diagnósticos sob demanda: `monoGcStatsAvailable`, `monoGcHeapBytes`, `monoGcUsedBytes` (resolução opcional via `dlsym`), hits/misses do cache de métodos de callbacks, chamadas e sucesso de `mono_domain_assembly_open` e quantidade de caminhos de DLL abertos. Estes contadores permitem investigar reutilização entre mundos **sem GC forçado, unload de DLL, thread adicional ou trabalho por frame**. **GitHub Actions [#38163553681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38163553681) success**; [APK .79 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79-managed-heap) (versionCode 104, 223.295.337 bytes). **.79 ainda não testada no Android.** A .78 segue a baseline/rollback. [Roteiro .79](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-heap-v79-experiment/docs/csharp-managed-heap-v79.md).
 
 ## .78 — Validação Android de memória e reentrada aprovada (11/10/2026)
 
