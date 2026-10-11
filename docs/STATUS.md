@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .76 — World Lifecycle: CI e APK aprovados, aguardando Android (11/10/2026)
+## .76 — Pausa de callbacks por mod e reentrada APROVADAS no Android (11/10/2026)
+
+Com os dois ExampleMods C# ativos, o usuário verificou `sourceLiveModPause` = `{"paused":true,"error":""}`; `SecondBolt.enabled=false`, enquanto `ExampleWaveBolt.enabled=true`. Depois de sair e entrar no mundo, `SecondBolt.enabled=true` novamente e ambos os mods `ready`, `cached=true`, `applied=true`, `worldReady=true`. Contadores de uma captura: fila **200/200** processados (111 hits, 89 kills), pico 3/64, `dropped=0`, `lockDrops=0`, `failures=0`, `ExampleWaveBolt` 66/66 e `SecondBolt` 58/58; eventos secundários inclusos no total. O usuário relatou **nenhuma queda de FPS** nos testes. A restauração `enabled=true` foi comprovada; a medição isolada de novos eventos após a reentrada não consta das capturas.
+
+**Baseline agora .76** para os recursos testados, mantendo .75 para rollback. Sem hot-unload real de assemblies ou suporte multiplayer validado. [Relatório e evidências .76](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-lifecycle-v76-experiment/docs/csharp-world-lifecycle-v76.md).
+
+## .76 — Histórico da compilação e prévia de teste (antes da validação Android)
 
 O GitHub Actions [#38153843425](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38153843425) terminou **success**. APK `0.1.10.16.76-csharp-world-lifecycle` (versionCode 101, 223.292.081 bytes) e os dois ExampleMods inalterados foram publicados como [prévia .76](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.76-world-lifecycle).
 
