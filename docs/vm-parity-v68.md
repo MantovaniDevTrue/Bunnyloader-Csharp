@@ -41,6 +41,28 @@ O mesmo APK .68 produziu **`finished=true`, `passed=true`, `phase="matched"`, `e
 
 Razões da segunda amostra: **69,7656× em tempo decorrido** e **74,8580× em tempo de CPU por thread**, a favor do MonoVM, **somente para essa rotina matemática**. A amostra de 1 milhão anterior indicou 73,7642×/75,8205×. Ambas têm resultado correto, porém são duas cargas diferentes, e não repetições controladas suficientes para significância estatística. As diferenças de RSS entre capturas são de condições do processo e não estabelecem custo de memória de uma linguagem. Continua pendente testar 2 milhões de iterações e múltiplas execuções de cada tamanho, sob condições semelhantes.
 
+## Terceira amostra Android — 2.000.000 de iterações (11/10/2026)
+
+**APROVADO** no mesmo APK .68: `started=true`, `finished=true`, `passed=true`, `phase="matched"`, `error=""`, `jsResult=monoResult=-1159315361`.
+
+| Métrica | QuickJS | MonoVM |
+| --- | ---: | ---: |
+| Tempo decorrido | `jsWallUs=675728` (675,728 ms) | `monoWallUs=9078` (9,078 ms) |
+| Tempo CPU da thread | `jsThreadCpuUs=661439` (661,439 ms) | `monoThreadCpuUs=8982` (8,982 ms) |
+| RSS total do processo antes/depois | 181.788 → 182.112 KB | 184.148 → 184.148 KB |
+
+Razão desta execução: **74,4358×** em tempo decorrido e **73,6405×** em CPU da thread, a favor do MonoVM, **exclusivamente para o kernel matemático de 32 bits**.
+
+### Comparação das três cargas concluídas
+
+| Iterações | QuickJS (ms) | MonoVM (ms) | Vantagem de tempo MonoVM | Checksums coincidem? |
+| ---: | ---: | ---: | ---: | --- |
+| 500.000 | 171,763 | 2,462 | 69,77× | Sim |
+| 1.000.000 | 445,536 | 6,040 | 73,76× | Sim |
+| 2.000.000 | 675,728 | 9,078 | 74,44× | Sim |
+
+As três **cargas distintas** mostraram paridade exata e tempos menores no MonoVM, porém ainda há somente uma medição de cada carga; não são três repetições do mesmo teste. Frequência da CPU, aquecimento JIT/GC, execução em threads diferentes e ruído externo podem influenciar os tempos. O RSS mostrado é de todo o processo Android, não uma medição isolada de consumo de memória por linguagem. Não generalizar a razão de ~70–74× a FPS, IA, renderização, filas ou todos os mods. Próxima etapa: repetir cada tamanho algumas vezes e depois medir custos reais da ponte Terraria/JS/MonoVM.
+
 ## Testar Android
 
 Atualizar para o APK .68 e entrar em um mundo singleplayer com ExampleModCSharp 0.1.7. Consultar o log de boot procurando:

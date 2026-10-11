@@ -2,6 +2,8 @@
 
 ## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
+**Terceira amostra Android aprovada:** 2.000.000 de iterações, `jsResult=monoResult=-1159315361`, `passed=true`, `phase="matched"`, erro vazio. QuickJS: **675.728 µs** tempo / **661.439 µs** CPU da thread; MonoVM: **9.078 µs** tempo / **8.982 µs** CPU da thread. Razão **74,44×** tempo / **73,64×** CPU nessa matemática isolada. Agora há 500 mil, 1 milhão e 2 milhões de iterações confirmados com checksum correto. Ainda precisamos repetir cada mesma carga diversas vezes e medir gameplay real. [Relatório com as três amostras](vm-parity-v68.md).
+
 **Segunda amostra confirmada:** 500.000 iterações, `jsResult=monoResult=-799234484`, `passed=true`, `phase="matched"` e erro vazio. QuickJS **171.763 µs** de tempo decorrido / **170.302 µs** de CPU da thread; MonoVM **2.462 µs** / **2.275 µs**. Razões **69,77×** em tempo decorrido e **74,86×** em CPU da thread. A comparação segue limitada à mesma matemática isolada e ainda precisa de repetições sob cargas iguais. [Detalhes da segunda amostra](vm-parity-v68.md).
 
 A .67 compilou no GitHub com o DLL válido, mas no Android não o encontrou: `BunnyVmBenchmark67.dll missing or invalid`. **A .68 corrigiu o caminho da assembly e validou a paridade no Android**: 1 milhão de iterações em QuickJS (`jsWallUs=445536` µs, CPU 439607 µs) e MonoVM (`monoWallUs=6040` µs, CPU 5798 µs), checksums **iguais a `1336190628`**, `passed=true`, `phase="matched"`, `error=""`. A razão nessa única execução foi **73,764× em tempo de parede**, **75,820× em CPU por thread** a favor do MonoVM para *esse kernel isolado*. **Não é um resultado geral de FPS ou de todos os mods**.
