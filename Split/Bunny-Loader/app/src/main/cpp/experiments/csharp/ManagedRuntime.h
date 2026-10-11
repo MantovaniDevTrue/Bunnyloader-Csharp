@@ -111,6 +111,7 @@ bool enableManagedLiveMod(const std::string& modId,
                           const std::string& projectile,
                           std::string* error);
 bool pauseManagedLiveMod(const std::string& modId, std::string* error);
+bool resumeManagedLiveMod(const std::string& modId, std::string* error);
 bool enableManagedLiveProjectile(const std::string& modId,
                                 const std::string& assemblyPath,
                                 int projectileType,
