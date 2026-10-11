@@ -12,10 +12,10 @@
 | Compilação de arquivos `.cs` com Roslyn | Fluxo experimental já implementado e exercitado no ExampleModCSharp; **não** significa suporte irrestrito a qualquer mod C# |
 | Conteúdo C# (itens, projéteis e exemplos) | Integrações e testes específicos já funcionaram; parte do comportamento continua mediada por políticas nativas/precalculadas |
 | `OnHitNPC` gerenciado na versão **.59** | Relato documentado: **10/10 eventos reais**, zero falhas/perdas |
-| `OnHitNPC` e `OnKill` automáticos na **.60** | Implementados e aprovados no CI; **aguardando teste real no aparelho** |
+| `OnHitNPC` e `OnKill` automáticos na **.62** | **Confirmados no Android**: 512 callbacks gerenciados (187 hits, 325 kills), 0 falhas; jogo continuou funcional após o limite de segurança |
 | Compatibilidade universal, AI C# por frame, multiplayer | **Não comprovados/não liberados** |
 
-**Build experimental mais recente desta linha:** [v0.1.10.16.60 — APK e ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60). A compilação bem-sucedida no GitHub Actions não substitui testes no Android.
+**Build mais recente validado para esse cenário:** [v0.1.10.16.62 — APK e ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62). Os **512 eventos C# reais** foram processados sem falha de execução; há **9 descartes** contabilizados pela fila/limite. O jogo continuou funcionando após a desativação prevista. **FPS e memória ainda não foram medidos quantitativamente.**
 
 ## Navegação do repositório
 
@@ -33,13 +33,13 @@
 
 `arquivos .cs` → `compilador Roslyn (worker isolado)` → `assembly gerenciado` → `MonoVM` → `ponte C++/Terraria Android`.
 
-Na .60, o carregamento automático procura os callbacks de convenção do **ExampleModCSharp 0.1.7** após entrar em singleplayer. O teste atual vincula no máximo **um tipo de projétil de um mod por processo**. Os eventos são colocados em fila para execução no worker Mono, sem bloquear o frame do jogo. A IA por frame segue caminhos nativos/precalculados em vez de chamar Mono a cada frame.
+Na .62, o carregamento automático detecta um mundo carregado e um jogador ativo em singleplayer antes de ativar os callbacks de convenção do **ExampleModCSharp 0.1.7**. O teste atual vincula no máximo **um tipo de projétil de um mod por processo**. Os eventos são colocados em fila para execução no worker Mono, sem bloquear o frame do jogo. A IA por frame segue caminhos nativos/precalculados em vez de chamar Mono a cada frame.
 
 Consulte a [arquitetura e os limites](docs/ARQUITETURA.md) antes de adicionar código.
 
 ## Teste atual
 
-O procedimento reproduzível da **.60** está em [TESTE-ANDROID-v60.md](docs/TESTE-ANDROID-v60.md). Use o APK da .60 junto ao **ExampleModCSharp 0.1.7**; a .59 usa o ExampleMod 0.1.6 e um comando manual diferente.
+O [teste real da **.62**](docs/mono-auto-live-world-signal-v62.md) confirma a inicialização MonoVM e os dois callbacks automáticos. A [versão .60](docs/TESTE-ANDROID-v60.md) permanece documentada historicamente como teste anterior; a .59 exigia ativação manual. Próxima etapa: medir FPS/memória e rever com segurança o limite de 512 e a capacidade da fila.
 
 ## Créditos e origem
 

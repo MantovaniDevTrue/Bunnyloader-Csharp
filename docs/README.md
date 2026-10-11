@@ -6,7 +6,8 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
 | [ARQUITETURA.md](ARQUITETURA.md) | MonoVM, Roslyn, host nativo e limites de execução |
-| [TESTE-ANDROID-v60.md](TESTE-ANDROID-v60.md) | Protocolo e critérios de aprovação da versão .60 |
+| [mono-auto-live-world-signal-v62.md](mono-auto-live-world-signal-v62.md) | **Teste Android validado .62**: 512 callbacks, 0 falhas, limite controlado |
+| [TESTE-ANDROID-v60.md](TESTE-ANDROID-v60.md) | Protocolo histórico da versão .60 |
 | [ROADMAP.md](ROADMAP.md) | Próximas etapas, sem promessas de compatibilidade não comprovada |
 | [HISTORICO.md](HISTORICO.md) | Linha do tempo das mudanças importantes e referências dos builds |
 

@@ -31,4 +31,17 @@ O esperado é `auto[0].worldReady=true`, `mono.domainInitialized=true`, `mono.re
 
 Depois usar ExampleWand em NPC hostil e aguardar morte do projétil. Critério: `hitProcessed>0`, `killProcessed>0`, `failures=0`, sem regressão visual/FPS. Confirmar pausa/retomada e saída do mundo.
 
-**Estado:** implementação pendente de aprovação GitHub Actions e de teste Android. Não afirmar que os callbacks foram comprovados antes dos contadores reais.
+## Resultado observado no Android — 10/10/2026, 22:25 (BRT)
+
+**VALIDADO para o escopo dos callbacks automáticos do ExampleModCSharp 0.1.7 no singleplayer.** O GitHub Actions da .62 concluiu com sucesso, mas a prova principal veio do aparelho Xiaomi 2109119DG (Android 14, ARM64).
+
+- No próprio processo do jogo: `mono.domainInitialized=true`, `mono.methodExecuted=true`, `mono.result=42`, `phase=verified`.
+- Antes do limite, a ponte estava `automatic=true`, `enabled=true`, `phase=ready`. Havia **72 callbacks executados**, divididos em 25 `OnHitNPC` e 47 `OnKill`, com 0 falhas e 0 descartes.
+- No final: `automatic=true`, `queued=512`, `processed=512`, `hitProcessed=187`, `killProcessed=325`, `failures=0`, `dropped=9`, `phase=limit-reached`, `enabled=false`.
+- O usuário relatou que o jogo **continuou rodando normalmente depois de atingir o limite**. O desligamento foi o comportamento previsto do sistema de segurança.
+
+A fila possui um único evento pendente; `dropped` significa descarte por ocupação/limite, não erro gerenciado. Os 512 eventos processados não significam compatibilidade com qualquer mod C# ou que o código altera livremente o combate. **Não houve medição numérica de FPS.**
+
+Próxima etapa: medir desempenho e custo da ponte em sessões maiores, propor retomada segura por sessão/mundo e eventualmente uma fila limitada com política explícita de descarte. Não remover as proteções nem alterar efeitos de gameplay apenas para alcançar números maiores.
+
+[APK .62 e ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62).

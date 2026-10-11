@@ -2,16 +2,16 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
-## 0.1.10.16.62 — aguardando validação Android
+## 0.1.10.16.62 — VALIDADA no Android (callbacks experimentais)
 - Sinal de mundo carregado via WorldFile.LoadWorldTiles + jogador ativo por três quadros de Main.DoUpdate.
 - Suporte a detecção do mundo quando Main.get_gameMenu está indisponível.
 - O status informa `worldReady` independentemente de `gameMenu`, sem remover gates de singleplayer, efeitos ou proteções GC.
-- Mantido ExampleModCSharp 0.1.7; APK ainda requer validação no aparelho.
+- Mantido ExampleModCSharp 0.1.7. Teste real no Xiaomi Android 14: **512 callbacks gerenciados** (187 `OnHitNPC`, 325 `OnKill`), **0 falhas**, 9 tentativas descartadas por fila/limite. Após `phase=limit-reached`, jogo continuou funcionando; FPS não medido quantitativamente.
 
-## 0.1.10.16.61 — hotfix em validação
+## 0.1.10.16.61 — hotfix insuficiente no Android
 - Corrigido o bloqueio da vinculação automática: `Main.gameMenu` é uma propriedade acessada por `get_gameMenu()`, não um campo disponível na .60.
 - Retém verificação de singleplayer, fallback e todas as políticas de combate e o MonoVM.
-- Requer teste Android real; não altera o pacote ExampleModCSharp 0.1.7.
+- O teste Android mostrou `Main.get_gameMenu indisponivel`; os callbacks automáticos ainda não ativavam. Corrigido na .62 com sinal real de mundo/jogador.
 
 ## 0.1.10.16.60 — aguardando validação Android
 - Inclusão de registro automático experimental dos eventos gerenciados `OnHitNPC` e `OnKill`.
