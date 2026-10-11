@@ -1,6 +1,6 @@
 # Bunny Loader C# .77 — pausa e retomada no mesmo mundo
 
-**Estado:** experimental, aguardando compilação Android e teste no dispositivo. **Baseline validada:** .76, com dois mods C# em singleplayer, reentrada de mundo, pausa seletiva e 60 FPS sem quedas relatadas.
+**Estado:** build Android, assinatura e empacotamento **aprovados** ([CI #38157993987](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38157993987)); [APK .77 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.77-mod-resume) com versionCode 102 (223.293.245 bytes). **Teste no aparelho ainda pendente.** Baseline validada: .76, com dois mods C# em singleplayer, reentrada, pausa seletiva e 60 FPS sem quedas relatadas.
 
 ## Objetivo
 
