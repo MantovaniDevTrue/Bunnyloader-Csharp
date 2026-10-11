@@ -1,14 +1,18 @@
 # Estado real do desenvolvimento
 
+## .74 — Managed Default validada no Android (11/10/2026)
+
+**APROVADA para os recursos testados**: o usuário confirmou 60 FPS; `Roslyn+MonoVM` e `managedAvailable()=true`, protótipo NativeAOT ausente conforme planejado, 2/2 curvas, **559/559 eventos processados**, zero `dropped`, `lockDrops` e falhas. Segundo projétil `ExampleWaveBolt`: **477/477** eventos (318 hits e 159 kills), já contabilizados nos totais, sem erros. Pico de fila 3/64. `runtimeAbi=0` / `hostApi=0` referem-se apenas à API legada do protótipo AOT. Logs C# dispersos no editor foram observados, sem indício de regressão e sem solicitação de alteração. Outros cenários continuam pendentes. [Validação detalhada](csharp-managed-default-v74.md).
+
 ## .73 — APROVADA funcionalmente em Android: eventos C# por projétil (11/10/2026)
 
 Capturas de `sourceAutoStatus`, `sourceLiveHitStatus` e `sourceLiveProjectileStatus` confirmaram duas curvas ativas, `phase=ready`, **985/985 eventos processados**, sendo **879/879** da classe secundária `ExampleWaveBoltLiveEvents` (`projectileType=1136`, 571 hits e 308 kills, `lastResult=2330`); sem falhas, descartes ou `lockDrops`, fila final vazia, pico de 3/64. A rotina principal do ExampleBolt permaneceu ligada ao tipo 1137.
 
 **FPS e duração da sessão .73 não informados pelo usuário**, não inferir 60 FPS desta rodada. Faltam testes de vários mods, multiplayer, stress e reinício. [Relatório .73](multi-live-projectiles-v73.md).
 
-## .74 — Managed Default: CI/APK aprovado, Android pendente
+## .74 — Histórico da preparação: compilação CI aprovada
 
-O caminho principal de C# fica Roslyn + MonoVM; o protótipo NativeAOT não será compilado, embutido nem inicializado automaticamente. As APIs/ponte C++ e o carregador legado de mods externos `libmod.so` permanecem no código, sem alterar a FIFO64 nem os callbacks de .73. Incluído diagnóstico `bl.csharp.managedAvailable()` e campos explícitos no `hostInfo()`. VersionCode 99 para atualização sobre .73. **APK e ExampleModCSharp 0.1.9 publicados; CI [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) aprovado, versão 0.1.10.16.74 com versionCode 99 e sem libbunnycs.so no APK. Android ainda não validado.** [Mudanças, segurança e rollback](csharp-managed-default-v74.md).
+O caminho principal de C# fica Roslyn + MonoVM; o protótipo NativeAOT não será compilado, embutido nem inicializado automaticamente. As APIs/ponte C++ e o carregador legado de mods externos `libmod.so` permanecem no código, sem alterar a FIFO64 nem os callbacks de .73. Incluído diagnóstico `bl.csharp.managedAvailable()` e campos explícitos no `hostInfo()`. VersionCode 99 para atualização sobre .73. **APK e ExampleModCSharp 0.1.9 publicados; CI [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) aprovado, versão 0.1.10.16.74 com versionCode 99 e sem libbunnycs.so no APK. Após essa preparação, a validação Android foi concluída no cenário registrado acima.** [Mudanças, segurança e rollback](csharp-managed-default-v74.md).
 
 ## .70 — medição de callbacks e projéteis reais durante gameplay (build/Android pendentes)
 
