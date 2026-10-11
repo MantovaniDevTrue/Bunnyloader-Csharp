@@ -643,6 +643,31 @@ JSValue jsSourceLiveHitStatus(JSContext* ctx, JSValueConst, int argc, JSValueCon
     return makeManagedLiveHitStatus(ctx, bl::csharp::managedLiveHitStatus());
 }
 
+JSValue jsSourceLiveProjectileStatus(JSContext* ctx, JSValueConst,
+                                     int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveProjectileStatus()");
+    JSValue result = JS_NewArray(ctx);
+    const auto bindings = bl::csharp::managedLiveProjectileStatuses();
+    for (uint32_t i = 0; i < bindings.size(); ++i) {
+        const auto& value = bindings[i];
+        JSValue row = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, row, "modId", JS_NewString(ctx, value.modId.c_str()));
+        JS_SetPropertyStr(ctx, row, "projectile", JS_NewString(ctx, value.projectile.c_str()));
+        JS_SetPropertyStr(ctx, row, "callbackClass", JS_NewString(ctx, value.callbackClass.c_str()));
+        JS_SetPropertyStr(ctx, row, "projectileType", JS_NewInt32(ctx, value.projectileType));
+        JS_SetPropertyStr(ctx, row, "enabled", JS_NewBool(ctx, value.enabled));
+        JS_SetPropertyStr(ctx, row, "queued", JS_NewInt32(ctx, value.queued));
+        JS_SetPropertyStr(ctx, row, "processed", JS_NewInt32(ctx, value.processed));
+        JS_SetPropertyStr(ctx, row, "hits", JS_NewInt32(ctx, value.hits));
+        JS_SetPropertyStr(ctx, row, "kills", JS_NewInt32(ctx, value.kills));
+        JS_SetPropertyStr(ctx, row, "failures", JS_NewInt32(ctx, value.failures));
+        JS_SetPropertyStr(ctx, row, "lastResult", JS_NewInt32(ctx, value.lastResult));
+        JS_SetPropertyStr(ctx, row, "error", JS_NewString(ctx, value.error.c_str()));
+        JS_SetPropertyUint32(ctx, result, i, row);
+    }
+    return result;
+}
+
 JSValue jsSourceLiveHitPause(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitPause()");
     return makeManagedLiveHitStatus(ctx, bl::csharp::pauseManagedLiveHit());
@@ -2430,6 +2455,9 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceLiveHitEnable, "sourceLiveHitEnable", 2));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitStatus",
                       JS_NewCFunction(ctx, jsSourceLiveHitStatus, "sourceLiveHitStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourceLiveProjectileStatus",
+                      JS_NewCFunction(ctx, jsSourceLiveProjectileStatus,
+                                      "sourceLiveProjectileStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
     JS_SetPropertyStr(ctx, api, "vmCompareStart",
