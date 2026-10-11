@@ -120,6 +120,7 @@ struct VmCompareStatus {
     bool finished = false;
     bool passed = false;
     int iterations = 0;
+    int kind = 0;
     int seed = 0;
     int jsResult = 0;
     int monoResult = 0;

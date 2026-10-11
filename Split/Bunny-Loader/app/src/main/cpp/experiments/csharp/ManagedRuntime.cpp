@@ -389,10 +389,13 @@ struct VmCompareMonoResult {
 };
 
 VmCompareMonoResult runVmCompareMono(
-    const std::string& assemblyPath, int iterations, int seed) {
+    const std::string& assemblyPath, int iterations, int seed, int kind) {
     VmCompareMonoResult output;
-    if (iterations < 1000 || iterations > 5000000 || !validAssembly(assemblyPath)) {
-        output.error = "Invalid Mono benchmark input or original probe assembly";
+    if (kind < 0 || kind > 2 ||
+        (kind == 0 && (iterations < 1000 || iterations > 5000000)) ||
+        (kind != 0 && (iterations < 64 || iterations > 5000)) ||
+        !validAssembly(assemblyPath)) {
+        output.error = "Invalid Mono benchmark mode, duration, or probe";
         return output;
     }
     const auto slash = assemblyPath.find_last_of('/');
@@ -400,10 +403,11 @@ VmCompareMonoResult runVmCompareMono(
         output.error = "Managed framework folder missing";
         return output;
     }
-    const std::string benchmarkAssembly =
-        assemblyPath.substr(0, slash + 1) + "BunnyVmBenchmark67.dll";
+    const bool math = kind == 0;
+    const char* assemblyName = math ? "BunnyVmBenchmark67.dll" : "BunnyVmGameplay69.dll";
+    const std::string benchmarkAssembly = assemblyPath.substr(0, slash + 1) + assemblyName;
     if (!validAssembly(benchmarkAssembly)) {
-        output.error = "BunnyVmBenchmark67.dll missing or invalid";
+        output.error = std::string(assemblyName) + " missing or invalid";
         return output;
     }
     std::lock_guard<std::mutex> monoLock(g_mutex);
@@ -424,14 +428,16 @@ VmCompareMonoResult runVmCompareMono(
     }
     void* image = g_api.image(assembly);
     void* klass = image ? g_api.findClass(
-        image, "BunnyLoader.VmBenchmark67", "Kernel") : nullptr;
+        image, math ? "BunnyLoader.VmBenchmark67" : "BunnyLoader.VmGameplay69",
+        "Kernel") : nullptr;
     if (!klass) {
-        output.error = "BunnyVmBenchmark67.Kernel class missing";
+        output.error = std::string(assemblyName) + " Kernel class missing";
         return output;
     }
-    void* method = g_api.findMethod(klass, "Execute", 2);
+    const char* methodName = kind == 1 ? "Projectile" : kind == 2 ? "Npc" : "Execute";
+    void* method = g_api.findMethod(klass, methodName, 2);
     if (!method) {
-        output.error = "BunnyVmBenchmark67.Kernel.Execute(int,int) missing";
+        output.error = std::string(assemblyName) + " Kernel." + methodName + "(int,int) missing";
         return output;
     }
     auto call = [&](int n, int* result) {
@@ -444,7 +450,7 @@ VmCompareMonoResult runVmCompareMono(
         return true;
     };
     int warm = 0;
-    if (!call(4096, &warm)) {
+    if (!call(kind == 0 ? 4096 : 64, &warm)) {
         output.error = "Mono warm-up failed";
         return output;
     }
@@ -484,10 +490,11 @@ void* pinnedMonoWorker(void*) {
                     g_vmComparePending = false;
                     const int iterations = g_vmCompare.iterations;
                     const int seed = g_vmCompare.seed;
+                    const int kind = g_vmCompare.kind;
                     const std::string assembly = g_pinnedAssembly;
                     lock.unlock();
                     const VmCompareMonoResult done =
-                        runVmCompareMono(assembly, iterations, seed);
+                        runVmCompareMono(assembly, iterations, seed, kind);
                     lock.lock();
                     g_vmCompare.monoResult = done.result;
                     g_vmCompare.monoWallUs = done.wallUs;
@@ -1001,8 +1008,10 @@ ManagedLiveBenchmarkStatus stopManagedLiveBenchmark() {
 bool beginVmCompare(const VmCompareStatus& jsPart, std::string* error) {
     if (!error) return false;
     error->clear();
-    if (jsPart.iterations < 1000 || jsPart.iterations > 5000000) {
-        *error = "Iterations must be between 1000 and 5000000";
+    if (jsPart.kind < 0 || jsPart.kind > 2 ||
+        (jsPart.kind == 0 && (jsPart.iterations < 1000 || jsPart.iterations > 5000000)) ||
+        (jsPart.kind != 0 && (jsPart.iterations < 64 || jsPart.iterations > 5000))) {
+        *error = "Invalid benchmark mode or iteration count";
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
