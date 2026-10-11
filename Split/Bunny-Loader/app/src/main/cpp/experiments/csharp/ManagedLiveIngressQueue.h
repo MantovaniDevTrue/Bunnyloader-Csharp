@@ -72,6 +72,23 @@ public:
         return pending;
     }
 
+    int discardBinding(int bindingSlot) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        ManagedLiveEventQueue retained;
+        ManagedLiveQueuedEvent next;
+        int removed = 0;
+        while (queue_.pop(&next)) {
+            if (next.bindingSlot == bindingSlot) {
+                ++removed;
+            } else {
+                retained.push(next);
+            }
+        }
+        queue_ = retained;
+        depth_.store(queue_.size(), std::memory_order_release);
+        return removed;
+    }
+
     void reset() {
         std::lock_guard<std::mutex> lock(mutex_);
         queue_.clear();
