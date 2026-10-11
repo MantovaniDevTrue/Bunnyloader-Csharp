@@ -392,7 +392,18 @@ VmCompareMonoResult runVmCompareMono(
     const std::string& assemblyPath, int iterations, int seed) {
     VmCompareMonoResult output;
     if (iterations < 1000 || iterations > 5000000 || !validAssembly(assemblyPath)) {
-        output.error = "Invalid Mono benchmark input or probe assembly";
+        output.error = "Invalid Mono benchmark input or original probe assembly";
+        return output;
+    }
+    const auto slash = assemblyPath.find_last_of('/');
+    if (slash == std::string::npos) {
+        output.error = "Managed framework folder missing";
+        return output;
+    }
+    const std::string benchmarkAssembly =
+        assemblyPath.substr(0, slash + 1) + "BunnyVmBenchmark67.dll";
+    if (!validAssembly(benchmarkAssembly)) {
+        output.error = "BunnyVmBenchmark67.dll missing or invalid";
         return output;
     }
     std::lock_guard<std::mutex> monoLock(g_mutex);
@@ -406,14 +417,21 @@ VmCompareMonoResult runVmCompareMono(
         output.error = "MonoVM thread attach failed";
         return output;
     }
-    void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
-    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* assembly = g_api.openAssembly(g_domain, benchmarkAssembly.c_str());
+    if (!assembly) {
+        output.error = "BunnyVmBenchmark67.dll could not be opened";
+        return output;
+    }
+    void* image = g_api.image(assembly);
     void* klass = image ? g_api.findClass(
-        image, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
-    void* method = klass ? g_api.findMethod(
-        klass, "BenchmarkMath", 2) : nullptr;
+        image, "BunnyLoader.VmBenchmark67", "Kernel") : nullptr;
+    if (!klass) {
+        output.error = "BunnyVmBenchmark67.Kernel class missing";
+        return output;
+    }
+    void* method = g_api.findMethod(klass, "Execute", 2);
     if (!method) {
-        output.error = "BunnyManagedProbe.Probe.BenchmarkMath(int,int) missing";
+        output.error = "BunnyVmBenchmark67.Kernel.Execute(int,int) missing";
         return output;
     }
     auto call = [&](int n, int* result) {
