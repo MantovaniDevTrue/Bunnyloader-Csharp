@@ -38,7 +38,8 @@ struct LiveCallbackResult {
 };
 LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
                                          const std::string& assemblyPath,
-                                         bool isKill, int tick, int damage);
+                                         bool isKill, int tick, int damage,
+                                         const std::string& callbackClass = "BunnyLiveEvents");
 ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     const std::string& assemblyPath, const std::string& stage);
 
@@ -244,6 +245,33 @@ ManagedLiveIngressQueue g_liveIngress;
 bool g_liveHitInFlight = false;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
+
+struct AdditionalLiveBinding {
+    std::string modId;
+    std::string projectile;
+    std::string callbackClass;
+    int type = -1;
+    std::atomic<int> armedType{-1};
+    std::atomic<int> queued{0};
+    int processed = 0;
+    int hits = 0;
+    int kills = 0;
+    int failures = 0;
+    int lastResult = 0;
+    std::string error;
+};
+
+std::array<AdditionalLiveBinding, 7> g_additionalLiveBindings{};
+std::array<std::atomic<int16_t>, 32768> g_additionalLiveByType{};
+std::atomic<int> g_additionalLiveCount{0};
+
+void disarmAdditionalLiveBindings() {
+    const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+    for (int i = 0; i < count; ++i)
+        g_additionalLiveBindings[static_cast<size_t>(i)].armedType.store(
+            -1, std::memory_order_release);
+}
+
 VmCompareStatus g_vmCompare;
 bool g_vmComparePending = false;
 int g_vmCompareRuns = 0;
@@ -367,6 +395,7 @@ void finishBenchmarkErrorLocked(const char* phase, const char* reason) {
     g_liveBenchmark.error = reason;
     g_liveBenchmarkEnd = std::chrono::steady_clock::now();
     g_liveHitType.store(-1, std::memory_order_release);
+    disarmAdditionalLiveBindings();
     ++g_liveHitGeneration;
     g_liveHitStatus.dropped += g_liveHitQueue.size();
     g_liveHitQueue.clear();
@@ -586,6 +615,13 @@ void* pinnedMonoWorker(void*) {
                     const std::string& modId = g_liveHitStatus.modId;
                     const std::string& dll = g_liveHitAssembly;
                     const bool automatic = g_liveHitStatus.automatic;
+                    const bool additional = event.bindingSlot >= 0 &&
+                        event.bindingSlot < g_additionalLiveCount.load(
+                            std::memory_order_acquire);
+                    AdditionalLiveBinding* binding = additional ?
+                        &g_additionalLiveBindings[static_cast<size_t>(event.bindingSlot)] : nullptr;
+                    const std::string callbackClass = binding ?
+                        binding->callbackClass : "BunnyLiveEvents";
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
                     const int64_t perfBeginNs = samplePerf ? perfNowNs() : 0;
@@ -602,7 +638,8 @@ void* pinnedMonoWorker(void*) {
                     }
                     lock.unlock();
                     const LiveCallbackResult callback = automatic
-                        ? invokeLiveSourceEvent(modId, dll, event.isKill, event.tick, event.damage)
+                        ? invokeLiveSourceEvent(modId, dll, event.isKill, event.tick,
+                                                 event.damage, callbackClass)
                         : [&]() {
                             const LiveSourceStatus status =
                                 invokeLiveSourceTick(modId, dll, event.tick, event.damage);
@@ -638,17 +675,32 @@ void* pinnedMonoWorker(void*) {
                             ++g_liveHitStatus.processed;
                             if (event.isKill) ++g_liveHitStatus.killProcessed;
                             else ++g_liveHitStatus.hitProcessed;
+                            if (binding) {
+                                ++binding->processed;
+                                if (event.isKill) ++binding->kills;
+                                else ++binding->hits;
+                                binding->lastResult = callback.value;
+                            }
                             g_liveHitStatus.lastDamage = event.damage;
                             g_liveHitStatus.lastResult = callback.value;
                             g_liveHitStatus.lastEvent = event.isKill ? "OnKill" : "OnHitNPC";
-                            g_liveHitStatus.phase = "ready";
-                            g_liveHitStatus.error.clear();
+                            if (g_liveHitStatus.failures == 0) {
+                                g_liveHitStatus.phase = "ready";
+                                g_liveHitStatus.error.clear();
+                            }
                         } else {
                             ++g_liveHitStatus.failures;
                             g_liveHitStatus.phase = callback.phase;
                             g_liveHitStatus.error = callback.error;
-                            if (g_liveHitStatus.failures >= 3) {
+                            if (binding) {
+                                ++binding->failures;
+                                binding->error = callback.error;
+                                if (binding->failures >= 3)
+                                    binding->armedType.store(-1, std::memory_order_release);
+                            }
+                            if (!binding && g_liveHitStatus.failures >= 3) {
                                 g_liveHitType.store(-1, std::memory_order_release);
+                                disarmAdditionalLiveBindings();
                                 g_liveHitStatus.enabled = false;
                                 g_liveHitStatus.dropped += g_liveHitQueue.size();
                                 g_liveHitQueue.clear();
@@ -660,6 +712,7 @@ void* pinnedMonoWorker(void*) {
                             g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit &&
                             g_liveHitQueue.empty() && g_liveIngress.depth() == 0) {
                             g_liveHitType.store(-1, std::memory_order_release);
+                            disarmAdditionalLiveBindings();
                             g_liveHitStatus.enabled = false;
                             g_liveHitStatus.phase = "limit-reached";
                         }
