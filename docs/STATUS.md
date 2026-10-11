@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .78 — Diagnóstico de memória de processos e ciclo de mundos (CI/Android pendentes)
+## .78 — Diagnóstico de memória: CI/APK aprovados, Android pendente
 
-Adicionados comandos `sourceMemoryBaseline()` / `sourceMemoryStatus()` para acompanhar RSS do **processo inteiro**, pico, virtual, swap, threads e entradas dos caches de callback de MonoVM durante cinco reentradas. Contadores `worldLoads`, `worldExits` e `rebindSchedules` ajudam a localizar falhas de lifecycle, sem coletar métricas por frame e sem tentar liberar assemblies à força. Smoke host do parser RSS passou inicialmente; nova verificação do CI em execução após corrigir uma referência textual indevida ao nome da API .77. **Não confundir CI com validação Android e não inferir vazamento a partir de RSS isolado.** A .77 segue baseline. [Plano .78](csharp-memory-lifecycle-v78.md).
+Adicionados comandos `sourceMemoryBaseline()` / `sourceMemoryStatus()` para acompanhar RSS do **processo inteiro**, pico, virtual, swap, threads e entradas dos caches de callback de MonoVM durante cinco reentradas. Contadores `worldLoads`, `worldExits` e `rebindSchedules` ajudam a localizar falhas de lifecycle, sem coletar métricas por frame e sem tentar liberar assemblies à força. **CI [#38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) aprovado e [APK .78 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) (versionCode 103, 223.294.805 bytes).** Testes host e compilação Android completos; gameplay no aparelho pendente. **Não confundir CI com validação Android e não inferir vazamento a partir de RSS isolado.** A .77 segue baseline. [Plano .78](csharp-memory-lifecycle-v78.md).
 
 ## .77 — Retomada no mesmo mundo APROVADA no Android (11/10/2026)
 
