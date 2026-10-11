@@ -38,6 +38,8 @@ struct LiveCallbackResult {
     int value = 0;
     std::string phase;
     std::string error;
+    bool invoked = false;
+    bool usedV2 = false;
 };
 LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
                                          const std::string& assemblyPath,
@@ -279,6 +281,7 @@ struct AdditionalLiveBinding {
     int failures = 0;
     int dropped = 0;
     int lastResult = 0;
+    ManagedHitContextStats hitContext;
     std::string error;
 };
 
@@ -756,6 +759,14 @@ void* pinnedMonoWorker(void*) {
                     g_liveHitActiveBindingSlot = -2;
                     if ((binding || g_liveHitStatus.modId == modId) &&
                         g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
+                        if (automatic && !event.isKill && callback.invoked) {
+                            const bool succeeded = callback.ready && callback.phase == "ready";
+                            g_liveHitStatus.hitContext.record(
+                                callback.usedV2, event.npcIndex, succeeded);
+                            if (binding)
+                                binding->hitContext.record(
+                                    callback.usedV2, event.npcIndex, succeeded);
+                        }
                         if (callback.ready && callback.phase == "ready") {
                             ++g_liveHitStatus.processed;
                             if (event.isKill) ++g_liveHitStatus.killProcessed;
@@ -1338,6 +1349,7 @@ bool bindManagedLiveAdditional(const std::string& modId,
     entry.type = projectileType;
     entry.processed = entry.hits = entry.kills = entry.failures = 0;
     entry.dropped = entry.lastResult = 0;
+    entry.hitContext = {};
     entry.error.clear();
     entry.queued.store(0, std::memory_order_relaxed);
     entry.armedType.store(projectileType, std::memory_order_release);
@@ -1469,6 +1481,7 @@ std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses() {
         status.failures = entry.failures;
         status.dropped = entry.dropped;
         status.lastResult = entry.lastResult;
+        status.hitContext = entry.hitContext;
         status.error = entry.error;
         results.push_back(std::move(status));
     }
@@ -2215,6 +2228,8 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
     int targetIndex = npcIndex;
     void* argsLegacy[] = {&call, &value};
     void* argsV2[] = {&call, &value, &targetIndex};
+    result.invoked = true;
+    result.usedV2 = useV2;
     void* exception = nullptr;
     void* boxed = g_api.invoke(method, nullptr, useV2 ? argsV2 : argsLegacy, &exception);
     void* unboxed = exception || !boxed ? nullptr : g_api.unbox(boxed);

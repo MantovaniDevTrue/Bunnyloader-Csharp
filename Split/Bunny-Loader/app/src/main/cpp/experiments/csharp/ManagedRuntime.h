@@ -118,6 +118,7 @@ ManagedLiveHitStatus managedLiveHitStatus();
 ManagedLiveHitStatus pauseManagedLiveHit();
 
 struct ManagedLiveProjectileStatus {
+    ManagedHitContextStats hitContext;
     std::string modId;
     std::string projectile;
     std::string callbackClass;
