@@ -36,7 +36,7 @@ jobs:
           assert 'g_npcType = il2cpp::fieldOffset(npc, "type");' in hit
           assert 'g_npcPosition = runtime::game().entity.position;' in hit
           assert 'queueManagedLiveHit(type, damage, index, snapshot);' in hit
-          assert "ManagedNpcSnapshot npc;" in queue
+          assert "ManagedNpcSnapshot npc{};" in queue
           assert "event.damage, event.npcIndex, event.npc, callbackClass" in runtime
           assert 'g_api.findMethod(klass, "OnHitNPCV3", 7)' in runtime
           assert "useV3 ? argsV3 : useV2 ? argsV2 : argsLegacy" in runtime
