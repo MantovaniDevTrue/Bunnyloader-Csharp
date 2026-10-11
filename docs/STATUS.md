@@ -1,5 +1,15 @@
 # Estado real do desenvolvimento
 
+## .75 — Multi-Mod Managed: APK/CI aprovados, Android pendente (11/10/2026)
+
+A APK `0.1.10.16.75-csharp-multimod` (versionCode 100, 223.290.213 bytes) e dois mods `ExampleModCSharp 0.1.9` e `SecondExampleModCSharp 0.1.0` foram compilados/publicados com CI **success** em [#38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551).
+
+A arquitetura manteve a FIFO64 (25.000 eventos agregados) e o worker MonoVM da .74. A segunda assembly é vinculada por `modId`/caminho da DLL/tipo de projétil e possui `BunnyLoader.Source.BunnyLiveEvents` própria, com respostas controladas de 3000+ e 4000+ para distinguir os dois mods. O teste host Roslyn compilou ambas as assemblies, verificou classes de mesmo nome mas assemblies diferentes e isolamento do estado estático. O segundo mod usa UID `2e508d4f-f192-4a21-83b2-496e6c482c75`.
+
+**O que não foi comprovado:** carregamento simultâneo e FPS em Android, desativação segura em gameplay, descarregamento real da assembly, múltiplos mundos e multiplayer. `sourceLiveModPause` é **somente pausa de callback**, não hot-unload C#. Manter a .74 como baseline enquanto a .75 estiver experimental.
+
+[Detalhes e roteiro de teste .75](csharp-multimod-v75.md) · [Release .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed).
+
 ## .74 — Managed Default validada no Android (11/10/2026)
 
 **APROVADA para os recursos testados**: o usuário confirmou 60 FPS; `Roslyn+MonoVM` e `managedAvailable()=true`, protótipo NativeAOT ausente conforme planejado, 2/2 curvas, **559/559 eventos processados**, zero `dropped`, `lockDrops` e falhas. Segundo projétil `ExampleWaveBolt`: **477/477** eventos (318 hits e 159 kills), já contabilizados nos totais, sem erros. Pico de fila 3/64. `runtimeAbi=0` / `hostApi=0` referem-se apenas à API legada do protótipo AOT. Logs C# dispersos no editor foram observados, sem indício de regressão e sem solicitação de alteração. Outros cenários continuam pendentes. [Validação detalhada](csharp-managed-default-v74.md).
