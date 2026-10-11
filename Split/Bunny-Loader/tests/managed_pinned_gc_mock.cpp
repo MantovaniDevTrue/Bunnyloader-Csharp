@@ -7,7 +7,7 @@ thread_local bool attached = false;
 thread_local bool safe = false;
 std::atomic<int> entries{0}, exits{0}, initializations{0};
 std::atomic<bool> ownerSafe{false};
-std::atomic<int> hits{0}, kills{0};
+std::atomic<int> hits{0}, hitsV2{0}, kills{0};
 }
 extern "C" {
 void* mono_jit_init(const char*) {
@@ -41,9 +41,20 @@ void* mono_domain_assembly_open(void*, const char*) { assert(attached && safe); 
 void* mono_assembly_get_image(void*) { assert(attached && safe); return reinterpret_cast<void*>(1); }
 void* mono_class_from_name(void*, const char*, const char*) { assert(attached && safe); return reinterpret_cast<void*>(1); }
 void* mono_class_get_method_from_name(void*, const char* name, int params) {
-    assert(attached && safe && params == 2);
-    if (!std::strcmp(name, "OnHitNPC")) return reinterpret_cast<void*>(2);
-    if (!std::strcmp(name, "OnKill")) return reinterpret_cast<void*>(3);
+    assert(attached && safe);
+    if (!std::strcmp(name, "OnHitNPC")) {
+        assert(params == 2);
+        return reinterpret_cast<void*>(2);
+    }
+    if (!std::strcmp(name, "OnHitNPCV2")) {
+        assert(params == 3);
+        return reinterpret_cast<void*>(4);
+    }
+    if (!std::strcmp(name, "OnKill")) {
+        assert(params == 2);
+        return reinterpret_cast<void*>(3);
+    }
+    assert(params == 2);
     return reinterpret_cast<void*>(1);
 }
 void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
@@ -53,6 +64,8 @@ void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
     const int damage = *static_cast<int*>(args[1]);
     if (method == reinterpret_cast<void*>(2))
         result = damage + tick % 7 + ++hits;
+    else if (method == reinterpret_cast<void*>(4))
+        result = damage + tick % 7 + *static_cast<int*>(args[2]) + ++hitsV2;
     else if (method == reinterpret_cast<void*>(3))
         result = damage + tick % 5 + ++kills;
     else
@@ -65,4 +78,7 @@ int test_entries() { return entries; }
 int test_exits() { return exits; }
 int test_initializations() { return initializations; }
 int test_owner_safe() { return ownerSafe; }
+int test_legacy_hits() { return hits; }
+int test_v2_hits() { return hitsV2; }
+int test_kills() { return kills; }
 }

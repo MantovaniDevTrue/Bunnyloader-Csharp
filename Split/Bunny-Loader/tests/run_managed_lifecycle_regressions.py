@@ -16,3 +16,6 @@ with tempfile.TemporaryDirectory(prefix='bunny-lifecycle-') as tmp:
     subprocess.run(flags+[str(cpp/'experiments/csharp/ManagedRuntime.cpp'), str(root/'tests/managed_fault_isolation.cpp'), '-ldl', '-o', str(out/'fault')], check=True)
     (out/'probe.dll').write_bytes(b'mock')
     subprocess.run([str(out/'fault'), str(out/'probe.dll')], env=dict(os.environ, LD_LIBRARY_PATH=str(out)), check=True, timeout=20)
+    subprocess.run(flags+['-shared', '-fPIC', str(root/'tests/managed_pinned_gc_mock.cpp'), '-o', str(out/'libmonosgen-2.0.so')], check=True)
+    subprocess.run(flags+[str(cpp/'experiments/csharp/ManagedRuntime.cpp'), str(root/'tests/managed_hit_v2_mock.cpp'), '-ldl', '-o', str(out/'hit-v2')], check=True)
+    subprocess.run([str(out/'hit-v2'), str(out/'probe.dll')], env=dict(os.environ, LD_LIBRARY_PATH=str(out)), check=True, timeout=20)

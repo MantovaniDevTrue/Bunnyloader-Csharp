@@ -58,3 +58,7 @@ A identidade entregue é um **snapshot primitivo** do slot `npcIndex` validado n
 
 **Limitações assumidas:** a primeira evolução é um contexto primitivo de *hit*; contexto tipado com identidade estável de NPC, efeitos no mundo, NPC AI por frame e multiplayer são etapas independentes e **não** são implementados aqui. Qualquer sugestão de suporte a mods genéricos do PC exige evidências específicas.
 
+
+## Correção de regressão do mock host
+
+O primeiro build Android falhou nos testes de host porque `managed_pinned_gc_mock.cpp` exigia `params == 2` para todos os métodos. A `.81` agora procura opcionalmente `OnHitNPCV2` com aridade 3. O mock passou a verificar cada nome com sua aridade correta e o teste `managed_hit_v2_mock.cpp` exerce despachos antigos, V2, `OnKill`, slots inválidos e pausa. A compilação ARM64 e a validação Android continuam pendentes até conclusão da próxima execução do workflow.
