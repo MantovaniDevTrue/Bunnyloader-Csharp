@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .76 — APROVADA Android: pausa seletiva e reentrada (11/10/2026)
+
+O usuário confirmou que `sourceLiveModPause` retornou **`paused=true`**, `SecondBolt.enabled=false` e o primeiro mod continuou vinculado. Após salvar/sair e retornar ao mundo, `SecondBolt.enabled=true` novamente, dois mods `ready`, `cached=true`, `applied=true`, `worldReady=true`, 2/2 curvas do primeiro mod, e **nenhuma queda de FPS observada**. Contadores capturados: eventos globais **200/200** (111 hits/89 kills), fila máxima 3/64, `dropped=0`, `lockDrops=0`, `failures=0`; ExampleWaveBolt **66/66** (44 hits/22 kills) e SecondBolt **58/58** (29 hits/29 kills, `lastResult=4066`). Contagens adicionais inclusas no total global. A comparação quantitativa de novos callbacks após a reentrada e o verdadeiro hot-unload continuam pendentes; o usuário confirmou o funcionamento.
+
+**Decisão:** .76 é a baseline para pausa seletiva e reentrada de dois mods C# no cenário testado; .75 preservada para rollback. [Relatório .76](csharp-world-lifecycle-v76.md).
+
 ## .75 — Android aprovado: 2 mods C#, Blood Moon e 100 inimigos, 60 FPS (11/10/2026)
 
 **Comprovado no cenário testado:** `sourceModCount=2`, os dois mods `ready` e `applied=true`, os dois grupos de callbacks gerenciados separados, 256/256 eventos globais, 92/92 eventos do `ExampleWaveBolt`, 100/100 eventos do `SecondBolt`, sem `dropped`, `lockDrops` ou `failures`. Resultado `lastResult=4074` comprova execução de `BunnyLiveEvents` da segunda assembly. O usuário confirmou **Blood Moon com 100 inimigos a 60 FPS sem quedas observadas** (relato visual, sem trace de frametimes). Classificação: **baseline funcional para dois mods**, mantendo .74 para rollback. Descarregamento, pausa por mod, reinício e multiplayer ainda pendentes.
