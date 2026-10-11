@@ -326,6 +326,21 @@ constexpr std::array<int, 20> kPerfUsThresholds{{
     25, 50, 75, 100, 150, 200, 250, 350, 500, 700,
     1000, 1500, 2250, 3500, 5000, 7500, 12000, 20000, 50000, 2147483647
 }};
+struct PerfProjectileCounters {
+    std::atomic<int> callbacks{0};
+    std::atomic<int> hits{0};
+    std::atomic<int> kills{0};
+    std::atomic<int> failures{0};
+    std::atomic<int> queueSamples{0};
+    std::atomic<int64_t> queueTotalUs{0};
+    std::atomic<int> queueMaxUs{0};
+    std::atomic<int64_t> callbackTotalUs{0};
+    std::atomic<int> callbackMaxUs{0};
+    std::atomic<int64_t> cpuTotalUs{0};
+    std::atomic<int> cpuMaxUs{0};
+    PerfUsBuckets callbackBins{};
+};
+std::array<PerfProjectileCounters, 8> g_perfProjectileCounters{};
 constexpr int64_t kPerfDurationNs = 15000000000LL;
 
 int64_t perfNowNs() {
@@ -394,6 +409,21 @@ void resetPerfCounters() {
     for (auto& histogram : {&g_perfQueueBins, &g_perfCallbackBins, &g_perfCallbackCpuBins})
         for (auto& bucket : *histogram)
             bucket.store(0, std::memory_order_relaxed);
+    for (auto& p : g_perfProjectileCounters) {
+        p.callbacks.store(0, std::memory_order_relaxed);
+        p.hits.store(0, std::memory_order_relaxed);
+        p.kills.store(0, std::memory_order_relaxed);
+        p.failures.store(0, std::memory_order_relaxed);
+        p.queueSamples.store(0, std::memory_order_relaxed);
+        p.queueTotalUs.store(0, std::memory_order_relaxed);
+        p.queueMaxUs.store(0, std::memory_order_relaxed);
+        p.callbackTotalUs.store(0, std::memory_order_relaxed);
+        p.callbackMaxUs.store(0, std::memory_order_relaxed);
+        p.cpuTotalUs.store(0, std::memory_order_relaxed);
+        p.cpuMaxUs.store(0, std::memory_order_relaxed);
+        for (auto& bucket : p.callbackBins)
+            bucket.store(0, std::memory_order_relaxed);
+    }
 }
 
 ManagedLiveBenchmarkStatus g_liveBenchmark;
@@ -651,6 +681,8 @@ void* pinnedMonoWorker(void*) {
                         binding->callbackClass : "BunnyLiveEvents";
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
+                    const size_t perfSlot = binding ?
+                        static_cast<size_t>(event.bindingSlot + 1) : 0;
                     const int64_t perfBeginNs = samplePerf ? perfNowNs() : 0;
                     const int64_t cpuBeginNs = samplePerf ? perfThreadCpuNs() : 0;
                     if (samplePerf && event.enqueuedAtNs && perfBeginNs >= 0 &&
@@ -659,6 +691,11 @@ void* pinnedMonoWorker(void*) {
                             static_cast<int64_t>(event.enqueuedAtNs)) / 1000;
                         g_perfQueueTotalUs.fetch_add(delay, std::memory_order_relaxed);
                         g_perfQueueSamples.fetch_add(1, std::memory_order_relaxed);
+                        auto& projectilePerf = g_perfProjectileCounters[perfSlot];
+                        projectilePerf.queueTotalUs.fetch_add(delay, std::memory_order_relaxed);
+                        projectilePerf.queueSamples.fetch_add(1, std::memory_order_relaxed);
+                        updatePerfMax(projectilePerf.queueMaxUs,
+                            static_cast<int>(std::min<int64_t>(delay, 2147483647)));
                         perfRecordUs(g_perfQueueBins, delay);
                         updatePerfMax(g_perfQueueMaxUs,
                             static_cast<int>(std::min<int64_t>(delay, 2147483647)));
@@ -691,8 +728,25 @@ void* pinnedMonoWorker(void*) {
                         }
                         g_perfCallbacks.fetch_add(1, std::memory_order_relaxed);
                         g_perfProcessed.fetch_add(1, std::memory_order_relaxed);
-                        if (!callback.ready || callback.phase != "ready")
+                        auto& projectilePerf = g_perfProjectileCounters[perfSlot];
+                        projectilePerf.callbacks.fetch_add(1, std::memory_order_relaxed);
+                        (event.isKill ? projectilePerf.kills : projectilePerf.hits)
+                            .fetch_add(1, std::memory_order_relaxed);
+                        projectilePerf.callbackTotalUs.fetch_add(
+                            elapsed, std::memory_order_relaxed);
+                        perfRecordUs(projectilePerf.callbackBins, elapsed);
+                        updatePerfMax(projectilePerf.callbackMaxUs,
+                            static_cast<int>(std::min<int64_t>(elapsed, 2147483647)));
+                        if (cpuUs >= 0) {
+                            projectilePerf.cpuTotalUs.fetch_add(
+                                cpuUs, std::memory_order_relaxed);
+                            updatePerfMax(projectilePerf.cpuMaxUs,
+                                static_cast<int>(std::min<int64_t>(cpuUs, 2147483647)));
+                        }
+                        if (!callback.ready || callback.phase != "ready") {
                             g_perfFailed.fetch_add(1, std::memory_order_relaxed);
+                            projectilePerf.failures.fetch_add(1, std::memory_order_relaxed);
+                        }
                     }
                     lock.lock();
                     g_liveHitInFlight = false;
@@ -1694,6 +1748,48 @@ ManagedLivePerfStatus managedLivePerfStatus() {
     const int baseline =
         g_perfLockDropBaseline.load(std::memory_order_relaxed);
     result.lockDrops = result.started ? std::max(0, currentDrops - baseline) : 0;
+    if (result.started) {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        auto append = [&](int slot, const std::string& modId,
+                          const std::string& callbackClass, int type, bool enabled) {
+            if (type < 0) return;
+            const auto& counters = g_perfProjectileCounters[static_cast<size_t>(slot)];
+            ManagedLivePerfProjectileStatus item;
+            item.modId = modId;
+            item.callbackClass = callbackClass;
+            item.projectileType = type;
+            item.enabled = enabled;
+            item.callbacksSampled = counters.callbacks.load(std::memory_order_relaxed);
+            item.hitSamples = counters.hits.load(std::memory_order_relaxed);
+            item.killSamples = counters.kills.load(std::memory_order_relaxed);
+            item.failures = counters.failures.load(std::memory_order_relaxed);
+            item.queueWaitSamples = counters.queueSamples.load(std::memory_order_relaxed);
+            const int64_t queueUs = counters.queueTotalUs.load(std::memory_order_relaxed);
+            if (item.queueWaitSamples > 0)
+                item.queueWaitAvgUs = static_cast<double>(queueUs) / item.queueWaitSamples;
+            item.queueWaitMaxUs = counters.queueMaxUs.load(std::memory_order_relaxed);
+            const int64_t callbackUs = counters.callbackTotalUs.load(std::memory_order_relaxed);
+            const int64_t cpuUs = counters.cpuTotalUs.load(std::memory_order_relaxed);
+            if (item.callbacksSampled > 0) {
+                item.callbackAvgUs = static_cast<double>(callbackUs) / item.callbacksSampled;
+                item.callbackCpuAvgUs = static_cast<double>(cpuUs) / item.callbacksSampled;
+                item.callbackP90Us = perfPercentileUs(
+                    counters.callbackBins, item.callbacksSampled, 90);
+            }
+            item.callbackMaxUs = counters.callbackMaxUs.load(std::memory_order_relaxed);
+            item.callbackCpuMaxUs = counters.cpuMaxUs.load(std::memory_order_relaxed);
+            result.projectiles.push_back(std::move(item));
+        };
+        append(0, g_liveHitStatus.modId, "BunnyLiveEvents",
+               g_liveHitStatus.projectileType,
+               g_liveHitType.load(std::memory_order_acquire) >= 0);
+        const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+        for (int i = 0; i < count; ++i) {
+            const auto& binding = g_additionalLiveBindings[static_cast<size_t>(i)];
+            append(i + 1, binding.modId, binding.callbackClass, binding.type,
+                   binding.armedType.load(std::memory_order_acquire) == binding.type);
+        }
+    }
     return result;
 }
 
