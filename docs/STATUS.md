@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .78 — Leitura de memória e ciclo de mundo (experimental, Android pendente)
+## .78 — Diagnósticos de memória CI/APK aprovados; Android pendente
 
-Nova branch `csharp-managed-memory-v78-experiment`, baseada na **.77 aprovada no Android**, adiciona `bl.csharp.sourceMemoryBaseline()` e `bl.csharp.sourceMemoryStatus()`: leitura **sob demanda** de RSS/VmHWM/VmSize/VmData/VmSwap/threads do processo, contagem de entradas do cache de callbacks, caminhos de assemblies no cache e vínculos ativos; inclui `world.epoch`, entradas, saídas e agendamentos de callbacks. **Nenhum GC forçado, unload de assembly, thread MonoVM adicional ou trabalho por frame**. CI em validação, **nenhum FPS Android medido na .78**. [Procedimento de teste em cinco reentradas](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md). A .77 permanece baseline/rollback.
+Nova branch `csharp-managed-memory-v78-experiment`, baseada na **.77 aprovada no Android**, adiciona `bl.csharp.sourceMemoryBaseline()` e `bl.csharp.sourceMemoryStatus()`: leitura **sob demanda** de RSS/VmHWM/VmSize/VmData/VmSwap/threads do processo, contagem de entradas do cache de callbacks, caminhos de assemblies no cache e vínculos ativos; inclui `world.epoch`, entradas, saídas e agendamentos de callbacks. **Nenhum GC forçado, unload de assembly, thread MonoVM adicional ou trabalho por frame**. **GitHub Actions [#38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) success**, [APK .78](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) publicada (versionCode 103, 223.294.805 bytes). **Nenhum FPS Android medido na .78**. [Procedimento de teste em cinco reentradas](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md). A .77 permanece baseline/rollback.
 
 ## .77 — Pausa e retomada no mesmo mundo APROVADAS no Android (11/10/2026)
 
