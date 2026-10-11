@@ -6,9 +6,9 @@ Capturas de `sourceAutoStatus`, `sourceLiveHitStatus` e `sourceLiveProjectileSta
 
 **FPS e duração da sessão .73 não informados pelo usuário**, não inferir 60 FPS desta rodada. Faltam testes de vários mods, multiplayer, stress e reinício. [Relatório .73](multi-live-projectiles-v73.md).
 
-## .74 — Managed Default em preparação (CI/Android pendentes)
+## .74 — Managed Default: CI/APK aprovado, Android pendente
 
-O caminho principal de C# fica Roslyn + MonoVM; o protótipo NativeAOT não será compilado, embutido nem inicializado automaticamente. As APIs/ponte C++ e o carregador legado de mods externos `libmod.so` permanecem no código, sem alterar a FIFO64 nem os callbacks de .73. Incluído diagnóstico `bl.csharp.managedAvailable()` e campos explícitos no `hostInfo()`. VersionCode 99 para atualização sobre .73. **Não aprovado em Android até teste real.** [Mudanças, segurança e rollback](csharp-managed-default-v74.md).
+O caminho principal de C# fica Roslyn + MonoVM; o protótipo NativeAOT não será compilado, embutido nem inicializado automaticamente. As APIs/ponte C++ e o carregador legado de mods externos `libmod.so` permanecem no código, sem alterar a FIFO64 nem os callbacks de .73. Incluído diagnóstico `bl.csharp.managedAvailable()` e campos explícitos no `hostInfo()`. VersionCode 99 para atualização sobre .73. **APK e ExampleModCSharp 0.1.9 publicados; CI [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) aprovado, versão 0.1.10.16.74 com versionCode 99 e sem libbunnycs.so no APK. Android ainda não validado.** [Mudanças, segurança e rollback](csharp-managed-default-v74.md).
 
 ## .70 — medição de callbacks e projéteis reais durante gameplay (build/Android pendentes)
 
