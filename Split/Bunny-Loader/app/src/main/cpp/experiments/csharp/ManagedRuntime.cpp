@@ -466,7 +466,7 @@ void* pinnedMonoWorker(void*) {
                     g_vmComparePending = false;
                     const int iterations = g_vmCompare.iterations;
                     const int seed = g_vmCompare.seed;
-                    const std::string& assembly = g_pinnedAssembly;
+                    const std::string assembly = g_pinnedAssembly;
                     lock.unlock();
                     const VmCompareMonoResult done =
                         runVmCompareMono(assembly, iterations, seed);
