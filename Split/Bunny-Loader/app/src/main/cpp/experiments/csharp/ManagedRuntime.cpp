@@ -243,6 +243,7 @@ std::atomic<int> g_liveHitLockDrops{0};
 ManagedLiveEventQueue g_liveHitQueue;
 ManagedLiveIngressQueue g_liveIngress;
 bool g_liveHitInFlight = false;
+int g_liveHitActiveBindingSlot = -2;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
 
@@ -614,6 +615,7 @@ void* pinnedMonoWorker(void*) {
                 }
                 if (hasEvent) {
                     g_liveHitInFlight = true;
+                    g_liveHitActiveBindingSlot = event.bindingSlot;
                     const bool automatic = g_liveHitStatus.automatic;
                     const bool additional = event.bindingSlot >= 0 &&
                         event.bindingSlot < g_additionalLiveCount.load(
@@ -625,6 +627,7 @@ void* pinnedMonoWorker(void*) {
                         ++binding->dropped;
                         ++g_liveHitStatus.dropped;
                         g_liveHitInFlight = false;
+                        g_liveHitActiveBindingSlot = -2;
                         continue;
                     }
                     const std::string modId = binding ? binding->modId : g_liveHitStatus.modId;
@@ -678,6 +681,7 @@ void* pinnedMonoWorker(void*) {
                     }
                     lock.lock();
                     g_liveHitInFlight = false;
+                    g_liveHitActiveBindingSlot = -2;
                     if ((binding || g_liveHitStatus.modId == modId) &&
                         g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
                         if (callback.ready && callback.phase == "ready") {
@@ -1227,23 +1231,31 @@ bool pauseManagedLiveMod(const std::string& modId, std::string* error) {
     if (!error) return false;
     error->clear();
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (g_liveHitInFlight) {
-        *error = "MonoVM callback still in flight; try again";
+    if (modId.empty() || modId == g_liveHitStatus.modId) {
+        *error = "Only an additional C# mod can be paused independently";
         return false;
     }
-    if (modId == g_liveHitStatus.modId) {
-        *error = "Primary mod uses pauseManagedLiveHit() for full session";
+    const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+    if (g_liveHitInFlight &&
+        g_liveHitActiveBindingSlot >= 0 &&
+        g_liveHitActiveBindingSlot < count &&
+        g_additionalLiveBindings[
+            static_cast<size_t>(g_liveHitActiveBindingSlot)].modId == modId) {
+        *error = "This C# mod has a callback in flight; retry after it completes";
         return false;
     }
     bool changed = false;
-    for (int i = 0, n = g_additionalLiveCount.load(std::memory_order_acquire);
-         i < n; ++i) {
+    for (int i = 0; i < count; ++i) {
         auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
-        if (entry.modId == modId && entry.armedType.exchange(
-                -1, std::memory_order_acq_rel) == entry.type)
-            changed = true;
+        if (entry.modId != modId) continue;
+        if (entry.armedType.exchange(-1, std::memory_order_acq_rel) != entry.type)
+            continue;
+        changed = true;
+        const int discarded = g_liveIngress.discardBinding(i);
+        entry.dropped += discarded;
+        g_liveHitStatus.dropped += discarded;
     }
-    if (!changed) *error = "Mod not armed or already disabled";
+    if (!changed) *error = "Mod not armed or already paused";
     return changed;
 }
 
