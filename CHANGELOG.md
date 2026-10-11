@@ -2,11 +2,12 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
-## 0.1.10.16.64 — teste gerenciado de 25 mil eventos (aguarda Android)
+## 0.1.10.16.64 — teste de 25 mil callbacks gerenciados VALIDADO no Android
 - `sourceLiveBenchmarkStart('CONFIRM_25000_CSHARP_CALLBACKS')` inicia gerador C++ independente que enfileira callbacks reais no FIFO64 e na thread proprietária MonoVM.
 - `sourceLiveBenchmarkStatus()` informa contadores e tempo; `sourceLiveBenchmarkStop()` cancela. Timeout de 120s.
 - Nenhum inimigo/projétil artificial; o benchmark ocupa a ponte C# desta sessão até a reinicialização do aplicativo, preservando os efeitos nativos e a versão .63.
-- A demonstração de 25 mil execuções reais e seu custo de FPS/memória **ainda exige teste Android**.
+- **Android comprovado:** `passed=true`, 25.000 callbacks reais executados (`OnHitNPC=12500`, `OnKill=12500`), 0 falhas/descartes, em **12.336 ms**, fila máxima 13 de 64, drenagem e desligamento esperados. O jogo continuou funcional.
+- O teste foi sintético e rodou pelo editor (jogo congelado): **FPS e memória sob carga com gameplay ativo ainda não foram aferidos**.
 
 ## 0.1.10.16.63 — execução acima de 512 validada no Android
 - Fila circular FIFO de capacidade 64 para eventos gerenciados e limite experimental de 25 mil callbacks aceitos.

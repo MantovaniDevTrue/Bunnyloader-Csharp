@@ -1,8 +1,10 @@
 # Estado real do desenvolvimento
 
-## .64 — teste opt-in de 25 mil callbacks MonoVM (aguarda Android)
+## .64 — 25 mil callbacks C# comprovados no Android (11/10/2026, 00:26 BRT)
 
-Implementado um benchmark com confirmação explícita, produtor nativo separado e 25 mil execuções reais de `BunnyLiveEvents.OnHitNPC`/`OnKill` no MonoVM sem criar NPCs/projéteis, com cancelamento, observação de progresso e timeout de 120 segundos. **Não há validação Android ainda.** [Instruções](managed-live-benchmark-v64.md).
+**VALIDADO no Xiaomi Android 14, singleplayer:** benchmark `passed=true`, `phase="completed"`, **25.000 callbacks gerenciados** (`OnHitNPC=12500`, `OnKill=12500`), `failures=0`, `dropped=0`, `lockDrops=0`, `elapsedMs=12336`. Média aproximada de 2.026 callbacks/s. A fila de capacidade 64 teve ocupação máxima de **13**; ao final, `queueDepth=0`. O limite foi alcançado, o dispatcher foi desligado normalmente (`limit-reached`) e o usuário confirmou que o Terraria continuou funcionando após a conclusão.
+
+**Limitação da evidência:** o benchmark foi executado pelo editor, que congela o jogo, e gera eventos sintéticos para callbacks C# reais. Não significa que medimos 60 FPS **durante** os 25 mil eventos, nem comprova efeitos nativos ou mods complexos. Próxima fase: latência/FPS/memória no gameplay real e generalização por múltiplos mods. [Protocolo e resultado](managed-live-benchmark-v64.md) · [Release .64](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.64).
 
 ## Teste Android da .63 — validada parcialmente em 11/10/2026, 00:01 (BRT)
 
