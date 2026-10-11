@@ -2,6 +2,14 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## 0.1.10.16.80 — profiler por projétil e seis verificações Android APROVADAS
+
+- Medição `sourcePerfStatus().projectiles` sob demanda por tipo: fila, tempos wall/CPU, máximos, P90 por histograma, hits, kills e falhas.
+- Android: taxa de atualização ~59,78 Hz, FPS visual 60 com queda momentânea a 59, 85/85 callbacks processados (23 + 35 + 27), zero falhas, descartes e lockDrops no profiler.
+- Seis verificações adicionais confirmadas pelo usuário: três armas com profiler desligado, FPS sem regressões relevantes, pausa seletiva, retomada, salvamento/reentrada e ausência de erros/perdas. Relatório Bunny 17:52: MonoVM `verified` (result=42), rebinding automático de 1137/1136/1138 e nenhuma mensagem de erro/aviso no log da última partida.
+- APK assinada [release .80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.80-projectile-profiler), CI #38171225259; fonte exata preservada em `csharp-android-validated-v80` a partir do release commit `ae787455f3f7adada861d211809cf8bf60c99438`.
+- **Nova baseline funcional: .80; rollback: .79.1.** Não prova multiplayer, hot-unload, memória sem leaks ou estabilidade universal. [Registro Android](docs/csharp-v80-android-validation.md).
+
 ## 0.1.10.16.68 — correção e paridade QuickJS × MonoVM VALIDADAS no Android
 - Corrige uma lacuna de instalação da .67: embora o APK e o CI contivessem `BunnyVmBenchmark67.dll`, o processo de jogo não garantia extrair novas DLLs caso o serviço/worker C# não fosse iniciado após atualização.
 - `GameActivity` agora confere SHA-256 do manifesto, copia a DLL apenas quando ausente/desatualizada, valida após instalar e registra o resultado no log. Executa antes do início dos hooks nativos, sem depender de recompilar mods.
