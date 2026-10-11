@@ -3,7 +3,8 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
-      - csharp-multi-live-projectiles-v73-experiment
+      - csharp-managed-default-v74-cleanup
+      - csharp-managed-default-v73-experiment
       - csharp-live-ingress-v72-experiment
       - csharp-lockdrops-v71-upgrade-fix
       - bunny-csharp-nativeaot-prototype
@@ -588,46 +589,6 @@ jobs:
           print("MONOVM_PRE_DOMAIN_CONTROL_CHECK=PASS")
           PY
 
-      - name: Build CSharp NativeAOT library
-        shell: bash
-        run: |
-          NDK="$ANDROID_HOME/ndk/30.0.16248370"
-          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          export ANDROID_NDK_ROOT="$NDK"
-          export ANDROID_NDK_HOME="$NDK"
-          export PATH="$TOOLCHAIN:$PATH"
-
-          PROJECT="Split/Bunny-Loader/experiments/csharp/BunnyCsPrototype/BunnyCsPrototype.csproj"
-          dotnet publish "$PROJECT"             -c Release             -r linux-bionic-arm64             -p:PublishAot=true             -p:PublishAotUsingRuntimePack=true             -p:DisableUnsupportedError=true
-
-          PUB="$(find Split/Bunny-Loader/experiments/csharp/BunnyCsPrototype/bin/Release -type d -path '*linux-bionic-arm64/publish' | head -n 1)"
-          test -n "$PUB"
-          echo "NativeAOT publish: $PUB"
-          find "$PUB" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
-
-          CSO="$(find "$PUB" -maxdepth 1 -type f -name 'bunnycs.so' -o -name 'libbunnycs.so' | head -n 1)"
-          if [ -z "$CSO" ]; then
-            CSO="$(find "$PUB" -maxdepth 1 -type f -name '*.so' | head -n 1)"
-          fi
-          test -n "$CSO"
-          readelf -Ws "$CSO" | grep -q bunnycs_version
-          readelf -Ws "$CSO" | grep -q bunnycs_host_api_version
-          readelf -Ws "$CSO" | grep -q bunnycs_add
-          readelf -Ws "$CSO" | grep -q bunnycs_checksum
-          readelf -Ws "$CSO" | grep -q bunnycs_player_sample
-          readelf -Ws "$CSO" | grep -q bunnycs_math_batch
-          readelf -Ws "$CSO" | grep -q bunnycs_projectile_batch
-          readelf -Ws "$CSO" | grep -q bunnycs_npc_scan
-          readelf -Ws "$CSO" | grep -q bunnycs_projectile_scan
-          readelf -Ws "$CSO" | grep -q bunnycs_host_projectile_tick
-
-          JNI="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a"
-          mkdir -p "$JNI"
-          cp "$CSO" "$JNI/libbunnycs.so"
-          file "$JNI/libbunnycs.so"
-          sha256sum "$JNI/libbunnycs.so"
-
-
       - name: Build and validate source-only CSharp mod
         shell: bash
         run: |
@@ -1160,7 +1121,11 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.bunnyloader.csharptest'"
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
-          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnycs.so"
+          if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
+            echo "NativeAOT prototype was unexpectedly bundled in managed-default APK" >&2
+            exit 1
+          fi
+          echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libmonosgen-2.0.so"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libSystem.Native.so"
           unzip -l "$APK" | grep -F "assets/managed/System.Runtime.dll"
@@ -1170,7 +1135,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='98' versionName='0.1.10.16.73-csharp-multi-live'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='99' versionName='0.1.10.16.74-csharp-managed-default'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1190,10 +1155,28 @@ jobs:
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
 
+      - name: Guard managed-default boot and preserve legacy external loader
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          entry = (root / "boot/Entry.cpp").read_text()
+          mod = (root / "experiments/csharp/CSharpModLoader.cpp").read_text()
+          native = (root / "experiments/csharp/NativeContent.cpp").read_text()
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          assert "installPrototype()" not in entry
+          assert "libmod.so" in mod
+          assert "bunny_mod_initialize" in mod
+          assert "registerNativeContent" in native
+          assert "libmonosgen-2.0.so" in runtime
+          print("BUNNY_MANAGED_DEFAULT_NATIVEAOT_DEMOTION=PASS")
+          PY
+
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.73-MultiLiveProjectiles.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1207,8 +1190,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.73-MultiLiveProjectiles.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.74-managed-default"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1216,8 +1199,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.73 — Per-projectile Managed Live Callbacks" \
-              --notes "v0.1.10.16.73 Based on the Android-validated v0.1.10.16.72 Managed Ingress. Adds optional per-projectile CSharp hit/kill class binding with independent status on the same MonoVM worker and FIFO64. Retains original hooks and performance telemetry. VersionCode 98 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
+              --title "Bunny Loader C# v0.1.10.16.74 — MonoVM Managed Default" \
+              --notes "v0.1.10.16.74 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, makes Roslyn + MonoVM the only built-in C# runtime, and removes automatic NativeAOT prototype initialization and the bundled libbunnycs.so. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 99 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
               --prerelease
           fi
           gh release upload "$TAG" \
@@ -1229,33 +1212,3 @@ jobs:
             --repo "${{ github.repository }}" --clobber
           echo "MANAGED_RUNTIME_RELEASE_TAG=$TAG"
 
-      - name: Publish prototype APK
-        if: ${{ false }}
-
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.73-MultiLiveProjectiles.apk"
-          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
-          cp "$APK" "$RUNNER_TEMP/$OUT"
-          cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
-          sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          MOD="$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
-          MODSHA="$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
-          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$RUNNER_TEMP/libbunnycs.so" "$MOD" "$MODSHA" --repo "${{ github.repository }}" --clobber
-          else
-            gh release create "$TAG" \
-              "$RUNNER_TEMP/$OUT#$OUT" \
-              "$RUNNER_TEMP/$OUT.sha256#APK SHA-256" \
-              "$RUNNER_TEMP/libbunnycs.so#libbunnycs.so" \
-              "$MOD#Source C# Mod 0.1.0" \
-              "$MODSHA#Example C# Mod SHA-256" \
-              --repo "${{ github.repository }}" \
-              --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# Test v0.1.10.11 — Source Files Prototype" \
-              --notes "Experimental source-only C# mod format: imports main.cs and SourceWand.cs with no JS, DLL, or SO inside the mod. A constrained C# SetDefaults literals interpreter reads source and registers weapon/projectile directly with native host. NOT full C#/.NET execution. Preserves working JS and NativeAOT pathways. Requires Android testing." \
-              --prerelease
-          fi
