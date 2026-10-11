@@ -366,8 +366,8 @@ jobs:
               "kPerfDurationNs = 15000000000LL",
               "g_perfState.store(1, std::memory_order_release)",
               "g_perfCallbacks.fetch_add(1",
-              "const std::string& modId = g_liveHitStatus.modId",
-              "const std::string& dll = g_liveHitAssembly",
+              "const std::string modId = binding ? binding->modId : g_liveHitStatus.modId",
+              "const std::string dll = binding ? binding->assemblyPath : g_liveHitAssembly",
               "g_liveHitInFlight = true",
               "g_liveHitInFlight = false"
           ]:
