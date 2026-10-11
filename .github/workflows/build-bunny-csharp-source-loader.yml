@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-managed-hit-diagnostics-v82-experiment
       - csharp-managed-event-context-v81-experiment
       - csharp-per-projectile-profiler-v80-experiment
       - csharp-managed-lifecycle-v79-1-experiment
@@ -1341,7 +1342,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='107' versionName='0.1.10.16.81-csharp-hit-context'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='108' versionName='0.1.10.16.82-csharp-hit-diagnostics'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1382,7 +1383,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.81-HitContext.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.82-HitDiagnostics.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1398,8 +1399,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.81-hit-context"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.81-HitContext.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.82-hit-diagnostics"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.82-HitDiagnostics.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1408,8 +1409,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.81 — Optional NPC Hit Context V2" \
-              --notes "Experimental v0.1.10.16.81 derived from Android-validated .80 without changes to the stable branch. Adds opt-in OnHitNPCV2(int,int,int) with validated NPC slot copied from game thread to FIFO64 and MonoVM, cached lookup and fallback to legacy OnHitNPC(int,int). OnKill remains legacy. ExampleModCSharp 0.1.10 has V2 demonstration. Retains 2-mod isolation, 3 weapons, pause/resume, session barrier, 25000 event cap and .80 profiler. Android gameplay, FPS and stability NOT yet verified." \
+              --title "Bunny Loader C# v0.1.10.16.82 — Managed Hit Context Diagnostics" \
+              --notes "Experimental .82 based on Android-validated .81 (40 NPCs, minimum 59 FPS). Adds per-session V2 vs legacy callback counters and NPC index slot coverage in bl.csharp.sourceLiveHitStatus().hitContext and sourceLiveProjectileStatus()[].hitContext. No hot-thread locks or per-hit logging. Retains two-mod support, FIFO64, OnKill and the 25000 event cap. Android .82 performance has not been verified yet." \
               --prerelease
           fi
           gh release upload "$TAG" \
