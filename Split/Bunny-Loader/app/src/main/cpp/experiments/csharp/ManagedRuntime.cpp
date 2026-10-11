@@ -251,6 +251,7 @@ std::string g_pinnedAssembly;
 std::string g_pinnedStage = "PINNED_MONO";
 ManagedRuntimeStatus g_pinnedResult;
 ManagedLiveHitStatus g_liveHitStatus;
+int g_primaryLiveFailures = 0;
 std::atomic<int> g_liveHitType{-1};
 std::atomic<bool> g_liveHitAutomatic{false};
 std::atomic<int> g_liveHitLockDrops{0};
@@ -725,7 +726,8 @@ void* pinnedMonoWorker(void*) {
                                 if (binding->failures >= 3)
                                     binding->armedType.store(-1, std::memory_order_release);
                             }
-                            if (!binding && g_liveHitStatus.failures >= 3) {
+                            if (!binding) ++g_primaryLiveFailures;
+                            if (!binding && g_primaryLiveFailures >= 3) {
                                 g_liveHitType.store(-1, std::memory_order_release);
                                 disarmAdditionalLiveBindings();
                                 g_liveHitStatus.enabled = false;
@@ -775,7 +777,6 @@ void* pinnedMonoWorker(void*) {
             stage = g_pinnedStage;
             g_pinnedPending = false;
         }
-        // Check the transition API before creating a domain on this owner.
         ManagedRuntimeStatus result = inspectManagedRuntime();
         if (result.symbolsReady && g_api.currentThread) {
             result = stage == "PINNED_MONO"
@@ -1038,6 +1039,7 @@ bool enableManagedLiveHit(const std::string& modId,
     g_liveIngress.reset();
     g_liveHitLockDrops.store(0, std::memory_order_relaxed);
     g_liveHitStatus = {};
+    g_primaryLiveFailures = 0;
     g_liveHitStatus.automatic = automatic;
     g_liveHitStatus.modId = modId;
     g_liveHitStatus.projectileType = projectileType;
@@ -1145,6 +1147,7 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
 }
 
 void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
+    const auto admission = g_liveIngress.admission();
     if (damage < 0 || damage > 100000 || projectileType < 0 ||
         static_cast<size_t>(projectileType) >= g_additionalLiveByType.size()) return;
     const bool original = g_liveHitType.load(std::memory_order_acquire) == projectileType;
@@ -1158,13 +1161,13 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
         ? static_cast<uint64_t>(perfNowNs()) : 0;
     ManagedLiveIngressPush result;
     if (original) {
-        result = g_liveIngress.push(
+        result = g_liveIngress.push(admission,
             {0, damage, isKill, profiledAtNs, -1},
             projectileType, g_liveHitType, g_liveHitAutomatic);
     } else {
         AdditionalLiveBinding& binding =
             g_additionalLiveBindings[static_cast<size_t>(bindingSlot)];
-        result = g_liveIngress.pushAdditional(
+        result = g_liveIngress.pushAdditional(admission,
             {0, damage, isKill, profiledAtNs, bindingSlot},
             projectileType, binding.armedType);
         if (result.accepted)
@@ -1439,6 +1442,7 @@ bool startManagedLiveBenchmark(std::string* error) {
     g_liveIngress.reset();
     ++g_liveHitGeneration;
     g_liveHitStatus = {};
+    g_primaryLiveFailures = 0;
     g_liveHitStatus.enabled = true;
     g_liveHitStatus.automatic = true;
     g_liveHitStatus.modId = previous.modId;
@@ -2233,4 +2237,5 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
 }
 
 }
+
 
