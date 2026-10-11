@@ -150,6 +150,25 @@ std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses();
 void queueManagedLiveHit(int projectileType, int damage);
 void queueManagedLiveKill(int projectileType, int damage);
 
+struct ManagedLivePerfProjectileStatus {
+    std::string modId;
+    std::string callbackClass;
+    int projectileType = -1;
+    bool enabled = false;
+    int callbacksSampled = 0;
+    int hitSamples = 0;
+    int killSamples = 0;
+    int failures = 0;
+    int queueWaitSamples = 0;
+    double queueWaitAvgUs = 0;
+    int queueWaitMaxUs = 0;
+    double callbackAvgUs = 0;
+    int callbackMaxUs = 0;
+    int callbackP90Us = 0;
+    double callbackCpuAvgUs = 0;
+    int callbackCpuMaxUs = 0;
+};
+
 struct ManagedLivePerfStatus {
     bool started = false;
     bool recording = false;
@@ -183,6 +202,7 @@ struct ManagedLivePerfStatus {
     int projectileCurveUpdates = 0;
     int projectileVelocityWrites = 0;
     int lockDrops = 0;
+    std::vector<ManagedLivePerfProjectileStatus> projectiles;
 };
 
 bool startManagedLivePerf(std::string* error);
