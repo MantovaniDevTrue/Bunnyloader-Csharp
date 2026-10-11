@@ -365,6 +365,11 @@ JSValue vmCompareStatusToJs(JSContext* ctx, const bl::csharp::VmCompareStatus& s
     JS_SetPropertyStr(ctx, result, "finished", JS_NewBool(ctx, status.finished));
     JS_SetPropertyStr(ctx, result, "passed", JS_NewBool(ctx, status.passed));
     JS_SetPropertyStr(ctx, result, "iterations", JS_NewInt32(ctx, status.iterations));
+    JS_SetPropertyStr(ctx, result, "kind", JS_NewString(ctx,
+        status.kind == 1 ? "projectile" : status.kind == 2 ? "npc" : "math"));
+    JS_SetPropertyStr(ctx, result, "entities", JS_NewInt32(ctx, status.kind == 0 ? 0 : 64));
+    JS_SetPropertyStr(ctx, result, "updates", JS_NewInt32(ctx,
+        status.kind == 0 ? 0 : status.iterations * 64));
     JS_SetPropertyStr(ctx, result, "jsResult", JS_NewInt32(ctx, status.jsResult));
     JS_SetPropertyStr(ctx, result, "monoResult", JS_NewInt32(ctx, status.monoResult));
     JS_SetPropertyStr(ctx, result, "jsWallUs", JS_NewInt64(ctx, status.jsWallUs));
@@ -402,12 +407,98 @@ constexpr char kVmCompareMathJs[] = R"JS(
 })
 )JS";
 
-JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t iterations = 1000000;
-    if (argc > 1 || (argc == 1 && JS_ToInt32(ctx, &iterations, argv[0]) < 0))
-        return JS_ThrowTypeError(ctx, "vmCompareStart(iterations)");
-    if (iterations < 1000 || iterations > 5000000)
-        return JS_ThrowRangeError(ctx, "iterations: 1000..5000000");
+constexpr char kVmProjectileJs[] = R"JS(
+(function(ticks, seed) {
+    const count = 64;
+    const x = new Int32Array(count);
+    const y = new Int32Array(count);
+    const vx = new Int32Array(count);
+    const vy = new Int32Array(count);
+    for (let i = 0; i < count; i++) {
+        x[i] = i * 13 - 320;
+        y[i] = i * 7 - 180;
+        vx[i] = (i % 11 - 5) * 3;
+        vy[i] = (i % 9 - 4) * 2;
+    }
+    let hash = seed | 0;
+    for (let t = 0; t < ticks; t++) {
+        for (let i = 0; i < count; i++) {
+            const tx = ((t * 7 + i * 31) & 1023) - 512;
+            const ty = ((t * 5 + i * 19) & 511) - 256;
+            vx[i] += tx > x[i] ? 2 : -2;
+            vy[i] += ty > y[i] ? 1 : -1;
+            vx[i] = (vx[i] * 15 / 16) | 0;
+            vy[i] = (vy[i] * 15 / 16) | 0;
+            x[i] += vx[i];
+            y[i] += vy[i];
+            if (x[i] < -512 || x[i] > 512) {
+                vx[i] = (-vx[i] / 2) | 0;
+                x[i] = x[i] < 0 ? -512 : 512;
+            }
+            if (y[i] < -256 || y[i] > 256) {
+                vy[i] = (-vy[i] / 2) | 0;
+                y[i] = y[i] < 0 ? -256 : 256;
+            }
+            hash = Math.imul(hash ^ x[i] ^ (y[i] << 1) ^
+                (vx[i] << 2) ^ (vy[i] << 3), 16777619) | 0;
+        }
+    }
+    return hash | 0;
+})
+)JS";
+
+constexpr char kVmNpcJs[] = R"JS(
+(function(ticks, seed) {
+    const count = 64;
+    const x = new Int32Array(count);
+    const y = new Int32Array(count);
+    const vx = new Int32Array(count);
+    const vy = new Int32Array(count);
+    const cooldown = new Int32Array(count);
+    for (let i = 0; i < count; i++) {
+        x[i] = i * 23 - 700;
+        y[i] = i * 11 - 350;
+        vx[i] = i % 7 - 3;
+        vy[i] = i % 5 - 2;
+        cooldown[i] = 10 + i % 17;
+    }
+    let hash = seed | 0;
+    for (let t = 0; t < ticks; t++) {
+        for (let i = 0; i < count; i++) {
+            const tx = ((t * 3 + i * 47) & 2047) - 1024;
+            const ty = ((t * 2 + i * 37) & 1023) - 512;
+            const dx = tx - x[i];
+            const dy = ty - y[i];
+            const attacking = Math.abs(dx) < 90 && Math.abs(dy) < 70;
+            const mode = attacking ? 1 : 0;
+            const force = attacking ? 2 : 1;
+            vx[i] += dx > 0 ? force : -force;
+            vy[i] += dy > 0 ? 1 : -1;
+            if (vx[i] > 12) vx[i] = 12;
+            if (vx[i] < -12) vx[i] = -12;
+            if (vy[i] > 10) vy[i] = 10;
+            if (vy[i] < -10) vy[i] = -10;
+            if ((t & 7) === 0) {
+                vx[i] = (vx[i] * 7 / 8) | 0;
+                vy[i] = (vy[i] * 7 / 8) | 0;
+            }
+            x[i] += vx[i];
+            y[i] += vy[i];
+            if (--cooldown[i] <= 0)
+                cooldown[i] = attacking ? 30 + i % 11 : 16 + i % 13;
+            hash = Math.imul(hash ^ x[i] ^ (y[i] << 1) ^
+                (cooldown[i] << 2) ^ (mode << 6), 16777619) | 0;
+        }
+    }
+    return hash | 0;
+})
+)JS";
+
+JSValue runVmCompare(JSContext* ctx, int32_t iterations, int kind) {
+    if (kind < 0 || kind > 2 ||
+        (kind == 0 && (iterations < 1000 || iterations > 5000000)) ||
+        (kind != 0 && (iterations < 64 || iterations > 5000)))
+        return JS_ThrowRangeError(ctx, "math: 1000..5000000; AI ticks: 64..5000");
     bool ready = false;
     for (const auto& mod : bl::csharp::autoSourceStatuses()) {
         if (mod.modId == "68c3115f-62f4-49f2-a56b-388256781d5f" &&
@@ -423,11 +514,18 @@ JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
     if (!live.enabled || !live.automatic || live.inFlight || live.queueDepth)
         return JS_ThrowInternalError(ctx, "Managed callbacks must be idle and ready");
 
-    JSValue routine = JS_Eval(ctx, kVmCompareMathJs, sizeof(kVmCompareMathJs) - 1,
-                             "vm-compare-math.js", JS_EVAL_TYPE_GLOBAL);
+    const char* source = kind == 1 ? kVmProjectileJs :
+                         kind == 2 ? kVmNpcJs : kVmCompareMathJs;
+    const size_t sourceSize = kind == 1 ? sizeof(kVmProjectileJs) - 1 :
+                              kind == 2 ? sizeof(kVmNpcJs) - 1 :
+                              sizeof(kVmCompareMathJs) - 1;
+    JSValue routine = JS_Eval(ctx, source, sourceSize,
+                             kind == 1 ? "vm-projectile-ai.js" :
+                             kind == 2 ? "vm-npc-ai.js" : "vm-compare-math.js",
+                             JS_EVAL_TYPE_GLOBAL);
     if (JS_IsException(routine)) return routine;
     const int32_t seed = 0x12345678;
-    JSValue warmArgs[] = {JS_NewInt32(ctx, 4096), JS_NewInt32(ctx, seed)};
+    JSValue warmArgs[] = {JS_NewInt32(ctx, kind == 0 ? 4096 : 64), JS_NewInt32(ctx, seed)};
     JSValue warm = JS_Call(ctx, routine, JS_UNDEFINED, 2, warmArgs);
     JS_FreeValue(ctx, warmArgs[0]);
     JS_FreeValue(ctx, warmArgs[1]);
@@ -439,6 +537,7 @@ JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
 
     bl::csharp::VmCompareStatus sample;
     sample.iterations = iterations;
+    sample.kind = kind;
     sample.seed = seed;
     sample.rssBeforeJsKb = vmCompareProcessRssKb();
     const int64_t cpuBefore = vmCompareJsThreadCpuNs();
@@ -465,6 +564,28 @@ JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
     if (!bl::csharp::beginVmCompare(sample, &error))
         return JS_ThrowInternalError(ctx, "%s", error.c_str());
     return vmCompareStatusToJs(ctx, bl::csharp::vmCompareStatus());
+}
+
+JSValue jsVmCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t iterations = 1000000;
+    if (argc > 1 || (argc == 1 && JS_ToInt32(ctx, &iterations, argv[0]) < 0))
+        return JS_ThrowTypeError(ctx, "vmCompareStart(iterations)");
+    return runVmCompare(ctx, iterations, 0);
+}
+
+JSValue jsVmGameplayCompareStart(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 2 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "vmGameplayCompareStart('projectile'|'npc', ticks)");
+    const char* kindRaw = JS_ToCString(ctx, argv[0]);
+    if (!kindRaw) return JS_EXCEPTION;
+    const std::string kindName(kindRaw);
+    JS_FreeCString(ctx, kindRaw);
+    int kind = kindName == "projectile" ? 1 : kindName == "npc" ? 2 : -1;
+    if (kind == -1)
+        return JS_ThrowTypeError(ctx, "mode: 'projectile' or 'npc'");
+    int32_t ticks = 0;
+    if (JS_ToInt32(ctx, &ticks, argv[1]) < 0) return JS_EXCEPTION;
+    return runVmCompare(ctx, ticks, kind);
 }
 
 JSValue jsVmCompareStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2297,6 +2418,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
     JS_SetPropertyStr(ctx, api, "vmCompareStart",
                       JS_NewCFunction(ctx, jsVmCompareStart, "vmCompareStart", 1));
+    JS_SetPropertyStr(ctx, api, "vmGameplayCompareStart",
+                      JS_NewCFunction(ctx, jsVmGameplayCompareStart, "vmGameplayCompareStart", 2));
     JS_SetPropertyStr(ctx, api, "vmCompareStatus",
                       JS_NewCFunction(ctx, jsVmCompareStatus, "vmCompareStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourcePerfStart",
