@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .78 — Diagnóstico de memória de processos e ciclo de mundos (CI/Android pendentes)
+
+Adicionados comandos `sourceMemoryBaseline()` / `sourceMemoryStatus()` para acompanhar RSS do **processo inteiro**, pico, virtual, swap, threads e entradas dos caches de callback de MonoVM durante cinco reentradas. Contadores `worldLoads`, `worldExits` e `rebindSchedules` ajudam a localizar falhas de lifecycle, sem coletar métricas por frame e sem tentar liberar assemblies à força. Smoke host do parser RSS passou inicialmente; nova verificação do CI em execução após corrigir uma referência textual indevida ao nome da API .77. **Não confundir CI com validação Android e não inferir vazamento a partir de RSS isolado.** A .77 segue baseline. [Plano .78](csharp-memory-lifecycle-v78.md).
+
 ## .77 — Retomada no mesmo mundo APROVADA no Android (11/10/2026)
 
 Pausa `paused=true` seguida de retomada `resumed=true`, **sem sair do mundo**. Dois mods C# `ready` e `SecondBolt.enabled=true` após retomada. Eventos globais **379/379** (219 hits, 160 kills), `dropped=0`, `lockDrops=0`, `failures=0`, pico de fila 3/64. ExampleWaveBolt **195/195** (128/67); SecondBolt **135/135** (67/68, `lastResult=4085`); ExampleBolt primário 49 por diferença. **60 FPS durante todo o processo**, segundo o usuário. Não houve comparação temporal isolada de novos eventos pós-resume, mas a sequência e funcionamento foram confirmados pelo testador. [Relatório .77](csharp-managed-mod-resume-v77.md).
