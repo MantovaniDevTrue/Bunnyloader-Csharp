@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
+#include "experiments/csharp/ManagedLiveIngressQueue.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 
@@ -236,8 +237,10 @@ std::string g_pinnedStage = "PINNED_MONO";
 ManagedRuntimeStatus g_pinnedResult;
 ManagedLiveHitStatus g_liveHitStatus;
 std::atomic<int> g_liveHitType{-1};
+std::atomic<bool> g_liveHitAutomatic{false};
 std::atomic<int> g_liveHitLockDrops{0};
 ManagedLiveEventQueue g_liveHitQueue;
+ManagedLiveIngressQueue g_liveIngress;
 bool g_liveHitInFlight = false;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
@@ -569,7 +572,16 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
                 ManagedLiveQueuedEvent event;
-                if (g_liveHitQueue.pop(&event)) {
+                bool hasEvent = g_liveHitQueue.pop(&event);
+                if (!hasEvent && g_liveIngress.pop(&event)) {
+                    hasEvent = true;
+                    event.tick = ++g_liveHitStatus.queued;
+                    g_liveHitStatus.maxQueueDepth = std::max(
+                        g_liveHitStatus.maxQueueDepth, g_liveIngress.maxDepth());
+                    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit)
+                        g_liveHitStatus.phase = "draining";
+                }
+                if (hasEvent) {
                     g_liveHitInFlight = true;
                     const std::string& modId = g_liveHitStatus.modId;
                     const std::string& dll = g_liveHitAssembly;
@@ -640,12 +652,13 @@ void* pinnedMonoWorker(void*) {
                                 g_liveHitStatus.enabled = false;
                                 g_liveHitStatus.dropped += g_liveHitQueue.size();
                                 g_liveHitQueue.clear();
+                                g_liveHitStatus.dropped += g_liveIngress.clear();
                                 g_liveHitStatus.phase = "disabled";
                             }
                         }
                         if (g_liveHitStatus.enabled &&
                             g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit &&
-                            g_liveHitQueue.empty()) {
+                            g_liveHitQueue.empty() && g_liveIngress.depth() == 0) {
                             g_liveHitType.store(-1, std::memory_order_release);
                             g_liveHitStatus.enabled = false;
                             g_liveHitStatus.phase = "limit-reached";
@@ -654,15 +667,23 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
                 if (!g_auditEnabled) {
-                    g_pinnedWake.wait(lock);
+                    if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0)
+                        g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else
+                        g_pinnedWake.wait(lock);
                     continue;
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                if (g_pinnedWake.wait_until(lock, until, [] {
-                    return g_pinnedPending || g_vmComparePending || !g_liveHitQueue.empty();
+                const auto deadline = g_liveHitStatus.enabled
+                    ? std::min(until, std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(2)) : until;
+                if (g_pinnedWake.wait_until(lock, deadline, [] {
+                    return g_pinnedPending || g_vmComparePending ||
+                        !g_liveHitQueue.empty() || g_liveIngress.depth() != 0;
                 }))
                     continue;
+                if (std::chrono::steady_clock::now() < until) continue;
                 ++g_auditIndex;
                 if (g_auditIndex >= sizeof(kAuditSamples) / sizeof(kAuditSamples[0]))
                     g_auditEnabled = false;
@@ -922,13 +943,15 @@ bool enableManagedLiveHit(const std::string& modId,
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     if (!g_pinnedStarted || g_pinnedBusy || g_liveBenchmarkAttempted ||
-        g_liveHitInFlight || !g_liveHitQueue.empty()) {
+        g_liveHitInFlight || !g_liveHitQueue.empty() ||
+        g_liveIngress.depth() != 0) {
         *error = "MonoVM owner ocupado ou indisponivel";
         return false;
     }
     g_liveHitType.store(-1, std::memory_order_release);
     ++g_liveHitGeneration;
     g_liveHitQueue.clear();
+    g_liveIngress.reset();
     g_liveHitLockDrops.store(0, std::memory_order_relaxed);
     g_liveHitStatus = {};
     g_liveHitStatus.automatic = automatic;
@@ -937,6 +960,7 @@ bool enableManagedLiveHit(const std::string& modId,
     g_liveHitStatus.enabled = true;
     g_liveHitStatus.phase = "armed";
     g_liveHitAssembly = assemblyPath;
+    g_liveHitAutomatic.store(automatic, std::memory_order_release);
     g_liveHitType.store(projectileType, std::memory_order_release);
     return true;
 }
@@ -944,10 +968,12 @@ bool enableManagedLiveHit(const std::string& modId,
 ManagedLiveHitStatus managedLiveHitStatus() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     ManagedLiveHitStatus status = g_liveHitStatus;
-    status.queueDepth = g_liveHitQueue.size();
+    status.queued = std::max(status.queued, g_liveIngress.accepted());
+    status.queueDepth = g_liveHitQueue.size() + g_liveIngress.depth();
+    status.maxQueueDepth = std::max(status.maxQueueDepth, g_liveIngress.maxDepth());
     status.inFlight = g_liveHitInFlight;
     status.lockDrops = g_liveHitLockDrops.load(std::memory_order_relaxed);
-    status.dropped += status.lockDrops;
+    status.dropped += status.lockDrops + g_liveIngress.dropped();
     return status;
 }
 
@@ -958,9 +984,13 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
         return g_liveHitStatus;
     }
     g_liveHitType.store(-1, std::memory_order_release);
+    g_liveHitAutomatic.store(false, std::memory_order_release);
     ++g_liveHitGeneration;
+    g_liveHitStatus.queued = std::max(
+        g_liveHitStatus.queued, g_liveIngress.accepted());
     g_liveHitStatus.dropped += g_liveHitQueue.size();
     g_liveHitQueue.clear();
+    g_liveHitStatus.dropped += g_liveIngress.clear();
     g_liveHitStatus.enabled = false;
     g_liveHitStatus.phase = "paused";
     return g_liveHitStatus;
@@ -969,41 +999,20 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
 void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     if (g_liveHitType.load(std::memory_order_acquire) != projectileType ||
         damage < 0 || damage > 100000) return;
-    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
-    for (int attempt = 0; attempt < 3 && !lock.owns_lock(); ++attempt) {
-        if (g_liveHitType.load(std::memory_order_acquire) != projectileType) return;
-        if (attempt != 0) std::this_thread::yield();
-        lock.try_lock();
-    }
-    if (!lock.owns_lock()) {
-        g_liveHitLockDrops.fetch_add(1, std::memory_order_relaxed);
-        return;
-    }
-    if (!g_liveHitStatus.enabled || (isKill && !g_liveHitStatus.automatic))
-        return;
-    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
-        g_liveHitType.store(-1, std::memory_order_release);
-        return;
-    }
     const uint64_t profiledAtNs = g_perfState.load(std::memory_order_relaxed) == 2
         ? static_cast<uint64_t>(perfNowNs()) : 0;
-    if (!g_liveHitQueue.push({
-            g_liveHitStatus.queued + 1, damage, isKill, profiledAtNs})) {
-        ++g_liveHitStatus.dropped;
+    const ManagedLiveIngressPush result = g_liveIngress.push(
+        {0, damage, isKill, profiledAtNs},
+        projectileType, g_liveHitType, g_liveHitAutomatic);
+    if (result.queueDropped) {
         if (profiledAtNs)
             g_perfQueueDropped.fetch_add(1, std::memory_order_relaxed);
         return;
     }
+    if (!result.accepted) return;
     if (profiledAtNs) {
         g_perfAccepted.fetch_add(1, std::memory_order_relaxed);
-        updatePerfMax(g_perfMaxQueueDepth, g_liveHitQueue.size());
-    }
-    ++g_liveHitStatus.queued;
-    g_liveHitStatus.maxQueueDepth = std::max(
-        g_liveHitStatus.maxQueueDepth, g_liveHitQueue.size());
-    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
-        g_liveHitType.store(-1, std::memory_order_release);
-        g_liveHitStatus.phase = "draining";
+        updatePerfMax(g_perfMaxQueueDepth, result.depth);
     }
     g_pinnedWake.notify_one();
 }
@@ -1028,13 +1037,16 @@ bool startManagedLiveBenchmark(std::string* error) {
         !g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveHitStatus.modId != kBenchmarkModId ||
         g_liveHitStatus.projectileType < 0 || g_liveHitStatus.failures ||
-        g_liveHitInFlight || !g_liveHitQueue.empty()) {
+        g_liveHitInFlight || !g_liveHitQueue.empty() ||
+        g_liveIngress.depth() != 0) {
         *error = "Aguarde os callbacks automaticos e fila vazia em singleplayer";
         return false;
     }
 
     const ManagedLiveHitStatus previous = g_liveHitStatus;
     g_liveHitType.store(-1, std::memory_order_release);
+    g_liveHitAutomatic.store(false, std::memory_order_release);
+    g_liveIngress.reset();
     ++g_liveHitGeneration;
     g_liveHitStatus = {};
     g_liveHitStatus.enabled = true;
@@ -1052,6 +1064,7 @@ bool startManagedLiveBenchmark(std::string* error) {
     const int created = pthread_create(&thread, nullptr, &managedBenchmarkProducer, nullptr);
     if (created != 0) {
         g_liveHitStatus = previous;
+        g_liveHitAutomatic.store(previous.automatic, std::memory_order_release);
         g_liveHitType.store(previous.projectileType, std::memory_order_release);
         g_liveBenchmark = {};
         *error = "pthread_create falhou: " + std::to_string(created);
@@ -1072,7 +1085,8 @@ ManagedLiveBenchmarkStatus managedLiveBenchmarkStatus() {
     status.kills = g_liveHitStatus.killProcessed;
     status.maxQueueDepth = g_liveHitStatus.maxQueueDepth;
     status.dropped = g_liveHitStatus.dropped +
-        g_liveHitLockDrops.load(std::memory_order_relaxed);
+        g_liveHitLockDrops.load(std::memory_order_relaxed) +
+        g_liveIngress.dropped();
     const auto end = status.running ?
         std::chrono::steady_clock::now() : g_liveBenchmarkEnd;
     status.elapsedMs = static_cast<int>(
@@ -1104,7 +1118,7 @@ bool beginVmCompare(const VmCompareStatus& jsPart, std::string* error) {
         g_vmComparePending || g_vmCompare.running ||
         g_vmCompareRuns >= 4 ||
         g_liveBenchmark.running || g_liveHitInFlight ||
-        !g_liveHitQueue.empty() ||
+        !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
         !g_liveHitStatus.automatic || !g_liveHitStatus.enabled ||
         g_liveHitStatus.modId != "68c3115f-62f4-49f2-a56b-388256781d5f") {
         *error = "MonoVM not idle, ExampleModCSharp inactive, or 4-run limit reached";
