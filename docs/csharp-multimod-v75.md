@@ -4,7 +4,7 @@
 
 **Objetivo da .75:** permitir que **dois mods C# distintos**, com UIDs, DLLs e classes `BunnyLoader.Source.BunnyLiveEvents` independentes, usem o mesmo worker MonoVM e a fila FIFO64 sem misturar o estado estático gerenciado.
 
-**Estado:** em desenvolvimento/CI; **não validada no Android**. A .74 deve continuar instalada até a .75 compilar e ser testada.
+**Estado:** APK compilada, assinada e publicada no [GitHub Release .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed); [CI #38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551) **success**. **Ainda não validada em gameplay Android.** A .74 continua sendo a referência estável.
 
 ## Arquitetura
 
