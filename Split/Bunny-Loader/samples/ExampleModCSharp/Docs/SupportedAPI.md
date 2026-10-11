@@ -1,33 +1,37 @@
-# API C# realmente disponivel
+# API C# comprovável do Bunny Loader
 
-Referencia: `experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs`, nao classes do tModLoader.
+Fonte canônica do SDK: `experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs`. Estes exemplos usam o Bunny Loader e seu ExampleModBunny como base; não usam classes do tModLoader.
 
 ## BunnyWeapon
 
-Metodos: `public override void SetDefaults()`.
+`public override void SetDefaults()` define `DisplayName`, `Texture`, `Damage`, `UseTime`, `ShootSpeed` e `Shoot`. O valor de `Shoot = nameof(ClasseDoProjetil)` vincula a arma a um `BunnyProjectile` **do mesmo mod**.
 
-Propriedades: `DisplayName`, `Texture`, `Damage`, `UseTime`, `ShootSpeed` e `Shoot`.
-
-Exemplos: `Examples/Items/SourceWand.cs` e `SourceStaff.cs`. O valor de `Shoot` identifica o nome da classe de projetil registrada no mesmo mod.
+Exemplos do pacote 0.1.8: `ExampleWand` e `ExampleWaveWand`. O teste com duas armas foi compilado no CI; gameplay Android ainda depende da validação no aparelho.
 
 ## BunnyProjectile
 
-Metodos: `public override void SetDefaults()`, `public override int OnHitNPC(int damage)`, `public override int OnKill(int damage)` e `public override int OnKillDuration(int damage)`.
+`public override void SetDefaults()` define `DisplayName`, `Texture`, `Width`, `Height`, `AiStyle`, `Friendly`, `Penetrate` e `TimeLeft`.
 
-Propriedades: `DisplayName`, `Texture`, `Width`, `Height`, `AiStyle`, `Friendly`, `Penetrate` e `TimeLeft`.
+`OnHitNPC(int damage)`, `OnKill(int damage)` e `OnKillDuration(int damage)` são contratos opcionais: as implementações reconhecidas podem gerar tabelas de efeito nativo durante a compilação; **não** são chamadas gerenciadas a cada quadro. O exemplo `ExampleBolt` usa tabelas para buff 24. O novo `ExampleWaveBolt` não sobrescreve esses métodos, isolando o teste de movimento da aplicação de efeitos.
 
-**Limite atual:** os metodos `OnHitNPC` e `OnKill` do exemplo alimentam tabelas de efeito antecipadas e uma integracao Native especifica. Nao equivalem a callbacks gerenciados generalizados chamados em todos os mods.
+Os métodos estáticos `BunnyLiveEvents.OnHitNPC(int call, int damage)` e `OnKill(int call, int damage)` pertencem a uma **convenção experimental separada**, ligada automaticamente a um único tipo de projétil no processo atual. Não afirmar que o segundo projétil já possui callbacks live independentes.
 
-## Movimento C# calculado
+## Movimento C# com curva por tipo
 
-`SourceBoltMotion.HomingTurn(float)`, `HomingRange()` e `RetargetInterval()` demonstram a politica de homing especifica do SourceBolt.
+A classe `<NomeDoProjetil>Motion` com método `public static float TurnAtTick(int tick)` gera 120 amostras no Roslyn. O hook nativo seleciona a curva pelo tipo registrado, sem invocar o MonoVM a cada tick. No teste 0.1.8:
 
-A convencao `<NomeDoProjetil>Motion.TurnAtTick(int)` gera uma tabela de ate 120 curvas de direcao para cada projetil descoberto. Na versao 0.1.10.16.34, a ativacao por `sourceEnableProjectileAI` ja usa um dispatcher Native compartilhado, mas o compilador experimental ainda valida o UUID do mod de teste.
+- `ExampleBoltMotion`: curva já validada como baseline no Android .72.
+- `ExampleWaveBoltMotion`: curva senoidal independente de `0.018f` radianos no máximo por amostra, compilada e verificada pelo teste automático.
 
-O sistema guarda ate oito politicas nativas por sessao nessa implementacao. Cada uma e associada ao mod e ao nome do projetil.
+A arquitetura atual permite até oito políticas de curva ativas por sessão. Isso não elimina o limite independente de **um vínculo de eventos live por processo** no fluxo automático atual.
 
-## Nao ensinar como suportado
+## Outros contratos presentes no SDK
 
-`ModItem`, `ModProjectile`, `ModNPC`, `ModBuff` e outros tipos do tModLoader **nao** fazem parte desta API.
+`BunnyBuff`, `BunnyBuffPotion`, `BunnyAccessory`, `BunnyPlayer` e `BunnyNPC` possuem implementações de exemplo. Seus registros e propriedades são experimentais; `BunnyNPC` expõe propriedades de registro e `SetDefaults()`, não uma API C# genérica `AI()` por frame. O callback estático `BunnyLiveNpc.AI(int,int)` é um experimento separado com limites de segurança.
 
-NPCs personalizados, buffs personalizados, acessorios C#, classes de jogador C# e carregamento arbitrario de mods continuam como etapas futuras ate terem API real e teste no Android.
+## Limites
+
+- A .72 foi validada no Android para o ExampleModCSharp 0.1.7 com um único projétil principal de callbacks live, sem perdas nos cenários observados.
+- O ExampleModCSharp 0.1.8 amplia para duas armas e dois projéteis. **CI aprovado não equivale a gameplay aprovado.**
+- Modos multiplayer, compatibilidade irrestrita com mods C# de PC, IA Mono arbitrária por quadro e callbacks live separados por tipo/mod não estão validados.
+- `ModItem`, `ModProjectile`, `ModNPC` e `ModBuff` do tModLoader não pertencem à API do Bunny Loader.
