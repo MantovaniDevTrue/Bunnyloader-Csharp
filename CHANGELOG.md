@@ -2,12 +2,13 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
-## 0.1.10.16.65 — gameplay performance profiler (aguarda Android)
+## 0.1.10.16.65 — gameplay performance profiler VALIDADO no Android
 - Profiler opt-in de 15 segundos: taxa/p90 aproximado de `Main.DoUpdate`, atraso na fila FIFO64 e duração média/máxima de callbacks gerenciados, sem logs por evento.
 - Comandos `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()`; armamento adiado para o retorno ao jogo após fechar o editor.
 - Otimização: evita copiar `modId` e caminho da DLL em toda chamada C#, mantendo proteção de `inFlight` contra troca da sessão.
 - Todo o monitoramento pesado fica inativo por padrão. FIFO64, teto de 25 mil e benchmark .64 preservados; ExampleModCSharp 0.1.7 inalterado.
-- A medição `updateHz` refere-se a `Main.DoUpdate`, **não é FPS medido no renderer**. Comparação real de FPS/p90/memória aguarda Android.
+- **Android confirmado:** 907 atualizações em 15.007 ms (`updateHz=60.504`), p90 aproximado por bucket até 20 ms, 0 intervalos acima de 25/33 ms, 30 callbacks perfilados (espera média 50,2 µs; invocação média 195,8 µs), 0 falhas/descartes e pico FIFO 1/64. Usuário confirmou gameplay fluido.
+- A medição `updateHz` refere-se a `Main.DoUpdate`, **não é FPS medido no renderer**. Falta comparação controlada com .64/QuickJS e CPU/RSS.
 
 ## 0.1.10.16.64 — teste de 25 mil callbacks gerenciados VALIDADO no Android
 - `sourceLiveBenchmarkStart('CONFIRM_25000_CSHARP_CALLBACKS')` inicia gerador C++ independente que enfileira callbacks reais no FIFO64 e na thread proprietária MonoVM.

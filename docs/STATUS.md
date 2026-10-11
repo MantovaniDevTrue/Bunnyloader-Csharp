@@ -1,8 +1,10 @@
 # Estado real do desenvolvimento
 
-## .65 — instrumentação de desempenho durante gameplay (aguarda Android)
+## .65 — gameplay profiler VALIDADO no Android (11/10/2026, 00:56 BRT)
 
-Implementado profiler opt-in de 15 segundos com medidas de `Main.DoUpdate` (frequência estimada, p90 por faixas de 4 ms), duração dos callbacks C#, espera FIFO64 e descartes de contenção. Nenhuma coleta detalhada por frame é feita por padrão. O profiler inicia no primeiro frame após fechar o editor. As cópias de string `modId`/DLL em cada callback foram eliminadas com proteção `inFlight`. **Ainda não medimos melhora de FPS** nem executamos a .65 no aparelho. [Protocolo Android](gameplay-perf-v65.md).
+Xiaomi Android 14, ExampleModCSharp 0.1.7, singleplayer. Profiler concluído (`elapsedMs=15007`): 907 amostras de `Main.DoUpdate`, `updateHz=60.5040`, `updateP90Ms=20` (bucket aproximado), 0 intervalos acima de 25/33 ms. Foram perfilados 30 callbacks: **50,2 µs** de espera média no FIFO e **195,8 µs** de invocação C# média, máximos 186 µs / 2.225 µs. Nenhum descarte (`lockDrops=0`), nenhuma falha C#. O status acumulado tinha 65 callbacks (5 hits/60 kills), pico de fila 1/64, `phase=ready`; MonoVM verificado com `result=42`. O usuário confirmou gameplay muito fluido.
+
+Isso **não prova aumento de FPS** em comparação com a .64 ou QuickJS, pois o profiler mede ritmo de `Main.DoUpdate`, não FPS do renderizador, e não tivemos controle A/B nem medições de CPU/RSS. As cópias de strings por callback foram eliminadas, mas o efeito quantitativo isolado ainda precisa ser comparado. [Registro completo](gameplay-perf-v65.md) · [Release .65](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.65).
 
 ## .64 — 25 mil callbacks C# comprovados no Android (11/10/2026, 00:26 BRT)
 
