@@ -1,6 +1,6 @@
 # Exemplos C# — ExampleModCSharp
 
-**Exemplo atual de teste:** `ExampleModCSharp 0.1.7`, distribuído na [release .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60).
+**Exemplos de teste atuais:** `ExampleModCSharp 0.1.9` e `Second Example CSharp 0.1.0` (dois mods independentes, três armas), distribuídos na [release .80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.80-projectile-profiler) e validados no Android para combate, pausa, retomada e reentrada.
 
 - [Código-fonte canônico do ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/)
 - [Manifest do pacote](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/manifest.json)
