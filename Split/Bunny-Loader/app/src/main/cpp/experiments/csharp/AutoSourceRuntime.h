@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include <vector>
 
 namespace bl::csharp {
@@ -22,6 +23,16 @@ struct AutoSourceStatus {
     bool worldReady = false;
 };
 
+struct AutoWorldLifecycleStatus {
+    uint64_t epoch = 0;
+    int worldLoads = 0;
+    int worldExits = 0;
+    int rebindSchedules = 0;
+    int configuredBindings = 0;
+    bool worldReady = false;
+};
+
+AutoWorldLifecycleStatus autoWorldLifecycleStatus();
 void startAutoSourceRuntime();
 void noteAutoWorldTilesLoaded();
 void noteAutoGameUpdate();
