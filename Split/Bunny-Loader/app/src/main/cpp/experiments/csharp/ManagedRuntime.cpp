@@ -1002,6 +1002,10 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     g_liveHitType.store(-1, std::memory_order_release);
+    disarmAdditionalLiveBindings();
+    g_additionalLiveCount.store(0, std::memory_order_release);
+    for (auto& slot : g_additionalLiveByType)
+        slot.store(0, std::memory_order_relaxed);
     ++g_liveHitGeneration;
     g_liveHitQueue.clear();
     g_liveIngress.reset();
@@ -1037,6 +1041,7 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
         return g_liveHitStatus;
     }
     g_liveHitType.store(-1, std::memory_order_release);
+    disarmAdditionalLiveBindings();
     g_liveHitAutomatic.store(false, std::memory_order_release);
     ++g_liveHitGeneration;
     g_liveHitStatus.queued = std::max(
@@ -1050,13 +1055,31 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
 }
 
 void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
-    if (g_liveHitType.load(std::memory_order_acquire) != projectileType ||
-        damage < 0 || damage > 100000) return;
+    if (damage < 0 || damage > 100000 || projectileType < 0 ||
+        static_cast<size_t>(projectileType) >= g_additionalLiveByType.size()) return;
+    const bool original = g_liveHitType.load(std::memory_order_acquire) == projectileType;
+    const int bindingSlot = original ? -1 :
+        g_additionalLiveByType[static_cast<size_t>(projectileType)].load(
+            std::memory_order_acquire) - 1;
+    if (!original && (bindingSlot < 0 ||
+        bindingSlot >= g_additionalLiveCount.load(std::memory_order_acquire)))
+        return;
     const uint64_t profiledAtNs = g_perfState.load(std::memory_order_relaxed) == 2
         ? static_cast<uint64_t>(perfNowNs()) : 0;
-    const ManagedLiveIngressPush result = g_liveIngress.push(
-        {0, damage, isKill, profiledAtNs},
-        projectileType, g_liveHitType, g_liveHitAutomatic);
+    ManagedLiveIngressPush result;
+    if (original) {
+        result = g_liveIngress.push(
+            {0, damage, isKill, profiledAtNs, -1},
+            projectileType, g_liveHitType, g_liveHitAutomatic);
+    } else {
+        AdditionalLiveBinding& binding =
+            g_additionalLiveBindings[static_cast<size_t>(bindingSlot)];
+        result = g_liveIngress.pushAdditional(
+            {0, damage, isKill, profiledAtNs, bindingSlot},
+            projectileType, binding.armedType);
+        if (result.accepted)
+            binding.queued.fetch_add(1, std::memory_order_relaxed);
+    }
     if (result.queueDropped) {
         if (profiledAtNs)
             g_perfQueueDropped.fetch_add(1, std::memory_order_relaxed);
@@ -1076,6 +1099,92 @@ void queueManagedLiveHit(int projectileType, int damage) {
 
 void queueManagedLiveKill(int projectileType, int damage) {
     queueManagedLiveEvent(projectileType, damage, true);
+}
+
+bool isManagedLiveProjectileBound(int projectileType) {
+    if (projectileType < 0 ||
+        static_cast<size_t>(projectileType) >= g_additionalLiveByType.size())
+        return false;
+    const int slot = g_additionalLiveByType[static_cast<size_t>(projectileType)].load(
+        std::memory_order_acquire) - 1;
+    return slot >= 0 && slot < g_additionalLiveCount.load(std::memory_order_acquire) &&
+        g_additionalLiveBindings[static_cast<size_t>(slot)].armedType.load(
+            std::memory_order_acquire) == projectileType;
+}
+
+bool enableManagedLiveProjectile(const std::string& modId,
+                                const std::string& assemblyPath,
+                                int projectileType,
+                                const std::string& projectile,
+                                std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (projectile.empty() || projectile.size() > 62 ||
+        projectileType < 0 ||
+        static_cast<size_t>(projectileType) >= g_additionalLiveByType.size() ||
+        projectile.find_first_not_of(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos ||
+        !validAssembly(assemblyPath)) {
+        *error = "Invalid C# secondary projectile binding";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
+        g_liveHitStatus.modId != modId || g_liveHitAssembly != assemblyPath ||
+        g_liveBenchmark.running || g_liveBenchmarkAttempted ||
+        g_liveHitStatus.projectileType == projectileType ||
+        g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
+        *error = "Secondary projectile requires an active automatic MonoVM session for this mod";
+        return false;
+    }
+    if (g_additionalLiveByType[static_cast<size_t>(projectileType)].load(
+        std::memory_order_acquire) != 0) {
+        *error = "Projectile already bound to live C# callback";
+        return false;
+    }
+    const int index = g_additionalLiveCount.load(std::memory_order_relaxed);
+    if (index >= static_cast<int>(g_additionalLiveBindings.size())) {
+        *error = "Maximum of seven additional live C# projectiles reached";
+        return false;
+    }
+    auto& entry = g_additionalLiveBindings[static_cast<size_t>(index)];
+    entry.modId = modId;
+    entry.projectile = projectile;
+    entry.callbackClass = projectile + "LiveEvents";
+    entry.type = projectileType;
+    entry.processed = entry.hits = entry.kills = entry.failures = entry.lastResult = 0;
+    entry.error.clear();
+    entry.queued.store(0, std::memory_order_relaxed);
+    entry.armedType.store(projectileType, std::memory_order_release);
+    g_additionalLiveCount.store(index + 1, std::memory_order_release);
+    g_additionalLiveByType[static_cast<size_t>(projectileType)].store(
+        static_cast<int16_t>(index + 1), std::memory_order_release);
+    return true;
+}
+
+std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    std::vector<ManagedLiveProjectileStatus> results;
+    const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+    results.reserve(static_cast<size_t>(count));
+    for (int i = 0; i < count; ++i) {
+        const auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+        ManagedLiveProjectileStatus status;
+        status.modId = entry.modId;
+        status.projectile = entry.projectile;
+        status.callbackClass = entry.callbackClass;
+        status.projectileType = entry.type;
+        status.enabled = entry.armedType.load(std::memory_order_acquire) == entry.type;
+        status.queued = entry.queued.load(std::memory_order_acquire);
+        status.processed = entry.processed;
+        status.hits = entry.hits;
+        status.kills = entry.kills;
+        status.failures = entry.failures;
+        status.lastResult = entry.lastResult;
+        status.error = entry.error;
+        results.push_back(std::move(status));
+    }
+    return results;
 }
 
 bool startManagedLiveBenchmark(std::string* error) {
@@ -1098,6 +1207,7 @@ bool startManagedLiveBenchmark(std::string* error) {
 
     const ManagedLiveHitStatus previous = g_liveHitStatus;
     g_liveHitType.store(-1, std::memory_order_release);
+    disarmAdditionalLiveBindings();
     g_liveHitAutomatic.store(false, std::memory_order_release);
     g_liveIngress.reset();
     ++g_liveHitGeneration;
