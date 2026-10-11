@@ -1056,7 +1056,7 @@ jobs:
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.7.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.7.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
-          echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
+          echo "MANAGED_RUNTIME_RELEASE_TAG=$TAG"
 
       - name: Publish prototype APK
         if: ${{ false }}
