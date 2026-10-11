@@ -2,6 +2,8 @@
 
 ## .68 — DLL instalada e benchmark QuickJS × MonoVM validado no Android
 
+**Carga máxima de 5 milhões aprovada:** QuickJS 1.657.350 µs (CPU 1.646.433 µs) versus MonoVM 23.067 µs (CPU 22.444 µs), checksums iguais `-70193220`, `passed=true`, `phase="matched"`, `error=""`; vantagem **71,85×** no tempo de parede e **73,36×** na CPU da thread nesse único kernel. Quatro tamanhos de carga testados, sem falhas. [Resultados](vm-parity-v68.md).
+
 **Repetibilidade preliminar na mesma carga confirmada (três execuções × 1 milhão):** todos os checksums iguais `1336190628`, `passed=true`, `phase="matched"`, erros vazios. QuickJS: **334,217 / 334,131 / 340,668 ms**; MonoVM: **4,532 / 4,499 / 4,491 ms**; razões por execução **73,746× / 74,268× / 75,856×**. Médias: **336,339 ms** e **4,507 ms**, razão das médias ~**74,62×**. Resultado restrito a algoritmo matemático isolado, não gameplay nem ganho de FPS. [Tabela com métricas completas](vm-parity-v68.md).
 
 **Terceira amostra Android aprovada:** 2.000.000 de iterações, `jsResult=monoResult=-1159315361`, `passed=true`, `phase="matched"`, erro vazio. QuickJS: **675.728 µs** tempo / **661.439 µs** CPU da thread; MonoVM: **9.078 µs** tempo / **8.982 µs** CPU da thread. Razão **74,44×** tempo / **73,64×** CPU nessa matemática isolada. Agora há 500 mil, 1 milhão e 2 milhões de iterações confirmados com checksum correto. Ainda precisamos repetir cada mesma carga diversas vezes e medir gameplay real. [Relatório com as três amostras](vm-parity-v68.md).

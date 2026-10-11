@@ -78,6 +78,20 @@ O QuickJS variou de **334,131 a 340,668 ms** e o MonoVM de **4,491 a 4,532 ms**,
 
 **Conclusão limitada:** agora existe repetibilidade preliminar na mesma carga (n=3), confirmando uma vantagem de tempo do MonoVM para este cálculo isolado. Isso **não demonstra** ganho equivalente em FPS, renderização, IA, projéteis ou mods completos; uma comparação integrada precisa medir a ponte e os callbacks em condições de gameplay reais. Não usar esses resultados como comparação absoluta entre linguagens.
 
+## Quarta carga Android — 5.000.000 de iterações (11/10/2026)
+
+Teste adicional com o mesmo kernel matemático: `finished=true`, `passed=true`, `phase="matched"`, `error=""`, `jsResult=monoResult=-70193220`.
+
+| Métrica | QuickJS | MonoVM |
+| --- | ---: | ---: |
+| Tempo decorrido | `jsWallUs=1657350` (1.657,350 ms) | `monoWallUs=23067` (23,067 ms) |
+| CPU da thread | `jsThreadCpuUs=1646433` (1.646,433 ms) | `monoThreadCpuUs=22444` (22,444 ms) |
+| RSS total do processo antes/depois | 277.004 → 277.004 KB | 278.452 → 278.664 KB |
+
+Razões observadas: **71,849×** em tempo decorrido e **73,357×** em tempo de CPU da thread no MonoVM, somente nesse kernel; comparação não representa FPS, comportamento de mod completo nem memória isolada de uma linguagem.
+
+Foram testadas e aprovadas quatro cargas matemáticas: 500 mil, 1 milhão (também com três repetições adicionais), 2 milhões e 5 milhões de iterações. Próxima etapa experimental: simulações determinísticas de movimento de projéteis e lógica de NPCs, depois gameplay real com callbacks.
+
 ## Testar Android
 
 Atualizar para o APK .68 e entrar em um mundo singleplayer com ExampleModCSharp 0.1.7. Consultar o log de boot procurando:
