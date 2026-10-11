@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.9"
+assert catalog["exampleModCSharpVersion"] == "0.1.10"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -80,7 +80,7 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.9"
+assert manifest2["version"] == "0.1.10"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert len(playable_files) == 15
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
@@ -113,6 +113,7 @@ wave_events = (playable / "content/Common/Live/ExampleWaveBoltLiveEvents.cs").re
 assert "static class ExampleWaveBoltLiveEvents" in wave_events
 assert "static int OnHitNPC(int call, int damage)" in wave_events
 assert "static int OnKill(int call, int damage)" in wave_events
+assert "static int OnHitNPCV2(int call, int damage, int npcIndex)" in wave_events
 assert "SourceCSharpMod" not in source_text
 print("EXAMPLEMOD_CSHARP_INDEPENDENT_SOURCE=PASS")
 print(f"EXAMPLEMOD_CSHARP_STATIC_CHECK=PASS examples={len(MIRRORS)} features={len(features)}")
