@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstdint>
+#include <vector>
 
 namespace bl::csharp {
 
@@ -87,6 +88,29 @@ bool enableManagedLiveHit(const std::string& modId, const std::string& assemblyP
                           bool automatic = false);
 ManagedLiveHitStatus managedLiveHitStatus();
 ManagedLiveHitStatus pauseManagedLiveHit();
+
+struct ManagedLiveProjectileStatus {
+    std::string modId;
+    std::string projectile;
+    std::string callbackClass;
+    int projectileType = -1;
+    bool enabled = false;
+    int queued = 0;
+    int processed = 0;
+    int hits = 0;
+    int kills = 0;
+    int failures = 0;
+    int lastResult = 0;
+    std::string error;
+};
+
+bool enableManagedLiveProjectile(const std::string& modId,
+                                const std::string& assemblyPath,
+                                int projectileType,
+                                const std::string& projectile,
+                                std::string* error);
+bool isManagedLiveProjectileBound(int projectileType);
+std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses();
 void queueManagedLiveHit(int projectileType, int damage);
 void queueManagedLiveKill(int projectileType, int damage);
 
