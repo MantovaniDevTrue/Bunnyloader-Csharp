@@ -1,10 +1,10 @@
-# Bunny Loader C# .72 — Managed Ingress: primeiro teste real no Android
+# Bunny Loader C# .72 — Managed Ingress: testes reais no Android
 
-**Estado:** APROVADO no cenário observado, **sem perdas detectadas**, em coleta de 15 segundos; testes de saturação e longa duração ainda pendentes.
+**Estado:** APROVADO nos cenários observados: perfil de 15 segundos e combate prolongado estimado em 7–8 minutos, ambos **sem perdas detectadas**. Saturação, múltiplos mods e comportamento ao atingir o limite ainda não testados.
 
 **Versão:** v0.1.10.16.72 (Managed Ingress) · [release](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress).
 
-**Origem da evidência:** três capturas de tela do editor do Terraria enviadas pelo testador em 11/10/2026. Valores abaixo transcritos diretamente do JSON apresentado. Ambiente de testes anteriores: Xiaomi 2109119DG, Android 14, arm64-v8a, Terraria 1.4.5.8.6, ExampleModCSharp 0.1.7; as capturas desta rodada não repetem a identificação do aparelho ou do APK.
+**Origem da evidência:** três capturas do profiler e uma captura adicional do teste prolongado do editor do Terraria, enviadas pelo testador em 11/10/2026. Valores abaixo transcritos diretamente dos JSONs apresentados. O relato de FPS no teste prolongado é uma observação do jogador. Ambiente de testes anteriores: Xiaomi 2109119DG, Android 14, arm64-v8a, Terraria 1.4.5.8.6, ExampleModCSharp 0.1.7; as capturas desta rodada não repetem a identificação do aparelho ou do APK.
 
 ## Janela de desempenho: `bl.csharp.sourcePerfStatus()`
 
@@ -44,6 +44,25 @@ Percentis baseados em buckets aproximados podem apresentar valores arredondados 
 
 **Atenção:** 82 eventos pertencem à janela perfilada de 15 segundos; 224 são os contadores acumulados do dispatcher no instante da captura. São escopos distintos, não uma divergência de contagem.
 
+## Teste prolongado no Android — 11/10/2026
+
+O usuário relatou **aproximadamente 7–8 minutos** de uso contínuo do livro de teste contra **3 bosses e 112 inimigos** durante uma **Blood Moon**. A duração foi estimada pelo testador, **não medida pelo profiler**. O usuário confirmou que o indicador de FPS permaneceu em **60 FPS durante todo o teste**; trata-se de observação em gameplay, não de captura frame a frame do renderizador. A captura foi realizada ao final por `JSON.stringify(bl.csharp.sourceLiveHitStatus(), null, 2)`.
+
+| Campo | Resultado |
+| --- | --- |
+| `enabled` / `automatic` / `phase` | `true` / `true` / `ready` |
+| `projectileType` | 1136 |
+| `queued` / `processed` | 2897 / 2897 |
+| `hitProcessed` / `killProcessed` | 1443 / 1454 |
+| `dropped` / `lockDrops` / `failures` | 0 / 0 / 0 |
+| `queueDepth` / `maxQueueDepth` / `queueCapacity` | 0 / 3 / 64 |
+| `eventLimit` / `inFlight` | 25000 / `false` |
+| `lastEvent` / `lastDamage` / `lastResult` | `OnKill` / 18 / 1474 |
+| `error` | `""` |
+| FPS relatado | **60 FPS continuamente durante a sessão estimada em 7–8 min** |
+
+**Interpretação:** nesta carga real, o dispatcher processou todos os 2897 eventos aceitos, sem registros de perdas, disputa do mutex, falhas gerenciadas ou backlog ao fim da coleta. O pico de 3 posições na FIFO de 64 confirma folga para a carga testada, **não** ausência garantida de perdas sob saturação. Os 60 FPS foram observados pelo usuário durante a sessão inteira; o profiler não registrou medidas contínuas de renderização nesta rodada. Não assumir que '3 bosses e 112 inimigos' equivalem ao número exato de mortes/ações do callback. A contagem 2897 é acumulada na sessão, portanto não representa necessariamente apenas os últimos 7–8 minutos.
+
 ## Interpretação e limites
 
 - **Comprovado nesta carga:** todos os 82 eventos aceitos foram processados no intervalo medido; o acumulado mostra 224/224, nenhum descarte por fila, nenhum `lockDrops`, nenhuma falha gerenciada e máximo de duas posições ocupadas na FIFO64.
@@ -55,8 +74,8 @@ Percentis baseados em buckets aproximados podem apresentar valores arredondados 
 ## Próximas verificações sem mudar o código
 
 1. Repetir o perfil de 15 segundos 3 vezes, em condições de combate similares, registrando `sourcePerfStatus()` e `sourceLiveHitStatus()` em cada rodada.
-2. Executar combate prolongado de 5–10 minutos, inclusive boss e muitos projéteis, e conferir `dropped`, `eventsQueueDropped`, `lockDrops`, `failures`, pico da fila e estabilidade percebida de FPS.
+2. **Executado inicialmente:** combate prolongado estimado em 7–8 minutos com 2897 callbacks e 60 FPS observados; repetir com instrumentação temporal ou carga maior se necessário.
 3. Separar carga natural de gameplay de benchmark sintético de 25 mil callbacks, porque o editor pode suspender o jogo enquanto o script roda.
 4. Se necessário, comparar a .71 e .72 com o mesmo mundo, mod e carga, incluindo FPS de renderização e RSS quando disponível.
 
-**Conclusão:** primeiro teste Android da .72 **aprovado no cenário observado**. Manter a .72 como candidata estável desta rodada e não alterar a fila até haver evidência de regressão ou necessidade real de otimização.
+**Conclusão:** testes curtos e prolongado da .72 **aprovados nos cenários observados**, com 2897 eventos cumulativos e 60 FPS sustentados conforme relato. Manter a .72 como candidata estável desta rodada e não alterar a fila até haver evidência de regressão ou necessidade real de otimização.
