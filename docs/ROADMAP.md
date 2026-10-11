@@ -6,7 +6,7 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 **Concluído no Android:** Managed Ingress .72 (2.897/2.897 eventos, zero perdas e 60 FPS relatados), duas curvas C# da ExampleMod 0.1.8 (.72), callbacks separados por tipo na .73 (985/985 eventos agregados e 879/879 secundários, zero erros; FPS desta última rodada não informado).
 
-**Em andamento:** .74 Managed Default: remover o protótipo NativeAOT apenas da inicialização e build principais, documentar corretamente o runtime C#, manter externals libmod.so legados e revalidar o gameplay. **Próximas prioridades:** isolamento entre mods C# distintos, ciclo de vida ao recarregar/descarregar, multiplayer e profiling de consumo de memória/CPU.
+**Build aprovado:** .74 Managed Default removeu o protótipo NativeAOT da inicialização e build principais, documentou o runtime C#, preservou externals libmod.so legados. **Pendente somente a validação real no Android**, antes de promoção. **Próximas prioridades:** isolamento entre mods C# distintos, ciclo de vida ao recarregar/descarregar, multiplayer e profiling de consumo de memória/CPU.
 
 | Ordem | Etapa | Critério de avanço |
 | --- | --- | --- |
