@@ -1,4 +1,5 @@
 #pragma once
+#include "experiments/csharp/ManagedHitContextStats.h"
 
 #include <string>
 #include <cstdint>
@@ -88,6 +89,7 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
                                      int tick, int state);
 
 struct ManagedLiveHitStatus {
+    ManagedHitContextStats hitContext;
     bool enabled = false;
     bool automatic = false;
     int projectileType = -1;
