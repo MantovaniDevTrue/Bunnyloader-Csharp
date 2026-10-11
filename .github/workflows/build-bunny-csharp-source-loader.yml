@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-lockdrops-v71-upgrade-fix
       - bunny-csharp-nativeaot-prototype
       - bunny-csharp-nativeaot-0.1.10.1
       - bunny-csharp-nativeaot-0.1.10.2
@@ -250,7 +251,9 @@ jobs:
           assert "g_liveHitQueue.push({" in runtime
           assert "g_liveHitQueue.clear();" in runtime
           assert "g_liveHitInFlight" in runtime
-          assert "std::try_to_lock" in runtime
+          assert "std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock)" in runtime
+          assert "attempt < 3 && !lock.owns_lock()" in runtime
+          assert "lock.try_lock()" in runtime
           assert "g_liveHitLockDrops.fetch_add" in runtime
           assert "status.dropped += status.lockDrops" in runtime
           assert "ManagedLiveEventQueue::kEventLimit" in runtime
@@ -329,7 +332,9 @@ jobs:
               assert f'"{function}"' in api
           assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
           assert "g_liveHitType.load(std::memory_order_acquire)" in runtime
-          assert "std::try_to_lock" in runtime
+          assert "std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock)" in runtime
+          assert "attempt < 3 && !lock.owns_lock()" in runtime
+          assert "lock.try_lock()" in runtime
           print("CSHARP_GAMEPLAY_PROFILER_AND_LOCK_GUARDS=PASS")
           PY
 
@@ -1124,7 +1129,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='95' versionName='0.1.10.16.70-csharp-live-gameplay-profiler'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='96' versionName='0.1.10.16.71-csharp-lockdrops-experiment'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1147,7 +1152,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.71-LockDrops.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1161,9 +1166,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.70"
-          FALLBACK="bunny-csharp-native-armor-combat-v1"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.71-lockdrops-experiment"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.71-LockDrops.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1171,23 +1175,18 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.70 — Real Gameplay Callback Profiler" \
-              --notes "v0.1.10.16.70 Extends opt-in 15-second real-world gameplay profiler: OnHitNPC/OnKill callback wall and thread CPU times, p90/p99 queue and callback histograms, update-cadence p99, accepted/processed/failed/dropped events, real C# projectile curve updates and velocity writes. No changes to gameplay effects or mod behavior, no automatic stress test. Measured update cadence is not rendered FPS. .69 simulations and .68 math maintained; ExampleModCSharp 0.1.7 unchanged." \
-              --prerelease || true
+              --title "Bunny Loader C# v0.1.10.16.71 — LockDrops Experimental Fix" \
+              --notes "v0.1.10.16.71 Based on v0.1.10.16.70, retaining gameplay telemetry and managed AI benchmark. Experimental bounded mutex retries for combat callbacks. VersionCode 96 permits upgrade from v70. Queue capacity 64 and event limit 25000 remain unchanged. Android comparative test pending." \
+              --prerelease
           fi
-          DEST="$TAG"
-          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            DEST="$FALLBACK"
-            echo "New release creation unavailable; publishing extra v0.1.10.16.5 assets into existing private test release."
-          fi
-          gh release upload "$DEST" \
+          gh release upload "$TAG" \
             "$APK" "$APK.sha256" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.7.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.7.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
-          echo "MANAGED_RUNTIME_RELEASE_TAG=$DEST"
+          echo "MANAGED_RUNTIME_RELEASE_TAG=$TAG"
 
       - name: Publish prototype APK
         if: ${{ false }}
@@ -1197,7 +1196,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="bunny-csharp-source-interpreter-v1"
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.70-LiveGameplayProfiler.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.71-LockDrops.apk"
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           cp "$APK" "$RUNNER_TEMP/$OUT"
           cp "Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libbunnycs.so" "$RUNNER_TEMP/libbunnycs.so"
