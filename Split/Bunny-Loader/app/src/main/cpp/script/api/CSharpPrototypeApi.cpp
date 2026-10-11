@@ -317,6 +317,57 @@ JSValue jsSourceLiveBenchmarkStop(JSContext* ctx, JSValueConst, int argc, JSValu
     return makeManagedBenchmarkStatus(ctx, bl::csharp::stopManagedLiveBenchmark());
 }
 
+JSValue makeManagedLivePerfStatus(JSContext* ctx,
+    const bl::csharp::ManagedLivePerfStatus& status) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "started", JS_NewBool(ctx, status.started));
+    JS_SetPropertyStr(ctx, out, "recording", JS_NewBool(ctx, status.recording));
+    JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, status.phase.c_str()));
+    JS_SetPropertyStr(ctx, out, "targetMs", JS_NewInt32(ctx, status.targetMs));
+    JS_SetPropertyStr(ctx, out, "elapsedMs", JS_NewInt32(ctx, status.elapsedMs));
+    JS_SetPropertyStr(ctx, out, "updateSamples", JS_NewInt32(ctx, status.updateSamples));
+    JS_SetPropertyStr(ctx, out, "updateHz", JS_NewFloat64(ctx, status.updateHz));
+    JS_SetPropertyStr(ctx, out, "updateP90Ms", JS_NewFloat64(ctx, status.updateP90Ms));
+    JS_SetPropertyStr(ctx, out, "updatesOver25Ms", JS_NewInt32(ctx, status.updatesOver25Ms));
+    JS_SetPropertyStr(ctx, out, "updatesOver33Ms", JS_NewInt32(ctx, status.updatesOver33Ms));
+    JS_SetPropertyStr(ctx, out, "callbacksSampled", JS_NewInt32(ctx, status.callbacksSampled));
+    JS_SetPropertyStr(ctx, out, "queueWaitAvgUs", JS_NewFloat64(ctx, status.queueWaitAvgUs));
+    JS_SetPropertyStr(ctx, out, "queueWaitMaxUs", JS_NewInt32(ctx, status.queueWaitMaxUs));
+    JS_SetPropertyStr(ctx, out, "callbackAvgUs", JS_NewFloat64(ctx, status.callbackAvgUs));
+    JS_SetPropertyStr(ctx, out, "callbackMaxUs", JS_NewInt32(ctx, status.callbackMaxUs));
+    JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
+    return out;
+}
+
+JSValue jsSourcePerfStart(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourcePerfStart()");
+    bool worldReady = false;
+    for (const auto& mod : bl::csharp::autoSourceStatuses()) {
+        if (mod.modId == "68c3115f-62f4-49f2-a56b-388256781d5f" &&
+            mod.applied && mod.worldReady && mod.netMode == 0) {
+            worldReady = true;
+            break;
+        }
+    }
+    if (!worldReady)
+        return JS_ThrowInternalError(ctx,
+            "Profiler disponivel somente em mundo singleplayer com ExampleModCSharp");
+    std::string error;
+    if (!bl::csharp::startManagedLivePerf(&error))
+        return JS_ThrowInternalError(ctx, "%s", error.c_str());
+    return makeManagedLivePerfStatus(ctx, bl::csharp::managedLivePerfStatus());
+}
+
+JSValue jsSourcePerfStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourcePerfStatus()");
+    return makeManagedLivePerfStatus(ctx, bl::csharp::managedLivePerfStatus());
+}
+
+JSValue jsSourcePerfStop(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "sourcePerfStop()");
+    return makeManagedLivePerfStatus(ctx, bl::csharp::stopManagedLivePerf());
+}
+
 JSValue jsSourceLiveHitStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0) return JS_ThrowTypeError(ctx, "sourceLiveHitStatus()");
     return makeManagedLiveHitStatus(ctx, bl::csharp::managedLiveHitStatus());
@@ -2111,6 +2162,12 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsSourceLiveHitStatus, "sourceLiveHitStatus", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveHitPause",
                       JS_NewCFunction(ctx, jsSourceLiveHitPause, "sourceLiveHitPause", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePerfStart",
+                      JS_NewCFunction(ctx, jsSourcePerfStart, "sourcePerfStart", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePerfStatus",
+                      JS_NewCFunction(ctx, jsSourcePerfStatus, "sourcePerfStatus", 0));
+    JS_SetPropertyStr(ctx, api, "sourcePerfStop",
+                      JS_NewCFunction(ctx, jsSourcePerfStop, "sourcePerfStop", 0));
     JS_SetPropertyStr(ctx, api, "sourceLiveBenchmarkStart",
                       JS_NewCFunction(ctx, jsSourceLiveBenchmarkStart, "sourceLiveBenchmarkStart", 1));
     JS_SetPropertyStr(ctx, api, "sourceLiveBenchmarkStatus",

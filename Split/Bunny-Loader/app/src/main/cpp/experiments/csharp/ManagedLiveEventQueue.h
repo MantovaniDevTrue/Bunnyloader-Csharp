@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <cstddef>
+#include <cstdint>
 
 namespace bl::csharp {
 
@@ -8,6 +9,7 @@ struct ManagedLiveQueuedEvent {
     int tick = 0;
     int damage = 0;
     bool isKill = false;
+    uint64_t enqueuedAtNs = 0;
 };
 
 class ManagedLiveEventQueue {

@@ -89,6 +89,30 @@ ManagedLiveHitStatus pauseManagedLiveHit();
 void queueManagedLiveHit(int projectileType, int damage);
 void queueManagedLiveKill(int projectileType, int damage);
 
+struct ManagedLivePerfStatus {
+    bool started = false;
+    bool recording = false;
+    std::string phase = "idle";
+    int targetMs = 15000;
+    int elapsedMs = 0;
+    int updateSamples = 0;
+    double updateHz = 0;
+    double updateP90Ms = 0;
+    int updatesOver25Ms = 0;
+    int updatesOver33Ms = 0;
+    int callbacksSampled = 0;
+    double queueWaitAvgUs = 0;
+    int queueWaitMaxUs = 0;
+    double callbackAvgUs = 0;
+    int callbackMaxUs = 0;
+    int lockDrops = 0;
+};
+
+bool startManagedLivePerf(std::string* error);
+ManagedLivePerfStatus managedLivePerfStatus();
+ManagedLivePerfStatus stopManagedLivePerf();
+void noteManagedLivePerfUpdate();
+
 struct ManagedLiveBenchmarkStatus {
     bool started = false;
     bool running = false;
