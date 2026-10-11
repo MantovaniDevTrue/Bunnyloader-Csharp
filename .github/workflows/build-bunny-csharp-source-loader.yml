@@ -3,9 +3,10 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
-      - csharp-multimod-managed-v75-experiment
-      - csharp-multimod-managed-v74-cleanup
-      - csharp-multimod-managed-v73-experiment
+      - csharp-managed-lifecycle-v76-experiment
+      - csharp-world-lifecycle-v75-experiment
+      - csharp-world-lifecycle-v74-cleanup
+      - csharp-world-lifecycle-v73-experiment
       - csharp-live-ingress-v72-experiment
       - csharp-lockdrops-v71-upgrade-fix
       - bunny-csharp-nativeaot-prototype
@@ -46,7 +47,7 @@ on:
       - bunny-csharp-source-0.1.10.16.18-crypto-jni-init
       - bunny-csharp-source-0.1.10.16.19-managed-execution
       - bunny-csharp-source-0.1.10.16.20-dll-cache-fingerprint
-      - bunny-csharp-source-0.1.10.16.21-multimod-manageds-bridge
+      - bunny-csharp-source-0.1.10.16.21-world-lifecycles-bridge
       - bunny-csharp-source-0.1.10.16.22-buffered-ai
       - bunny-csharp-source-0.1.10.16.23-helper-class-fix
       - bunny-csharp-source-0.1.10.16.24-homing-policy
@@ -311,6 +312,38 @@ jobs:
           assert "enableManagedLiveProjectile(" in auto
           assert "sourceLiveProjectileStatus" in api
           print("BUNNY_CSHARP_MULTI_LIVE_BINDING_GUARDS=PASS")
+          PY
+
+      - name: Verify independent per-mod pause and world queue reset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I "$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_live_lifecycle_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-live-lifecycle"
+          "$RUNNER_TEMP/managed-live-lifecycle"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          runtime=(root/"ManagedRuntime.cpp").read_text()
+          ingress=(root/"ManagedLiveIngressQueue.h").read_text()
+          auto=(root/"AutoSourceRuntime.cpp").read_text()
+          assert "discardBinding(int bindingSlot)" in ingress
+          assert "g_liveIngress.discardBinding(i)" in runtime
+          assert "g_liveHitActiveBindingSlot" in runtime
+          assert "pauseManagedLiveMod(" in runtime
+          assert "g_worldEpoch.fetch_add(1" in auto
+          assert "g_worldTransitionMutex" in auto
+          assert "scheduleAutoLiveBindings()" in auto
+          assert "g_liveBoundEpoch" in auto
+          assert "if (context.gameMenu != 1 && context.netMode == 0) return;" in auto
+          assert "pauseManagedLiveHit();" in auto
+          assert "bindLiveEventsOnWorld(id, type, work, epoch)" in auto
+          assert "g_pendingLiveSpecs = std::move(bindings)" in auto
+          assert "g_worldMenuPollFrames" in auto
+          print("BUNNY_CSHARP_WORLD_EPOCH_AND_MOD_PAUSE_GUARDS=PASS")
           PY
 
       - name: Validate opt-in 25k MonoVM benchmark guards
@@ -1175,7 +1208,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
           if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
-            echo "NativeAOT prototype was unexpectedly bundled in multimod-managed APK" >&2
+            echo "NativeAOT prototype was unexpectedly bundled in world-lifecycle APK" >&2
             exit 1
           fi
           echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
@@ -1188,7 +1221,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='100' versionName='0.1.10.16.75-csharp-multimod'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='101' versionName='0.1.10.16.76-csharp-world-lifecycle'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1208,7 +1241,7 @@ jobs:
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
 
-      - name: Guard multimod-managed boot and preserve legacy external loader
+      - name: Guard world-lifecycle boot and preserve legacy external loader
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -1229,7 +1262,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.75-MultiModManaged.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.76-WorldLifecycle.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1245,8 +1278,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.75-MultiModManaged.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.76-world-lifecycle"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.76-WorldLifecycle.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1255,8 +1288,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.75 — Multi-Mod CSharp Managed Callbacks" \
-              --notes "v0.1.10.16.75 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and adds independent callbacks for two mod IDs using the same FIFO64 and pinned MonoVM worker; NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 100 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
+              --title "Bunny Loader C# v0.1.10.16.76 — World Lifecycle and Per-Mod Callback Pause" \
+              --notes "v0.1.10.16.76 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and preserves the two-mod CSharp callback isolation and adds per-mod pending event discard, world-session epoch reset and rebind of callbacks after entering another world; NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 101 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
               --prerelease
           fi
           gh release upload "$TAG" \
