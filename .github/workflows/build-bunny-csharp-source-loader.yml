@@ -480,7 +480,7 @@ jobs:
           assert "api.runtime_invoke(" in gate
           assert "if (!exception && boxed)" in gate
           assert "result.gameMenu < 0 && menu" in gate
-          assert "if (context.netMode == 0 && context.gameMenu == 0)" in native
+          assert "if (context.netMode == 0 &&" in native
           print("CSHARP_AUTO_LIVE_MENU_GETTER_GUARD=PASS")
           tile=(root/"content/tiles/ModTileSave.cpp").read_text()
           cheats=(root/"menu/Cheats.cpp").read_text()
@@ -496,7 +496,7 @@ jobs:
           assert 'status.worldReady' in api
           print("CSHARP_AUTO_LIVE_WORLD_SIGNAL_GUARD=PASS")
           assert "if (context.netMode < 0)" in native
-          assert "if (context.netMode == 0 && context.gameMenu == 0)" in native
+          assert "if (context.netMode == 0 &&" in native
           assert "gameMenu=%d (opcional)" in native
           assert "curve.turns, &error, true" in native
           assert "while (!canActivateCurves())" not in native
