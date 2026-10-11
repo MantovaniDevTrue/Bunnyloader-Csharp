@@ -1,6 +1,6 @@
 # Bunny Loader C# .79 — estatísticas opcionais de heap MonoVM e reutilização de callbacks
 
-**Estado:** compilação experimental iniciada, ainda sem teste Android. **Referência validada:** .78 (5 entradas, 4 saídas, cache C# estável em 3 entradas/2 caminhos de DLL, 60 FPS relatados e 104/104 eventos na captura). A .78 permanece como rollback.
+**Estado:** [GitHub Actions #38163553681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38163553681) **success**, [APK .79 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79-managed-heap) (versionCode 104, 223.295.337 bytes). **Ainda sem validação Android.** **Referência validada:** .78 (5 entradas, 4 saídas, cache C# estável em 3 entradas/2 caminhos de DLL, 60 FPS relatados e 104/104 eventos na captura). A .78 permanece como rollback.
 
 ## Objetivo da .79
 
