@@ -8,7 +8,7 @@
 
 ### **[Abrir a branch de desenvolvimento C# →](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development)**
 
-A branch **`csharp-development`** contém os fontes do host C++/MonoVM, compilador Roslyn, ExampleModCSharp e documentação organizados. Ela foi criada a partir do snapshot **v0.1.10.16.60**, que permanece intocado para testes.
+A branch **`csharp-development`** contém os fontes do host C++/MonoVM, compilador Roslyn, ExampleModCSharp e documentação organizados. Ela está atualizada com o código da **v0.1.10.16.62**, testado no Android. As branches de versões anteriores permanecem como snapshots independentes para comparação.
 
 Este branch **`main`** também guarda o workspace e a cópia sincronizada da base Bunny Loader. **Para consultar ou alterar a integração C#, utilize `csharp-development`**, não presuma que o estado da `main` é a última versão experimental C#.
 
@@ -19,10 +19,10 @@ Este branch **`main`** também guarda o workspace e a cópia sincronizada da bas
 | MonoVM ARM64 e execução gerenciada | **Confirmados no Android** no contexto dos testes da .58 (retorno gerenciado 42 e thread estabilizada) |
 | Compilação experimental de arquivos `.cs` com Roslyn | **Implementada e testada** para exemplos específicos |
 | Callback C# de impacto (`OnHitNPC`) | **10/10 eventos reais** no teste da .59, sem falhas/perdas relatadas |
-| Callbacks automáticos `OnHitNPC` + `OnKill` | **Implementados na .60 e CI aprovado**; aguardando confirmação em jogo |
+| Callbacks automáticos `OnHitNPC` + `OnKill` | **Confirmados no Android na .62:** 512 eventos gerenciados (187 hits, 325 kills), **0 falhas**; jogo continuou funcional após o limite de segurança |
 | API C# completa, IA arbitrária por frame e multiplayer | **Não validados / não liberados** |
 
-**Versão de teste atual:** [Bunny Loader C# v0.1.10.16.60 + ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60).
+**Versão de teste com callbacks automáticos confirmados:** [Bunny Loader C# v0.1.10.16.62 + ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62). Houve 9 eventos descartados pela fila/limite; FPS e memória ainda precisam de medidas quantitativas.
 
 ## Organização do repositório
 
@@ -45,4 +45,4 @@ Os diretórios `src/`, `examples/` e `tests/` desta `main` apontam para **a bran
 
 Aprovação do GitHub Actions **não garante** execução estável do Terraria, nem 60 FPS. Usamos o [quadro de validação da branch C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/STATUS.md) para separar implementação, CI e resultados medidos no aparelho.
 
-Para acompanhar o momento exato do desenvolvimento, leia o [teste Android da .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/TESTE-ANDROID-v60.md).
+Para acompanhar os resultados comprovados e limites reais, leia o [teste Android da .62](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-development/docs/mono-auto-live-world-signal-v62.md) e o [roadmap](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-development/docs/ROADMAP.md). O próximo objetivo é avaliar desempenho, fila e reinicialização segura dos callbacks, preservando os recursos já existentes.
