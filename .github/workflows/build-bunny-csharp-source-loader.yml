@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-live-queue-contention-experiment
       - bunny-csharp-nativeaot-prototype
       - bunny-csharp-nativeaot-0.1.10.1
       - bunny-csharp-nativeaot-0.1.10.2
