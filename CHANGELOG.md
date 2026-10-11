@@ -2,6 +2,11 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## 0.1.10.16.66 — teste QuickJS × MonoVM de cálculo equivalente (aguarda Android)
+- `vmCompareStart(iterations)` e `vmCompareStatus()` executam o mesmo algoritmo de inteiros em QuickJS e no BunnyManagedProbe.dll através da thread MonoVM persistente.
+- Aquecimento fora da janela; resultado exato obrigatório; tempos de parede/CPU da thread e RSS do processo, sem alterar o fluxo de combate e o ExampleModCSharp 0.1.7.
+- Não confundir cálculo isolado com FPS, custo por callback ou memória exclusiva da linguagem. Só após teste real no Android poderemos comparar números.
+
 ## 0.1.10.16.65 — gameplay performance profiler VALIDADO no Android
 - Profiler opt-in de 15 segundos: taxa/p90 aproximado de `Main.DoUpdate`, atraso na fila FIFO64 e duração média/máxima de callbacks gerenciados, sem logs por evento.
 - Comandos `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()`; armamento adiado para o retorno ao jogo após fechar o editor.

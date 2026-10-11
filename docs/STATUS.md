@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .66 — QuickJS × MonoVM: comparação controlada (aguarda Android)
+
+Implementado teste opt-in de cálculo determinístico com o mesmo algoritmo e entradas para os dois runtimes: QuickJS no editor e MonoVM na thread proprietária. Mede tempo de parede, CPU da thread e instantâneos de RSS do processo, confere checksums. Até quatro execuções por inicialização. **Ainda não significa medir FPS em combate nem a sobrecarga da ponte por evento.** [Protocolo](vm-parity-v66.md).
+
 ## .65 — gameplay profiler VALIDADO no Android (11/10/2026, 00:56 BRT)
 
 Xiaomi Android 14, ExampleModCSharp 0.1.7, singleplayer. Profiler concluído (`elapsedMs=15007`): 907 amostras de `Main.DoUpdate`, `updateHz=60.5040`, `updateP90Ms=20` (bucket aproximado), 0 intervalos acima de 25/33 ms. Foram perfilados 30 callbacks: **50,2 µs** de espera média no FIFO e **195,8 µs** de invocação C# média, máximos 186 µs / 2.225 µs. Nenhum descarte (`lockDrops=0`), nenhuma falha C#. O status acumulado tinha 65 callbacks (5 hits/60 kills), pico de fila 1/64, `phase=ready`; MonoVM verificado com `result=42`. O usuário confirmou gameplay muito fluido.
