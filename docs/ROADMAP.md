@@ -4,7 +4,7 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
-**.79 experimental:** medir heap de GC gerenciada quando o MonoVM expuser a API, e hits/misses de resolução de métodos e abertura de assemblies nos mesmos dois mods C#. Verificar se os números de miss/open se estabilizam após os callbacks iniciais em várias reentradas. Sem forçar GC ou alterar fila/efeitos. **.78 permanece baseline até validação Android da .79.**
+**.79 CI e APK aprovados, Android pendente:** medir heap de GC gerenciada quando o MonoVM expuser a API, e hits/misses de resolução de métodos e abertura de assemblies nos mesmos dois mods C#. Verificar se os números de miss/open se estabilizam após os callbacks iniciais em várias reentradas. Sem forçar GC ou alterar fila/efeitos. **.78 permanece baseline até validação Android da .79.**
 
 **.78 APROVADA no Android (11/10/2026):** quatro reentradas após entrada inicial, todos os testes a 60 FPS relatados, cache de callbacks 3 constante, caminhos de assembly 2 constantes, 3 tipos de projéteis ativos; 104/104 eventos no snapshot de combate, sem erros/descartes; RSS em KiB 240260→567512→569524, com troca de RSS/swap entre 3→4 e só +2012 KiB de RSS em 4→5. **Não é teste de leak prolongado ou de GC/unload.** Promover .78 para baseline funcional desse escopo, .77 como rollback; seguir com medição longitudinal antes de alterações na coleta de lixo.
 
