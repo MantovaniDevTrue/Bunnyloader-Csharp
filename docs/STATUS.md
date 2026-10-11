@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .78 — Diagnóstico de memória: CI/APK aprovados, Android pendente
+## .78 — Android validado: 5 entradas, 4 saídas, caches estáveis (11/10/2026)
+
+Usuário confirmou **60 FPS durante todos os testes**, sem queda perceptível, dois mods C# e quatro reentradas após a entrada inicial. Estados 3/4/5: RSS KiB **240260 / 567512 / 569524**, swap KiB **560372 / 241176 / 230224**; cache de callbacks **3/3/3**, caminhos de assembly no cache **2/2/2**, 3 projéteis ativos, 78/79/79 threads, epoch 5/7/9, agendamentos de rebind 3/4/5. Worker TID permaneceu 13148. Capture de combate: **104/104** eventos, 0 `lockDrops`, 0 falhas e 0 descartes. Aumento 3→4 de RSS com diminuição quase equivalente de swap é compatível com paginação Android; **não prova leak**, e o RSS 4→5 só cresceu **2012 KiB**. Sem snapshot do primeiro teste, mas dados suficientes para a validação funcional limitada. [Relatório detalhado .78](csharp-memory-lifecycle-v78.md).
+
+**.78 passa a baseline de diagnósticos e reentradas Android testadas; .77 preservada para rollback.** Não há prova de hot-unload ou ausência de vazamentos a longo prazo.
+
+## .78 — Histórico do build: CI/APK aprovados, posteriormente validado no Android
 
 Adicionados comandos `sourceMemoryBaseline()` / `sourceMemoryStatus()` para acompanhar RSS do **processo inteiro**, pico, virtual, swap, threads e entradas dos caches de callback de MonoVM durante cinco reentradas. Contadores `worldLoads`, `worldExits` e `rebindSchedules` ajudam a localizar falhas de lifecycle, sem coletar métricas por frame e sem tentar liberar assemblies à força. **CI [#38161422920](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38161422920) aprovado e [APK .78 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot) (versionCode 103, 223.294.805 bytes).** Testes host e compilação Android completos; gameplay no aparelho pendente. **Não confundir CI com validação Android e não inferir vazamento a partir de RSS isolado.** A .77 segue baseline. [Plano .78](csharp-memory-lifecycle-v78.md).
 
