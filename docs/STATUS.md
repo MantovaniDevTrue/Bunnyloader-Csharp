@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .75 — Multi-Mod Managed: build aprovado, teste Android pendente
+
+[GitHub Actions #38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551) **success**. APK v0.1.10.16.75 e dois mods de teste publicados: `ExampleModCSharp 0.1.9` e `SecondExampleModCSharp 0.1.0` (UID separado). O novo dispatcher vincula eventos de duas assemblies/UIDs sem duplicar o worker MonoVM ou alterar a FIFO64; o smoke Roslyn verificou métodos `BunnyLiveEvents` de mesmo nome com estado independente nas assemblies. **Ainda não há teste real em Android.** Pausa por mod é desarme de callbacks, não remoção da assembly. A .74 segue estável. [Procedimento técnico](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multimod-managed-v75-experiment/docs/csharp-multimod-v75.md) · [Release de teste](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed).
+
 ## .74 — Managed Default APROVADA no Android (11/10/2026)
 
 A APK v0.1.10.16.74, sem o protótipo `libbunnycs.so` no boot, foi testada com ExampleModCSharp 0.1.9 e **60 FPS relatados**. `hostInfo()` indicou `runtimeMode="Roslyn+MonoVM"`, `monoVmReady=true`, `sourceModCount=1`, `nativeAotPrototypeAvailable=false`, `nativeAotExternalCount=0`; `managedAvailable()=true`. Auto: `ready`, `cached=true`, `curves=enabledCurves=2`. Eventos globais **559/559** (359 hits, 200 kills) com `dropped=0`, `lockDrops=0`, `failures=0`, pico 3/64 e fila vazia no final. `ExampleWaveBoltLiveEvents` no tipo 1136 processou **477/477** (318 hits, 159 kills, `lastResult=2171`, zero falhas), **já incluídos** nos totais globais. Os zeros `runtimeAbi=0`/`hostApi=0` pertencem ao protótipo legado e não significam falha MonoVM.
