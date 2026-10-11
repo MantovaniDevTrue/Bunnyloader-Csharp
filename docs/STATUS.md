@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .79 — Estatísticas opcionais da heap MonoVM e reutilização de métodos (experimental)
+
+Branch `csharp-managed-heap-v79-experiment` baseada na **.78 validada no Android**. Novos campos nos diagnósticos sob demanda: `monoGcStatsAvailable`, `monoGcHeapBytes`, `monoGcUsedBytes` (resolução opcional via `dlsym`), hits/misses do cache de métodos de callbacks, chamadas e sucesso de `mono_domain_assembly_open` e quantidade de caminhos de DLL abertos. Estes contadores permitem investigar reutilização entre mundos **sem GC forçado, unload de DLL, thread adicional ou trabalho por frame**. CI e APK em preparação; **.79 ainda não foi testada no Android**. A .78 segue a baseline/rollback. [Roteiro .79](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-heap-v79-experiment/docs/csharp-managed-heap-v79.md).
+
 ## .78 — Validação Android de memória e reentrada aprovada (11/10/2026)
 
 Com os dois ExampleMods C#, o usuário confirmou **60 FPS durante todos os testes** em sequência de **5 entradas e 4 saídas** do mundo. Capturas 3/4/5: `rssKb` **240260 / 567512 / 569524 KiB**; `swapKb` **560372 / 241176 / 230224 KiB**; 3 entradas do cache de métodos, 2 caminhos de assemblies no cache, 3 tipos de projéteis ativos e worker TID 13148 em todos os pontos. Sessões registradas: epoch 5→7→9, worldLoads 3→4→5, worldExits 2→3→4, rebindSchedules 3→4→5; 78→79→79 threads. Snapshot de combate **104/104** eventos, 51 hits, 53 kills, `lockDrops=0`, `dropped=0`, `failures=0`. Entre testes 4 e 5, RSS cresce só **2012 KiB**; o salto 3→4 acompanha redução quase igual de swap, consistente com troca de páginas Android. Falta o snapshot inicial; isso **não é prova de ausência de vazamento**, apenas estabilidade observada na sequência. [Relatório completo da .78](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-memory-v78-experiment/docs/csharp-memory-lifecycle-v78.md).
