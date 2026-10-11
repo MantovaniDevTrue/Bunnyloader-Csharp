@@ -4,6 +4,8 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
+**.77 experimental:** reativação segura de callbacks de um mod adicional no mesmo mundo, com proteção de concorrência na FIFO64. Testar pausa/retomada rápida e 60 FPS antes de promover; **não** equivale a hot-unload nem a desativar itens do mod. A .76 permanece baseline.
+
 **.76 validada funcionalmente (11/10/2026):** pausa do segundo mod com `paused=true`, `SecondBolt.enabled=false` e primeiro mod ativo; após saída e reentrada, `SecondBolt.enabled=true`. Ambos os mods `ready` e `cached=true`; 200/200 eventos globais, zero falhas/descartes, sem quedas de FPS relatadas. A .76 agora é baseline para esse fluxo; .75 fica como rollback. Ainda faltam hot-unload efetivo, alteração segura de mods ativos, medição de RSS/frametime e multiplayer.
 
 **.76 — histórico do CI:** APK aprovada, com `worldEpoch`, FIFO64 e worker MonoVM preservados; Android foi validado posteriormente conforme registro acima. A pausa **não** equivale a unload gerenciado real.
