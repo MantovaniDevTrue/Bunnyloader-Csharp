@@ -241,6 +241,9 @@ ManagedLiveEventQueue g_liveHitQueue;
 bool g_liveHitInFlight = false;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
+VmCompareStatus g_vmCompare;
+bool g_vmComparePending = false;
+int g_vmCompareRuns = 0;
 std::atomic<int> g_perfState{0};
 std::atomic<int64_t> g_perfStartNs{0};
 std::atomic<int64_t> g_perfEndNs{0};
@@ -357,6 +360,93 @@ void* managedBenchmarkProducer(void*) {
     }
 }
 
+int64_t compareThreadCpuNs() {
+    timespec point{};
+    return clock_gettime(CLOCK_THREAD_CPUTIME_ID, &point) == 0
+        ? static_cast<int64_t>(point.tv_sec) * 1000000000LL + point.tv_nsec : 0;
+}
+
+int compareRssKb() {
+    FILE* file = std::fopen("/proc/self/status", "rb");
+    if (!file) return 0;
+    int value = 0;
+    char line[128]{};
+    while (std::fgets(line, sizeof(line), file)) {
+        if (std::sscanf(line, "VmRSS: %d", &value) == 1) break;
+    }
+    std::fclose(file);
+    return value;
+}
+
+struct VmCompareMonoResult {
+    bool ready = false;
+    int result = 0;
+    int64_t wallUs = 0;
+    int64_t cpuUs = 0;
+    int rssBeforeKb = 0;
+    int rssAfterKb = 0;
+    std::string error;
+};
+
+VmCompareMonoResult runVmCompareMono(
+    const std::string& assemblyPath, int iterations, int seed) {
+    VmCompareMonoResult output;
+    if (iterations < 1000 || iterations > 5000000 || !validAssembly(assemblyPath)) {
+        output.error = "Invalid Mono benchmark input or probe assembly";
+        return output;
+    }
+    std::lock_guard<std::mutex> monoLock(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) {
+        output.error = "MonoVM not ready";
+        return output;
+    }
+    if (!g_api.attach(g_domain)) {
+        output.error = "MonoVM thread attach failed";
+        return output;
+    }
+    void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.ManagedProbe", "Probe") : nullptr;
+    void* method = klass ? g_api.findMethod(
+        klass, "BenchmarkMath", 2) : nullptr;
+    if (!method) {
+        output.error = "BunnyManagedProbe.Probe.BenchmarkMath(int,int) missing";
+        return output;
+    }
+    auto call = [&](int n, int* result) {
+        void* args[] = {&n, &seed};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(method, nullptr, args, &exception);
+        void* unboxed = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!unboxed) return false;
+        std::memcpy(result, unboxed, sizeof(int));
+        return true;
+    };
+    int warm = 0;
+    if (!call(4096, &warm)) {
+        output.error = "Mono warm-up failed";
+        return output;
+    }
+    output.rssBeforeKb = compareRssKb();
+    const int64_t cpuStart = compareThreadCpuNs();
+    const auto start = std::chrono::steady_clock::now();
+    if (!call(iterations, &output.result)) {
+        output.error = "Mono benchmark call failed";
+        return output;
+    }
+    const auto end = std::chrono::steady_clock::now();
+    const int64_t cpuEnd = compareThreadCpuNs();
+    output.rssAfterKb = compareRssKb();
+    output.wallUs = std::chrono::duration_cast<
+        std::chrono::microseconds>(end - start).count();
+    output.cpuUs = cpuEnd >= cpuStart ? (cpuEnd - cpuStart) / 1000 : 0;
+    output.ready = true;
+    return output;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -372,6 +462,29 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if (g_vmComparePending) {
+                    g_vmComparePending = false;
+                    const int iterations = g_vmCompare.iterations;
+                    const int seed = g_vmCompare.seed;
+                    const std::string& assembly = g_pinnedAssembly;
+                    lock.unlock();
+                    const VmCompareMonoResult done =
+                        runVmCompareMono(assembly, iterations, seed);
+                    lock.lock();
+                    g_vmCompare.monoResult = done.result;
+                    g_vmCompare.monoWallUs = done.wallUs;
+                    g_vmCompare.monoThreadCpuUs = done.cpuUs;
+                    g_vmCompare.rssBeforeMonoKb = done.rssBeforeKb;
+                    g_vmCompare.rssAfterMonoKb = done.rssAfterKb;
+                    g_vmCompare.running = false;
+                    g_vmCompare.finished = true;
+                    g_vmCompare.passed = done.ready &&
+                        done.result == g_vmCompare.jsResult;
+                    g_vmCompare.phase = !done.ready ? "failed" :
+                        g_vmCompare.passed ? "matched" : "mismatch";
+                    g_vmCompare.error = done.error;
+                    continue;
+                }
                 ManagedLiveQueuedEvent event;
                 if (g_liveHitQueue.pop(&event)) {
                     g_liveHitInFlight = true;
@@ -447,7 +560,9 @@ void* pinnedMonoWorker(void*) {
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                if (g_pinnedWake.wait_until(lock, until, [] { return g_pinnedPending || !g_liveHitQueue.empty(); }))
+                if (g_pinnedWake.wait_until(lock, until, [] {
+                    return g_pinnedPending || g_vmComparePending || !g_liveHitQueue.empty();
+                }))
                     continue;
                 ++g_auditIndex;
                 if (g_auditIndex >= sizeof(kAuditSamples) / sizeof(kAuditSamples[0]))
@@ -863,6 +978,39 @@ ManagedLiveBenchmarkStatus stopManagedLiveBenchmark() {
             finishBenchmarkErrorLocked("benchmark-cancelled", "Cancelado pelo usuario");
     }
     return managedLiveBenchmarkStatus();
+}
+
+bool beginVmCompare(const VmCompareStatus& jsPart, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (jsPart.iterations < 1000 || jsPart.iterations > 5000000) {
+        *error = "Iterations must be between 1000 and 5000000";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_pinnedStarted || g_pinnedBusy || g_pinnedPending ||
+        g_vmComparePending || g_vmCompare.running ||
+        g_vmCompareRuns >= 4 ||
+        g_liveBenchmark.running || g_liveHitInFlight ||
+        !g_liveHitQueue.empty() ||
+        !g_liveHitStatus.automatic || !g_liveHitStatus.enabled ||
+        g_liveHitStatus.modId != "68c3115f-62f4-49f2-a56b-388256781d5f") {
+        *error = "MonoVM not idle, ExampleModCSharp inactive, or 4-run limit reached";
+        return false;
+    }
+    g_vmCompare = jsPart;
+    g_vmCompare.started = true;
+    g_vmCompare.running = true;
+    g_vmCompare.phase = "mono-running";
+    g_vmComparePending = true;
+    ++g_vmCompareRuns;
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+VmCompareStatus vmCompareStatus() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    return g_vmCompare;
 }
 
 bool startManagedLivePerf(std::string* error) {

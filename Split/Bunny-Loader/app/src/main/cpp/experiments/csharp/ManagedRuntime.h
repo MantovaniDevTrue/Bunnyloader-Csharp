@@ -113,6 +113,30 @@ ManagedLivePerfStatus managedLivePerfStatus();
 ManagedLivePerfStatus stopManagedLivePerf();
 void noteManagedLivePerfUpdate();
 
+struct VmCompareStatus {
+    bool started = false;
+    bool running = false;
+    bool finished = false;
+    bool passed = false;
+    int iterations = 0;
+    int seed = 0;
+    int jsResult = 0;
+    int monoResult = 0;
+    int64_t jsWallUs = 0;
+    int64_t jsThreadCpuUs = 0;
+    int64_t monoWallUs = 0;
+    int64_t monoThreadCpuUs = 0;
+    int rssBeforeJsKb = 0;
+    int rssAfterJsKb = 0;
+    int rssBeforeMonoKb = 0;
+    int rssAfterMonoKb = 0;
+    std::string phase = "idle";
+    std::string error;
+};
+
+bool beginVmCompare(const VmCompareStatus& jsPart, std::string* error);
+VmCompareStatus vmCompareStatus();
+
 struct ManagedLiveBenchmarkStatus {
     bool started = false;
     bool running = false;
