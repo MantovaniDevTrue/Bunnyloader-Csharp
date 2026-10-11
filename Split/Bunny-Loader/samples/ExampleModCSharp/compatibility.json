@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.7",
+  "exampleModCSharpVersion": "0.1.8",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -138,6 +138,15 @@
       "examples": [
         "BunnyLiveNpc",
         "ExampleSlimeNPC"
+      ]
+    },
+    {
+      "id": "dual_weapon_projectile_registration",
+      "status": "experimental",
+      "examples": [
+        "ExampleWaveWand",
+        "ExampleWaveBolt",
+        "ExampleWaveBoltMotion"
       ]
     }
   ]
