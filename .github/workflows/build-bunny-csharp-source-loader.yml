@@ -3,7 +3,8 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
-      - csharp-managed-mod-resume-v77-experiment
+      - csharp-managed-memory-v78-experiment
+      - csharp-managed-memory-snapshot-v77-experiment
       - csharp-managed-lifecycle-v76-experiment
       - csharp-world-lifecycle-v75-experiment
       - csharp-world-lifecycle-v74-cleanup
@@ -315,6 +316,37 @@ jobs:
           print("BUNNY_CSHARP_MULTI_LIVE_BINDING_GUARDS=PASS")
           PY
 
+      - name: Verify CSharp memory snapshot and world lifecycle diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I "$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_memory_snapshot_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-memory-snapshot"
+          "$RUNNER_TEMP/managed-memory-snapshot"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          auto=(root/"experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "ManagedMemoryStatus managedMemoryStatus(bool resetBaseline)" in runtime
+          assert "readManagedProcMemory()" in runtime
+          assert "g_sourceLiveEntries.size()" in runtime
+          assert "g_memoryBaselineRssKb" in runtime
+          assert "autoWorldLifecycleStatus()" in auto
+          assert "g_worldLoads.fetch_add(1" in auto
+          assert "g_worldExits.fetch_add(1" in auto
+          assert "g_worldRebindSchedules.fetch_add(1" in auto
+          assert 'sourceMemoryStatus' in api
+          assert 'sourceMemoryBaseline' in api
+          assert "JS_NewInt64(ctx, mem.rssKb)" in api
+          assert "JS_NewInt32(ctx, mem.cachedAssemblyPaths)" in api
+          print("BUNNY_CSHARP_MEMORY_LIFECYCLE_INTEGRATION=PASS")
+          PY
+
       - name: Verify independent per-mod pause and world queue reset
         shell: bash
         run: |
@@ -347,7 +379,7 @@ jobs:
           assert "resumeManagedLiveMod(" in runtime
           assert "entry.armedType.store(entry.type" in runtime
           api = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
-          assert 'sourceLiveModResume' in api
+          assert 'sourceLiveMemorySnapshot' in api
           assert 'CONFIRM_RESUME_MOD' in api
           print("BUNNY_CSHARP_WORLD_EPOCH_AND_MOD_PAUSE_GUARDS=PASS")
           PY
@@ -1214,7 +1246,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
           if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
-            echo "NativeAOT prototype was unexpectedly bundled in mod-resume APK" >&2
+            echo "NativeAOT prototype was unexpectedly bundled in memory-snapshot APK" >&2
             exit 1
           fi
           echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
@@ -1227,7 +1259,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='102' versionName='0.1.10.16.77-csharp-mod-resume'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='103' versionName='0.1.10.16.78-csharp-memory-snapshot'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1268,7 +1300,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.77-ModResume.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.78-MemorySnapshot.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1284,8 +1316,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.77-mod-resume"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.77-ModResume.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.78-memory-snapshot"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.78-MemorySnapshot.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1294,8 +1326,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.77 — Same-World CSharp Mod Callback Resume" \
-              --notes "v0.1.10.16.77 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and preserves the two-mod CSharp callback isolation and retains world-session rearm and adds an explicit same-world resume command for a previously paused CSharp mod; producer queue synchronization prevents stale callbacks after a quick pause/resume. NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 102 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
+              --title "Bunny Loader C# v0.1.10.16.78 — CSharp Memory Snapshot and World Lifecycle Diagnostics" \
+              --notes "v0.1.10.16.78 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and preserves the two-mod CSharp callback isolation and retains same-world pause/resume and world-session rearm, with optional read-only RSS/cache diagnostics and world lifecycle counters that do not run each frame. NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 103 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
               --prerelease
           fi
           gh release upload "$TAG" \
