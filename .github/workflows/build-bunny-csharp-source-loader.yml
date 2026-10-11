@@ -3,8 +3,9 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
-      - csharp-managed-default-v74-cleanup
-      - csharp-managed-default-v73-experiment
+      - csharp-multimod-managed-v75-experiment
+      - csharp-multimod-managed-v74-cleanup
+      - csharp-multimod-managed-v73-experiment
       - csharp-live-ingress-v72-experiment
       - csharp-lockdrops-v71-upgrade-fix
       - bunny-csharp-nativeaot-prototype
@@ -45,7 +46,7 @@ on:
       - bunny-csharp-source-0.1.10.16.18-crypto-jni-init
       - bunny-csharp-source-0.1.10.16.19-managed-execution
       - bunny-csharp-source-0.1.10.16.20-dll-cache-fingerprint
-      - bunny-csharp-source-0.1.10.16.21-managed-defaults-bridge
+      - bunny-csharp-source-0.1.10.16.21-multimod-manageds-bridge
       - bunny-csharp-source-0.1.10.16.22-buffered-ai
       - bunny-csharp-source-0.1.10.16.23-helper-class-fix
       - bunny-csharp-source-0.1.10.16.24-homing-policy
@@ -698,6 +699,57 @@ jobs:
           sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod" > \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod.sha256"
 
+      - name: Package second independent CSharp mod 0.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          PKG="$ROOT/samples/SecondExampleModCSharp/Playable"
+          mkdir -p "$PKG/content/Content/Projectiles" "$PKG/content/Content/Items/Weapons"
+          cp "$ROOT/samples/SourceCSharpMod/content/Content/Projectiles/SourceBolt.png" \
+            "$PKG/content/Content/Projectiles/SourceBolt.png"
+          cp "$ROOT/samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.png" \
+            "$PKG/content/Content/Items/Weapons/SourceWand.png"
+          test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          cp "$ROOT/build/mods-packs/secondexamplecsharp-0.1.0.bl" \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
+          python3 - "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" <<'PY'
+          import json,sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names=set(z.namelist())
+              mf=json.loads(z.read("manifest.json"))
+              assert mf["id"]=="secondexamplecsharp"
+              assert mf["uid"]=="2e508d4f-f192-4a21-83b2-496e6c482c75"
+              assert "content/Common/Live/BunnyLiveEvents.cs" in names
+              assert "content/main.cs" in names
+              assert "content/Content/Projectiles/SourceBolt.png" in names
+              assert "content/Content/Items/Weapons/SourceWand.png" in names
+              assert len([n for n in names if n.endswith(".cs")]) == 2
+              assert not any(n.endswith((".dll",".so",".js")) for n in names)
+          print("BUNNY_SECOND_CSHARP_MOD_PACKAGE=PASS")
+          PY
+          sha256sum "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" > \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
+
+      - name: Validate multiple mod callback identity routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          auto=(root/"experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "std::set<std::string> liveMods" in auto
+          assert "enableManagedLiveMod(" in auto
+          assert "binding->assemblyPath" in runtime and "binding->modId" in runtime
+          assert "pauseManagedLiveMod(" in runtime
+          assert "sourceLiveModPause" in api
+          print("BUNNY_CSHARP_MULTIMOD_ROUTING_GUARDS=PASS")
+          PY
+
       - name: Validate generic C# projectile policy integration
         shell: bash
         run: |
@@ -1023,7 +1075,8 @@ jobs:
           cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/BunnySourceCompiler.dll" "$ASSETS/"
           cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/Microsoft.CodeAnalysis.dll" "$ASSETS/"
           cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/Microsoft.CodeAnalysis.CSharp.dll" "$ASSETS/"
-          dotnet run --project "$ROOT/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj" -c Release -- "$ROOT/samples/SourceCSharpMod" "$ASSETS"
+          dotnet run --project "$ROOT/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj" -c Release -- "$ROOT/samples/SourceCSharpMod" "$ASSETS" \
+            "$ROOT/samples/SecondExampleModCSharp/Playable"
           test -s "$ASSETS/BunnySourceCompiler.dll"
           test -s "$ASSETS/BunnySourceSdk.dll"
           test -s "$ASSETS/Microsoft.CodeAnalysis.dll"
@@ -1122,7 +1175,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
           if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
-            echo "NativeAOT prototype was unexpectedly bundled in managed-default APK" >&2
+            echo "NativeAOT prototype was unexpectedly bundled in multimod-managed APK" >&2
             exit 1
           fi
           echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
@@ -1135,7 +1188,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='99' versionName='0.1.10.16.74-csharp-managed-default'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='100' versionName='0.1.10.16.75-csharp-multimod'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1155,7 +1208,7 @@ jobs:
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
 
-      - name: Guard managed-default boot and preserve legacy external loader
+      - name: Guard multimod-managed boot and preserve legacy external loader
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -1176,13 +1229,15 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.75-MultiModManaged.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
           test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod"
           test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod.sha256"
+          test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
+          test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
 
       - name: Publish signed APK as GitHub Release asset
         shell: bash
@@ -1190,17 +1245,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.74-managed-default"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.75-MultiModManaged.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
           test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod"
+          test -s "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.74 — MonoVM Managed Default" \
-              --notes "v0.1.10.16.74 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, makes Roslyn + MonoVM the only built-in C# runtime, and removes automatic NativeAOT prototype initialization and the bundled libbunnycs.so. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 99 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
+              --title "Bunny Loader C# v0.1.10.16.75 — Multi-Mod CSharp Managed Callbacks" \
+              --notes "v0.1.10.16.75 Based on Android functionally verified v0.1.10.16.73 and .72. Keeps both projectile live callbacks and FIFO64, keeps Roslyn + MonoVM as the default CSharp runtime and adds independent callbacks for two mod IDs using the same FIFO64 and pinned MonoVM worker; NativeAOT remains out of the default APK. Native C++ bridges and optional external legacy libmod.so loader remain intact. VersionCode 100 permits in-place upgrade. Event cap 25000 remains. Android comparative testing pending." \
               --prerelease
           fi
           gh release upload "$TAG" \
@@ -1209,6 +1265,8 @@ jobs:
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.9.bmod.sha256" \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
           echo "MANAGED_RUNTIME_RELEASE_TAG=$TAG"
 
