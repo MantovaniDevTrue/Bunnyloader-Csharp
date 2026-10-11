@@ -1,8 +1,21 @@
 # Estado real do desenvolvimento
 
-## Próxima build .63 — em validação
+## Teste Android da .63 — validada parcialmente em 11/10/2026, 00:01 (BRT)
 
-Fila FIFO de 64 eventos e limite experimental de 25 mil callbacks C# implementados sobre a baseline `.62`, com descarte sob sobrecarga, `try_to_lock` e esvaziamento seguro ao atingir o limite. Os testes automatizados não substituem o teste no Android. [Especificação e procedimento](managed-event-queue-v63.md).
+**APROVADO para execução contínua acima de 512 callbacks com fila FIFO64 no ExampleModCSharp 0.1.7 em singleplayer Android 14.** O teste ultrapassou o antigo limite sem desativar callbacks e o usuário confirmou Terraria a 60 FPS no cenário observado.
+
+| Indicador | Resultado observado |
+| --- | --- |
+| Executados e aceitos | `processed=1156`, `queued=1156` |
+| Eventos por tipo | `hitProcessed=515`, `killProcessed=641` |
+| Execução gerenciada | `failures=0`, `automatic=true`, `enabled=true`, `phase=ready` |
+| Fila | `queueCapacity=64`, `maxQueueDepth=2`, `queueDepth=0`, `inFlight=false` |
+| Descartes | `dropped=12`, `lockDrops=12`: todos atribuídos à contenção do mutex, não à fila cheia |
+| MonoVM no processo do jogo | `domainInitialized=true`, `methodExecuted=true`, `result=42`, `phase=verified` |
+| Teto de segurança | `eventLimit=25000` configurado; **não atingido nem validado no aparelho** |
+| FPS | Usuário relata 60 FPS estáveis durante esse teste; sem perfil temporal p90, CPU ou memória |
+
+**Próximo teste:** benchmark sintético controlado e isolado do gameplay para percorrer 25 mil eventos reais gerenciados rapidamente sem disparos manuais; checar `draining → limit-reached`, contadores e CPU/latência. Não confundir isso com 25 mil impactos reais de combate; eles são cenários diferentes. Preservar a .62 como baseline já validada. [Detalhes da .63](managed-event-queue-v63.md).
 
 ## Teste Android v0.1.10.16.62 — validado em 10/10/2026, 22:25 (BRT)
 
