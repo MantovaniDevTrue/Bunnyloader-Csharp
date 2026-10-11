@@ -1,6 +1,6 @@
 # Bunny Loader C# .74 — MonoVM por padrão; NativeAOT como legado opcional
 
-**Estado:** alterações de código concluídas na branch experimental, CI/build Android pendente de confirmação e **sem validação no aparelho ainda**.
+**Estado:** **APK .74 compilada, assinada e publicada no GitHub (Actions #38149174534, success)**; **validação de gameplay no Android ainda pendente**. [Release APK + ExampleModCSharp 0.1.9](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.74-managed-default).
 
 ## Por que esta limpeza existe
 
@@ -24,6 +24,13 @@ O protótipo NativeAOT interno (libbunnycs.so) fazia uma publicação AOT comple
 Não é correto chamar libbunnycs.so de dependência do MonoVM: o MonoVM usa libmonosgen-2.0.so, suas assemblies e o código nativo de integração do Bunny.
 
 **Compatibilidade:** mods NativeAOT externos com libmod.so continuam pelo carregador antigo CSharpModLoader. Sem garantir suporte para qualquer ABI externa não testada. A prova de compatibilidade no Android deve ser executada em uma versão posterior. Workflows e fontes históricos NativeAOT continuam no repositório, disponíveis como laboratório em vez de serem apagados.
+
+## Compilação verificada
+
+- GitHub Actions: [#38149174534](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38149174534) **success**, incluindo verificação da assinatura Android, versionCode 99, nomes das bibliotecas MonoVM, hashes SHA-256 das assemblies e ausência de libbunnycs.so no APK.
+- APK publicado: BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk, 223.287.037 bytes.
+- Mod de teste publicado: ExampleModCSharp-v0.1.9.bmod (funcionalmente igual ao usado na .73).
+- O arquivo de 0,47 MB menor que o APK .73 não é demonstração de ganho de FPS ou RAM.
 
 ## Teste da .74 em Android
 
