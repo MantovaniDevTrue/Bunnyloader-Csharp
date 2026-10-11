@@ -1,5 +1,6 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
+#include "experiments/csharp/ManagedLiveEventQueue.h"
 
 #include <string>
 #include <cstdint>
@@ -150,7 +151,8 @@ bool enableManagedLiveProjectile(const std::string& modId,
                                 std::string* error);
 bool isManagedLiveProjectileBound(int projectileType);
 std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses();
-void queueManagedLiveHit(int projectileType, int damage, int npcIndex = -1);
+void queueManagedLiveHit(int projectileType, int damage, int npcIndex = -1,
+                         ManagedNpcSnapshot npc = {});
 void queueManagedLiveKill(int projectileType, int damage);
 
 struct ManagedLivePerfProjectileStatus {

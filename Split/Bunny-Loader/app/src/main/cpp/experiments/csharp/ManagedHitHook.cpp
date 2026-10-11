@@ -13,6 +13,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <cmath>
 
 namespace bl::csharp {
 namespace {
@@ -24,6 +25,9 @@ const MethodInfo* g_addBuff = nullptr;
 int32_t g_npcActive = -1;
 int32_t g_npcFriendly = -1;
 int32_t g_npcLife = -1;
+int32_t g_npcType = -1;
+int32_t g_npcPosition = -1;
+struct NpcPosition { float x; float y; };
 std::array<int, 256> g_hitDurations{};
 std::atomic<bool> g_hitInstalled{false};
 std::atomic<bool> g_hitEnabled{false};
@@ -102,8 +106,19 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         runtime::field<uint8_t>(npc, g_npcFriendly) ||
         runtime::field<int32_t>(npc, g_npcLife) <= 0) return;
 
+    ManagedNpcSnapshot snapshot;
+    if (g_npcType >= 0 && g_npcPosition >= 0) {
+        const auto position = runtime::field<NpcPosition>(npc, g_npcPosition);
+        snapshot = {
+            runtime::field<int32_t>(npc, g_npcType),
+            runtime::field<int32_t>(npc, g_npcLife),
+            position.x, position.y, true
+        };
+        if (!managedNpcSnapshotIsValid(snapshot)) snapshot = {};
+    }
+
     if (additionalLive && !legacy && autoSlot < 0) {
-        queueManagedLiveHit(type, damage, index);
+        queueManagedLiveHit(type, damage, index, snapshot);
         return;
     }
 
@@ -149,7 +164,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
             1, std::memory_order_relaxed);
     else
         g_hitApplied.fetch_add(1, std::memory_order_relaxed);
-    queueManagedLiveHit(type, damage, index);
+    queueManagedLiveHit(type, damage, index, snapshot);
 }
 }
 
@@ -227,6 +242,8 @@ bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error
     g_npcActive = active;
     g_npcFriendly = friendly;
     g_npcLife = life;
+    g_npcType = il2cpp::fieldOffset(npc, "type");
+    g_npcPosition = runtime::game().entity.position;
     g_addBuff = addBuff;
     g_hitType.store(type, std::memory_order_relaxed);
     g_hitDurations = policy.durations;
@@ -314,6 +331,8 @@ bool enableAutoProjectileOnHit(const std::string& modId,
     g_npcActive = active;
     g_npcFriendly = friendly;
     g_npcLife = life;
+    g_npcType = il2cpp::fieldOffset(npc, "type");
+    g_npcPosition = runtime::game().entity.position;
     g_addBuff = addBuff;
 
     int index = -1;

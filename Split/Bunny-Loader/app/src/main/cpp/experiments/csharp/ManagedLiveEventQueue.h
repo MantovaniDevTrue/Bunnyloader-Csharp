@@ -2,8 +2,24 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 
 namespace bl::csharp {
+
+struct ManagedNpcSnapshot {
+    int npcType = -1;
+    int npcLife = -1;
+    float posX = 0.0f;
+    float posY = 0.0f;
+    bool valid = false;
+};
+
+inline bool managedNpcSnapshotIsValid(const ManagedNpcSnapshot& npc) {
+    return npc.valid && npc.npcType >= 0 && npc.npcType <= 1000000 &&
+        npc.npcLife > 0 && std::isfinite(npc.posX) && std::isfinite(npc.posY) &&
+        npc.posX >= -10000000.0f && npc.posX <= 10000000.0f &&
+        npc.posY >= -10000000.0f && npc.posY <= 10000000.0f;
+}
 
 struct ManagedLiveQueuedEvent {
     int tick = 0;
@@ -12,6 +28,7 @@ struct ManagedLiveQueuedEvent {
     uint64_t enqueuedAtNs = 0;
     int bindingSlot = -1;
     int npcIndex = -1;
+    ManagedNpcSnapshot npc;
 };
 
 class ManagedLiveEventQueue {
