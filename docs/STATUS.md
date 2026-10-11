@@ -1,8 +1,8 @@
 # Estado real do desenvolvimento
 
-## .77 — Same-world callback resume (experimental; CI e Android pendentes)
+## .77 — Same-world callback resume (APK/CI aprovados; Android pendente)
 
-Nova branch `csharp-managed-mod-resume-v77-experiment` preparada a partir da **.76 aprovada no Android**. Adiciona `bl.csharp.sourceLiveModResume(modId, "CONFIRM_RESUME_MOD")` para rearmar callbacks de um mod adicional **no mesmo mundo**, sem recarregar assembly nem itens. A pausa agora desarma e remove eventos pendentes do mod sob o mutex da própria FIFO64, fechando uma janela de concorrência no pause/resume rápido; testes host com produtor concorrente e reentrada mantidos. **Ainda não validado no celular; .76 segue baseline.** [Roteiro de validação .77](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-mod-resume-v77-experiment/docs/csharp-managed-mod-resume-v77.md).
+Nova branch `csharp-managed-mod-resume-v77-experiment` preparada a partir da **.76 aprovada no Android**. Adiciona `bl.csharp.sourceLiveModResume(modId, "CONFIRM_RESUME_MOD")` para rearmar callbacks de um mod adicional **no mesmo mundo**, sem recarregar assembly nem itens. A pausa agora desarma e remove eventos pendentes do mod sob o mutex da própria FIFO64, fechando uma janela de concorrência no pause/resume rápido; testes host com produtor concorrente e reentrada mantidos. **GitHub Actions [#38157993987](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38157993987) success; APK .77 assinada/publicada, versionCode 102, 223.293.245 bytes; ainda não validada no celular. A .76 segue baseline.** [Roteiro de validação .77](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-mod-resume-v77-experiment/docs/csharp-managed-mod-resume-v77.md).
 
 ## .76 — Pausa de callbacks por mod e reentrada APROVADAS no Android (11/10/2026)
 
