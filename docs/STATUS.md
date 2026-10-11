@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .75 — Multi-Mod Managed: APK/CI aprovados, Android pendente (11/10/2026)
+## .75 — Android aprovado: 2 mods C#, Blood Moon e 100 inimigos, 60 FPS (11/10/2026)
+
+**Comprovado no cenário testado:** `sourceModCount=2`, os dois mods `ready` e `applied=true`, os dois grupos de callbacks gerenciados separados, 256/256 eventos globais, 92/92 eventos do `ExampleWaveBolt`, 100/100 eventos do `SecondBolt`, sem `dropped`, `lockDrops` ou `failures`. Resultado `lastResult=4074` comprova execução de `BunnyLiveEvents` da segunda assembly. O usuário confirmou **Blood Moon com 100 inimigos a 60 FPS sem quedas observadas** (relato visual, sem trace de frametimes). Classificação: **baseline funcional para dois mods**, mantendo .74 para rollback. Descarregamento, pausa por mod, reinício e multiplayer ainda pendentes.
+
+[Relatório Android detalhado](csharp-multimod-v75.md).
+
+## .75 — Histórico da implementação e do CI (antes da validação Android) (11/10/2026)
 
 A APK `0.1.10.16.75-csharp-multimod` (versionCode 100, 223.290.213 bytes) e dois mods `ExampleModCSharp 0.1.9` e `SecondExampleModCSharp 0.1.0` foram compilados/publicados com CI **success** em [#38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551).
 
