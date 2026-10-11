@@ -249,7 +249,9 @@ jobs:
           assert "g_liveHitQueue.push({" in runtime
           assert "g_liveHitQueue.clear();" in runtime
           assert "g_liveHitInFlight" in runtime
-          assert "std::try_to_lock" in runtime
+          assert "std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock)" in runtime
+          assert "attempt < 3 && !lock.owns_lock()" in runtime
+          assert "lock.try_lock()" in runtime
           assert "g_liveHitLockDrops.fetch_add" in runtime
           assert "status.dropped += status.lockDrops" in runtime
           assert "ManagedLiveEventQueue::kEventLimit" in runtime
