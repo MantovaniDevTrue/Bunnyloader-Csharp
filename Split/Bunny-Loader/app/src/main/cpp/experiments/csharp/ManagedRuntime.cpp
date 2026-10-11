@@ -1154,10 +1154,28 @@ bool bindManagedLiveAdditional(const std::string& modId,
             *error = "Second mod identity must differ from primary mod";
             return false;
         }
-    } else if (modId != g_liveHitStatus.modId ||
-               assemblyPath != g_liveHitAssembly) {
-        *error = "Secondary projectile must belong to its primary mod";
-        return false;
+        for (int i = 0, count = g_additionalLiveCount.load(
+                 std::memory_order_acquire); i < count; ++i) {
+            const auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+            if (entry.modId == modId && entry.callbackClass == "BunnyLiveEvents") {
+                *error = "Mod already has its primary live callbacks bound";
+                return false;
+            }
+        }
+    } else {
+        bool belongs = modId == g_liveHitStatus.modId &&
+                       assemblyPath == g_liveHitAssembly;
+        for (int i = 0, count = g_additionalLiveCount.load(
+                 std::memory_order_acquire); !belongs && i < count; ++i) {
+            const auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+            belongs = entry.modId == modId && entry.assemblyPath == assemblyPath &&
+                      entry.callbackClass == "BunnyLiveEvents" &&
+                      entry.armedType.load(std::memory_order_acquire) == entry.type;
+        }
+        if (!belongs) {
+            *error = "Secondary projectile requires primary callbacks for its own mod";
+            return false;
+        }
     }
     if (g_liveHitStatus.projectileType == projectileType ||
         g_additionalLiveByType[static_cast<size_t>(projectileType)].load(
