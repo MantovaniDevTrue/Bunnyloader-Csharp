@@ -969,7 +969,12 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
 void queueManagedLiveEvent(int projectileType, int damage, bool isKill) {
     if (g_liveHitType.load(std::memory_order_acquire) != projectileType ||
         damage < 0 || damage > 100000) return;
-    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
+    for (int attempt = 0; attempt < 3 && !lock.owns_lock(); ++attempt) {
+        if (g_liveHitType.load(std::memory_order_acquire) != projectileType) return;
+        if (attempt != 0) std::this_thread::yield();
+        lock.try_lock();
+    }
     if (!lock.owns_lock()) {
         g_liveHitLockDrops.fetch_add(1, std::memory_order_relaxed);
         return;
