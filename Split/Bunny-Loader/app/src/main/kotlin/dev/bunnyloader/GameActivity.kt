@@ -89,6 +89,12 @@ class GameActivity : Activity() {
             return
         }
         BootLog.add(this, "runtime carregado")
+        runCatching { ensureVmBenchmarkAssembly() }
+            .onSuccess { BootLog.add(this, "csharp benchmark: $it") }
+            .onFailure {
+                Log.w(TAG, "csharp benchmark assembly setup failed", it)
+                BootLog.add(this, "csharp benchmark: ${it.message ?: it.javaClass.simpleName}")
+            }
 
         // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
         if (ENABLE_NATIVE_CORE) startNativeCore() else
@@ -133,6 +139,53 @@ class GameActivity : Activity() {
         val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
             .format(java.util.Date())
         return File(dir, "bunny_$stamp.txt")
+    }
+
+    private fun ensureVmBenchmarkAssembly(): String {
+        val name = "BunnyVmBenchmark67.dll"
+        val manifest = assets.open("managed/framework.sha256").bufferedReader().use { it.readText() }
+        val line = manifest.lineSequence().firstOrNull { it.startsWith("$name\t") }
+            ?: error("benchmark assembly absent from APK manifest")
+        val expected = line.substringAfter('\t').trim()
+        require(expected.length == 64 && expected.all { it in '0'..'9' || it in 'a'..'f' }) {
+            "invalid benchmark SHA-256 in manifest"
+        }
+        fun sha256(file: File): String {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val buffer = ByteArray(65536)
+            file.inputStream().use { input ->
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > 0) digest.update(buffer, 0, count)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        }
+        val dir = File(filesDir, "bunny-csharp")
+        require(dir.isDirectory || dir.mkdirs()) { "cannot open CSharp framework directory" }
+        val target = File(dir, name)
+        if (target.isFile && target.length() > 0 && sha256(target) == expected)
+            return "$name cached and SHA-256 verified"
+        val temporary = File(dir, "$name.game.tmp")
+        try {
+            assets.open("managed/$name").use { input ->
+                temporary.outputStream().use { output -> input.copyTo(output) }
+            }
+            require(temporary.length() > 0 && sha256(temporary) == expected) {
+                "APK benchmark assembly SHA-256 mismatch"
+            }
+            if (!temporary.renameTo(target)) {
+                temporary.copyTo(target, overwrite = true)
+                temporary.delete()
+            }
+            require(target.isFile && sha256(target) == expected) {
+                "installed benchmark assembly SHA-256 mismatch"
+            }
+            return "$name installed and SHA-256 verified"
+        } finally {
+            temporary.delete()
+        }
     }
 
     private fun startNativeCore() {
