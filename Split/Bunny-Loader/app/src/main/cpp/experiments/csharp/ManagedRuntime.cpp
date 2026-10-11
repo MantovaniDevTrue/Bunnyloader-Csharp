@@ -1,6 +1,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
+#include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 
@@ -23,6 +24,7 @@
 #include <cstdlib>
 #include <sys/syscall.h>
 #include <map>
+#include <set>
 #include <limits>
 #include <thread>
 #include <string>
@@ -91,6 +93,8 @@ struct LiveEntry {
 };
 
 std::map<std::string, LiveEntry> g_sourceLiveEntries;
+std::mutex g_memoryBaselineMutex;
+int64_t g_memoryBaselineRssKb = 0;
 
 template <typename T>
 T resolve(const char* name) {
@@ -1033,6 +1037,52 @@ bool enableManagedLiveHit(const std::string& modId,
     g_liveHitAutomatic.store(automatic, std::memory_order_release);
     g_liveHitType.store(projectileType, std::memory_order_release);
     return true;
+}
+
+ManagedMemoryStatus managedMemoryStatus(bool resetBaseline) {
+    ManagedMemoryStatus status;
+    const ManagedProcMemory proc = readManagedProcMemory();
+    status.available = proc.available;
+    status.rssKb = proc.rssKb;
+    status.peakRssKb = proc.peakRssKb;
+    status.virtualKb = proc.virtualKb;
+    status.dataKb = proc.dataKb;
+    status.swapKb = proc.swapKb;
+    status.threads = proc.threads;
+    {
+        std::lock_guard<std::mutex> lock(g_memoryBaselineMutex);
+        if (proc.available && (resetBaseline || g_memoryBaselineRssKb == 0))
+            g_memoryBaselineRssKb = proc.rssKb;
+        status.baselineRssKb = g_memoryBaselineRssKb;
+        if (proc.available)
+            status.rssDeltaKb = proc.rssKb - g_memoryBaselineRssKb;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        status.monoReady = g_domain && g_status.domainInitialized &&
+                           g_status.methodExecuted;
+        status.cachedCallbackEntries =
+            static_cast<int>(g_sourceLiveEntries.size());
+        std::set<std::string> paths;
+        for (const auto& [key, entry] : g_sourceLiveEntries)
+            if (!entry.path.empty()) paths.insert(entry.path);
+        status.cachedAssemblyPaths = static_cast<int>(paths.size());
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        status.workerTid = g_pinnedTid;
+        status.boundProjectileTypes =
+            (g_liveHitStatus.enabled ? 1 : 0) +
+            g_additionalLiveCount.load(std::memory_order_acquire);
+        status.activeProjectileTypes = g_liveHitStatus.enabled ? 1 : 0;
+        const int count = g_additionalLiveCount.load(std::memory_order_acquire);
+        for (int i = 0; i < count; ++i) {
+            const auto& entry = g_additionalLiveBindings[static_cast<size_t>(i)];
+            if (entry.type == entry.armedType.load(std::memory_order_acquire))
+                ++status.activeProjectileTypes;
+        }
+    }
+    return status;
 }
 
 ManagedLiveHitStatus managedLiveHitStatus() {
