@@ -1,5 +1,6 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 
+#include "content/common/GameRefs.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Config.h"
 #include "core/Log.h"
