@@ -1,6 +1,6 @@
 # Bunny Loader C# .74 — MonoVM por padrão; NativeAOT como legado opcional
 
-**Estado:** **APK .74 compilada, assinada e publicada no GitHub (Actions #38149174534, success)**; **validação de gameplay no Android ainda pendente**. [Release APK + ExampleModCSharp 0.1.9](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.74-managed-default).
+**Estado:** **APK .74 compilada/assinada (Actions #38149174534, success) e APROVADA funcionalmente no Android em 11/10/2026 na carga observada, com 60 FPS relatados pelo usuário**. [Release APK + ExampleModCSharp 0.1.9](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.74-managed-default).
 
 ## Por que esta limpeza existe
 
@@ -31,6 +31,46 @@ Não é correto chamar libbunnycs.so de dependência do MonoVM: o MonoVM usa lib
 - APK publicado: BunnyLoader-CSharp-Test-v0.1.10.16.74-ManagedDefault.apk, 223.287.037 bytes.
 - Mod de teste publicado: ExampleModCSharp-v0.1.9.bmod (funcionalmente igual ao usado na .73).
 - O arquivo de 0,47 MB menor que o APK .73 não é demonstração de ganho de FPS ou RAM.
+
+## Validação real da .74 no Android — 11/10/2026
+
+**APROVADA funcionalmente no cenário observado.** O usuário testou a versão .74 no Terraria Mobile com ExampleModCSharp 0.1.9 e relatou jogo a **60 FPS**, sem regressões aparentes de gameplay. A duração e o método de medição de FPS não foram informados; os 60 FPS são observação do testador, não um trace contínuo de frametimes. Evidência: quatro capturas do editor com `hostInfo()`, `managedAvailable()`, `sourceAutoStatus()`, `sourceLiveHitStatus()`, `sourceLiveProjectileStatus()`.
+
+| Campo | Resultado |
+| --- | --- |
+| `runtime.available` / `runtime.runtimeMode` | `true` / `Roslyn+MonoVM` |
+| `runtime.monoVmReady` / `mono` | `true` / `true` |
+| `runtime.sourceModCount` | 1 |
+| `runtime.nativeAotPrototypeAvailable` | `false` (esperado) |
+| `runtime.nativeAotExternalCount` / `externalModCount` | 0 / 0 |
+| `runtime.runtimeAbi` / `hostApi` | 0 / 0 (diagnóstico do protótipo NativeAOT, não falha MonoVM) |
+| `auto.phase` / `cached` / `applied` | `ready` / `true` / `true` |
+| `auto.curves` / `enabledCurves` | 2 / 2 |
+| `auto.hitPolicies` / `killPolicies` | 1 / 1 |
+| `auto.enabledHits` / `enabledKills` | 1 / 1 |
+| `eventos.enabled` / `automatic` / `phase` | `true` / `true` / `ready` |
+| `eventos.projectileType` | 1137 (primário) |
+| `eventos.queued` / `processed` | **559 / 559** |
+| `eventos.hitProcessed` / `killProcessed` | 359 / 200 |
+| `eventos.dropped` / `lockDrops` / `failures` | **0 / 0 / 0** |
+| `eventos.queueDepth` / `maxQueueDepth` / `queueCapacity` | 0 / 3 / 64 |
+| `projeteis[0].projectile` / `projectileType` | `ExampleWaveBolt` / 1136 |
+| `projeteis[0].callbackClass` | `ExampleWaveBoltLiveEvents` |
+| `projeteis[0].enabled` | `true` |
+| `projeteis[0].queued` / `processed` | **477 / 477** |
+| `projeteis[0].hits` / `kills` | 318 / 159 |
+| `projeteis[0].failures` / `lastResult` / `error` | 0 / 2171 / vazio |
+| FPS | 60, observado e informado pelo usuário |
+
+A contagem secundária de **477** está **incluída** na contagem global de **559**; não somar as duas. O `lastResult=2171` é compatível com a execução do método gerenciado de `ExampleWaveBoltLiveEvents`. O resultado confirma que a ausência do protótipo NativeAOT no APK não impediu o funcionamento do Roslyn + MonoVM, das curvas e dos dois fluxos de callback neste teste.
+
+### Observação não bloqueante: logs do editor
+
+O usuário notou que mensagens de inicialização C# aparecem separadas ou fora de agrupamento no histórico do editor. Isso **pode** decorrer das diferentes etapas assíncronas de inicialização, mas as capturas não comprovam a causa nem evidenciam carregamento incorreto de conteúdos. **Decisão:** não alterar logs, ordem de inicialização ou código funcional na .74. Classificar apenas como melhoria visual opcional, se necessário no futuro.
+
+### Limites
+
+Não há validação nesta rodada para reentrada em vários mundos, desligamento/recarregamento de mods, compatibilidade externa de `libmod.so`, múltiplos mods C# simultâneos, multiplayer ou benchmark rigoroso de RSS/frametime. A .74 torna-se **baseline estável para a funcionalidade testada**, mantendo a .73 disponível para rollback.
 
 ## Teste da .74 em Android
 
