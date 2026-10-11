@@ -1,6 +1,12 @@
 # Estado real do desenvolvimento
 
-## .75 — Multi-Mod Managed: build aprovado, teste Android pendente
+## .75 — Multi-Mod Android APROVADO no cenário observado (11/10/2026)
+
+O usuário testou **dois mods C# simultâneos** com **100 inimigos durante Blood Moon**, informando **60 FPS sem quedas observadas**. Prints do editor: `sourceModCount=2`, MonoVM pronto, ambos os mods `ready`; fila global **256/256**, 142 hits, 114 kills, `dropped=0`, `lockDrops=0`, `failures=0`, fila máxima 3/64. `ExampleWaveBolt`: 92/92, 60 hits e 32 kills. `SecondBolt`, de outro UID/assembly: **100/100**, 50 hits e 50 kills, `lastResult=4074`, zero falhas e perdas. Os vínculos adicionais estão incluídos no total global. FPS é **relato do testador**, não um trace; pausa/descarregamento, sessões prolongadas e multiplayer não foram validados.
+
+**Decisão:** .75 é a nova referência funcional para dois mods C# nesse cenário, com .74 mantida para rollback. [Relatório detalhado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multimod-managed-v75-experiment/docs/csharp-multimod-v75.md).
+
+## .75 — Histórico da compilação anterior ao teste Android
 
 [GitHub Actions #38151335551](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38151335551) **success**. APK v0.1.10.16.75 e dois mods de teste publicados: `ExampleModCSharp 0.1.9` e `SecondExampleModCSharp 0.1.0` (UID separado). O novo dispatcher vincula eventos de duas assemblies/UIDs sem duplicar o worker MonoVM ou alterar a FIFO64; o smoke Roslyn verificou métodos `BunnyLiveEvents` de mesmo nome com estado independente nas assemblies. **Ainda não há teste real em Android.** Pausa por mod é desarme de callbacks, não remoção da assembly. A .74 segue estável. [Procedimento técnico](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multimod-managed-v75-experiment/docs/csharp-multimod-v75.md) · [Release de teste](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.75-multimod-managed).
 
