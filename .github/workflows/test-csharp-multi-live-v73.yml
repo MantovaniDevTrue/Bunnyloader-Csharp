@@ -1,0 +1,63 @@
+name: Verify Bunny CSharp v73 Multi Live Events
+
+on:
+  push:
+    branches:
+      - csharp-multi-live-projectiles-v73-experiment
+    paths:
+      - ".github/workflows/test-csharp-multi-live-v73.yml"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/**"
+      - "Split/Bunny-Loader/samples/ExampleModCSharp/**"
+      - "Split/Bunny-Loader/tests/managed_multi_live_ingress_smoke.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**"
+      - "Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Verify CSharp example source package
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/samples/ExampleModCSharp/Tests/check_examples.py
+      - name: Exercise FIFO64 with multiple projectiles
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -I"$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_multi_live_ingress_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-multi-live-test"
+          "$RUNNER_TEMP/managed-multi-live-test"
+      - name: Build Roslyn compiler and Mono framework
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          dotnet build "$ROOT/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" -c Release --nologo
+          dotnet build "$ROOT/experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" -c Release --nologo
+          mkdir -p "$RUNNER_TEMP/managed"
+          curl -fLsS --retry 3 \
+            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.android-arm64/8.0.23/microsoft.netcore.app.runtime.mono.android-arm64.8.0.23.nupkg" \
+            -o "$RUNNER_TEMP/mono.nupkg"
+          python3 "$ROOT/tools/stage_mono_runtime.py" \
+            "$RUNNER_TEMP/mono.nupkg" "$RUNNER_TEMP/native" "$RUNNER_TEMP/managed"
+          cp "$ROOT/experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll" \
+            "$RUNNER_TEMP/managed/"
+      - name: Verify independent callback classes through Roslyn
+        run: |
+          set -euo pipefail
+          dotnet run --project \
+            Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj \
+            -c Release -- \
+            "Split/Bunny-Loader/samples/SourceCSharpMod" "$RUNNER_TEMP/managed"
