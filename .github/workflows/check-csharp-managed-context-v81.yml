@@ -36,8 +36,7 @@ jobs:
           assert "queueManagedLiveHit(int projectileType, int damage)" in runtime
           assert "queueManagedLiveKill(int projectileType, int damage)" in runtime
           assert "findMethod(" in runtime
-          assert '"OnHitNPC", 2' in runtime
-          assert '"OnKill", 2' in runtime
+          assert 'isKill ? "OnKill" : "OnHitNPC", 2' in runtime
           assert "queueManagedLiveHit(type, damage);" in hit
           assert "queueManagedLiveKill(type, damage);" in kill
           print("CSHARP_V81_EVENT_CONTEXT_FOUNDATION=PASS")
