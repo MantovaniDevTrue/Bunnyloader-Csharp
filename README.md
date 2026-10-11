@@ -4,18 +4,20 @@
 
 > **Projeto independente de pesquisa e desenvolvimento.** Esta extensão **não é o Bunny Loader oficial**, não é uma implementação do tModLoader e ainda não oferece compatibilidade geral com mods de PC. O projeto original do Jonata continua sendo a referência do loader; os componentes de C# são experimentais.
 
-## Estado atual — 10/10/2026
+## Estado atual — 11/10/2026
 
-| Etapa | Situação comprovada |
-| --- | --- |
-| MonoVM ARM64 no Android | Testes reais confirmados na **v0.1.10.16.58**, incluindo execução gerenciada com resultado `42` e estabilização da thread persistente |
-| Compilação de arquivos `.cs` com Roslyn | Fluxo experimental já implementado e exercitado no ExampleModCSharp; **não** significa suporte irrestrito a qualquer mod C# |
-| Conteúdo C# (itens, projéteis e exemplos) | Integrações e testes específicos já funcionaram; parte do comportamento continua mediada por políticas nativas/precalculadas |
-| `OnHitNPC` gerenciado na versão **.59** | Relato documentado: **10/10 eventos reais**, zero falhas/perdas |
-| `OnHitNPC` e `OnKill` automáticos na **.62** | **Confirmados no Android**: 512 callbacks gerenciados (187 hits, 325 kills), 0 falhas; jogo continuou funcional após o limite de segurança |
-| Compatibilidade universal, AI C# por frame, multiplayer | **Não comprovados/não liberados** |
+**Baseline funcional Android: [v0.1.10.16.80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.80-projectile-profiler).** Release/CI aprovados e seis verificações de gameplay relatadas como concluídas, com **dois mods C#, três armas, pausa/retomada seletiva, reentrada e carregamento automático**; 60 FPS visual (uma oscilação a 59) no teste instrumentado. O profiler mediu 85/85 callbacks por arma, zero falhas, descartes ou lockDrops. A source branch da APK comprovada é [csharp-android-validated-v80](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-android-validated-v80), ancorada no commit `ae787455f3f7adada861d211809cf8bf60c99438`. **.79.1 segue rollback**. [Relatório de validação](docs/csharp-v80-android-validation.md).
 
-**Baseline de combate validada:** [v0.1.10.16.63](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.63), 1.156 callbacks de combate real, 0 falhas, 60 FPS relatados, 12 descartes de contenção. **Benchmark MonoVM validado:** [v0.1.10.16.64](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.64), 25.000 callbacks C# reais, 0 falhas ou descartes, 12,336 segundos. **.65 validada no Android:** perfil de gameplay de 15 segundos (907 atualizações, ~60,5 Hz de `Main.DoUpdate`, sem intervalos acima de 25 ms), 30 callbacks gerenciados amostrados, fila média 50,2 µs, execução média 195,8 µs, 0 descartes/falhas e gameplay fluido confirmado. **.66 no Android:** QuickJS executou 1 milhão de iterações em 341 ms, mas a procura do método C# falhou e não há comparação válida. **.67 no Android:** QuickJS concluiu 1 milhão de iterações em ~338 ms, mas o processo do jogo não encontrou a nova DLL de benchmark; MonoVM não executou esse teste. **.68 validada no Android:** a DLL dedicada foi encontrada e a comparação matemática QuickJS × MonoVM terminou com `matched`, `passed=true` e checksum idêntico `1336190628`. Para 1 milhão de iterações, QuickJS levou **445,536 ms** e MonoVM **6,040 ms**, razão de **73,764× nessa única execução do núcleo matemático** — isso não representa comparação de FPS de jogo ou superioridade geral sobre QuickJS. [Relatório .68](docs/vm-parity-v68.md).
+| Subsistema | Confirmação real | Limite atual |
+| --- | --- | --- |
+| Roslyn + MonoVM ARM64 | Worker e chamada gerenciada verificados (`result=42`); mods C# carregados automaticamente | APIs parciais; compilação de fontes condicionada à integração implementada |
+| Armas/projéteis | Dois mods, três tipos de projéteis, curvas e callbacks reais | Não há cobertura geral de todos os métodos de C# ou dos mods de PC |
+| OnHitNPC/OnKill | Fila de eventos assíncrona com 85/85 amostras, zero perdas/falhas no profiler .80 | Capacidade FIFO64 e teto experimental agregado de 25.000 eventos |
+| Ciclo de vida | Pausa e retomada de callbacks do segundo mod; save/exit/reentry e rebind automáticos | Não é hot-unload real de assemblies ou conteúdo |
+| Desempenho | FPS relatado estável e profiler por projétil sob demanda | Sem garantias de FPS em todas as cenas, memória ou multiplayer |
+| QuickJS × MonoVM | Kernel matemático pareado testado na .68 com checksum idêntico | Não extrapolar para performance de mods em gameplay |
+
+**Limites:** multiplayer não validado, sem compatibilidade tModLoader, unload gerenciado seguro ainda não disponível, e não há prova de ausência de vazamento em uso prolongado. Logs históricos de encerramento não devem ser confundidos com erros da sessão atual.
 
 ## Navegação do repositório
 
@@ -29,17 +31,11 @@
 | [`.github/workflows/`](.github/workflows/) | Builds e verificações do CI |
 | [`Split/build/`](Split/build/) e [`Split/mod/`](Split/mod/) | Scripts e artefatos históricos do workspace Split, mantidos separados do suporte C# |
 
-### Fluxo atual
+### Fluxo e teste atual
 
-`arquivos .cs` → `compilador Roslyn (worker isolado)` → `assembly gerenciado` → `MonoVM` → `ponte C++/Terraria Android`.
+`arquivos .cs` → `compilador Roslyn em worker isolado` → `assembly gerenciado` → `MonoVM no processo do jogo` → `ponte nativa Terraria Android`. O loader ativa automaticamente os vínculos de callbacks após reconhecer o mundo e o jogador ativos. A fila FIFO64 evita bloquear o frame aguardando a lógica C#; IA de projétil também utiliza curvas pré-calculadas quando apropriado.
 
-Na .62, o carregamento automático detecta um mundo carregado e um jogador ativo em singleplayer antes de ativar os callbacks de convenção do **ExampleModCSharp 0.1.7**. O teste atual vincula no máximo **um tipo de projétil de um mod por processo**. Os eventos são colocados em fila para execução no worker Mono, sem bloquear o frame do jogo. A IA por frame segue caminhos nativos/precalculados em vez de chamar Mono a cada frame.
-
-Consulte a [arquitetura e os limites](docs/ARQUITETURA.md) antes de adicionar código.
-
-## Teste atual
-
-O [teste real da **.62**](docs/mono-auto-live-world-signal-v62.md) confirma a inicialização MonoVM e os dois callbacks automáticos. A [versão .60](docs/TESTE-ANDROID-v60.md) permanece documentada historicamente como teste anterior; a .59 exigia ativação manual. Próxima etapa: medir FPS/memória e rever com segurança o limite de 512 e a capacidade da fila.
+O teste mais recente é a [validação Android da .80](docs/csharp-v80-android-validation.md). O [STATUS](docs/STATUS.md) separa o que está disponível, o que o CI comprova e o que foi observado no dispositivo. Para ampliar a API, usar os fontes do loader e do ExampleModBunny, não reutilizar diretamente APIs do tModLoader.
 
 ## Créditos e origem
 
