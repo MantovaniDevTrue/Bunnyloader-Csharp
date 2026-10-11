@@ -12,6 +12,7 @@ A revisão automática valida contratos, sintaxe, build e mock. **Somente jogar 
 
 ## Teste real
 
+- [Validação Android v0.1.10.16.80](../docs/csharp-v80-android-validation.md) — 6 verificações concluídas e baseline funcional.
 - [Roteiro Android v0.1.10.16.60](../docs/TESTE-ANDROID-v60.md).
 - Enviar estado `mono`, `live`, `auto`, FPS observado e relatórios de encerramento.
 - Não marcar sucesso Android apenas porque a APK foi criada ou os testes mock passaram.
