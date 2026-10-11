@@ -18,7 +18,9 @@
 
 **Interpretação:** os picos isolados elevam as médias e podem fazer média > P90. Amostras pequenas e cargas diferentes não permitem atribuir a diferença apenas ao código C#.
 
-**Estado:** o profiler individual da .80 e os callbacks das três armas estão validados neste teste; ainda faltam FPS visual, desempenho com profiler desligado, pausa/retomada, reentrada e Blood Moon prolongada na .80. **.79.1 segue baseline e rollback.**
+**FPS visual confirmado pelo usuário:** 60 FPS durante a medição, com apenas uma queda momentânea para 59 FPS. Uma oscilação isolada de 1 FPS não é evidência de regressão.
+
+**Estado:** o profiler individual da .80, os callbacks das três armas e o FPS visual durante a janela instrumentada estão validados neste teste; ainda faltam desempenho com profiler desligado, pausa/retomada, reentrada e Blood Moon prolongada na .80. **.79.1 segue baseline e rollback.**
 ## Finalidade
 
 O profiler `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()` já mediam uma janela de aproximadamente 15 segundos no total do C#. A .80 adiciona ao mesmo retorno o vetor `projectiles`, com as medições de cada registro de callback independentemente (incluindo as três armas de dois mods). Nenhum comando novo é obrigatório para obter esses dados.
