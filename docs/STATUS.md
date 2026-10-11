@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## Teste Android da .61 — bloqueio de detecção de mundo
+
+No aparelho Xiaomi Android 14 (relatório de 10/10/2026, 21:57), o log confirmou que ExampleBolt foi registrado como tipo 1136 e que a curva C# e as políticas OnHitNPC/OnKill foram instaladas. Entretanto, apareceu `Main.get_gameMenu indisponivel; aguardando estado do mundo`: a ponte gerenciada automática não foi armada. O `result=42` preservado no relatório é histórico. A v.62 substitui a dependência obrigatória do getter por um sinal controlado de mundo carregado + jogador ativo em três quadros, mantendo o gate singleplayer. A `.62` ainda requer teste real. [Notas](mono-auto-live-world-signal-v62.md).
+
 ## Diagnóstico posterior — a .60 compilou e aplicou, mas não ativou o MonoVM
 
 No teste das 21:28 (BRT), o worker concluiu `state=finished`, `phase=compile-verified`, `assemblyReady=1`, `executedTypes=7`; o loader registrou `auto.phase=ready`, `applied=true`, `curves=1/1`, `hitPolicies=1/1`, `killPolicies=1/1`, `netMode=0`, **`gameMenu=-1`**. O processo do jogo permaneceu `mono=idle` e `live=idle`.

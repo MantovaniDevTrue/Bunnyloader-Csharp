@@ -19,9 +19,12 @@ struct AutoSourceStatus {
     int enabledKills = 0;
     int netMode = -1;
     int gameMenu = -1;
+    bool worldReady = false;
 };
 
 void startAutoSourceRuntime();
+void noteAutoWorldTilesLoaded();
+void noteAutoGameUpdate();
 std::vector<AutoSourceStatus> autoSourceStatuses();
 
 }

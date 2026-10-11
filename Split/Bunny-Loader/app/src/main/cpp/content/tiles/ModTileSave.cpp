@@ -8,6 +8,7 @@
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/TileAccess.h"
 #include "content/walls/ModWalls.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -686,6 +687,7 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
                 "%d com algo construido no lugar", restored, kept.size(), builtOver);
     }
     restoreModWalls(path, world ? &t : nullptr);
+    if (world) bl::csharp::noteAutoWorldTilesLoaded();
 }
 
 } // namespace

@@ -38,6 +38,9 @@ constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49";
 std::mutex g_lock;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
+std::atomic<bool> g_worldTilesLoaded{false};
+std::atomic<bool> g_worldSessionReady{false};
+std::atomic<int> g_worldReadyFrames{0};
 
 struct Curve {
     std::string modId;
@@ -355,7 +358,61 @@ bool parseCombat(const std::string& id, const std::string& input,
 struct ActivationContext {
     int netMode = -1;
     int gameMenu = -1;
+    bool worldReady = false;
 };
+
+bool worldPlayerReady() {
+    struct Refs {
+        bool initialized = false;
+        FieldInfo* world = nullptr;
+        FieldInfo* players = nullptr;
+        FieldInfo* netMode = nullptr;
+        const MethodInfo* myPlayer = nullptr;
+        int32_t active = -1;
+    };
+    static Refs refs;
+    auto& api = il2cpp::api();
+    if (!refs.initialized) {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
+        refs.world = main ? il2cpp::findField(main, "ActiveWorldFileData") : nullptr;
+        refs.players = main ? il2cpp::findField(main, "player") : nullptr;
+        refs.netMode = main ? il2cpp::findField(main, "netMode") : nullptr;
+        refs.myPlayer = main ? api.class_get_method_from_name(main, "get_myPlayer", 0) : nullptr;
+        if (player) {
+            FieldInfo* active = il2cpp::findField(player, "active");
+            if (active) refs.active = static_cast<int32_t>(api.field_get_offset(active));
+        }
+        refs.initialized = true;
+        if (!refs.world || !refs.players || !refs.netMode ||
+            !refs.myPlayer || refs.active < 0)
+            BL_WARN("csharp auto live: referencias de mundo/jogador incompletas");
+    }
+    if (!refs.world || !refs.players || !refs.netMode ||
+        !refs.myPlayer || refs.active < 0)
+        return false;
+    int mode = -1;
+    api.field_static_get_value(refs.netMode, &mode);
+    if (mode != 0) return false;
+    Il2CppObject* world = nullptr;
+    api.field_static_get_value(refs.world, &world);
+    if (!world) return false;
+    Il2CppArray* players = nullptr;
+    api.field_static_get_value(refs.players, &players);
+    if (!players) return false;
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* boxed = api.runtime_invoke(
+        refs.myPlayer, nullptr, nullptr, &exception);
+    if (exception || !boxed) return false;
+    const int index = *reinterpret_cast<int*>(
+        reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
+    if (index < 0 || static_cast<uintptr_t>(index) >= players->length)
+        return false;
+    Il2CppObject* selected = static_cast<Il2CppObject**>(
+        arrayData(players))[index];
+    return selected && bl::runtime::field<uint8_t>(
+        selected, refs.active) != 0;
+}
 
 ActivationContext readActivationContext() {
     ActivationContext result;
@@ -384,6 +441,7 @@ ActivationContext readActivationContext() {
         api.field_static_get_value(menu, &inMenu);
         result.gameMenu = inMenu ? 1 : 0;
     }
+    result.worldReady = g_worldSessionReady.load(std::memory_order_acquire);
     return result;
 }
 
@@ -394,7 +452,15 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
     const std::string probe = work + "BunnyManagedProbe.dll";
     for (int attempt = 0; attempt < 14400; ++attempt) {
         const ActivationContext context = readActivationContext();
-        if (context.netMode == 0 && context.gameMenu == 0) {
+        if (context.netMode == 0 &&
+            (context.gameMenu == 0 ||
+             (context.gameMenu < 0 && context.worldReady))) {
+            {
+                std::lock_guard<std::mutex> guard(g_lock);
+                for (auto& state : g_statuses)
+                    if (state.modId == modId)
+                        state.worldReady = context.worldReady;
+            }
             if (managedLiveHitStatus().enabled) return;
             ManagedRuntimeStatus mono = managedRuntimeStatus();
             if (!mono.domainInitialized || !mono.methodExecuted)
@@ -416,7 +482,7 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
         }
         if (context.netMode > 0 && context.gameMenu == 0) return;
         if (context.netMode == 0 && context.gameMenu < 0 && attempt == 10)
-            BL_WARN("csharp auto live %s: Main.get_gameMenu indisponivel; aguardando estado do mundo",
+            BL_WARN("csharp auto live %s: Main.gameMenu indisponivel; aguardando evento de mundo e jogador ativo",
                     modId.c_str());
         std::this_thread::sleep_for(1000ms);
     }
@@ -590,6 +656,26 @@ void run() {
     }
 }
 
+}
+
+void noteAutoWorldTilesLoaded() {
+    g_worldSessionReady.store(false, std::memory_order_release);
+    g_worldReadyFrames.store(0, std::memory_order_relaxed);
+    g_worldTilesLoaded.store(true, std::memory_order_release);
+}
+
+void noteAutoGameUpdate() {
+    if (!g_worldTilesLoaded.load(std::memory_order_acquire) ||
+        g_worldSessionReady.load(std::memory_order_acquire))
+        return;
+    if (!worldPlayerReady()) {
+        g_worldReadyFrames.store(0, std::memory_order_relaxed);
+        return;
+    }
+    if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
+        g_worldSessionReady.store(true, std::memory_order_release);
+        BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
+    }
 }
 
 void startAutoSourceRuntime() {

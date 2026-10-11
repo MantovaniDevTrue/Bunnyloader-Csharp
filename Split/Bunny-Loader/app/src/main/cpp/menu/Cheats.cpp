@@ -4,6 +4,7 @@
 #include "boot/FramePacing.h"
 #include "boot/QuickStart.h"
 #include "menu/Cheats.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -838,6 +839,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     runSelftestOnce();
     allowDeprecatedItems();
     updateInWorld();
+    bl::csharp::noteAutoGameUpdate();
     readNamesSlice();
     tickPowers();
     tickModItems();
