@@ -25,6 +25,26 @@ ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
 ManagedRuntimeStatus probeManagedRuntimePinnedThread(
     const std::string& assemblyPath, const std::string& stage = "PINNED_MONO");
 long managedRuntimePinnedThreadTid();
+
+struct ManagedMemoryStatus {
+    bool available = false;
+    bool monoReady = false;
+    int64_t rssKb = 0;
+    int64_t peakRssKb = 0;
+    int64_t virtualKb = 0;
+    int64_t dataKb = 0;
+    int64_t swapKb = 0;
+    int threads = 0;
+    int64_t baselineRssKb = 0;
+    int64_t rssDeltaKb = 0;
+    int cachedCallbackEntries = 0;
+    int cachedAssemblyPaths = 0;
+    int boundProjectileTypes = 0;
+    int activeProjectileTypes = 0;
+    long workerTid = 0;
+};
+
+ManagedMemoryStatus managedMemoryStatus(bool resetBaseline = false);
 ManagedRuntimeStatus probeManagedCallbacks(const std::string& assemblyPath, int count);
 bool invokeManagedProjectileAI(int tick, int state, int* nextState);
 
