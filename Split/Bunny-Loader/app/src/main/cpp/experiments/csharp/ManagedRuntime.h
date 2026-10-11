@@ -100,10 +100,17 @@ struct ManagedLiveProjectileStatus {
     int hits = 0;
     int kills = 0;
     int failures = 0;
+    int dropped = 0;
     int lastResult = 0;
     std::string error;
 };
 
+bool enableManagedLiveMod(const std::string& modId,
+                          const std::string& assemblyPath,
+                          int projectileType,
+                          const std::string& projectile,
+                          std::string* error);
+bool pauseManagedLiveMod(const std::string& modId, std::string* error);
 bool enableManagedLiveProjectile(const std::string& modId,
                                 const std::string& assemblyPath,
                                 int projectileType,
