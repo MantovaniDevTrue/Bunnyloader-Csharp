@@ -39,6 +39,14 @@ struct ManagedMemoryStatus {
     int64_t rssDeltaKb = 0;
     int cachedCallbackEntries = 0;
     int cachedAssemblyPaths = 0;
+    bool monoGcStatsAvailable = false;
+    int64_t monoGcHeapBytes = 0;
+    int64_t monoGcUsedBytes = 0;
+    uint64_t liveMethodCacheHits = 0;
+    uint64_t liveMethodCacheMisses = 0;
+    uint64_t liveAssemblyOpenAttempts = 0;
+    uint64_t liveAssemblyOpenSuccesses = 0;
+    int distinctLiveOpenedAssemblyPaths = 0;
     int boundProjectileTypes = 0;
     int activeProjectileTypes = 0;
     long workerTid = 0;
