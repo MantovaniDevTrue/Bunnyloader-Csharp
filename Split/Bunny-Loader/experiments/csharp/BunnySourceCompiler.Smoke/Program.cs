@@ -290,6 +290,24 @@ try
         npcLeftLowLife != -18 || npcClose != 0)
         throw new InvalidOperationException("Live NPC AI did not react to live state: " +
             npcRight + ", " + npcRightNext + ", " + npcLeftLowLife + ", " + npcClose);
+    var secondaryType = liveAssembly.GetType("BunnyLoader.Source.ExampleWaveBoltLiveEvents")
+        ?? throw new InvalidOperationException("Secondary C# projectile callback class missing");
+    var secondaryHit = secondaryType.GetMethod("OnHitNPC",
+        BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("Second projectile OnHitNPC missing");
+    var secondaryKill = secondaryType.GetMethod("OnKill",
+        BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("Second projectile OnKill missing");
+    int secondaryFirst = (int)(secondaryHit.Invoke(null, new object[] { 5, 12 })
+        ?? throw new InvalidOperationException("Second projectile OnHitNPC returned null"));
+    int secondaryNext = (int)(secondaryHit.Invoke(null, new object[] { 5, 12 })
+        ?? throw new InvalidOperationException("Second projectile OnHitNPC returned null"));
+    int secondaryKillResult = (int)(secondaryKill.Invoke(null, new object[] { 5, 12 })
+        ?? throw new InvalidOperationException("Second projectile OnKill returned null"));
+    if (secondaryFirst != 1018 || secondaryNext != 1019 ||
+        secondaryKillResult != 2018)
+        throw new InvalidOperationException("Secondary projectile managed state or results invalid");
+    Console.WriteLine("BUNNY_CSHARP_PER_PROJECTILE_LIVE_CALLBACKS=PASS");
     Console.WriteLine("BUNNY_CSHARP_LIVE_NPC_AI_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS");
