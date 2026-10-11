@@ -1,6 +1,28 @@
 # Bunny Loader C# .79.1 — endurecimento do ciclo de vida
 
-**Origem:** integração isolada das correções técnicas do [PR #15](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/15) do Codex sobre a `.79` validada no Android. Branch `csharp-managed-lifecycle-v79-1-experiment`. A `.79` permanece como rollback. **CI e APK assinada aprovados:** [workflow #38166213994](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38166213994) terminou com **success**. [Release .79.1](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79.1-lifecycle-hardening), versionCode 105, APK 223296221 bytes. **Ainda falta teste de gameplay/FPS no Android**.
+**Origem:** integração isolada das correções técnicas do [PR #15](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/15) do Codex sobre a `.79` validada no Android. Branch `csharp-managed-lifecycle-v79-1-experiment`. A `.79` permanece como rollback. **CI e APK assinada aprovados:** [workflow #38166213994](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38166213994) terminou com **success**. [Release .79.1](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79.1-lifecycle-hardening), versionCode 105, APK 223296221 bytes. **Validada em Android com 3 armas, 2 mods C#, Blood Moon (~100 inimigos), pausa/retomada, reentrada em mundos e 60 FPS relatados (resultados abaixo).**
+
+
+## Validação Android .79.1 com três armas — 11/10/2026
+
+**Resultado:** usuário testou as **três armas / três tipos de projéteis** dos **dois mods C#** durante Blood Moon com aproximadamente **100 inimigos**, observando **60 FPS**. Fez análise com ambos ativos, pausou o segundo mod, disparou durante a pausa, analisou o estado, reativou o mod, disparou novamente e conferiu o estado; também salvou, saiu e retornou ao mundo. Dois mods em `ready` e callbacks em funcionamento após a reentrada. **A avaliação inicial de que faltava testar as outras armas estava errada; todos os três foram usados.**
+
+| Evidência dos prints | Antes / durante / após |
+| --- | --- |
+| Fila principal (`projectileType=1137`) | `queued=processed`: 340/340 → 563/563 → 885/885 |
+| `hitProcessed / killProcessed` fila principal | 187/153 → 322/241 → 504/381 |
+| Fila, `lockDrops`, falhas | `queueDepth=0`, `dropped=0`, `lockDrops=0`, `failures=0`; pico de fila 2–3 de capacidade 64 |
+| `ExampleWaveBolt` (tipo 1136, primeiro mod) | 137/137 → 286/286 → 455/455 eventos; no final 295 hits + 160 kills; zero perdas/falhas |
+| `SecondBolt` (tipo 1138, segundo mod) | 141/141 antes da pausa, `enabled=false` enquanto pausado, **205/205 após reativação** (97 hits, 108 kills), `enabled=true`; sem falhas ou descartes |
+| Projéteis ativos | 3 tipos ativos → **2 durante a pausa** → **3 após retomada** |
+| Cache de métodos | hits 1702 → 1925 → 2247, misses **6** constantes |
+| Cache de assemblies | caminhos **2**, `cachedCallbackEntries=3`, `liveAssemblyOpenAttempts=6`, `liveAssemblyOpenSuccesses=6`, estáveis nos prints |
+| Memória gerenciada MonoVM | `monoGcStatsAvailable=true`, heap 21495808 bytes, usados 4199752 bytes, constantes nas capturas |
+| Ciclo de mundo final | `worldLoads=3`, `worldExits=2`, `epoch=5`, `rebindSchedules=3`, `configuredBindings=2`, `worldReady=true` |
+
+Os snapshots de RSS variam consideravelmente (e.g., 324224, 331136 e 556140 KiB) acompanhados de swap variável, enquanto os números da heap gerenciada se mantêm estáveis; RSS/swap **não** indicam por si um vazamento, mas as amostras também não comprovam ausência de leaks de longo prazo. `mods[].phase=ready` não se confunde com a habilitação do callback: durante a pausa, `SecondBolt.enabled=false` foi intencional, e a contagem de tipos ativos caiu para 2. Após retomar, `SecondBolt.enabled=true` e os eventos aumentaram de 141 para 205. A sequência testa o funcionamento do ciclo de vida e da entrega em uso normal, porém **não injeta falhas C# intencionais nem produz necessariamente a condição de corrida rara**; a suíte de regressão do Codex cobre essas situações em ambiente controlado.
+
+**Decisão:** aprovar a **.79.1 como nova referência funcional validada em Android para os cenários testados**, preservando a .79 como rollback. Nenhum motivo para repetir teste com três armas, Blood Moon ou pausa/retomada apenas por causa da análise anterior.
 
 ## Mudanças no código
 
