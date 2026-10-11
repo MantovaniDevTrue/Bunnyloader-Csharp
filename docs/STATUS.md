@@ -1,5 +1,11 @@
 # Estado real do desenvolvimento
 
+## .68 — instalação verificada da DLL no processo do jogo (aguarda Android)
+
+A .67 compilou no GitHub com o DLL válido, mas no teste Android o comparador não o encontrou: `BunnyVmBenchmark67.dll missing or invalid`. QuickJS executou 1 milhão de iterações em `jsWallUs=338166` µs, checksum `1336190628`; MonoVM permaneceu inicializado (`result=42`), mas não executou o benchmark. **Não há comparação de velocidade válida até agora.**
+
+Análise do código-base: `ManagedProbeService.installManagedFramework()` extrai as assemblies somente quando o serviço/worker é acionado. O processo `:game` chamava o MonoVM usando o arquivo antigo já existente em `filesDir/bunny-csharp`, sem garantir que a nova DLL do APK fosse instalada. A .68 instala/verifica especificamente `BunnyVmBenchmark67.dll` **no início de `GameActivity.onCreate`, antes de iniciar o núcleo nativo**, com SHA-256 do manifesto `assets/managed/framework.sha256`, cópia temporária e verificação final. Evita reinstalações desnecessárias e não mexe no gameplay normal. [Protocolo .68](vm-parity-v68.md).
+
 ## .67 — corrigindo a busca do método MonoVM na comparação QuickJS × C# (aguarda Android)
 
 O teste real da .66 executou 1.000.000 de iterações em QuickJS (`jsWallUs=341098`, `jsThreadCpuUs=338308`, checksum `1336190628`), mas o MonoVM não conseguiu encontrar o método `BunnyManagedProbe.Probe.BenchmarkMath(int,int)`. O próprio MonoVM permaneceu inicializado e verificou `result=42`. **A comparação da .66 foi inconclusiva**; não houve medição de desempenho C#.

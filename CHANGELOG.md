@@ -2,7 +2,13 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
-## 0.1.10.16.67 — correção de assembly para benchmark QuickJS × MonoVM (aguarda Android)
+## 0.1.10.16.68 — instalar DLL de benchmark na abertura do jogo (aguarda Android)
+- Corrige uma lacuna de instalação da .67: embora o APK e o CI contivessem `BunnyVmBenchmark67.dll`, o processo de jogo não garantia extrair novas DLLs caso o serviço/worker C# não fosse iniciado após atualização.
+- `GameActivity` agora confere SHA-256 do manifesto, copia a DLL apenas quando ausente/desatualizada, valida após instalar e registra o resultado no log. Executa antes do início dos hooks nativos, sem depender de recompilar mods.
+- O teste da .67 falhou na instalação da assembly (`BunnyVmBenchmark67.dll missing or invalid`); comparação MonoVM × QuickJS permanece pendente, sem alegar ganho de desempenho.
+- Sem mudanças na matemática do comparador, nos mods de exemplo, FIFO64, callbacks ou no comportamento de combate validado da .65.
+
+## 0.1.10.16.67 — assembly compilada, mas faltando no processo Android
 - Corrige a procura do método da .66: passa a usar uma assembly versionada `BunnyVmBenchmark67.dll`, `Kernel.Execute(int,int)`, com namespace independente do probe principal.
 - GitHub Actions compila o novo DLL, carrega a assembly resultante por reflexão e **executa 1 milhão de iterações em C#**, exigindo checksum `1336190628`, antes de empacotar o APK e gerar o manifesto SHA-256.
 - Mantém as fórmulas QuickJS/C#, os métodos de gameplay, o ExampleModCSharp 0.1.7 e as medições anteriores; nenhum resultado de velocidade MonoVM foi validado no Android ainda.

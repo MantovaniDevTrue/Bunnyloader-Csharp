@@ -34,4 +34,4 @@ JSON.stringify({
 
 Critérios: `phase="matched"`, `passed=true`, `jsResult===monoResult===1336190628`, `monoWallUs>0` e `monoThreadCpuUs>0`, sem falhas de callbacks. Depois repetir com 500.000 e 2.000.000 iterações para comparar resultados sem confundir aquecimento/CPU com superioridade geral de linguagem.
 
-**Estado:** código implementado, ainda pendente de build e execução Android.
+**Resultado Android da .67:** a compilação do GitHub passou, mas a comparação falhou com `BunnyVmBenchmark67.dll missing or invalid`. QuickJS executou 1.000.000 iterações em `338166` µs, checksum `1336190628`, MonoVM continuou verificado (`result=42`) e não executou o kernel. A .68 corrige a extração durante `GameActivity.onCreate` e ainda precisa de validação Android.
