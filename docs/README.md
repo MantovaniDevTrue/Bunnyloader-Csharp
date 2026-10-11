@@ -5,6 +5,7 @@ Esta pasta reúne a documentação **da extensão experimental C#**, sem substit
 | Documento | Finalidade |
 | --- | --- |
 | [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
+| [Validação Android .80](csharp-v80-android-validation.md) | Seis verificações concluídas, 85 callbacks por três armas, log do MonoVM e persistência; baseline .80 |
 | [Multi-Mod Managed .75](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-multimod-managed-v75-experiment/docs/csharp-multimod-v75.md) | APK CI aprovada, dois pacotes C# independentes; Android ainda pendente |
 | [Verificação Android .73](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/multi-live-projectiles-v73.md) | 985/985 eventos, 879/879 do segundo projétil; falhas e descartes zero, FPS não informado |
 | [Arquitetura .74](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-default-v74-cleanup/docs/csharp-managed-default-v74.md) | MonoVM padrão, NativeAOT legado preservado fora do build principal, teste Android pendente |
