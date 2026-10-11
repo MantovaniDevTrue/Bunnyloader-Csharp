@@ -1,6 +1,27 @@
 # Bunny Loader C# .79 — estatísticas opcionais de heap MonoVM e reutilização de callbacks
 
-**Estado:** [GitHub Actions #38163553681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38163553681) **success**, [APK .79 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79-managed-heap) (versionCode 104, 223.295.337 bytes). **Ainda sem validação Android.** **Referência validada:** .78 (5 entradas, 4 saídas, cache C# estável em 3 entradas/2 caminhos de DLL, 60 FPS relatados e 104/104 eventos na captura). A .78 permanece como rollback.
+**Estado:** [GitHub Actions #38163553681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38163553681) **success**, [APK .79 publicada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.79-managed-heap) (versionCode 104, 223.295.337 bytes). **Android validado para os recursos testados (ver resultados abaixo).** **Referência anterior:** .78 (5 entradas, 4 saídas, cache C# estável em 3 entradas/2 caminhos de DLL, 60 FPS relatados e 104/104 eventos na captura). A .78 permanece como rollback.
+
+## Validação Android .79 — uma arma utilizada (11/10/2026)
+
+O usuário esclareceu que **usou apenas uma arma** durante o teste, a que gera os callbacks de `SecondBolt`. Portanto, é **esperado** que `ExampleWaveBolt` tenha zero eventos e que o cache observado contenha **uma entrada e um caminho de DLL**, embora ambos os mods C# apareçam em `ready`. Isso **não representa falha ou ausência de carregamento do outro mod**.
+
+**Resultado funcional:** o usuário observou **60 FPS em todos os testes**; 3 entradas e 2 saídas do mundo, `world.epoch=5`, `rebindSchedules=3`, dois mods `ready`, `configuredBindings=2`, 3 tipos de projéteis vinculados e ativos e worker TID 11711. Na captura, `SecondBolt` processou **367/367 eventos**, com 176 hits e 191 kills, `dropped=0`, `lockDrops=0`, `failures=0`, pico de fila 2/64 e estado `ready`.
+
+| Telemetria MonoVM | Capturas |
+| --- | --- |
+| `monoGcStatsAvailable` | `true` |
+| `monoGcHeapBytes` | 21495808 (aprox. 20,5 MiB), constante |
+| `monoGcUsedBytes` | 4199632 (aprox. 4,0 MiB), constante |
+| `liveMethodCacheHits` | 641 → 938 → 1305 |
+| `liveMethodCacheMisses` | 2 → 2 → 2 |
+| `liveAssemblyOpenAttempts/Successes` | 2/2, constantes |
+| `cachedCallbackEntries` / `cachedAssemblyPaths` | 1 / 1, esperados para a arma usada |
+| `boundProjectileTypes` / `activeProjectileTypes` | 3 / 3 |
+
+No snapshot de memória da terceira entrada: RSS **350320 KiB**, swap **434856 KiB**. Outras capturas mostram mudanças grandes de RSS e swap por gerência de páginas do Android. O usuário refez `sourceMemoryBaseline()` em momentos diferentes, portanto não devemos interpretar os `rssDeltaKb` como uma série com baseline única. A estabilidade observada da heap **não prova ausência de vazamento de longo prazo**.
+
+**Conclusão:** a .79 foi validada no Android para telemetria gerenciada disponível, reutilização de métodos de **uma arma** entre mundos e processamento sem perda de eventos a 60 FPS. Para comprovar reutilização de callbacks de ambas as DLLs numa mesma sessão, basta disparar também com uma arma do primeiro mod e capturar o status; isso **não é necessário para aceitar o teste atual**. A .78 permanece como fallback. As correções do [PR #15](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/15) ainda não estão incluídas no APK .79 testado.
 
 ## Objetivo da .79
 
@@ -59,4 +80,4 @@ JSON.stringify({
 
 **Critérios:** MonoVM e dois mods prontos, nenhum erro, filas drenadas, callbacks ativos, `lockDrops=0` e FPS estável, sem crescimento contínuo de cache ao alternar mundos. Aumento pontual de memória não demonstra vazamento; comparar tendência com atividade semelhante.
 
-**Ainda não implementado:** unload real de assemblies, GC manual, troca de mods ativos em tempo real, medição completa da memória nativa da MonoVM, multiplayer. A .78 continua sendo a referência estável até validação Android.
+**Ainda não implementado:** unload real de assemblies, GC manual, troca de mods ativos em tempo real, medição completa da memória nativa da MonoVM, multiplayer. A .79 foi validada para os diagnósticos e eventos efetivamente testados; a .78 permanece como fallback.
