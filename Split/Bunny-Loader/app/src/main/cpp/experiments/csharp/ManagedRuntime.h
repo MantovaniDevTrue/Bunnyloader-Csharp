@@ -89,6 +89,27 @@ ManagedLiveHitStatus pauseManagedLiveHit();
 void queueManagedLiveHit(int projectileType, int damage);
 void queueManagedLiveKill(int projectileType, int damage);
 
+struct ManagedLiveBenchmarkStatus {
+    bool started = false;
+    bool running = false;
+    bool finished = false;
+    bool passed = false;
+    int target = 25000;
+    int accepted = 0;
+    int processed = 0;
+    int hits = 0;
+    int kills = 0;
+    int dropped = 0;
+    int maxQueueDepth = 0;
+    int elapsedMs = 0;
+    std::string phase = "idle";
+    std::string error;
+};
+
+bool startManagedLiveBenchmark(std::string* error);
+ManagedLiveBenchmarkStatus managedLiveBenchmarkStatus();
+ManagedLiveBenchmarkStatus stopManagedLiveBenchmark();
+
 struct ManagedSourceCompileResult {
     int result = 0;
     int executedTypes = 0;

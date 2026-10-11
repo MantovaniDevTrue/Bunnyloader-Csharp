@@ -22,6 +22,7 @@
 #include <sys/syscall.h>
 #include <map>
 #include <limits>
+#include <thread>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -239,7 +240,76 @@ ManagedLiveEventQueue g_liveHitQueue;
 bool g_liveHitInFlight = false;
 uint64_t g_liveHitGeneration = 0;
 std::string g_liveHitAssembly;
+ManagedLiveBenchmarkStatus g_liveBenchmark;
+bool g_liveBenchmarkAttempted = false;
+std::chrono::steady_clock::time_point g_liveBenchmarkStart{};
+std::chrono::steady_clock::time_point g_liveBenchmarkEnd{};
 
+constexpr const char* kBenchmarkModId = "68c3115f-62f4-49f2-a56b-388256781d5f";
+constexpr auto kBenchmarkTimeout = std::chrono::seconds(120);
+constexpr auto kBenchmarkInterval = std::chrono::microseconds(400);
+
+void finishBenchmarkErrorLocked(const char* phase, const char* reason) {
+    g_liveBenchmark.running = false;
+    g_liveBenchmark.finished = true;
+    g_liveBenchmark.passed = false;
+    g_liveBenchmark.phase = phase;
+    g_liveBenchmark.error = reason;
+    g_liveBenchmarkEnd = std::chrono::steady_clock::now();
+    g_liveHitType.store(-1, std::memory_order_release);
+    ++g_liveHitGeneration;
+    g_liveHitStatus.dropped += g_liveHitQueue.size();
+    g_liveHitQueue.clear();
+    g_liveHitStatus.enabled = false;
+    g_liveHitStatus.phase = phase;
+}
+
+void* managedBenchmarkProducer(void*) {
+    for (;;) {
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            if (!g_liveBenchmark.running) return nullptr;
+            const auto now = std::chrono::steady_clock::now();
+            if (g_liveHitStatus.failures != 0 ||
+                (!g_liveHitStatus.enabled &&
+                 g_liveHitStatus.phase != "limit-reached")) {
+                finishBenchmarkErrorLocked("benchmark-failed", "Falha ou interrupcao do callback gerenciado");
+                return nullptr;
+            }
+            if (now - g_liveBenchmarkStart > kBenchmarkTimeout) {
+                finishBenchmarkErrorLocked("benchmark-timeout", "Tempo limite de 120 segundos");
+                return nullptr;
+            }
+            if (g_liveHitStatus.queued == ManagedLiveEventQueue::kEventLimit) {
+                g_liveBenchmark.phase = "draining";
+                if (g_liveHitStatus.processed == ManagedLiveEventQueue::kEventLimit &&
+                    g_liveHitStatus.phase == "limit-reached" &&
+                    g_liveHitQueue.empty() && !g_liveHitInFlight &&
+                    g_liveHitStatus.failures == 0) {
+                    g_liveBenchmark.running = false;
+                    g_liveBenchmark.finished = true;
+                    g_liveBenchmark.passed = true;
+                    g_liveBenchmark.phase = "completed";
+                    g_liveBenchmarkEnd = now;
+                    return nullptr;
+                }
+            } else if (g_liveHitQueue.size() < ManagedLiveEventQueue::kCapacity) {
+                const int tick = g_liveHitStatus.queued + 1;
+                if (g_liveHitQueue.push({tick, 18, (tick & 1) == 0})) {
+                    ++g_liveHitStatus.queued;
+                    g_liveHitStatus.maxQueueDepth = std::max(
+                        g_liveHitStatus.maxQueueDepth, g_liveHitQueue.size());
+                    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
+                        g_liveHitStatus.phase = "draining";
+                        g_liveBenchmark.phase = "draining";
+                    }
+                    g_pinnedWake.notify_one();
+                }
+            }
+        }
+        std::this_thread::sleep_for(kBenchmarkInterval);
+    }
+}
 
 void* pinnedMonoWorker(void*) {
     {
@@ -574,7 +644,7 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (!g_pinnedStarted || g_pinnedBusy ||
+    if (!g_pinnedStarted || g_pinnedBusy || g_liveBenchmarkAttempted ||
         g_liveHitInFlight || !g_liveHitQueue.empty()) {
         *error = "MonoVM owner ocupado ou indisponivel";
         return false;
@@ -606,6 +676,10 @@ ManagedLiveHitStatus managedLiveHitStatus() {
 
 ManagedLiveHitStatus pauseManagedLiveHit() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_liveBenchmark.running) {
+        finishBenchmarkErrorLocked("benchmark-cancelled", "Callback pausado pelo usuario");
+        return g_liveHitStatus;
+    }
     g_liveHitType.store(-1, std::memory_order_release);
     ++g_liveHitGeneration;
     g_liveHitStatus.dropped += g_liveHitQueue.size();
@@ -650,6 +724,80 @@ void queueManagedLiveHit(int projectileType, int damage) {
 
 void queueManagedLiveKill(int projectileType, int damage) {
     queueManagedLiveEvent(projectileType, damage, true);
+}
+
+bool startManagedLiveBenchmark(std::string* error) {
+    if (!error) return false;
+    error->clear();
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_liveBenchmarkAttempted) {
+        *error = "Benchmark ja realizado: reinicie Bunny Loader para repetir";
+        return false;
+    }
+    if (!g_pinnedStarted || g_pinnedBusy || g_pinnedPending ||
+        !g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
+        g_liveHitStatus.modId != kBenchmarkModId ||
+        g_liveHitStatus.projectileType < 0 || g_liveHitStatus.failures ||
+        g_liveHitInFlight || !g_liveHitQueue.empty()) {
+        *error = "Aguarde os callbacks automaticos e fila vazia em singleplayer";
+        return false;
+    }
+
+    const ManagedLiveHitStatus previous = g_liveHitStatus;
+    g_liveHitType.store(-1, std::memory_order_release);
+    ++g_liveHitGeneration;
+    g_liveHitStatus = {};
+    g_liveHitStatus.enabled = true;
+    g_liveHitStatus.automatic = true;
+    g_liveHitStatus.modId = previous.modId;
+    g_liveHitStatus.projectileType = previous.projectileType;
+    g_liveHitStatus.phase = "benchmark-armed";
+    g_liveHitLockDrops.store(0, std::memory_order_relaxed);
+    g_liveBenchmark = {};
+    g_liveBenchmark.started = true;
+    g_liveBenchmark.running = true;
+    g_liveBenchmark.phase = "running";
+    g_liveBenchmarkStart = std::chrono::steady_clock::now();
+    pthread_t thread{};
+    const int created = pthread_create(&thread, nullptr, &managedBenchmarkProducer, nullptr);
+    if (created != 0) {
+        g_liveHitStatus = previous;
+        g_liveHitType.store(previous.projectileType, std::memory_order_release);
+        g_liveBenchmark = {};
+        *error = "pthread_create falhou: " + std::to_string(created);
+        return false;
+    }
+    g_liveBenchmarkAttempted = true;
+    pthread_detach(thread);
+    return true;
+}
+
+ManagedLiveBenchmarkStatus managedLiveBenchmarkStatus() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ManagedLiveBenchmarkStatus status = g_liveBenchmark;
+    if (!status.started) return status;
+    status.accepted = g_liveHitStatus.queued;
+    status.processed = g_liveHitStatus.processed;
+    status.hits = g_liveHitStatus.hitProcessed;
+    status.kills = g_liveHitStatus.killProcessed;
+    status.maxQueueDepth = g_liveHitStatus.maxQueueDepth;
+    status.dropped = g_liveHitStatus.dropped +
+        g_liveHitLockDrops.load(std::memory_order_relaxed);
+    const auto end = status.running ?
+        std::chrono::steady_clock::now() : g_liveBenchmarkEnd;
+    status.elapsedMs = static_cast<int>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            end - g_liveBenchmarkStart).count());
+    return status;
+}
+
+ManagedLiveBenchmarkStatus stopManagedLiveBenchmark() {
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (g_liveBenchmark.running)
+            finishBenchmarkErrorLocked("benchmark-cancelled", "Cancelado pelo usuario");
+    }
+    return managedLiveBenchmarkStatus();
 }
 
 long managedRuntimePinnedThreadTid() {
