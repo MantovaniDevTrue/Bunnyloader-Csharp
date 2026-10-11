@@ -90,7 +90,7 @@ JSON.stringify({
 }, null, 2)
 ~~~
 
-**Esperado:** mono=true, runtimeMode=Roslyn+MonoVM, monoVmReady=true, nativeAotPrototypeAvailable=false, auto phase=ready e curves/enabledCurves=2, projeteis[0].projectile=ExampleWaveBolt e queued=processed depois de drenar, erros/drop/lockDrops/failures zerados, e jogo estável perto de 60 FPS. Não assumir resultados antes do teste no dispositivo.
+**Esperado:** mono=true, runtimeMode=Roslyn+MonoVM, monoVmReady=true, nativeAotPrototypeAvailable=false, auto phase=ready e curves/enabledCurves=2, projeteis[0].projectile=ExampleWaveBolt e queued=processed depois de drenar, erros/drop/lockDrops/failures zerados, e jogo estável perto de 60 FPS. Esses resultados foram confirmados no ensaio Android descrito acima; use os critérios novamente para futuras regressões.
 
 **Importante:** a função antiga bl.csharp.available() ainda existe para compatibilidade com scripts antigos do protótipo e retornará false sem libbunnycs.so. Não confundir com indisponibilidade do compilador ou do MonoVM.
 
@@ -99,6 +99,6 @@ JSON.stringify({
 - Manter release .73 e sua APK 223,8 MB disponíveis.
 - Preservar todos os efeitos e parâmetros funcionais do ExampleModCSharp 0.1.9.
 - Se houver erro de carregamento, crash ou perda de callbacks, retornar à .73 e coletar relatório.
-- Promover a .74 à referência somente após validado o gameplay em Android, incluindo medição visual de FPS relatada separadamente.
+- A .74 foi promovida à referência dos recursos validados no Android: 60 FPS relatados, 559/559 eventos, sem perdas ou falhas. Para compatibilidade legada externa, multiplayer, multi-mod e reentrada, a validação continua pendente.
 
 Links: [Release .73](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles) · [Validação .73](multi-live-projectiles-v73.md).
