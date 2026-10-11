@@ -47,6 +47,9 @@ std::atomic<int> g_worldReadyFrames{0};
 std::atomic<int> g_worldMenuPollFrames{0};
 std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
+std::atomic<int> g_worldLoads{0};
+std::atomic<int> g_worldExits{0};
+std::atomic<int> g_worldRebindSchedules{0};
 std::vector<std::pair<std::string, int>> g_pendingLiveSpecs;
 std::string g_pendingLiveWork;
 
@@ -548,6 +551,7 @@ void scheduleAutoLiveBindings() {
         if (g_pendingLiveSpecs.empty() ||
             g_liveBoundEpoch.load(std::memory_order_relaxed) == epoch) return;
         g_liveBoundEpoch.store(epoch, std::memory_order_release);
+        g_worldRebindSchedules.fetch_add(1, std::memory_order_relaxed);
         bindings = g_pendingLiveSpecs;
         work = g_pendingLiveWork;
     }
@@ -738,6 +742,7 @@ void run() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -755,6 +760,7 @@ void noteAutoGameUpdate() {
         const ActivationContext context = readActivationContext();
         if (context.gameMenu != 1 && context.netMode == 0) return;
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
@@ -790,6 +796,21 @@ void startAutoSourceRuntime() {
 std::vector<AutoSourceStatus> autoSourceStatuses() {
     std::lock_guard<std::mutex> lock(g_lock);
     return g_statuses;
+}
+
+AutoWorldLifecycleStatus autoWorldLifecycleStatus() {
+    AutoWorldLifecycleStatus state;
+    state.epoch = g_worldEpoch.load(std::memory_order_acquire);
+    state.worldLoads = g_worldLoads.load(std::memory_order_relaxed);
+    state.worldExits = g_worldExits.load(std::memory_order_relaxed);
+    state.rebindSchedules =
+        g_worldRebindSchedules.load(std::memory_order_relaxed);
+    state.worldReady = g_worldSessionReady.load(std::memory_order_acquire);
+    {
+        std::lock_guard<std::mutex> lock(g_lock);
+        state.configuredBindings = static_cast<int>(g_pendingLiveSpecs.size());
+    }
+    return state;
 }
 
 }
