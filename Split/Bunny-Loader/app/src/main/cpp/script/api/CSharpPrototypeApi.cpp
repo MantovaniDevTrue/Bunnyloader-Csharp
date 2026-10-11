@@ -353,6 +353,32 @@ JSValue makeManagedLivePerfStatus(JSContext* ctx,
     JS_SetPropertyStr(ctx, out, "projectileCurveUpdates", JS_NewInt32(ctx, status.projectileCurveUpdates));
     JS_SetPropertyStr(ctx, out, "projectileVelocityWrites", JS_NewInt32(ctx, status.projectileVelocityWrites));
     JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
+    JSValue projectiles = JS_NewArray(ctx);
+    uint32_t index = 0;
+    for (const auto& p : status.projectiles) {
+        JSValue item = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, item, "modId", JS_NewString(ctx, p.modId.c_str()));
+        JS_SetPropertyStr(ctx, item, "callbackClass",
+                          JS_NewString(ctx, p.callbackClass.c_str()));
+        JS_SetPropertyStr(ctx, item, "projectileType", JS_NewInt32(ctx, p.projectileType));
+        JS_SetPropertyStr(ctx, item, "enabled", JS_NewBool(ctx, p.enabled));
+        JS_SetPropertyStr(ctx, item, "callbacksSampled", JS_NewInt32(ctx, p.callbacksSampled));
+        JS_SetPropertyStr(ctx, item, "hitSamples", JS_NewInt32(ctx, p.hitSamples));
+        JS_SetPropertyStr(ctx, item, "killSamples", JS_NewInt32(ctx, p.killSamples));
+        JS_SetPropertyStr(ctx, item, "failures", JS_NewInt32(ctx, p.failures));
+        JS_SetPropertyStr(ctx, item, "queueWaitSamples", JS_NewInt32(ctx, p.queueWaitSamples));
+        JS_SetPropertyStr(ctx, item, "queueWaitAvgUs", JS_NewFloat64(ctx, p.queueWaitAvgUs));
+        JS_SetPropertyStr(ctx, item, "queueWaitMaxUs", JS_NewInt32(ctx, p.queueWaitMaxUs));
+        JS_SetPropertyStr(ctx, item, "callbackAvgUs", JS_NewFloat64(ctx, p.callbackAvgUs));
+        JS_SetPropertyStr(ctx, item, "callbackMaxUs", JS_NewInt32(ctx, p.callbackMaxUs));
+        JS_SetPropertyStr(ctx, item, "callbackP90Us", JS_NewInt32(ctx, p.callbackP90Us));
+        JS_SetPropertyStr(ctx, item, "callbackCpuAvgUs",
+                          JS_NewFloat64(ctx, p.callbackCpuAvgUs));
+        JS_SetPropertyStr(ctx, item, "callbackCpuMaxUs",
+                          JS_NewInt32(ctx, p.callbackCpuMaxUs));
+        JS_SetPropertyUint32(ctx, projectiles, index++, item);
+    }
+    JS_SetPropertyStr(ctx, out, "projectiles", projectiles);
     return out;
 }
 
