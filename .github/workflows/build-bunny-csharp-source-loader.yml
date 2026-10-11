@@ -379,7 +379,7 @@ jobs:
           assert "resumeManagedLiveMod(" in runtime
           assert "entry.armedType.store(entry.type" in runtime
           api = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
-          assert 'sourceLiveMemorySnapshot' in api
+          assert 'sourceLiveModResume' in api
           assert 'CONFIRM_RESUME_MOD' in api
           print("BUNNY_CSHARP_WORLD_EPOCH_AND_MOD_PAUSE_GUARDS=PASS")
           PY
