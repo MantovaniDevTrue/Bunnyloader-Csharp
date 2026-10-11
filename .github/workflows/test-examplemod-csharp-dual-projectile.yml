@@ -73,12 +73,6 @@ jobs:
             "$RUNNER_TEMP/release/ExampleModCSharp-v0.1.8.bmod"
           cd "$RUNNER_TEMP/release"
           sha256sum ExampleModCSharp-v0.1.8.bmod > ExampleModCSharp-v0.1.8.bmod.sha256
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ExampleModCSharp-v0.1.8-dual-projectile
-          path: |
-            ${{ runner.temp }}/release/ExampleModCSharp-v0.1.8.bmod
-            ${{ runner.temp }}/release/ExampleModCSharp-v0.1.8.bmod.sha256
       - name: Publish prerelease for Android testing
         env:
           GH_TOKEN: ${{ github.token }}
