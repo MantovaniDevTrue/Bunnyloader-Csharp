@@ -267,8 +267,8 @@ jobs:
           assert "g_liveIngress.depth()" in runtime
           assert "ManagedLiveIngressQueue g_liveIngress" in runtime
           assert "std::try_to_lock" not in runtime
-          assert "g_liveHitLockDrops.fetch_add" in runtime
-          assert "status.dropped += status.lockDrops" in runtime
+          assert "g_liveIngress.dropped()" in runtime
+          assert "status.dropped += status.lockDrops + g_liveIngress.dropped()" in runtime
           assert "ManagedLiveEventQueue::kEventLimit" in runtime
           assert 'g_liveHitStatus.phase = "draining"' in runtime
           assert 'g_liveHitStatus.phase = "limit-reached"' in runtime
