@@ -31,7 +31,8 @@ VerifyHash(new string('a', 1000000),
     "CDC76E5C9914FB9281A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0");
 Console.WriteLine("BUNNY_PORTABLE_SHA256_VECTORS=PASS");
 
-if (args.Length != 2) throw new ArgumentException("source-root framework-directory");
+if (args.Length is not (2 or 3))
+    throw new ArgumentException("source-root framework-directory [second-csharp-mod]");
 string sourceRoot = Path.GetFullPath(args[0]);
 string framework = Path.GetFullPath(args[1]);
 string scratch = Path.Combine(Path.GetTempPath(), "bunny-source-roslyn-smoke-" +
@@ -307,6 +308,36 @@ try
     if (secondaryFirst != 1018 || secondaryNext != 1019 ||
         secondaryKillResult != 2018)
         throw new InvalidOperationException("Secondary projectile managed state or results invalid");
+    if (args.Length == 3)
+    {
+        string secondOut = Path.Combine(scratch, "SecondCSharpMod.dll");
+        string secondDiagnostics = Path.Combine(scratch, "second-diagnostics.txt");
+        string secondRoot = Path.GetFullPath(args[2]);
+        if (Compiler.Compile(secondRoot, secondOut, framework, secondDiagnostics) != 1)
+            throw new InvalidOperationException("Second mod Roslyn compilation: " +
+                File.ReadAllText(secondDiagnostics));
+        var secondAssembly = Assembly.Load(File.ReadAllBytes(secondOut));
+        var firstEvents = liveAssembly.GetType("BunnyLoader.Source.BunnyLiveEvents")
+            ?? throw new InvalidOperationException("Primary mod event class missing");
+        var secondEvents = secondAssembly.GetType("BunnyLoader.Source.BunnyLiveEvents")
+            ?? throw new InvalidOperationException("Second mod event class missing");
+        if (firstEvents.Assembly == secondEvents.Assembly)
+            throw new InvalidOperationException("Same callback class name was not isolated by assembly");
+        var hit = secondEvents.GetMethod("OnHitNPC", BindingFlags.Static | BindingFlags.Public)
+            ?? throw new InvalidOperationException("Second mod OnHitNPC not found");
+        var kill = secondEvents.GetMethod("OnKill", BindingFlags.Static | BindingFlags.Public)
+            ?? throw new InvalidOperationException("Second mod OnKill not found");
+        int hit1 = (int)(hit.Invoke(null, new object[] { 1, 17 }) ??
+            throw new InvalidOperationException("Second mod OnHitNPC returned null"));
+        int hit2 = (int)(hit.Invoke(null, new object[] { 1, 17 }) ??
+            throw new InvalidOperationException("Second mod OnHitNPC returned null"));
+        int kill1 = (int)(kill.Invoke(null, new object[] { 1, 17 }) ??
+            throw new InvalidOperationException("Second mod OnKill returned null"));
+        if (hit1 != 3019 || hit2 != 3020 || kill1 != 4019)
+            throw new InvalidOperationException(
+                $"Second mod class state was not isolated: {hit1}, {hit2}, {kill1}");
+        Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_MOD_ASSEMBLIES=PASS");
+    }
     Console.WriteLine("BUNNY_CSHARP_PER_PROJECTILE_LIVE_CALLBACKS=PASS");
     Console.WriteLine("BUNNY_CSHARP_LIVE_NPC_AI_CALLBACK=PASS");
     Console.WriteLine("BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS");
