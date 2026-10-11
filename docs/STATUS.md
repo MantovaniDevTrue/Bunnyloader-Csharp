@@ -1,5 +1,9 @@
 # Estado real do desenvolvimento
 
+## .81 — Fundamento do contexto de hit C# (CI host aprovado; sem APK Android)
+
+Branch [csharp-managed-event-context-v81-experiment](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-managed-event-context-v81-experiment), derivada da `.80` validada. Primeiro commit acrescenta `npcIndex=-1` ao final de `ManagedLiveQueuedEvent`, preservando inicializadores antigos e a semântica das filas; inclui teste C++ de cópia de evento, pausa, invalidade de ticket antigo e retomada. [GitHub Actions #38174850848](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38174850848) **success**. **O hook e o dispatcher ainda não transmitem esse índice ao método C# e `OnHitNPCV2` ainda não existe**: nenhum comportamento novo no Android foi validado ou disponibilizado. A .80 continua baseline funcional e a .79.1 rollback. [Plano e código de teste](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-managed-event-context-v81-experiment/docs/csharp-managed-hit-context-v81.md).
+
 ## .80 — Baseline Android validada em seis verificações (11/10/2026)
 
 **Bunny Loader C# 0.1.10.16.80-csharp-projectile-profiler**: profiler de 15 s por vínculo/projétil (fila, wall/CPU, máximos, P90 aproximado, hits/kills, falhas). [CI #38171225259](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38171225259) concluído com sucesso; [release com APK assinada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.80-projectile-profiler) (versionCode 106). **Fonte da APK testada preservada na branch `csharp-android-validated-v80`, fixada no commit `ae787455f3f7adada861d211809cf8bf60c99438`**. Não sobrescrever `csharp-development`, que divergiu do histórico de builds experimentais.
