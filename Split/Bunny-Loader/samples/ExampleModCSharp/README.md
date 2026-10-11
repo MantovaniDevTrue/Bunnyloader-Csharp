@@ -1,29 +1,37 @@
-# ExampleModCSharp — exemplos reais para Bunny Loader C#
+# ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão do pacote de teste:** `0.1.7` (release do Bunny Loader C# **0.1.10.16.60**).
+**Versão do mod:** 0.1.9. **Base Android funcional:** Bunny Loader C# 0.1.10.16.73. **Build .74:** Managed Default, aguardando teste Android.
 
-Este exemplo existe para **ensinar e testar somente as APIs já implementadas na integração C# experimental do Bunny Loader**, sem copiar código do tModLoader. Ele não prova compatibilidade geral com mods de PC.
+Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
-## Onde estão os arquivos
+## Índice
 
-| Local | Finalidade |
+| Diretório | Finalidade |
 | --- | --- |
-| [`Playable/content/`](Playable/content/) | Fontes C# utilizados para montar o `.bmod` |
-| [`Playable/manifest.json`](Playable/manifest.json) | Manifesto do pacote |
-| [`Playable/content/Content/`](Playable/content/Content/) | Arma, consumível, acessório, buffs, NPC de exemplo |
-| [`Playable/content/Common/`](Playable/content/Common/) | Player e demonstrações gerenciadas/eventos |
-| [`Playable/content/Common/Live/BunnyLiveEvents.cs`](Playable/content/Common/Live/BunnyLiveEvents.cs) | `OnHitNPC` e `OnKill` automáticos da .60 |
-| [`Examples/`](Examples/) | Exemplos históricos e didáticos de versões anteriores |
-| [`Docs/`](Docs/) | Como testar e APIs documentadas |
-| [`Tests/`](Tests/) | Verificações automáticas de pacote/fontes |
-| [`compatibility.json`](compatibility.json) | Registro da cobertura declarada |
+| [Playable](Playable/) | Pacote .bmod com fontes .cs e sprites |
+| [Playable/content/Content/Items/Weapons](Playable/content/Content/Items/Weapons/) | Duas armas C# independentes |
+| [Playable/content/Content/Projectiles](Playable/content/Content/Projectiles/) | Dois projéteis C# independentes |
+| [Playable/content/Common/Live](Playable/content/Common/Live/) | Eventos OnHitNPC/OnKill gerenciados |
+| [Playable/content/Common/Players](Playable/content/Common/Players/) | Exemplo BunnyPlayer |
+| [Playable/content/Content/Buffs](Playable/content/Content/Buffs/) | Buff do exemplo |
+| [Playable/content/Content/NPCs](Playable/content/Content/NPCs/) | NPC de exemplo |
+| [Docs/GettingStarted.md](Docs/GettingStarted.md) | Procedimentos históricos e explicações |
+| [Docs/SupportedAPI.md](Docs/SupportedAPI.md) | API comprovada e limites atuais |
+| [Tests](Tests/) | Testes automáticos e roteiro Android |
+| [Compatibility](Compatibility/) | Cobertura declarada |
+| [Examples](Examples/) | Exemplos históricos, não base principal |
 
-## Como testar a versão atual
+## Como começar
 
-Instale os dois artefatos da [release .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60): APK **.60** e `ExampleModCSharp-v0.1.7.bmod`. Entre em **singleplayer**. Use a ExampleWand para atingir um inimigo e aguarde o projétil se destruir.
+Copie a estrutura de Playable para um novo mod, troque o ID e UID por identificadores únicos e edite apenas as classes BunnyWeapon, BunnyProjectile e assets necessários. Empacote como .bmod com o empacotador existente do Bunny Loader. Não inclua .so, .dll ou arquivo JS em um mod-fonte C# independente.
 
-A .60 deve detectar e vincular `BunnyLiveEvents.OnHitNPC(int,int)` e `BunnyLiveEvents.OnKill(int,int)` **sem ativação manual no editor**. Consulte [o roteiro e os critérios](../../../../docs/TESTE-ANDROID-v60.md).
+Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento de ExampleBoltMotion e ExampleWaveBoltMotion é pré-calculado em C# e aplicado pelo hook nativo. Compare BunnyLiveEvents com ExampleWaveBoltLiveEvents para aprender os callbacks gerenciados por tipo.
 
-**Limite atual:** um tipo de projétil por processo para esses callbacks automáticos; eles contabilizam eventos sem alterar por si só o gameplay. Build aprovado no GitHub Actions; **o teste Android da .60 ainda está pendente**.
+## Resultados Android verificados
 
-O histórico dos testes manuais e comandos de versões anteriores permanece em [`Docs/GettingStarted.md`](Docs/GettingStarted.md), inclusive os modos opt-in que **não** devem ser utilizados para comprovar a detecção automática da .60.
+- **.72:** FIFO64 separada, 2.897/2.897 eventos no teste prolongado, zero perdas e 60 FPS relatados.
+- **.72 + ExampleModCSharp 0.1.8:** duas curvas funcionando, zero erros e 60 FPS relatados.
+- **.73 + ExampleModCSharp 0.1.9:** duas classes de callback MonoVM por projétil, 985/985 eventos agregados e 879/879 secundários, sem falhas/descartes. FPS da .73 não informado.
+- **.74:** muda a inicialização e o empacotamento NativeAOT, mantém os recursos .73; precisa passar no Android.
+
+Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
