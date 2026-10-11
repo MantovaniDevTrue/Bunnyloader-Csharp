@@ -4,7 +4,9 @@ Este é um plano de desenvolvimento, **não uma lista de funcionalidades já ent
 
 ## Prioridade atual
 
-**.78 build aprovado (CI #38161422920), aguardando Android:** instrumentação sob demanda de memória RSS/processo, cache de métodos MonoVM e contagem de ciclos de mundo. Validar 5 reentradas com dois mods C# e 60 FPS antes de priorizar hot-unload; sem GC forçado e sem mudar o dispatcher. A .77 permanece baseline enquanto a APK .78 não for aprovada no Android.
+**.78 APROVADA no Android (11/10/2026):** quatro reentradas após entrada inicial, todos os testes a 60 FPS relatados, cache de callbacks 3 constante, caminhos de assembly 2 constantes, 3 tipos de projéteis ativos; 104/104 eventos no snapshot de combate, sem erros/descartes; RSS em KiB 240260→567512→569524, com troca de RSS/swap entre 3→4 e só +2012 KiB de RSS em 4→5. **Não é teste de leak prolongado ou de GC/unload.** Promover .78 para baseline funcional desse escopo, .77 como rollback; seguir com medição longitudinal antes de alterações na coleta de lixo.
+
+**.78 — histórico do CI (depois validado no Android):** instrumentação sob demanda de memória RSS/processo, cache de métodos MonoVM e contagem de ciclos de mundo. Validar 5 reentradas com dois mods C# e 60 FPS antes de priorizar hot-unload; sem GC forçado e sem mudar o dispatcher. A .78 foi validada no cenário descrito acima; .77 permanece fallback.
 
 **.77 APROVADA em Android (11/10/2026):** pausa e retomada seletivas do segundo mod **sem sair do mundo**, `paused=true`, `resumed=true`, `SecondBolt.enabled=true`; 379/379 eventos globais (219 hits, 160 kills), 0 perdas, 0 `lockDrops`, 0 falhas, pico 3/64. **60 FPS durante todo o processo**, segundo o usuário. Agora baseline para esse teste, com .76 como rollback. Próximos trabalhos: ciclo de vida real de mods e assemblies, medição de memória/latência, multiplayer e testes mais longos.
 
