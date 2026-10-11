@@ -1,6 +1,6 @@
 # Bunny Loader C# 0.1.10.16.73 — múltiplos callbacks live por projétil
 
-**Estado:** implementação experimental e testes host em CI; **ainda sem validação Android**. Base da implementação: .72 Managed Ingress (já testada), ExampleModCSharp .018 (duas curvas validadas no Android).
+**Estado:** APK .73, ExampleModCSharp 0.1.9 e testes host **compilados/aprovados no GitHub Actions** (build [#38147299182](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147299182), testes rápidos [#38147095615](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38147095615)); **ainda sem validação de gameplay no Android**. [APK e mod](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.73-multi-live-projectiles). Base da implementação: .72 Managed Ingress (já testada), ExampleModCSharp .018 (duas curvas validadas no Android).
 
 ## O que muda
 
