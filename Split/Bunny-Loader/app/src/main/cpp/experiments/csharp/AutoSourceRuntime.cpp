@@ -475,6 +475,31 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
             if (enableManagedLiveHit(modId, dll, projectileType, &error, true)) {
                 BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d",
                         modId.c_str(), projectileType);
+                const std::string root = mods::rootOf(modId);
+                for (const auto& mod : sourceModStatuses()) {
+                    if (mod.id != modId || !mod.loaded || !mod.runtimeApplied)
+                        continue;
+                    for (const auto& [name, unused] : mod.registeredTypes) {
+                        const int type = runtime::modProjectileTypeByName(modId, name);
+                        if (type < 0 || type == projectileType) continue;
+                        const std::string eventClass = name + "LiveEvents";
+                        const std::string source = readText(
+                            root + "/content/Common/Live/" + eventClass + ".cs", 16384);
+                        if (source.find("class " + eventClass) == std::string::npos ||
+                            source.find("static int OnHitNPC(") == std::string::npos ||
+                            source.find("static int OnKill(") == std::string::npos)
+                            continue;
+                        std::string bindingError;
+                        if (enableManagedLiveProjectile(
+                            modId, dll, type, name, &bindingError)) {
+                            BL_INFO("csharp auto live %s: %s vinculado ao tipo %d",
+                                    modId.c_str(), eventClass.c_str(), type);
+                        } else {
+                            BL_WARN("csharp auto live %s: %s recusado (%s)",
+                                    modId.c_str(), eventClass.c_str(), bindingError.c_str());
+                        }
+                    }
+                }
             } else {
                 BL_WARN("csharp auto live %s: nao vinculado (%s)",
                         modId.c_str(), error.c_str());
