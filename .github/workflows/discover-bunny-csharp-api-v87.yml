@@ -40,13 +40,6 @@ jobs:
                   assert item.get("probes")
           print("BUNNY_CSHARP_DISCOVERY_CONTRACTS=PASS")
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: BunnyCSharp-API-Discovery-Reports
-          path: |
-            Split/Bunny-Loader/docs/generated/csharp_api_catalog.json
-            Split/Bunny-Loader/docs/generated/csharp_api_catalog.md
-            Split/Bunny-Loader/docs/generated/csharp_api_examples.md
       - name: Commit generated docs on this isolated experiment branch
         run: |
           set -euo pipefail
