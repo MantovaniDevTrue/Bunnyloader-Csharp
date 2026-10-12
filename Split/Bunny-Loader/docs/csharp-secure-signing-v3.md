@@ -16,9 +16,9 @@ Não habilite execução de trabalhos com segredos para pull requests de terceir
 
 ## Distribuição pública
 
-A release automática nesta branch contém somente os pacotes C# de exemplo em `.bmod`, nunca APKs completos, `libil2cpp.so`, `libunity.so`, metadata e assets do Terraria, nem a chave.
+Os artifacts do GitHub Actions nesta branch contêm somente os pacotes C# de exemplo em `.bmod` e seus SHA-256 (retenção de 14 dias), nunca APKs completos, `libil2cpp.so`, `libunity.so`, metadata e assets do Terraria, nem a chave. A API de releases retornou 403 nesta configuração pública, por isso usamos `actions/upload-artifact@v4` com `contents: read`.
 
-O pipeline ainda usa o pacote `runtime-1.4.5.8.6` e outros APKs publicados anteriormente para gerar e testar o instalador em um runner efêmero. Isso não significa que o conteúdo desses arquivos esteja licenciado para distribuição. **Para uma distribuição pública regular, os binários e recursos proprietários precisam ser obtidos legitimamente pelo próprio usuário no dispositivo de destino ou por integração local autorizada.** A montagem local ainda é um trabalho pendente; esta mudança protege a assinatura e suspende novos APKs públicos, mas não implementa a montagem local.
+O pipeline ainda usa o pacote `runtime-1.4.5.8.6` e outros APKs publicados anteriormente para gerar e testar o instalador em um runner efêmero. Isso não significa que o conteúdo desses arquivos esteja licenciado para distribuição. **Para uma distribuição pública regular, os binários e recursos proprietários precisam ser obtidos legitimamente pelo próprio usuário no dispositivo de destino ou por integração local autorizada.** A montagem local ainda é um trabalho pendente; esta mudança protege a assinatura, suspende novos APKs públicos e disponibiliza somente exemplos nos artifacts, mas não implementa a montagem local.
 
 ## Limpeza obrigatória das releases antigas
 
