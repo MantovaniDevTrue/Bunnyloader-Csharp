@@ -710,8 +710,22 @@ bool applyManagedNativePlayerDefaultsBatch(
             return false;
     }
     std::map<int, bool> linked;
+    std::map<std::string, std::string> globalMessages;
+    std::map<std::string, std::string> respawnMessages;
     for (const auto& player : players) {
-        if (player.accessoryType < 0 ||
+        const std::string key = modId + "/" + player.name;
+        if (player.respawnMessage.size() > 100) return false;
+        if (player.accessoryType < 0) {
+            if (player.accessoryName != "-" || player.equippedDefenseBonus != 0 ||
+                player.moveSpeedPercent != 0 || player.runAccelerationPercent != 0 ||
+                player.frameShadow || player.worldJoinMessage.size() > 100) return false;
+            if (!player.worldJoinMessage.empty())
+                globalMessages[key] = player.worldJoinMessage;
+            if (!player.respawnMessage.empty())
+                respawnMessages[key] = player.respawnMessage;
+            continue;
+        }
+        if (
             player.equippedDefenseBonus < 0 || player.equippedDefenseBonus > 100 ||
             player.moveSpeedPercent < 0 || player.moveSpeedPercent > 50 ||
             player.runAccelerationPercent < 0 || player.runAccelerationPercent > 30 ||
@@ -727,6 +741,8 @@ bool applyManagedNativePlayerDefaultsBatch(
         bonus.movementAccelerationPercent = player.runAccelerationPercent;
         bonus.frameShadow = player.frameShadow;
         bonus.worldJoinMessage = player.worldJoinMessage;
+        if (!player.respawnMessage.empty())
+            respawnMessages[key] = player.respawnMessage;
     }
     for (const auto& accessory : accessories) {
         if (!accessory.tooltip.empty())
@@ -736,6 +752,10 @@ bool applyManagedNativePlayerDefaultsBatch(
         g_accessories[type] = effects;
         enableManagedPrefixEligibility(type);
     }
+    for (const auto& [key, message] : globalMessages)
+        g_globalWorldMessages[key] = message;
+    for (const auto& [key, message] : respawnMessages)
+        g_respawnMessages[key] = message;
     g_playerPoliciesReady = true;
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
             modId.c_str(), accessories.size(), players.size());
@@ -784,6 +804,8 @@ bool showManagedPlayerWorldJoinMessages() {
         return true;
     }
     int shown = 0;
+    for (const auto& [key, message] : g_globalWorldMessages)
+        if (sendPlayerLifecycleMessage(message)) ++shown;
     for (const auto& [type, effects] : g_accessories) {
         if (effects.worldJoinMessage.empty()) continue;
         Il2CppString* line = runtime.string_new(effects.worldJoinMessage.c_str());
