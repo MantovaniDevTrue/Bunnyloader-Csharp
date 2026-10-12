@@ -491,7 +491,7 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 std::this_thread::sleep_for(500ms);
                 continue;
             }
-            std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+            std::unique_lock<std::mutex> sessionGuard(g_worldTransitionMutex);
             if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
                 !g_worldSessionReady.load(std::memory_order_acquire)) return;
             std::string error;
@@ -535,6 +535,17 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                     }
                 }
             } else {
+                if (attempt == 0 || attempt == 10 || attempt == 30)
+                    BL_WARN("csharp auto live %s: vinculacao pendente (%s), tentativa=%d",
+                            modId.c_str(), error.c_str(), attempt);
+                const bool temporary = error.find("ocupado") != std::string::npos ||
+                    error.find("PINNED_MONO") != std::string::npos ||
+                    error.find("unavailable") != std::string::npos;
+                if (temporary && attempt < 60) {
+                    sessionGuard.unlock();
+                    std::this_thread::sleep_for(500ms);
+                    continue;
+                }
                 BL_WARN("csharp auto live %s: nao vinculado (%s)",
                         modId.c_str(), error.c_str());
             }
