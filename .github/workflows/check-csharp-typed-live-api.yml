@@ -1,0 +1,31 @@
+name: Check CSharp typed live API
+on:
+  push:
+    branches: [codex/csharp-typed-live-api]
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/samples/TypedLiveCallbacks/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h'
+      - 'Split/Bunny-Loader/tests/typed_live_api_protocol.cpp'
+      - '.github/workflows/check-csharp-typed-live-api.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Validate SDK and compile sample through Bunny Roslyn compiler
+        run: >-
+          dotnet run --project Split/Bunny-Loader/experiments/csharp/BunnyLiveApi.Tests
+          -c Release --
+          Split/Bunny-Loader/samples/TypedLiveCallbacks /tmp/bunny-buff-vectors.txt
+      - name: Validate every supported SDK request against native decoder
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/typed_live_api_protocol.cpp -o /tmp/bunny-api-protocol
+          /tmp/bunny-api-protocol /tmp/bunny-buff-vectors.txt
