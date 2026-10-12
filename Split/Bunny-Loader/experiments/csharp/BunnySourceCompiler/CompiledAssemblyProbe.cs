@@ -630,7 +630,7 @@ public static class CompiledAssemblyProbe
             fields.Add(defense.ToString(CultureInfo.InvariantCulture));
             string display = Value<string>(prefix, "DisplayName");
             if (string.IsNullOrEmpty(display)) display = name;
-            if (display.Length > 80 || display.IndexOfAny(new[] { '\\n', '\\r', '\\t', '\\0' }) >= 0)
+            if (display.Length > 80 || display.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# prefix name");
             fields.Add(display);
             lines.Add(string.Join("\t", fields));
