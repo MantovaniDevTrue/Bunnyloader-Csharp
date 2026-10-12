@@ -808,7 +808,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.names.push_back({"", display});
         const int type = bl::runtime::registerModItem(std::move(def));
         if (type >= 0) {
-            g_accessories[type] = {spec->damage};
+            g_accessories[type] = {spec->damage, 0, 0, false, ""};
             if (ctx.firstAccessoryType < 0) ctx.firstAccessoryType = type;
             ++ctx.items;
             ++ctx.accessories;
