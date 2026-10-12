@@ -8,5 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLiveApi.cs" Link="BunnyLiveApi.cs" />
   </ItemGroup>
 </Project>
+
