@@ -264,7 +264,16 @@ class ManagedProbeService : Service() {
                 val file = File(dir, name)
                 file.isFile && file.length() > 0L && sha256(file) == expected[name]
             }
+        fun verifySourceSdk() {
+            val sdk = File(dir, "BunnySourceSdk.dll")
+            require(sdk.isFile && sdk.readBytes().toString(Charsets.ISO_8859_1)
+                .contains("MoveSpeedPercent")) {
+                "BunnySourceSdk.dll nao possui MoveSpeedPercent; verifique a versao do APK"
+            }
+            Log.i("BunnyCSharp", "BunnySourceSdk MoveSpeedPercent disponivel")
+        }
         if (cached) {
+            verifySourceSdk()
             Log.i("BunnyCSharp", "framework cache validado por SHA-256: ${names.size} assemblies")
             return File(dir, "BunnyManagedProbe.dll").absolutePath
         }
@@ -290,6 +299,7 @@ class ManagedProbeService : Service() {
                 temporary.delete()
             }
         }
+        verifySourceSdk()
         marker.writeText(fingerprint)
         Log.i("BunnyCSharp", "framework atualizado e verificado: ${names.size} assemblies")
         return File(dir, "BunnyManagedProbe.dll").absolutePath
