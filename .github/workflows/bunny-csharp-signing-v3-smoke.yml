@@ -49,12 +49,12 @@ jobs:
       - name: Validate v3 keystore from encrypted repository secrets
         shell: bash
         env:
-          BUNNY_KEYSTORE_B64: \${{ secrets.BUNNY_KEYSTORE_B64 }}
-          BUNNY_SIGNING_PASSWORD: \${{ secrets.BUNNY_SIGNING_PASSWORD }}
-          BUNNY_SIGNING_ALIAS: \${{ secrets.BUNNY_SIGNING_ALIAS }}
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
         run: |
           set -euo pipefail
-          if [ -z "\${BUNNY_KEYSTORE_B64:-}" ] || [ -z "\${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "\${BUNNY_SIGNING_ALIAS:-}" ]; then
+          if [ -z "${BUNNY_KEYSTORE_B64:-}" ] || [ -z "${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "${BUNNY_SIGNING_ALIAS:-}" ]; then
             echo "Three Bunny signing repository secrets are required." >&2
             exit 1
           fi
