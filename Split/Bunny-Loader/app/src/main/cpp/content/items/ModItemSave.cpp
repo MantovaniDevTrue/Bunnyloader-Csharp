@@ -346,6 +346,11 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
                 saved.prefixKey.c_str(), wanted, field<int32_t>(item, r.type),
                 current, directAfter, returned ? 1 : 0, directException ? 1 : 0,
                 detailed ? 1 : 0, topTier ? 1 : 0, forcedRollReached ? 1 : 0, retryAfter);
+    if (!restored && managed && r.resetPrefix &&
+        field<uint8_t>(item, r.prefix) != 0) {
+        error = nullptr;
+        api.runtime_invoke(r.resetPrefix, item, nullptr, &error);
+    }
     return restored;
 }
 
@@ -402,8 +407,9 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                 continue;
             }
             SavedItem it{c.name, slot, stack, 0, field<uint8_t>(item, r.favorited) != 0, modItemKey(type), {}};
-            encodePrefix(it, prefix);
-            if (prefix == 0) it.prefixKey = pendingPrefixFor(path, c.name, slot, type);
+            const std::string pendingKey = pendingPrefixFor(path, c.name, slot, type);
+            if (!pendingKey.empty()) it.prefixKey = pendingKey;
+            else encodePrefix(it, prefix);
             items.push_back(std::move(it));
         }
     }
@@ -981,6 +987,8 @@ bool resolve() {
     r.applyPrefixDetailed = findMethodBySignature(item, parseSignature(
         "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)"));
     r.resetPrefix = findMethodBySignature(item, parseSignature("void ResetPrefix()"));
+    BL_INFO("save de itens de mod: Item.Prefix com out bool=%d",
+            r.applyPrefixDetailed ? 1 : 0);
 
     // Conjuntos (Loadouts), cofres e prefixo sao opcionais: sem eles, so
     // aquele lugar fica de fora. O resto e o minimo para nao perder item.
