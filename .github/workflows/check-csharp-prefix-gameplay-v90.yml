@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-tooltip-v90-12
       - codex/prefix-restore-fix
       - csharp-prefix-rehydrate-v90-10
       - csharp-prefix-overload-v90-9
@@ -89,6 +90,21 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          c = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text()
+          native = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          assert "MouseText_DrawItemTooltip_GetLinesInfo(Item item" in c
+          assert "g_originalInventoryTooltip(" in c
+          assert "managedNativeAccessoryDefense(itemType)" in c
+          assert 'append(baseDefense, "base", false);' in c
+          assert "append(prefixDefense, current->displayName.empty()" in c
+          assert "api.gc_wbarrier_set_field(" in c
+          assert "inventoryTooltip=%d" in c
+          assert "int managedNativeAccessoryDefense(int type)" in native
+          print("BUNNY_CSHARP_INVENTORY_PREFIX_TOOLTIP_V90_12=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           save = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
