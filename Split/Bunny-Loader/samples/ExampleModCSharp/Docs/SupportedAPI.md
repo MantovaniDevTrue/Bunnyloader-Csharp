@@ -11,6 +11,7 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 | BunnyLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/BunnyLiveEvents.cs | callback primário .72/.73 |
 | ProjetoLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/ExampleWaveBoltLiveEvents.cs | callback independente .73: 879/879 |
 | BunnyBuff, BunnyBuffPotion, BunnyAccessory, BunnyPlayer, BunnyNPC | Content/ e Common/Players | exemplos presentes, validação específica por API |
+| BunnyPlayer.MoveSpeedPercent e UpdateEquips | Common/Players/ExampleSwiftPlayer.cs e Content/Items/Accessories/ExampleSwiftAccessory.cs | **experimental**, +8% velocidade enquanto equipado (efeito nativo sem callback MonoVM por quadro) |
 | BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
 | BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI .90; **ainda não validado no Android** |
 
