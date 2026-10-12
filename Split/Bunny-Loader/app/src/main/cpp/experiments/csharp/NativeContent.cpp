@@ -60,6 +60,7 @@ struct NativeRefs {
     int playerBuffType = -1;
     int playerBuffTime = -1;
     int itemType = -1;
+    int playerMoveSpeed = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -71,6 +72,7 @@ struct NativeWeaponDefaults {
 
 struct NativeAccessoryDefaults {
     int defenseBonus;
+    int moveSpeedPercent = 0;
 };
 
 struct NativeBuffDefaults {
@@ -261,6 +263,9 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
     defense += it->second.defenseBonus;
+    if (it->second.moveSpeedPercent > 0 && g_refs.playerMoveSpeed >= 0)
+        bl::runtime::field<float>(self, g_refs.playerMoveSpeed) +=
+            static_cast<float>(it->second.moveSpeedPercent) / 100.f;
 }
 
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
@@ -329,6 +334,7 @@ bool prepareNativeContent() {
     r.npcAiStyle = fieldOffset(npc, "aiStyle");
     r.npcType = fieldOffset(npc, "type");
     r.playerStatDefense = fieldOffset(player, "statDefense");
+    r.playerMoveSpeed = fieldOffset(player, "moveSpeed");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -382,7 +388,8 @@ bool prepareNativePlayerEffects() {
     if (g_effectsReady) return true;
     using namespace bl::il2cpp;
     const auto& r = g_refs;
-    if (r.playerStatDefense < 0 || r.playerBuffType < 0 ||
+    if (r.playerStatDefense < 0 || r.playerMoveSpeed < 0 ||
+        r.playerBuffType < 0 ||
         r.playerBuffTime < 0 || r.itemType < 0 ||
         r.itemAccessory < 0 || r.itemBuffType < 0 ||
         r.itemBuffTime < 0 || r.itemConsumable < 0) return false;
@@ -518,29 +525,32 @@ bool applyManagedNativePlayerDefaultsBatch(
     const std::vector<ManagedPlayerEntry>& players) {
     if (!g_effectsReady || accessories.size() > 16 || players.size() > 16)
         return false;
-    std::map<int, int> values;
+    std::map<int, NativeAccessoryDefaults> values;
     for (const auto& accessory : accessories) {
         if (accessory.type < 0 || accessory.defenseBonus < 0 ||
             accessory.defenseBonus > 100 ||
             bl::runtime::modItemTypeByKey(modId + "/" + accessory.name) != accessory.type ||
             g_accessories.count(accessory.type) != 1 ||
-            !values.emplace(accessory.type, accessory.defenseBonus).second)
+            !values.emplace(accessory.type,
+                NativeAccessoryDefaults{accessory.defenseBonus, 0}).second)
             return false;
     }
     std::map<int, bool> linked;
     for (const auto& player : players) {
         if (player.accessoryType < 0 ||
             player.equippedDefenseBonus < 0 || player.equippedDefenseBonus > 100 ||
+            player.moveSpeedPercent < 0 || player.moveSpeedPercent > 50 ||
             bl::runtime::modItemTypeByKey(modId + "/" + player.accessoryName) != player.accessoryType ||
             !values.contains(player.accessoryType) ||
             !linked.emplace(player.accessoryType, true).second)
             return false;
-        int& bonus = values[player.accessoryType];
-        if (bonus + player.equippedDefenseBonus > 100) return false;
-        bonus += player.equippedDefenseBonus;
+        auto& bonus = values[player.accessoryType];
+        if (bonus.defenseBonus + player.equippedDefenseBonus > 100) return false;
+        bonus.defenseBonus += player.equippedDefenseBonus;
+        bonus.moveSpeedPercent = player.moveSpeedPercent;
     }
-    for (const auto& [type, defense] : values) {
-        g_accessories[type].defenseBonus = defense;
+    for (const auto& [type, effects] : values) {
+        g_accessories[type] = effects;
         enableManagedPrefixEligibility(type);
     }
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
