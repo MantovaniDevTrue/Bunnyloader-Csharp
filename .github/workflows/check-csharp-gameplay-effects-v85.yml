@@ -3,6 +3,7 @@ name: Check CSharp gameplay effects v85
 on:
   push:
     branches:
+      - csharp-managed-gameplay-effects-v851-lifecycle-hotfix
       - csharp-managed-gameplay-effects-v85-experiment
   workflow_dispatch:
 
@@ -37,7 +38,11 @@ jobs:
           assert "takeManagedNpcBuffForNpc(" in hook
           assert "runtime_invoke(g_addBuff, npc, args, &exception)" in hook
           assert "processManagedNpcBuffEffect(npc);" in ai
-          assert "installManagedNpcBuffDispatcher()" in auto
+          assert "requestManagedNpcBuffDispatcher()" in auto
+          assert "updateManagedNpcBuffDispatcherOnGameThread();" in auto
+          assert "sessionGuard.unlock();" in auto
+          assert "if (r.ok) return r;" in ai
+          assert "if (attempt >= 60) return;" in auto
           assert "decodeManagedNpcBuffCode(callback.value" in runtime
           assert "g_buffEffectQueue.push(request)" in runtime
           assert '"effects",\n                      makeManagedNpcBuffEffectStatus' in api

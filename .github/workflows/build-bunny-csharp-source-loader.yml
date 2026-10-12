@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-managed-gameplay-effects-v851-lifecycle-hotfix
       - csharp-managed-gameplay-effects-v85-experiment
       - csharp-managed-player-npc-context-v84-experiment
       - csharp-managed-npc-snapshot-v83-experiment
@@ -1345,7 +1346,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='111' versionName='0.1.10.16.85-csharp-gameplay-effects'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='112' versionName='0.1.10.16.85.1-csharp-effect-lifecycle'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1386,7 +1387,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.85-GameplayEffects.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.85.1-EffectLifecycle.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1402,8 +1403,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.85-gameplay-effects"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.85-GameplayEffects.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.85.1-effect-lifecycle"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.85.1-EffectLifecycle.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1412,8 +1413,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.85 — Real Gameplay NPC Effects" \
-              --notes "Experimental .85 based on Android-validated .84 (416 successful V4 calls, 58-60 FPS). Adds opt-in managed CSharp gameplay effect requests via OnHitNPCV4 integer return codes 1000000 + buffId*1000 + ticks (vanilla 24,39,44,69; 30-600 ticks). Single-producer/single-consumer 64-entry FIFO from pinned MonoVM to Terraria NPC.AI hook; target NPC slot/type/position and 1.5-second TTL rechecked before NPC.AddBuff on the Terraria thread. Zero per-hit logging. Exposes sourceLiveHitStatus().effects status. ExampleModCSharp 0.1.13 demonstrates Frostburn, OnFire and CursedInferno selections. .84 branch remains unchanged. Android .85 gameplay/FPS not yet validated." \
+              --title "Bunny Loader C# v0.1.10.16.85.1 — Effect Auto-load Lifecycle Hotfix" \
+              --notes "Experimental .85.1 based on .85 gameplay effects, correcting live callback activation/retry and native NPC buff dispatcher installation. Reattempt transient pinned MonoVM readiness/owner-busy on world entry without sleeping under world mutex; request NPC.AI dispatcher from binder and install on game update thread every 30 frames; retry class refs if game metadata was not yet available. Existing .84 validated version preserved. Uses unchanged ExampleModCSharp 0.1.13 and Second Example CSharp 0.1.0; no game behavior changed until runtime CSharp V4 requests buff effects. Host tests passed, Android .85.1 not yet validated." \
               --prerelease
           fi
           gh release upload "$TAG" \
