@@ -515,8 +515,9 @@ public static class CompiledAssemblyProbe
             string name = player.GetType().Name;
             string accessoryName = Value<string>(player, "Accessory");
             CheckName(name);
-            CheckName(accessoryName);
-            if (!names.Add(name) || !accessoryNames.Contains(accessoryName))
+            bool globalPlayer = accessoryName.Length == 0;
+            if (!globalPlayer) CheckName(accessoryName);
+            if (!names.Add(name) || (!globalPlayer && !accessoryNames.Contains(accessoryName)))
                 throw new InvalidOperationException("BunnyPlayer linked accessory not found");
             var reset = player.GetType().GetMethod("ResetEffects")
                 ?? throw new InvalidOperationException("BunnyPlayer.ResetEffects missing");
@@ -525,6 +526,8 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateEquips missing");
             var entering = playerType.GetMethod("OnEnterWorld")
                 ?? throw new InvalidOperationException("BunnyPlayer.OnEnterWorld missing");
+            var respawning = playerType.GetMethod("OnRespawn")
+                ?? throw new InvalidOperationException("BunnyPlayer.OnRespawn missing");
             var movement = playerType.GetMethod("UpdateMovement")
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateMovement missing");
             var frames = playerType.GetMethod("FrameEffects")
@@ -544,20 +547,26 @@ public static class CompiledAssemblyProbe
             int acceleration = (int)(movement.Invoke(player, new object[] { true }) ?? -1);
             bool shadow = (bool)(frames.Invoke(player, new object[] { true }) ?? false);
             string welcome = (string)(entering.Invoke(player, null) ?? "");
+            string respawn = (string)(respawning.Invoke(player, null) ?? "");
             if (defense < 0 || defense > 100 || moveSpeed < 0 || moveSpeed > 50 ||
                 acceleration < 0 || acceleration > 30 || welcome.Length > 100 ||
-                welcome.Any(c => char.IsControl(c) || c > 127))
+                respawn.Length > 100 ||
+                welcome.Any(c => char.IsControl(c) || c > 127) ||
+                respawn.Any(c => char.IsControl(c) || c > 127) ||
+                (globalPlayer && (defense != 0 || moveSpeed != 0 || acceleration != 0 || shadow)))
                 throw new InvalidOperationException("BunnyPlayer event policy outside supported bounds");
             reset.Invoke(player, null);
             if (Value<int>(player, "DefenseBonus") != 0 ||
                 Value<int>(player, "MoveSpeedPercent") != 0)
                 throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset equipped effects");
-            lines.Add(string.Join("\t", "PLAYER", name, accessoryName,
+            lines.Add(string.Join("\t", "PLAYER", name,
+                globalPlayer ? "-" : accessoryName,
                 defense.ToString(CultureInfo.InvariantCulture),
                 moveSpeed.ToString(CultureInfo.InvariantCulture),
                 acceleration.ToString(CultureInfo.InvariantCulture),
                 shadow ? "1" : "0",
-                welcome.Length == 0 ? "-" : welcome));
+                welcome.Length == 0 ? "-" : welcome,
+                respawn.Length == 0 ? "-" : respawn));
         }
         foreach (object npc in npcs)
         {
