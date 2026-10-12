@@ -150,6 +150,25 @@ bool validTexture(const char* path) {
            p.size() > 12 && p.substr(p.size() - 4) == ".png";
 }
 
+void enableManagedPrefixEligibility(int type) {
+    using namespace bl::il2cpp;
+    static FieldInfo* prefixSet = nullptr;
+    if (!prefixSet) {
+        Il2CppClass* itemId = findClass({"Terraria.ID", "ItemID", {}});
+        Il2CppClass* sets = itemId ? findNested(itemId, "Sets") : nullptr;
+        prefixSet = sets ? findField(sets, "CanGetPrefixes") : nullptr;
+    }
+    if (!prefixSet || type < 0) return;
+    Il2CppArray* entries = nullptr;
+    api().field_static_get_value(prefixSet, &entries);
+    if (!entries || static_cast<uintptr_t>(type) >= entries->length) return;
+    auto* flags = static_cast<uint8_t*>(arrayData(entries));
+    if (!flags[type]) {
+        flags[type] = 1;
+        BL_INFO("csharp prefix: item %d habilitado para reforja", type);
+    }
+}
+
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
     auto it = g_weapons.find(type);
     auto accessory = g_accessories.find(type);
@@ -165,6 +184,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
         bl::runtime::field<int32_t>(self, r.itemRare) = 2;
         bl::runtime::field<uint8_t>(self, r.itemAccessory) = 1;
+        enableManagedPrefixEligibility(type);
         bl::runtime::finishModItem(self, type);
         return;
     }
@@ -193,6 +213,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<uint8_t>(self, r.itemAutoReuse) = 1;
     bl::runtime::field<int32_t>(self, r.itemRare) = 2;
     bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
+    enableManagedPrefixEligibility(type);
     bl::runtime::finishModItem(self, type);
 }
 
@@ -451,8 +472,10 @@ bool applyManagedNativeDefaultsBatch(
     }
     for (const auto& item : stagedProjectiles)
         g_projectiles[item.first] = item.second;
-    for (const auto& item : stagedWeapons)
+    for (const auto& item : stagedWeapons) {
         g_weapons[item.first] = item.second;
+        enableManagedPrefixEligibility(item.first);
+    }
     BL_INFO("csharp native: managed batch applied for %s (%zu projectile, %zu weapon)",
             modId.c_str(), stagedProjectiles.size(), stagedWeapons.size());
     return true;
@@ -514,8 +537,10 @@ bool applyManagedNativePlayerDefaultsBatch(
         if (bonus + player.equippedDefenseBonus > 100) return false;
         bonus += player.equippedDefenseBonus;
     }
-    for (const auto& [type, defense] : values)
+    for (const auto& [type, defense] : values) {
         g_accessories[type].defenseBonus = defense;
+        enableManagedPrefixEligibility(type);
+    }
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
             modId.c_str(), accessories.size(), players.size());
     return true;
