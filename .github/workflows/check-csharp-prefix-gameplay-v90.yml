@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-shadow-tooltip-v90-16-2
       - csharp-accessory-tooltips-v90-16-1
       - csharp-bunnyplayer-hooks-v90-16
       - csharp-late-prefix-restore-v90-15
@@ -136,6 +137,18 @@ jobs:
               p = sample/"Content/Items/Accessories"/(name+".cs")
               assert 'Tooltip = "' in p.read_text()
           print("BUNNY_CSHARP_ACCESSORY_TOOLTIP_V90_16_1=PASS")
+          assert 'setModItemTooltip(type, {{"", tooltip->second}});' in loader
+          assert 'tooltip inicial registrado' in loader
+          assert loader.index('setModItemTooltip(type,') < loader.index('for (const auto& def : defs) {\n        if (def.base != "BunnyPlayer") continue;')
+          assert 'void SetArmorEffectVisuals(Player drawPlayer)' in native
+          assert 'bl::hook::install(armorVisuals, hkSetArmorEffectVisuals' in native
+          assert 'fieldOffset(player, "armorEffectDrawShadow")' in native
+          assert 'fieldOffset(player, "armorEffectDrawOutlines")' in native
+          assert 'if (!self || !managedShadowEquipped(drawPlayer ? drawPlayer : self))' in native
+          assert 'armorEffectDrawShadowEOCShield' not in native
+          assert 'g_originalHorizontalMovement(self, method);' in native
+          assert 'maxSpeed *= factor;' in native
+          print("BUNNY_CSHARP_SHADOW_TOOLTIP_V90_16_2=PASS")
           PY
 
           python3 - <<'PY'
