@@ -264,6 +264,22 @@ JSValue makeManagedHitContextStatus(
     return out;
 }
 
+JSValue makeManagedNpcBuffEffectStatus(
+    JSContext* ctx, const bl::csharp::ManagedNpcBuffEffectStatus& status) {
+    JSValue out = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, out, "gameHookInstalled", JS_NewBool(ctx, status.gameHookInstalled));
+    JS_SetPropertyStr(ctx, out, "requested", JS_NewInt32(ctx, status.requested));
+    JS_SetPropertyStr(ctx, out, "applied", JS_NewInt32(ctx, status.applied));
+    JS_SetPropertyStr(ctx, out, "rejected", JS_NewInt32(ctx, status.rejected));
+    JS_SetPropertyStr(ctx, out, "stale", JS_NewInt32(ctx, status.stale));
+    JS_SetPropertyStr(ctx, out, "queueDrops", JS_NewInt32(ctx, status.queueDrops));
+    JS_SetPropertyStr(ctx, out, "queueDepth", JS_NewInt32(ctx, status.queueDepth));
+    JS_SetPropertyStr(ctx, out, "lastBuffId", JS_NewInt32(ctx, status.lastBuffId));
+    JS_SetPropertyStr(ctx, out, "lastDurationTicks", JS_NewInt32(ctx, status.lastDurationTicks));
+    JS_SetPropertyStr(ctx, out, "lastNpcIndex", JS_NewInt32(ctx, status.lastNpcIndex));
+    return out;
+}
+
 JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHitStatus& status) {
     JSValue out = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, out, "enabled", JS_NewBool(ctx, status.enabled));
@@ -274,6 +290,8 @@ JSValue makeManagedLiveHitStatus(JSContext* ctx, const bl::csharp::ManagedLiveHi
     JS_SetPropertyStr(ctx, out, "hitProcessed", JS_NewInt32(ctx, status.hitProcessed));
     JS_SetPropertyStr(ctx, out, "hitContext",
                       makeManagedHitContextStatus(ctx, status.hitContext));
+    JS_SetPropertyStr(ctx, out, "effects",
+                      makeManagedNpcBuffEffectStatus(ctx, status.effects));
     JS_SetPropertyStr(ctx, out, "killProcessed", JS_NewInt32(ctx, status.killProcessed));
     JS_SetPropertyStr(ctx, out, "dropped", JS_NewInt32(ctx, status.dropped));
     JS_SetPropertyStr(ctx, out, "lockDrops", JS_NewInt32(ctx, status.lockDrops));
