@@ -26,12 +26,13 @@ try
     void Check(string name, int category, float weight, float damage, float value, int defense)
     {
         string[] fields = byName[name];
-        if (fields.Length != 15 || fields[0] != "PREFIX" ||
+        if (fields.Length != 16 || fields[0] != "PREFIX" ||
             int.Parse(fields[2], CultureInfo.InvariantCulture) != category ||
             MathF.Abs(float.Parse(fields[3], CultureInfo.InvariantCulture) - weight) > .0001f ||
             MathF.Abs(float.Parse(fields[4], CultureInfo.InvariantCulture) - damage) > .0001f ||
             MathF.Abs(float.Parse(fields[13], CultureInfo.InvariantCulture) - value) > .0001f ||
-            int.Parse(fields[14], CultureInfo.InvariantCulture) != defense)
+            int.Parse(fields[14], CultureInfo.InvariantCulture) != defense ||
+            string.IsNullOrWhiteSpace(fields[15]))
             throw new InvalidOperationException("Managed prefix does not match expected descriptor: " + name);
     }
 
