@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - csharp-api-discovery-catalog-v87-experiment
+    paths-ignore:
+      - "Split/Bunny-Loader/docs/generated/**"
   workflow_dispatch:
 
 permissions:
@@ -23,6 +25,16 @@ jobs:
           python3 tests/test_csharp_api_discovery.py
           python3 samples/ExampleModCSharp/Tests/check_examples.py
           python3 samples/ExampleModCSharp/Tests/check_npc_coverage.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Batch compile 16 real CSharp examples and SDK contracts
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          python3 tools/csharp_api_compile_batch.py --prepare
+          python3 tools/csharp_api_compile_batch.py --build
+          python3 tools/csharp_api_compile_batch.py --check
       - name: Guard against unsupported CSharp APIs
         working-directory: Split/Bunny-Loader
         run: |
