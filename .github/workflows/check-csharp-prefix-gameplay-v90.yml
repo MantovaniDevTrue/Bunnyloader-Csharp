@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-late-prefix-restore-v90-15
       - csharp-swift-sdk-verify-v90-14
       - csharp-player-movespeed-v90-13
       - csharp-prefix-tooltip-v90-12
@@ -92,6 +93,26 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("app/src/main/cpp/experiments/csharp")
+          life = (root/"AutoSourceRuntime.cpp").read_text()
+          game = (root/"ManagedPrefixGameplay.cpp").read_text()
+          header = (root/"ManagedPrefixGameplay.h").read_text()
+          assert "bool managedPrefixGameplayReady();" in header
+          assert 'bool managedPrefixGameplayReady()' in game
+          assert '!snapshotManagedPrefixes().empty()' in game
+          assert 'g_worldPrefixesRestored.exchange(true, std::memory_order_acq_rel)' in life
+          assert 'g_worldPrefixesRestored.store(false, std::memory_order_release);' in life
+          assert life.count('g_worldPrefixesRestored.store(false, std::memory_order_release);') >= 2
+          assert 'if (context.gameMenu != 1 && context.netMode == 0) {' in life
+          assert 'retryWorldManagedPrefixesWhenReady();' in life
+          assert 'csharp prefix: hooks e descritores prontos; iniciando restauracao tardia' in life
+          assert 'bl::runtime::retryPendingManagedPrefixesOnWorldReady();' in life
+          assert life.index("g_worldSessionReady.store(true, std::memory_order_release);") < life.rindex("retryWorldManagedPrefixesWhenReady();")
+          print("BUNNY_CSHARP_LATE_PREFIX_RESTORE_V90_15=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           root = Path(".")
@@ -209,7 +230,8 @@ jobs:
           assert "original->second.key == current->second.key" in source
           assert "csharp prefix restore: chave=" in source
           assert "bl::runtime::retryPendingManagedPrefixesOnWorldReady();" in lifecycle
-          assert lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();") < lifecycle.index("retryPendingManagedPrefixesOnWorldReady();")
+          assert lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();") < lifecycle.index("retryWorldManagedPrefixesWhenReady();", lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();"))
+          assert "managedPrefixGameplayReady()" in lifecycle
           print("BUNNY_CSHARP_PREFIX_RESTORE_V90_7=PASS")
           PY
 
