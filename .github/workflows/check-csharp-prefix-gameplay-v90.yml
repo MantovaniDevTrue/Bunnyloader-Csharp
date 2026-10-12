@@ -25,6 +25,11 @@ jobs:
         run: |
           dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -- \
             "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+      - name: Compile the complete ExampleModCSharp source package
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet build tests/prefix_v89/PlayableCompile.csproj -c Release -p:NuGetAudit=false
+          python3 samples/ExampleModCSharp/Tests/check_examples.py
       - name: Compile new native hooks with C++20
         run: |
           set -euo pipefail
