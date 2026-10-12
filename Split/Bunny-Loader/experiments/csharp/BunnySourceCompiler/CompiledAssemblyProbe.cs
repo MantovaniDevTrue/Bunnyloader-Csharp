@@ -38,7 +38,14 @@ public static class CompiledAssemblyProbe
             var npcTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyNPC")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (npcTypes.Length > 16 || accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
+            var prefixTypes = assembly.GetTypes()
+                .Where(type => {
+                    for (Type? ancestor = type.BaseType; ancestor != null; ancestor = ancestor.BaseType)
+                        if (ancestor.FullName == "BunnyLoader.Source.BunnyPrefix") return true;
+                    return false;
+                })
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            if (prefixTypes.Length > 16 || npcTypes.Length > 16 || accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
                 projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
                 weaponTypes.Length < 1 || weaponTypes.Length > 16 ||
                 buffTypes.Length > 16 || potionTypes.Length > 16)
@@ -58,8 +65,9 @@ public static class CompiledAssemblyProbe
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
             object[] players = playerTypes.Select(CreateContent).ToArray();
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
+            object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, diagnosticsPath);
+                accessories, players, npcs, prefixes, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -75,12 +83,12 @@ public static class CompiledAssemblyProbe
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
-                " npcs=" + npcs.Length +
+                " npcs=" + npcs.Length + " prefixes=" + prefixes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length;
         }
         catch (Exception exception)
         {
@@ -404,7 +412,7 @@ public static class CompiledAssemblyProbe
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
-        object[] players, object[] npcs, string diagnosticsPath)
+        object[] players, object[] npcs, object[] prefixes, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -424,7 +432,7 @@ public static class CompiledAssemblyProbe
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
-            potions.Length + accessories.Length + players.Length + npcs.Length + 1)
+            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
@@ -553,6 +561,74 @@ public static class CompiledAssemblyProbe
                 ai.ToString(CultureInfo.InvariantCulture),
                 animation.ToString(CultureInfo.InvariantCulture),
                 frames.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        foreach (object prefix in prefixes)
+        {
+            Type type = prefix.GetType();
+            string name = type.Name;
+            CheckName(name);
+            if (!names.Add(name))
+                throw new InvalidOperationException("Duplicate managed prefix: " + name);
+            int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
+            float weight = Value<float>(prefix, "RollWeight");
+            if (category < 0 || category > 5 || !float.IsFinite(weight) ||
+                weight <= 0f || weight > 20f)
+                throw new InvalidOperationException("Unsupported managed prefix category or weight: " + name);
+            MethodInfo setStats = type.GetMethod("SetStats",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.SetStats");
+            Type statsType = setStats.GetParameters().Single().ParameterType.GetElementType()
+                ?? throw new InvalidOperationException("PrefixStats must be passed by reference");
+            object stats = statsType.GetProperty("Identity", BindingFlags.Public | BindingFlags.Static)!
+                .GetValue(null) ?? throw new InvalidOperationException("PrefixStats.Identity missing");
+            object?[] statsArgs = { stats };
+            setStats.Invoke(prefix, statsArgs);
+            stats = statsArgs[0] ?? throw new InvalidOperationException("PrefixStats result missing");
+            float[] multipliers = {
+                Value<float>(stats, "DamageMultiplier"),
+                Value<float>(stats, "KnockbackMultiplier"),
+                Value<float>(stats, "UseTimeMultiplier"),
+                Value<float>(stats, "ScaleMultiplier"),
+                Value<float>(stats, "ShootSpeedMultiplier"),
+                Value<float>(stats, "ManaMultiplier")
+            };
+            foreach (float multiplier in multipliers)
+                if (!float.IsFinite(multiplier) || multiplier < 0.1f || multiplier > 10f)
+                    throw new InvalidOperationException("Invalid C# prefix multiplier: " + name);
+            int crit = Value<int>(stats, "CriticalBonus");
+            int tag = Value<int>(stats, "TagDamageBonus");
+            int penetration = Value<int>(stats, "ArmorPenetrationBonus");
+            if (crit < -100 || crit > 100 || tag < -100 || tag > 100 ||
+                penetration < -100 || penetration > 100)
+                throw new InvalidOperationException("Invalid C# prefix bonus: " + name);
+            float value = multipliers[0] * (2f - multipliers[2]) *
+                (2f - multipliers[5]) * multipliers[3] * multipliers[1] *
+                multipliers[4] * (1f + crit * 0.02f) *
+                (1f + penetration * 0.015f) * (1f + tag * 0.03f);
+            object?[] valueArgs = { value };
+            type.GetMethod("ModifyValue", BindingFlags.Public | BindingFlags.Instance)!
+                .Invoke(prefix, valueArgs);
+            value = (float)(valueArgs[0] ?? throw new InvalidOperationException("Prefix value missing"));
+            object?[] defenseArgs = { 0 };
+            type.GetMethod("ApplyAccessoryEffects", BindingFlags.Public | BindingFlags.Instance)!
+                .Invoke(prefix, defenseArgs);
+            int defense = (int)(defenseArgs[0] ?? throw new InvalidOperationException("Prefix defense missing"));
+            if (!float.IsFinite(value) || value < 0.05f || value > 100f ||
+                defense < -100 || defense > 100 ||
+                (category != 5 && defense != 0))
+                throw new InvalidOperationException("Invalid C# prefix value or defense: " + name);
+            var fields = new List<string> { "PREFIX", name,
+                category.ToString(CultureInfo.InvariantCulture),
+                weight.ToString("R", CultureInfo.InvariantCulture) };
+            foreach (float multiplier in multipliers)
+                fields.Add(multiplier.ToString("R", CultureInfo.InvariantCulture));
+            fields.Add(crit.ToString(CultureInfo.InvariantCulture));
+            fields.Add(tag.ToString(CultureInfo.InvariantCulture));
+            fields.Add(penetration.ToString(CultureInfo.InvariantCulture));
+            fields.Add(value.ToString("R", CultureInfo.InvariantCulture));
+            fields.Add(defense.ToString(CultureInfo.InvariantCulture));
+            lines.Add(string.Join("\t", fields));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
