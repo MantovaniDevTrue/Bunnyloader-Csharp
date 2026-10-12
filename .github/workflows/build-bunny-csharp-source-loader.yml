@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-private-apk-delivery-v3
       - csharp-secure-signing-v3-public-safe
       - csharp-prefix-reforge-v90-2-hotfix
       - csharp-prefix-autoload-v90-1-hotfix
@@ -1424,6 +1425,43 @@ jobs:
           assert "libmonosgen-2.0.so" in runtime
           print("BUNNY_MANAGED_DEFAULT_NATIVEAOT_DEMOTION=PASS")
           PY
+
+      - name: Deliver signed APK to private Builds repository
+        if: ${{ github.ref == 'refs/heads/csharp-private-apk-delivery-v3' && github.event_name != 'pull_request' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::BUNNY_PRIVATE_BUILD_TOKEN not configured; no full APK is distributed."
+            echo "BUNNY_PRIVATE_APK_DELIVERY=SKIPPED_NO_TOKEN"
+            exit 0
+          fi
+          PRIVATE_REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"
+          IS_PRIVATE="$(gh api "repos/$PRIVATE_REPO" --jq '.private')"
+          if [ "$IS_PRIVATE" != "true" ]; then
+            echo "Refusing to upload a game-bundled APK: destination is not private." >&2
+            exit 1
+          fi
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify "$APK" >/dev/null
+          VERSION="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION"
+          SAFE_VERSION="$(printf '%s' "$VERSION" | tr -c 'A-Za-z0-9._-' '_')"
+          FILE="BunnyLoader-CSharp-${SAFE_VERSION}-SignedV3.apk"
+          cp "$APK" "$RUNNER_TEMP/$FILE"
+          (cd "$RUNNER_TEMP" && sha256sum "$FILE" > "$FILE.sha256")
+          trap 'rm -f "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256"' EXIT
+          TAG="csharp-v3-run-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
+            --repo "$PRIVATE_REPO" \
+            --target main \
+            --title "Bunny Loader C# $VERSION | private signing v3" \
+            --notes "Private Android test build signed with the v3 key. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contains the Terraria runtime for restricted development/testing; do not publish or redistribute without appropriate rights." \
+            --prerelease
+          echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
 
       - name: Verify and retain only source-only mod packages
         shell: bash

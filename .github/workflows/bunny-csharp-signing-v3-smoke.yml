@@ -3,6 +3,7 @@ name: Verify Bunny CSharp v3 signing secrets
 on:
   push:
     branches:
+      - csharp-private-apk-delivery-v3
       - csharp-secure-signing-v3-public-safe
     paths:
       - ".github/workflows/bunny-csharp-signing-v3-smoke.yml"
@@ -46,6 +47,18 @@ jobs:
           assert "actions/upload-artifact@v4" in pub
           assert ".bmod" in pub
           assert "gh release" not in pub
+          delivery = paths[0].read_text(encoding="utf-8").split(
+              "- name: Deliver signed APK to private Builds repository", 1)[1].split(
+              "- name: Verify and retain only source-only mod packages", 1)[0]
+          assert "secrets.BUNNY_PRIVATE_BUILD_TOKEN" in delivery
+          assert 'PRIVATE_REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"' in delivery
+          assert "IS_PRIVATE" in delivery and '!= "true"' in delivery
+          assert 'gh api "repos/$PRIVATE_REPO"' in delivery
+          assert 'gh release create "$TAG"' in delivery
+          assert '--repo "$PRIVATE_REPO"' in delivery
+          assert 'gh release upload' not in pub
+          assert 'upload-artifact' not in delivery
+          print("BUNNY_PRIVATE_APK_GATE_AND_PUBLIC_ARTIFACTS=PASS")
           print("BUNNY_PUBLIC_SIGNING_AND_RELEASE_GUARD=PASS")
           PY
       - name: Validate v3 keystore from encrypted repository secrets
