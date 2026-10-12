@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-overload-v90-9
       - csharp-prefix-forced-roll-v90-8
       - csharp-prefix-restoration-v90-7
       - csharp-prefix-firstlaunch-v90-6
@@ -78,6 +79,20 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          save = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
+          game = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text()
+          assert 'bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)' in save
+          assert 'void* directArguments[2] = {&prefix, &topTier};' in save
+          assert 'const bool detailed = method == r.applyPrefixDetailed;' in save
+          assert 'item, wanted, r.applyPrefixDetailed, &forcedRollReached' in save
+          assert 'void* arguments[2] = {&request, &topTier};' in game
+          assert 'if (!pendingKey.empty()) it.prefixKey = pendingKey;' in save
+          assert 'if (!restored && managed && r.resetPrefix &&' in save
+          print("BUNNY_CSHARP_PREFIX_OVERLOAD_V90_9=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           c = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text()
