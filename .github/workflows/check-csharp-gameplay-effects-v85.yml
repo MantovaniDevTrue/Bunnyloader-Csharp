@@ -1,0 +1,46 @@
+name: Check CSharp gameplay effects v85
+
+on:
+  push:
+    branches:
+      - csharp-managed-gameplay-effects-v85-experiment
+  workflow_dispatch:
+
+jobs:
+  check-effects:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify native effect encoding and FIFO bounds
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/test_managed_npc_buff_effects_v85.cpp \
+            -o /tmp/bunny-v85-effects
+          /tmp/bunny-v85-effects
+      - name: Verify V4 effect commands through isolated MonoVM mock
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/tests/run_managed_lifecycle_regressions.py
+      - name: Confirm native game-thread effect handoff
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          hook = (root / "experiments/csharp/ManagedHitHook.cpp").read_text()
+          ai = (root / "experiments/csharp/NpcAiHost.cpp").read_text()
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          auto = (root / "experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          source = Path("Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs").read_text()
+          assert "takeManagedNpcBuffForNpc(" in hook
+          assert "runtime_invoke(g_addBuff, npc, args, &exception)" in hook
+          assert "processManagedNpcBuffEffect(npc);" in ai
+          assert "installManagedNpcBuffDispatcher()" in auto
+          assert "decodeManagedNpcBuffCode(callback.value" in runtime
+          assert "g_buffEffectQueue.push(request)" in runtime
+          assert '"effects",\n                      makeManagedNpcBuffEffectStatus' in api
+          assert "return 1000000 + buffId * 1000 + durationTicks;" in source
+          print("CSHARP_V85_SAFE_GAME_THREAD_EFFECTS=PASS")
+          PY
