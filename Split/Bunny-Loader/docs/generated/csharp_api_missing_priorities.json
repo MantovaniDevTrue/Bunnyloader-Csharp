@@ -1,0 +1,396 @@
+{
+  "baselineFeatures": 19,
+  "candidates": [
+    {
+      "callbacks": [
+        "AddRecipes"
+      ],
+      "id": "item_recipes",
+      "implementedInCSharp": false,
+      "jsBase": "ModItem",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "AddRecipes"
+          ],
+          "class": "ExampleWings",
+          "file": "samples/ExampleMod/content/Content/Items/Accessories/ExampleWings.js"
+        },
+        {
+          "callbacks": [
+            "AddRecipes"
+          ],
+          "class": "ExampleBreastplate",
+          "file": "samples/ExampleMod/content/Content/Items/Armor/ExampleBreastplate.js"
+        },
+        {
+          "callbacks": [
+            "AddRecipes"
+          ],
+          "class": "ExampleHelmet",
+          "file": "samples/ExampleMod/content/Content/Items/Armor/ExampleHelmet.js"
+        },
+        {
+          "callbacks": [
+            "AddRecipes"
+          ],
+          "class": "ExampleLeggings",
+          "file": "samples/ExampleMod/content/Content/Items/Armor/ExampleLeggings.js"
+        }
+      ],
+      "priority": 1,
+      "reason": "Criacao e registro de receitas para itens C# exigem verificacao no sistema nativo.",
+      "referenceCount": 46,
+      "state": "research_only",
+      "target": "BunnyWeapon crafting bridge"
+    },
+    {
+      "callbacks": [
+        "Apply",
+        "ModifyValue",
+        "CanRoll"
+      ],
+      "id": "item_prefixes",
+      "implementedInCSharp": false,
+      "jsBase": "ModPrefix",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "ModifyValue"
+          ],
+          "class": "ExampleAccessoryPrefix",
+          "file": "samples/ExampleMod/content/Content/Prefixes/ExampleAccessoryPrefix.js"
+        },
+        {
+          "callbacks": [
+            "Apply",
+            "CanRoll",
+            "ModifyValue"
+          ],
+          "class": "ExamplePrefix",
+          "file": "samples/ExampleMod/content/Content/Prefixes/ExamplePrefix.js"
+        }
+      ],
+      "priority": 1,
+      "reason": "Prefixos de itens e acessorios sao pedidos recorrentes. Inspecionar hook real de item prefix e o contrato de save antes de expor C#.",
+      "referenceCount": 2,
+      "state": "research_only",
+      "target": "BunnyPrefix (ainda inexistente)"
+    },
+    {
+      "callbacks": [
+        "ModifyNPCLoot"
+      ],
+      "id": "npc_loot",
+      "implementedInCSharp": false,
+      "jsBase": "ModNPC",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "ModifyNPCLoot"
+          ],
+          "class": "ExampleBoss",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExampleBoss/ExampleBoss.js"
+        },
+        {
+          "callbacks": [
+            "ModifyNPCLoot"
+          ],
+          "class": "ExampleSlimeNPC",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExampleSlimeNPC.js"
+        }
+      ],
+      "priority": 1,
+      "reason": "Permitir drops condicionais sem depender do editor JS; exigir hook na thread do jogo e regras deterministicas.",
+      "referenceCount": 2,
+      "state": "research_only",
+      "target": "BunnyNPC loot hook"
+    },
+    {
+      "callbacks": [
+        "OnSpawn"
+      ],
+      "id": "projectile_spawning",
+      "implementedInCSharp": false,
+      "jsBase": "ModProjectile",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "OnSpawn"
+          ],
+          "class": "ExampleBobber",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleBobber.js"
+        }
+      ],
+      "priority": 1,
+      "reason": "Separar pedido de spawn MonoVM e criacao na thread do Terraria, com limites por tick e validacao.",
+      "referenceCount": 1,
+      "state": "research_only",
+      "target": "ManagedProjectile spawn bridge"
+    },
+    {
+      "callbacks": [
+        "ModifyTooltips"
+      ],
+      "id": "item_tooltips",
+      "implementedInCSharp": false,
+      "jsBase": "ModItem",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "ModifyTooltips"
+          ],
+          "class": "ExampleTooltipItem",
+          "file": "samples/ExampleMod/content/Content/Items/ExampleTooltipItem.js"
+        },
+        {
+          "callbacks": [
+            "ModifyTooltips"
+          ],
+          "class": "ExampleYoyo",
+          "file": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleYoyo.js"
+        }
+      ],
+      "priority": 2,
+      "reason": "Permitir descricoes dinamicas e traducoes nos itens gerenciados.",
+      "referenceCount": 2,
+      "state": "research_only",
+      "target": "BunnyWeapon tooltip API"
+    },
+    {
+      "callbacks": [
+        "OnTileCollide",
+        "OnKill"
+      ],
+      "id": "projectile_collisions",
+      "implementedInCSharp": false,
+      "jsBase": "ModProjectile",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "OnKill",
+            "OnTileCollide"
+          ],
+          "class": "ExampleSentry",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js"
+        },
+        {
+          "callbacks": [
+            "OnKill"
+          ],
+          "class": "ExampleSentryShot",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleSentryShot.js"
+        }
+      ],
+      "priority": 2,
+      "reason": "Callbacks de colisao e morte na API real antes de portar projeteis complexos.",
+      "referenceCount": 2,
+      "state": "research_only",
+      "target": "BunnyProjectile collision hooks"
+    },
+    {
+      "callbacks": [
+        "AI",
+        "PreAI"
+      ],
+      "id": "npc_ai_lifecycle",
+      "implementedInCSharp": false,
+      "jsBase": "ModNPC",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "AI",
+            "PreAI"
+          ],
+          "class": "ExampleBoss",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExampleBoss/ExampleBoss.js"
+        }
+      ],
+      "priority": 2,
+      "reason": "Ha prototipo AI, mas nao o ciclo completo por NPC a cada tick; medir custo e sincronizacao.",
+      "referenceCount": 1,
+      "state": "research_only",
+      "target": "BunnyNPC AI managed event"
+    },
+    {
+      "callbacks": [
+        "UpdateDash",
+        "OnStartDash"
+      ],
+      "id": "player_dash",
+      "implementedInCSharp": false,
+      "jsBase": "ModPlayer",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "OnStartDash",
+            "UpdateDash"
+          ],
+          "class": "ExampleDashPlayer",
+          "file": "samples/ExampleMod/content/Common/Players/ExampleDashPlayer.js"
+        }
+      ],
+      "priority": 2,
+      "reason": "ResetEffects/UpdateEquips nao garantem hooks de movimento; precisa API separada.",
+      "referenceCount": 1,
+      "state": "research_only",
+      "target": "BunnyPlayer movement events"
+    },
+    {
+      "callbacks": [
+        "SaveWorldData",
+        "LoadWorldData"
+      ],
+      "id": "world_save",
+      "implementedInCSharp": false,
+      "jsBase": "ModSystem",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "LoadWorldData",
+            "SaveWorldData"
+          ],
+          "class": "DownedBossSystem",
+          "file": "samples/ExampleMod/content/Common/Systems/DownedBossSystem.js"
+        }
+      ],
+      "priority": 2,
+      "reason": "Persistencia por mundo para estados gerenciados, sem depender de campos nao serializados.",
+      "referenceCount": 1,
+      "state": "research_only",
+      "target": "BunnyWorld persistence API"
+    },
+    {
+      "callbacks": [
+        "RightClick",
+        "ModifyLight"
+      ],
+      "id": "tile_interactions",
+      "implementedInCSharp": false,
+      "jsBase": "ModTile",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "ModifyLight"
+          ],
+          "class": "ExampleAnimatedTile",
+          "file": "samples/ExampleMod/content/Content/Tiles/ExampleAnimatedTile.js"
+        },
+        {
+          "callbacks": [
+            "ModifyLight",
+            "RightClick"
+          ],
+          "class": "ExampleCampfire",
+          "file": "samples/ExampleMod/content/Content/Tiles/ExampleCampfire.js"
+        },
+        {
+          "callbacks": [
+            "ModifyLight"
+          ],
+          "class": "ExampleLamp",
+          "file": "samples/ExampleMod/content/Content/Tiles/ExampleLamp.js"
+        },
+        {
+          "callbacks": [
+            "ModifyLight"
+          ],
+          "class": "ExampleLivingFireTile",
+          "file": "samples/ExampleMod/content/Content/Tiles/ExampleLivingFireTile.js"
+        }
+      ],
+      "priority": 3,
+      "reason": "Interacao e emissao de luz em tiles gerenciados com limites de custo por frame.",
+      "referenceCount": 14,
+      "state": "research_only",
+      "target": "BunnyTile interaction API"
+    },
+    {
+      "callbacks": [
+        "PreDraw"
+      ],
+      "id": "projectile_drawing",
+      "implementedInCSharp": false,
+      "jsBase": "ModProjectile",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "PreDraw"
+          ],
+          "class": "ExampleAdvancedAnimatedProjectile",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleAdvancedAnimatedProjectile.js"
+        },
+        {
+          "callbacks": [
+            "PreDraw"
+          ],
+          "class": "ExampleFlailProjectile",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleFlailProjectile.js"
+        },
+        {
+          "callbacks": [
+            "PreDraw"
+          ],
+          "class": "ExampleLaserBeam",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleLaserBeam.js"
+        },
+        {
+          "callbacks": [
+            "PreDraw"
+          ],
+          "class": "ExampleSwingingEnergySwordProjectile",
+          "file": "samples/ExampleMod/content/Content/Projectiles/ExampleSwingingEnergySwordProjectile.js"
+        }
+      ],
+      "priority": 3,
+      "reason": "Renderizacao de projeteis customizados exige roteamento correto para thread grafica.",
+      "referenceCount": 5,
+      "state": "research_only",
+      "target": "BunnyProjectile draw bridge"
+    },
+    {
+      "callbacks": [
+        "SetBestiary"
+      ],
+      "id": "npc_bestiary",
+      "implementedInCSharp": false,
+      "jsBase": "ModNPC",
+      "jsSourceExamples": [
+        {
+          "callbacks": [
+            "SetBestiary"
+          ],
+          "class": "ExampleBoss",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExampleBoss/ExampleBoss.js"
+        },
+        {
+          "callbacks": [
+            "SetBestiary"
+          ],
+          "class": "ExamplePerson",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExamplePerson/ExamplePerson.js"
+        },
+        {
+          "callbacks": [
+            "SetBestiary"
+          ],
+          "class": "ExampleSlimeNPC",
+          "file": "samples/ExampleMod/content/Content/NPCs/ExampleSlimeNPC.js"
+        }
+      ],
+      "priority": 3,
+      "reason": "Catalogo visual exige registro adicional, nao basta NPC.SetDefaults.",
+      "referenceCount": 3,
+      "state": "research_only",
+      "target": "BunnyNPC bestiary bridge"
+    }
+  ],
+  "schemaVersion": 1,
+  "summary": {
+    "priority1": 4,
+    "priority2": 5,
+    "priority3": 3,
+    "total": 12
+  },
+  "warning": "JS references are suggestions, not supported CSharp signatures. No tModLoader API has been copied."
+}
