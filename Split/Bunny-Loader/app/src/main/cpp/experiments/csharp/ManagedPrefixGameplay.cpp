@@ -4,6 +4,7 @@
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ModItems.h"
+#include "content/items/ModPrefixes.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -11,6 +12,8 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -48,7 +51,8 @@ struct Refs {
 };
 
 Refs g_refs;
-bool g_hooksReady = false;
+std::atomic<bool> g_hooksReady{false};
+std::mutex g_installMutex;
 RollableFn g_originalRollable = nullptr;
 CanRollFn g_originalCanRoll = nullptr;
 StatsFn g_originalStats = nullptr;
@@ -117,7 +121,7 @@ bool ensurePrefixTables(const std::vector<ManagedPrefixEntry>& prefixes) {
     auto** cells = static_cast<Il2CppObject**>(arrayData(names));
     for (const auto& p : prefixes) {
         if (cells[p.type]) continue;
-        const std::string key = "BunnyLoader.ManagedPrefix." + p.name;
+        const std::string key = "BunnyLoader.ManagedPrefix." + bl::runtime::modPrefixKey(p.type);
         Il2CppObject* localized = bl::runtime::content::makeLocalizedText(
             key, p.displayName.empty() ? p.name : p.displayName);
         if (!localized || !bl::runtime::content::setTableElement(r.names, p.type, localized))
@@ -213,7 +217,8 @@ void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* metho
 }
 
 bool installManagedPrefixGameplayHooks() {
-    if (g_hooksReady) return true;
+    std::lock_guard<std::mutex> guard(g_installMutex);
+    if (g_hooksReady.load(std::memory_order_acquire)) return true;
     using namespace bl::il2cpp;
     Il2CppClass* item = findClass({"Terraria", "Item", {}});
     Il2CppClass* player = findClass({"Terraria", "Player", {}});
@@ -268,7 +273,7 @@ bool installManagedPrefixGameplayHooks() {
         BL_ERROR("csharp prefix: instalacao de hook nativo incompleta");
         return false;
     }
-    g_hooksReady = true;
+    g_hooksReady.store(true, std::memory_order_release);
     BL_INFO("csharp prefix: hooks nativos de rolagem, stats e acessorios ativos");
     return true;
 }
