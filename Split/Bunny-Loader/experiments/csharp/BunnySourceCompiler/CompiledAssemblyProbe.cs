@@ -628,6 +628,11 @@ public static class CompiledAssemblyProbe
             fields.Add(penetration.ToString(CultureInfo.InvariantCulture));
             fields.Add(value.ToString("R", CultureInfo.InvariantCulture));
             fields.Add(defense.ToString(CultureInfo.InvariantCulture));
+            string display = Value<string>(prefix, "DisplayName");
+            if (string.IsNullOrEmpty(display)) display = name;
+            if (display.Length > 80 || display.IndexOfAny(new[] { '\\n', '\\r', '\\t', '\\0' }) >= 0)
+                throw new InvalidOperationException("Invalid C# prefix name");
+            fields.Add(display);
             lines.Add(string.Join("\t", fields));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
