@@ -110,6 +110,7 @@ bool setTableElement(FieldInfo* f, int index, Il2CppObject* value) {
 namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
+int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
 
 int main() {
@@ -217,6 +218,15 @@ int main() {
                          &lineCount, lines, modifier, bad, nullptr, nullptr,
                          nullptr, nullptr);
     assert(lineCount == 0);
+    accessory.type = 6200;
+    lineCount = 0;
+    hookInventoryTooltip(&accessory.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 1);
+    text = static_cast<Il2CppString**>(arrayData(lines));
+    assert(text[0] && text[0]->chars[0] == '+' && text[0]->chars[1] == '8');
+    assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 0);
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
