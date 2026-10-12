@@ -138,7 +138,7 @@ jobs:
           lifecycle = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           assert "void retryPendingManagedPrefixesOnWorldReady()" in source
           assert "get_ActivePlayerFileData" in source
-          assert "if (restoreSavedPrefix(item, saved))" in source
+          assert "ready && restoreSavedPrefix(item, saved)" in source
           assert "original->second.key == current->second.key" in source
           assert "csharp prefix restore: chave=" in source
           assert "bl::runtime::retryPendingManagedPrefixesOnWorldReady();" in lifecycle
