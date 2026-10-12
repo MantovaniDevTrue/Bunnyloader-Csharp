@@ -224,11 +224,11 @@ try
         !independentDefaults.Contains("WEAPON\tExampleWaveWand\t12\t16\t9\tExampleWaveBolt\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("BUFF\tExampleDefenseBuff\t10\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleSwiftAccessory\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleWelcomeAccessory\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleMomentumAccessory\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\tConcede +7 de defesa enquanto equipado\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleSwiftAccessory\t0\tAumenta a velocidade de corrida em 8%\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleWelcomeAccessory\t0\tExemplo OnEnterWorld: envia um aviso ao entrar no mundo\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleMomentumAccessory\t0\tAumenta a aceleracao ao correr em 6%\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\tAtiva um efeito visual de sombra enquanto equipado\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\tExampleWelcomeAccessory\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\n", StringComparison.Ordinal) ||
