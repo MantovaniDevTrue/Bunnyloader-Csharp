@@ -1,5 +1,6 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItemSave.h"
 
 #include "content/common/GameRefs.h"
@@ -48,6 +49,7 @@ std::atomic<bool> g_started{false};
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
 std::atomic<int> g_worldReadyFrames{0};
+std::atomic<bool> g_worldPrefixesRestored{false};
 std::atomic<int> g_worldMenuPollFrames{0};
 std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
@@ -765,6 +767,16 @@ void run() {
 
 }
 
+void retryWorldManagedPrefixesWhenReady() {
+    if (g_worldPrefixesRestored.load(std::memory_order_acquire) ||
+        !g_worldSessionReady.load(std::memory_order_acquire) ||
+        !managedPrefixGameplayReady()) return;
+    if (g_worldPrefixesRestored.exchange(true, std::memory_order_acq_rel))
+        return;
+    BL_INFO("csharp prefix: hooks e descritores prontos; iniciando restauracao tardia");
+    bl::runtime::retryPendingManagedPrefixesOnWorldReady();
+}
+
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
@@ -772,6 +784,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldSessionReady.store(false, std::memory_order_release);
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
+    g_worldPrefixesRestored.store(false, std::memory_order_release);
     if (managedLiveHitStatus().enabled)
         pauseManagedLiveHit();
     g_worldTilesLoaded.store(true, std::memory_order_release);
@@ -784,6 +797,7 @@ void noteAutoGameUpdate() {
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
         if (context.gameMenu != 1 && context.netMode == 0) {
+            retryWorldManagedPrefixesWhenReady();
             updateManagedNpcBuffDispatcherOnGameThread();
             return;
         }
@@ -793,6 +807,7 @@ void noteAutoGameUpdate() {
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
+        g_worldPrefixesRestored.store(false, std::memory_order_release);
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         {
@@ -813,7 +828,7 @@ void noteAutoGameUpdate() {
         g_worldSessionReady.store(true, std::memory_order_release);
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
-        bl::runtime::retryPendingManagedPrefixesOnWorldReady();
+        retryWorldManagedPrefixesWhenReady();
         scheduleAutoLiveBindings();
     }
 }
