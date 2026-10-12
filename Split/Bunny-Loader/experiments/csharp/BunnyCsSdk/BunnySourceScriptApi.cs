@@ -66,6 +66,7 @@ public abstract class BunnyPlayer
     }
     public abstract void UpdateEquips(bool accessoryEquipped);
     public virtual string OnEnterWorld() => "";
+    public virtual string OnRespawn() => "";
     public virtual int UpdateMovement(bool accessoryEquipped) => 0;
     public virtual bool FrameEffects(bool accessoryEquipped) => false;
 }
