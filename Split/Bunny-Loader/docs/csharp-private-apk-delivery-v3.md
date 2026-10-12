@@ -29,3 +29,16 @@ Os artifacts públicos continuam contendo apenas `ExampleModCSharp`, `SecondExam
 Workflow público: `https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/workflows/build-bunny-csharp-source-loader.yml`
 
 Releases privadas: `https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases` (somente pessoas com permissão).
+
+
+## Migração das dependências de build — 12/10/2026
+
+A release `bunny-private-build-inputs-v1` no repositório privado `MantovaniDevTrue/Bunnyloader-Csharp-Builds` contém três dependências de compilação essenciais preservadas por SHA-256:
+
+- `BunnyRuntime_Terraria_1.4.5.8.6.zip`: `2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab`
+- `BunnyLoader-v0.1.9.1-MusicPrewarm.apk`: `aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00`
+- `BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk`: `84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb`
+
+Os workflows desta branch os baixam **somente do repositório privado** com `BUNNY_PRIVATE_BUILD_TOKEN`, e continuam verificando os checksums. Não eliminar os arquivos públicos correspondentes até que os dois workflows sejam validados após esta alteração.
+
+Após isso: apagar todas as APKs antigas e o runtime proprietary das releases públicas; preservar os `.bmod` e seus hashes enquanto aplicáveis. Para uma limpeza em massa, será necessário um token com escopo de escrita no **repositório público**, pois o token de destino privado não tem essa permissão. A chave v1 nunca deve ser restaurada. Históricos/forks e downloads existentes não podem ser revogados retroativamente.

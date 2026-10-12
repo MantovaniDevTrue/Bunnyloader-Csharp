@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 60
 
     env:
-      RUNTIME_TAG: runtime-1.4.5.8.6
+      RUNTIME_TAG: bunny-private-build-inputs-v1
       RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
       RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
 
@@ -90,10 +90,11 @@ jobs:
       - name: Download private Terraria runtime
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
+          test "$(gh api "repos/MantovaniDevTrue/Bunnyloader-Csharp-Builds" --jq '.private')" = "true"
           mkdir -p "$RUNNER_TEMP/bunny-runtime"
-          gh release download "$RUNTIME_TAG"             --repo "${{ github.repository }}"             --pattern "$RUNTIME_ASSET"             --dir "$RUNNER_TEMP/bunny-runtime"
+          gh release download "$RUNTIME_TAG"             --repo "MantovaniDevTrue/Bunnyloader-Csharp-Builds"             --pattern "$RUNTIME_ASSET"             --dir "$RUNNER_TEMP/bunny-runtime"
 
           cd "$RUNNER_TEMP/bunny-runtime"
           echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -

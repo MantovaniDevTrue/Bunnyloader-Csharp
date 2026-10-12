@@ -3,6 +3,7 @@ name: Verify Bunny CSharp v3 signing secrets
 on:
   push:
     branches:
+      - csharp-public-release-cleanup-v1
       - csharp-private-apk-delivery-v3
       - csharp-secure-signing-v3-public-safe
     paths:
@@ -58,6 +59,12 @@ jobs:
           assert '--repo "$PRIVATE_REPO"' in delivery
           assert 'gh release upload' not in pub
           assert 'upload-artifact' not in delivery
+          assert "bunny-private-build-inputs-v1" in paths[0].read_text()
+          assert 'PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds' in paths[0].read_text()
+          assert 'GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}' in paths[0].read_text()
+          assert 'gh release download bunny-music-prewarm-v1' not in paths[0].read_text()
+          assert 'gh release download bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress' not in paths[0].read_text()
+          assert 'RUNTIME_TAG: bunny-private-build-inputs-v1' in paths[1].read_text()
           print("BUNNY_PRIVATE_APK_GATE_AND_PUBLIC_ARTIFACTS=PASS")
           print("BUNNY_PUBLIC_SIGNING_AND_RELEASE_GUARD=PASS")
           PY

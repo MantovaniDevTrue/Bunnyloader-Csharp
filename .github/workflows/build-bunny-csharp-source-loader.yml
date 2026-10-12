@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - csharp-public-release-cleanup-v1
       - csharp-private-apk-delivery-v3
       - csharp-secure-signing-v3-public-safe
       - csharp-prefix-reforge-v90-2-hotfix
@@ -130,7 +131,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
-      RUNTIME_TAG: runtime-1.4.5.8.6
+      RUNTIME_TAG: bunny-private-build-inputs-v1
+      PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
       RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
       RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
 
@@ -1104,20 +1106,19 @@ jobs:
       - name: Reuse Android-validated patched MonoVM 8.0.23 from .72
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
           set -euo pipefail
+          test "$(gh api "repos/$PRIVATE_INPUTS_REPO" --jq '.private')" = "true"
           PREVIOUS="$RUNNER_TEMP/stable-mono"
           mkdir -p "$PREVIOUS" "$RUNNER_TEMP/bunny-mono-arm64"
-          gh release download bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress \
-            --repo "${{ github.repository }}" \
-            --pattern "BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk*" \
+          gh release download "$RUNTIME_TAG" \
+            --repo "$PRIVATE_INPUTS_REPO" \
+            --pattern "BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk" \
             --dir "$PREVIOUS"
           APK="$PREVIOUS/BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk"
-          CHECKSUM="$APK.sha256"
           test -s "$APK"
-          test -s "$CHECKSUM"
-          EXPECTED="$(awk '{print $1}' "$CHECKSUM")"
+          EXPECTED="84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb"
           echo "$EXPECTED  $APK" | sha256sum -c -
           OUT="$RUNNER_TEMP/bunny-mono-arm64/libmonosgen-2.0.so"
           unzip -p "$APK" "lib/arm64-v8a/libmonosgen-2.0.so" > "$OUT"
@@ -1292,10 +1293,10 @@ jobs:
       - name: Integrate Terraria runtime
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/runtime"
-          gh release download "$RUNTIME_TAG" --repo "${{ github.repository }}" --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/runtime"
+          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/runtime"
           cd "$RUNNER_TEMP/runtime"
           echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -
           mkdir -p extracted
@@ -1314,10 +1315,11 @@ jobs:
       - name: Restore stable sprite pack
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/stable-apk"
-          gh release download bunny-music-prewarm-v1 --repo "${{ github.repository }}" --pattern "BunnyLoader-v0.1.9.1-MusicPrewarm.apk" --dir "$RUNNER_TEMP/stable-apk"
+          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "BunnyLoader-v0.1.9.1-MusicPrewarm.apk" --dir "$RUNNER_TEMP/stable-apk"
+          printf '%s  %s\n' "aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00" "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/stable-sprites"
           unzip -q "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" "assets/sprites/*" -d "$RUNNER_TEMP/stable-sprites"
           ROOT="Split/Bunny-Loader/_sprites"
@@ -1428,7 +1430,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ github.ref == 'refs/heads/csharp-private-apk-delivery-v3' && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
