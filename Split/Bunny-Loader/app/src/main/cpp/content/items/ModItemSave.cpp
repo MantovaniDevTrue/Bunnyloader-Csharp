@@ -9,6 +9,7 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
+#include "experiments/csharp/NativeContent.h"
 
 #include <atomic>
 #include <cstdio>
@@ -641,6 +642,59 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     return fileData;
 }
 
+bool rehydrateSavedManagedItem(Il2CppObject* item, int type, int wanted) {
+    const int kind = bl::csharp::managedNativePrefixItemKind(type);
+    if (!kind) return true;
+    if (!item || !g_refs.setDefaults) return false;
+    auto& api = il2cpp::api();
+    Il2CppClass* itemClass = il2cpp::findClass({"Terraria", "Item", {}});
+    if (!itemClass) return false;
+    static const int damage = il2cpp::fieldOffset(itemClass, "damage");
+    static const int maxStack = il2cpp::fieldOffset(itemClass, "maxStack");
+    static const int accessory = il2cpp::fieldOffset(itemClass, "accessory");
+    if (damage < 0 || maxStack < 0 || accessory < 0) return false;
+    const int beforeDamage = field<int32_t>(item, damage);
+    const int beforeMaxStack = field<int32_t>(item, maxStack);
+    const bool beforeAccessory = field<uint8_t>(item, accessory) != 0;
+    const int beforePrefix = field<uint8_t>(item, g_refs.prefix);
+    const int keepStack = field<int32_t>(item, g_refs.stack);
+    const bool keepFavorited = field<uint8_t>(item, g_refs.favorited) != 0;
+    int desiredType = type;
+    void* args[2] = {&desiredType, nullptr};
+    Il2CppObject* exception = nullptr;
+    api.runtime_invoke(g_refs.setDefaults, item, args, &exception);
+    const bool ok = !exception && field<int32_t>(item, g_refs.type) == type;
+    if (!ok) {
+        BL_WARN("csharp prefix: reidratar tipo=%d falhou excecao=%d", type,
+                exception ? 1 : 0);
+        return false;
+    }
+    field<int32_t>(item, g_refs.stack) = keepStack > 0 ? keepStack : 1;
+    field<uint8_t>(item, g_refs.favorited) = keepFavorited ? 1 : 0;
+    bool hasWanted = false;
+    const MethodInfo* rollable = il2cpp::findMethodBySignature(
+        itemClass, il2cpp::parseSignature("int[] GetRollablePrefixes()"));
+    if (rollable) {
+        exception = nullptr;
+        auto* candidates = reinterpret_cast<Il2CppArray*>(
+            api.runtime_invoke(rollable, item, nullptr, &exception));
+        if (!exception && candidates && candidates->length < 512) {
+            const auto* ids = static_cast<const int32_t*>(il2cpp::arrayData(candidates));
+            for (uintptr_t i = 0; i < candidates->length; ++i)
+                if (ids[i] == wanted) {
+                    hasWanted = true;
+                    break;
+                }
+        }
+    }
+    BL_INFO("csharp prefix: reidratacao tipo=%d especie=%d dano=%d->%d pilhaMax=%d->%d acessorio=%d->%d prefixoAntes=%d candidato=%d",
+            type, kind, beforeDamage, field<int32_t>(item, damage),
+            beforeMaxStack, field<int32_t>(item, maxStack),
+            beforeAccessory ? 1 : 0, field<uint8_t>(item, accessory) ? 1 : 0,
+            beforePrefix, hasWanted ? 1 : 0);
+    return true;
+}
+
 void retryPendingManagedPrefixesInWorld() {
     if (!g_refs.ok) return;
     auto& api = il2cpp::api();
@@ -675,7 +729,10 @@ void retryPendingManagedPrefixesInWorld() {
             SavedItem saved{};
             saved.prefixKey = it->second.key;
             ++attempted;
-            if (restoreSavedPrefix(item, saved)) {
+            const int wanted = decodePrefix(saved);
+            const bool ready = wanted > 0 &&
+                rehydrateSavedManagedItem(item, it->second.type, wanted);
+            if (ready && restoreSavedPrefix(item, saved)) {
                 ++restored;
                 completed.push_back(slotKey);
             } else {
