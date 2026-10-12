@@ -71,6 +71,12 @@ RollFn g_originalRoll = nullptr;
 ReforgeFn g_originalReforge = nullptr;
 std::atomic<bool> g_reforgeTooltipReady{false};
 std::atomic<int> g_reforgeDiagnostics{0};
+struct RestoreRoll {
+    Il2CppObject* item = nullptr;
+    int prefix = 0;
+    bool used = false;
+};
+thread_local RestoreRoll g_restoreRoll{};
 
 Il2CppArray* staticArray(FieldInfo* field) {
     Il2CppArray* value = nullptr;
@@ -178,6 +184,15 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
     const auto descriptors = snapshotManagedPrefixes();
+    if (g_restoreRoll.item == item && g_restoreRoll.prefix > 0) {
+        if (const auto* target = byType(descriptors, g_restoreRoll.prefix)) {
+            if (eligible(item, *target, true) && ensurePrefixTables(descriptors)) {
+                *rolled = target->type;
+                g_restoreRoll.used = true;
+                return true;
+            }
+        }
+    }
     if (descriptors.empty())
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
@@ -397,6 +412,33 @@ bool installReforgeTooltipHook() {
     return true;
 }
 
+}
+ 
+bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
+                                     const MethodInfo* itemPrefixMethod,
+                                     bool* hookReached) {
+    if (hookReached) *hookReached = false;
+    if (!g_hooksReady.load(std::memory_order_acquire) || !item ||
+        !itemPrefixMethod || g_restoreRoll.item) return false;
+    const auto descriptors = snapshotManagedPrefixes();
+    const auto* requested = byType(descriptors, prefix);
+    if (!requested || !eligible(item, *requested, true) ||
+        !ensurePrefixTables(descriptors)) return false;
+    const RestoreRoll previous = g_restoreRoll;
+    g_restoreRoll = {item, prefix, false};
+    int32_t request = -2;
+    void* arguments[1] = {&request};
+    Il2CppObject* error = nullptr;
+    Il2CppObject* result = bl::il2cpp::api().runtime_invoke(
+        itemPrefixMethod, item, arguments, &error);
+    const bool called = g_restoreRoll.used;
+    g_restoreRoll = previous;
+    if (hookReached) *hookReached = called;
+    const bool accepted = result &&
+        *reinterpret_cast<const uint8_t*>(
+            reinterpret_cast<const char*>(result) + sizeof(Il2CppObject)) != 0;
+    return !error && called && accepted &&
+           bl::runtime::field<uint8_t>(item, g_refs.prefix) == prefix;
 }
 
 bool installManagedPrefixGameplayHooks() {
