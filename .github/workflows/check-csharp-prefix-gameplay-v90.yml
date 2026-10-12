@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-accessory-tooltips-v90-16-1
       - csharp-bunnyplayer-hooks-v90-16
       - csharp-late-prefix-restore-v90-15
       - csharp-swift-sdk-verify-v90-14
@@ -117,6 +118,24 @@ jobs:
           assert 'g_worldPlayerMessagesShown.store(false, std::memory_order_release)' in life
           assert 'showWorldPlayerMessagesWhenReady();' in life
           print("BUNNY_CSHARP_BUNNYPLAYER_BATCH_V90_16=PASS")
+          sdk = (root/"experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          probe = (root/"experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          loader = (root/"app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          native = (root/"app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          h = (root/"app/src/main/cpp/experiments/csharp/NativeContent.h").read_text()
+          assert 'public string Tooltip { get; set; }' in sdk
+          assert 'Value<string>(accessory, "Tooltip")' in probe
+          assert 'tooltip.Any(char.IsControl)' in probe
+          assert 'if (accessory && key == "Tooltip") continue;' in loader
+          assert 'fields.size() == 3 || fields.size() == 4' in loader
+          assert 'std::string tooltip;' in h
+          assert 'setModItemTooltip(accessory.type,' in native
+          for name in ("ExampleFocusAccessory", "ExampleSwiftAccessory",
+                       "ExampleWelcomeAccessory", "ExampleMomentumAccessory",
+                       "ExampleShadowAccessory"):
+              p = sample/"Content/Items/Accessories"/(name+".cs")
+              assert 'Tooltip = "' in p.read_text()
+          print("BUNNY_CSHARP_ACCESSORY_TOOLTIP_V90_16_1=PASS")
           PY
 
           python3 - <<'PY'
