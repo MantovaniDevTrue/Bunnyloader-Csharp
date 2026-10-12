@@ -1,0 +1,2775 @@
+{
+  "csharpClasses": [
+    {
+      "base": "",
+      "class": "BunnyLiveEvents",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs"
+    },
+    {
+      "base": "",
+      "class": "BunnyLiveNpc",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs"
+    },
+    {
+      "base": "",
+      "class": "BunnyLiveEntry",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveRuntime.cs"
+    },
+    {
+      "base": "",
+      "class": "ExampleWaveBoltLiveEvents",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs"
+    },
+    {
+      "base": "BunnyPlayer",
+      "class": "ExampleFocusPlayer",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs"
+    },
+    {
+      "base": "BunnyBuff",
+      "class": "ExampleDefenseBuff",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+    },
+    {
+      "base": "BunnyAccessory",
+      "class": "ExampleFocusAccessory",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs"
+    },
+    {
+      "base": "BunnyBuffPotion",
+      "class": "ExampleBuffPotion",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+    },
+    {
+      "base": "BunnyWeapon",
+      "class": "ExampleWand",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWand.cs"
+    },
+    {
+      "base": "BunnyWeapon",
+      "class": "ExampleWaveWand",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs"
+    },
+    {
+      "base": "BunnyNPC",
+      "class": "ExampleSlimeNPC",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs"
+    },
+    {
+      "base": "BunnyProjectile",
+      "class": "ExampleWaveBolt",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs"
+    },
+    {
+      "base": "",
+      "class": "ExampleBoltMotion",
+      "path": "samples/ExampleModCSharp/Playable/content/ExampleBoltMotion.cs"
+    },
+    {
+      "base": "",
+      "class": "ExampleWaveBoltMotion",
+      "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs"
+    },
+    {
+      "base": "BunnyProjectile",
+      "class": "ExampleBolt",
+      "path": "samples/ExampleModCSharp/Playable/content/main.cs"
+    }
+  ],
+  "features": [
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs",
+      "id": "legacy_live_hits",
+      "probes": [
+        {
+          "contains": "OnHitNPC(int call, int damage)",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs"
+        },
+        {
+          "contains": "\"OnHitNPC\", 2",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+        }
+      ],
+      "reason": "Callbacks tradicionais confirmados com dois mods C#.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "id": "managed_npc_debuff",
+      "probes": [
+        {
+          "contains": "decodeManagedNpcBuffCode",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h"
+        },
+        {
+          "contains": "runtime_invoke(g_addBuff, npc, args, &exception)",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp"
+        }
+      ],
+      "reason": "Efeitos de debuff reais confirmados Android .85.1/.86.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "id": "managed_npc_impulse",
+      "probes": [
+        {
+          "contains": "decodeManagedNpcImpulseCode",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h"
+        },
+        {
+          "contains": "std::clamp(current.x + delta, -12.0f, 12.0f)",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp"
+        }
+      ],
+      "reason": "87 empurroes confirmados visualmente Android .86 com 60 FPS.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+      "id": "npc_registration",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyNPC",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "class ExampleSlimeNPC : BunnyNPC",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs"
+        }
+      ],
+      "reason": "Slime C# registrado e testado em Terraria Android.",
+      "sdkClass": "BunnyNPC",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "id": "on_hit_context_v2",
+      "probes": [
+        {
+          "contains": "OnHitNPCV2(int call, int damage, int npcIndex)",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs"
+        },
+        {
+          "contains": "\"OnHitNPCV2\", 3",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+        }
+      ],
+      "reason": "Indice do NPC C# verificado Android .82.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "id": "on_hit_context_v3",
+      "probes": [
+        {
+          "contains": "OnHitNPCV3(int call, int damage, int npcIndex, int npcType",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs"
+        },
+        {
+          "contains": "\"OnHitNPCV3\", 7",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+        }
+      ],
+      "reason": "Tipo, vida e posicao NPC verificados com 383 chamadas .83.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "id": "on_hit_context_v4",
+      "probes": [
+        {
+          "contains": "OnHitNPCV4(int call, int damage, int npcIndex, int npcType",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs"
+        },
+        {
+          "contains": "\"OnHitNPCV4\", 12",
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+        }
+      ],
+      "reason": "Contexto de jogador e NPC confirmado Android .84/.86.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "id": "projectile_motion",
+      "probes": [
+        {
+          "contains": "TurnAtTick(int tick)",
+          "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs"
+        }
+      ],
+      "reason": "Curvas controladas por C# validadas em dispositivo.",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
+      "id": "projectile_registration",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyProjectile",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "class ExampleWaveBolt : BunnyProjectile",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs"
+        }
+      ],
+      "reason": "Projeteis C# ativos no Android .86.",
+      "sdkClass": "BunnyProjectile",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs",
+      "id": "weapon_registration",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyWeapon",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "Shoot = nameof(ExampleWaveBolt);",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs"
+        }
+      ],
+      "reason": "Arma C# funcional em combate Android .86.",
+      "sdkClass": "BunnyWeapon",
+      "status": "device_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs",
+      "id": "accessory",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyAccessory",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "class ExampleFocusAccessory : BunnyAccessory",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs"
+        }
+      ],
+      "reason": "Definicao de acessorio compila, teste extenso do equipamento pendente.",
+      "sdkClass": "BunnyAccessory",
+      "status": "ci_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs",
+      "id": "buff_definition",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyBuff",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "class ExampleDefenseBuff : BunnyBuff",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+        }
+      ],
+      "reason": "Definicao BunnyBuff e fonte C# presentes; nao e debuff vanilla V4.",
+      "sdkClass": "BunnyBuff",
+      "status": "ci_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs",
+      "id": "buff_potion",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyBuffPotion",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "class ExampleBuffPotion : BunnyBuffPotion",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+        }
+      ],
+      "reason": "Definicao BunnyBuffPotion presente; uso e duracao ainda exigem teste isolado.",
+      "sdkClass": "BunnyBuffPotion",
+      "status": "ci_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs",
+      "id": "player_equips",
+      "probes": [
+        {
+          "contains": "public abstract class BunnyPlayer",
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+        },
+        {
+          "contains": "UpdateEquips(bool accessoryEquipped)",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs"
+        }
+      ],
+      "reason": "ResetEffects/UpdateEquips declarados; persistencia nao comprovada.",
+      "sdkClass": "BunnyPlayer",
+      "status": "ci_verified"
+    },
+    {
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs",
+      "id": "npc_ai_prototype",
+      "probes": [
+        {
+          "contains": "AI(int playerDeltaX, int npcLife)",
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs"
+        }
+      ],
+      "reason": "AI gerenciada demonstrada, nao equivale a hooks JS NPC AI universais.",
+      "status": "experimental"
+    },
+    {
+      "id": "managed_dynamic_projectile_spawn",
+      "reason": "Spawn dinamico a partir de callback C# nao comprovado neste runtime.",
+      "status": "not_implemented"
+    },
+    {
+      "id": "multiplayer_effect_sync",
+      "reason": "Gameplay effects V4 disponiveis apenas na rota singleplayer.",
+      "status": "not_implemented"
+    },
+    {
+      "id": "npc_bestiary",
+      "reason": "SetBestiary JS sem ponte C# comprovada.",
+      "status": "not_implemented"
+    },
+    {
+      "id": "npc_loot_rules",
+      "reason": "ModifyNPCLoot JS nao tem equivalente gerenciado neste SDK.",
+      "status": "not_implemented"
+    }
+  ],
+  "javascriptClasses": [
+    {
+      "base": "ModCommand",
+      "methods": [
+        "Action"
+      ],
+      "name": "ExampleTimeCommand",
+      "path": "samples/ExampleMod/content/Common/Commands/ExampleTimeCommand.js"
+    },
+    {
+      "base": "ModCommand",
+      "methods": [
+        "Action"
+      ],
+      "name": "HealCommand",
+      "path": "samples/ExampleMod/content/Common/Commands/HealCommand.js"
+    },
+    {
+      "base": "ModConfig",
+      "methods": [
+        "OnChanged",
+        "RandomizeGlow"
+      ],
+      "name": "ExampleConfig",
+      "path": "samples/ExampleMod/content/Common/Configs/ExampleConfig.js"
+    },
+    {
+      "base": "GlobalNPC",
+      "methods": [
+        "ModifyNPCLoot"
+      ],
+      "name": "ExampleNPCLoot",
+      "path": "samples/ExampleMod/content/Common/GlobalNPCs/ExampleNPCLoot.js"
+    },
+    {
+      "base": "ModPlayer",
+      "methods": [
+        "FrameEffects",
+        "ResetEffects",
+        "UpdateEquips"
+      ],
+      "name": "ExampleCostumePlayer",
+      "path": "samples/ExampleMod/content/Common/Players/ExampleCostumePlayer.js"
+    },
+    {
+      "base": "ModPlayer",
+      "methods": [
+        "CanUseDash",
+        "OnStartDash",
+        "ResetDash",
+        "ResetEffects",
+        "UpdateDash",
+        "UpdateMovement"
+      ],
+      "name": "ExampleDashPlayer",
+      "path": "samples/ExampleMod/content/Common/Players/ExampleDashPlayer.js"
+    },
+    {
+      "base": "ModPlayer",
+      "methods": [
+        "CatchFish"
+      ],
+      "name": "ExampleFishingPlayer",
+      "path": "samples/ExampleMod/content/Common/Players/ExampleFishingPlayer.js"
+    },
+    {
+      "base": "ModPlayer",
+      "methods": [
+        "OnEnterWorld",
+        "ResetEffects",
+        "UpdateEquips"
+      ],
+      "name": "ExamplePlayer",
+      "path": "samples/ExampleMod/content/Common/Players/ExamplePlayer.js"
+    },
+    {
+      "base": "PlayerDrawLayer",
+      "methods": [
+        "Draw",
+        "GetDefaultPosition",
+        "GetDefaultVisibility"
+      ],
+      "name": "WingsGlowmask",
+      "path": "samples/ExampleMod/content/Common/Players/WingsGlowmask.js"
+    },
+    {
+      "base": "ModSystem",
+      "methods": [
+        "ClearWorld",
+        "LoadWorldData",
+        "NetReceive",
+        "NetSend",
+        "SaveWorldData"
+      ],
+      "name": "DownedBossSystem",
+      "path": "samples/ExampleMod/content/Common/Systems/DownedBossSystem.js"
+    },
+    {
+      "base": "ModSystem",
+      "methods": [
+        "TileCountsAvailable"
+      ],
+      "name": "ExampleBiomeTileCount",
+      "path": "samples/ExampleMod/content/Common/Systems/ExampleBiomeTileCount.js"
+    },
+    {
+      "base": "ModAchievement",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBossKilled",
+      "path": "samples/ExampleMod/content/Content/Achievements/ExampleBossKilled.js"
+    },
+    {
+      "base": "ModAchievement",
+      "methods": [
+        "OnNPCKilled",
+        "SetStaticDefaults"
+      ],
+      "name": "ManyWormsKilled",
+      "path": "samples/ExampleMod/content/Content/Achievements/ManyWormsKilled.js"
+    },
+    {
+      "base": "ModSurfaceBackgroundStyle",
+      "methods": [
+        "ChooseCloseTexture",
+        "ChooseFarTexture",
+        "ChooseMiddleTexture",
+        "ModifyFarFades"
+      ],
+      "name": "ExampleSurfaceBackgroundStyle",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleSurfaceBackgroundStyle.js"
+    },
+    {
+      "base": "ModBiome",
+      "methods": [
+        "IsBiomeActive",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSurfaceBiome",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleSurfaceBiome.js"
+    },
+    {
+      "base": "ModUndergroundBackgroundStyle",
+      "methods": [
+        "FillTextureArray"
+      ],
+      "name": "ExampleUndergroundBackgroundStyle",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleUndergroundBackgroundStyle.js"
+    },
+    {
+      "base": "ModBiome",
+      "methods": [
+        "IsBiomeActive",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleUndergroundBiome",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleUndergroundBiome.js"
+    },
+    {
+      "base": "ModWaterStyle",
+      "methods": [
+        "BiomeHairColor",
+        "ChooseWaterfallStyle",
+        "GetDropletGore",
+        "GetRainTexture",
+        "GetSplashDust",
+        "LightColorMultiplier"
+      ],
+      "name": "ExampleWaterStyle",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleWaterStyle.js"
+    },
+    {
+      "base": "ModWaterfallStyle",
+      "methods": [
+        "AddLight"
+      ],
+      "name": "ExampleWaterfallStyle",
+      "path": "samples/ExampleMod/content/Content/Biomes/ExampleWaterfallStyle.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "Blocky",
+      "path": "samples/ExampleMod/content/Content/Buffs/Blocky.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "ModifyDescription",
+        "UpdatePlayer"
+      ],
+      "name": "ExampleDefenseBuff",
+      "path": "samples/ExampleMod/content/Content/Buffs/ExampleDefenseBuff.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "ModifyDescription",
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "ExampleDefenseDebuff",
+      "path": "samples/ExampleMod/content/Content/Buffs/ExampleDefenseDebuff.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleMinecartBuff",
+      "path": "samples/ExampleMod/content/Content/Buffs/ExampleMinecartBuff.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "ExampleMinionBuff",
+      "path": "samples/ExampleMod/content/Content/Buffs/ExampleMinionBuff.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "ExampleMountBuff",
+      "path": "samples/ExampleMod/content/Content/Buffs/ExampleMountBuff.js"
+    },
+    {
+      "base": "ModCloud",
+      "methods": [
+        "OnSpawn",
+        "SpawnChance"
+      ],
+      "name": "ExampleAdvancedCloud",
+      "path": "samples/ExampleMod/content/Content/Clouds/ExampleAdvancedCloud.js"
+    },
+    {
+      "base": "DamageClass",
+      "methods": [
+        "GetEffectInheritance",
+        "GetModifierInheritance",
+        "SetDefaultStats",
+        "ShowStatTooltipLine"
+      ],
+      "name": "ExampleDamageClass",
+      "path": "samples/ExampleMod/content/Content/DamageClasses/ExampleDamageClass.js"
+    },
+    {
+      "base": "ModEmoteBubble",
+      "methods": [
+        "GetFrame",
+        "GetFrameInEmoteMenu",
+        "SetStaticDefaults",
+        "UpdateFrame"
+      ],
+      "name": "ExampleAnimatedEmote",
+      "path": "samples/ExampleMod/content/Content/EmoteBubbles/ExampleAnimatedEmote.js"
+    },
+    {
+      "base": "ModEmoteBubble",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleItemEmote",
+      "path": "samples/ExampleMod/content/Content/EmoteBubbles/ExampleItemEmote.js"
+    },
+    {
+      "base": "ModMenu",
+      "methods": [
+        "OnSelected",
+        "PreDrawLogo"
+      ],
+      "name": "ExampleModMenu",
+      "path": "samples/ExampleMod/content/Content/ExampleModMenu.js"
+    },
+    {
+      "base": "ModSystem",
+      "methods": [
+        "AddRecipeGroups",
+        "AddRecipes"
+      ],
+      "name": "ExampleRecipes",
+      "path": "samples/ExampleMod/content/Content/ExampleRecipes.js"
+    },
+    {
+      "base": "ModHair",
+      "methods": [
+        "GetUnlockConditions"
+      ],
+      "name": "ExampleHair",
+      "path": "samples/ExampleMod/content/Content/Hairs/ExampleHair.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBeard",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "CanAccessoryBeEquippedWith",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "name": "ExampleBoots",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleBoots.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "CanAccessoryBeEquippedWith",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "name": "ExampleShield",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleShield.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "name": "ExampleStatAccessory",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "name": "ExampleStatBonusAccessory",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleStatBonusAccessory.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "VerticalWingSpeeds"
+      ],
+      "name": "ExampleWings",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/ExampleWings.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "name": "WaspNest",
+      "path": "samples/ExampleMod/content/Content/Items/Accessories/WaspNest.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleBullet",
+      "path": "samples/ExampleMod/content/Content/Items/Ammo/ExampleBullet.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateEquip"
+      ],
+      "name": "ExampleBreastplate",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/ExampleBreastplate.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "IsVanitySet",
+        "Load",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "UpdateAccessory",
+        "UpdateVanity",
+        "UpdateVanitySet"
+      ],
+      "name": "ExampleCostume",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/ExampleCostume.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddArmorSets",
+        "AddRecipes",
+        "SetDefaults",
+        "UpdateArmorSet"
+      ],
+      "name": "ExampleHelmet",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/ExampleHelmet.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateEquip"
+      ],
+      "name": "ExampleLeggings",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/ExampleLeggings.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleBossMask",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "Load",
+        "SetDefaults",
+        "SetMatch",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleRobe",
+      "path": "samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "CanRightClick",
+        "ModifyItemLoot",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBossBag",
+      "path": "samples/ExampleMod/content/Content/Items/Consumables/ExampleBossBag.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "CanUseItem",
+        "SetDefaults",
+        "UseItem"
+      ],
+      "name": "ExampleBossSummonItem",
+      "path": "samples/ExampleMod/content/Content/Items/Consumables/ExampleBossSummonItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBuffPotion",
+      "path": "samples/ExampleMod/content/Content/Items/Consumables/ExampleBuffPotion.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleGolfBall",
+      "path": "samples/ExampleMod/content/Content/Items/ExampleGolfBall.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleItem",
+      "path": "samples/ExampleMod/content/Content/Items/ExampleItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "ModifyTooltips",
+        "PreDrawTooltipLine",
+        "SetDefaults"
+      ],
+      "name": "ExampleTooltipItem",
+      "path": "samples/ExampleMod/content/Content/Items/ExampleTooltipItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "GetAlpha",
+        "PostUpdate",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSoul",
+      "path": "samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleMinecart",
+      "path": "samples/ExampleMod/content/Content/Items/Mounts/ExampleMinecart.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleMountItem",
+      "path": "samples/ExampleMod/content/Content/Items/Mounts/ExampleMountItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleAnimatedGlowmaskTileItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleAnimatedTileItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleAnimatedTileItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBar",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleBar.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleCampfire",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleCampfire.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleCutTile",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleCutTile.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleGemsparkBlock",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleGemsparkBlock.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleHerbSeeds",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleHerbSeeds.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleLamp",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleLamp.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleLivingFire",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleLivingFire.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleMusicBox",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleMusicBox.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleOreItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleOreItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleSignItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleSignItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleSinkItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleSinkItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleStatue",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleStatue.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleTileItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleTileItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "HoldItem",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleTorch",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleTorch.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleTransparentShapedTileItem",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleTransparentShapedTileItem.js"
+    },
+    {
+      "base": "ExampleTrapBase",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleTrapIchorBullet",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleTrap.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleWall",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleWall.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleWallAdvanced",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/ExampleWallAdvanced.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleBed",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleBed.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleChair",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleChair.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleChandelier",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleChandelier.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleChest",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleChest.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleClock",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleClock.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleDoor",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleDoor.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleDresser",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleDresser.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExamplePlatform",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExamplePlatform.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleTable",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleTable.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleToilet",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleToilet.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleWideBanner",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleWideBanner.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleWorkbench",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/ExampleWorkbench.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "MinionBossRelic",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/MinionBossRelic.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "MinionBossTrophy",
+      "path": "samples/ExampleMod/content/Content/Items/Placeable/Furniture/MinionBossTrophy.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AnglerQuestChat",
+        "IsAnglerQuestAvailable",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleQuestFish",
+      "path": "samples/ExampleMod/content/Content/Items/Quests/ExampleQuestFish.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleDrill",
+      "path": "samples/ExampleMod/content/Content/Items/Tools/ExampleDrill.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "HoldItem",
+        "ModifyFishingLine",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleFishingRod",
+      "path": "samples/ExampleMod/content/Content/Items/Tools/ExampleFishingRod.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleHamaxe",
+      "path": "samples/ExampleMod/content/Content/Items/Tools/ExampleHamaxe.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleHookItem",
+      "path": "samples/ExampleMod/content/Content/Items/Tools/ExampleHookItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExamplePickaxe",
+      "path": "samples/ExampleMod/content/Content/Items/Tools/ExamplePickaxe.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ],
+      "name": "ExampleCustomDamageWeapon",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/ExampleCustomDamageWeapon.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "MagicPrefix",
+        "MeleePrefix",
+        "RangedPrefix",
+        "SetDefaults"
+      ],
+      "name": "ExampleMultiplePrefixCategoryWeapon",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "CanUseItem",
+        "SetDefaults"
+      ],
+      "name": "ExampleLaserWeapon",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleLaserWeapon.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleMagicWeapon",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleMagicWeapon.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleFlail",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleFlail.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleMeleeWeapon",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "CanUseItem",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleSpear",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleSpear.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleSwingingEnergySword",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleWhip",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleWhip.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "ModifyTooltips",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleYoyo",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleYoyo.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "HoldoutOffset",
+        "SetDefaults"
+      ],
+      "name": "ExampleGun",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Ranged/ExampleGun.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "HoldoutOffset",
+        "SetDefaults"
+      ],
+      "name": "ExampleRocketLauncher",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "HoldoutOffset",
+        "SetDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleShotgun",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Ranged/ExampleShotgun.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "ModifyShootStats",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleMinionItem",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Summon/ExampleMinionItem.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "Shoot"
+      ],
+      "name": "ExampleSentryItem",
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Summon/ExampleSentryItem.js"
+    },
+    {
+      "base": "ModMount",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdateEffects"
+      ],
+      "name": "ExampleMinecartMount",
+      "path": "samples/ExampleMod/content/Content/Mounts/ExampleMinecartMount.js"
+    },
+    {
+      "base": "ModMount",
+      "methods": [
+        "SetMount",
+        "SetStaticDefaults",
+        "UpdateEffects"
+      ],
+      "name": "ExampleMount",
+      "path": "samples/ExampleMod/content/Content/Mounts/ExampleMount.js"
+    },
+    {
+      "base": "ModNPC",
+      "methods": [
+        "AI",
+        "FindFrame",
+        "HitEffect",
+        "ModifyNPCLoot",
+        "OnKill",
+        "PreAI",
+        "SetBestiary",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBoss",
+      "path": "samples/ExampleMod/content/Content/NPCs/ExampleBoss/ExampleBoss.js"
+    },
+    {
+      "base": "ModNPC",
+      "methods": [
+        "AddShops",
+        "CanTownNPCSpawn",
+        "CheckConditions",
+        "GetChat",
+        "HitEffect",
+        "OnChatButtonClicked",
+        "SetBestiary",
+        "SetChatButtons",
+        "SetDefaults",
+        "SetNPCNameList",
+        "SetStaticDefaults",
+        "TownNPCAttackProj",
+        "TownNPCAttackProjSpeed",
+        "TownNPCAttackStrength"
+      ],
+      "name": "ExamplePerson",
+      "path": "samples/ExampleMod/content/Content/NPCs/ExamplePerson/ExamplePerson.js"
+    },
+    {
+      "base": "ModNPC",
+      "methods": [
+        "ApplyBuffImmunity",
+        "HitEffect",
+        "ModifyNPCLoot",
+        "SetBestiary",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "SpawnChance"
+      ],
+      "name": "ExampleSlimeNPC",
+      "path": "samples/ExampleMod/content/Content/NPCs/ExampleSlimeNPC.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "ExampleLightPetBuff",
+      "path": "samples/ExampleMod/content/Content/Pets/ExampleLightPet/ExampleLightPetBuff.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "UseStyle"
+      ],
+      "name": "ExampleLightPetItem",
+      "path": "samples/ExampleMod/content/Content/Pets/ExampleLightPet/ExampleLightPetItem.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "UpdateDash",
+        "UpdateExtraMovement",
+        "UpdateFading"
+      ],
+      "name": "ExampleLightPetProjectile",
+      "path": "samples/ExampleMod/content/Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js"
+    },
+    {
+      "base": "ModBuff",
+      "methods": [
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ],
+      "name": "ExamplePetBuff",
+      "path": "samples/ExampleMod/content/Content/Pets/ExamplePet/ExamplePetBuff.js"
+    },
+    {
+      "base": "ModItem",
+      "methods": [
+        "AddRecipes",
+        "SetDefaults",
+        "UseItem"
+      ],
+      "name": "ExamplePetItem",
+      "path": "samples/ExampleMod/content/Content/Pets/ExamplePet/ExamplePetItem.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "PreAI",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExamplePetProjectile",
+      "path": "samples/ExampleMod/content/Content/Pets/ExamplePet/ExamplePetProjectile.js"
+    },
+    {
+      "base": "ModPrefix",
+      "methods": [
+        "ApplyAccessoryEffects",
+        "GetTooltipLines",
+        "ModifyValue"
+      ],
+      "name": "ExampleAccessoryPrefix",
+      "path": "samples/ExampleMod/content/Content/Prefixes/ExampleAccessoryPrefix.js"
+    },
+    {
+      "base": "ExamplePrefix",
+      "methods": [],
+      "name": "ExampleDerivedPrefix",
+      "path": "samples/ExampleMod/content/Content/Prefixes/ExampleDerivedPrefix.js"
+    },
+    {
+      "base": "ModPrefix",
+      "methods": [
+        "Apply",
+        "CanRoll",
+        "GetTooltipLines",
+        "ModifyValue",
+        "RollChance",
+        "SetStats"
+      ],
+      "name": "ExamplePrefix",
+      "path": "samples/ExampleMod/content/Content/Prefixes/ExamplePrefix.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "GetAlpha",
+        "PreDraw",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleAdvancedAnimatedProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleAdvancedAnimatedProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "OnSpawn",
+        "SetDefaults"
+      ],
+      "name": "ExampleBobber",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleBobber.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "SetDefaults"
+      ],
+      "name": "ExampleBulletProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleBulletProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "SetDefaults"
+      ],
+      "name": "ExampleDrillProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleDrillProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "GetAlpha",
+        "PreDraw",
+        "SetDefaults"
+      ],
+      "name": "ExampleFlailProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleFlailProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleGolfBallProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleGolfBallProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "GrappleCanLatchOnTo",
+        "PreDrawExtras",
+        "SetDefaults",
+        "UseGrapple"
+      ],
+      "name": "ExampleHookProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleHookProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "DamageNPCs",
+        "LaserColor",
+        "LaserEnd",
+        "PreDraw",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleLaserBeam",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleLaserBeam.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "Aim",
+        "GetAlpha",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "ShootBeam",
+        "ShouldConsumeMana"
+      ],
+      "name": "ExampleLaserHoldout",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleLaserHoldout.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "CanCutTiles",
+        "CheckActive",
+        "GeneralBehavior",
+        "MinionContactDamage",
+        "Movement",
+        "SearchForTargets",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "Visuals"
+      ],
+      "name": "ExampleMinion",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleMinion.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "FindTarget",
+        "GetAlpha",
+        "OnKill",
+        "OnTileCollide",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "TileCollideStyle"
+      ],
+      "name": "ExampleSentry",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "OnKill",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSentryShot",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleSentryShot.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "PreAI",
+        "SetDefaults"
+      ],
+      "name": "ExampleSpearProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleSpearProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "AI",
+        "DrawLikeExcalibur",
+        "DrawSparkle",
+        "PreDraw",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSwingingEnergySwordProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleSwingingEnergySwordProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "PreDraw",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleWhipProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleWhipProjectile.js"
+    },
+    {
+      "base": "ModProjectile",
+      "methods": [
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleYoyoProjectile",
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleYoyoProjectile.js"
+    },
+    {
+      "base": "ModRarity",
+      "methods": [
+        "GetPrefixedRarity"
+      ],
+      "name": "ExampleHigherTierModRarity",
+      "path": "samples/ExampleMod/content/Content/Rarities/ExampleHigherTierModRarity.js"
+    },
+    {
+      "base": "ModRarity",
+      "methods": [
+        "GetPrefixedRarity"
+      ],
+      "name": "ExampleModRarity",
+      "path": "samples/ExampleMod/content/Content/Rarities/ExampleModRarity.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "AnimateTile",
+        "PreDraw",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleAnimatedGlowmaskTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleAnimatedGlowmaskTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "AnimateIndividualTile",
+        "AnimateTile",
+        "KillSound",
+        "ModifyLight",
+        "SetSpriteEffects",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleAnimatedTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleAnimatedTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetStaticDefaults",
+        "TileFrame"
+      ],
+      "name": "ExampleBar",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleBar.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "AnimateIndividualTile",
+        "AnimateTile",
+        "EmitParticles",
+        "HitWire",
+        "ModifyLight",
+        "MouseOver",
+        "NearbyEffects",
+        "PostDraw",
+        "RightClick",
+        "SetStaticDefaults",
+        "ToggleTile"
+      ],
+      "name": "ExampleCampfire",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleCampfire.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "CreateDust",
+        "KillMultiTile",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleCutTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleCutTile.js"
+    },
+    {
+      "base": "ExampleGemsparkBlockBase",
+      "methods": [
+        "HitWire",
+        "ModifyLight",
+        "SetStaticDefaults",
+        "TileFrame"
+      ],
+      "name": "ExampleGemsparkBlockOn",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleGemsparkBlock.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "CanDrop",
+        "GetItemDrops",
+        "RandomUpdate",
+        "SetDrawPositions",
+        "SetSpriteEffects",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleHerb",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleHerb.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "DrawEffects",
+        "EmitParticles",
+        "HitWire",
+        "ModifyLight",
+        "SetSpriteEffects",
+        "SetStaticDefaults",
+        "SpecialDraw"
+      ],
+      "name": "ExampleLamp",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleLamp.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "AnimateTile",
+        "ModifyLight",
+        "SetDrawPositions",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleLivingFireTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleLivingFireTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "EmitParticles",
+        "MouseOver",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleMusicBoxTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleMusicBoxTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleOre",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleOre.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "KillMultiTile",
+        "PlaceInWorld",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSign",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleSign.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleSink",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleSink.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "HitWire",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleStatue",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleStatue.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "EmitParticles",
+        "ModifyLight",
+        "MouseOver",
+        "NumDust",
+        "SetDrawPositions",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleTorch",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleTorch.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "ModifyLight",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleTransparentShapedTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleTransparentShapedTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "CreateDust",
+        "GetItemDrops",
+        "GetMapOption",
+        "HitWire",
+        "PlaceInWorld",
+        "SetStaticDefaults",
+        "Slope"
+      ],
+      "name": "ExampleTrap",
+      "path": "samples/ExampleMod/content/Content/Tiles/ExampleTrap.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "ModifySleepingTargetInfo",
+        "MouseOver",
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleBed",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleBed.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "ModifySittingTargetInfo",
+        "MouseOver",
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleChair",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleChair.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "EmitParticles",
+        "HitWire",
+        "ModifyLight",
+        "SetDrawPositions",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleChandelier",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleChandelier.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "DefaultContainerName",
+        "GetMapOption",
+        "IsLockedChest",
+        "KillMultiTile",
+        "LockChest",
+        "MouseOver",
+        "MouseOverFar",
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults",
+        "UnlockChest"
+      ],
+      "name": "ExampleChest",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleChest.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleClock",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleClock.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "MouseOver",
+        "NumDust",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleDoorClosed",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleDoorClosed.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "MouseOver",
+        "NumDust",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleDoorOpen",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleDoorOpen.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "KillMultiTile",
+        "MouseOver",
+        "MouseOverFar",
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleDresser",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleDresser.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "NumDust",
+        "PostSetDefaults",
+        "SetStaticDefaults"
+      ],
+      "name": "ExamplePlatform",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExamplePlatform.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "NumDust",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleTable",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleTable.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "HitWire",
+        "ModifySittingTargetInfo",
+        "MouseOver",
+        "NumDust",
+        "RightClick",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleToilet",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleToilet.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetDrawPositions",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleWideBannerTile",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleWideBannerTile.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "NumDust",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleWorkbench",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/ExampleWorkbench.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "CreateDust",
+        "DrawEffects",
+        "SetDrawPositions",
+        "SetStaticDefaults",
+        "SpecialDraw"
+      ],
+      "name": "MinionBossRelic",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/MinionBossRelic.js"
+    },
+    {
+      "base": "ModTile",
+      "methods": [
+        "SetStaticDefaults"
+      ],
+      "name": "MinionBossTrophy",
+      "path": "samples/ExampleMod/content/Content/Tiles/Furniture/MinionBossTrophy.js"
+    },
+    {
+      "base": "ModWall",
+      "methods": [
+        "NumDust",
+        "SetStaticDefaults"
+      ],
+      "name": "ExampleWall",
+      "path": "samples/ExampleMod/content/Content/Walls/ExampleWall.js"
+    },
+    {
+      "base": "ModWall",
+      "methods": [
+        "AnimateWall",
+        "CreateDust",
+        "ModifyLight",
+        "NumDust",
+        "SetStaticDefaults",
+        "WallFrame"
+      ],
+      "name": "ExampleWallAdvanced",
+      "path": "samples/ExampleMod/content/Content/Walls/ExampleWallAdvanced.js"
+    },
+    {
+      "base": "Mod",
+      "methods": [
+        "Load",
+        "PostSetupContent"
+      ],
+      "name": "ExampleMod",
+      "path": "samples/ExampleMod/content/main.js"
+    }
+  ],
+  "javascriptGroups": {
+    "DamageClass": {
+      "files": 1,
+      "methods": [
+        "GetEffectInheritance",
+        "GetModifierInheritance",
+        "SetDefaultStats",
+        "ShowStatTooltipLine"
+      ]
+    },
+    "ExampleGemsparkBlockBase": {
+      "files": 1,
+      "methods": [
+        "HitWire",
+        "ModifyLight",
+        "SetStaticDefaults",
+        "TileFrame"
+      ]
+    },
+    "ExamplePrefix": {
+      "files": 1,
+      "methods": []
+    },
+    "ExampleTrapBase": {
+      "files": 1,
+      "methods": [
+        "AddRecipes",
+        "SetDefaults"
+      ]
+    },
+    "GlobalNPC": {
+      "files": 1,
+      "methods": [
+        "ModifyNPCLoot"
+      ]
+    },
+    "Mod": {
+      "files": 1,
+      "methods": [
+        "Load",
+        "PostSetupContent"
+      ]
+    },
+    "ModAchievement": {
+      "files": 2,
+      "methods": [
+        "OnNPCKilled",
+        "SetStaticDefaults"
+      ]
+    },
+    "ModBiome": {
+      "files": 2,
+      "methods": [
+        "IsBiomeActive",
+        "SetStaticDefaults"
+      ]
+    },
+    "ModBuff": {
+      "files": 8,
+      "methods": [
+        "ModifyDescription",
+        "SetStaticDefaults",
+        "UpdatePlayer"
+      ]
+    },
+    "ModCloud": {
+      "files": 1,
+      "methods": [
+        "OnSpawn",
+        "SpawnChance"
+      ]
+    },
+    "ModCommand": {
+      "files": 2,
+      "methods": [
+        "Action"
+      ]
+    },
+    "ModConfig": {
+      "files": 1,
+      "methods": [
+        "OnChanged",
+        "RandomizeGlow"
+      ]
+    },
+    "ModEmoteBubble": {
+      "files": 2,
+      "methods": [
+        "GetFrame",
+        "GetFrameInEmoteMenu",
+        "SetStaticDefaults",
+        "UpdateFrame"
+      ]
+    },
+    "ModHair": {
+      "files": 1,
+      "methods": [
+        "GetUnlockConditions"
+      ]
+    },
+    "ModItem": {
+      "files": 79,
+      "methods": [
+        "AddArmorSets",
+        "AddRecipes",
+        "AnglerQuestChat",
+        "CanAccessoryBeEquippedWith",
+        "CanRightClick",
+        "CanUseItem",
+        "GetAlpha",
+        "HoldItem",
+        "HoldoutOffset",
+        "IsAnglerQuestAvailable",
+        "IsVanitySet",
+        "Load",
+        "MagicPrefix",
+        "MeleePrefix",
+        "ModifyFishingLine",
+        "ModifyItemLoot",
+        "ModifyShootStats",
+        "ModifyTooltipLines",
+        "ModifyTooltips",
+        "PostUpdate",
+        "PreDrawTooltipLine",
+        "RangedPrefix",
+        "SetDefaults",
+        "SetMatch",
+        "SetStaticDefaults",
+        "Shoot",
+        "UpdateAccessory",
+        "UpdateArmorSet",
+        "UpdateEquip",
+        "UpdateVanity",
+        "UpdateVanitySet",
+        "UseItem",
+        "UseStyle",
+        "VerticalWingSpeeds"
+      ]
+    },
+    "ModMenu": {
+      "files": 1,
+      "methods": [
+        "OnSelected",
+        "PreDrawLogo"
+      ]
+    },
+    "ModMount": {
+      "files": 2,
+      "methods": [
+        "SetMount",
+        "SetStaticDefaults",
+        "UpdateEffects"
+      ]
+    },
+    "ModNPC": {
+      "files": 3,
+      "methods": [
+        "AI",
+        "AddShops",
+        "ApplyBuffImmunity",
+        "CanTownNPCSpawn",
+        "CheckConditions",
+        "FindFrame",
+        "GetChat",
+        "HitEffect",
+        "ModifyNPCLoot",
+        "OnChatButtonClicked",
+        "OnKill",
+        "PreAI",
+        "SetBestiary",
+        "SetChatButtons",
+        "SetDefaults",
+        "SetNPCNameList",
+        "SetStaticDefaults",
+        "SpawnChance",
+        "TownNPCAttackProj",
+        "TownNPCAttackProjSpeed",
+        "TownNPCAttackStrength"
+      ]
+    },
+    "ModPlayer": {
+      "files": 4,
+      "methods": [
+        "CanUseDash",
+        "CatchFish",
+        "FrameEffects",
+        "OnEnterWorld",
+        "OnStartDash",
+        "ResetDash",
+        "ResetEffects",
+        "UpdateDash",
+        "UpdateEquips",
+        "UpdateMovement"
+      ]
+    },
+    "ModPrefix": {
+      "files": 2,
+      "methods": [
+        "Apply",
+        "ApplyAccessoryEffects",
+        "CanRoll",
+        "GetTooltipLines",
+        "ModifyValue",
+        "RollChance",
+        "SetStats"
+      ]
+    },
+    "ModProjectile": {
+      "files": 18,
+      "methods": [
+        "AI",
+        "Aim",
+        "CanCutTiles",
+        "CheckActive",
+        "DamageNPCs",
+        "DrawLikeExcalibur",
+        "DrawSparkle",
+        "FindTarget",
+        "GeneralBehavior",
+        "GetAlpha",
+        "GrappleCanLatchOnTo",
+        "LaserColor",
+        "LaserEnd",
+        "MinionContactDamage",
+        "Movement",
+        "OnKill",
+        "OnSpawn",
+        "OnTileCollide",
+        "PreAI",
+        "PreDraw",
+        "PreDrawExtras",
+        "SearchForTargets",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "ShootBeam",
+        "ShouldConsumeMana",
+        "TileCollideStyle",
+        "UpdateDash",
+        "UpdateExtraMovement",
+        "UpdateFading",
+        "UseGrapple",
+        "Visuals"
+      ]
+    },
+    "ModRarity": {
+      "files": 2,
+      "methods": [
+        "GetPrefixedRarity"
+      ]
+    },
+    "ModSurfaceBackgroundStyle": {
+      "files": 1,
+      "methods": [
+        "ChooseCloseTexture",
+        "ChooseFarTexture",
+        "ChooseMiddleTexture",
+        "ModifyFarFades"
+      ]
+    },
+    "ModSystem": {
+      "files": 3,
+      "methods": [
+        "AddRecipeGroups",
+        "AddRecipes",
+        "ClearWorld",
+        "LoadWorldData",
+        "NetReceive",
+        "NetSend",
+        "SaveWorldData",
+        "TileCountsAvailable"
+      ]
+    },
+    "ModTile": {
+      "files": 32,
+      "methods": [
+        "AnimateIndividualTile",
+        "AnimateTile",
+        "CanDrop",
+        "CreateDust",
+        "DefaultContainerName",
+        "DrawEffects",
+        "EmitParticles",
+        "GetItemDrops",
+        "GetMapOption",
+        "HitWire",
+        "IsLockedChest",
+        "KillMultiTile",
+        "KillSound",
+        "LockChest",
+        "ModifyLight",
+        "ModifySittingTargetInfo",
+        "ModifySleepingTargetInfo",
+        "MouseOver",
+        "MouseOverFar",
+        "NearbyEffects",
+        "NumDust",
+        "PlaceInWorld",
+        "PostDraw",
+        "PostSetDefaults",
+        "PreDraw",
+        "RandomUpdate",
+        "RightClick",
+        "SetDrawPositions",
+        "SetSpriteEffects",
+        "SetStaticDefaults",
+        "Slope",
+        "SpecialDraw",
+        "TileFrame",
+        "ToggleTile",
+        "UnlockChest"
+      ]
+    },
+    "ModUndergroundBackgroundStyle": {
+      "files": 1,
+      "methods": [
+        "FillTextureArray"
+      ]
+    },
+    "ModWall": {
+      "files": 2,
+      "methods": [
+        "AnimateWall",
+        "CreateDust",
+        "ModifyLight",
+        "NumDust",
+        "SetStaticDefaults",
+        "WallFrame"
+      ]
+    },
+    "ModWaterStyle": {
+      "files": 1,
+      "methods": [
+        "BiomeHairColor",
+        "ChooseWaterfallStyle",
+        "GetDropletGore",
+        "GetRainTexture",
+        "GetSplashDust",
+        "LightColorMultiplier"
+      ]
+    },
+    "ModWaterfallStyle": {
+      "files": 1,
+      "methods": [
+        "AddLight"
+      ]
+    },
+    "PlayerDrawLayer": {
+      "files": 1,
+      "methods": [
+        "Draw",
+        "GetDefaultPosition",
+        "GetDefaultVisibility"
+      ]
+    }
+  },
+  "schemaVersion": 1,
+  "sdkClasses": {
+    "BunnyAccessory": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "DefenseBonus",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyBuff": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "DefenseBonus",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyBuffPotion": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "Buff",
+          "type": "string"
+        },
+        {
+          "name": "Duration",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyNPC": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "Width",
+          "type": "int"
+        },
+        {
+          "name": "Height",
+          "type": "int"
+        },
+        {
+          "name": "Damage",
+          "type": "int"
+        },
+        {
+          "name": "Defense",
+          "type": "int"
+        },
+        {
+          "name": "LifeMax",
+          "type": "int"
+        },
+        {
+          "name": "AiStyle",
+          "type": "int"
+        },
+        {
+          "name": "AnimationType",
+          "type": "int"
+        },
+        {
+          "name": "Frames",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyPlayer": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        },
+        {
+          "kind": "virtual",
+          "name": "ResetEffects",
+          "parameters": "",
+          "return": "void"
+        },
+        {
+          "kind": "abstract",
+          "name": "UpdateEquips",
+          "parameters": "bool accessoryEquipped",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "Accessory",
+          "type": "string"
+        },
+        {
+          "name": "DefenseBonus",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyProjectile": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        },
+        {
+          "kind": "virtual",
+          "name": "OnHitNPC",
+          "parameters": "int damage",
+          "return": "int"
+        },
+        {
+          "kind": "virtual",
+          "name": "OnKill",
+          "parameters": "int damage",
+          "return": "int"
+        },
+        {
+          "kind": "virtual",
+          "name": "OnKillDuration",
+          "parameters": "int damage",
+          "return": "int"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "Width",
+          "type": "int"
+        },
+        {
+          "name": "Height",
+          "type": "int"
+        },
+        {
+          "name": "AiStyle",
+          "type": "int"
+        },
+        {
+          "name": "Friendly",
+          "type": "bool"
+        },
+        {
+          "name": "Penetrate",
+          "type": "int"
+        },
+        {
+          "name": "TimeLeft",
+          "type": "int"
+        }
+      ]
+    },
+    "BunnyWeapon": {
+      "methods": [
+        {
+          "kind": "abstract",
+          "name": "SetDefaults",
+          "parameters": "",
+          "return": "void"
+        }
+      ],
+      "properties": [
+        {
+          "name": "DisplayName",
+          "type": "string"
+        },
+        {
+          "name": "Texture",
+          "type": "string"
+        },
+        {
+          "name": "Damage",
+          "type": "int"
+        },
+        {
+          "name": "UseTime",
+          "type": "int"
+        },
+        {
+          "name": "ShootSpeed",
+          "type": "float"
+        },
+        {
+          "name": "Shoot",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "sources": {
+    "examples": "samples/ExampleModCSharp/Playable/content",
+    "javascript": "samples/ExampleMod/content",
+    "manualEvidence": "tools/api_discovery/coverage.json",
+    "sdk": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+  },
+  "summary": {
+    "csharpClasses": 15,
+    "features": 19,
+    "jsBaseTypes": 30,
+    "jsFiles": 178,
+    "jsUniqueCallbacks": 204,
+    "sdkClasses": 7,
+    "sdkMethods": 12,
+    "sdkProperties": 36,
+    "status": {
+      "ci_verified": 4,
+      "device_verified": 10,
+      "experimental": 1,
+      "not_implemented": 4
+    }
+  }
+}
