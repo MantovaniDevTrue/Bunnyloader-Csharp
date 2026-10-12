@@ -1,0 +1,50 @@
+name: Check CSharp native prefix gameplay v90
+
+on:
+  push:
+    branches:
+      - csharp-prefix-gameplay-v90-experiment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prefix-gameplay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build CSharp managed prefix fixture
+        working-directory: Split/Bunny-Loader
+        run: dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
+      - name: Execute MonoVM-compatible managed callbacks and descriptor tests
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -- \
+            "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+      - name: Compile new native hooks with C++20
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/headers/android"
+          printf '#pragma once\n#define ANDROID_LOG_DEBUG 3\n#define ANDROID_LOG_INFO 4\n#define ANDROID_LOG_WARN 5\n#define ANDROID_LOG_ERROR 6\n' > "$RUNNER_TEMP/headers/android/log.h"
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I "$RUNNER_TEMP/headers" \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - name: Guard native game hooks and source contracts
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tests/prefix_v89/guard_native_bridge.py
+          python3 tests/prefix_v89/guard_gameplay_v90.py
+      - name: Reject not-yet-supported CSharp prefix tooltips
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tools/csharp_api_negative_compile.py --prepare
+          python3 tools/csharp_api_negative_compile.py --build
+          python3 tools/csharp_api_negative_compile.py --check
