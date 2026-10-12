@@ -50,6 +50,7 @@ std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
 std::atomic<int> g_worldReadyFrames{0};
 std::atomic<bool> g_worldPrefixesRestored{false};
+std::atomic<bool> g_worldPlayerMessagesShown{false};
 std::atomic<int> g_worldMenuPollFrames{0};
 std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
@@ -767,6 +768,13 @@ void run() {
 
 }
 
+void showWorldPlayerMessagesWhenReady() {
+    if (g_worldPlayerMessagesShown.load(std::memory_order_acquire) ||
+        !g_worldSessionReady.load(std::memory_order_acquire)) return;
+    if (!showManagedPlayerWorldJoinMessages()) return;
+    g_worldPlayerMessagesShown.store(true, std::memory_order_release);
+}
+
 void retryWorldManagedPrefixesWhenReady() {
     if (g_worldPrefixesRestored.load(std::memory_order_acquire) ||
         !g_worldSessionReady.load(std::memory_order_acquire) ||
@@ -785,6 +793,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
     g_worldPrefixesRestored.store(false, std::memory_order_release);
+    g_worldPlayerMessagesShown.store(false, std::memory_order_release);
     if (managedLiveHitStatus().enabled)
         pauseManagedLiveHit();
     g_worldTilesLoaded.store(true, std::memory_order_release);
@@ -798,6 +807,7 @@ void noteAutoGameUpdate() {
         const ActivationContext context = readActivationContext();
         if (context.gameMenu != 1 && context.netMode == 0) {
             retryWorldManagedPrefixesWhenReady();
+            showWorldPlayerMessagesWhenReady();
             updateManagedNpcBuffDispatcherOnGameThread();
             return;
         }
@@ -808,6 +818,7 @@ void noteAutoGameUpdate() {
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
+    g_worldPlayerMessagesShown.store(false, std::memory_order_release);
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         {
@@ -829,6 +840,7 @@ void noteAutoGameUpdate() {
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
         retryWorldManagedPrefixesWhenReady();
+        showWorldPlayerMessagesWhenReady();
         scheduleAutoLiveBindings();
     }
 }
