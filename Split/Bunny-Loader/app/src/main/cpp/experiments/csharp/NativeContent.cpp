@@ -66,6 +66,7 @@ struct NativeRefs {
     int playerRunAcceleration = -1;
     int playerFrameShadow = -1;
     int playerFrameOutline = -1;
+    int playerWhoAmI = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -118,12 +119,15 @@ using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const Metho
 using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using HorizontalMovementFn = void (*)(Il2CppObject*, const MethodInfo*);
 using SetArmorEffectVisualsFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using PlayerSpawnFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
 std::map<int, NativeProjectileDefaults> g_projectiles;
 std::map<int, NativeNpcDefaults> g_npcs;
 std::map<int, NativeAccessoryDefaults> g_accessories;
+std::map<std::string, std::string> g_globalWorldMessages;
+std::map<std::string, std::string> g_respawnMessages;
 std::map<int, NativeBuffDefaults> g_buffs;
 std::map<int, NativePotionDefaults> g_potions;
 ItemDefaultsFn g_originalItem = nullptr;
@@ -133,6 +137,8 @@ ApplyEquipFn g_originalEquip = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 SetArmorEffectVisualsFn g_originalSetArmorEffectVisuals = nullptr;
+PlayerSpawnFn g_originalPlayerSpawn = nullptr;
+int g_reviveSpawnContext = -1;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
@@ -365,6 +371,45 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
     }
 }
 
+bool sendPlayerLifecycleMessage(const std::string& message) {
+    if (message.empty()) return false;
+    using namespace bl::il2cpp;
+    auto& runtime = api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    const MethodInfo* say = main ? findMethodBySignature(
+        main, parseSignature(
+            "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"))
+        : nullptr;
+    if (!say || !runtime.string_new || !runtime.runtime_invoke) return false;
+    Il2CppString* line = runtime.string_new(message.c_str());
+    if (!line) return false;
+    uint8_t r = 255, g = 200, b = 0, only = 1;
+    void* args[5] = {line, &r, &g, &b, &only};
+    Il2CppObject* error = nullptr;
+    runtime.runtime_invoke(say, nullptr, args, &error);
+    return !error;
+}
+
+void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method) {
+    if (g_originalPlayerSpawn) g_originalPlayerSpawn(self, context, method);
+    if (!self || !g_playerPoliciesReady || context != g_reviveSpawnContext ||
+        g_reviveSpawnContext < 0 || g_respawnMessages.empty() ||
+        g_refs.playerWhoAmI < 0) return;
+    using namespace bl::il2cpp;
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    auto& runtime = api();
+    FieldInfo* local = main ? runtime.class_get_field_from_name(main, "myPlayer") : nullptr;
+    if (!local || !runtime.field_static_get_value) return;
+    int32_t localIndex = -1;
+    runtime.field_static_get_value(local, &localIndex);
+    const int32_t who = bl::runtime::field<int32_t>(self, g_refs.playerWhoAmI);
+    if (who != localIndex) return;
+    int count = 0;
+    for (const auto& [name, message] : g_respawnMessages)
+        if (sendPlayerLifecycleMessage(message)) ++count;
+    BL_INFO("csharp BunnyPlayer OnRespawn: %d mensagem(ns) enviadas(s)", count);
+}
+
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
     if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, index, method);
     if (!self || g_buffs.empty()) return;
@@ -437,6 +482,7 @@ bool prepareNativeContent() {
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
     r.playerFrameShadow = fieldOffset(player, "armorEffectDrawShadow");
     r.playerFrameOutline = fieldOffset(player, "armorEffectDrawOutlines");
+    r.playerWhoAmI = fieldOffset(player, "whoAmI");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -515,6 +561,21 @@ bool prepareNativePlayerEffects() {
                            &g_originalHorizontalMovement)) return false;
     if (!bl::hook::install(armorVisuals, hkSetArmorEffectVisuals,
                            &g_originalSetArmorEffectVisuals)) return false;
+    const MethodInfo* spawn = findMethodBySignature(
+        player, parseSignature("void Spawn(PlayerSpawnContext context)"));
+    Il2CppClass* spawnContext = findClass({"Terraria", "PlayerSpawnContext", {}});
+    FieldInfo* revive = spawnContext
+        ? api().class_get_field_from_name(spawnContext, "ReviveFromDeath") : nullptr;
+    if (revive && api().field_static_get_value)
+        api().field_static_get_value(revive, &g_reviveSpawnContext);
+    if (spawn && g_reviveSpawnContext >= 0 && g_reviveSpawnContext <= 8) {
+        if (!bl::hook::install(spawn, hkPlayerSpawn, &g_originalPlayerSpawn))
+            BL_WARN("csharp BunnyPlayer OnRespawn: hook nao instalado");
+        else BL_INFO("csharp BunnyPlayer OnRespawn: hook instalado; reviveContext=%d",
+                     g_reviveSpawnContext);
+    } else {
+        BL_WARN("csharp BunnyPlayer OnRespawn: assinatura/contexto indisponivel");
+    }
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
