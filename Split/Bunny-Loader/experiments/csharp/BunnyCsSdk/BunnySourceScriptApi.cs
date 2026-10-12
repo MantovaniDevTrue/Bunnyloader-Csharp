@@ -64,6 +64,9 @@ public abstract class BunnyPlayer
         MoveSpeedPercent = 0;
     }
     public abstract void UpdateEquips(bool accessoryEquipped);
+    public virtual string OnEnterWorld() => "";
+    public virtual int UpdateMovement(bool accessoryEquipped) => 0;
+    public virtual bool FrameEffects(bool accessoryEquipped) => false;
 }
 public abstract class BunnyNPC
 {
