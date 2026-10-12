@@ -548,6 +548,11 @@ bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
            bl::runtime::field<uint8_t>(item, g_refs.prefix) == prefix;
 }
 
+bool managedPrefixGameplayReady() {
+    return g_hooksReady.load(std::memory_order_acquire) &&
+           !snapshotManagedPrefixes().empty();
+}
+
 bool installManagedPrefixGameplayHooks() {
     std::lock_guard<std::mutex> guard(g_installMutex);
     if (g_hooksReady.load(std::memory_order_acquire)) return true;
