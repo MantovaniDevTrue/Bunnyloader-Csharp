@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.17.2",
+  "exampleModCSharpVersion": "0.1.18",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -98,7 +98,6 @@
       "examples": [
         "ExampleFocusAccessory",
         "ExampleSwiftAccessory",
-        "ExampleWelcomeAccessory",
         "ExampleMomentumAccessory",
         "ExampleShadowAccessory"
       ]
@@ -185,8 +184,7 @@
       "id": "bunnyplayer_on_enter_world",
       "status": "experimental",
       "examples": [
-        "ExampleWelcomePlayer",
-        "ExampleWelcomeAccessory"
+        "ExampleWelcomePlayer"
       ]
     },
     {
@@ -203,6 +201,13 @@
       "examples": [
         "ExampleShadowPlayer",
         "ExampleShadowAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_on_respawn",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
       ]
     }
   ]
