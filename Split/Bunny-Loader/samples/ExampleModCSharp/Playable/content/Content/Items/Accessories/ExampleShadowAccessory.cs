@@ -9,5 +9,6 @@ public sealed class ExampleShadowAccessory : BunnyAccessory
         DisplayName = "Example Shadow Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
+        Tooltip = "Ativa um efeito visual de sombra enquanto equipado";
     }
 }
