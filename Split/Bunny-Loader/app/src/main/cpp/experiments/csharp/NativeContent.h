@@ -140,6 +140,7 @@ bool applyManagedNativeNpcDefaultsBatch(
     const std::vector<ManagedNpcEntry>& npcs);
 
 int managedNativeAccessoryDefense(int type);
+int managedNativeAccessoryMoveSpeedPercent(int type);
 int managedNativePrefixItemKind(int type);
 void refreshManagedPrefixEligibilityOnWorldReady();
 bool prepareNativeContent();
