@@ -288,7 +288,26 @@ bool stillWaitingForPrefix(const std::vector<Container>& containers, const Saved
     return false;
 }
 
-// ------------------------------ salvar ------------------------------
+bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
+    const Refs& r = g_refs;
+    const int wanted = decodePrefix(saved);
+    if (!item || wanted <= 0 || !r.applyPrefix) return wanted == 0;
+    const int current = field<uint8_t>(item, r.prefix);
+    const bool managed = !saved.prefixKey.empty();
+    if (current == wanted && !managed) return true;
+    auto& api = il2cpp::api();
+    Il2CppObject* error = nullptr;
+    if (current != 0 && r.resetPrefix) {
+        api.runtime_invoke(r.resetPrefix, item, nullptr, &error);
+        if (error || field<uint8_t>(item, r.prefix) != 0) return false;
+    } else if (current != 0 && !r.resetPrefix) {
+        return current == wanted;
+    }
+    int prefix = wanted;
+    void* arguments[1] = {&prefix};
+    api.runtime_invoke(r.applyPrefix, item, arguments, &error);
+    return !error && field<uint8_t>(item, r.prefix) == wanted;
+}
 
 using SaveFn = void (*)(Il2CppObject*, const MethodInfo*);
 SaveFn g_origSave = nullptr;
@@ -298,21 +317,44 @@ SaveFn g_origSave = nullptr;
  * guarda o item do cursor no inventario antes de escrever).
  */
 void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
+    const Refs& r = g_refs;
+    Il2CppObject* beforePlayer = objectAt(fileData, r.filePlayer);
+    std::map<Il2CppObject*, std::pair<int, int>> before;
+    if (beforePlayer) {
+        for (const Container& container : containersOf(beforePlayer)) {
+            for (int slot = 0; slot < container.size(); ++slot) {
+                Il2CppObject* item = container.at(slot);
+                if (!item) continue;
+                const int type = field<int32_t>(item, r.type);
+                const int prefix = field<uint8_t>(item, r.prefix);
+                if (type > 0 && prefix >= vanillaPrefixCount() &&
+                    !modPrefixKey(prefix).empty()) {
+                    before.emplace(item, std::make_pair(type, prefix));
+                }
+            }
+        }
+    }
     g_origSave(fileData, m);
     const std::string path = localPath(fileData);
-    Il2CppObject* player = objectAt(fileData, g_refs.filePlayer);
+    Il2CppObject* player = objectAt(fileData, r.filePlayer);
     if (path.empty() || !player) return;
-
-    const Refs& r = g_refs;
     std::vector<SavedItem> items;
+    int recoveredPrefixes = 0;
     for (const Container& c : containersOf(player)) {
         for (int slot = 0; slot < c.size(); ++slot) {
             Il2CppObject* item = c.at(slot);
             if (!item) continue;
             const int type = field<int32_t>(item, r.type);
             const int stack = field<int32_t>(item, r.stack);
-            const int prefix = field<uint8_t>(item, r.prefix);
+            int prefix = field<uint8_t>(item, r.prefix);
             if (stack <= 0 || type <= 0) continue;
+            if (prefix == 0) {
+                const auto previous = before.find(item);
+                if (previous != before.end() && previous->second.first == type) {
+                    prefix = previous->second.second;
+                    ++recoveredPrefixes;
+                }
+            }
             if (!isModItem(type)) {
                 if (prefix >= vanillaPrefixCount() && !modPrefixKey(prefix).empty()) {
                     items.push_back(vanillaPrefixEntry(c.name, slot, type, prefix));
@@ -342,6 +384,9 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         }
     }
     writeFile(path + kSuffix, items);
+    if (recoveredPrefixes) {
+        BL_INFO("save de itens de mod: %d prefixo(s) preservados antes do save original", recoveredPrefixes);
+    }
     if (!items.empty()) {
         // Diz quem mandou salvar: o jogo salva o personagem tambem com a
         // gravacao automatica desligada (ao morrer, no multijogador, ao sair),
@@ -387,7 +432,7 @@ void clearItem(Il2CppObject* item) {
     il2cpp::api().runtime_invoke(g_refs.setDefaults, item, sd, &exc);
 }
 
-bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
+bool restore(Il2CppObject* item, int type, const SavedItem& saved, bool* prefixRestored) {
     auto& a = il2cpp::api();
     const Refs& r = g_refs;
     Il2CppObject* exc = nullptr;
@@ -396,12 +441,8 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
     a.runtime_invoke(r.setDefaults, item, sd, &exc);   // passa pelo setDefaults do mod
     if (exc || field<int32_t>(item, r.type) != type) return false;
     field<int32_t>(item, r.stack) = saved.stack > 0 ? saved.stack : 1;
-    const int prefix = decodePrefix(saved);
-    if (prefix > 0 && r.applyPrefix) {
-        int p = prefix;
-        void* pa[1] = {&p};
-        a.runtime_invoke(r.applyPrefix, item, pa, &exc);
-    }
+    const bool applied = restoreSavedPrefix(item, saved);
+    if (prefixRestored) *prefixRestored = applied;
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
     return true;
 }
@@ -453,6 +494,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     }
     const size_t buffsKept = kept.size();
     int restored = 0, moved = 0, unloaded = 0, stray = 0, prefixes = 0;
+    int managedPrefixes = 0, pendingManagedPrefixes = 0;
     std::map<std::string, PendingPrefix> pending;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
@@ -484,7 +526,18 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             // esta velho (outros mods, outra ordem) e o lugar e nosso. Tratar
             // como ocupado punha uma copia no inventario.
             const int slotType = slotItem ? field<int32_t>(slotItem, g_refs.type) : 0;
-            if (slotItem && slotType == type) { ++restored; continue; }
+            if (slotItem && slotType == type) {
+                if (!s.prefixKey.empty()) {
+                    if (restoreSavedPrefix(slotItem, s)) {
+                        ++managedPrefixes;
+                    } else {
+                        pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
+                        ++pendingManagedPrefixes;
+                    }
+                }
+                ++restored;
+                continue;
+            }
             Il2CppObject* target =
                 isEmpty(slotItem) || slotType >= kVanillaItemCount ? slotItem : nullptr;
             if (!target && inventory) {
@@ -495,10 +548,16 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 if (target) ++moved;
             }
-            if (target && restore(target, type, s)) {
+            bool prefixRestored = false;
+            if (target && restore(target, type, s, &prefixRestored)) {
                 ++restored;
-                if (target == slotItem && !s.prefixKey.empty() && decodePrefix(s) < 0) {
-                    pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
+                if (!s.prefixKey.empty()) {
+                    if (prefixRestored) {
+                        ++managedPrefixes;
+                    } else if (target == slotItem) {
+                        pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
+                        ++pendingManagedPrefixes;
+                    }
                 }
             } else {
                 kept.push_back(s);
@@ -528,8 +587,10 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     }
     if (!saved.empty() || stray) {
         BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %d prefixo(s) "
-                "de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) limpo(s)",
-                restored, unloaded, moved ? ", algum fora do lugar" : "", prefixes, kept.size(), stray);
+                "de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) limpo(s); "
+                "prefixos de item C# repostos=%d pendentes=%d",
+                restored, unloaded, moved ? ", algum fora do lugar" : "", prefixes, kept.size(), stray,
+                managedPrefixes, pendingManagedPrefixes);
     }
     return fileData;
 }
