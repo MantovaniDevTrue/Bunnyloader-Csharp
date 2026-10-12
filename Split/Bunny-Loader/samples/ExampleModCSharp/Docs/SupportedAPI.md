@@ -12,6 +12,7 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 | ProjetoLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/ExampleWaveBoltLiveEvents.cs | callback independente .73: 879/879 |
 | BunnyBuff, BunnyBuffPotion, BunnyAccessory, BunnyPlayer, BunnyNPC | Content/ e Common/Players | exemplos presentes, validação específica por API |
 | BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
+| BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI .90; **ainda não validado no Android** |
 
 ## Diferença entre três rotas
 
