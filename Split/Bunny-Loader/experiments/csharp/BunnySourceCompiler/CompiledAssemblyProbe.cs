@@ -517,26 +517,44 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("BunnyPlayer linked accessory not found");
             var reset = player.GetType().GetMethod("ResetEffects")
                 ?? throw new InvalidOperationException("BunnyPlayer.ResetEffects missing");
-            var update = player.GetType().GetMethod("UpdateEquips")
+            Type playerType = player.GetType();
+            var update = playerType.GetMethod("UpdateEquips")
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateEquips missing");
+            var entering = playerType.GetMethod("OnEnterWorld")
+                ?? throw new InvalidOperationException("BunnyPlayer.OnEnterWorld missing");
+            var movement = playerType.GetMethod("UpdateMovement")
+                ?? throw new InvalidOperationException("BunnyPlayer.UpdateMovement missing");
+            var frames = playerType.GetMethod("FrameEffects")
+                ?? throw new InvalidOperationException("BunnyPlayer.FrameEffects missing");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { false });
+            int noMove = (int)(movement.Invoke(player, new object[] { false }) ?? -1);
+            bool noFrames = (bool)(frames.Invoke(player, new object[] { false }) ?? true);
             if (Value<int>(player, "DefenseBonus") != 0 ||
-                Value<int>(player, "MoveSpeedPercent") != 0)
+                Value<int>(player, "MoveSpeedPercent") != 0 ||
+                noMove != 0 || noFrames)
                 throw new InvalidOperationException("BunnyPlayer modified effects while unequipped");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { true });
             int defense = Value<int>(player, "DefenseBonus");
             int moveSpeed = Value<int>(player, "MoveSpeedPercent");
-            if (defense < 0 || defense > 100 || moveSpeed < 0 || moveSpeed > 50)
-                throw new InvalidOperationException("BunnyPlayer equipped effect out of bounds");
+            int acceleration = (int)(movement.Invoke(player, new object[] { true }) ?? -1);
+            bool shadow = (bool)(frames.Invoke(player, new object[] { true }) ?? false);
+            string welcome = (string)(entering.Invoke(player, null) ?? "");
+            if (defense < 0 || defense > 100 || moveSpeed < 0 || moveSpeed > 50 ||
+                acceleration < 0 || acceleration > 30 || welcome.Length > 100 ||
+                welcome.Any(c => char.IsControl(c) || c > 127))
+                throw new InvalidOperationException("BunnyPlayer event policy outside supported bounds");
             reset.Invoke(player, null);
             if (Value<int>(player, "DefenseBonus") != 0 ||
                 Value<int>(player, "MoveSpeedPercent") != 0)
                 throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset equipped effects");
             lines.Add(string.Join("\t", "PLAYER", name, accessoryName,
                 defense.ToString(CultureInfo.InvariantCulture),
-                moveSpeed.ToString(CultureInfo.InvariantCulture)));
+                moveSpeed.ToString(CultureInfo.InvariantCulture),
+                acceleration.ToString(CultureInfo.InvariantCulture),
+                shadow ? "1" : "0",
+                welcome.Length == 0 ? "-" : welcome));
         }
         foreach (object npc in npcs)
         {
