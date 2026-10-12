@@ -110,7 +110,7 @@ jobs:
           assert 'csharp prefix: hooks e descritores prontos; iniciando restauracao tardia' in life
           assert 'bl::runtime::retryPendingManagedPrefixesOnWorldReady();' in life
           assert life.index("g_worldSessionReady.store(true, std::memory_order_release);") < life.rindex("retryWorldManagedPrefixesWhenReady();")
-          print("BUNNY_CSHARP_LATE_PREFIX_RESTORE_V90_15=PASS")
+          print("BUNNY_CSHARP_LATE_PREFIX_AND_NATIVE_SPEED_V90_15=PASS")
           PY
 
           python3 - <<'PY'
@@ -144,7 +144,14 @@ jobs:
           assert 'Value<int>(player, "MoveSpeedPercent")' in probe
           assert "player.moveSpeed += this.MoveSpeedBonus / 100" in js
           assert 'r.playerMoveSpeed = fieldOffset(player, "moveSpeed");' in native
-          assert "static_cast<float>(it->second.moveSpeedPercent) / 100.f" in native
+          assert 'player, parseSignature("void HorizontalMovement()")' in native
+          assert "bl::hook::install(runSpeeds, hkHorizontalMovement" in native
+          assert 'fieldOffset(player, "maxRunSpeed")' in native
+          assert 'fieldOffset(player, "runAcceleration")' in native
+          assert "movementPercent += found->second.moveSpeedPercent;" in native
+          assert "maxSpeed *= factor;" in native
+          assert "acceleration *= factor;" in native
+          assert "for (uintptr_t i = 3; i < 10; ++i)" in native
           assert "player.moveSpeedPercent < 0 || player.moveSpeedPercent > 50" in native
           assert "record.moveSpeedPercent" in loader
           assert "MoveSpeedPercent = 8;" in player
