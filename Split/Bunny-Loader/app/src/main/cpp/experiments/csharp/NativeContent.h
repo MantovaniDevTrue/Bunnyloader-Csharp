@@ -107,6 +107,7 @@ struct ManagedAccessoryEntry {
     std::string name;
     int type = -1;
     int defenseBonus = 0;
+    std::string tooltip;
 };
 
 struct ManagedPlayerEntry {
