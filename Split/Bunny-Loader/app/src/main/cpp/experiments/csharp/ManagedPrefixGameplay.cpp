@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace bl::csharp {
@@ -30,6 +31,7 @@ using StatsFn = bool (*)(Il2CppObject*, int32_t, float*, float*, float*, float*,
                         const MethodInfo*);
 using GrantFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using RollFn = bool (*)(Il2CppObject*, Il2CppObject*, int32_t*, const MethodInfo*);
+using ReforgeFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 
 struct Refs {
     int type = -1;
@@ -49,6 +51,11 @@ struct Refs {
     Il2CppClass* intClass = nullptr;
     FieldInfo* names = nullptr;
     FieldInfo* chances = nullptr;
+    FieldInfo* tooltipSuffixes = nullptr;
+    const MethodInfo* localizedValueMethod = nullptr;
+    int reforgeNumLines = -1;
+    int reforgeText = -1;
+    int reforgeBad = -1;
     const MethodInfo* rollableMethod = nullptr;
     const MethodInfo* nextDoubleMethod = nullptr;
 };
@@ -61,6 +68,8 @@ CanRollFn g_originalCanRoll = nullptr;
 StatsFn g_originalStats = nullptr;
 GrantFn g_originalGrant = nullptr;
 RollFn g_originalRoll = nullptr;
+ReforgeFn g_originalReforge = nullptr;
+std::atomic<bool> g_reforgeTooltipReady{false};
 std::atomic<int> g_reforgeDiagnostics{0};
 
 Il2CppArray* staticArray(FieldInfo* field) {
@@ -277,6 +286,117 @@ void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* metho
     bl::runtime::field<int32_t>(player, g_refs.playerDefense) += found->accessoryDefense;
 }
 
+std::string utf8Text(const Il2CppString* input) {
+    std::string out;
+    if (!input || input->length < 0 || input->length > 256) return out;
+    out.reserve(static_cast<size_t>(input->length) * 3);
+    for (int i = 0; i < input->length; ++i) {
+        uint32_t point = input->chars[i];
+        if (point >= 0xD800 && point <= 0xDBFF && i + 1 < input->length) {
+            const uint32_t next = input->chars[i + 1];
+            if (next >= 0xDC00 && next <= 0xDFFF) {
+                point = 0x10000 + ((point - 0xD800) << 10) + next - 0xDC00;
+                ++i;
+            }
+        }
+        if (point >= 0xD800 && point <= 0xDFFF) continue;
+        if (point < 0x80) out.push_back(static_cast<char>(point));
+        else if (point < 0x800) {
+            out.push_back(static_cast<char>(0xC0 | (point >> 6)));
+            out.push_back(static_cast<char>(0x80 | (point & 0x3F)));
+        } else if (point < 0x10000) {
+            out.push_back(static_cast<char>(0xE0 | (point >> 12)));
+            out.push_back(static_cast<char>(0x80 | ((point >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (point & 0x3F)));
+        } else {
+            out.push_back(static_cast<char>(0xF0 | (point >> 18)));
+            out.push_back(static_cast<char>(0x80 | ((point >> 12) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | ((point >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (point & 0x3F)));
+        }
+    }
+    return out;
+}
+
+std::string accessoryDefenseSuffix() {
+    const auto& r = g_refs;
+    const auto& api = bl::il2cpp::api();
+    auto* tips = staticArray(r.tooltipSuffixes);
+    if (!tips || tips->length <= 25 || !r.localizedValueMethod) return " defense";
+    auto** texts = static_cast<Il2CppObject**>(arrayData(tips));
+    Il2CppObject* entry = texts[25];
+    if (!entry) return " defense";
+    Il2CppObject* error = nullptr;
+    Il2CppObject* value = api.runtime_invoke(r.localizedValueMethod, entry, nullptr, &error);
+    if (error || !value) return " defense";
+    std::string localized = utf8Text(reinterpret_cast<Il2CppString*>(value));
+    return localized.empty() ? " defense" : localized;
+}
+
+void hookReforgeTooltip(Il2CppObject* popup, Il2CppObject* item, const MethodInfo* method) {
+    if (g_originalReforge) g_originalReforge(popup, item, method);
+    if (!g_reforgeTooltipReady.load(std::memory_order_acquire) || !popup || !item) return;
+    const auto& r = g_refs;
+    const int prefix = bl::runtime::field<uint8_t>(item, r.prefix);
+    const auto prefixes = snapshotManagedPrefixes();
+    const auto* p = byType(prefixes, prefix);
+    if (!p || p->category != 5 || p->accessoryDefense == 0 ||
+        !eligible(item, *p, true)) return;
+    auto* text = bl::runtime::field<Il2CppArray*>(popup, r.reforgeText);
+    auto* bad = bl::runtime::field<Il2CppArray*>(popup, r.reforgeBad);
+    if (!text || !bad || text->length < 1 || bad->length < 1) return;
+    const int count = bl::runtime::field<int32_t>(popup, r.reforgeNumLines);
+    if (count < 0 || count > 1) return;
+    const int bonus = p->accessoryDefense;
+    const std::string description = (bonus > 0 ? "+" : "") + std::to_string(bonus) +
+                                    accessoryDefenseSuffix();
+    auto& api = bl::il2cpp::api();
+    if (!api.string_new || !api.gc_wbarrier_set_field) return;
+    Il2CppString* value = api.string_new(description.c_str());
+    if (!value) return;
+    auto** strings = static_cast<Il2CppString**>(arrayData(text));
+    api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(text),
+                             reinterpret_cast<void**>(&strings[0]), value);
+    static_cast<uint8_t*>(arrayData(bad))[0] = bonus < 0 ? 1 : 0;
+    bl::runtime::field<int32_t>(popup, r.reforgeNumLines) = 1;
+}
+
+bool installReforgeTooltipHook() {
+    using namespace bl::il2cpp;
+    auto& api = bl::il2cpp::api();
+    Il2CppClass* popup = nullptr;
+    if (!api.gameImage || !api.image_get_class_count || !api.image_get_class ||
+        !api.class_get_name) return false;
+    const size_t count = api.image_get_class_count(api.gameImage);
+    for (size_t i = 0; i < count; ++i) {
+        Il2CppClass* current = api.image_get_class(api.gameImage, i);
+        if (current && std::strcmp(api.class_get_name(current), "GUIReforgePopup") == 0) {
+            popup = current;
+            break;
+        }
+    }
+    if (!popup) return false;
+    const auto* update = findMethodBySignature(
+        popup, parseSignature("void UpdatePrefixes(Item reforgeItem)"));
+    const int numLines = fieldOffset(popup, "numLines");
+    const int text = fieldOffset(popup, "toolTipLine");
+    const int bad = fieldOffset(popup, "badPreFixLine");
+    auto* localized = findClass({"Terraria.Localization", "LocalizedText", {}});
+    const auto* getter = localized
+        ? api.class_get_method_from_name(localized, "get_Value", 0) : nullptr;
+    FieldInfo* suffixes = findField(findClass({"Terraria", "Lang", {}}), "tip");
+    if (!update || numLines < 0 || text < 0 || bad < 0 || !getter || !suffixes ||
+        !api.string_new || !api.gc_wbarrier_set_field) return false;
+    g_refs.reforgeNumLines = numLines;
+    g_refs.reforgeText = text;
+    g_refs.reforgeBad = bad;
+    g_refs.tooltipSuffixes = suffixes;
+    g_refs.localizedValueMethod = getter;
+    if (!bl::hook::install(update, hookReforgeTooltip, &g_originalReforge)) return false;
+    g_reforgeTooltipReady.store(true, std::memory_order_release);
+    return true;
+}
+
 }
 
 bool installManagedPrefixGameplayHooks() {
@@ -350,7 +470,9 @@ bool installManagedPrefixGameplayHooks() {
         return false;
     }
     g_hooksReady.store(true, std::memory_order_release);
-    BL_INFO("csharp prefix: hooks nativos GetRollablePrefixes/RollAPrefix, stats e acessorios ativos");
+    const bool reforgeTooltip = installReforgeTooltipHook();
+    BL_INFO("csharp prefix: hooks nativos GetRollablePrefixes/RollAPrefix, stats e acessorios ativos; reforgeTooltip=%d",
+            reforgeTooltip ? 1 : 0);
     return true;
 }
 
