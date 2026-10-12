@@ -1,6 +1,7 @@
 name: Build Bunny CSharp Source Files Prototype
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - csharp-private-apk-delivery-v3
