@@ -20,9 +20,7 @@ Este branch **`main`** também guarda o workspace e a cópia sincronizada da bas
 | Compilação experimental de arquivos `.cs` com Roslyn | **Implementada e testada** para exemplos específicos |
 | Callback C# de impacto (`OnHitNPC`) | **10/10 eventos reais** no teste da .59, sem falhas/perdas relatadas |
 | Callbacks automáticos `OnHitNPC` + `OnKill` | **Confirmados no Android na .62:** 512 eventos gerenciados (187 hits, 325 kills), **0 falhas**; jogo continuou funcional após o limite de segurança |
-| API C# completa, IA arbitrária por frame e multiplayer | **Não validados / não liberados** |
-
-**Versão de teste com callbacks automáticos confirmados:** [Bunny Loader C# v0.1.10.16.62 + ExampleModCSharp 0.1.7](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.62). Houve 9 eventos descartados pela fila/limite; FPS e memória ainda precisam de medidas quantitativas.
+| API C# completa, IA arbitrária por frame e multiplayer | **Não validados / não liberados** 
 
 ## Organização do repositório
 
@@ -43,6 +41,4 @@ Os diretórios `src/`, `examples/` e `tests/` desta `main` apontam para **a bran
 - **Integração experimental C#:** [MantovaniDevTrue/Bunnyloader-Csharp](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp).
 - **Terraria:** pertence aos seus respectivos titulares. O repositório não deve distribuir o runtime nem assets proprietários do jogo.
 
-Aprovação do GitHub Actions **não garante** execução estável do Terraria, nem 60 FPS. Usamos o [quadro de validação da branch C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/STATUS.md) para separar implementação, CI e resultados medidos no aparelho.
-
-Para acompanhar os resultados comprovados e limites reais, leia o [teste Android da .62](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-development/docs/mono-auto-live-world-signal-v62.md) e o [roadmap](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/csharp-development/docs/ROADMAP.md). O próximo objetivo é avaliar desempenho, fila e reinicialização segura dos callbacks, preservando os recursos já existentes.
+Aprovação do GitHub **não garante** execução estável do Terraria, nem 60 FPS. Usamos o [quadro de validação da branch C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/STATUS.md) para separar implementação, CI e resultados medidos no meu aparelho.
