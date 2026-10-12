@@ -8,6 +8,7 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
+#include "experiments/csharp/ManagedPrefixGameplay.h"
 
 #include <atomic>
 #include <cstdio>
@@ -316,13 +317,30 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     Il2CppObject* result = api.runtime_invoke(r.applyPrefix, item, arguments, &error);
     const bool returned = result &&
         *reinterpret_cast<const uint8_t*>(reinterpret_cast<const char*>(result) + sizeof(Il2CppObject)) != 0;
-    const int after = field<uint8_t>(item, r.prefix);
-    const bool restored = !error && after == wanted;
-    if (!restored && !saved.prefixKey.empty() &&
+    const int directAfter = field<uint8_t>(item, r.prefix);
+    const bool directException = error != nullptr;
+    bool restored = !error && directAfter == wanted;
+    bool forcedRollReached = false;
+    int retryAfter = directAfter;
+    if (!restored && managed && r.resetPrefix) {
+        error = nullptr;
+        if (retryAfter != 0)
+            api.runtime_invoke(r.resetPrefix, item, nullptr, &error);
+        if (!error && field<uint8_t>(item, r.prefix) == 0) {
+            restored = bl::csharp::applyManagedPrefixViaNativeRoll(
+                item, wanted, r.applyPrefix, &forcedRollReached);
+        }
+        retryAfter = field<uint8_t>(item, r.prefix);
+        if (restored)
+            BL_INFO("csharp prefix: restaurado pelo RollAPrefix nativo id=%d tipo=%d",
+                    wanted, field<int32_t>(item, r.type));
+    }
+    if (!restored && managed &&
         g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
-        BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d depois=%d Prefix()=%d excecao=%d",
+        BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d direto=%d Prefix()=%d excecao=%d rollHook=%d rollDepois=%d",
                 saved.prefixKey.c_str(), wanted, field<int32_t>(item, r.type),
-                current, after, returned ? 1 : 0, error ? 1 : 0);
+                current, directAfter, returned ? 1 : 0, directException ? 1 : 0,
+                forcedRollReached ? 1 : 0, retryAfter);
     return restored;
 }
 
