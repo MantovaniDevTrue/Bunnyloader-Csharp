@@ -427,7 +427,8 @@ bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
     const RestoreRoll previous = g_restoreRoll;
     g_restoreRoll = {item, prefix, false};
     int32_t request = -2;
-    void* arguments[1] = {&request};
+    uint8_t topTier = 0;
+    void* arguments[2] = {&request, &topTier};
     Il2CppObject* error = nullptr;
     Il2CppObject* result = bl::il2cpp::api().runtime_invoke(
         itemPrefixMethod, item, arguments, &error);
