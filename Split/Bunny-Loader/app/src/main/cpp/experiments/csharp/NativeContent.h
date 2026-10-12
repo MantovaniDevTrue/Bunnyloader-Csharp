@@ -114,6 +114,7 @@ struct ManagedPlayerEntry {
     std::string accessoryName;
     int accessoryType = -1;
     int equippedDefenseBonus = 0;
+    int moveSpeedPercent = 0;
 };
 
 bool applyManagedNativePlayerDefaultsBatch(
