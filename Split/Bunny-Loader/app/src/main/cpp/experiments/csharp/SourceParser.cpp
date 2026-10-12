@@ -118,6 +118,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
         } else {
             value = ts[i++].value;
         }
+        if (key == "Category" && value == "PrefixCategory" &&
+            i + 1 < last && ts[i].value == ".") {
+            value = ts[i + 1].value;
+            i += 2;
+        }
         if (negative) value = "-" + value;
         if (i >= last || ts[i++].value != ";") {
             *error = "expressao C# nao suportada em " + key;
@@ -137,7 +142,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     if (base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC") return true;
+        base != "BunnyNPC" && base != "BunnyPrefix") return true;
     size_t method = end;
     for (size_t i = begin + 1; i < end; ++i) {
         if (tokens[i].value == "SetDefaults" && i + 1 < end &&
@@ -247,14 +252,14 @@ bool parseCSharpSource(const std::string& source,
         if (base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
-            base == "BunnyNPC") {
+            base == "BunnyNPC" || base == "BunnyPrefix") {
             if (!parseClass(tokens, brace, end, name, base, definitions, error)) return false;
             ++found;
         }
         i = end;
     }
     if (found == 0 && requireContent) {
-        *error = "nenhuma classe BunnyProjectile, BunnyWeapon, BunnyBuff, BunnyBuffPotion, BunnyPlayer, BunnyAccessory ou BunnyNPC encontrada";
+        *error = "nenhuma classe BunnyProjectile, BunnyWeapon, BunnyBuff, BunnyBuffPotion, BunnyPlayer, BunnyAccessory , BunnyNPC ou BunnyPrefix encontrada";
         return false;
     }
     return true;
