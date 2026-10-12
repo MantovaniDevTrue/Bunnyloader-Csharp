@@ -227,8 +227,8 @@ try
         !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PREFIX\\tExampleMightyPrefix\\t4\\t5\\t1.2", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PREFIX\\tExampleGuardedPrefix\\t5\\t1\\t1", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
         independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 12)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
