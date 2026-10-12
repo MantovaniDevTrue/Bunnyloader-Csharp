@@ -117,7 +117,7 @@ on:
       - "Split/Bunny-Loader/**"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: bunny-csharp-source-${{ github.ref }}
@@ -1436,26 +1436,16 @@ jobs:
           rm -f "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
           echo "BUNNY_PUBLIC_RELEASE_EXCLUDES_TERRARIA_RUNTIME=YES"
 
-      - name: Publish source-only CSharp example mods (no APK)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          TAG="bunny-csharp-examples-0.1.15-public-safe"
-          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "${{ github.repository }}" \
-              --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# examples 0.1.15 (source-only)" \
-              --notes "C# source-only .bmod examples; no Terraria APK, engine binary, game assets or signing key. Android gameplay and prefix reforging are still experimental. Full private builds require a lawful local Terraria runtime." \
-              --prerelease
-          fi
-          gh release upload "$TAG" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" \
-            "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod.sha256" \
-            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" \
-            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256" \
-            --repo "${{ github.repository }}" --clobber
-          echo "BUNNY_SOURCE_ONLY_MODS_RELEASED=$TAG"
+      - name: Export source-only CSharp examples as safe workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.15
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.15.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.15.bmod.sha256
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
