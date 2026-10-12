@@ -6,8 +6,10 @@ assert "std::map<Il2CppObject*, std::pair<int, int>> before" in source
 assert source.index("std::map<Il2CppObject*, std::pair<int, int>> before") < source.index("g_origSave(fileData, m)")
 assert "prefix == 0" in source and "before.find(item)" in source
 assert "previous->second.first == type" in source
-assert "void* arguments[1] = {&prefix}" in source
-assert "api.runtime_invoke(r.applyPrefix, item, arguments, &error)" in source
+assert 'bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)' in source
+assert "void* directArguments[2] = {&prefix, &topTier};" in source
+assert "api.runtime_invoke(method, item, directArguments, &error)" in source
+assert "r.applyPrefixDetailed" in source
 assert "api.runtime_invoke(r.resetPrefix, item, nullptr, &error)" in source
 assert "if (slotItem && slotType == type) {" in source
 assert "if (restoreSavedPrefix(slotItem, s))" in source
