@@ -213,7 +213,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 13)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 19)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -226,12 +226,18 @@ try
         !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleSwiftAccessory\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleWelcomeAccessory\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleMomentumAccessory\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\tExampleWelcomeAccessory\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 14)
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 20)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
