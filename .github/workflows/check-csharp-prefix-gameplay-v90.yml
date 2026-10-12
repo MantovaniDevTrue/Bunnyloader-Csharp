@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-eligibility-v90-5
       - csharp-prefix-persistence-v90-4
       - csharp-prefix-accessory-tooltip-v90-3
       - csharp-public-release-cleanup-v1
@@ -47,6 +48,7 @@ jobs:
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeContent.cpp \
             Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp
@@ -73,6 +75,16 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          assert 'findField(sets, "CanGetPrefixes")' in source
+          assert 'static_cast<uintptr_t>(type) >= entries->length' in source
+          assert 'enableManagedPrefixEligibility(type);' in source
+          assert 'enableManagedPrefixEligibility(item.first);' in source
+          assert 'enableManagedPrefixEligibility(type);' in source
+          print("BUNNY_CSHARP_PREFIX_ELIGIBILITY_V90_5=PASS")
+          PY
       - name: Reject not-yet-supported CSharp prefix tooltips
         working-directory: Split/Bunny-Loader
         run: |
