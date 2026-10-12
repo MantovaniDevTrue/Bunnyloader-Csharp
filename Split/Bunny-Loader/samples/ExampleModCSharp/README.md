@@ -1,8 +1,10 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão experimental do mod:** 0.1.14. **Base Android validada:** Bunny Loader C# .85.1 + ExampleModCSharp 0.1.13 (479/479 callbacks V4, 410 efeitos aplicados, 60 FPS). **.86 / NPC Impulse:** empurrão horizontal controlado pelo C# em parte dos impactos; validação Android pendente.
+**Versão do exemplo:** 0.1.14. **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
+
+**Inventário gerado automaticamente:** [API C# e diferenças JS/C#](../../docs/generated/csharp_api_catalog.md) · [Receitas de código C# real](../../docs/generated/csharp_api_examples.md) · [Catálogo JSON](../../docs/generated/csharp_api_catalog.json). O status `device_verified` depende de confirmação real no Android, e não apenas de compilar.
 
 ## Índice
 
@@ -38,6 +40,6 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 - **.83 + ExampleModCSharp 0.1.11:** 383/383 V3, 138 legados, 0 falhas; contexto de NPC e 59–60 FPS confirmados em Android.
 - **.84 + ExampleModCSharp 0.1.12:** 416/416 V4, 84 callbacks legados, NPC + jogador capturados, 58–60 FPS no Android.
 - **.85.1 + ExampleModCSharp 0.1.13:** 479 chamadas V4, 410 efeitos aplicados, nenhum drop por fila e 60 FPS no Android; cache ativo no segundo carregamento.
-- **.86 + ExampleModCSharp 0.1.14:** demonstra impulso horizontal nativo em cada quarto impacto, com velocidade limitada, além dos debuffs existentes; teste Android pendente.
+- **.86 + ExampleModCSharp 0.1.14:** 473 callbacks V4, 87 impulsos reais confirmados visualmente, sem falhas gerenciadas nem drops e 60 FPS no Android.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
