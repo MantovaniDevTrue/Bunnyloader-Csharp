@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.16.2",
+  "exampleModCSharpVersion": "0.1.17",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -97,7 +97,10 @@
       "status": "experimental",
       "examples": [
         "ExampleFocusAccessory",
-        "ExampleSwiftAccessory"
+        "ExampleSwiftAccessory",
+        "ExampleWelcomeAccessory",
+        "ExampleMomentumAccessory",
+        "ExampleShadowAccessory"
       ]
     },
     {
@@ -105,7 +108,10 @@
       "status": "experimental",
       "examples": [
         "ExampleFocusPlayer",
-        "ExampleSwiftPlayer"
+        "ExampleSwiftPlayer",
+        "ExampleWelcomePlayer",
+        "ExampleMomentumPlayer",
+        "ExampleShadowPlayer"
       ]
     },
     {
@@ -173,6 +179,30 @@
       "examples": [
         "ExampleSwiftAccessory",
         "ExampleSwiftPlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_on_enter_world",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer",
+        "ExampleWelcomeAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_update_movement",
+      "status": "experimental",
+      "examples": [
+        "ExampleMomentumPlayer",
+        "ExampleMomentumAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_frame_effects",
+      "status": "experimental",
+      "examples": [
+        "ExampleShadowPlayer",
+        "ExampleShadowAccessory"
       ]
     }
   ]
