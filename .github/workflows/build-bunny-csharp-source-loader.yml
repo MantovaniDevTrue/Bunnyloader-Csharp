@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - csharp-prefix-persistence-v90-4
       - csharp-prefix-accessory-tooltip-v90-3
       - csharp-public-release-cleanup-v1
       - csharp-private-apk-delivery-v3
@@ -1392,7 +1393,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='117' versionName='0.1.10.16.90.3-csharp-accessory-tooltip'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='118' versionName='0.1.10.16.90.4-csharp-prefix-persistence'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1431,7 +1432,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ (github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}

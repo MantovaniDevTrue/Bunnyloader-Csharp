@@ -3,6 +3,7 @@ name: Verify Bunny CSharp v3 signing secrets
 on:
   push:
     branches:
+      - csharp-prefix-persistence-v90-4
       - csharp-prefix-accessory-tooltip-v90-3
       - csharp-public-release-cleanup-v1
       - csharp-private-apk-delivery-v3
