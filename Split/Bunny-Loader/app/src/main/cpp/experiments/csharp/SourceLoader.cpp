@@ -291,17 +291,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         if (def.base != "BunnyPlayer") continue;
         const auto link = def.properties.find("Accessory");
         if (link == def.properties.end()) {
-            status->error = def.name + ": Accessory = nameof(Classe) obrigatorio";
-            return false;
-        }
-        bool valid = false;
-        for (const auto& other : defs)
-            if (other.base == "BunnyAccessory" && other.name == link->second &&
-                types.contains(link->second) && types[link->second] >= 0)
-                valid = true;
-        if (!valid || def.properties.size() != 1) {
-            status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
-            return false;
+            if (!def.properties.empty()) {
+                status->error = def.name + ": BunnyPlayer global deve ter SetDefaults vazio";
+                return false;
+            }
+        } else {
+            bool valid = false;
+            for (const auto& other : defs)
+                if (other.base == "BunnyAccessory" && other.name == link->second &&
+                    types.contains(link->second) && types[link->second] >= 0)
+                    valid = true;
+            if (!valid || def.properties.size() != 1) {
+                status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
+                return false;
+            }
         }
         status->playerClasses.push_back(def.name);
     }
@@ -389,7 +392,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8)) {
+        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
                 *error = "BunnyPlayer C# nao registrado: " + fields[1];
@@ -398,26 +401,39 @@ bool applyManagedSourceDefaults(
             ManagedPlayerEntry record;
             record.name = fields[1];
             record.accessoryName = fields[2];
+            const bool globalPlayer = record.accessoryName == "-";
             const auto target = accessoryTypes.find(record.accessoryName);
-            if (target == accessoryTypes.end() ||
+            if ((!globalPlayer && target == accessoryTypes.end()) ||
                 !integer(fields[3], &record.equippedDefenseBonus) ||
                 record.equippedDefenseBonus < 0 || record.equippedDefenseBonus > 100 ||
                 (fields.size() >= 5 && !integer(fields[4], &record.moveSpeedPercent)) ||
                 record.moveSpeedPercent < 0 || record.moveSpeedPercent > 50 ||
-                (fields.size() == 8 &&
+                (fields.size() >= 8 &&
                     (!integer(fields[5], &record.runAccelerationPercent) ||
                      record.runAccelerationPercent < 0 || record.runAccelerationPercent > 30 ||
                      (fields[6] != "0" && fields[6] != "1") ||
                      fields[7].size() > 100 || fields[7].empty() ||
                      std::any_of(fields[7].begin(), fields[7].end(),
+                         [](unsigned char c) { return c < 32 || c > 126; }))) ||
+                (fields.size() == 9 &&
+                    (fields[8].size() > 100 || fields[8].empty() ||
+                     std::any_of(fields[8].begin(), fields[8].end(),
                          [](unsigned char c) { return c < 32 || c > 126; })))) {
                 *error = "Politica BunnyPlayer invalida: " + record.name;
                 return false;
             }
-            record.accessoryType = target->second;
-            if (fields.size() == 8) {
+            record.accessoryType = globalPlayer ? -1 : target->second;
+            if (fields.size() >= 8) {
                 record.frameShadow = fields[6] == "1";
                 if (fields[7] != "-") record.worldJoinMessage = fields[7];
+            }
+            if (fields.size() == 9 && fields[8] != "-")
+                record.respawnMessage = fields[8];
+            if (globalPlayer && (record.equippedDefenseBonus != 0 ||
+                record.moveSpeedPercent != 0 || record.runAccelerationPercent != 0 ||
+                record.frameShadow)) {
+                *error = "BunnyPlayer global nao pode aplicar bonus de acessorio: " + record.name;
+                return false;
             }
             players.push_back(std::move(record));
             continue;
