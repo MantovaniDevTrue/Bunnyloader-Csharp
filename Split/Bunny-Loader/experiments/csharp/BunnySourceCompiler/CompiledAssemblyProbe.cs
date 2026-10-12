@@ -573,7 +573,7 @@ public static class CompiledAssemblyProbe
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");
             if (category < 0 || category > 5 || !float.IsFinite(weight) ||
-                weight <= 0f || weight > 20f)
+                weight <= 0f || weight > 20f || weight != MathF.Truncate(weight))
                 throw new InvalidOperationException("Unsupported managed prefix category or weight: " + name);
             MethodInfo setStats = type.GetMethod("SetStats",
                 BindingFlags.Public | BindingFlags.Instance)
