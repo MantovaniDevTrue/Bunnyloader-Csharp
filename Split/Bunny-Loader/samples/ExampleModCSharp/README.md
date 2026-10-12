@@ -1,6 +1,6 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão do exemplo:** 0.1.14. **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
+**Versão do exemplo:** 0.1.15 (prefixos C# experimentais). **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
@@ -19,6 +19,7 @@ Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar AP
 | [Playable/content/Common/Players](Playable/content/Common/Players/) | Exemplo BunnyPlayer |
 | [Playable/content/Content/Buffs](Playable/content/Content/Buffs/) | Buff do exemplo |
 | [Playable/content/Content/NPCs](Playable/content/Content/NPCs/) | NPC de exemplo |
+| [Playable/content/Content/Prefixes](Playable/content/Content/Prefixes/) | Dois prefixos C# experimentais para armas e acessórios |
 | [Docs/GettingStarted.md](Docs/GettingStarted.md) | Procedimentos históricos e explicações |
 | [Docs/SupportedAPI.md](Docs/SupportedAPI.md) | API comprovada e limites atuais |
 | [Tests](Tests/) | Testes automáticos e roteiro Android |
@@ -43,5 +44,7 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 - **.84 + ExampleModCSharp 0.1.12:** 416/416 V4, 84 callbacks legados, NPC + jogador capturados, 58–60 FPS no Android.
 - **.85.1 + ExampleModCSharp 0.1.13:** 479 chamadas V4, 410 efeitos aplicados, nenhum drop por fila e 60 FPS no Android; cache ativo no segundo carregamento.
 - **.86 + ExampleModCSharp 0.1.14:** 473 callbacks V4, 87 impulsos reais confirmados visualmente, sem falhas gerenciadas nem drops e 60 FPS no Android.
+
+Os prefixos da .90 ainda não foram validados no Android. Eles são executados pelo C# na preparação, enquanto hooks nativos aplicam os dados ao Terraria; não usar a .90 como baseline estável.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
