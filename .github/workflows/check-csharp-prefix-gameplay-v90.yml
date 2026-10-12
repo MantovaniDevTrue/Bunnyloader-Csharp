@@ -158,7 +158,7 @@ jobs:
           assert 'public virtual string OnRespawn()' in sdk
           assert 'globalPlayer ? "-" : accessoryName' in probe
           assert 'respawning.Invoke(player, null)' in probe
-          assert '(fields.size() == 9)' in loader
+          assert 'fields.size() == 9' in loader
           assert 'record.accessoryType = globalPlayer ? -1 : target->second;' in loader
           assert 'globalMessages[key] = player.worldJoinMessage;' in native
           assert 'g_respawnMessages[key] = message;' in native
