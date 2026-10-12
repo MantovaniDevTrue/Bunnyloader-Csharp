@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedPrefixRollSelection.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
@@ -32,6 +33,10 @@ using StatsFn = bool (*)(Il2CppObject*, int32_t, float*, float*, float*, float*,
 using GrantFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using RollFn = bool (*)(Il2CppObject*, Il2CppObject*, int32_t*, const MethodInfo*);
 using ReforgeFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using InventoryTooltipFn = void (*)(Il2CppObject*, int32_t*, int32_t*, int32_t*,
+                                    float, int32_t*, Il2CppArray*, Il2CppArray*,
+                                    Il2CppArray*, int32_t*, void*, int32_t*,
+                                    const MethodInfo*);
 
 struct Refs {
     int type = -1;
@@ -69,6 +74,8 @@ StatsFn g_originalStats = nullptr;
 GrantFn g_originalGrant = nullptr;
 RollFn g_originalRoll = nullptr;
 ReforgeFn g_originalReforge = nullptr;
+InventoryTooltipFn g_originalInventoryTooltip = nullptr;
+std::atomic<bool> g_inventoryTooltipReady{false};
 std::atomic<bool> g_reforgeTooltipReady{false};
 std::atomic<int> g_reforgeDiagnostics{0};
 struct RestoreRoll {
@@ -385,6 +392,83 @@ void hookReforgeTooltip(Il2CppObject* popup, Il2CppObject* item, const MethodInf
     bl::runtime::field<int32_t>(popup, r.reforgeNumLines) = 1;
 }
 
+void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
+                          int32_t* materials, float oldKb, int32_t* count,
+                          Il2CppArray* lines, Il2CppArray* modifier,
+                          Il2CppArray* bad, int32_t* setBonus, void* setColor,
+                          int32_t* shared, const MethodInfo* method) {
+    if (g_originalInventoryTooltip)
+        g_originalInventoryTooltip(item, yoyo, research, materials, oldKb, count,
+                                   lines, modifier, bad, setBonus, setColor,
+                                   shared, method);
+    if (!g_inventoryTooltipReady.load(std::memory_order_acquire) || !item ||
+        !count || !lines || !modifier || !bad ||
+        g_refs.accessory < 0 || g_refs.type < 0 || g_refs.prefix < 0 ||
+        !bl::runtime::field<uint8_t>(item, g_refs.accessory))
+        return;
+
+    const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
+    const int baseDefense = managedNativeAccessoryDefense(itemType);
+    if (baseDefense <= 0) return;
+
+    const int prefixType = bl::runtime::field<uint8_t>(item, g_refs.prefix);
+    const auto prefixes = snapshotManagedPrefixes();
+    const auto* current = byType(prefixes, prefixType);
+    const int prefixDefense = current && current->category == 5
+        ? current->accessoryDefense : 0;
+
+    const auto capacity = std::min({lines->length, modifier->length, bad->length});
+    if (*count < 0 || static_cast<uintptr_t>(*count) >= capacity) return;
+    auto& api = bl::il2cpp::api();
+    if (!api.string_new || !api.gc_wbarrier_set_field) return;
+
+    auto** descriptions = static_cast<Il2CppString**>(arrayData(lines));
+    auto* flags = static_cast<uint8_t*>(arrayData(modifier));
+    auto* negative = static_cast<uint8_t*>(arrayData(bad));
+    const std::string suffix = accessoryDefenseSuffix();
+
+    const auto append = [&](int amount, const std::string& label, bool prefixLine) {
+        if (amount == 0 || static_cast<uintptr_t>(*count) >= capacity) return;
+        const std::string value = (amount > 0 ? "+" : "") + std::to_string(amount) +
+                                  suffix + " (" + label + ")";
+        Il2CppString* line = api.string_new(value.c_str());
+        if (!line) return;
+        api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(lines),
+            reinterpret_cast<void**>(&descriptions[*count]), line);
+        flags[*count] = prefixLine ? 1 : 0;
+        negative[*count] = amount < 0 ? 1 : 0;
+        ++*count;
+    };
+
+    append(baseDefense, "base", false);
+    if (prefixDefense)
+        append(prefixDefense, current->displayName.empty()
+            ? current->name : current->displayName, true);
+}
+
+bool installInventoryTooltipHook() {
+    using namespace bl::il2cpp;
+    auto& api = bl::il2cpp::api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    const auto* getLines = main ? findMethodBySignature(main, parseSignature(
+        "void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)"))
+        : nullptr;
+    if (!getLines || !api.string_new || !api.gc_wbarrier_set_field)
+        return false;
+
+    if (!g_refs.tooltipSuffixes)
+        g_refs.tooltipSuffixes = findField(findClass({"Terraria", "Lang", {}}), "tip");
+    if (!g_refs.localizedValueMethod) {
+        Il2CppClass* localized = findClass({"Terraria.Localization", "LocalizedText", {}});
+        g_refs.localizedValueMethod = localized
+            ? api.class_get_method_from_name(localized, "get_Value", 0) : nullptr;
+    }
+    if (!bl::hook::install(getLines, hookInventoryTooltip, &g_originalInventoryTooltip))
+        return false;
+    g_inventoryTooltipReady.store(true, std::memory_order_release);
+    return true;
+}
+
 bool installReforgeTooltipHook() {
     using namespace bl::il2cpp;
     auto& api = bl::il2cpp::api();
@@ -527,8 +611,9 @@ bool installManagedPrefixGameplayHooks() {
     }
     g_hooksReady.store(true, std::memory_order_release);
     const bool reforgeTooltip = installReforgeTooltipHook();
-    BL_INFO("csharp prefix: hooks nativos GetRollablePrefixes/RollAPrefix, stats e acessorios ativos; reforgeTooltip=%d",
-            reforgeTooltip ? 1 : 0);
+    const bool inventoryTooltip = installInventoryTooltipHook();
+    BL_INFO("csharp prefix: hooks nativos GetRollablePrefixes/RollAPrefix, stats e acessorios ativos; reforgeTooltip=%d inventoryTooltip=%d",
+            reforgeTooltip ? 1 : 0, inventoryTooltip ? 1 : 0);
     return true;
 }
 
