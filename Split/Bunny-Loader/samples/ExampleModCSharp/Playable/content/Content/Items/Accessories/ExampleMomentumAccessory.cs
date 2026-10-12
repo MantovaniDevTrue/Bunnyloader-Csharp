@@ -9,5 +9,6 @@ public sealed class ExampleMomentumAccessory : BunnyAccessory
         DisplayName = "Example Momentum Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
+        Tooltip = "Aumenta a aceleracao ao correr em 6%";
     }
 }
