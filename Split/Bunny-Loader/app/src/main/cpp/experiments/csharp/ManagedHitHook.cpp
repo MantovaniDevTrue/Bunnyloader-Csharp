@@ -32,6 +32,7 @@ int32_t g_playerActive = -1;
 int32_t g_playerLife = -1;
 int32_t g_playerLifeMax = -1;
 struct NpcPosition { float x; float y; };
+struct Vector2 { float x; float y; };
 std::array<int, 256> g_hitDurations{};
 std::atomic<bool> g_hitInstalled{false};
 std::atomic<bool> g_hitEnabled{false};
