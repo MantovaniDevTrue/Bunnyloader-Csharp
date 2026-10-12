@@ -1002,7 +1002,9 @@ jobs:
           assert "modProjectilesSettled()" in native
           assert "kFixtureId" in native
           assert "source-compile-status.txt" in native
-          assert "modId=" in native and "executedTypes=" in native
+          count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
+          assert "modId=" in count_contract and "executedTypes=" in count_contract
+          assert "managedSourceCompileFinished(status, id, mod)" in native
           assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
@@ -1033,7 +1035,8 @@ jobs:
           assert 'base == "BunnyBuffPotion"' in parser
           assert "NativeBuffPotion" in source
           assert "applyManagedNativeBuffDefaultsBatch" in source
-          assert "mod.items + mod.projectiles + mod.buffs" in native
+          assert "mod.items + mod.projectiles + mod.buffs" in count_contract
+          assert "mod.players + mod.npcs + mod.prefixes" in count_contract
           assert "BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS" in smoke
           assert "g_buffs.find(typeValues[slot])" in nativeContent
           assert "BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS" in smoke
