@@ -374,7 +374,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5)) {
+        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
                 *error = "BunnyPlayer C# nao registrado: " + fields[1];
@@ -387,12 +387,23 @@ bool applyManagedSourceDefaults(
             if (target == accessoryTypes.end() ||
                 !integer(fields[3], &record.equippedDefenseBonus) ||
                 record.equippedDefenseBonus < 0 || record.equippedDefenseBonus > 100 ||
-                (fields.size() == 5 && !integer(fields[4], &record.moveSpeedPercent)) ||
-                record.moveSpeedPercent < 0 || record.moveSpeedPercent > 50) {
+                (fields.size() >= 5 && !integer(fields[4], &record.moveSpeedPercent)) ||
+                record.moveSpeedPercent < 0 || record.moveSpeedPercent > 50 ||
+                (fields.size() == 8 &&
+                    (!integer(fields[5], &record.runAccelerationPercent) ||
+                     record.runAccelerationPercent < 0 || record.runAccelerationPercent > 30 ||
+                     (fields[6] != "0" && fields[6] != "1") ||
+                     fields[7].size() > 100 || fields[7].empty() ||
+                     std::any_of(fields[7].begin(), fields[7].end(),
+                         [](unsigned char c) { return c < 32 || c > 126; })))) {
                 *error = "Politica BunnyPlayer invalida: " + record.name;
                 return false;
             }
             record.accessoryType = target->second;
+            if (fields.size() == 8) {
+                record.frameShadow = fields[6] == "1";
+                if (fields[7] != "-") record.worldJoinMessage = fields[7];
+            }
             players.push_back(std::move(record));
             continue;
         }
