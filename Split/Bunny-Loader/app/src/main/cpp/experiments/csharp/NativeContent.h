@@ -119,6 +119,7 @@ struct ManagedPlayerEntry {
     int runAccelerationPercent = 0;
     bool frameShadow = false;
     std::string worldJoinMessage;
+    std::string respawnMessage;
 };
 
 bool showManagedPlayerWorldJoinMessages();
