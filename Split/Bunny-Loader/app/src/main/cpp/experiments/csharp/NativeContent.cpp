@@ -65,6 +65,7 @@ struct NativeRefs {
     int playerMaxRunSpeed = -1;
     int playerRunAcceleration = -1;
     int playerFrameShadow = -1;
+    int playerFrameOutline = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -116,6 +117,7 @@ using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const Met
 using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
 using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using HorizontalMovementFn = void (*)(Il2CppObject*, const MethodInfo*);
+using SetArmorEffectVisualsFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -130,6 +132,7 @@ NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 HorizontalMovementFn g_originalHorizontalMovement = nullptr;
+SetArmorEffectVisualsFn g_originalSetArmorEffectVisuals = nullptr;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
@@ -283,7 +286,6 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
     }
     int movementPercent = 0;
     int movementAcceleration = 0;
-    bool frameShadow = false;
     if (g_refs.playerArmor >= 0) {
         auto* armor = bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor);
         if (armor && armor->length >= 10 && armor->length <= 40) {
@@ -297,7 +299,6 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
                 if (found != g_accessories.end()) {
                     movementPercent += found->second.moveSpeedPercent;
                     movementAcceleration += found->second.movementAccelerationPercent;
-                    frameShadow = frameShadow || found->second.frameShadow;
                 }
             }
         }
@@ -328,12 +329,39 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
     }
     if (g_originalHorizontalMovement)
         g_originalHorizontalMovement(self, method);
-    if (frameShadow && g_refs.playerFrameShadow >= 0)
+}
+
+bool managedShadowEquipped(Il2CppObject* player) {
+    if (!player || g_refs.playerArmor < 0) return false;
+    auto* armor = bl::runtime::field<Il2CppArray*>(player, g_refs.playerArmor);
+    if (!armor || armor->length < 10 || armor->length > 40) return false;
+    auto** equipped = static_cast<Il2CppObject**>(arrayData(armor));
+    for (uintptr_t slot = 3; slot < 10; ++slot) {
+        Il2CppObject* item = equipped[slot];
+        if (!item || !bl::runtime::field<uint8_t>(item, g_refs.itemAccessory))
+            continue;
+        const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+        const auto found = g_accessories.find(type);
+        if (found != g_accessories.end() && found->second.frameShadow)
+            return true;
+    }
+    return false;
+}
+
+void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
+                             const MethodInfo* method) {
+    if (g_originalSetArmorEffectVisuals)
+        g_originalSetArmorEffectVisuals(self, drawPlayer, method);
+    if (!self || !managedShadowEquipped(drawPlayer ? drawPlayer : self))
+        return;
+    if (g_refs.playerFrameShadow >= 0)
         bl::runtime::field<uint8_t>(self, g_refs.playerFrameShadow) = 1;
-    if (frameShadow) {
-        static int visualLogs = 0;
-        if (visualLogs++ < 3)
-            BL_INFO("csharp BunnyPlayer FrameEffects: sombra nativa aplicada");
+    if (g_refs.playerFrameOutline >= 0)
+        bl::runtime::field<uint8_t>(self, g_refs.playerFrameOutline) = 1;
+    static int visualLogs = 0;
+    if (visualLogs < 3) {
+        ++visualLogs;
+        BL_INFO("csharp BunnyPlayer FrameEffects: sombra de desenho e contorno ativos");
     }
 }
 
@@ -407,7 +435,8 @@ bool prepareNativeContent() {
     r.playerArmor = fieldOffset(player, "armor");
     r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
-    r.playerFrameShadow = fieldOffset(player, "armorEffectDrawShadowEOCShield");
+    r.playerFrameShadow = fieldOffset(player, "armorEffectDrawShadow");
+    r.playerFrameOutline = fieldOffset(player, "armorEffectDrawOutlines");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -464,6 +493,7 @@ bool prepareNativePlayerEffects() {
     if (r.playerStatDefense < 0 || r.playerMoveSpeed < 0 ||
         r.playerArmor < 0 || r.playerMaxRunSpeed < 0 ||
         r.playerRunAcceleration < 0 || r.playerFrameShadow < 0 ||
+        r.playerFrameOutline < 0 ||
         r.playerBuffType < 0 ||
         r.playerBuffTime < 0 || r.itemType < 0 ||
         r.itemAccessory < 0 || r.itemBuffType < 0 ||
@@ -476,11 +506,15 @@ bool prepareNativePlayerEffects() {
         player, parseSignature("void UpdateBuffs(int i)"));
     const MethodInfo* runSpeeds = findMethodBySignature(
         player, parseSignature("void HorizontalMovement()"));
-    if (!equip || !buffs || !runSpeeds) return false;
+    const MethodInfo* armorVisuals = findMethodBySignature(
+        player, parseSignature("void SetArmorEffectVisuals(Player drawPlayer)"));
+    if (!equip || !buffs || !runSpeeds || !armorVisuals) return false;
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     if (!bl::hook::install(buffs, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
     if (!bl::hook::install(runSpeeds, hkHorizontalMovement,
                            &g_originalHorizontalMovement)) return false;
+    if (!bl::hook::install(armorVisuals, hkSetArmorEffectVisuals,
+                           &g_originalSetArmorEffectVisuals)) return false;
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
