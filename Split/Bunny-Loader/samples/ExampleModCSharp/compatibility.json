@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.15",
+  "exampleModCSharpVersion": "0.1.16",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -96,14 +96,16 @@
       "id": "custom_accessory_csharp",
       "status": "experimental",
       "examples": [
-        "ExampleFocusAccessory"
+        "ExampleFocusAccessory",
+        "ExampleSwiftAccessory"
       ]
     },
     {
       "id": "custom_player_csharp",
       "status": "experimental",
       "examples": [
-        "ExampleFocusPlayer"
+        "ExampleFocusPlayer",
+        "ExampleSwiftPlayer"
       ]
     },
     {
@@ -163,6 +165,14 @@
       "examples": [
         "ExampleMightyPrefix",
         "ExampleGuardedPrefix"
+      ]
+    },
+    {
+      "id": "native_player_move_speed",
+      "status": "experimental",
+      "examples": [
+        "ExampleSwiftAccessory",
+        "ExampleSwiftPlayer"
       ]
     }
   ]
