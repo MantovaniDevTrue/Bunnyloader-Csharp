@@ -138,6 +138,7 @@ bool applyManagedNativeNpcDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedNpcEntry>& npcs);
 
+void refreshManagedPrefixEligibilityOnWorldReady();
 bool prepareNativeContent();
 int registerNativeContent(void* context, const NativeContentSpec* spec);
 
