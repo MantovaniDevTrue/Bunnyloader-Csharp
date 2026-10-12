@@ -119,8 +119,10 @@ jobs:
           assert "MouseText_DrawItemTooltip_GetLinesInfo(Item item" in c
           assert "g_originalInventoryTooltip(" in c
           assert "managedNativeAccessoryDefense(itemType)" in c
-          assert 'append(baseDefense, "base", false);' in c
-          assert "append(prefixDefense, current->displayName.empty()" in c
+          assert 'append(baseDefense, defenseSuffix, "base", false);' in c
+          assert "append(prefixDefense, defenseSuffix, current->displayName.empty()" in c
+          assert 'append(moveSpeed, accessoryMoveSpeedSuffix(), "base", false);' in c
+          assert 'return accessoryStatSuffix(46, "% movement speed");' in c
           assert "api.gc_wbarrier_set_field(" in c
           assert "inventoryTooltip=%d" in c
           assert "int managedNativeAccessoryDefense(int type)" in native
