@@ -64,6 +64,7 @@ struct NativeRefs {
     int playerArmor = -1;
     int playerMaxRunSpeed = -1;
     int playerRunAcceleration = -1;
+    int playerFrameShadow = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -76,6 +77,9 @@ struct NativeWeaponDefaults {
 struct NativeAccessoryDefaults {
     int defenseBonus;
     int moveSpeedPercent = 0;
+    int movementAccelerationPercent = 0;
+    bool frameShadow = false;
+    std::string worldJoinMessage;
 };
 
 struct NativeBuffDefaults {
@@ -129,6 +133,7 @@ HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
+bool g_playerPoliciesReady = false;
 
 bool validName(const char* value) {
     if (!value || !*value) return false;
@@ -277,6 +282,8 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
         return;
     }
     int movementPercent = 0;
+    int movementAcceleration = 0;
+    bool frameShadow = false;
     if (g_refs.playerArmor >= 0) {
         auto* armor = bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor);
         if (armor && armor->length >= 10 && armor->length <= 40) {
@@ -287,8 +294,11 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
                     continue;
                 const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
                 const auto found = g_accessories.find(type);
-                if (found != g_accessories.end())
+                if (found != g_accessories.end()) {
                     movementPercent += found->second.moveSpeedPercent;
+                    movementAcceleration += found->second.movementAccelerationPercent;
+                    frameShadow = frameShadow || found->second.frameShadow;
+                }
             }
         }
     }
@@ -308,8 +318,23 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
                     movementPercent, before, maxSpeed);
         }
     }
+    if (movementAcceleration > 0 && movementAcceleration <= 60) {
+        auto& acceleration = bl::runtime::field<float>(self, g_refs.playerRunAcceleration);
+        acceleration *= 1.f + static_cast<float>(movementAcceleration) / 100.f;
+        static int accelerationLogs = 0;
+        if (accelerationLogs++ < 3)
+            BL_INFO("csharp BunnyPlayer UpdateMovement: +%d%% aceleracao nativa",
+                    movementAcceleration);
+    }
     if (g_originalHorizontalMovement)
         g_originalHorizontalMovement(self, method);
+    if (frameShadow && g_refs.playerFrameShadow >= 0)
+        bl::runtime::field<uint8_t>(self, g_refs.playerFrameShadow) = 1;
+    if (frameShadow) {
+        static int visualLogs = 0;
+        if (visualLogs++ < 3)
+            BL_INFO("csharp BunnyPlayer FrameEffects: sombra nativa aplicada");
+    }
 }
 
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
@@ -382,6 +407,7 @@ bool prepareNativeContent() {
     r.playerArmor = fieldOffset(player, "armor");
     r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
+    r.playerFrameShadow = fieldOffset(player, "armorEffectDrawShadowEOCShield");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -437,7 +463,8 @@ bool prepareNativePlayerEffects() {
     const auto& r = g_refs;
     if (r.playerStatDefense < 0 || r.playerMoveSpeed < 0 ||
         r.playerArmor < 0 || r.playerMaxRunSpeed < 0 ||
-        r.playerRunAcceleration < 0 || r.playerBuffType < 0 ||
+        r.playerRunAcceleration < 0 || r.playerFrameShadow < 0 ||
+        r.playerBuffType < 0 ||
         r.playerBuffTime < 0 || r.itemType < 0 ||
         r.itemAccessory < 0 || r.itemBuffType < 0 ||
         r.itemBuffTime < 0 || r.itemConsumable < 0) return false;
@@ -584,7 +611,7 @@ bool applyManagedNativePlayerDefaultsBatch(
             bl::runtime::modItemTypeByKey(modId + "/" + accessory.name) != accessory.type ||
             g_accessories.count(accessory.type) != 1 ||
             !values.emplace(accessory.type,
-                NativeAccessoryDefaults{accessory.defenseBonus, 0}).second)
+                NativeAccessoryDefaults{accessory.defenseBonus, 0, 0, false, ""}).second)
             return false;
     }
     std::map<int, bool> linked;
@@ -592,6 +619,8 @@ bool applyManagedNativePlayerDefaultsBatch(
         if (player.accessoryType < 0 ||
             player.equippedDefenseBonus < 0 || player.equippedDefenseBonus > 100 ||
             player.moveSpeedPercent < 0 || player.moveSpeedPercent > 50 ||
+            player.runAccelerationPercent < 0 || player.runAccelerationPercent > 30 ||
+            player.worldJoinMessage.size() > 100 ||
             bl::runtime::modItemTypeByKey(modId + "/" + player.accessoryName) != player.accessoryType ||
             !values.contains(player.accessoryType) ||
             !linked.emplace(player.accessoryType, true).second)
@@ -600,11 +629,15 @@ bool applyManagedNativePlayerDefaultsBatch(
         if (bonus.defenseBonus + player.equippedDefenseBonus > 100) return false;
         bonus.defenseBonus += player.equippedDefenseBonus;
         bonus.moveSpeedPercent = player.moveSpeedPercent;
+        bonus.movementAccelerationPercent = player.runAccelerationPercent;
+        bonus.frameShadow = player.frameShadow;
+        bonus.worldJoinMessage = player.worldJoinMessage;
     }
     for (const auto& [type, effects] : values) {
         g_accessories[type] = effects;
         enableManagedPrefixEligibility(type);
     }
+    g_playerPoliciesReady = true;
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
             modId.c_str(), accessories.size(), players.size());
     return true;
@@ -635,6 +668,34 @@ bool applyManagedNativeNpcDefaultsBatch(
         g_npcs[entry.first] = entry.second;
     BL_INFO("csharp native: managed NPC defaults applied for %s (%zu NPC)",
             modId.c_str(), staged.size());
+    return true;
+}
+
+bool showManagedPlayerWorldJoinMessages() {
+    if (!g_playerPoliciesReady) return false;
+    using namespace bl::il2cpp;
+    auto& runtime = api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    const MethodInfo* say = main ? findMethodBySignature(
+        main, parseSignature(
+            "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"))
+        : nullptr;
+    if (!say || !runtime.string_new) {
+        BL_WARN("csharp BunnyPlayer OnEnterWorld: Terraria.Main.NewText indisponivel");
+        return true;
+    }
+    int shown = 0;
+    for (const auto& [type, effects] : g_accessories) {
+        if (effects.worldJoinMessage.empty()) continue;
+        Il2CppString* line = runtime.string_new(effects.worldJoinMessage.c_str());
+        if (!line) continue;
+        uint8_t r = 255, g = 200, b = 0, only = 1;
+        void* arguments[5] = {line, &r, &g, &b, &only};
+        Il2CppObject* error = nullptr;
+        runtime.runtime_invoke(say, nullptr, arguments, &error);
+        if (!error) ++shown;
+    }
+    BL_INFO("csharp BunnyPlayer OnEnterWorld: %d mensagem(ns) enviada(s) ao entrar", shown);
     return true;
 }
 
