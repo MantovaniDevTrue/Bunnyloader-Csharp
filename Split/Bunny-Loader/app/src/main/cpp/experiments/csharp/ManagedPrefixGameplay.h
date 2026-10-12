@@ -4,6 +4,7 @@
 
 namespace bl::csharp {
 bool installManagedPrefixGameplayHooks();
+bool managedPrefixGameplayReady();
 bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
                                      const MethodInfo* itemPrefixMethod,
                                      bool* hookReached);
