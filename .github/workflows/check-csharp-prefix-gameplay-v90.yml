@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-reforge-v90-2-hotfix
       - csharp-prefix-autoload-v90-1-hotfix
       - csharp-prefix-gameplay-v90-experiment
   workflow_dispatch:
@@ -51,6 +52,15 @@ jobs:
             -o "$RUNNER_TEMP/prefix-auto-count"
           "$RUNNER_TEMP/prefix-auto-count"
           echo "BUNNY_CSHARP_PREFIX_AUTOLOAD_11_TYPES=PASS"
+      - name: Validate native weighted prefix rolls against mobile JS reference
+        working-directory: Split/Bunny-Loader
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I app/src/main/cpp \
+            tests/managed_prefix_roll_v90_2.cpp \
+            -o "$RUNNER_TEMP/managed-prefix-roll"
+          "$RUNNER_TEMP/managed-prefix-roll"
+          python3 tests/prefix_v89/guard_reforge_v90_2.py
       - name: Guard native game hooks and source contracts
         working-directory: Split/Bunny-Loader
         run: |
