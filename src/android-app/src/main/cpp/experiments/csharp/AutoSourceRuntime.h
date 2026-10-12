@@ -1,0 +1,30 @@
+#pragma once
+
+#include <string>
+#include <vector>
+
+namespace bl::csharp {
+
+struct AutoSourceStatus {
+    std::string modId;
+    std::string phase;
+    std::string error;
+    bool cached = false;
+    bool applied = false;
+    int curves = 0;
+    int enabledCurves = 0;
+    int hitPolicies = 0;
+    int killPolicies = 0;
+    int enabledHits = 0;
+    int enabledKills = 0;
+    int netMode = -1;
+    int gameMenu = -1;
+    bool worldReady = false;
+};
+
+void startAutoSourceRuntime();
+void noteAutoWorldTilesLoaded();
+void noteAutoGameUpdate();
+std::vector<AutoSourceStatus> autoSourceStatuses();
+
+}

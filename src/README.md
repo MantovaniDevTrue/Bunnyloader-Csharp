@@ -1,15 +1,16 @@
-# Fontes do C# — índice sem duplicação
+# Código-fonte — pastas navegáveis no GitHub
 
-A árvore canônica do projeto Android foi **mantida no caminho original** `Split/Bunny-Loader/`. Alterá-lo quebraria scripts Gradle, CMake e GitHub Actions já usados pelas branches de teste. Os itens desta pasta são **links simbólicos Git** para o mesmo código: editar o destino canônico, nunca manter uma cópia paralela.
+Os diretórios abaixo são **árvores Git reais**, em vez dos links simbólicos anteriores. Clique neles para abrir código C# ou C++ diretamente no navegador:
 
-| Atalho | Conteúdo | Caminho canônico |
-| --- | --- | --- |
-| [`csharp-host/`](csharp-host/) | Runtime MonoVM, loader, hooks, conteúdo e ponte gerenciada | `Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/` |
-| [`roslyn-compiler/`](roslyn-compiler/) | Compilador C# e checagens de assembly | `Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/` |
-| [`csharp-api/`](csharp-api/) | Exposição de APIs do Bunny e testes de integração | `Split/Bunny-Loader/app/src/main/cpp/script/api/` |
-| [`examplemod-csharp/`](examplemod-csharp/) | Código C# real do ExampleModCSharp 0.1.7 | `Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/` |
-| [`android-app/`](android-app/) | Fontes Android (Kotlin, Java, C++, recursos) | `Split/Bunny-Loader/app/src/main/` |
+| Pasta | O que contém |
+| --- | --- |
+| [roslyn-compiler/](roslyn-compiler/) | Código C# do compilador Roslyn |
+| [csharp-api/](csharp-api/) | SDK C# e classes Bunny |
+| [csharp-host/](csharp-host/) | Host MonoVM e hooks C++/JNI |
+| [examplemod-csharp/](examplemod-csharp/) | ExampleMod C# completo |
+| [android-app/](android-app/) | Aplicação Android |
+| [javascript-bridge/](javascript-bridge/) | API do QuickJS |
 
-O projeto continua tendo código **C++/JNI/Android**, **C# gerenciado** e suporte **QuickJS** do Bunny Loader base. Não afirmar que tudo foi migrado para C#.
+Os arquivos canônicos desta branch histórica permanecem sob [Split/Bunny-Loader/](../Split/Bunny-Loader/). src/ é apenas um espelho Git navegável; mantenha alterações nos caminhos canônicos e atualize o espelho quando mudar o fonte.
 
-Veja [ARQUITETURA](../docs/ARQUITETURA.md) e [STATUS](../docs/STATUS.md).
+**A branch csharp-development não representa o último teste Android:** veja o desenvolvimento [v.86 validado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-managed-npc-impulse-v86-experiment) e o [catálogo experimental .87](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-api-discovery-catalog-v87-experiment).
