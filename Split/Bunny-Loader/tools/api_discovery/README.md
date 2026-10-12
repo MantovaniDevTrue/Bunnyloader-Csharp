@@ -13,7 +13,9 @@ Executar em Split/Bunny-Loader:
     python3 tools/csharp_api_discovery.py --check
     python3 tests/test_csharp_api_discovery.py
 
-A pipeline da branch experimental roda os testes de C# existentes e salva os tres relatórios na propria branch. A versao .86 e o ExampleModCSharp 0.1.14 permanecem inalterados. O proximo estagio pode automatizar a geracao de novos pequenos exemplos somente para assinaturas que estejam realmente implementadas no SDK.
+O CI gera tambem um **mapa de lacunas** ordenado de API a partir dos exemplos JS, em docs/generated/csharp_api_missing_priorities.md e .json.
+A compilacao C# executa 17 casos positivos (incluindo contratos publicos do SDK) e cinco testes negativos, assegurando que Roslyn rejeita metodos inexistentes.
+O status desses testes nao equivale a compatibilidade Android. A versao .86 e o ExampleModCSharp 0.1.14 permanecem inalterados. O proximo estagio pode automatizar a geracao de novos pequenos exemplos somente para assinaturas que estejam realmente implementadas no SDK.
 
 Regras: nada de tModLoader; usar os fontes ExampleModBunny e Bunny; preservar diferenca entre device_verified, ci_verified, experimental e not_implemented; nao inferir compatibilidade multiplayer.
 

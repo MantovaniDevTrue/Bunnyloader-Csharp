@@ -4,7 +4,7 @@
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
-**Inventário gerado automaticamente:** [API C# e diferenças JS/C#](../../docs/generated/csharp_api_catalog.md) · [Receitas de código C# real](../../docs/generated/csharp_api_examples.md) · [Catálogo JSON](../../docs/generated/csharp_api_catalog.json). O status `device_verified` depende de confirmação real no Android, e não apenas de compilar.
+**Inventário gerado automaticamente:** [API C# e diferenças JS/C#](../../docs/generated/csharp_api_catalog.md) · [Receitas de código C# real](../../docs/generated/csharp_api_examples.md) · [Catálogo JSON](../../docs/generated/csharp_api_catalog.json) · [Lacunas e prioridades de API C#](../../docs/generated/csharp_api_missing_priorities.md) · [Testes negativos de assinatura](../../docs/generated/csharp_api_unsupported_compile.md). O status `device_verified` depende de confirmação real no Android, e não apenas de compilar.
 
 **Compilação automática:** [17 casos e resultados](../../docs/generated/csharp_api_compile_results.md) · [Dados JSON dos testes](../../docs/generated/csharp_api_compile_results.json). A bateria usa os arquivos-fonte reais e testa os membros do SDK, sem alterar a APK.
 

@@ -23,6 +23,10 @@ jobs:
           python3 tools/csharp_api_discovery.py --write
           python3 tools/csharp_api_discovery.py --check
           python3 tests/test_csharp_api_discovery.py
+          python3 tools/csharp_api_gap_map.py --write
+          python3 tools/csharp_api_gap_map.py --check
+          python3 tests/test_csharp_api_gap_map.py
+          python3 tests/test_csharp_api_negative_compile.py
           python3 samples/ExampleModCSharp/Tests/check_examples.py
           python3 samples/ExampleModCSharp/Tests/check_npc_coverage.py
       - uses: actions/setup-dotnet@v4
@@ -35,6 +39,13 @@ jobs:
           python3 tools/csharp_api_compile_batch.py --prepare
           python3 tools/csharp_api_compile_batch.py --build
           python3 tools/csharp_api_compile_batch.py --check
+      - name: Verify five unsupported CSharp methods are rejected by Roslyn
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          python3 tools/csharp_api_negative_compile.py --prepare
+          python3 tools/csharp_api_negative_compile.py --build
+          python3 tools/csharp_api_negative_compile.py --check
       - name: Guard against unsupported CSharp APIs
         working-directory: Split/Bunny-Loader
         run: |
