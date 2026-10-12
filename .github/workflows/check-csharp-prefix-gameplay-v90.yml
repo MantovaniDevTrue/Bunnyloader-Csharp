@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-restoration-v90-7
       - csharp-prefix-firstlaunch-v90-6
       - csharp-prefix-eligibility-v90-5
       - csharp-prefix-persistence-v90-4
@@ -76,6 +77,20 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
+          lifecycle = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          assert "void retryPendingManagedPrefixesOnWorldReady()" in source
+          assert "get_ActivePlayerFileData" in source
+          assert "if (restoreSavedPrefix(item, saved))" in source
+          assert "original->second.key == current->second.key" in source
+          assert "csharp prefix restore: chave=" in source
+          assert "bl::runtime::retryPendingManagedPrefixesOnWorldReady();" in lifecycle
+          assert lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();") < lifecycle.index("retryPendingManagedPrefixesOnWorldReady();")
+          print("BUNNY_CSHARP_PREFIX_RESTORE_V90_7=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           root = Path("app/src/main/cpp/experiments/csharp")
