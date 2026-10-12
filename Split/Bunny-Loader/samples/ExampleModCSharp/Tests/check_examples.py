@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.15"
+assert catalog["exampleModCSharpVersion"] == "0.1.16"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -55,7 +55,7 @@ ids = set()
 example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "SourceBoltMotion", "SourceSparkMotion",
                    "ExampleDefenseBuff", "ExampleBuffPotion",
-                   "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSlimeNPC",
+                   "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSwiftAccessory", "ExampleSwiftPlayer", "ExampleSlimeNPC",
                    "BunnyLiveEntry", "BunnyLiveNpc", "ExampleWaveWand",
                    "ExampleWaveBolt", "ExampleWaveBoltMotion", "ExampleWaveBoltLiveEvents",
                    "ExampleMightyPrefix", "ExampleGuardedPrefix"}
@@ -81,9 +81,9 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.15"
+assert manifest2["version"] == "0.1.16"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 17
+assert len(playable_files) == 19
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "ExampleWaveWand", "ExampleWaveBolt", "ExampleWaveBoltMotion",
@@ -95,7 +95,7 @@ for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "static int OnHitNPC(int call, int damage)",
                  "static int OnKill(int call, int damage)",
                  "static class BunnyLiveNpc", "static int AI(int playerDeltaX, int npcLife)",
-                 "DefenseBonus = 10", "DefenseBonus = 7", "ResetEffects()",
+                 "DefenseBonus = 10", "DefenseBonus = 7", "MoveSpeedPercent = 8", "ResetEffects()",
                  "UpdateEquips(bool accessoryEquipped)",
                  "Buff = nameof(ExampleDefenseBuff)", "BunnyPrefix",
                  "ExampleMightyPrefix", "ExampleGuardedPrefix", "ApplyAccessoryEffects",
