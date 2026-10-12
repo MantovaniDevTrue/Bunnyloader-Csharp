@@ -476,14 +476,20 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                         state.worldReady = context.worldReady;
             }
             const auto live = managedLiveHitStatus();
-            if (live.enabled && live.modId == modId) return;
+            if (live.enabled && live.modId == modId) {
+                requestManagedNpcBuffDispatcher();
+                return;
+            }
             ManagedRuntimeStatus mono = managedRuntimeStatus();
             if (!mono.domainInitialized || !mono.methodExecuted)
                 mono = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
             if (!mono.domainInitialized || !mono.methodExecuted || mono.result != 42) {
-                BL_WARN("csharp auto live %s: MonoVM nao pronto (%s)",
-                        modId.c_str(), mono.phase.c_str());
-                return;
+                if (attempt == 0 || attempt == 10 || attempt == 30)
+                    BL_WARN("csharp auto live %s: aguardando MonoVM (%s), tentativa=%d",
+                            modId.c_str(), mono.phase.c_str(), attempt);
+                if (attempt >= 60) return;
+                std::this_thread::sleep_for(500ms);
+                continue;
             }
             std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
             if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
@@ -500,9 +506,7 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                   }(), &error)
                 : enableManagedLiveHit(modId, dll, projectileType, &error, true);
             if (success) {
-                if (!installManagedNpcBuffDispatcher())
-                    BL_WARN("csharp auto live %s: NPC AI effect dispatcher unavailable",
-                            modId.c_str());
+                requestManagedNpcBuffDispatcher();
                 BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d%s",
                         modId.c_str(), projectileType, live.enabled ? " (mod adicional)" : "");
                 const std::string root = mods::rootOf(modId);
@@ -762,7 +766,10 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && context.netMode == 0) return;
+        if (context.gameMenu != 1 && context.netMode == 0) {
+            updateManagedNpcBuffDispatcherOnGameThread();
+            return;
+        }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);

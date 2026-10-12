@@ -44,6 +44,8 @@ LiveNpcAiStatus liveNpcAiStatus();
 bool takeNpcAttack(int slot, int type, HostNpcAttack* out);
 bool installNpcAiHost();
 bool installManagedNpcBuffDispatcher();
+void requestManagedNpcBuffDispatcher();
+void updateManagedNpcBuffDispatcherOnGameThread();
 NpcAiStatus npcAiStatus();
 
 }

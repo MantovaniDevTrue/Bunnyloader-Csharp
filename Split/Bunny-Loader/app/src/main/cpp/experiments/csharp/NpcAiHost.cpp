@@ -45,7 +45,8 @@ struct Refs {
 
 Refs& refs() {
     static Refs r;
-    if (r.attempted) return r;
+    if (r.ok) return r;
+    r = {};
     r.attempted = true;
     using namespace il2cpp;
     Il2CppClass* npc = findClass({"Terraria", "NPC", {}});
@@ -75,7 +76,7 @@ NpcFn g_origCheckActive = nullptr;
 NpcFn g_origLoot = nullptr;
 bool g_installed = false;
 bool g_liveNpcInstallRequested = false;
-bool g_buffDispatchRequested = false;
+std::atomic<bool> g_buffDispatchRequested{false};
 std::atomic<bool> g_liveNpcEnabled{false};
 std::mutex g_liveNpcMutex;
 LiveNpcAiStatus g_liveNpcStatus;
@@ -573,18 +574,29 @@ NpcAiStatus npcAiStatus() {
     return status;
 }
 
+void requestManagedNpcBuffDispatcher() {
+    g_buffDispatchRequested.store(true, std::memory_order_release);
+}
+
 bool installManagedNpcBuffDispatcher() {
-    g_buffDispatchRequested = true;
+    requestManagedNpcBuffDispatcher();
     if (!installNpcAiHost()) return false;
     setManagedNpcBuffGameHookReady(true);
     return true;
+}
+
+void updateManagedNpcBuffDispatcherOnGameThread() {
+    if (!g_buffDispatchRequested.load(std::memory_order_acquire) ||
+        managedNpcBuffEffectStatus().gameHookInstalled) return;
+    installManagedNpcBuffDispatcher();
 }
 
 bool installNpcAiHost() {
     if (g_installed) return true;
     Refs& r = refs();
     if (!r.ok || (!csharpmods::hasNpcBehavior() &&
-                  !g_liveNpcInstallRequested && !g_buffDispatchRequested)) return false;
+                  !g_liveNpcInstallRequested &&
+                  !g_buffDispatchRequested.load(std::memory_order_acquire))) return false;
     if (!hook::install(r.ai, hookAi, &g_origAi)) {
         BL_WARN("csharp NPC: falha no hook NPC.AI");
         return false;
