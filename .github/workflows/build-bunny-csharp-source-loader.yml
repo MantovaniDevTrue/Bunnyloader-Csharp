@@ -458,7 +458,8 @@ jobs:
           assert "g_worldTransitionMutex" in auto
           assert "scheduleAutoLiveBindings()" in auto
           assert "g_liveBoundEpoch" in auto
-          assert "if (context.gameMenu != 1 && context.netMode == 0) return;" in auto
+          assert "if (context.gameMenu != 1 && context.netMode == 0) {" in auto
+          assert "updateManagedNpcBuffDispatcherOnGameThread();" in auto
           assert "pauseManagedLiveHit();" in auto
           assert "bindLiveEventsOnWorld(id, type, work, epoch)" in auto
           assert "g_pendingLiveSpecs = std::move(bindings)" in auto
