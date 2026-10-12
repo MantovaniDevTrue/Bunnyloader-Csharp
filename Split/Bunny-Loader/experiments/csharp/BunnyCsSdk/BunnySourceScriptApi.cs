@@ -49,6 +49,7 @@ public abstract class BunnyAccessory
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;
+    public string Tooltip { get; set; } = "";
     public abstract void SetDefaults();
 }
 
