@@ -452,6 +452,17 @@ void processManagedNpcBuffEffect(Il2CppObject* npc) {
     const NpcPosition pos = runtime::field<NpcPosition>(npc, g_npcPosition);
     ManagedNpcBuffCommand command;
     if (!takeManagedNpcBuffForNpc(slot, type, pos.x, pos.y, &command)) return;
+    if (command.impulseDirection == 1 || command.impulseDirection == 2) {
+        const auto& game = runtime::game();
+        const Vector2 current = runtime::field<Vector2>(npc, game.entity.velocity);
+        const float delta = command.impulseTenths * 0.1f *
+            (command.impulseDirection == 1 ? -1.0f : 1.0f);
+        runtime::field<Vector2>(npc, game.entity.velocity) = {
+            std::clamp(current.x + delta, -12.0f, 12.0f), current.y
+        };
+        noteManagedNpcImpulseApplied(true);
+        return;
+    }
     int buffId = command.buffId;
     int duration = command.durationTicks;
     uint8_t quiet = 0;

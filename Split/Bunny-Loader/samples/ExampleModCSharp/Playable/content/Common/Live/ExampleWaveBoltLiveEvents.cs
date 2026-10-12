@@ -33,6 +33,11 @@ public static class ExampleWaveBoltLiveEvents
             : 0;
         float dx = npcX - playerX;
         int enemyIsClose = dx > -160f && dx < 160f ? 1 : 0;
+        if (hits % 4 == 0) {
+            int direction = npcX < playerX ? 1 : 2;
+            int strengthTenths = playerHealthPercent < 35 ? 55 : 35;
+            return 2000000 + direction * 100 + strengthTenths;
+        }
         int buffId = playerHealthPercent < 35 ? 39 : enemyIsClose == 1 ? 44 : 24;
         int durationTicks = npcLife > 100 ? 240 : 120;
         return 1000000 + buffId * 1000 + durationTicks;

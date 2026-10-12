@@ -277,6 +277,9 @@ JSValue makeManagedNpcBuffEffectStatus(
     JS_SetPropertyStr(ctx, out, "lastBuffId", JS_NewInt32(ctx, status.lastBuffId));
     JS_SetPropertyStr(ctx, out, "lastDurationTicks", JS_NewInt32(ctx, status.lastDurationTicks));
     JS_SetPropertyStr(ctx, out, "lastNpcIndex", JS_NewInt32(ctx, status.lastNpcIndex));
+    JS_SetPropertyStr(ctx, out, "impulsesApplied", JS_NewInt32(ctx, status.impulsesApplied));
+    JS_SetPropertyStr(ctx, out, "lastImpulseDirection", JS_NewInt32(ctx, status.lastImpulseDirection));
+    JS_SetPropertyStr(ctx, out, "lastImpulseTenths", JS_NewInt32(ctx, status.lastImpulseTenths));
     return out;
 }
 

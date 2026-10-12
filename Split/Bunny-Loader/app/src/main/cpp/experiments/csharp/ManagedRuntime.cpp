@@ -283,6 +283,9 @@ std::atomic<int> g_buffQueueDrops{0};
 std::atomic<int> g_buffLastId{0};
 std::atomic<int> g_buffLastDuration{0};
 std::atomic<int> g_buffLastNpc{-1};
+std::atomic<int> g_impulsesApplied{0};
+std::atomic<int> g_lastImpulseDirection{0};
+std::atomic<int> g_lastImpulseTenths{0};
 std::string g_liveHitAssembly;
 
 struct AdditionalLiveBinding {
@@ -779,12 +782,16 @@ void* pinnedMonoWorker(void*) {
                         g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
                         if (automatic && !event.isKill && callback.usedV4 &&
                             callback.ready && callback.phase == "ready" &&
-                            callback.value >= 1000000 && callback.value < 2000000) {
+                            callback.value >= 1000000 && callback.value < 3000000) {
                             int buff = 0;
                             int ticks = 0;
+                            int direction = 0;
+                            int tenths = 0;
+                            const bool recognized =
+                                decodeManagedNpcBuffCode(callback.value, &buff, &ticks) ||
+                                decodeManagedNpcImpulseCode(callback.value, &direction, &tenths);
                             if (g_buffHookReady.load(std::memory_order_acquire) &&
-                                managedNpcSnapshotIsValid(event.npc) &&
-                                decodeManagedNpcBuffCode(callback.value, &buff, &ticks)) {
+                                managedNpcSnapshotIsValid(event.npc) && recognized) {
                                 const auto now = std::chrono::steady_clock::now();
                                 const int64_t nowMs =
                                     std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -794,7 +801,7 @@ void* pinnedMonoWorker(void*) {
                                     event.npc.posX, event.npc.posY,
                                     buff, ticks,
                                     g_buffEffectGeneration.load(std::memory_order_acquire),
-                                    nowMs
+                                    nowMs, direction, tenths
                                 };
                                 if (g_buffEffectQueue.push(request))
                                     g_buffRequested.fetch_add(1, std::memory_order_relaxed);
@@ -1171,6 +1178,9 @@ bool enableManagedLiveHit(const std::string& modId,
     g_buffLastId.store(0, std::memory_order_relaxed);
     g_buffLastDuration.store(0, std::memory_order_relaxed);
     g_buffLastNpc.store(-1, std::memory_order_relaxed);
+    g_impulsesApplied.store(0, std::memory_order_relaxed);
+    g_lastImpulseDirection.store(0, std::memory_order_relaxed);
+    g_lastImpulseTenths.store(0, std::memory_order_relaxed);
     g_liveHitQueue.clear();
     g_liveIngress.reset();
     g_liveHitLockDrops.store(0, std::memory_order_relaxed);
@@ -1360,6 +1370,9 @@ ManagedNpcBuffEffectStatus managedNpcBuffEffectStatus() {
     status.lastBuffId = g_buffLastId.load(std::memory_order_relaxed);
     status.lastDurationTicks = g_buffLastDuration.load(std::memory_order_relaxed);
     status.lastNpcIndex = g_buffLastNpc.load(std::memory_order_relaxed);
+    status.impulsesApplied = g_impulsesApplied.load(std::memory_order_relaxed);
+    status.lastImpulseDirection = g_lastImpulseDirection.load(std::memory_order_relaxed);
+    status.lastImpulseTenths = g_lastImpulseTenths.load(std::memory_order_relaxed);
     return status;
 }
 
@@ -1392,6 +1405,8 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
         g_buffLastId.store(request.buffId, std::memory_order_relaxed);
         g_buffLastDuration.store(request.durationTicks, std::memory_order_relaxed);
         g_buffLastNpc.store(request.npcIndex, std::memory_order_relaxed);
+        g_lastImpulseDirection.store(request.impulseDirection, std::memory_order_relaxed);
+        g_lastImpulseTenths.store(request.impulseTenths, std::memory_order_relaxed);
         return true;
     }
     return false;
@@ -1400,6 +1415,11 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
 void noteManagedNpcBuffApplied(bool success) {
     if (success) g_buffApplied.fetch_add(1, std::memory_order_relaxed);
     else g_buffRejected.fetch_add(1, std::memory_order_relaxed);
+}
+
+void noteManagedNpcImpulseApplied(bool success) {
+    noteManagedNpcBuffApplied(success);
+    if (success) g_impulsesApplied.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool isManagedLiveProjectileBound(int projectileType) {
