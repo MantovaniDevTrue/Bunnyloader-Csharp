@@ -9,5 +9,6 @@ public sealed class ExampleFocusAccessory : BunnyAccessory
         DisplayName = "Example Focus Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
+        Tooltip = "Concede +7 de defesa enquanto equipado";
     }
 }
