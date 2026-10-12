@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - codex/prefix-restore-fix
       - csharp-prefix-rehydrate-v90-10
       - csharp-prefix-overload-v90-9
       - csharp-prefix-forced-roll-v90-8
@@ -57,6 +58,14 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - name: Restore prefixes before the first vanilla natural roll
+        working-directory: Split/Bunny-Loader
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
+            -I "$RUNNER_TEMP/headers" -I app/src/main/cpp \
+            tests/managed_prefix_cold_tables.cpp -Wl,--gc-sections \
+            -o "$RUNNER_TEMP/prefix-cold-tables"
+          "$RUNNER_TEMP/prefix-cold-tables"
       - name: Regression for managed prefixes in automatic class count
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror \
