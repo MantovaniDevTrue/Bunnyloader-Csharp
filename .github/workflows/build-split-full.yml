@@ -79,41 +79,13 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Setup persistent APK signing
+      - name: Check v3 signing configuration
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="bunny-signing-key-v1"
-          ASSET="bunny-release.jks"
-          DIR="$RUNNER_TEMP/bunny-signing"
-          KEY="$DIR/$ASSET"
-          PASS="BunnyLoaderStable2026"
-          ALIAS="bunnyrelease"
-          mkdir -p "$DIR"
-
-          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release download "$TAG" --repo "${{ github.repository }}" --pattern "$ASSET" --dir "$DIR"
-          else
-            keytool -genkeypair -noprompt \
-              -keystore "$KEY" \
-              -storepass "$PASS" \
-              -keypass "$PASS" \
-              -alias "$ALIAS" \
-              -keyalg RSA \
-              -keysize 4096 \
-              -validity 36500 \
-              -dname "CN=Bunny Loader Update Key,O=MantovaniDevTrue"
-            gh release create "$TAG" "$KEY#$ASSET" \
-              --repo "${{ github.repository }}" \
-              --title "Bunny Loader signing key v1" \
-              --notes "Private APK update signing key. Keep this repository private." \
-              --prerelease
-          fi
-
-          echo "BUNNY_SIGNING_STORE=$KEY" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          set -euo pipefail
+          grep -q 'BUNNY_SIGNING_STORE' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_PASSWORD' Split/Bunny-Loader/app/build.gradle.kts
+          echo "BUNNY_LEGACY_RELEASE_SIGNING_V3_REQUIRED=YES"
 
       - name: Download private Terraria runtime
         shell: bash
@@ -410,10 +382,27 @@ jobs:
           test -s app/src/main/cpp/menu/CheatBridgeDex.h
           echo "CheatBridge rebuilt: $(stat -c%s "$OUT/classes.dex") bytes"
 
-      - name: Build full Bunny APK
+      - name: Build full Bunny APK with isolated v3 signing secrets
         working-directory: Split/Bunny-Loader
         shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
         run: |
+          set -euo pipefail
+          if [ -z "${BUNNY_KEYSTORE_B64:-}" ] || [ -z "${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "${BUNNY_SIGNING_ALIAS:-}" ]; then
+            echo "Missing v3 signing repository secrets" >&2
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/bunny-signing-v3"
+          export BUNNY_SIGNING_STORE="$RUNNER_TEMP/bunny-signing-v3/bunny-v3.jks"
+          trap 'rm -f "$BUNNY_SIGNING_STORE"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
+          test -s "$BUNNY_SIGNING_STORE"
+          keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
           gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Validate APK
@@ -441,32 +430,11 @@ jobs:
           cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
           sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
 
-      - name: Publish music prewarm APK
+      - name: Block public Terraria APK distribution
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="bunny-music-prewarm-v1"
-          APK="Split/build/output/Split-BunnyLoader-full-debug.apk"
-          OUT="BunnyLoader-v0.1.9.1-MusicPrewarm.apk"
-
-          cp "$APK" "Split/build/output/$OUT"
-          if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
-              --title "Bunny Loader v0.1.9.1 Music Prewarm" \
-              --notes "Test build: custom music MediaPlayer preparation is queued on BunnyModMusic during registration, removing first-play setup from the Terraria thread." \
-              --prerelease
-          fi
-          gh release upload "$TAG" "Split/build/output/$OUT" --repo "${{ github.repository }}" --clobber
-
-          ASSET_ID="$(gh api "repos/${{ github.repository }}/releases/tags/$TAG" \
-            --jq ".assets[] | select(.name == \"$OUT\") | .id")"
-          curl -sS -D "$RUNNER_TEMP/apk_headers.txt" -o /dev/null \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/octet-stream" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID"
-          DIRECT="$(tr -d '\r' < "$RUNNER_TEMP/apk_headers.txt" | awk 'tolower($1) == "location:" {print $2; exit}')"
-          echo "APK_RELEASE_TAG=$TAG"
-          echo "APK_RELEASE_ASSET_ID=$ASSET_ID"
-          echo "APK_DIRECT_URL=$DIRECT"
+          set -euo pipefail
+          rm -f Split/build/output/Split-BunnyLoader-full-debug.apk
+          rm -f Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+          rm -f Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk
+          echo "BUNNY_PUBLIC_BUNDLED_TERRARIA_APK_DISABLED=YES"
