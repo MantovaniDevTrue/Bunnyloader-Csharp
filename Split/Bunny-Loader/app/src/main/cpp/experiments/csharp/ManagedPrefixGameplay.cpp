@@ -28,6 +28,7 @@ using StatsFn = bool (*)(Il2CppObject*, int32_t, float*, float*, float*, float*,
                         float*, float*, int32_t*, int32_t*, int32_t*, float*,
                         const MethodInfo*);
 using GrantFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using RollFn = bool (*)(Il2CppObject*, Il2CppObject*, int32_t*, const MethodInfo*);
 
 struct Refs {
     int type = -1;
@@ -35,7 +36,6 @@ struct Refs {
     int useAnimation = -1;
     int mana = -1;
     int knockBack = -1;
-    int maxStack = -1;
     int ammo = -1;
     int accessory = -1;
     int consumable = -1;
@@ -48,6 +48,8 @@ struct Refs {
     Il2CppClass* intClass = nullptr;
     FieldInfo* names = nullptr;
     FieldInfo* chances = nullptr;
+    const MethodInfo* rollableMethod = nullptr;
+    const MethodInfo* nextDoubleMethod = nullptr;
 };
 
 Refs g_refs;
@@ -57,6 +59,8 @@ RollableFn g_originalRollable = nullptr;
 CanRollFn g_originalCanRoll = nullptr;
 StatsFn g_originalStats = nullptr;
 GrantFn g_originalGrant = nullptr;
+RollFn g_originalRoll = nullptr;
+std::atomic<int> g_reforgeDiagnostics{0};
 
 Il2CppArray* staticArray(FieldInfo* field) {
     Il2CppArray* value = nullptr;
@@ -73,11 +77,10 @@ const ManagedPrefixEntry* byType(const std::vector<ManagedPrefixEntry>& list, in
 
 bool weaponCandidate(Il2CppObject* item, bool vanillaHasRollable) {
     const auto& r = g_refs;
-    if (!item || r.type < 0 || r.damage < 0 || r.maxStack < 0 ||
+    if (!item || r.type < 0 || r.damage < 0 ||
         r.ammo < 0 || r.consumable < 0) return false;
     const int type = bl::runtime::field<int32_t>(item, r.type);
     if (bl::runtime::field<int32_t>(item, r.damage) <= 0 ||
-        bl::runtime::field<int32_t>(item, r.maxStack) != 1 ||
         bl::runtime::field<int32_t>(item, r.ammo) != 0 ||
         bl::runtime::field<uint8_t>(item, r.consumable)) return false;
     return vanillaHasRollable || bl::runtime::isModItem(type);
@@ -156,6 +159,63 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     return out;
 }
 
+
+bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
+              const MethodInfo* method) {
+    if (!g_hooksReady.load(std::memory_order_acquire) ||
+        !item || !random || !rolled || !g_refs.rollableMethod ||
+        !g_refs.nextDoubleMethod)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+
+    const auto descriptors = snapshotManagedPrefixes();
+    if (descriptors.empty())
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+
+    auto& api = bl::il2cpp::api();
+    Il2CppObject* error = nullptr;
+    auto* list = reinterpret_cast<Il2CppArray*>(
+        api.runtime_invoke(g_refs.rollableMethod, item, nullptr, &error));
+    if (error || !list || list->length == 0 || list->length > 512)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+
+    const auto* values = static_cast<const int32_t*>(arrayData(list));
+    bool hasManaged = false;
+    bool hasOtherMod = false;
+    const int vanillaCount = bl::runtime::vanillaPrefixCount();
+    for (uintptr_t i = 0; i < list->length; ++i) {
+        if (byType(descriptors, values[i])) hasManaged = true;
+        else if (values[i] >= vanillaCount &&
+                 !bl::runtime::modPrefixKey(values[i]).empty()) {
+            hasOtherMod = true;
+            break;
+        }
+    }
+    if (!hasManaged || hasOtherMod)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+
+    error = nullptr;
+    Il2CppObject* boxed = api.runtime_invoke(
+        g_refs.nextDoubleMethod, random, nullptr, &error);
+    if (error || !boxed)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+    double chance = 0.0;
+    std::memcpy(&chance,
+                reinterpret_cast<const char*>(boxed) + sizeof(Il2CppObject),
+                sizeof(chance));
+    if (!std::isfinite(chance) || chance < 0.0 || chance >= 1.0)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+
+    uintptr_t index = static_cast<uintptr_t>(chance * static_cast<double>(list->length));
+    if (index >= list->length) index = list->length - 1;
+    *rolled = values[index];
+    const int reported = g_reforgeDiagnostics.fetch_add(1, std::memory_order_relaxed);
+    if (reported < 8)
+        BL_INFO("csharp prefix: RollAPrefix selecionou %d de %zu candidatos (%d gerenciados)",
+                *rolled, static_cast<size_t>(list->length),
+                static_cast<int>(descriptors.size()));
+    return true;
+}
+
 bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
     if (g_hooksReady) {
         const auto list = snapshotManagedPrefixes();
@@ -232,7 +292,6 @@ bool installManagedPrefixGameplayHooks() {
     r.useAnimation = fieldOffset(item, "useAnimation");
     r.mana = fieldOffset(item, "mana");
     r.knockBack = fieldOffset(item, "knockBack");
-    r.maxStack = fieldOffset(item, "maxStack");
     r.ammo = fieldOffset(item, "ammo");
     r.accessory = fieldOffset(item, "accessory");
     r.consumable = fieldOffset(item, "consumable");
@@ -246,7 +305,7 @@ bool installManagedPrefixGameplayHooks() {
     r.names = findField(lang, "prefix");
     r.chances = findField(sets, "ReducedNaturalChance");
     if (r.type < 0 || r.damage < 0 || r.useAnimation < 0 ||
-        r.mana < 0 || r.knockBack < 0 || r.maxStack < 0 ||
+        r.mana < 0 || r.knockBack < 0 ||
         r.ammo < 0 || r.accessory < 0 || r.consumable < 0 ||
         r.prefix < 0 || r.playerDefense < 0 || !r.intClass ||
         !r.names || !r.chances) {
@@ -261,12 +320,26 @@ bool installManagedPrefixGameplayHooks() {
         item, parseSignature("bool TryGetPrefixStatMultipliersForItem(int rolledPrefix, out float dmg, out float kb, out float spd, out float size, out float shtspd, out float mcst, out int crt, out int tagdmg, out int arpen, out float value)"));
     const auto* grant = findMethodBySignature(
         player, parseSignature("void GrantPrefixBenefits(Item item)"));
-    if (!rollable || !canRoll || !stats || !grant) {
+    const auto* rolling = findMethodBySignature(
+        item, parseSignature("bool RollAPrefix(UnifiedRandom random, ref int rolledPrefix)"));
+    Il2CppClass* randomType = findClass({"Terraria.Utilities", "UnifiedRandom", {}});
+    r.nextDoubleMethod = randomType
+        ? findMethodBySignature(randomType, parseSignature("double NextDouble()"))
+        : nullptr;
+    if (!r.nextDoubleMethod) {
+        randomType = findClass({"System", "Random", {}});
+        r.nextDoubleMethod = randomType
+            ? findMethodBySignature(randomType, parseSignature("double NextDouble()"))
+            : nullptr;
+    }
+    r.rollableMethod = rollable;
+    if (!rollable || !canRoll || !stats || !grant || !rolling || !r.nextDoubleMethod) {
         BL_ERROR("csharp prefix: assinaturas de reforja ou equipamento ausentes");
         return false;
     }
     g_refs = r;
     if (!bl::hook::install(rollable, hookRollable, &g_originalRollable) ||
+        !bl::hook::install(rolling, hookRoll, &g_originalRoll) ||
         !bl::hook::install(canRoll, hookCanRoll, &g_originalCanRoll) ||
         !bl::hook::install(stats, hookStats, &g_originalStats) ||
         !bl::hook::install(grant, hookGrant, &g_originalGrant)) {
@@ -274,7 +347,7 @@ bool installManagedPrefixGameplayHooks() {
         return false;
     }
     g_hooksReady.store(true, std::memory_order_release);
-    BL_INFO("csharp prefix: hooks nativos de rolagem, stats e acessorios ativos");
+    BL_INFO("csharp prefix: hooks nativos GetRollablePrefixes/RollAPrefix, stats e acessorios ativos");
     return true;
 }
 
