@@ -41,9 +41,11 @@ jobs:
               assert "secrets.BUNNY_SIGNING_ALIAS" in content, path
               assert "keytool -list" in content, path
           pub = paths[0].read_text(encoding="utf-8").split(
-              "- name: Publish source-only CSharp example mods", 1)[1]
+              "- name: Export source-only CSharp examples as safe workflow artifact", 1)[1]
           assert '.apk' not in pub
-          assert 'gh release upload "$TAG"' in pub
+          assert "actions/upload-artifact@v4" in pub
+          assert ".bmod" in pub
+          assert "gh release" not in pub
           print("BUNNY_PUBLIC_SIGNING_AND_RELEASE_GUARD=PASS")
           PY
       - name: Validate v3 keystore from encrypted repository secrets
