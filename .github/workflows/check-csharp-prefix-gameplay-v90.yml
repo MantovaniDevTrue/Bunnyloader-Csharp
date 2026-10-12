@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-forced-roll-v90-8
       - csharp-prefix-restoration-v90-7
       - csharp-prefix-firstlaunch-v90-6
       - csharp-prefix-eligibility-v90-5
@@ -77,6 +78,24 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          c = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text()
+          h = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.h").read_text()
+          save = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
+          assert "thread_local RestoreRoll g_restoreRoll" in c
+          assert "g_restoreRoll.item == item" in c
+          assert "g_restoreRoll.used = true" in c
+          assert "g_restoreRoll = previous;" in c
+          assert "const RestoreRoll previous = g_restoreRoll;" in c
+          assert "int32_t request = -2;" in c
+          assert "bool applyManagedPrefixViaNativeRoll(" in c
+          assert "bool applyManagedPrefixViaNativeRoll(" in h
+          assert "bl::csharp::applyManagedPrefixViaNativeRoll(" in save
+          assert "forcedRollReached" in save
+          print("BUNNY_CSHARP_PREFIX_FORCED_ROLL_V90_8=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           source = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
