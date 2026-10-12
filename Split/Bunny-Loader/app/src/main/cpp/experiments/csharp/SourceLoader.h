@@ -19,6 +19,7 @@ struct SourceModStatus {
     int accessories = 0;
     int players = 0;
     int npcs = 0;
+    int prefixes = 0;
     std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;
