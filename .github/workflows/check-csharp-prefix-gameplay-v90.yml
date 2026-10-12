@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-secure-signing-v3-public-safe
       - csharp-prefix-reforge-v90-2-hotfix
       - csharp-prefix-autoload-v90-1-hotfix
       - csharp-prefix-gameplay-v90-experiment
