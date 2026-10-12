@@ -13,8 +13,8 @@ REPORT = ROOT / "docs/generated/csharp_api_unsupported_compile.json"
 SUMMARY = ROOT / "docs/generated/csharp_api_unsupported_compile.md"
 RULES = ROOT / "tools/api_discovery/priority_rules.json"
 CASES = [
-    {"id": "item_prefix", "candidate": "item_prefixes", "error": "CS0246",
-     "source": "using BunnyLoader.Source;\npublic sealed class UnsupportedPrefix : BunnyPrefix { }\n"},
+    {"id": "item_prefix", "candidate": "item_prefixes", "error": "CS1061",
+     "source": "using BunnyLoader.Source;\npublic static class UnsupportedPrefixTooltip { public static void Test(BunnyPrefix prefix) => prefix.GetTooltipLines(); }\n"},
     {"id": "item_recipes", "candidate": "item_recipes", "error": "CS1061",
      "source": "using BunnyLoader.Source;\npublic static class MissingRecipes { public static void Test(BunnyWeapon weapon) => weapon.AddRecipes(); }\n"},
     {"id": "npc_loot", "candidate": "npc_loot", "error": "CS1061",
