@@ -368,7 +368,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         }
     }
     for (const SavedBuff& b : collectModBuffs(player)) {
-        items.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key});
+        items.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key, {}});
     }
     size_t kept = 0;
     {
@@ -490,7 +490,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     }
     const size_t buffCount = buffs.size();
     for (const SavedBuff& b : restoreModBuffs(player, buffs)) {
-        kept.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key});
+        kept.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key, {}});
     }
     const size_t buffsKept = kept.size();
     int restored = 0, moved = 0, unloaded = 0, stray = 0, prefixes = 0;
