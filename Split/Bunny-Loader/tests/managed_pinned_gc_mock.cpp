@@ -9,6 +9,7 @@ std::atomic<int> entries{0}, exits{0}, initializations{0};
 std::atomic<bool> ownerSafe{false};
 std::atomic<int> hits{0}, hitsV2{0}, hitsV3{0}, hitsV4{0}, kills{0};
 std::atomic<bool> gameplayEffects{false};
+std::atomic<bool> impulseEffects{false};
 }
 extern "C" {
 void* mono_jit_init(const char*) {
@@ -92,7 +93,8 @@ void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
         const float* playerX = static_cast<float*>(args[10]);
         const float* playerY = static_cast<float*>(args[11]);
         assert(*playerLife > 0 && *playerLifeMax >= *playerLife);
-        result = gameplayEffects.load(std::memory_order_relaxed) ? 1044180 :
+        result = impulseEffects.load(std::memory_order_relaxed) ? 2000235 :
+            gameplayEffects.load(std::memory_order_relaxed) ? 1044180 :
             10000 + damage + tick % 7 + *npcIndex + *npcType + *npcLife +
             *playerIndex + *playerLife + *playerLifeMax +
             static_cast<int>(*npcX) + static_cast<int>(*npcY) +
@@ -115,5 +117,6 @@ int test_v2_hits() { return hitsV2; }
 int test_v3_hits() { return hitsV3; }
 int test_v4_hits() { return hitsV4; }
 void test_enable_effect_mode() { gameplayEffects.store(true); }
+void test_enable_impulse_mode() { impulseEffects.store(true); }
 int test_kills() { return kills; }
 }

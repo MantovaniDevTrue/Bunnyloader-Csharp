@@ -15,6 +15,17 @@ int main() {
     assert(!decodeManagedNpcBuffCode(1044700, &id, &duration));
     assert(!decodeManagedNpcBuffCode(1050000, &id, &duration));
     assert(!decodeManagedNpcBuffCode(30000, &id, &duration));
+    int dir = 0;
+    int power = 0;
+    assert(decodeManagedNpcImpulseCode(2000135, &dir, &power));
+    assert(dir == 1 && power == 35);
+    assert(decodeManagedNpcImpulseCode(2000260, &dir, &power));
+    assert(dir == 2 && power == 60);
+    assert(!decodeManagedNpcImpulseCode(2000009, &dir, &power));
+    assert(!decodeManagedNpcImpulseCode(2000300, &dir, &power));
+    assert(!decodeManagedNpcImpulseCode(2000261, &dir, &power));
+    assert(!decodeManagedNpcImpulseCode(2000235, nullptr, &power));
+    assert(!decodeManagedNpcImpulseCode(1000235, &dir, &power));
     ManagedNpcBuffEffectQueue queue;
     ManagedNpcBuffCommand input;
     input.npcIndex = 36;
