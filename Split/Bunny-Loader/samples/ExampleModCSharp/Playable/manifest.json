@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplo de armas e projeteis C# com callbacks gerenciados de impacto e morte por projetil em teste, IA de movimento, buff, acessorio, BunnyPlayer e NPC e prefixos C# experimentais.",
+  "summary": "Exemplo de armas e projeteis C# com callbacks gerenciados de impacto e morte por projetil em teste, IA de movimento, buff, acessorios com velocidade, BunnyPlayer, NPC e prefixos C# experimentais.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
