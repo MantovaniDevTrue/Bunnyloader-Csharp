@@ -1,0 +1,36 @@
+name: Check CSharp prefix native bridge v89
+
+on:
+  push:
+    branches:
+      - csharp-prefix-native-bridge-v89-experiment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prefix-managed-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build managed prefix fixture
+        working-directory: Split/Bunny-Loader
+        run: dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
+      - name: Execute CSharp callbacks and validate native descriptor
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -- \
+            "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+      - name: Retain unsupported CSharp API rejection
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tools/csharp_api_negative_compile.py --prepare
+          python3 tools/csharp_api_negative_compile.py --build
+          python3 tools/csharp_api_negative_compile.py --check
+      - name: Verify CSharp native bridge and parser contract
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/prefix_v89/guard_native_bridge.py
