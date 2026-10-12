@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-firstlaunch-v90-6
       - csharp-prefix-eligibility-v90-5
       - csharp-prefix-persistence-v90-4
       - csharp-prefix-accessory-tooltip-v90-3
@@ -75,6 +76,22 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("app/src/main/cpp/experiments/csharp")
+          native = (root / "NativeContent.cpp").read_text()
+          lifecycle = (root / "AutoSourceRuntime.cpp").read_text()
+          header = (root / "NativeContent.h").read_text()
+          assert "void refreshManagedPrefixEligibilityOnWorldReady();" in header
+          assert "void refreshManagedPrefixEligibilityOnWorldReady()" in native
+          assert "for (const auto& weapon : g_weapons)" in native
+          assert "for (const auto& accessory : g_accessories)" in native
+          assert "if (!entries || static_cast<uintptr_t>(type) >= entries->length)" in native
+          assert "refreshManagedPrefixEligibilityOnWorldReady();" in lifecycle
+          assert lifecycle.index('g_worldSessionReady.store(true, std::memory_order_release)') < lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();')
+          assert lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();') < lifecycle.index('scheduleAutoLiveBindings();', lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();'))
+          print("BUNNY_CSHARP_PREFIX_FIRST_WORLD_ELIGIBILITY_V90_6=PASS")
+          PY
           python3 - <<'PY'
           from pathlib import Path
           source = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
