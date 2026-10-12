@@ -61,6 +61,9 @@ struct NativeRefs {
     int playerBuffTime = -1;
     int itemType = -1;
     int playerMoveSpeed = -1;
+    int playerArmor = -1;
+    int playerMaxRunSpeed = -1;
+    int playerRunAcceleration = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -108,6 +111,7 @@ using ProjectileDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*)
 using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const MethodInfo*);
 using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
 using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using HorizontalMovementFn = void (*)(Il2CppObject*, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -121,6 +125,7 @@ ProjectileDefaultsFn g_originalProjectile = nullptr;
 NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
+HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
@@ -263,9 +268,48 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
     defense += it->second.defenseBonus;
-    if (it->second.moveSpeedPercent > 0 && g_refs.playerMoveSpeed >= 0)
-        bl::runtime::field<float>(self, g_refs.playerMoveSpeed) +=
-            static_cast<float>(it->second.moveSpeedPercent) / 100.f;
+}
+
+void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
+    if (!self) {
+        if (g_originalHorizontalMovement)
+            g_originalHorizontalMovement(self, method);
+        return;
+    }
+    int movementPercent = 0;
+    if (g_refs.playerArmor >= 0) {
+        auto* armor = bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor);
+        if (armor && armor->length >= 10 && armor->length <= 40) {
+            auto** equipped = static_cast<Il2CppObject**>(arrayData(armor));
+            for (uintptr_t i = 3; i < 10; ++i) {
+                Il2CppObject* item = equipped[i];
+                if (!item || !bl::runtime::field<uint8_t>(item, g_refs.itemAccessory))
+                    continue;
+                const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+                const auto found = g_accessories.find(type);
+                if (found != g_accessories.end())
+                    movementPercent += found->second.moveSpeedPercent;
+            }
+        }
+    }
+    if (movementPercent > 0 && movementPercent <= 100) {
+        const float factor = 1.f + static_cast<float>(movementPercent) / 100.f;
+        auto& moveSpeed = bl::runtime::field<float>(self, g_refs.playerMoveSpeed);
+        auto& maxSpeed = bl::runtime::field<float>(self, g_refs.playerMaxRunSpeed);
+        auto& acceleration = bl::runtime::field<float>(self, g_refs.playerRunAcceleration);
+        const float before = maxSpeed;
+        moveSpeed += static_cast<float>(movementPercent) / 100.f;
+        maxSpeed *= factor;
+        acceleration *= factor;
+        static int logged = 0;
+        if (logged < 4) {
+            ++logged;
+            BL_INFO("csharp player: velocidade nativa +%d%% aplicada ao correr maxRunSpeed=%.3f->%.3f",
+                    movementPercent, before, maxSpeed);
+        }
+    }
+    if (g_originalHorizontalMovement)
+        g_originalHorizontalMovement(self, method);
 }
 
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
@@ -335,6 +379,9 @@ bool prepareNativeContent() {
     r.npcType = fieldOffset(npc, "type");
     r.playerStatDefense = fieldOffset(player, "statDefense");
     r.playerMoveSpeed = fieldOffset(player, "moveSpeed");
+    r.playerArmor = fieldOffset(player, "armor");
+    r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
+    r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -389,7 +436,8 @@ bool prepareNativePlayerEffects() {
     using namespace bl::il2cpp;
     const auto& r = g_refs;
     if (r.playerStatDefense < 0 || r.playerMoveSpeed < 0 ||
-        r.playerBuffType < 0 ||
+        r.playerArmor < 0 || r.playerMaxRunSpeed < 0 ||
+        r.playerRunAcceleration < 0 || r.playerBuffType < 0 ||
         r.playerBuffTime < 0 || r.itemType < 0 ||
         r.itemAccessory < 0 || r.itemBuffType < 0 ||
         r.itemBuffTime < 0 || r.itemConsumable < 0) return false;
@@ -399,9 +447,13 @@ bool prepareNativePlayerEffects() {
         player, parseSignature("void ApplyEquipFunctional(int itemSlot, Item currentItem)"));
     const MethodInfo* buffs = findMethodBySignature(
         player, parseSignature("void UpdateBuffs(int i)"));
-    if (!equip || !buffs) return false;
+    const MethodInfo* runSpeeds = findMethodBySignature(
+        player, parseSignature("void HorizontalMovement()"));
+    if (!equip || !buffs || !runSpeeds) return false;
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     if (!bl::hook::install(buffs, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
+    if (!bl::hook::install(runSpeeds, hkHorizontalMovement,
+                           &g_originalHorizontalMovement)) return false;
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
