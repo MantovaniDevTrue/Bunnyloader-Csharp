@@ -42,3 +42,16 @@ A release `bunny-private-build-inputs-v1` no repositório privado `MantovaniDevT
 Os workflows desta branch os baixam **somente do repositório privado** com `BUNNY_PRIVATE_BUILD_TOKEN`, e continuam verificando os checksums. Não eliminar os arquivos públicos correspondentes até que os dois workflows sejam validados após esta alteração.
 
 Após isso: apagar todas as APKs antigas e o runtime proprietary das releases públicas; preservar os `.bmod` e seus hashes enquanto aplicáveis. Para uma limpeza em massa, será necessário um token com escopo de escrita no **repositório público**, pois o token de destino privado não tem essa permissão. A chave v1 nunca deve ser restaurada. Históricos/forks e downloads existentes não podem ser revogados retroativamente.
+
+## Limpeza pública concluída
+
+- Execução GitHub Actions: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38218409767
+- Dependências privadas migradas com hashes validados em `bunny-private-build-inputs-v1`.
+- APK de teste assinada com v3 e criada apenas no privado: `csharp-v3-run-38217387836-a1`.
+- Excluídos 262 anexos públicos: 133 APKs, 128 checksums de APK e o ZIP proprietário `BunnyRuntime_Terraria_1.4.5.8.6.zip`.
+- Excluídas 9 releases que ficaram vazias, preservadas 128 releases e 402 assets (incluindo 190 `.bmod`).
+- Conferência final da API GitHub pública: APK=0, APK.sha256=0, runtime ZIP=0, JKS=0.
+- O workflow de exclusão foi desarmado (`BUNNY_EXECUTE_CLEANUP=false`) após a conclusão.
+- Revogar o fine-grained personal access token temporário de limpeza e remover o secret `BUNNY_PUBLIC_CLEANUP_TOKEN`. Preservar `BUNNY_PRIVATE_BUILD_TOKEN` e os três segredos de assinatura v3.
+- Exclusões de releases não desfazem downloads/forks/caches nem apagam a senha antiga do histórico de commits. Nunca recuperar/reutilizar a chave v1.
+- Branch atual para futuros builds: `csharp-public-release-cleanup-v1`. Branches anteriores podem ainda conter workflows que publicam APKs; migrar mudanças futuras para esta baseline segura.
