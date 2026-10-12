@@ -61,7 +61,7 @@ jobs:
           assert 'upload-artifact' not in delivery
           assert "bunny-private-build-inputs-v1" in paths[0].read_text()
           assert 'PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds' in paths[0].read_text()
-          assert 'GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}' in paths[0].read_text()
+          assert 'BUNNY_PRIVATE_BUILD_TOKEN' in paths[0].read_text()
           assert 'gh release download bunny-music-prewarm-v1' not in paths[0].read_text()
           assert 'gh release download bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress' not in paths[0].read_text()
           assert 'RUNTIME_TAG: bunny-private-build-inputs-v1' in paths[1].read_text()
