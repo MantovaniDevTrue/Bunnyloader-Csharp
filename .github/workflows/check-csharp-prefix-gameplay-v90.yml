@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-accessory-tooltip-v90-3
       - csharp-public-release-cleanup-v1
       - csharp-private-apk-delivery-v3
       - csharp-secure-signing-v3-public-safe
