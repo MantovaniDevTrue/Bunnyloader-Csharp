@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-global-player-respawn-v90-17
       - csharp-shadow-tooltip-v90-16-2
       - csharp-accessory-tooltips-v90-16-1
       - csharp-bunnyplayer-hooks-v90-16
@@ -132,7 +133,7 @@ jobs:
           assert 'std::string tooltip;' in h
           assert 'setModItemTooltip(accessory.type,' in native
           for name in ("ExampleFocusAccessory", "ExampleSwiftAccessory",
-                       "ExampleWelcomeAccessory", "ExampleMomentumAccessory",
+                       "ExampleMomentumAccessory",
                        "ExampleShadowAccessory"):
               p = sample/"Content/Items/Accessories"/(name+".cs")
               assert 'Tooltip = "' in p.read_text()
@@ -149,6 +150,25 @@ jobs:
           assert 'g_originalHorizontalMovement(self, method);' in native
           assert 'maxSpeed *= factor;' in native
           print("BUNNY_CSHARP_SHADOW_TOOLTIP_V90_16_2=PASS")
+          sdk = (root/"experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          probe = (root/"experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          loader = (root/"app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          native = (root/"app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          example = (sample/"Common/Players/ExampleWelcomePlayer.cs").read_text()
+          assert 'public virtual string OnRespawn()' in sdk
+          assert 'globalPlayer ? "-" : accessoryName' in probe
+          assert 'respawning.Invoke(player, null)' in probe
+          assert '(fields.size() == 9)' in loader
+          assert 'record.accessoryType = globalPlayer ? -1 : target->second;' in loader
+          assert 'globalMessages[key] = player.worldJoinMessage;' in native
+          assert 'g_respawnMessages[key] = message;' in native
+          assert 'void Spawn(PlayerSpawnContext context)' in native
+          assert 'if (who != localIndex) return;' in native
+          assert 'if (!def.properties.empty())' in loader
+          assert 'Accessory = ' not in example
+          assert 'OnEnterWorld()' in example and 'OnRespawn()' in example
+          assert not (sample/"Content/Items/Accessories/ExampleWelcomeAccessory.cs").exists()
+          print("BUNNY_CSHARP_GLOBAL_PLAYER_RESPAWN_V90_17=PASS")
           PY
 
           python3 - <<'PY'
