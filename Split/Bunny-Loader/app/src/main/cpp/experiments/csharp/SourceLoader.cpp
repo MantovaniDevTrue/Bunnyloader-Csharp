@@ -3,6 +3,8 @@
 #include "experiments/csharp/NativeContent.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
+#include "content/items/ModPrefixes.h"
+#include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "core/Log.h"
@@ -218,13 +220,29 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 6> order = {
+    const std::array<std::string, 7> order = {
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
-        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon"
+        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
     };
     for (const auto& base : order) {
         for (const auto& def : defs) {
             if (def.base != base) continue;
+            if (base == "BunnyPrefix") {
+                for (const auto& [key, value] : def.properties)
+                    if (key != "DisplayName" && key != "Category" &&
+                        key != "RollWeight") {
+                        status->error = def.name + ": propriedade de prefixo nao suportada: " + key;
+                        return false;
+                    }
+                const int type = bl::runtime::registerModPrefix(mod.id, def.name);
+                if (type < 0) {
+                    status->error = def.name + ": registro nativo de prefixo falhou";
+                    return false;
+                }
+                types[def.name] = type;
+                ++status->prefixes;
+                continue;
+            }
             NativeContentSpec spec{};
             std::string target, display, texture;
             if (!fields(def, &spec, &target, &display, &texture, &status->error))
@@ -281,7 +299,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->buffs = ctx.buffs;
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
-    if (status->items < 1 || status->projectiles < 1) {
+    if ((status->items < 1 || status->projectiles < 1) && status->prefixes == 0) {
         status->error = "mod C# precisa registrar um BunnyWeapon e BunnyProjectile";
         return false;
     }
@@ -341,6 +359,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedAccessoryEntry> accessories;
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
+    std::vector<ManagedPrefixEntry> prefixes;
     std::map<std::string, int> accessoryTypes;
     std::vector<std::string> shootNames;
     std::string line;
@@ -422,6 +441,27 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
+        } else if (fields[0] == "PREFIX" && fields.size() == 15) {
+            ManagedPrefixEntry record;
+            record.name = fields[1];
+            record.type = registered->second;
+            if (!integer(fields[2], &record.category) ||
+                !real(fields[3], &record.rollWeight) ||
+                !integer(fields[10], &record.crit) ||
+                !integer(fields[11], &record.tagDamage) ||
+                !integer(fields[12], &record.armorPenetration) ||
+                !real(fields[13], &record.valueMultiplier) ||
+                !integer(fields[14], &record.accessoryDefense) ||
+                bl::runtime::modPrefixByKey(modId + "/" + record.name) != record.type) {
+                *error = "Descritor de prefixo C# invalido: " + record.name;
+                return false;
+            }
+            for (size_t i = 0; i < record.multipliers.size(); ++i)
+                if (!real(fields[4 + i], &record.multipliers[i])) {
+                    *error = "Multiplicador de prefixo C# invalido: " + record.name;
+                    return false;
+                }
+            prefixes.push_back(std::move(record));
         } else if (fields[0] == "NPC" && fields.size() == 10) {
             ManagedNpcEntry record;
             record.name = fields[1];
@@ -482,7 +522,7 @@ bool applyManagedSourceDefaults(
         if (projectiles.size() > 16 || weapons.size() > 16 ||
             buffs.size() > 16 || potions.size() > 16 ||
             accessories.size() > 16 || players.size() > 16 ||
-            npcs.size() > 16) {
+            npcs.size() > 16 || prefixes.size() > 16) {
             *error = "Quantidade de conteudo C# excede 16 por categoria";
             return false;
         }
@@ -495,6 +535,7 @@ bool applyManagedSourceDefaults(
         accessories.size() != static_cast<size_t>(mod->accessories) ||
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
+        prefixes.size() != static_cast<size_t>(mod->prefixes) ||
         seen.size() != mod->registeredTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
@@ -511,7 +552,8 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
     }
-    if (!applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
+    if ((!projectiles.empty() || !weapons.empty()) &&
+        !applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
         *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
         return false;
     }
@@ -521,6 +563,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedNativeNpcDefaultsBatch(modId, npcs)) {
         *error = "Falha ao validar ou aplicar os valores BunnyNPC gerenciados";
+        return false;
+    }
+    if (!applyManagedPrefixDescriptors(modId, prefixes)) {
+        *error = "Falha ao validar descritores de prefixo C#";
         return false;
     }
     mod->runtimeApplied = true;
