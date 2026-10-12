@@ -1339,6 +1339,11 @@ void queueManagedLiveKill(int projectileType, int damage) {
     queueManagedLiveEvent(projectileType, damage, true, -1, {}, {});
 }
 
+bool hasPendingManagedNpcBuffEffect() {
+    return g_buffHookReady.load(std::memory_order_acquire) &&
+        g_buffEffectQueue.depth() > 0;
+}
+
 void setManagedNpcBuffGameHookReady(bool ready) {
     g_buffHookReady.store(ready, std::memory_order_release);
 }

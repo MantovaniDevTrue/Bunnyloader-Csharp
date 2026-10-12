@@ -5,6 +5,7 @@
 #include "core/Config.h"
 #include "core/Log.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
+#include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
@@ -499,6 +500,9 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                   }(), &error)
                 : enableManagedLiveHit(modId, dll, projectileType, &error, true);
             if (success) {
+                if (!installManagedNpcBuffDispatcher())
+                    BL_WARN("csharp auto live %s: NPC AI effect dispatcher unavailable",
+                            modId.c_str());
                 BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d%s",
                         modId.c_str(), projectileType, live.enabled ? " (mod adicional)" : "");
                 const std::string root = mods::rootOf(modId);

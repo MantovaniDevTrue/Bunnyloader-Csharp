@@ -43,6 +43,7 @@ LiveNpcAiStatus liveNpcAiStatus();
 
 bool takeNpcAttack(int slot, int type, HostNpcAttack* out);
 bool installNpcAiHost();
+bool installManagedNpcBuffDispatcher();
 NpcAiStatus npcAiStatus();
 
 }

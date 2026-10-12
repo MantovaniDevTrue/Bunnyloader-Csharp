@@ -2,6 +2,7 @@
 
 #include <string>
 #include <array>
+#include "il2cpp/Api.h"
 
 namespace bl::csharp {
 
@@ -141,6 +142,7 @@ bool enableHomingSourceBoltHook(const SourceBoltHomingPolicy& policy,
                                  const std::array<int, 120>& fallbackTurns,
                                  std::string* error);
 bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error);
+void processManagedNpcBuffEffect(Il2CppObject* npc);
 bool pauseSourceBoltOnHit();
 SourceBoltHitStatus sourceBoltHitStatus();
 bool enableSourceBoltOnKill(const SourceBoltKillPolicy& policy, std::string* error);

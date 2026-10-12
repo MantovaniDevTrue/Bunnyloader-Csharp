@@ -162,6 +162,7 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
                               float npcX, float npcY,
                               ManagedNpcBuffCommand* result);
 void noteManagedNpcBuffApplied(bool success);
+bool hasPendingManagedNpcBuffEffect();
 ManagedNpcBuffEffectStatus managedNpcBuffEffectStatus();
 
 struct ManagedLivePerfProjectileStatus {

@@ -437,6 +437,34 @@ bool pauseSourceBoltOnHit() {
     return g_hitEnabled.exchange(false, std::memory_order_acq_rel);
 }
 
+void processManagedNpcBuffEffect(Il2CppObject* npc) {
+    if (!npc || !hasPendingManagedNpcBuffEffect() || !g_addBuff ||
+        !g_netMode || g_npcActive < 0 || g_npcLife < 0 ||
+        g_npcType < 0 || g_npcPosition < 0) return;
+    int netMode = -1;
+    il2cpp::api().field_static_get_value(g_netMode, &netMode);
+    if (netMode != 0 || !runtime::field<uint8_t>(npc, g_npcActive) ||
+        (g_npcFriendly >= 0 && runtime::field<uint8_t>(npc, g_npcFriendly)) ||
+        runtime::field<int32_t>(npc, g_npcLife) <= 0) return;
+    const int slot = runtime::field<int32_t>(
+        npc, runtime::game().entity.whoAmI);
+    const int type = runtime::field<int32_t>(npc, g_npcType);
+    const NpcPosition pos = runtime::field<NpcPosition>(npc, g_npcPosition);
+    ManagedNpcBuffCommand command;
+    if (!takeManagedNpcBuffForNpc(slot, type, pos.x, pos.y, &command)) return;
+    int buffId = command.buffId;
+    int duration = command.durationTicks;
+    uint8_t quiet = 0;
+    void* args[] = {&buffId, &duration, &quiet};
+    Il2CppObject* exception = nullptr;
+    il2cpp::api().runtime_invoke(g_addBuff, npc, args, &exception);
+    noteManagedNpcBuffApplied(exception == nullptr);
+    if (exception) {
+        setManagedNpcBuffGameHookReady(false);
+        BL_ERROR("csharp managed buff effect: NPC.AddBuff exception; disabled");
+    }
+}
+
 SourceBoltHitStatus sourceBoltHitStatus() {
     SourceBoltHitStatus status;
     status.installed = g_hitInstalled.load(std::memory_order_acquire);
