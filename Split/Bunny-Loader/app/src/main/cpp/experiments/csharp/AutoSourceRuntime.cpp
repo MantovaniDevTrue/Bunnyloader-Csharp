@@ -9,6 +9,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "mods/ModLoader.h"
@@ -238,12 +239,7 @@ void saveCache(const std::string& path, const std::string& id,
 
 bool validCompileStatus(const std::string& status, const std::string& id,
                         const SourceModStatus& mod) {
-    return status.find("state=finished\n") != std::string::npos &&
-           status.find("modId=" + id + "\n") != std::string::npos &&
-           status.find("phase=compile-verified\n") != std::string::npos &&
-           status.find("assemblyReady=1\n") != std::string::npos &&
-           status.find("executedTypes=" + std::to_string(mod.items + mod.projectiles + mod.buffs + mod.players + mod.npcs + mod.prefixes) +
-                       "\n") != std::string::npos;
+    return managedSourceCompileFinished(status, id, mod);
 }
 
 bool compile(const std::string& root, const std::string& id,
@@ -268,8 +264,7 @@ bool compile(const std::string& root, const std::string& id,
         if (status.find("state=finished\n") != std::string::npos &&
             status.find("modId=" + id + "\n") != std::string::npos &&
             !validCompileStatus(status, id, mod)) {
-            const int expected = mod.items + mod.projectiles + mod.buffs +
-                                 mod.players + mod.npcs + mod.prefixes;
+            const int expected = expectedManagedSourceTypes(mod);
             *error = "Compilacao C# concluida, mas contrato de classes divergente: esperado " +
                      std::to_string(expected) + "; verifique sourceCompileStatus";
             return false;
