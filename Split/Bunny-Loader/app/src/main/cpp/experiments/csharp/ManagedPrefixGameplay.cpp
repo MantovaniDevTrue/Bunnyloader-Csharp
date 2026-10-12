@@ -349,19 +349,28 @@ std::string utf8Text(const Il2CppString* input) {
     return out;
 }
 
-std::string accessoryDefenseSuffix() {
+std::string accessoryStatSuffix(int index, const char* fallback) {
     const auto& r = g_refs;
     const auto& api = bl::il2cpp::api();
     auto* tips = staticArray(r.tooltipSuffixes);
-    if (!tips || tips->length <= 25 || !r.localizedValueMethod) return " defense";
+    if (!tips || static_cast<uintptr_t>(index) >= tips->length ||
+        !r.localizedValueMethod) return fallback;
     auto** texts = static_cast<Il2CppObject**>(arrayData(tips));
-    Il2CppObject* entry = texts[25];
-    if (!entry) return " defense";
+    Il2CppObject* entry = texts[index];
+    if (!entry) return fallback;
     Il2CppObject* error = nullptr;
     Il2CppObject* value = api.runtime_invoke(r.localizedValueMethod, entry, nullptr, &error);
-    if (error || !value) return " defense";
+    if (error || !value) return fallback;
     std::string localized = utf8Text(reinterpret_cast<Il2CppString*>(value));
-    return localized.empty() ? " defense" : localized;
+    return localized.empty() ? fallback : localized;
+}
+
+std::string accessoryDefenseSuffix() {
+    return accessoryStatSuffix(25, " defense");
+}
+
+std::string accessoryMoveSpeedSuffix() {
+    return accessoryStatSuffix(46, "% movement speed");
 }
 
 void hookReforgeTooltip(Il2CppObject* popup, Il2CppObject* item, const MethodInfo* method) {
@@ -409,7 +418,8 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
 
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
     const int baseDefense = managedNativeAccessoryDefense(itemType);
-    if (baseDefense <= 0) return;
+    const int moveSpeed = managedNativeAccessoryMoveSpeedPercent(itemType);
+    if (baseDefense <= 0 && moveSpeed <= 0) return;
 
     const int prefixType = bl::runtime::field<uint8_t>(item, g_refs.prefix);
     const auto prefixes = snapshotManagedPrefixes();
@@ -425,9 +435,10 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
     auto** descriptions = static_cast<Il2CppString**>(arrayData(lines));
     auto* flags = static_cast<uint8_t*>(arrayData(modifier));
     auto* negative = static_cast<uint8_t*>(arrayData(bad));
-    const std::string suffix = accessoryDefenseSuffix();
+    const std::string defenseSuffix = accessoryDefenseSuffix();
 
-    const auto append = [&](int amount, const std::string& label, bool prefixLine) {
+    const auto append = [&](int amount, const std::string& suffix,
+                            const std::string& label, bool prefixLine) {
         if (amount == 0 || static_cast<uintptr_t>(*count) >= capacity) return;
         const std::string value = (amount > 0 ? "+" : "") + std::to_string(amount) +
                                   suffix + " (" + label + ")";
@@ -440,10 +451,12 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
         ++*count;
     };
 
-    append(baseDefense, "base", false);
+    append(baseDefense, defenseSuffix, "base", false);
     if (prefixDefense)
-        append(prefixDefense, current->displayName.empty()
+        append(prefixDefense, defenseSuffix, current->displayName.empty()
             ? current->name : current->displayName, true);
+    if (moveSpeed > 0)
+        append(moveSpeed, accessoryMoveSpeedSuffix(), "base", false);
 }
 
 bool installInventoryTooltipHook() {
