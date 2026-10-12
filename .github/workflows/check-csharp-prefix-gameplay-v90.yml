@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-player-movespeed-v90-13
       - csharp-prefix-tooltip-v90-12
       - codex/prefix-restore-fix
       - csharp-prefix-rehydrate-v90-10
@@ -90,6 +91,27 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path(".")
+          native = (root / "app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          loader = (root / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          sdk = (root / "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          probe = (root / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          player = (root / "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleSwiftPlayer.cs").read_text()
+          js = (root / "samples/ExampleMod/content/Content/Items/Accessories/ExampleBoots.js").read_text()
+          assert "public int MoveSpeedPercent { get; protected set; } = 0;" in sdk
+          assert "MoveSpeedPercent = 0;" in sdk
+          assert 'Value<int>(player, "MoveSpeedPercent")' in probe
+          assert "player.moveSpeed += this.MoveSpeedBonus / 100" in js
+          assert 'r.playerMoveSpeed = fieldOffset(player, "moveSpeed");' in native
+          assert "static_cast<float>(it->second.moveSpeedPercent) / 100.f" in native
+          assert "player.moveSpeedPercent < 0 || player.moveSpeedPercent > 50" in native
+          assert "record.moveSpeedPercent" in loader
+          assert "MoveSpeedPercent = 8;" in player
+          assert "if (accessoryEquipped)" in player
+          print("BUNNY_CSHARP_MOVESPEED_API_V90_13=PASS")
+          PY
           python3 - <<'PY'
           from pathlib import Path
           c = Path("app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text()
