@@ -31,7 +31,8 @@ public static class ExampleWaveBoltLiveEvents
         int playerHealthPercent = playerLifeMax > 0
             ? playerLife * 100 / playerLifeMax
             : 0;
-        int enemyIsClose = MathF.Abs(npcX - playerX) < 160f ? 1 : 0;
+        float dx = npcX - playerX;
+        int enemyIsClose = dx > -160f && dx < 160f ? 1 : 0;
         return 30000 + damage + (call % 11) + hits + npcIndex + npcType +
             npcLife + playerIndex + playerHealthPercent + enemyIsClose +
             (int)npcY + (int)playerY;
