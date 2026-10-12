@@ -115,7 +115,12 @@ struct ManagedPlayerEntry {
     int accessoryType = -1;
     int equippedDefenseBonus = 0;
     int moveSpeedPercent = 0;
+    int runAccelerationPercent = 0;
+    bool frameShadow = false;
+    std::string worldJoinMessage;
 };
+
+bool showManagedPlayerWorldJoinMessages();
 
 bool applyManagedNativePlayerDefaultsBatch(
     const std::string& modId,
