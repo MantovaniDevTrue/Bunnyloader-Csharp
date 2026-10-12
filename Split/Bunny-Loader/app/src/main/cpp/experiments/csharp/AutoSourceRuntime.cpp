@@ -1,4 +1,5 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/NativeContent.h"
 
 #include "content/common/GameRefs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -810,6 +811,7 @@ void noteAutoGameUpdate() {
         if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
+        refreshManagedPrefixEligibilityOnWorldReady();
         scheduleAutoLiveBindings();
     }
 }
