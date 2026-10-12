@@ -576,6 +576,12 @@ bool applyManagedNativeNpcDefaultsBatch(
     return true;
 }
 
+int managedNativePrefixItemKind(int type) {
+    if (g_weapons.contains(type)) return 1;
+    if (g_accessories.contains(type)) return 2;
+    return 0;
+}
+
 void refreshManagedPrefixEligibilityOnWorldReady() {
     int corrected = 0;
     for (const auto& weapon : g_weapons)
