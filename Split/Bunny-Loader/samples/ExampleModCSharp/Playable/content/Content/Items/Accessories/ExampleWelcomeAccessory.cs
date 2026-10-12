@@ -9,5 +9,6 @@ public sealed class ExampleWelcomeAccessory : BunnyAccessory
         DisplayName = "Example Welcome Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
+        Tooltip = "Exemplo OnEnterWorld: envia um aviso ao entrar no mundo";
     }
 }
