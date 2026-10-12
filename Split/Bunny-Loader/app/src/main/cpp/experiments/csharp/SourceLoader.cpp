@@ -441,9 +441,10 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
-        } else if (fields[0] == "PREFIX" && fields.size() == 15) {
+        } else if (fields[0] == "PREFIX" && fields.size() == 16) {
             ManagedPrefixEntry record;
             record.name = fields[1];
+            record.displayName = fields[15];
             record.type = registered->second;
             if (!integer(fields[2], &record.category) ||
                 !real(fields[3], &record.rollWeight) ||
