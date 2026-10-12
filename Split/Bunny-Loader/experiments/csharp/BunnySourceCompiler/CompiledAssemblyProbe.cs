@@ -521,18 +521,22 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateEquips missing");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { false });
-            if (Value<int>(player, "DefenseBonus") != 0)
-                throw new InvalidOperationException("BunnyPlayer must not change defense when unequipped");
+            if (Value<int>(player, "DefenseBonus") != 0 ||
+                Value<int>(player, "MoveSpeedPercent") != 0)
+                throw new InvalidOperationException("BunnyPlayer modified effects while unequipped");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { true });
             int defense = Value<int>(player, "DefenseBonus");
-            if (defense < 0 || defense > 100)
-                throw new InvalidOperationException("BunnyPlayer equipped defense bonus out of bounds");
+            int moveSpeed = Value<int>(player, "MoveSpeedPercent");
+            if (defense < 0 || defense > 100 || moveSpeed < 0 || moveSpeed > 50)
+                throw new InvalidOperationException("BunnyPlayer equipped effect out of bounds");
             reset.Invoke(player, null);
-            if (Value<int>(player, "DefenseBonus") != 0)
-                throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset defense");
+            if (Value<int>(player, "DefenseBonus") != 0 ||
+                Value<int>(player, "MoveSpeedPercent") != 0)
+                throw new InvalidOperationException("BunnyPlayer.ResetEffects did not reset equipped effects");
             lines.Add(string.Join("\t", "PLAYER", name, accessoryName,
-                defense.ToString(CultureInfo.InvariantCulture)));
+                defense.ToString(CultureInfo.InvariantCulture),
+                moveSpeed.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (object npc in npcs)
         {
