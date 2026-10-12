@@ -591,6 +591,11 @@ int managedNativeAccessoryDefense(int type) {
     return it == g_accessories.end() ? 0 : it->second.defenseBonus;
 }
 
+int managedNativeAccessoryMoveSpeedPercent(int type) {
+    const auto it = g_accessories.find(type);
+    return it == g_accessories.end() ? 0 : it->second.moveSpeedPercent;
+}
+
 int managedNativePrefixItemKind(int type) {
     if (g_weapons.contains(type)) return 1;
     if (g_accessories.contains(type)) return 2;
