@@ -1,6 +1,6 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão experimental do mod:** 0.1.11. **Base Android validada:** Bunny Loader C# .82 + ExampleModCSharp 0.1.10 (40 inimigos, 59–60 FPS). **.83 / OnHitNPCV3:** snapshot de tipo, vida e posição; validação Android pendente.
+**Versão experimental do mod:** 0.1.12. **Base Android validada:** Bunny Loader C# .83 + ExampleModCSharp 0.1.11 (383/383 callbacks V3, 59–60 FPS). **.84 / OnHitNPCV4:** snapshot do NPC + jogador que disparou; validação Android pendente.
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
@@ -35,6 +35,7 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 - **.80:** dois mods C#, três armas, pausa/retomada, salvamento e reentrada validados.
 - **.81 + ExampleModCSharp 0.1.10:** callback V2 com fallback antigo, testado no Android a 59–60 FPS contra 40 NPCs.
 - **.82 + ExampleModCSharp 0.1.10:** 439/439 V2, 201 legados sem falhas, 85 slots de NPC e FPS 59–60 relatados.
-- **.83 + ExampleModCSharp 0.1.11:** `OnHitNPCV3` fornece snapshot NPC type/life/position com fallback para V2 ou legado, aguardando teste Android.
+- **.83 + ExampleModCSharp 0.1.11:** 383/383 V3, 138 legados, 0 falhas; contexto de NPC e 59–60 FPS confirmados em Android.
+- **.84 + ExampleModCSharp 0.1.12:** `OnHitNPCV4` estende o V3 com index/vida/vida máxima/posição do dono do projétil; fallback para V3/V2/legado; testes Android pendentes.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
