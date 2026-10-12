@@ -9,6 +9,7 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -109,6 +110,7 @@ struct PendingPrefix {
     std::string key;
 };
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
+std::atomic<int> g_prefixRestoreFailureLogs{0};
 
 std::string placeKey(const std::string& container, int slot) {
     return container + "#" + std::to_string(slot);
@@ -291,7 +293,13 @@ bool stillWaitingForPrefix(const std::vector<Container>& containers, const Saved
 bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     const Refs& r = g_refs;
     const int wanted = decodePrefix(saved);
-    if (!item || wanted <= 0 || !r.applyPrefix) return wanted == 0;
+    if (!item || wanted <= 0 || !r.applyPrefix) {
+        if (!saved.prefixKey.empty() &&
+            g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
+            BL_WARN("csharp prefix restore: chave=%s id=%d item=%d metodo=%d",
+                    saved.prefixKey.c_str(), wanted, item ? 1 : 0, r.applyPrefix ? 1 : 0);
+        return wanted == 0;
+    }
     const int current = field<uint8_t>(item, r.prefix);
     const bool managed = !saved.prefixKey.empty();
     if (current == wanted && !managed) return true;
@@ -305,8 +313,17 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     }
     int prefix = wanted;
     void* arguments[1] = {&prefix};
-    api.runtime_invoke(r.applyPrefix, item, arguments, &error);
-    return !error && field<uint8_t>(item, r.prefix) == wanted;
+    Il2CppObject* result = api.runtime_invoke(r.applyPrefix, item, arguments, &error);
+    const bool returned = result &&
+        *reinterpret_cast<const uint8_t*>(reinterpret_cast<const char*>(result) + sizeof(Il2CppObject)) != 0;
+    const int after = field<uint8_t>(item, r.prefix);
+    const bool restored = !error && after == wanted;
+    if (!restored && !saved.prefixKey.empty() &&
+        g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
+        BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d depois=%d Prefix()=%d excecao=%d",
+                saved.prefixKey.c_str(), wanted, field<int32_t>(item, r.type),
+                current, after, returned ? 1 : 0, error ? 1 : 0);
+    return restored;
 }
 
 using SaveFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -593,6 +610,69 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 managedPrefixes, pendingManagedPrefixes);
     }
     return fileData;
+}
+
+void retryPendingManagedPrefixesOnWorldReady() {
+    if (!g_refs.ok) return;
+    auto& api = il2cpp::api();
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main
+        ? api.class_get_method_from_name(main, "get_ActivePlayerFileData", 0) : nullptr;
+    if (!getter) return;
+    Il2CppObject* error = nullptr;
+    Il2CppObject* fileData = api.runtime_invoke(getter, nullptr, nullptr, &error);
+    if (error || !fileData) return;
+    const std::string path = localPath(fileData);
+    Il2CppObject* player = objectAt(fileData, g_refs.filePlayer);
+    if (path.empty() || !player) return;
+    std::map<std::string, PendingPrefix> pending;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        const auto it = g_pendingPrefix.find(path);
+        if (it == g_pendingPrefix.end() || it->second.empty()) return;
+        pending = it->second;
+    }
+    int attempted = 0;
+    int restored = 0;
+    int unresolved = 0;
+    std::vector<std::string> completed;
+    for (const Container& container : containersOf(player)) {
+        for (int slot = 0; slot < container.size(); ++slot) {
+            const std::string slotKey = placeKey(container.name, slot);
+            const auto it = pending.find(slotKey);
+            if (it == pending.end()) continue;
+            Il2CppObject* item = container.at(slot);
+            if (!item || field<int32_t>(item, g_refs.type) != it->second.type) continue;
+            SavedItem saved{};
+            saved.prefixKey = it->second.key;
+            ++attempted;
+            if (restoreSavedPrefix(item, saved)) {
+                ++restored;
+                completed.push_back(slotKey);
+            } else {
+                ++unresolved;
+            }
+        }
+    }
+    size_t remaining = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        auto active = g_pendingPrefix.find(path);
+        if (active != g_pendingPrefix.end()) {
+            for (const auto& key : completed) {
+                auto original = pending.find(key);
+                auto current = active->second.find(key);
+                if (original != pending.end() && current != active->second.end() &&
+                    original->second.type == current->second.type &&
+                    original->second.key == current->second.key)
+                    active->second.erase(current);
+            }
+            remaining = active->second.size();
+            if (!remaining) g_pendingPrefix.erase(active);
+        }
+    }
+    BL_INFO("csharp prefix: recuperacao apos mundo pronto tentados=%d repostos=%d falhos=%d pendentes=%zu",
+            attempted, restored, unresolved, remaining);
 }
 
 // ------------------------------ mundo ------------------------------
