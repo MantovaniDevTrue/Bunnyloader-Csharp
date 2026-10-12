@@ -1,6 +1,7 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
+#include "experiments/csharp/ManagedNpcBuffEffects.h"
 
 #include <string>
 #include <cstdint>
@@ -90,6 +91,7 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
                                      int tick, int state);
 
 struct ManagedLiveHitStatus {
+    ManagedNpcBuffEffectStatus effects;
     ManagedHitContextStats hitContext;
     bool enabled = false;
     bool automatic = false;
@@ -155,6 +157,12 @@ void queueManagedLiveHit(int projectileType, int damage, int npcIndex = -1,
                          ManagedNpcSnapshot npc = {},
                          ManagedPlayerSnapshot player = {});
 void queueManagedLiveKill(int projectileType, int damage);
+void setManagedNpcBuffGameHookReady(bool ready);
+bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
+                              float npcX, float npcY,
+                              ManagedNpcBuffCommand* result);
+void noteManagedNpcBuffApplied(bool success);
+ManagedNpcBuffEffectStatus managedNpcBuffEffectStatus();
 
 struct ManagedLivePerfProjectileStatus {
     std::string modId;

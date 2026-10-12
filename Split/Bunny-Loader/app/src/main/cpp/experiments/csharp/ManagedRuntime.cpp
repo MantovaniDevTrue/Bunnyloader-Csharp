@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -271,6 +272,17 @@ ManagedLiveIngressQueue g_liveIngress;
 bool g_liveHitInFlight = false;
 int g_liveHitActiveBindingSlot = -2;
 uint64_t g_liveHitGeneration = 0;
+std::atomic<uint64_t> g_buffEffectGeneration{1};
+std::atomic<bool> g_buffHookReady{false};
+ManagedNpcBuffEffectQueue g_buffEffectQueue;
+std::atomic<int> g_buffRequested{0};
+std::atomic<int> g_buffApplied{0};
+std::atomic<int> g_buffRejected{0};
+std::atomic<int> g_buffStale{0};
+std::atomic<int> g_buffQueueDrops{0};
+std::atomic<int> g_buffLastId{0};
+std::atomic<int> g_buffLastDuration{0};
+std::atomic<int> g_buffLastNpc{-1};
 std::string g_liveHitAssembly;
 
 struct AdditionalLiveBinding {
@@ -765,6 +777,33 @@ void* pinnedMonoWorker(void*) {
                     g_liveHitActiveBindingSlot = -2;
                     if ((binding || g_liveHitStatus.modId == modId) &&
                         g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
+                        if (automatic && !event.isKill && callback.usedV4 &&
+                            callback.ready && callback.phase == "ready" &&
+                            callback.value >= 1000000 && callback.value < 2000000) {
+                            int buff = 0;
+                            int ticks = 0;
+                            if (g_buffHookReady.load(std::memory_order_acquire) &&
+                                managedNpcSnapshotIsValid(event.npc) &&
+                                decodeManagedNpcBuffCode(callback.value, &buff, &ticks)) {
+                                const auto now = std::chrono::steady_clock::now();
+                                const int64_t nowMs =
+                                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                                        now.time_since_epoch()).count();
+                                const ManagedNpcBuffCommand request{
+                                    event.npcIndex, event.npc.npcType,
+                                    event.npc.posX, event.npc.posY,
+                                    buff, ticks,
+                                    g_buffEffectGeneration.load(std::memory_order_acquire),
+                                    nowMs
+                                };
+                                if (g_buffEffectQueue.push(request))
+                                    g_buffRequested.fetch_add(1, std::memory_order_relaxed);
+                                else
+                                    g_buffQueueDrops.fetch_add(1, std::memory_order_relaxed);
+                            } else {
+                                g_buffRejected.fetch_add(1, std::memory_order_relaxed);
+                            }
+                        }
                         if (automatic && !event.isKill && callback.invoked) {
                             const bool succeeded = callback.ready && callback.phase == "ready";
                             if (callback.usedV4) {
@@ -1123,6 +1162,15 @@ bool enableManagedLiveHit(const std::string& modId,
     for (auto& slot : g_additionalLiveByType)
         slot.store(0, std::memory_order_relaxed);
     ++g_liveHitGeneration;
+    g_buffEffectGeneration.fetch_add(1, std::memory_order_acq_rel);
+    g_buffRequested.store(0, std::memory_order_relaxed);
+    g_buffApplied.store(0, std::memory_order_relaxed);
+    g_buffRejected.store(0, std::memory_order_relaxed);
+    g_buffStale.store(0, std::memory_order_relaxed);
+    g_buffQueueDrops.store(0, std::memory_order_relaxed);
+    g_buffLastId.store(0, std::memory_order_relaxed);
+    g_buffLastDuration.store(0, std::memory_order_relaxed);
+    g_buffLastNpc.store(-1, std::memory_order_relaxed);
     g_liveHitQueue.clear();
     g_liveIngress.reset();
     g_liveHitLockDrops.store(0, std::memory_order_relaxed);
@@ -1210,6 +1258,7 @@ ManagedLiveHitStatus managedLiveHitStatus() {
     status.maxQueueDepth = std::max(status.maxQueueDepth, g_liveIngress.maxDepth());
     status.inFlight = g_liveHitInFlight;
     status.lockDrops = g_liveHitLockDrops.load(std::memory_order_relaxed);
+    status.effects = managedNpcBuffEffectStatus();
     status.dropped += status.lockDrops + g_liveIngress.dropped();
     return status;
 }
@@ -1224,6 +1273,7 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
     disarmAdditionalLiveBindings();
     g_liveHitAutomatic.store(false, std::memory_order_release);
     ++g_liveHitGeneration;
+    g_buffEffectGeneration.fetch_add(1, std::memory_order_acq_rel);
     g_liveHitStatus.queued = std::max(
         g_liveHitStatus.queued, g_liveIngress.accepted());
     g_liveHitStatus.dropped += g_liveHitQueue.size();
@@ -1287,6 +1337,64 @@ void queueManagedLiveHit(int projectileType, int damage, int npcIndex,
 
 void queueManagedLiveKill(int projectileType, int damage) {
     queueManagedLiveEvent(projectileType, damage, true, -1, {}, {});
+}
+
+void setManagedNpcBuffGameHookReady(bool ready) {
+    g_buffHookReady.store(ready, std::memory_order_release);
+}
+
+ManagedNpcBuffEffectStatus managedNpcBuffEffectStatus() {
+    ManagedNpcBuffEffectStatus status;
+    status.gameHookInstalled = g_buffHookReady.load(std::memory_order_acquire);
+    status.requested = g_buffRequested.load(std::memory_order_relaxed);
+    status.applied = g_buffApplied.load(std::memory_order_relaxed);
+    status.rejected = g_buffRejected.load(std::memory_order_relaxed);
+    status.stale = g_buffStale.load(std::memory_order_relaxed);
+    status.queueDrops = g_buffQueueDrops.load(std::memory_order_relaxed);
+    status.queueDepth = g_buffEffectQueue.depth();
+    status.lastBuffId = g_buffLastId.load(std::memory_order_relaxed);
+    status.lastDurationTicks = g_buffLastDuration.load(std::memory_order_relaxed);
+    status.lastNpcIndex = g_buffLastNpc.load(std::memory_order_relaxed);
+    return status;
+}
+
+bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
+                              float npcX, float npcY,
+                              ManagedNpcBuffCommand* result) {
+    if (!result || npcIndex < 0 || npcIndex >= 200 || npcType < 0 ||
+        !std::isfinite(npcX) || !std::isfinite(npcY) ||
+        !g_buffHookReady.load(std::memory_order_acquire)) return false;
+    ManagedNpcBuffCommand request;
+    for (int i = 0; i < 8 && g_buffEffectQueue.peek(&request); ++i) {
+        const auto now = std::chrono::steady_clock::now();
+        const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()).count();
+        if (request.generation != g_buffEffectGeneration.load(std::memory_order_acquire) ||
+            nowMs < request.createdAtMs || nowMs - request.createdAtMs > 1500) {
+            g_buffEffectQueue.pop();
+            g_buffStale.fetch_add(1, std::memory_order_relaxed);
+            continue;
+        }
+        if (request.npcIndex != npcIndex) return false;
+        g_buffEffectQueue.pop();
+        if (request.npcType != npcType ||
+            std::fabs(request.npcX - npcX) > 128.0f ||
+            std::fabs(request.npcY - npcY) > 128.0f) {
+            g_buffRejected.fetch_add(1, std::memory_order_relaxed);
+            return false;
+        }
+        *result = request;
+        g_buffLastId.store(request.buffId, std::memory_order_relaxed);
+        g_buffLastDuration.store(request.durationTicks, std::memory_order_relaxed);
+        g_buffLastNpc.store(request.npcIndex, std::memory_order_relaxed);
+        return true;
+    }
+    return false;
+}
+
+void noteManagedNpcBuffApplied(bool success) {
+    if (success) g_buffApplied.fetch_add(1, std::memory_order_relaxed);
+    else g_buffRejected.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool isManagedLiveProjectileBound(int projectileType) {
