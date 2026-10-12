@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-prefix-reforge-v90-2-hotfix
       - csharp-prefix-autoload-v90-1-hotfix
       - csharp-prefix-gameplay-v90-experiment
       - csharp-managed-npc-impulse-v86-experiment
@@ -815,6 +816,17 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
           echo 'BUNNY_PREFIX_AUTOLOAD_VERIFIED_COUNT=PASS'
 
+      - name: Verify native CSharp reforge candidate weights and mobile eligibility
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/managed_prefix_roll_v90_2.cpp \
+            -o "$RUNNER_TEMP/prefix-rolling-weights"
+          "$RUNNER_TEMP/prefix-rolling-weights"
+          cd Split/Bunny-Loader
+          python3 tests/prefix_v89/guard_reforge_v90_2.py
+
       - name: Package independent ExampleMod CSharp 0.1.15
         shell: bash
         run: |
@@ -1365,7 +1377,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='115' versionName='0.1.10.16.90.1-csharp-prefix-autoload-fix'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='116' versionName='0.1.10.16.90.2-csharp-prefix-reforge-fix'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1406,7 +1418,7 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.90.1-PrefixAutoFix.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.90.2-PrefixReforgeFix.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1422,8 +1434,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.90.1-prefix-autoload"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.90.1-PrefixAutoFix.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.90.2-prefix-reforge"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.90.2-PrefixReforgeFix.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
@@ -1432,8 +1444,8 @@ jobs:
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.90.1 — CSharp Prefix Autoload Hotfix" \
-              --notes "Experimental .90.1 fixes a 180-second false timeout in auto-loading ExampleModCSharp v0.1.15: Roslyn returns 11 verified CSharp content classes including 2 prefixes, but prior native autoloader expected 9. The completion counter now includes BunnyPrefix and detects actual mismatches immediately. ExampleModCSharp still includes Mighty +20% damage and Guarded +4 defense. Gameplay prefix reforging/values/save/load is UNVERIFIED on Android. Preserve backups; .86 stays stable. No per-mod JS." \
+              --title "Bunny Loader C# v0.1.10.16.90.2 — CSharp Prefix Reforge Hotfix" \
+              --notes "Experimental .90.2 fixes two causes of managed CSharp prefixes not appearing in mobile reforging: mobile weapons cannot be filtered by maxStack == 1 and native Terraria.Item.RollAPrefix must select from GetRollablePrefixes using the same roll weights as the original Bunny JS loader. ExampleModCSharp v0.1.15 contains Mighty +20% damage (weight 5) and Guarded +4 defense (weight 1). Host C++ and source checks passed; reforging, tooltip, save/load and FPS still need on-device verification. .86 remains preserved, and no JS is required inside CSharp mods." \
               --prerelease
           fi
           gh release upload "$TAG" \
