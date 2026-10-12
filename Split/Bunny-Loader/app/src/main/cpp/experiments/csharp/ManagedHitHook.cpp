@@ -20,6 +20,7 @@ namespace {
 using HitFn = void (*)(Il2CppObject*, int, const MethodInfo*);
 HitFn g_originalHit = nullptr;
 FieldInfo* g_npcs = nullptr;
+FieldInfo* g_players = nullptr;
 FieldInfo* g_netMode = nullptr;
 const MethodInfo* g_addBuff = nullptr;
 int32_t g_npcActive = -1;
@@ -27,6 +28,9 @@ int32_t g_npcFriendly = -1;
 int32_t g_npcLife = -1;
 int32_t g_npcType = -1;
 int32_t g_npcPosition = -1;
+int32_t g_playerActive = -1;
+int32_t g_playerLife = -1;
+int32_t g_playerLifeMax = -1;
 struct NpcPosition { float x; float y; };
 std::array<int, 256> g_hitDurations{};
 std::atomic<bool> g_hitInstalled{false};
@@ -60,11 +64,13 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
     int type = -1;
     int damage = 0;
     int autoSlot = -1;
+    int owner = -1;
     bool legacy = false;
     bool additionalLive = false;
     if (projectile) {
         const auto& game = runtime::game();
         type = runtime::field<int32_t>(projectile, game.proj.type);
+        owner = runtime::field<int32_t>(projectile, game.proj.owner);
         if (type >= 0 && static_cast<size_t>(type) < g_autoHitByType.size()) {
             autoSlot = g_autoHitByType[static_cast<size_t>(type)].load(
                 std::memory_order_acquire) - 1;
@@ -117,8 +123,30 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         if (!managedNpcSnapshotIsValid(snapshot)) snapshot = {};
     }
 
+    ManagedPlayerSnapshot playerSnapshot;
+    if (g_players && g_playerActive >= 0 && g_playerLife >= 0 &&
+        g_playerLifeMax >= 0 && g_npcPosition >= 0 && owner >= 0 && owner < 255) {
+        Il2CppArray* players = nullptr;
+        il2cpp::api().field_static_get_value(g_players, &players);
+        if (players && static_cast<uintptr_t>(owner) < players->length) {
+            auto** playerData = static_cast<Il2CppObject**>(arrayData(players));
+            Il2CppObject* player = playerData[owner];
+            if (player && runtime::field<uint8_t>(player, g_playerActive)) {
+                const auto position = runtime::field<NpcPosition>(player, g_npcPosition);
+                playerSnapshot = {
+                    owner,
+                    runtime::field<int32_t>(player, g_playerLife),
+                    runtime::field<int32_t>(player, g_playerLifeMax),
+                    position.x, position.y, true
+                };
+                if (!managedPlayerSnapshotIsValid(playerSnapshot))
+                    playerSnapshot = {};
+            }
+        }
+    }
+
     if (additionalLive && !legacy && autoSlot < 0) {
-        queueManagedLiveHit(type, damage, index, snapshot);
+        queueManagedLiveHit(type, damage, index, snapshot, playerSnapshot);
         return;
     }
 
@@ -164,7 +192,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
             1, std::memory_order_relaxed);
     else
         g_hitApplied.fetch_add(1, std::memory_order_relaxed);
-    queueManagedLiveHit(type, damage, index, snapshot);
+    queueManagedLiveHit(type, damage, index, snapshot, playerSnapshot);
 }
 }
 
@@ -238,6 +266,14 @@ bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error
         g_hitInstalled.store(true, std::memory_order_release);
     }
     g_npcs = npcArray;
+    g_players = il2cpp::findField(main, "player");
+    auto* playerClass = il2cpp::findClass({"Terraria", "Player", {}});
+    g_playerActive = playerClass ? il2cpp::fieldOffset(playerClass, "active") : -1;
+    g_playerLife = playerClass ? il2cpp::fieldOffset(playerClass, "statLife") : -1;
+    g_playerLifeMax = playerClass ?
+        il2cpp::fieldOffset(playerClass, "statLifeMax2") : -1;
+    if (g_playerLifeMax < 0 && playerClass)
+        g_playerLifeMax = il2cpp::fieldOffset(playerClass, "statLifeMax");
     g_netMode = netMode;
     g_npcActive = active;
     g_npcFriendly = friendly;
@@ -327,6 +363,14 @@ bool enableAutoProjectileOnHit(const std::string& modId,
         g_hitInstalled.store(true, std::memory_order_release);
     }
     g_npcs = npcs;
+    g_players = il2cpp::findField(main, "player");
+    auto* playerClass = il2cpp::findClass({"Terraria", "Player", {}});
+    g_playerActive = playerClass ? il2cpp::fieldOffset(playerClass, "active") : -1;
+    g_playerLife = playerClass ? il2cpp::fieldOffset(playerClass, "statLife") : -1;
+    g_playerLifeMax = playerClass ?
+        il2cpp::fieldOffset(playerClass, "statLifeMax2") : -1;
+    if (g_playerLifeMax < 0 && playerClass)
+        g_playerLifeMax = il2cpp::fieldOffset(playerClass, "statLifeMax");
     g_netMode = mode;
     g_npcActive = active;
     g_npcFriendly = friendly;

@@ -21,6 +21,24 @@ inline bool managedNpcSnapshotIsValid(const ManagedNpcSnapshot& npc) {
         npc.posY >= -10000000.0f && npc.posY <= 10000000.0f;
 }
 
+struct ManagedPlayerSnapshot {
+    int playerIndex = -1;
+    int life = -1;
+    int lifeMax = -1;
+    float posX = 0.0f;
+    float posY = 0.0f;
+    bool valid = false;
+};
+
+inline bool managedPlayerSnapshotIsValid(const ManagedPlayerSnapshot& player) {
+    return player.valid && player.playerIndex >= 0 && player.playerIndex < 255 &&
+        player.life > 0 && player.life <= 1000000 &&
+        player.lifeMax >= player.life && player.lifeMax <= 1000000 &&
+        std::isfinite(player.posX) && std::isfinite(player.posY) &&
+        player.posX >= -10000000.0f && player.posX <= 10000000.0f &&
+        player.posY >= -10000000.0f && player.posY <= 10000000.0f;
+}
+
 struct ManagedLiveQueuedEvent {
     int tick = 0;
     int damage = 0;
@@ -29,6 +47,7 @@ struct ManagedLiveQueuedEvent {
     int bindingSlot = -1;
     int npcIndex = -1;
     ManagedNpcSnapshot npc{};
+    ManagedPlayerSnapshot player{};
 };
 
 class ManagedLiveEventQueue {
