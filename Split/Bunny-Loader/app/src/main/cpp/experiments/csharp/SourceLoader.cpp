@@ -374,7 +374,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "PLAYER" && fields.size() == 4) {
+        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
                 *error = "BunnyPlayer C# nao registrado: " + fields[1];
@@ -386,7 +386,9 @@ bool applyManagedSourceDefaults(
             const auto target = accessoryTypes.find(record.accessoryName);
             if (target == accessoryTypes.end() ||
                 !integer(fields[3], &record.equippedDefenseBonus) ||
-                record.equippedDefenseBonus < 0 || record.equippedDefenseBonus > 100) {
+                record.equippedDefenseBonus < 0 || record.equippedDefenseBonus > 100 ||
+                (fields.size() == 5 && !integer(fields[4], &record.moveSpeedPercent)) ||
+                record.moveSpeedPercent < 0 || record.moveSpeedPercent > 50) {
                 *error = "Politica BunnyPlayer invalida: " + record.name;
                 return false;
             }
