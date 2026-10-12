@@ -129,6 +129,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     for (const auto& [key, value] : type.properties) {
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
+        if (accessory && key == "Tooltip") continue;
         if (weapon && key == "Shoot") { *shoot = value; continue; }
         if (potion && key == "Buff") { *shoot = value; continue; }
         if (key == "Friendly" && projectile) {
@@ -442,16 +443,22 @@ bool applyManagedSourceDefaults(
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
-        } else if (fields[0] == "ACCESSORY" && fields.size() == 3) {
+        } else if (fields[0] == "ACCESSORY" && (fields.size() == 3 || fields.size() == 4)) {
             ManagedAccessoryEntry record;
             record.name = fields[1];
             record.type = registered->second;
             if (!integer(fields[2], &record.defenseBonus) ||
                 record.defenseBonus < 0 || record.defenseBonus > 100 ||
+                (fields.size() == 4 &&
+                    (fields[3].size() > 180 ||
+                     std::any_of(fields[3].begin(), fields[3].end(),
+                         [](unsigned char c) { return c < 32 || c == 127; }))) ||
                 runtime::modItemTypeByKey(modId + "/" + record.name) != record.type) {
                 *error = "Valores invalidos de acessorio C#: " + record.name;
                 return false;
             }
+            if (fields.size() == 4 && fields[3] != "-")
+                record.tooltip = fields[3];
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
         } else if (fields[0] == "PREFIX" && fields.size() == 16) {
