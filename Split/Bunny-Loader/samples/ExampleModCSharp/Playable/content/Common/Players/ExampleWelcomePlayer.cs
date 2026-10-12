@@ -6,7 +6,6 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
 {
     public override void SetDefaults()
     {
-        
     }
 
     public override void UpdateEquips(bool accessoryEquipped)
