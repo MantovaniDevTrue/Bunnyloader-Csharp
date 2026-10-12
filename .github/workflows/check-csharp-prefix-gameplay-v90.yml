@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-bunnyplayer-hooks-v90-16
       - csharp-late-prefix-restore-v90-15
       - csharp-swift-sdk-verify-v90-14
       - csharp-player-movespeed-v90-13
@@ -93,6 +94,31 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path(".")
+          sdk = (root/"experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          probe = (root/"experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          loader = (root/"app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          native = (root/"app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          life = (root/"app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          sample = root/"samples/ExampleModCSharp/Playable/content"
+          for method in ('OnEnterWorld()', 'UpdateMovement(bool accessoryEquipped)', 'FrameEffects(bool accessoryEquipped)'):
+              assert method in sdk
+          for name in ("ExampleWelcomePlayer", "ExampleMomentumPlayer", "ExampleShadowPlayer"):
+              assert (sample/"Common/Players"/(name+".cs")).is_file()
+          assert 'movement.Invoke(player, new object[] { false })' in probe
+          assert 'frames.Invoke(player, new object[] { true })' in probe
+          assert 'entering.Invoke(player, null)' in probe
+          assert 'fields.size() == 8' in loader
+          assert 'movementAcceleration += found->second.movementAccelerationPercent;' in native
+          assert 'g_refs.playerFrameShadow' in native
+          assert 'void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)' in native
+          assert 'g_worldPlayerMessagesShown.store(false, std::memory_order_release)' in life
+          assert 'showWorldPlayerMessagesWhenReady();' in life
+          print("BUNNY_CSHARP_BUNNYPLAYER_BATCH_V90_16=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           root = Path("app/src/main/cpp/experiments/csharp")
