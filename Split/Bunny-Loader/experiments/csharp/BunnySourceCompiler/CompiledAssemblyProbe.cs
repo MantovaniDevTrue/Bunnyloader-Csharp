@@ -502,10 +502,13 @@ public static class CompiledAssemblyProbe
             if (!names.Add(name)) throw new InvalidOperationException("Duplicated C# accessory");
             accessoryNames.Add(name);
             int defense = Value<int>(accessory, "DefenseBonus");
-            if (defense < 0 || defense > 100)
-                throw new InvalidOperationException("Invalid C# accessory defense bonus");
+            string tooltip = Value<string>(accessory, "Tooltip");
+            if (defense < 0 || defense > 100 || tooltip.Length > 180 ||
+                tooltip.Any(char.IsControl))
+                throw new InvalidOperationException("Invalid C# accessory defaults or tooltip");
             lines.Add(string.Join("\t", "ACCESSORY", name,
-                defense.ToString(CultureInfo.InvariantCulture)));
+                defense.ToString(CultureInfo.InvariantCulture),
+                tooltip.Length == 0 ? "-" : tooltip));
         }
         foreach (object player in players)
         {
