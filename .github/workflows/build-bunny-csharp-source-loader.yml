@@ -1043,7 +1043,7 @@ jobs:
           assert "BunnyPlayer" in sdk and "BunnyAccessory" in sdk
           assert "applyManagedNativePlayerDefaultsBatch" in source
           assert "applyManagedNativePlayerDefaultsBatch" in nativeContent
-          assert "mod.players" in native
+          assert "mod.players" in count_contract
           print("CSHARP_BUNNYPLAYER_EQUIPMENT_STATIC_CHECK=PASS")
           assert "BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS" in smoke
           assert "public abstract class BunnyNPC" in sdk
@@ -1051,7 +1051,7 @@ jobs:
           assert "NativeNpc" in source
           assert "applyManagedNativeNpcDefaultsBatch" in source
           assert "applyManagedNativeNpcDefaultsBatch" in nativeContent
-          assert "mod.npcs" in native
+          assert "mod.npcs" in count_contract
           print("CSHARP_BUNNYNPC_SLIME_STATIC_CHECK=PASS")
           worker=(Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt")).read_text()
           mono=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
