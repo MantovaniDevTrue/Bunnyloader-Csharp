@@ -1435,9 +1435,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::notice::BUNNY_PRIVATE_BUILD_TOKEN not configured; no full APK is distributed."
-            echo "BUNNY_PRIVATE_APK_DELIVERY=SKIPPED_NO_TOKEN"
-            exit 0
+            echo "::error::BUNNY_PRIVATE_BUILD_TOKEN is missing. Full APK delivery was not attempted."
+            exit 1
           fi
           PRIVATE_REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"
           IS_PRIVATE="$(gh api "repos/$PRIVATE_REPO" --jq '.private')"
