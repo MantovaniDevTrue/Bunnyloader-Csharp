@@ -79,8 +79,17 @@ struct RestoreRoll {
 thread_local RestoreRoll g_restoreRoll{};
 
 Il2CppArray* staticArray(FieldInfo* field) {
+    auto& api = bl::il2cpp::api();
+    if (!field || !api.field_get_parent || !api.runtime_class_init) return nullptr;
+    // field_static_get_value allocates static storage, but does not run .cctor.
+    // Prefix(int > 0) and Prefix(-2) need not initialize PrefixID.Sets before
+    // our hooks read ReducedNaturalChance. A null table disabled every managed
+    // candidate and let the game's failed explicit prefix fall back to a roll.
+    Il2CppClass* owner = api.field_get_parent(field);
+    if (!owner) return nullptr;
+    api.runtime_class_init(owner);
     Il2CppArray* value = nullptr;
-    if (field) bl::il2cpp::api().field_static_get_value(field, &value);
+    api.field_static_get_value(field, &value);
     return value;
 }
 
@@ -446,6 +455,10 @@ bool installManagedPrefixGameplayHooks() {
     std::lock_guard<std::mutex> guard(g_installMutex);
     if (g_hooksReady.load(std::memory_order_acquire)) return true;
     using namespace bl::il2cpp;
+    if (!api().field_get_parent || !api().runtime_class_init) {
+        BL_ERROR("csharp prefix: API de inicializacao das tabelas indisponivel");
+        return false;
+    }
     Il2CppClass* item = findClass({"Terraria", "Item", {}});
     Il2CppClass* player = findClass({"Terraria", "Player", {}});
     Il2CppClass* lang = findClass({"Terraria", "Lang", {}});
@@ -520,3 +533,4 @@ bool installManagedPrefixGameplayHooks() {
 }
 
 }
+
