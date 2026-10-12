@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "mode": "CI net8.0 Roslyn compile only",
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "sdkMethods": 12,
+  "sdkProperties": 36,
+  "cases": [
+    {
+      "id": "weapon_wand",
+      "feature": "weapon_registration",
+      "source": [
+        "Content/Items/Weapons/ExampleWand.cs",
+        "main.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "weapon_wave",
+      "feature": "weapon_registration",
+      "source": [
+        "Content/Items/Weapons/ExampleWaveWand.cs",
+        "Content/Projectiles/ExampleWaveBolt.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "projectile_bolt",
+      "feature": "projectile_registration",
+      "source": [
+        "main.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "projectile_wave",
+      "feature": "projectile_registration",
+      "source": [
+        "Content/Projectiles/ExampleWaveBolt.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "projectile_hit_policy",
+      "feature": "legacy_live_hits",
+      "source": [
+        "main.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "buff",
+      "feature": "buff_definition",
+      "source": [
+        "Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "potion",
+      "feature": "buff_potion",
+      "source": [
+        "Content/Items/Consumables/ExampleBuffPotion.cs",
+        "Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "accessory",
+      "feature": "accessory",
+      "source": [
+        "Content/Items/Accessories/ExampleFocusAccessory.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "player_equips",
+      "feature": "player_equips",
+      "source": [
+        "Common/Players/ExampleFocusPlayer.cs",
+        "Content/Items/Accessories/ExampleFocusAccessory.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "npc_slime",
+      "feature": "npc_registration",
+      "source": [
+        "Content/NPCs/ExampleSlimeNPC.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "live_legacy",
+      "feature": "legacy_live_hits",
+      "source": [
+        "Common/Live/BunnyLiveEvents.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "live_v4",
+      "feature": "on_hit_context_v4",
+      "source": [
+        "Common/Live/ExampleWaveBoltLiveEvents.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "live_tick",
+      "feature": "legacy_live_hits",
+      "source": [
+        "Common/Live/ExampleLiveRuntime.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "npc_ai",
+      "feature": "npc_ai_prototype",
+      "source": [
+        "Common/Live/ExampleLiveNpcAI.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "motion_bolt",
+      "feature": "projectile_motion",
+      "source": [
+        "ExampleBoltMotion.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "motion_wave",
+      "feature": "projectile_motion",
+      "source": [
+        "ExampleWaveBoltMotion.cs"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "sdk_contracts",
+      "feature": "sdk_all_public_members",
+      "source": [
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+      ],
+      "result": "pass"
+    }
+  ]
+}
