@@ -1,6 +1,6 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão experimental do mod:** 0.1.12. **Base Android validada:** Bunny Loader C# .83 + ExampleModCSharp 0.1.11 (383/383 callbacks V3, 59–60 FPS). **.84 / OnHitNPCV4:** snapshot do NPC + jogador que disparou; validação Android pendente.
+**Versão experimental do mod:** 0.1.13. **Base Android validada:** Bunny Loader C# .84 + ExampleModCSharp 0.1.12 (416/416 callbacks V4, 58–60 FPS). **.85 / Efeitos de gameplay:** pedidos de debuffs vanilla produzidos no C# e executados em NPC.AI; validação Android pendente.
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
@@ -36,6 +36,7 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 - **.81 + ExampleModCSharp 0.1.10:** callback V2 com fallback antigo, testado no Android a 59–60 FPS contra 40 NPCs.
 - **.82 + ExampleModCSharp 0.1.10:** 439/439 V2, 201 legados sem falhas, 85 slots de NPC e FPS 59–60 relatados.
 - **.83 + ExampleModCSharp 0.1.11:** 383/383 V3, 138 legados, 0 falhas; contexto de NPC e 59–60 FPS confirmados em Android.
-- **.84 + ExampleModCSharp 0.1.12:** `OnHitNPCV4` estende o V3 com index/vida/vida máxima/posição do dono do projétil; fallback para V3/V2/legado; testes Android pendentes.
+- **.84 + ExampleModCSharp 0.1.12:** 416/416 V4, 84 callbacks legados, NPC + jogador capturados, 58–60 FPS no Android.
+- **.85 + ExampleModCSharp 0.1.13:** OnHitNPCV4 devolve um pedido de OnFire/Frostburn/CursedInferno; a fila nativa aplica debuff via NPC.AddBuff na thread NPC.AI após validar o alvo; teste Android pendente.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
