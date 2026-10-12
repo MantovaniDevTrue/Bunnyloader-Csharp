@@ -56,8 +56,13 @@ public abstract class BunnyPlayer
 {
     public string Accessory { get; set; } = "";
     public int DefenseBonus { get; protected set; } = 0;
+    public int MoveSpeedPercent { get; protected set; } = 0;
     public abstract void SetDefaults();
-    public virtual void ResetEffects() => DefenseBonus = 0;
+    public virtual void ResetEffects()
+    {
+        DefenseBonus = 0;
+        MoveSpeedPercent = 0;
+    }
     public abstract void UpdateEquips(bool accessoryEquipped);
 }
 public abstract class BunnyNPC
