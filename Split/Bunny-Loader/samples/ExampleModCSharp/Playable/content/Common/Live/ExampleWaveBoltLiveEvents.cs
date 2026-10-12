@@ -33,9 +33,9 @@ public static class ExampleWaveBoltLiveEvents
             : 0;
         float dx = npcX - playerX;
         int enemyIsClose = dx > -160f && dx < 160f ? 1 : 0;
-        return 30000 + damage + (call % 11) + hits + npcIndex + npcType +
-            npcLife + playerIndex + playerHealthPercent + enemyIsClose +
-            (int)npcY + (int)playerY;
+        int buffId = playerHealthPercent < 35 ? 39 : enemyIsClose == 1 ? 44 : 24;
+        int durationTicks = npcLife > 100 ? 240 : 120;
+        return 1000000 + buffId * 1000 + durationTicks;
     }
 
     public static int OnKill(int call, int damage)

@@ -8,6 +8,7 @@ thread_local bool safe = false;
 std::atomic<int> entries{0}, exits{0}, initializations{0};
 std::atomic<bool> ownerSafe{false};
 std::atomic<int> hits{0}, hitsV2{0}, hitsV3{0}, hitsV4{0}, kills{0};
+std::atomic<bool> gameplayEffects{false};
 }
 extern "C" {
 void* mono_jit_init(const char*) {
@@ -91,7 +92,8 @@ void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
         const float* playerX = static_cast<float*>(args[10]);
         const float* playerY = static_cast<float*>(args[11]);
         assert(*playerLife > 0 && *playerLifeMax >= *playerLife);
-        result = 10000 + damage + tick % 7 + *npcIndex + *npcType + *npcLife +
+        result = gameplayEffects.load(std::memory_order_relaxed) ? 1044180 :
+            10000 + damage + tick % 7 + *npcIndex + *npcType + *npcLife +
             *playerIndex + *playerLife + *playerLifeMax +
             static_cast<int>(*npcX) + static_cast<int>(*npcY) +
             static_cast<int>(*playerX) + static_cast<int>(*playerY) + ++hitsV4;
@@ -112,5 +114,6 @@ int test_legacy_hits() { return hits; }
 int test_v2_hits() { return hitsV2; }
 int test_v3_hits() { return hitsV3; }
 int test_v4_hits() { return hitsV4; }
+void test_enable_effect_mode() { gameplayEffects.store(true); }
 int test_kills() { return kills; }
 }
