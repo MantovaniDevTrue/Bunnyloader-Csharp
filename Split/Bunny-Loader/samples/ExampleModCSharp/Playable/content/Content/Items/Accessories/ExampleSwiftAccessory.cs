@@ -9,5 +9,6 @@ public sealed class ExampleSwiftAccessory : BunnyAccessory
         DisplayName = "Example Swift Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
+        Tooltip = "Aumenta a velocidade de corrida em 8%";
     }
 }
