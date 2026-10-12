@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedPrefixRollSelection.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
@@ -205,9 +206,11 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     if (!std::isfinite(chance) || chance < 0.0 || chance >= 1.0)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
-    uintptr_t index = static_cast<uintptr_t>(chance * static_cast<double>(list->length));
-    if (index >= list->length) index = list->length - 1;
-    *rolled = values[index];
+    const int chosen = weightedPrefixCandidate(
+        values, static_cast<size_t>(list->length), chance);
+    if (chosen < 0)
+        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+    *rolled = chosen;
     const int reported = g_reforgeDiagnostics.fetch_add(1, std::memory_order_relaxed);
     if (reported < 8)
         BL_INFO("csharp prefix: RollAPrefix selecionou %d de %zu candidatos (%d gerenciados)",
