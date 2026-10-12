@@ -92,6 +92,7 @@ struct Refs {
     int32_t type = -1, stack = -1, prefix = -1, favorited = -1;   // Item
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* applyPrefix = nullptr;
+    const MethodInfo* applyPrefixDetailed = nullptr;
     const MethodInfo* resetPrefix = nullptr;
 };
 Refs g_refs;
@@ -294,11 +295,13 @@ bool stillWaitingForPrefix(const std::vector<Container>& containers, const Saved
 bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     const Refs& r = g_refs;
     const int wanted = decodePrefix(saved);
-    if (!item || wanted <= 0 || !r.applyPrefix) {
+    const MethodInfo* method = !saved.prefixKey.empty() && r.applyPrefixDetailed
+        ? r.applyPrefixDetailed : r.applyPrefix;
+    if (!item || wanted <= 0 || !method) {
         if (!saved.prefixKey.empty() &&
             g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
             BL_WARN("csharp prefix restore: chave=%s id=%d item=%d metodo=%d",
-                    saved.prefixKey.c_str(), wanted, item ? 1 : 0, r.applyPrefix ? 1 : 0);
+                    saved.prefixKey.c_str(), wanted, item ? 1 : 0, method ? 1 : 0);
         return wanted == 0;
     }
     const int current = field<uint8_t>(item, r.prefix);
@@ -313,8 +316,10 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
         return current == wanted;
     }
     int prefix = wanted;
-    void* arguments[1] = {&prefix};
-    Il2CppObject* result = api.runtime_invoke(r.applyPrefix, item, arguments, &error);
+    uint8_t topTier = 0;
+    void* directArguments[2] = {&prefix, &topTier};
+    const bool detailed = method == r.applyPrefixDetailed;
+    Il2CppObject* result = api.runtime_invoke(method, item, directArguments, &error);
     const bool returned = result &&
         *reinterpret_cast<const uint8_t*>(reinterpret_cast<const char*>(result) + sizeof(Il2CppObject)) != 0;
     const int directAfter = field<uint8_t>(item, r.prefix);
@@ -322,13 +327,13 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     bool restored = !error && directAfter == wanted;
     bool forcedRollReached = false;
     int retryAfter = directAfter;
-    if (!restored && managed && r.resetPrefix) {
+    if (!restored && managed && r.resetPrefix && r.applyPrefixDetailed) {
         error = nullptr;
         if (retryAfter != 0)
             api.runtime_invoke(r.resetPrefix, item, nullptr, &error);
         if (!error && field<uint8_t>(item, r.prefix) == 0) {
             restored = bl::csharp::applyManagedPrefixViaNativeRoll(
-                item, wanted, r.applyPrefix, &forcedRollReached);
+                item, wanted, r.applyPrefixDetailed, &forcedRollReached);
         }
         retryAfter = field<uint8_t>(item, r.prefix);
         if (restored)
@@ -337,10 +342,10 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     }
     if (!restored && managed &&
         g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
-        BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d direto=%d Prefix()=%d excecao=%d rollHook=%d rollDepois=%d",
+        BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d direto=%d Prefix()=%d excecao=%d overload2=%d topTier=%d rollHook=%d rollDepois=%d",
                 saved.prefixKey.c_str(), wanted, field<int32_t>(item, r.type),
                 current, directAfter, returned ? 1 : 0, directException ? 1 : 0,
-                forcedRollReached ? 1 : 0, retryAfter);
+                detailed ? 1 : 0, topTier ? 1 : 0, forcedRollReached ? 1 : 0, retryAfter);
     return restored;
 }
 
@@ -973,6 +978,8 @@ bool resolve() {
     r.favorited = fieldOffset(item, "favorited");
     r.setDefaults = findMethodBySignature(item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     r.applyPrefix = findMethodBySignature(item, parseSignature("bool Prefix(int prefixWeWant)"));
+    r.applyPrefixDetailed = findMethodBySignature(item, parseSignature(
+        "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)"));
     r.resetPrefix = findMethodBySignature(item, parseSignature("void ResetPrefix()"));
 
     // Conjuntos (Loadouts), cofres e prefixo sao opcionais: sem eles, so
