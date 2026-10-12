@@ -242,7 +242,7 @@ bool validCompileStatus(const std::string& status, const std::string& id,
            status.find("modId=" + id + "\n") != std::string::npos &&
            status.find("phase=compile-verified\n") != std::string::npos &&
            status.find("assemblyReady=1\n") != std::string::npos &&
-           status.find("executedTypes=" + std::to_string(mod.items + mod.projectiles + mod.buffs + mod.players + mod.npcs) +
+           status.find("executedTypes=" + std::to_string(mod.items + mod.projectiles + mod.buffs + mod.players + mod.npcs + mod.prefixes) +
                        "\n") != std::string::npos;
 }
 
@@ -263,6 +263,15 @@ bool compile(const std::string& root, const std::string& id,
             (status.find("modId=" + id + "\n") != std::string::npos ||
              status.find("modId=") == std::string::npos)) {
             *error = "Roslyn/MonoVM falhou; verifique sourceCompileStatus";
+            return false;
+        }
+        if (status.find("state=finished\n") != std::string::npos &&
+            status.find("modId=" + id + "\n") != std::string::npos &&
+            !validCompileStatus(status, id, mod)) {
+            const int expected = mod.items + mod.projectiles + mod.buffs +
+                                 mod.players + mod.npcs + mod.prefixes;
+            *error = "Compilacao C# concluida, mas contrato de classes divergente: esperado " +
+                     std::to_string(expected) + "; verifique sourceCompileStatus";
             return false;
         }
         if (!validCompileStatus(status, id, mod)) continue;
