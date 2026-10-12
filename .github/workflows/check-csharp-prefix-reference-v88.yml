@@ -1,0 +1,31 @@
+name: Validate experimental CSharp prefix contract v88
+
+on:
+  push:
+    branches:
+      - csharp-prefix-contract-v88-experiment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prefix-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Check ExampleModBunny prefix reference
+        working-directory: Split/Bunny-Loader
+        run: node tools/tests/prefix_js_reference.mjs
+      - name: Compile and run isolated CSharp prefix draft
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project experiments/csharp/BunnyPrefixResearch/Tests/PrefixContractTests.csproj -c Release
+      - name: Keep unimplemented live prefix API rejected
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tools/csharp_api_negative_compile.py --prepare
+          python3 tools/csharp_api_negative_compile.py --build
+          python3 tools/csharp_api_negative_compile.py --check
