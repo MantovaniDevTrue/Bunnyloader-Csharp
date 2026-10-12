@@ -612,7 +612,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     return fileData;
 }
 
-void retryPendingManagedPrefixesOnWorldReady() {
+void retryPendingManagedPrefixesInWorld() {
     if (!g_refs.ok) return;
     auto& api = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -965,6 +965,10 @@ bool resolve() {
 }
 
 } // namespace
+
+void retryPendingManagedPrefixesOnWorldReady() {
+    retryPendingManagedPrefixesInWorld();
+}
 
 void installModItemSave() {
     if (!resolve()) {
