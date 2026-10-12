@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-prefix-rehydrate-v90-10
       - csharp-prefix-overload-v90-9
       - csharp-prefix-forced-roll-v90-8
       - csharp-prefix-restoration-v90-7
@@ -79,6 +80,26 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          save = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
+          native = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          header = Path("app/src/main/cpp/experiments/csharp/NativeContent.h").read_text()
+          assert "int managedNativePrefixItemKind(int type)" in native
+          assert "int managedNativePrefixItemKind(int type);" in header
+          assert "g_weapons.contains(type)" in native
+          assert "g_accessories.contains(type)" in native
+          assert "bool rehydrateSavedManagedItem(" in save
+          assert "const int keepStack =" in save
+          assert "keepFavorited ? 1 : 0" in save
+          assert "get_ActivePlayerFileData" in save
+          assert "reidratacao tipo=" in save
+          assert 'int[] GetRollablePrefixes()' in save
+          assert "ready && restoreSavedPrefix(item, saved)" in save
+          assert save.index("rehydrateSavedManagedItem(item, it->second.type, wanted)") < save.index("ready && restoreSavedPrefix(item, saved)")
+          print("BUNNY_CSHARP_PREFIX_REHYDRATE_V90_10=PASS")
+          PY
+
           python3 - <<'PY'
           from pathlib import Path
           save = Path("app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
