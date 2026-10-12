@@ -271,6 +271,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                 return false;
             }
             types[def.name] = type;
+            if (base == "BunnyAccessory") {
+                const auto tooltip = def.properties.find("Tooltip");
+                if (tooltip != def.properties.end() && !tooltip->second.empty()) {
+                    if (tooltip->second.size() > 180 ||
+                        std::any_of(tooltip->second.begin(), tooltip->second.end(),
+                            [](unsigned char c) { return c < 32 || c == 127; })) {
+                        status->error = def.name + ": Tooltip C# invalido";
+                        return false;
+                    }
+                    bl::runtime::setModItemTooltip(type, {{"", tooltip->second}});
+                    BL_INFO("csharp accessory: tooltip inicial registrado para %s (type=%d)",
+                            def.name.c_str(), type);
+                }
+            }
         }
     }
     for (const auto& def : defs) {
