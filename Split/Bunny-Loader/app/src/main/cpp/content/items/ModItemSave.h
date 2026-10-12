@@ -20,6 +20,7 @@ namespace bl::runtime {
  * Nao cobre bau do mundo (e o save do mundo, outro arquivo) nem item largado
  * no chao.
  */
+void retryPendingManagedPrefixesOnWorldReady();
 void installModItemSave();
 
 } // namespace bl::runtime
