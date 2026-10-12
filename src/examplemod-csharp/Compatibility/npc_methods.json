@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "ExampleModBunny (user upload 2026-10-01; GitHub samples/ExampleMod)",
+  "csharpBaseline": "Bunny Loader C# v0.1.10.16.43 / ExampleModCSharp v0.1.4",
+  "scope": "NPC JavaScript examples and GlobalNPC; C# support only where implemented and verified",
+  "sources": [
+    {
+      "path": "samples/ExampleMod/content/Content/NPCs/ExampleSlimeNPC.js",
+      "className": "ExampleSlimeNPC",
+      "baseClass": "ModNPC",
+      "methods": [
+        "SetStaticDefaults",
+        "SetDefaults",
+        "ApplyBuffImmunity",
+        "SetBestiary",
+        "SpawnChance",
+        "ModifyNPCLoot",
+        "HitEffect"
+      ]
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/NPCs/ExampleBoss/ExampleBoss.js",
+      "className": "ExampleBoss",
+      "baseClass": "ModNPC",
+      "methods": [
+        "SetStaticDefaults",
+        "SetDefaults",
+        "SetBestiary",
+        "ModifyNPCLoot",
+        "OnKill",
+        "HitEffect",
+        "PreAI",
+        "AI",
+        "FindFrame"
+      ]
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/NPCs/ExamplePerson/ExamplePerson.js",
+      "className": "ExamplePerson",
+      "baseClass": "ModNPC",
+      "methods": [
+        "SetStaticDefaults",
+        "SetDefaults",
+        "SetBestiary",
+        "SetNPCNameList",
+        "HitEffect",
+        "CanTownNPCSpawn",
+        "CheckConditions",
+        "SetChatButtons",
+        "OnChatButtonClicked",
+        "AddShops",
+        "TownNPCAttackStrength",
+        "TownNPCAttackProj",
+        "TownNPCAttackProjSpeed",
+        "GetChat"
+      ]
+    },
+    {
+      "path": "samples/ExampleMod/content/Common/GlobalNPCs/ExampleNPCLoot.js",
+      "className": "ExampleNPCLoot",
+      "baseClass": "GlobalNPC",
+      "methods": [
+        "ModifyNPCLoot"
+      ]
+    }
+  ],
+  "methods": {
+    "SetDefaults": {
+      "status": "partial",
+      "detail": "BunnyNPC.SetDefaults applies only validated basic width/height/damage/defense/lifeMax/aiStyle and limited vanilla animation fields. Sounds, color, value, town/boss defaults are absent."
+    },
+    "SetStaticDefaults": {
+      "status": "partial",
+      "detail": "Some frame setup is represented by BunnyNPC.Frames/AnimationType properties; the C# hook SetStaticDefaults and other NPCID.Sets mutations do not exist."
+    },
+    "ApplyBuffImmunity": {
+      "status": "pending",
+      "detail": "No per-NPC buffImmune bridge; slime's buffImmune[20] not implemented."
+    },
+    "SetBestiary": {
+      "status": "pending",
+      "detail": "No C# bestiary entries, spawn tags, portraits or flavor text APIs."
+    },
+    "SpawnChance": {
+      "status": "pending",
+      "detail": "No C# spawn rate callback; conditions vary by biome, rain, hardmode, day and surface."
+    },
+    "ModifyNPCLoot": {
+      "status": "pending",
+      "detail": "No C# NPC loot rules (normal/expert, custom item, boss bag or GlobalNPC changes)."
+    },
+    "HitEffect": {
+      "status": "pending",
+      "detail": "No C# HitEffect callback or dust/gore generation bound to hit/death."
+    },
+    "OnKill": {
+      "status": "pending",
+      "detail": "NPC.OnKill is absent; existing C# OnKill is a projectile policy, not an NPC callback."
+    },
+    "PreAI": {
+      "status": "pending",
+      "detail": "No dynamic pre-AI callback; cannot react to per-frame NPC state."
+    },
+    "AI": {
+      "status": "pending",
+      "detail": "Existing vanilla aiStyle=1 works, but no arbitrary per-frame managed C# NPC AI."
+    },
+    "FindFrame": {
+      "status": "pending",
+      "detail": "No C# NPC frame callback; only vanilla animation type/frame count supported."
+    },
+    "SetNPCNameList": {
+      "status": "pending",
+      "detail": "No C# town NPC naming integration."
+    },
+    "CanTownNPCSpawn": {
+      "status": "pending",
+      "detail": "No NPC town-spawn callback."
+    },
+    "CheckConditions": {
+      "status": "pending",
+      "detail": "No town-home placement conditions callback."
+    },
+    "SetChatButtons": {
+      "status": "pending",
+      "detail": "No C# town chat UI button bridge."
+    },
+    "OnChatButtonClicked": {
+      "status": "pending",
+      "detail": "No C# town chat button handler."
+    },
+    "AddShops": {
+      "status": "pending",
+      "detail": "No C# NPCShop declaration/registration bridge."
+    },
+    "TownNPCAttackStrength": {
+      "status": "pending",
+      "detail": "No C# town NPC attack attributes hook."
+    },
+    "TownNPCAttackProj": {
+      "status": "pending",
+      "detail": "No C# town NPC attack projectile hook."
+    },
+    "TownNPCAttackProjSpeed": {
+      "status": "pending",
+      "detail": "No C# town NPC projectile speed hook."
+    },
+    "GetChat": {
+      "status": "pending",
+      "detail": "No C# chat line selection/localization bridge."
+    }
+  },
+  "slimeFeatures": [
+    {
+      "name": "name/texture/registered NPC",
+      "status": "validated",
+      "evidence": "SourceMods + Android ExampleSlimeNPC id=697 and in-world appearance confirmed"
+    },
+    {
+      "name": "damage=7, defense=2, lifeMax=25, aiStyle=1",
+      "status": "validated",
+      "evidence": "Roslyn table and Bunny native NPC defaults, tested in Android"
+    },
+    {
+      "name": "frame count=2 / vanilla BlueSlime animation",
+      "status": "partial",
+      "evidence": "C# Frames/AnimationType accepted, not full SetStaticDefaults callback"
+    },
+    {
+      "name": "alpha=175 / tint color RGBA(40,200,255,100)",
+      "status": "pending"
+    },
+    {
+      "name": "HitSound=NPCHit1, DeathSound=NPCDeath1",
+      "status": "pending"
+    },
+    {
+      "name": "coin value=25 copper",
+      "status": "pending"
+    },
+    {
+      "name": "slime rain / shimmer metadata",
+      "status": "pending"
+    },
+    {
+      "name": "Poisoned buff immunity[20]",
+      "status": "pending"
+    },
+    {
+      "name": "biome/day/rain/hardmode spawn conditions",
+      "status": "pending"
+    },
+    {
+      "name": "bestiary info and biome tag",
+      "status": "pending"
+    },
+    {
+      "name": "Gel / custom ExampleItem / Slime Staff loot rules",
+      "status": "pending"
+    },
+    {
+      "name": "TintableDust impact and death visual effects",
+      "status": "pending"
+    }
+  ]
+}

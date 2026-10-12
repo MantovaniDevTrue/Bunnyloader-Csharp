@@ -1,44 +1,36 @@
-# Bunny Loader C# — desenvolvimento para Terraria Mobile
+# Bunny Loader C# — código-fonte e desenvolvimento
 
-**Nosso objetivo é adicionar suporte a mods C# ao [Bunny Loader original de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader).** Já comprovamos a execução de código C# em testes reais no Android e estamos ampliando essa integração por etapas.
+Extensão experimental de suporte a mods em **C# para Terraria Mobile**, baseada no [Bunny Loader original de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader).
 
-> **Projeto independente, experimental e em desenvolvimento.** Não representa uma versão oficial do Bunny Loader, não usa a API do tModLoader como base do código e **ainda não roda qualquer mod de PC automaticamente**.
+## Abrir o código-fonte
 
-## Onde está o desenvolvimento C#
+**As pastas são navegáveis diretamente no GitHub (não são links simbólicos):**
 
-### **[Abrir a branch de desenvolvimento C# →](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development)**
-
-A branch **`csharp-development`** contém os fontes do host C++/MonoVM, compilador Roslyn, ExampleModCSharp e documentação organizados. Ela está atualizada com o código da **v0.1.10.16.62**, testado no Android. As branches de versões anteriores permanecem como snapshots independentes para comparação.
-
-Este branch **`main`** também guarda o workspace e a cópia sincronizada da base Bunny Loader. **Para consultar ou alterar a integração C#, utilize `csharp-development`**, não presuma que o estado da `main` é a última versão experimental C#.
-
-## Andamento real (10/10/2026)
-
-| Parte do projeto | Estado |
+| Onde entrar | O que contém |
 | --- | --- |
-| MonoVM ARM64 e execução gerenciada | **Confirmados no Android** no contexto dos testes da .58 (retorno gerenciado 42 e thread estabilizada) |
-| Compilação experimental de arquivos `.cs` com Roslyn | **Implementada e testada** para exemplos específicos |
-| Callback C# de impacto (`OnHitNPC`) | **10/10 eventos reais** no teste da .59, sem falhas/perdas relatadas |
-| Callbacks automáticos `OnHitNPC` + `OnKill` | **Confirmados no Android na .62:** 512 eventos gerenciados (187 hits, 325 kills), **0 falhas**; jogo continuou funcional após o limite de segurança |
-| API C# completa, IA arbitrária por frame e multiplayer | **Não validados / não liberados** 
+| [src/roslyn-compiler](src/roslyn-compiler/) | Compilador C# Roslyn, incluindo Compiler.cs |
+| [src/csharp-api](src/csharp-api/) | SDK C# (BunnySourceScriptApi.cs, BunnyNPC, BunnyProjectile etc.) |
+| [src/csharp-host](src/csharp-host/) | Integração MonoVM, Terraria e hooks nativos C++ |
+| [src/examplemod-csharp](src/examplemod-csharp/) | Exemplo C# com conteúdo real e testes |
+| [src/android-app](src/android-app/) | Projeto Android |
+| [src/javascript-bridge](src/javascript-bridge/) | Ponte JavaScript/QuickJS |
 
-## Organização do repositório
+**[Índice e detalhes dos fontes](src/README.md)**
 
-| Acesso | O que encontrar |
-| --- | --- |
-| [`src/`](src/README.md) | Onde abrir o **código-fonte canônico** da extensão C# |
-| [`examples/`](examples/README.md) | ExampleModCSharp e demonstrações suportadas |
-| [`tests/`](tests/README.md) | Testes de regressão e protocolo Android |
-| [`docs/`](docs/README.md) | Arquitetura, histórico, limitações e roadmap |
-| [`Split/Bunny-Loader/`](Split/Bunny-Loader/) | Fonte do projeto Bunny Loader no workspace, conservada para builds |
-| [`.github/workflows/`](.github/workflows/) | Build e verificações CI |
+## Versão mais recente validada em Android
 
-Os diretórios `src/`, `examples/` e `tests/` desta `main` apontam para **a branch de desenvolvimento C#**. Nela há atalhos de código sem cópias, preservando caminhos Gradle/CMake.
+**Bunny Loader C# .86:** 473 callbacks V4, 87 empurrões confirmados visualmente, debuffs reais e 60 FPS relatados. [Branch da .86](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-managed-npc-impulse-v86-experiment).
 
-## Créditos, limites e responsabilidade técnica
+**Descoberta de API `.87`:** catálogo automático de métodos e exemplos compiláveis extraídos dos fontes reais. É ferramenta de desenvolvimento, **não outra APK**. [Branch .87](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-api-discovery-catalog-v87-experiment).
 
-- **Projeto original e referência:** [JonataOliveiraa/Bunny-Loader](https://github.com/JonataOliveiraa/Bunny-Loader).
-- **Integração experimental C#:** [MantovaniDevTrue/Bunnyloader-Csharp](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp).
-- **Terraria:** pertence aos seus respectivos titulares. O repositório não deve distribuir o runtime nem assets proprietários do jogo.
+## Atenção sobre branches e builds
 
-Aprovação do GitHub **não garante** execução estável do Terraria, nem 60 FPS. Usamos o [quadro de validação da branch C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/STATUS.md) para separar implementação, CI e resultados medidos no meu aparelho.
+A pasta src/ desta main é um **espelho navegável do estado .87**, formado por árvores Git originais. O código canônico usado para desenvolvimento e compilação da .86/.87 está sob [Split/Bunny-Loader/ na branch .87](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-api-discovery-catalog-v87-experiment/Split/Bunny-Loader). A base Split/Bunny-Loader/ da main é histórica e pode ser mais antiga: **não compile a .86 usando apenas a main**.
+
+Os snapshots históricos e tags de APK continuam preservados.
+
+## Limitações
+
+Não é um port completo do tModLoader e ainda não executa qualquer mod C# de PC automaticamente. O C# gerenciado usa Roslyn/MonoVM em conjunto com um host C++/Android; QuickJS permanece separado.
+
+Somente testes reais em Android confirmam estabilidade e FPS. O projeto não representa uma versão oficial do Bunny Loader. Direitos de Terraria permanecem com seus respectivos titulares.
