@@ -679,7 +679,7 @@ bool rehydrateSavedManagedItem(Il2CppObject* item, int type, int wanted) {
         auto* candidates = reinterpret_cast<Il2CppArray*>(
             api.runtime_invoke(rollable, item, nullptr, &exception));
         if (!exception && candidates && candidates->length < 512) {
-            const auto* ids = static_cast<const int32_t*>(il2cpp::arrayData(candidates));
+            const auto* ids = static_cast<const int32_t*>(arrayData(candidates));
             for (uintptr_t i = 0; i < candidates->length; ++i)
                 if (ids[i] == wanted) {
                     hasWanted = true;
