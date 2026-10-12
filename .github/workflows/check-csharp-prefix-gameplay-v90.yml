@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-swift-sdk-verify-v90-14
       - csharp-player-movespeed-v90-13
       - csharp-prefix-tooltip-v90-12
       - codex/prefix-restore-fix
@@ -91,6 +92,23 @@ jobs:
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_gameplay_v90.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path(".")
+          kotlin = (root/"app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt").read_text()
+          sdk = (root/"experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          swift = (root/"samples/ExampleModCSharp/Playable/content/Common/Players/ExampleSwiftPlayer.cs").read_text()
+          parser = (root/"app/src/main/cpp/experiments/csharp/SourceParser.cpp").read_text()
+          assert 'public int MoveSpeedPercent { get; protected set; }' in sdk
+          assert 'fun verifySourceSdk()' in kotlin
+          assert 'contains("MoveSpeedPercent")' in kotlin
+          assert 'verifySourceSdk()' in kotlin
+          assert swift.index('void SetDefaults()') < swift.index('void UpdateEquips(')
+          assert 'public int MoveSpeedPercent' not in swift
+          assert 'MoveSpeedPercent = 8;' in swift
+          assert 'membros externos a SetDefaults ainda nao suportados' in parser
+          print("BUNNY_CSHARP_SWIFT_SDK_SYNC_V90_14=PASS")
+          PY
           python3 - <<'PY'
           from pathlib import Path
           root = Path(".")
