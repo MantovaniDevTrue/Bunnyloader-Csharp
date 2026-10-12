@@ -4,6 +4,7 @@
 #include "core/Log.h"
 
 #include <cmath>
+#include <algorithm>
 #include <map>
 #include <mutex>
 
@@ -15,7 +16,9 @@ std::map<int, ManagedPrefixEntry> g_descriptors;
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 5 ||
-        p.displayName.size() > 80 || p.displayName.find_first_of("\\n\\r\\t") != std::string::npos ||
+        p.displayName.size() > 80 ||
+        std::any_of(p.displayName.begin(), p.displayName.end(),
+                    [](unsigned char ch) { return ch < 32; }) ||
         !std::isfinite(p.rollWeight) || p.rollWeight <= 0.f || p.rollWeight > 20.f || std::floor(p.rollWeight) != p.rollWeight ||
         !std::isfinite(p.valueMultiplier) || p.valueMultiplier < 0.05f ||
         p.valueMultiplier > 100.f || p.crit < -100 || p.crit > 100 ||
