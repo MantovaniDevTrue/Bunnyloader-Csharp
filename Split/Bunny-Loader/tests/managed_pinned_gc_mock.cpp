@@ -7,7 +7,7 @@ thread_local bool attached = false;
 thread_local bool safe = false;
 std::atomic<int> entries{0}, exits{0}, initializations{0};
 std::atomic<bool> ownerSafe{false};
-std::atomic<int> hits{0}, hitsV2{0}, hitsV3{0}, kills{0};
+std::atomic<int> hits{0}, hitsV2{0}, hitsV3{0}, hitsV4{0}, kills{0};
 }
 extern "C" {
 void* mono_jit_init(const char*) {
@@ -54,6 +54,10 @@ void* mono_class_get_method_from_name(void*, const char* name, int params) {
         assert(params == 7);
         return reinterpret_cast<void*>(5);
     }
+    if (!std::strcmp(name, "OnHitNPCV4")) {
+        assert(params == 12);
+        return reinterpret_cast<void*>(6);
+    }
     if (!std::strcmp(name, "OnKill")) {
         assert(params == 2);
         return reinterpret_cast<void*>(3);
@@ -75,6 +79,23 @@ void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
             *static_cast<int*>(args[2]) + *static_cast<int*>(args[3]) +
             *static_cast<int*>(args[4]) + static_cast<int>(*static_cast<float*>(args[5])) +
             static_cast<int>(*static_cast<float*>(args[6])) + ++hitsV3;
+    else if (method == reinterpret_cast<void*>(6)) {
+        const int* npcIndex = static_cast<int*>(args[2]);
+        const int* npcType = static_cast<int*>(args[3]);
+        const int* npcLife = static_cast<int*>(args[4]);
+        const int* playerIndex = static_cast<int*>(args[7]);
+        const int* playerLife = static_cast<int*>(args[8]);
+        const int* playerLifeMax = static_cast<int*>(args[9]);
+        const float* npcX = static_cast<float*>(args[5]);
+        const float* npcY = static_cast<float*>(args[6]);
+        const float* playerX = static_cast<float*>(args[10]);
+        const float* playerY = static_cast<float*>(args[11]);
+        assert(*playerLife > 0 && *playerLifeMax >= *playerLife);
+        result = 10000 + damage + tick % 7 + *npcIndex + *npcType + *npcLife +
+            *playerIndex + *playerLife + *playerLifeMax +
+            static_cast<int>(*npcX) + static_cast<int>(*npcY) +
+            static_cast<int>(*playerX) + static_cast<int>(*playerY) + ++hitsV4;
+    }
     else if (method == reinterpret_cast<void*>(3))
         result = damage + tick % 5 + ++kills;
     else
@@ -90,5 +111,6 @@ int test_owner_safe() { return ownerSafe; }
 int test_legacy_hits() { return hits; }
 int test_v2_hits() { return hitsV2; }
 int test_v3_hits() { return hitsV3; }
+int test_v4_hits() { return hitsV4; }
 int test_kills() { return kills; }
 }

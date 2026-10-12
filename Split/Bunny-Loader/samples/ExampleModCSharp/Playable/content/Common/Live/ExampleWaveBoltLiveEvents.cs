@@ -23,6 +23,20 @@ public static class ExampleWaveBoltLiveEvents
         return 20000 + damage + (call % 11) + hits + npcIndex + npcType + npcLife + (int)posX + (int)posY;
     }
 
+    public static int OnHitNPCV4(int call, int damage, int npcIndex, int npcType,
+        int npcLife, float npcX, float npcY, int playerIndex, int playerLife,
+        int playerLifeMax, float playerX, float playerY)
+    {
+        hits++;
+        int playerHealthPercent = playerLifeMax > 0
+            ? playerLife * 100 / playerLifeMax
+            : 0;
+        int enemyIsClose = MathF.Abs(npcX - playerX) < 160f ? 1 : 0;
+        return 30000 + damage + (call % 11) + hits + npcIndex + npcType +
+            npcLife + playerIndex + playerHealthPercent + enemyIsClose +
+            (int)npcY + (int)playerY;
+    }
+
     public static int OnKill(int call, int damage)
     {
         kills++;

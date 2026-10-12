@@ -21,3 +21,5 @@ with tempfile.TemporaryDirectory(prefix='bunny-lifecycle-') as tmp:
     subprocess.run([str(out/'hit-v2'), str(out/'probe.dll')], env=dict(os.environ, LD_LIBRARY_PATH=str(out)), check=True, timeout=20)
     subprocess.run(flags+[str(cpp/'experiments/csharp/ManagedRuntime.cpp'), str(root/'tests/managed_hit_v3_mock.cpp'), '-ldl', '-o', str(out/'hit-v3')], check=True)
     subprocess.run([str(out/'hit-v3'), str(out/'probe.dll')], env=dict(os.environ, LD_LIBRARY_PATH=str(out)), check=True, timeout=20)
+    subprocess.run(flags+[str(cpp/'experiments/csharp/ManagedRuntime.cpp'), str(root/'tests/managed_hit_v4_mock.cpp'), '-ldl', '-o', str(out/'hit-v4')], check=True)
+    subprocess.run([str(out/'hit-v4'), str(out/'probe.dll')], env=dict(os.environ, LD_LIBRARY_PATH=str(out)), check=True, timeout=20)

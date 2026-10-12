@@ -240,6 +240,14 @@ JSValue makeManagedHitContextStatus(
     JS_SetPropertyStr(ctx, out, "v3Calls", JS_NewInt32(ctx, stats.v3Calls));
     JS_SetPropertyStr(ctx, out, "v3Successes", JS_NewInt32(ctx, stats.v3Successes));
     JS_SetPropertyStr(ctx, out, "v3Failures", JS_NewInt32(ctx, stats.v3Failures));
+    JS_SetPropertyStr(ctx, out, "v4Calls", JS_NewInt32(ctx, stats.v4Calls));
+    JS_SetPropertyStr(ctx, out, "v4Successes", JS_NewInt32(ctx, stats.v4Successes));
+    JS_SetPropertyStr(ctx, out, "v4Failures", JS_NewInt32(ctx, stats.v4Failures));
+    JS_SetPropertyStr(ctx, out, "lastPlayerIndex", JS_NewInt32(ctx, stats.lastPlayerIndex));
+    JS_SetPropertyStr(ctx, out, "lastPlayerLife", JS_NewInt32(ctx, stats.lastPlayerLife));
+    JS_SetPropertyStr(ctx, out, "lastPlayerLifeMax", JS_NewInt32(ctx, stats.lastPlayerLifeMax));
+    JS_SetPropertyStr(ctx, out, "lastPlayerX", JS_NewFloat64(ctx, stats.lastPlayerX));
+    JS_SetPropertyStr(ctx, out, "lastPlayerY", JS_NewFloat64(ctx, stats.lastPlayerY));
     JS_SetPropertyStr(ctx, out, "lastNpcType", JS_NewInt32(ctx, stats.lastNpcType));
     JS_SetPropertyStr(ctx, out, "lastNpcLife", JS_NewInt32(ctx, stats.lastNpcLife));
     JS_SetPropertyStr(ctx, out, "lastNpcX", JS_NewFloat64(ctx, stats.lastNpcX));
