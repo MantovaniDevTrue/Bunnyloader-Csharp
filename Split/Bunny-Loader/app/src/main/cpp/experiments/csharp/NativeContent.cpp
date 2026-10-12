@@ -607,7 +607,7 @@ bool applyManagedNativePlayerDefaultsBatch(
     std::map<int, NativeAccessoryDefaults> values;
     for (const auto& accessory : accessories) {
         if (accessory.type < 0 || accessory.defenseBonus < 0 ||
-            accessory.defenseBonus > 100 ||
+            accessory.defenseBonus > 100 || accessory.tooltip.size() > 180 ||
             bl::runtime::modItemTypeByKey(modId + "/" + accessory.name) != accessory.type ||
             g_accessories.count(accessory.type) != 1 ||
             !values.emplace(accessory.type,
@@ -632,6 +632,10 @@ bool applyManagedNativePlayerDefaultsBatch(
         bonus.movementAccelerationPercent = player.runAccelerationPercent;
         bonus.frameShadow = player.frameShadow;
         bonus.worldJoinMessage = player.worldJoinMessage;
+    }
+    for (const auto& accessory : accessories) {
+        if (!accessory.tooltip.empty())
+            bl::runtime::setModItemTooltip(accessory.type, {{"", accessory.tooltip}});
     }
     for (const auto& [type, effects] : values) {
         g_accessories[type] = effects;
