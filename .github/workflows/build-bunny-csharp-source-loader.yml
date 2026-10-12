@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-managed-npc-impulse-v86-experiment
       - csharp-managed-gameplay-effects-v851-lifecycle-hotfix
       - csharp-managed-gameplay-effects-v85-experiment
       - csharp-managed-player-npc-context-v84-experiment
@@ -800,7 +801,7 @@ jobs:
           PY
           sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
 
-      - name: Package independent ExampleMod CSharp 0.1.13
+      - name: Package independent ExampleMod CSharp 0.1.14
         shell: bash
         run: |
           set -euo pipefail
@@ -824,10 +825,10 @@ jobs:
             "$PKG/content/Content/NPCs/ExampleSlimeNPC.png"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.13.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.14.bl"
           test -s "$SOURCE"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -855,8 +856,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod.sha256"
 
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
@@ -1347,7 +1348,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='112' versionName='0.1.10.16.85.1-csharp-effect-lifecycle'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='113' versionName='0.1.10.16.86-csharp-npc-impulse'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1388,13 +1389,13 @@ jobs:
       - name: Export source-loader test artifacts
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.85.1-EffectLifecycle.apk"
+          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.86-NpcImpulse.apk"
           cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
           sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
           test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod.sha256"
+          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod"
+          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod.sha256"
           test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
           test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
 
@@ -1404,26 +1405,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.85.1-effect-lifecycle"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.85.1-EffectLifecycle.apk"
+          TAG="bunny-csharp-managed-runtime-0.1.10.16.86-npc-impulse"
+          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.86-NpcImpulse.apk"
           test -s "$APK"
           test -s "$APK.sha256"
           test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
-          test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod"
+          test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod"
           test -s "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.85.1 — Effect Auto-load Lifecycle Hotfix" \
-              --notes "Experimental .85.1 based on .85 gameplay effects, correcting live callback activation/retry and native NPC buff dispatcher installation. Reattempt transient pinned MonoVM readiness/owner-busy on world entry without sleeping under world mutex; request NPC.AI dispatcher from binder and install on game update thread every 30 frames; retry class refs if game metadata was not yet available. Existing .84 validated version preserved. Uses unchanged ExampleModCSharp 0.1.13 and Second Example CSharp 0.1.0; no game behavior changed until runtime CSharp V4 requests buff effects. Host tests passed, Android .85.1 not yet validated." \
+              --title "Bunny Loader C# v0.1.10.16.86 — Managed NPC Impulse" \
+              --notes "Experimental .86 based on Android-validated .85.1 (479 V4 calls, 410 native debuffs, 60 FPS). Adds optional OnHitNPCV4 return code 2000000 + direction*100 + strengthTenths (direction=1 left, 2 right; strength=10..60 tenths) to apply bounded NPC horizontal impulse on Terraria NPC.AI thread. The existing debuff codes 1000000+ remain unchanged. Queued effects validate NPC slot, type, position and TTL; only singleplayer. ExampleModCSharp 0.1.14 demonstrates a directional push every fourth hit while retaining native debuffs. Host test and Android compile do not imply Android gameplay validation; validated .85.1 remains preserved." \
               --prerelease
           fi
           gh release upload "$TAG" \
             "$APK" "$APK.sha256" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.13.bmod.sha256" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.14.bmod.sha256" \
             "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" \
             "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
