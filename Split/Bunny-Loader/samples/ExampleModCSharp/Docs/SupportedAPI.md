@@ -12,6 +12,9 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 | ProjetoLiveEvents.OnHitNPC(int,int) / OnKill(int,int) | Common/Live/ExampleWaveBoltLiveEvents.cs | callback independente .73: 879/879 |
 | BunnyBuff, BunnyBuffPotion, BunnyAccessory, BunnyPlayer, BunnyNPC | Content/ e Common/Players | exemplos presentes, validação específica por API |
 | BunnyPlayer.MoveSpeedPercent e UpdateEquips | Common/Players/ExampleSwiftPlayer.cs e Content/Items/Accessories/ExampleSwiftAccessory.cs | **experimental**, +8% velocidade enquanto equipado (efeito nativo sem callback MonoVM por quadro) |
+| BunnyPlayer.OnEnterWorld / ResetEffects / UpdateEquips | ExampleWelcomePlayer, ExampleFocusPlayer | .90.16 em validação no Android; retorno C# de OnEnterWorld virá como aviso na thread do jogo |
+| BunnyPlayer.UpdateMovement(bool) | ExampleMomentumPlayer | .90.16 em validação; +6% aceleração nativa com acessório equipado |
+| BunnyPlayer.FrameEffects(bool) | ExampleShadowPlayer | .90.16 em validação; sombra do jogador enquanto equipado |
 | BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
 | BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI .90; **ainda não validado no Android** |
 
@@ -20,6 +23,8 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.
 2. **Movimento pré-calculado:** a curva TurnAtTick é avaliada em 120 amostras pelo compilador Roslyn, e o código nativo aplica as amostras sem chamar MonoVM a cada tick. O movimento do segundo projétil foi validado com 2.393 atualizações em .72 + mod 0.1.8.
 3. **Eventos reais no MonoVM:** métodos estáticos OnHitNPC e OnKill recebem (call, damage) no worker. BunnyLiveEvents é a classe primária; cada tipo adicional pode implementar uma classe NomeDoProjetilLiveEvents em content/Common/Live/ com métodos públicos estáticos retornando int.
+
+Os novos hooks de BunnyPlayer da .90.16 são avaliados pelo Roslyn durante a compilação para gerar descritores. Depois, OnEnterWorld é despachado pela thread principal ao entrar no mundo, e os efeitos de movimento e sombra são aplicados por hooks C++ nativos por quadro. Não se trata ainda de executar arbitrariamente o método C# em cada quadro; a API suporta somente esses retornos limitados, com verificação de ativação e desativação.
 
 Os métodos de instância do BunnyProjectile que geram políticas nativas não são os mesmos callbacks estáticos do worker MonoVM. Não confundir políticas nativas com execução gerenciada.
 
