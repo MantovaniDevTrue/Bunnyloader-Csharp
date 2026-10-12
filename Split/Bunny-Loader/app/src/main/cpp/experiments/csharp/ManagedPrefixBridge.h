@@ -7,6 +7,7 @@ namespace bl::csharp {
 
 struct ManagedPrefixEntry {
     std::string name;
+    std::string displayName;
     int type = -1;
     int category = -1;
     float rollWeight = 0.f;
@@ -21,4 +22,5 @@ struct ManagedPrefixEntry {
 bool applyManagedPrefixDescriptors(const std::string& modId,
                                    const std::vector<ManagedPrefixEntry>& prefixes);
 int registeredManagedPrefixCount();
+std::vector<ManagedPrefixEntry> snapshotManagedPrefixes();
 }
