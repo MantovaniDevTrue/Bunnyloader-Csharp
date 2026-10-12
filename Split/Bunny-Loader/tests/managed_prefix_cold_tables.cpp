@@ -109,6 +109,7 @@ bool setTableElement(FieldInfo* f, int index, Il2CppObject* value) {
 }
 namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
+int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 }
 
 int main() {
@@ -176,6 +177,47 @@ int main() {
     assert(!applyManagedPrefixViaNativeRoll(&accessory.object, 99, &prefixMethod, &reached));
     assert(!reached && accessory.prefix==98);
 
+    api.string_new = [](const char* text) -> Il2CppString* {
+        const size_t length = std::strlen(text);
+        void* memory = std::calloc(1, sizeof(Il2CppString) + (length + 1) * sizeof(char16_t));
+        allocations.push_back(memory);
+        auto* result = static_cast<Il2CppString*>(memory);
+        result->length = static_cast<int32_t>(length);
+        for (size_t i = 0; i < length; ++i)
+            result->chars[i] = static_cast<unsigned char>(text[i]);
+        return result;
+    };
+    api.gc_wbarrier_set_field = [](Il2CppObject*, void** field, void* value) {
+        *field = value;
+    };
+    Il2CppArray* lines = allocate(6, sizeof(Il2CppString*));
+    Il2CppArray* modifier = allocate(6, 1);
+    Il2CppArray* bad = allocate(6, 1);
+    int32_t lineCount = 0;
+    g_inventoryTooltipReady = true;
+    hookInventoryTooltip(&accessory.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 2);
+    auto** text = static_cast<Il2CppString**>(arrayData(lines));
+    assert(text[0] && text[1] && text[0]->length >= 2 && text[1]->length >= 2);
+    assert(text[0]->chars[0] == '+' && text[0]->chars[1] == '7');
+    assert(text[1]->chars[0] == '+' && text[1]->chars[1] == '4');
+    assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 0);
+    assert(static_cast<uint8_t*>(arrayData(modifier))[1] == 1);
+    accessory.prefix = 0;
+    lineCount = 0;
+    hookInventoryTooltip(&accessory.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 1);
+    accessory.type = 6199;
+    lineCount = 0;
+    hookInventoryTooltip(&accessory.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 0);
+
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
     chances.value=allocate(98,1);
@@ -187,5 +229,5 @@ int main() {
     assert(!ensurePrefixTables(descriptors));
     api.runtime_class_init=saved;
     for(void* p : allocations) std::free(p);
-    std::cout << "cold tables, warm tables, regeneration, two weapons and accessory: PASS\n";
+    std::cout << "cold tables, warm tables, prefix restoration and two inventory tooltip lines: PASS\n";
 }
