@@ -1,5 +1,11 @@
 # Bunny Loader C# — desenvolvimento experimental
 
+## Código-fonte navegável (corrigido em 12/10/2026)
+
+**[Abrir src/ — pastas reais no GitHub](src/README.md)**. As antigas referências simbólicas foram substituídas por árvores Git navegáveis. Agora é possível abrir diretamente [Compiler.cs](src/roslyn-compiler/Compiler.cs), [SDK C#](src/csharp-api/BunnySourceScriptApi.cs), [host MonoVM](src/csharp-host/ManagedRuntime.cpp) e [ExampleMod C#](src/examplemod-csharp/). Os caminhos canônicos de build continuam em Split/Bunny-Loader/; src/ é um espelho para navegação.
+
+**Estado atual:** [v.86 validada no Android](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-managed-npc-impulse-v86-experiment) com 473 V4, 87 empurrões visíveis, debuffs e 60 FPS; [catálogo de API .87](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-api-discovery-catalog-v87-experiment) em desenvolvimento. O histórico descrito abaixo documenta etapas anteriores.
+
 **Objetivo:** adicionar suporte a mods escritos em **C#** ao [Bunny Loader original, desenvolvido por Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader), mantendo a arquitetura e os recursos do loader Android. **Já conseguimos compilar e executar código C# em testes reais no Terraria Mobile; a integração geral ainda está em desenvolvimento.**
 
 > **Projeto independente de pesquisa e desenvolvimento.** Esta extensão **não é o Bunny Loader oficial**, não é uma implementação do tModLoader e ainda não oferece compatibilidade geral com mods de PC. O projeto original do Jonata continua sendo a referência do loader; os componentes de C# são experimentais.
