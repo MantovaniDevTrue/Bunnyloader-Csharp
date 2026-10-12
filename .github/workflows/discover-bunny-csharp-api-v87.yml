@@ -1,0 +1,59 @@
+name: Discover Bunny CSharp API and Examples
+
+on:
+  push:
+    branches:
+      - csharp-api-discovery-catalog-v87-experiment
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  discover-source-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate and check source-derived API and examples
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          python3 tools/csharp_api_discovery.py --write
+          python3 tools/csharp_api_discovery.py --check
+          python3 tests/test_csharp_api_discovery.py
+          python3 samples/ExampleModCSharp/Tests/check_examples.py
+          python3 samples/ExampleModCSharp/Tests/check_npc_coverage.py
+      - name: Guard against unsupported CSharp APIs
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("docs/generated/csharp_api_catalog.json").read_text())
+          assert d["summary"]["jsFiles"] >= 100
+          assert d["summary"]["sdkClasses"] >= 7
+          assert d["summary"]["features"] >= 16
+          for item in d["features"]:
+              if item["status"] == "not_implemented":
+                  assert not item.get("example")
+              if item["status"] == "device_verified":
+                  assert item.get("probes")
+          print("BUNNY_CSHARP_DISCOVERY_CONTRACTS=PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BunnyCSharp-API-Discovery-Reports
+          path: |
+            Split/Bunny-Loader/docs/generated/csharp_api_catalog.json
+            Split/Bunny-Loader/docs/generated/csharp_api_catalog.md
+            Split/Bunny-Loader/docs/generated/csharp_api_examples.md
+      - name: Commit generated docs on this isolated experiment branch
+        run: |
+          set -euo pipefail
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add Split/Bunny-Loader/docs/generated/
+          if ! git diff --cached --quiet; then
+            git commit -m "docs(csharp): regenerate API discovery reports"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
