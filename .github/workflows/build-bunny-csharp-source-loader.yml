@@ -3,6 +3,7 @@ name: Build Bunny CSharp Source Files Prototype
 on:
   push:
     branches:
+      - csharp-secure-signing-v3-public-safe
       - csharp-prefix-reforge-v90-2-hotfix
       - csharp-prefix-autoload-v90-1-hotfix
       - csharp-prefix-gameplay-v90-experiment
@@ -176,27 +177,15 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Restore existing stable signing
+      - name: Verify signing secret integration contract
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          DIR="$RUNNER_TEMP/bunny-signing"
-          mkdir -p "$DIR"
-          gh release download bunny-signing-key-v1 --repo "${{ github.repository }}" --pattern "bunny-release.jks" --dir "$DIR"
-          PASS="$(python3 - <<'PY'
-          import re
-          from pathlib import Path
-          s = Path(".github/workflows/build-split-full.yml").read_text()
-          m = re.search(r'PASS="([^"]+)"', s)
-          if not m:
-              raise SystemExit("signing password not found")
-          print(m.group(1))
-          PY
-          )"
-          echo "BUNNY_SIGNING_STORE=$DIR/bunny-release.jks" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_ALIAS=bunnyrelease" >> "$GITHUB_ENV"
+          set -euo pipefail
+          test -f Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_STORE' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_PASSWORD' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_ALIAS' Split/Bunny-Loader/app/build.gradle.kts
+          echo 'BUNNY_SECRET_SIGNING_CONTRACT=PASS'
 
       - name: Verify game-process abort instrumentation
         shell: bash
@@ -1350,9 +1339,30 @@ jobs:
           "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
           python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex > app/src/main/cpp/menu/CheatBridgeDex.h
 
-      - name: Build APK
+      - name: Build APK with isolated v3 signing secrets
         working-directory: Split/Bunny-Loader
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BUNNY_KEYSTORE_B64:-}" ] || [ -z "${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "${BUNNY_SIGNING_ALIAS:-}" ]; then
+            echo "Missing Bunny signing secrets. Configure BUNNY_KEYSTORE_B64, BUNNY_SIGNING_PASSWORD and BUNNY_SIGNING_ALIAS." >&2
+            exit 1
+          fi
+          umask 077
+          SIGNING_DIR="$RUNNER_TEMP/bunny-signing-v3"
+          mkdir -p "$SIGNING_DIR"
+          export BUNNY_SIGNING_STORE="$SIGNING_DIR/bunny-v3.jks"
+          trap 'rm -f "$BUNNY_SIGNING_STORE"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
+          test -s "$BUNNY_SIGNING_STORE"
+          keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
+          echo 'BUNNY_V3_SECRET_KEYSTORE_VALIDATED=YES'
+          gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Validate APK
         shell: bash
@@ -1415,41 +1425,32 @@ jobs:
           print("BUNNY_MANAGED_DEFAULT_NATIVEAOT_DEMOTION=PASS")
           PY
 
-      - name: Export source-loader test artifacts
+      - name: Verify and retain only source-only mod packages
         shell: bash
         run: |
-          OUT="BunnyLoader-CSharp-Test-v0.1.10.16.90.2-PrefixReforgeFix.apk"
-          cp "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk" "$RUNNER_TEMP/$OUT"
-          sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
-          test -f "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod"
-          test -f "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod.sha256"
-          test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
-          test -f "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
+          set -euo pipefail
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.15.bmod SecondExampleModCSharp-v0.1.0.bmod; do
+            test -s "$RUNNER_TEMP/$file"
+            test -s "$RUNNER_TEMP/$file.sha256"
+          done
+          rm -f "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          echo "BUNNY_PUBLIC_RELEASE_EXCLUDES_TERRARIA_RUNTIME=YES"
 
-      - name: Publish signed APK as GitHub Release asset
+      - name: Publish source-only CSharp example mods (no APK)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="bunny-csharp-managed-runtime-0.1.10.16.90.2-prefix-reforge"
-          APK="$RUNNER_TEMP/BunnyLoader-CSharp-Test-v0.1.10.16.90.2-PrefixReforgeFix.apk"
-          test -s "$APK"
-          test -s "$APK.sha256"
-          test -s "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
-          test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod"
-          test -s "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
+          TAG="bunny-csharp-examples-0.1.15-public-safe"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" \
               --target "$GITHUB_SHA" \
-              --title "Bunny Loader C# v0.1.10.16.90.2 — CSharp Prefix Reforge Hotfix" \
-              --notes "Experimental .90.2 fixes two causes of managed CSharp prefixes not appearing in mobile reforging: mobile weapons cannot be filtered by maxStack == 1 and native Terraria.Item.RollAPrefix must select from GetRollablePrefixes using the same roll weights as the original Bunny JS loader. ExampleModCSharp v0.1.15 contains Mighty +20% damage (weight 5) and Guarded +4 defense (weight 1). Host C++ and source checks passed; reforging, tooltip, save/load and FPS still need on-device verification. .86 remains preserved, and no JS is required inside CSharp mods." \
+              --title "Bunny Loader C# examples 0.1.15 (source-only)" \
+              --notes "C# source-only .bmod examples; no Terraria APK, engine binary, game assets or signing key. Android gameplay and prefix reforging are still experimental. Full private builds require a lawful local Terraria runtime." \
               --prerelease
           fi
           gh release upload "$TAG" \
-            "$APK" "$APK.sha256" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" \
             "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.15.bmod" \
@@ -1457,5 +1458,4 @@ jobs:
             "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" \
             "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256" \
             --repo "${{ github.repository }}" --clobber
-          echo "MANAGED_RUNTIME_RELEASE_TAG=$TAG"
-
+          echo "BUNNY_SOURCE_ONLY_MODS_RELEASED=$TAG"
