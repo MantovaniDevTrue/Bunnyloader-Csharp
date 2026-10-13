@@ -542,6 +542,17 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateLifeRegen missing");
             var mana = playerType.GetMethod("UpdateManaRegen")
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateManaRegen missing");
+            var modifyHurt = playerType.GetMethod("ModifyHurt")
+                ?? throw new InvalidOperationException("BunnyPlayer.ModifyHurt missing");
+            var onHurt = playerType.GetMethod("OnHurt")
+                ?? throw new InvalidOperationException("BunnyPlayer.OnHurt missing");
+            if (modifyHurt.ReturnType != typeof(void) ||
+                onHurt.ReturnType != typeof(void) ||
+                !modifyHurt.GetParameters().Select(p => p.ParameterType)
+                    .SequenceEqual(new[] { typeof(bool), typeof(BunnyHurtModifiers) }) ||
+                !onHurt.GetParameters().Select(p => p.ParameterType)
+                    .SequenceEqual(new[] { typeof(bool), typeof(BunnyHurtInfo) }))
+                throw new InvalidOperationException("BunnyPlayer hurt callback ABI mismatch");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { false });
             int noMove = (int)(movement.Invoke(player, new object[] { false }) ?? -1);
