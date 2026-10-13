@@ -44,3 +44,7 @@ The native ManagedRuntime now owns a persistent ManagedVisualState and offers `a
 ## SDK class resolution correction (7c703f4)
 
 The original Mono polling entry point incorrectly resolved `BunnyLoader.Source.BunnyVisual` in each compiled mod assembly. Because the Roslyn compiler references `BunnySourceSdk.dll`, the class belongs to the SDK. The polling entry point now resolves the class from an SDK DLL adjacent to the provided mod assembly. **This filesystem layout is an assumption that still requires verification against real APK extraction paths**. Do not enable per-frame Mono polling until assembly location, lifecycle and threading are verified in-game.
+
+## Automatic polling (commit 21cff14)
+
+During an active world session, AutoSourceRuntime polls up to eight pending SDK commands once every twelve game updates, then advances native visual state with a budget of 32. The Mono entry point uses a try-lock to avoid waiting for the Mono runtime mutex. Polling is experimental and requires an Android APK build plus device FPS/crash verification. Effects still cannot be seen: no active visual draw-layer consumer is installed, and the texture resolver is not wired. The sample accessories emit commands but their player index and graphics bindings remain placeholders.
