@@ -3,6 +3,10 @@
 #include "experiments/csharp/ManagedVisualQueue.h"
 #include <cstddef>
 #include <cstdint>
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
+#include <limits>
 #include <string>
 
 namespace bl::csharp {
@@ -10,6 +14,40 @@ namespace bl::csharp {
 struct ManagedVisualWire {
     static constexpr unsigned Version = 1;
     static constexpr size_t MaxBytes = 512;
+
+    static bool readInt(const std::string& input, int& value) {
+        if (input.empty()) return false;
+        char* end = nullptr;
+        errno = 0;
+        const long long parsed = std::strtoll(input.c_str(), &end, 10);
+        if (errno != 0 || end == input.c_str() || *end != '\0' ||
+            parsed < std::numeric_limits<int>::min() ||
+            parsed > std::numeric_limits<int>::max()) return false;
+        value = static_cast<int>(parsed);
+        return true;
+    }
+
+    static bool readFloat(const std::string& input, float& value) {
+        if (input.empty()) return false;
+        char* end = nullptr;
+        errno = 0;
+        const float parsed = std::strtof(input.c_str(), &end);
+        if (errno != 0 || end == input.c_str() || *end != '\0' ||
+            !std::isfinite(parsed)) return false;
+        value = parsed;
+        return true;
+    }
+
+    static bool readColor(const std::string& input, uint32_t& value) {
+        if (input.empty() || input[0] == '-') return false;
+        char* end = nullptr;
+        errno = 0;
+        const unsigned long long parsed = std::strtoull(input.c_str(), &end, 10);
+        if (errno != 0 || end == input.c_str() || *end != '\0' ||
+            parsed > std::numeric_limits<uint32_t>::max()) return false;
+        value = static_cast<uint32_t>(parsed);
+        return true;
+    }
 
     static bool parse(const std::string& line, ManagedVisualCommand& output) {
         if (line.empty() || line.size() > MaxBytes || line.find('\n') != std::string::npos)
@@ -30,29 +68,25 @@ struct ManagedVisualWire {
             start = indexes[i] + 1;
         }
         parts[10] = line.substr(start);
-        try {
-            if (parts[0] != "V1") return false;
-            auto kind = std::stoi(parts[1]);
-            if (kind < 1 || kind > 4) return false;
-            ManagedVisualCommand parsed;
-            parsed.kind = static_cast<ManagedVisualKind>(kind);
-            parsed.playerIndex = std::stoi(parts[2]);
-            parsed.effectId = std::stoi(parts[3]);
-            parsed.x = std::stof(parts[4]);
-            parsed.y = std::stof(parts[5]);
-            parsed.scale = std::stof(parts[6]);
-            parsed.opacity = std::stof(parts[7]);
-            parsed.color = static_cast<uint32_t>(std::stoul(parts[8]));
-            parsed.durationTicks = std::stoi(parts[9]);
-            parsed.texture = parts[10];
-            if (parsed.texture.find("..") != std::string::npos ||
-                parsed.texture.find('\\') != std::string::npos ||
-                parsed.texture.find('|') != std::string::npos) return false;
-            output = std::move(parsed);
-            return true;
-        } catch (...) {
-            return false;
-        }
+        if (parts[0] != "V1") return false;
+        int kind = 0;
+        ManagedVisualCommand parsed;
+        if (!readInt(parts[1], kind) || kind < 1 || kind > 4 ||
+            !readInt(parts[2], parsed.playerIndex) ||
+            !readInt(parts[3], parsed.effectId) ||
+            !readFloat(parts[4], parsed.x) ||
+            !readFloat(parts[5], parsed.y) ||
+            !readFloat(parts[6], parsed.scale) ||
+            !readFloat(parts[7], parsed.opacity) ||
+            !readColor(parts[8], parsed.color) ||
+            !readInt(parts[9], parsed.durationTicks)) return false;
+        parsed.kind = static_cast<ManagedVisualKind>(kind);
+        parsed.texture = parts[10];
+        if (parsed.texture.find("..") != std::string::npos ||
+            parsed.texture.find(static_cast<char>(92)) != std::string::npos ||
+            parsed.texture.find('|') != std::string::npos) return false;
+        output = std::move(parsed);
+        return true;
     }
 
     static bool accept(ManagedVisualQueue& queue, const std::string& line) {
