@@ -69,6 +69,11 @@ public abstract class BunnyPlayer
     public virtual string OnRespawn() => "";
     public virtual int UpdateMovement(bool accessoryEquipped) => 0;
     public virtual bool FrameEffects(bool accessoryEquipped) => false;
+    public virtual bool PreUpdate() => false;
+    public virtual bool PostUpdate() => false;
+    public virtual string UpdateDead() => "";
+    public virtual int UpdateLifeRegen(bool accessoryEquipped) => 0;
+    public virtual int UpdateManaRegen(bool accessoryEquipped) => 0;
 }
 public abstract class BunnyNPC
 {
