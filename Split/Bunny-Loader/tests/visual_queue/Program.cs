@@ -34,6 +34,14 @@ static class Test
         Check(BunnyVisual.ClearPlayerOverlay(0, 1), "clear command");
         BunnyVisual.ClearPending();
         Check(BunnyVisual.PendingCount == 0, "clear pending");
+        Check(BunnyVisual.SetPlayerOverlay(0, 7, "shield.png", 1, 0.2f, 0xFF99CCFF, 3), "first overlay");
+        Check(BunnyVisual.SetPlayerOverlay(0, 7, "shield.png", 1, 0.9f, 0xFF99CCFF, 3), "replace overlay");
+        Check(BunnyVisual.PendingCount == 1, "overlay coalesced");
+        Check(BunnyVisual.TryTake(out var overlay) && overlay.Opacity == 0.9f, "latest overlay retained");
+        Check(BunnyVisual.SetPlayerOverlay(0, 7, "shield.png", 1, 0.2f, 0xFF99CCFF, 3), "overlay before clearing");
+        Check(BunnyVisual.ClearPlayerOverlay(0, 7), "overlay clear");
+        Check(BunnyVisual.PendingCount == 1, "clear coalesced");
+        Check(BunnyVisual.TryTake(out var clear) && clear.Kind == BunnyVisualKind.ClearOverlay, "clear takes precedence");
         Console.WriteLine("BunnyVisual queue tests passed");
     }
 }
