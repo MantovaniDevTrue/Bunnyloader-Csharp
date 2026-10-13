@@ -54,12 +54,16 @@ public static class BunnyPlayerHurtDispatcher
     }
 
     public static long Modify(int slot, int damage, int direction, int flags,
-                              int life, int maxLife, int equippedMask)
+                              int life, int maxLife, int equippedMask,
+                              int npcIndex, int projectileIndex)
     {
         if (slot < 0 || slot >= Contexts.Count || damage < 0 || damage > 1000000)
             return -1;
         try
         {
+            npcIndex = npcIndex >= 0 && npcIndex < 200 ? npcIndex : -1;
+            projectileIndex = npcIndex < 0 && projectileIndex >= 0 && projectileIndex < 1000
+                ? projectileIndex : -1;
             var modifiers = new BunnyHurtModifiers
             {
                 Damage = damage,
@@ -69,7 +73,9 @@ public static class BunnyPlayerHurtDispatcher
                 Crit = (flags & 4) != 0,
                 Dodgeable = (flags & 8) != 0,
                 CurrentLife = life,
-                MaxLife = maxLife
+                MaxLife = maxLife,
+                NpcIndex = npcIndex,
+                ProjectileIndex = projectileIndex
             };
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
@@ -80,6 +86,10 @@ public static class BunnyPlayerHurtDispatcher
                 player.ResetEffects();
                 player.UpdateEquips(equipped);
                 player.ModifyHurt(equipped, modifiers);
+                if (npcIndex >= 0)
+                    player.ModifyHitByNPC(equipped, npcIndex, modifiers);
+                else if (projectileIndex >= 0)
+                    player.ModifyHitByProjectile(equipped, projectileIndex, modifiers);
             }
             bool dodged = false;
             if (!modifiers.Cancelled && modifiers.Dodgeable)
