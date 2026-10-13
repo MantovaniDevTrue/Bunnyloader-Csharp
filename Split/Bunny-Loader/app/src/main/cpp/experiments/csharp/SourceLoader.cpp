@@ -492,13 +492,14 @@ bool applyManagedSourceDefaults(
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
-        } else if (fields[0] == "ACCESSORY" && (fields.size() == 3 || fields.size() == 4)) {
+        } else if (fields[0] == "ACCESSORY" &&
+                   (fields.size() == 3 || fields.size() == 4 || fields.size() == 9)) {
             ManagedAccessoryEntry record;
             record.name = fields[1];
             record.type = registered->second;
             if (!integer(fields[2], &record.defenseBonus) ||
                 record.defenseBonus < 0 || record.defenseBonus > 100 ||
-                (fields.size() == 4 &&
+                (fields.size() >= 4 &&
                     (fields[3].size() > 180 ||
                      std::any_of(fields[3].begin(), fields[3].end(),
                          [](unsigned char c) { return c < 32 || c == 127; }))) ||
@@ -506,8 +507,32 @@ bool applyManagedSourceDefaults(
                 *error = "Valores invalidos de acessorio C#: " + record.name;
                 return false;
             }
-            if (fields.size() == 4 && fields[3] != "-")
+            if (fields.size() >= 4 && fields[3] != "-")
                 record.tooltip = fields[3];
+            if (fields.size() == 9) {
+                char* end = nullptr;
+                errno = 0;
+                const unsigned long long color = std::strtoull(fields[8].c_str(), &end, 10);
+                if (!integer(fields[4], &record.visualMode) ||
+                    record.visualMode < 1 || record.visualMode > 3 ||
+                    fields[5].empty() || fields[5].size() > 180 ||
+                    fields[5].front() == '/' ||
+                    fields[5].find("..") != std::string::npos ||
+                    fields[5].find(static_cast<char>(92)) != std::string::npos ||
+                    fields[5].find(':') != std::string::npos ||
+                    fields[5].find('|') != std::string::npos ||
+                    fields[5].substr(fields[5].size() >= 4 ? fields[5].size() - 4 : 0) != ".png" ||
+                    !real(fields[6], &record.visualScale) ||
+                    record.visualScale < 0.25f || record.visualScale > 3.f ||
+                    !real(fields[7], &record.visualOpacity) ||
+                    record.visualOpacity < 0.f || record.visualOpacity > 1.f ||
+                    errno || !end || *end || color > 0xffffffffULL) {
+                    *error = "Politica visual invalida no acessorio C#: " + record.name;
+                    return false;
+                }
+                record.visualColor = static_cast<uint32_t>(color);
+                record.visualTexture = fields[5];
+            }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
         } else if (fields[0] == "PREFIX" && fields.size() == 16) {
