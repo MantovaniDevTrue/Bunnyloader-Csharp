@@ -81,13 +81,29 @@ public static class BunnyPlayerHurtDispatcher
                 player.UpdateEquips(equipped);
                 player.ModifyHurt(equipped, modifiers);
             }
+            bool dodged = false;
+            if (!modifiers.Cancelled && modifiers.Dodgeable)
+            {
+                for (int i = 0; i < players.Length; i++)
+                {
+                    var player = players[i];
+                    bool equipped = string.IsNullOrEmpty(player.Accessory) ||
+                        (equippedMask & (1 << i)) != 0;
+                    if (!player.FreeDodge(equipped, modifiers))
+                        continue;
+                    modifiers.Cancel();
+                    dodged = true;
+                    break;
+                }
+            }
             int d = Math.Clamp(modifiers.Damage, 0, 1000000);
             int dir = Math.Clamp(modifiers.HitDirection, -1, 1) + 1;
             int outputFlags = (modifiers.PvP ? 1 : 0) |
                 (modifiers.Quiet ? 2 : 0) |
                 (modifiers.Crit ? 4 : 0) |
                 (modifiers.Dodgeable ? 8 : 0) |
-                (modifiers.Cancelled ? 16 : 0);
+                (modifiers.Cancelled ? 16 : 0) |
+                (dodged ? 32 : 0);
             return d | ((long)dir << 20) | ((long)outputFlags << 22);
         }
         catch
