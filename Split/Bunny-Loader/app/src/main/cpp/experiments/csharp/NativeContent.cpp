@@ -502,7 +502,7 @@ int equippedRegeneration(Il2CppObject* self, bool mana) {
         if (it == g_accessories.end()) continue;
         sum += mana ? it->second.manaRegenBonus : it->second.lifeRegenBonus;
     }
-    return std::clamp(sum, 0, 100);
+    return sum < 0 ? 0 : (sum > 100 ? 100 : sum);
 }
 
 void hkPlayerLifeRegen(Il2CppObject* self, const MethodInfo* method) {
