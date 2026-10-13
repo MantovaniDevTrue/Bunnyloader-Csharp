@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BunnyLoader.Source;
 
@@ -89,6 +90,24 @@ public static class BunnyVisual
         return true;
     }
 
+    public static string TakeWire()
+    {
+        if (!TryTake(out BunnyVisualCommand command))
+            return "";
+
+        return string.Join("|", "V1",
+            ((int)command.Kind).ToString(CultureInfo.InvariantCulture),
+            command.PlayerIndex.ToString(CultureInfo.InvariantCulture),
+            command.EffectId.ToString(CultureInfo.InvariantCulture),
+            command.X.ToString("R", CultureInfo.InvariantCulture),
+            command.Y.ToString("R", CultureInfo.InvariantCulture),
+            command.Scale.ToString("R", CultureInfo.InvariantCulture),
+            command.Opacity.ToString("R", CultureInfo.InvariantCulture),
+            command.Color.ToString(CultureInfo.InvariantCulture),
+            command.DurationTicks.ToString(CultureInfo.InvariantCulture),
+            command.Texture);
+    }
+
     public static void ClearPending()
     {
         count = 0;
@@ -102,7 +121,9 @@ public static class BunnyVisual
             float.IsNaN(command.Scale) || float.IsInfinity(command.Scale) ||
             command.Scale <= 0f || float.IsNaN(command.Opacity) ||
             command.Opacity < 0f || command.Opacity > 1f ||
-            command.Texture.Length > 240)
+            command.Texture.Length > 240 ||
+            command.Texture.Contains('|') || command.Texture.Contains("..") ||
+            command.Texture.Contains('\\\\'))
             return false;
 
         if (command.Kind == BunnyVisualKind.PlayerOverlay ||
