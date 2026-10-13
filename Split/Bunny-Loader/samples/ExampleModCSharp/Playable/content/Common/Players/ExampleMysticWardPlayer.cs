@@ -52,7 +52,7 @@ public sealed class ExampleMysticWardPlayer : BunnyPlayer
             return;
 
         BunnyVisual.SetPlayerOverlay(0, 1001,
-            "Content/Effects/MysticWardBarrier.png", 1.25f, 0.72f,
+            "Content/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png", 1.25f, 0.72f,
             0xFF66CCFF, 18);
         HitsObserved++;
         LastHitSource = BunnyCombat.SourceOf(info.NpcIndex, info.ProjectileIndex);
