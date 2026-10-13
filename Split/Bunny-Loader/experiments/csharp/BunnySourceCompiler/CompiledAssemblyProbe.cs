@@ -506,9 +506,31 @@ public static class CompiledAssemblyProbe
             if (defense < 0 || defense > 100 || tooltip.Length > 180 ||
                 tooltip.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# accessory defaults or tooltip");
-            lines.Add(string.Join("\t", "ACCESSORY", name,
-                defense.ToString(CultureInfo.InvariantCulture),
-                tooltip.Length == 0 ? "-" : tooltip));
+            int visualMode = Convert.ToInt32(Value<object>(accessory, "VisualMode"), CultureInfo.InvariantCulture);
+            string visualTexture = Value<string>(accessory, "VisualTexture");
+            float visualScale = Value<float>(accessory, "VisualScale");
+            float visualOpacity = Value<float>(accessory, "VisualOpacity");
+            uint visualColor = Value<uint>(accessory, "VisualColor");
+            if (visualMode < 0 || visualMode > 3 ||
+                (visualMode != 0 && (visualTexture.Length == 0 || visualTexture.Length > 180 ||
+                                     !visualTexture.EndsWith(".png", StringComparison.OrdinalIgnoreCase))) ||
+                visualTexture.Contains("..", StringComparison.Ordinal) ||
+                visualTexture.Contains('|') || visualTexture.Contains('\\\\') ||
+                visualTexture.Any(char.IsControl) ||
+                !float.IsFinite(visualScale) || visualScale < 0.25f || visualScale > 3f ||
+                !float.IsFinite(visualOpacity) || visualOpacity < 0f || visualOpacity > 1f)
+                throw new InvalidOperationException("Invalid C# accessory visual policy");
+            string[] entry = {"ACCESSORY", name, defense.ToString(CultureInfo.InvariantCulture),
+                tooltip.Length == 0 ? "-" : tooltip};
+            if (visualMode == 0)
+                lines.Add(string.Join("\t", entry));
+            else
+                lines.Add(string.Join("\t", entry) + "\t" +
+                    visualMode.ToString(CultureInfo.InvariantCulture) + "\t" +
+                    visualTexture + "\t" +
+                    visualScale.ToString("R", CultureInfo.InvariantCulture) + "\t" +
+                    visualOpacity.ToString("R", CultureInfo.InvariantCulture) + "\t" +
+                    visualColor.ToString(CultureInfo.InvariantCulture));
         }
         foreach (object player in players)
         {
