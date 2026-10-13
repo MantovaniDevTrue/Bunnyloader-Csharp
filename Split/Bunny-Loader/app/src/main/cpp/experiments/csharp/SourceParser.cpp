@@ -48,8 +48,18 @@ bool tokenize(const std::string& source, std::vector<Token>* out, std::string* e
         }
         if (std::isdigit(c)) {
             const size_t start = i++;
-            while (i < source.size() && (std::isdigit(static_cast<unsigned char>(source[i])) ||
-                    source[i] == '.' || source[i] == 'f' || source[i] == 'F')) ++i;
+            if (c == '0' && i < source.size() && (source[i] == 'x' || source[i] == 'X')) {
+                ++i;
+                const size_t digits = i;
+                while (i < source.size() && std::isxdigit(static_cast<unsigned char>(source[i]))) ++i;
+                if (i == digits) {
+                    *error = "literal hexadecimal C# invalido na linha " + std::to_string(line);
+                    return false;
+                }
+            } else {
+                while (i < source.size() && (std::isdigit(static_cast<unsigned char>(source[i])) ||
+                        source[i] == '.' || source[i] == 'f' || source[i] == 'F')) ++i;
+            }
             out->push_back({source.substr(start, i - start), line, false});
             continue;
         }
@@ -119,6 +129,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
             value = ts[i++].value;
         }
         if (key == "Category" && value == "PrefixCategory" &&
+            i + 1 < last && ts[i].value == ".") {
+            value = ts[i + 1].value;
+            i += 2;
+        }
+        if (key == "VisualMode" && value == "BunnyAccessoryVisualMode" &&
             i + 1 < last && ts[i].value == ".") {
             value = ts[i + 1].value;
             i += 2;
