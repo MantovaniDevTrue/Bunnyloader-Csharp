@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-player-regeneration-lifecycle-v90-18
       - csharp-respawn-local-player-v90-17-2
       - csharp-respawn-enum-hotfix-v90-17-1
       - csharp-global-player-respawn-v90-17
@@ -191,6 +192,36 @@ jobs:
           assert 'context != g_reviveSpawnContext' in native
           assert 'if (sendPlayerLifecycleMessage(message)) ++count;' in native
           print("BUNNY_CSHARP_RESPAWN_LOCAL_PLAYER_V90_17_2=PASS")
+          h = (root/"app/src/main/cpp/experiments/csharp/NativeContent.h").read_text()
+          checks = ("PreUpdate()", "PostUpdate()", "UpdateDead()",
+                    "UpdateLifeRegen(bool accessoryEquipped)",
+                    "UpdateManaRegen(bool accessoryEquipped)")
+          for method in checks: assert method in sdk
+          assert 'fields.size() == 14' in loader
+          assert 'record.lifeRegenBonus' in loader
+          assert 'record.manaRegenBonus' in loader
+          assert 'record.preUpdate' in loader
+          assert 'record.postUpdate' in loader
+          assert 'std::string deadMessage;' in h
+          assert 'void Update(int i)' in native
+          assert 'void UpdateDead()' in native
+          assert 'void UpdateLifeRegen()' in native
+          assert 'void UpdateManaRegen()' in native
+          assert 'g_originalPlayerUpdate(self, index, method);' in native
+          assert 'g_originalUpdateDead(self, method);' in native
+          assert 'g_originalLifeRegen(self, method);' in native
+          assert 'g_originalManaRegen(self, method);' in native
+          assert 'g_deadEventDelivered = false' in native
+          assert 'g_anyLifeRegen' in native and 'g_anyManaRegen' in native
+          assert 'equippedRegeneration(self, false)' in native
+          assert 'equippedRegeneration(self, true)' in native
+          assert 'if (delivered > 0) g_deadEventDelivered = true;' in native
+          assert 'OnRespawn()' in example and 'UpdateDead()' in example
+          for name in ("ExampleVitalAccessory", "ExampleArcaneAccessory"):
+              assert (sample/"Content/Items/Accessories"/(name+".cs")).is_file()
+          for name in ("ExampleVitalPlayer", "ExampleArcanePlayer"):
+              assert (sample/"Common/Players"/(name+".cs")).is_file()
+          print("BUNNY_CSHARP_PLAYER_LIFECYCLE_REGEN_V90_18=PASS")
           PY
 
           python3 - <<'PY'
