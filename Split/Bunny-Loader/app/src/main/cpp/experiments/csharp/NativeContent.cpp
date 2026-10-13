@@ -66,6 +66,10 @@ struct NativeRefs {
     int npcLifeMax = -1;
     int npcAiStyle = -1;
     int npcType = -1;
+    int npcLife = -1;
+    int projectileType = -1;
+    int projectileDamage = -1;
+    int projectileOwner = -1;
     int playerStatDefense = -1;
     int playerBuffType = -1;
     int playerBuffTime = -1;
@@ -160,6 +164,8 @@ using PlayerHurtFn = double (*)(Il2CppObject*, const void*, int32_t, int32_t,
                                const MethodInfo*);
 
 NativeRefs g_refs{};
+FieldInfo* g_mainNpcArrayField = nullptr;
+FieldInfo* g_mainProjectileArrayField = nullptr;
 std::map<int, NativeWeaponDefaults> g_weapons;
 std::map<int, NativeProjectileDefaults> g_projectiles;
 std::map<int, NativeNpcDefaults> g_npcs;
@@ -592,6 +598,57 @@ void snapshotHurtSource(const void* source, int* npcIndex, int* projectileIndex,
         *projectileIndex = *rawProjectile;
 }
 
+struct HurtAttackerSnapshot {
+    int npcType = -1;
+    int npcDamage = -1;
+    int npcLife = -1;
+    int projectileType = -1;
+    int projectileDamage = -1;
+    int projectileOwner = -1;
+};
+
+HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
+    HurtAttackerSnapshot snapshot;
+    auto& runtime = bl::il2cpp::api();
+    if (!runtime.field_static_get_value) return snapshot;
+    if (npcIndex >= 0 && npcIndex < 200 && g_mainNpcArrayField) {
+        Il2CppArray* array = nullptr;
+        runtime.field_static_get_value(g_mainNpcArrayField, &array);
+        if (array && array->length <= 200 &&
+            static_cast<uintptr_t>(npcIndex) < array->length) {
+            auto** entries = static_cast<Il2CppObject**>(arrayData(array));
+            if (Il2CppObject* attacker = entries[npcIndex]) {
+                if (g_refs.npcType >= 0)
+                    snapshot.npcType = bl::runtime::field<int32_t>(attacker, g_refs.npcType);
+                if (g_refs.npcDamage >= 0)
+                    snapshot.npcDamage = bl::runtime::field<int32_t>(attacker, g_refs.npcDamage);
+                if (g_refs.npcLife >= 0)
+                    snapshot.npcLife = bl::runtime::field<int32_t>(attacker, g_refs.npcLife);
+            }
+        }
+    } else if (projectileIndex >= 0 && projectileIndex < 1000 &&
+               g_mainProjectileArrayField) {
+        Il2CppArray* array = nullptr;
+        runtime.field_static_get_value(g_mainProjectileArrayField, &array);
+        if (array && array->length <= 1000 &&
+            static_cast<uintptr_t>(projectileIndex) < array->length) {
+            auto** entries = static_cast<Il2CppObject**>(arrayData(array));
+            if (Il2CppObject* attacker = entries[projectileIndex]) {
+                if (g_refs.projectileType >= 0)
+                    snapshot.projectileType = bl::runtime::field<int32_t>(
+                        attacker, g_refs.projectileType);
+                if (g_refs.projectileDamage >= 0)
+                    snapshot.projectileDamage = bl::runtime::field<int32_t>(
+                        attacker, g_refs.projectileDamage);
+                if (g_refs.projectileOwner >= 0)
+                    snapshot.projectileOwner = bl::runtime::field<int32_t>(
+                        attacker, g_refs.projectileOwner);
+            }
+        }
+    }
+    return snapshot;
+}
+
 double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
                     int32_t direction, uint8_t pvp, uint8_t quiet, uint8_t crit,
                     int32_t cooldown, uint8_t dodgeable, const MethodInfo* method) {
@@ -647,6 +704,16 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     int rawProjectile = -1;
     snapshotHurtSource(source, &npcSource, &projectileSource,
                        &rawNpc, &rawProjectile);
+    const HurtAttackerSnapshot attacker = snapshotHurtAttacker(npcSource, projectileSource);
+    static int contextNpcLogs = 0;
+    static int contextProjectileLogs = 0;
+    if (npcSource >= 0 && contextNpcLogs++ < 8)
+        BL_INFO("csharp hit context NPC: index=%d tipo=%d dano=%d vida=%d",
+                npcSource, attacker.npcType, attacker.npcDamage, attacker.npcLife);
+    else if (projectileSource >= 0 && contextProjectileLogs++ < 8)
+        BL_INFO("csharp hit context projectile: index=%d tipo=%d dano=%d dono=%d",
+                projectileSource, attacker.projectileType,
+                attacker.projectileDamage, attacker.projectileOwner);
     static int npcCaptures = 0;
     static int projectileCaptures = 0;
     static int unknownCaptures = 0;
@@ -678,7 +745,9 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         ManagedHurtResult result;
         if (!modifyManagedPlayerHurt(binding.modId, damage, direction, flags,
                                      life, lifeMax, mask, npcSource, projectileSource,
-                                     &result)) continue;
+                                     attacker.npcType, attacker.npcDamage, attacker.npcLife,
+                                     attacker.projectileType, attacker.projectileDamage,
+                                     attacker.projectileOwner, &result)) continue;
         ++changed;
         damage = result.damage;
         direction = result.hitDirection;
@@ -738,7 +807,10 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         for (const auto& participant : participants) {
             const bool queued = notifyManagedPlayerHurt(
                 participant.modId, sourceDamage, actual, direction, flags,
-                remaining, participant.equipmentMask, npcSource, projectileSource);
+                remaining, participant.equipmentMask, npcSource, projectileSource,
+                attacker.npcType, attacker.npcDamage, attacker.npcLife,
+                attacker.projectileType, attacker.projectileDamage,
+                attacker.projectileOwner);
             if (logSource)
                 BL_INFO("csharp BunnyPlayer hit diag: evento OnHurt fila=%s npc=%d projectile=%d dano=%d vida=%d",
                         queued ? "aceito" : "recusado",
@@ -856,6 +928,10 @@ bool prepareNativeContent() {
     r.npcLifeMax = fieldOffset(npc, "lifeMax");
     r.npcAiStyle = fieldOffset(npc, "aiStyle");
     r.npcType = fieldOffset(npc, "type");
+    r.npcLife = fieldOffset(npc, "life");
+    r.projectileType = fieldOffset(projectile, "type");
+    r.projectileDamage = fieldOffset(projectile, "damage");
+    r.projectileOwner = fieldOffset(projectile, "owner");
     r.playerStatDefense = fieldOffset(player, "statDefense");
     r.playerMoveSpeed = fieldOffset(player, "moveSpeed");
     r.playerArmor = fieldOffset(player, "armor");
@@ -991,6 +1067,15 @@ bool prepareNativePlayerEffects() {
         bl::hook::install(manaRegen, hkPlayerManaRegen, &g_originalManaRegen))
         BL_INFO("csharp BunnyPlayer UpdateManaRegen: hook instalado");
     else BL_WARN("csharp BunnyPlayer UpdateManaRegen: hook indisponivel");
+    Il2CppClass* attackerMain = findClass({"Terraria", "Main", {}});
+    if (attackerMain && api().field_static_get_value) {
+        if (api().runtime_class_init) api().runtime_class_init(attackerMain);
+        g_mainNpcArrayField = findField(attackerMain, "npc");
+        g_mainProjectileArrayField = findField(attackerMain, "projectile");
+        BL_INFO("csharp hit context: Main.npc=%s Main.projectile=%s",
+                g_mainNpcArrayField ? "ok" : "indisponivel",
+                g_mainProjectileArrayField ? "ok" : "indisponivel");
+    }
     const MethodInfo* hurt = findMethodBySignature(player, parseSignature(
         "double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)"));
     if (hurt && api().method_get_param && api().class_from_il2cpp_type &&
