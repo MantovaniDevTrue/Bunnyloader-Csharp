@@ -392,7 +392,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9)) {
+        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9 || fields.size() == 14)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
                 *error = "BunnyPlayer C# nao registrado: " + fields[1];
@@ -415,7 +415,7 @@ bool applyManagedSourceDefaults(
                      fields[7].size() > 100 || fields[7].empty() ||
                      std::any_of(fields[7].begin(), fields[7].end(),
                          [](unsigned char c) { return c < 32 || c > 126; }))) ||
-                (fields.size() == 9 &&
+                (fields.size() >= 9 &&
                     (fields[8].size() > 100 || fields[8].empty() ||
                      std::any_of(fields[8].begin(), fields[8].end(),
                          [](unsigned char c) { return c < 32 || c > 126; })))) {
@@ -427,11 +427,29 @@ bool applyManagedSourceDefaults(
                 record.frameShadow = fields[6] == "1";
                 if (fields[7] != "-") record.worldJoinMessage = fields[7];
             }
-            if (fields.size() == 9 && fields[8] != "-")
+            if (fields.size() >= 9 && fields[8] != "-")
                 record.respawnMessage = fields[8];
+            if (fields.size() == 14) {
+                if ((fields[9] != "0" && fields[9] != "1") ||
+                    (fields[10] != "0" && fields[10] != "1") ||
+                    fields[11].empty() || fields[11].size() > 100 ||
+                    std::any_of(fields[11].begin(), fields[11].end(),
+                        [](unsigned char c) { return c < 32 || c > 126; }) ||
+                    !integer(fields[12], &record.lifeRegenBonus) ||
+                    !integer(fields[13], &record.manaRegenBonus) ||
+                    record.lifeRegenBonus < 0 || record.lifeRegenBonus > 30 ||
+                    record.manaRegenBonus < 0 || record.manaRegenBonus > 30) {
+                    *error = "Politica C# de regeneracao/ciclo invalida: " + record.name;
+                    return false;
+                }
+                record.preUpdate = fields[9] == "1";
+                record.postUpdate = fields[10] == "1";
+                if (fields[11] != "-") record.deadMessage = fields[11];
+            }
             if (globalPlayer && (record.equippedDefenseBonus != 0 ||
                 record.moveSpeedPercent != 0 || record.runAccelerationPercent != 0 ||
-                record.frameShadow)) {
+                record.frameShadow || record.lifeRegenBonus != 0 ||
+                record.manaRegenBonus != 0)) {
                 *error = "BunnyPlayer global nao pode aplicar bonus de acessorio: " + record.name;
                 return false;
             }
