@@ -5,6 +5,7 @@
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
+#include "core/Log.h"
 
 #include <cstdio>
 #include <algorithm>
@@ -773,6 +774,12 @@ void* pinnedMonoWorker(void*) {
                     g_managedHurtQueue.pop_front();
                     lock.unlock();
                     const int64_t outcome = executeManagedHurtOnWorker(job);
+                    if (job.after && outcome >= 0) {
+                        static std::atomic<int> completedLogs{0};
+                        if (completedLogs.fetch_add(1, std::memory_order_relaxed) < 12)
+                            BL_INFO("csharp BunnyPlayer OnHurt: MonoVM executou %lld callback(s), dano=%d, vida=%d",
+                                    static_cast<long long>(outcome), job.damage, job.life);
+                    }
                     lock.lock();
                     if (!job.after) {
                         g_managedHurtCompletedTicket = job.ticket;
@@ -1132,10 +1139,11 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
     const uint64_t packed = static_cast<uint64_t>(g_managedHurtCompletedValue);
     const int newDamage = static_cast<int>(packed & 0xfffff);
     const int newDirection = static_cast<int>((packed >> 20) & 3) - 1;
-    const int newFlags = static_cast<int>((packed >> 22) & 31);
+    const int newFlags = static_cast<int>((packed >> 22) & 63);
     if (newDamage < 0 || newDamage > 1000000 ||
         newDirection < -1 || newDirection > 1) return false;
-    *result = {newDamage, newDirection, newFlags & 15, (newFlags & 16) != 0};
+    *result = {newDamage, newDirection, newFlags & 15,
+               (newFlags & 16) != 0, (newFlags & 32) != 0};
     return true;
 }
 
