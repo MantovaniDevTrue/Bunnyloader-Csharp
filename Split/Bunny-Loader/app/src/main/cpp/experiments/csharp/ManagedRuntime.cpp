@@ -281,6 +281,12 @@ struct ManagedHurtJob {
     int projectileType = -1;
     int projectileDamage = -1;
     int projectileOwner = -1;
+    float attackerX = -1.f;
+    float attackerY = -1.f;
+    float attackerVelocityX = -1.f;
+    float attackerVelocityY = -1.f;
+    float attackerAngle = -1.f;
+    float attackerDistance = -1.f;
 };
 std::vector<ManagedHurtBinding> g_managedHurtBindings;
 std::deque<ManagedHurtJob> g_managedHurtQueue;
@@ -707,8 +713,8 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
             image, "BunnyLoader.Source", "BunnyPlayerHurtDispatcher") : nullptr;
         if (!cls) return -1;
         g_managedHurtRegisterMethod = g_api.findMethod(cls, "Register", 2);
-        g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 15);
-        g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 15);
+        g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 21);
+        g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 21);
         if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
             !g_managedHurtAfterMethod) return -1;
     }
@@ -752,12 +758,22 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     int projectileType = job.projectileType;
     int projectileDamage = job.projectileDamage;
     int projectileOwner = job.projectileOwner;
+    float attackerX = job.attackerX;
+    float attackerY = job.attackerY;
+    float attackerVelocityX = job.attackerVelocityX;
+    float attackerVelocityY = job.attackerVelocityY;
+    float attackerAngle = job.attackerAngle;
+    float attackerDistance = job.attackerDistance;
     void* argsModify[] = {&slot, &d, &direction, &flags, &life, &lifeMax, &mask,
                           &npcIndex, &projectileIndex, &npcType, &npcDamage, &npcLife,
-                          &projectileType, &projectileDamage, &projectileOwner};
+                          &projectileType, &projectileDamage, &projectileOwner,
+                          &attackerX, &attackerY, &attackerVelocityX, &attackerVelocityY,
+                          &attackerAngle, &attackerDistance};
     void* argsAfter[] = {&slot, &d, &origin, &direction, &flags, &life, &mask,
                          &npcIndex, &projectileIndex, &npcType, &npcDamage, &npcLife,
-                         &projectileType, &projectileDamage, &projectileOwner};
+                         &projectileType, &projectileDamage, &projectileOwner,
+                         &attackerX, &attackerY, &attackerVelocityX, &attackerVelocityY,
+                         &attackerAngle, &attackerDistance};
     void* exception = nullptr;
     void* boxed = g_api.invoke(job.after ? g_managedHurtAfterMethod :
         g_managedHurtModifyMethod, nullptr,
@@ -1156,6 +1172,9 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                              int equipmentMask, int npcIndex, int projectileIndex,
                              int npcType, int npcDamage, int npcLife,
                              int projectileType, int projectileDamage, int projectileOwner,
+                             float attackerX, float attackerY,
+                             float attackerVelocityX, float attackerVelocityY,
+                             float attackerAngle, float attackerDistance,
                              ManagedHurtResult* result) {
     if (!result || damage < 0 || damage > 1000000 || life < 0 ||
         lifeMax < 1 || equipmentMask < 0 || hitDirection < -1 ||
@@ -1178,7 +1197,9 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                                   hitDirection, flags, life, lifeMax, equipmentMask,
                                   npcIndex, projectileIndex,
                                   npcType, npcDamage, npcLife,
-                                  projectileType, projectileDamage, projectileOwner});
+                                  projectileType, projectileDamage, projectileOwner,
+                                  attackerX, attackerY, attackerVelocityX, attackerVelocityY,
+                                  attackerAngle, attackerDistance});
     g_pinnedWake.notify_one();
     const bool completed = g_managedHurtResultWake.wait_for(
         lock, std::chrono::milliseconds(5), [ticket] {
@@ -1203,7 +1224,10 @@ bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int lifeRemaining, int equipmentMask,
                              int npcIndex, int projectileIndex,
                              int npcType, int npcDamage, int npcLife,
-                             int projectileType, int projectileDamage, int projectileOwner) {
+                             int projectileType, int projectileDamage, int projectileOwner,
+                             float attackerX, float attackerY,
+                             float attackerVelocityX, float attackerVelocityY,
+                             float attackerAngle, float attackerDistance) {
     if (actualDamage <= 0 || sourceDamage < 0 || actualDamage > 1000000 ||
         lifeRemaining < 0) return false;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
@@ -1218,7 +1242,9 @@ bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
             hitDirection, flags, lifeRemaining, 0, equipmentMask,
             npcIndex, projectileIndex,
             npcType, npcDamage, npcLife,
-            projectileType, projectileDamage, projectileOwner
+            projectileType, projectileDamage, projectileOwner,
+            attackerX, attackerY, attackerVelocityX, attackerVelocityY,
+            attackerAngle, attackerDistance
         });
         g_pinnedWake.notify_one();
         return true;
