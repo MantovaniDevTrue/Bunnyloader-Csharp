@@ -548,10 +548,10 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.OnHurt missing");
             if (modifyHurt.ReturnType != typeof(void) ||
                 onHurt.ReturnType != typeof(void) ||
-                !modifyHurt.GetParameters().Select(p => p.ParameterType)
-                    .SequenceEqual(new[] { typeof(bool), typeof(BunnyHurtModifiers) }) ||
-                !onHurt.GetParameters().Select(p => p.ParameterType)
-                    .SequenceEqual(new[] { typeof(bool), typeof(BunnyHurtInfo) }))
+                !modifyHurt.GetParameters().Select(p => p.ParameterType.FullName)
+                    .SequenceEqual(new[] { "System.Boolean", "BunnyLoader.Source.BunnyHurtModifiers" }) ||
+                !onHurt.GetParameters().Select(p => p.ParameterType.FullName)
+                    .SequenceEqual(new[] { "System.Boolean", "BunnyLoader.Source.BunnyHurtInfo" }))
                 throw new InvalidOperationException("BunnyPlayer hurt callback ABI mismatch");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { false });
