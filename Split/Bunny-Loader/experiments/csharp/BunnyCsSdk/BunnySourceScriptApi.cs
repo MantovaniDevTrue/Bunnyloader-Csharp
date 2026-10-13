@@ -101,6 +101,12 @@ public sealed class BunnyHurtModifiers
     public int ProjectileType { get; set; } = -1;
     public int ProjectileDamage { get; set; } = -1;
     public int ProjectileOwner { get; set; } = -1;
+    public float AttackerX { get; set; } = -1f;
+    public float AttackerY { get; set; } = -1f;
+    public float AttackerVelocityX { get; set; } = -1f;
+    public float AttackerVelocityY { get; set; } = -1f;
+    public float AttackerAngle { get; set; } = -1f;
+    public float AttackerDistance { get; set; } = -1f;
     public bool Cancelled { get; private set; }
 
     public void Cancel() => Cancelled = true;
@@ -122,13 +128,22 @@ public readonly struct BunnyHurtInfo
     public int ProjectileType { get; }
     public int ProjectileDamage { get; }
     public int ProjectileOwner { get; }
+    public float AttackerX { get; }
+    public float AttackerY { get; }
+    public float AttackerVelocityX { get; }
+    public float AttackerVelocityY { get; }
+    public float AttackerAngle { get; }
+    public float AttackerDistance { get; }
 
     public BunnyHurtInfo(int damage, int sourceDamage, int hitDirection,
                          int lifeRemaining, bool pvp, bool crit,
                          int npcIndex = -1, int projectileIndex = -1,
                          int npcType = -1, int npcDamage = -1, int npcLife = -1,
                          int projectileType = -1, int projectileDamage = -1,
-                         int projectileOwner = -1)
+                         int projectileOwner = -1,
+                         float attackerX = -1f, float attackerY = -1f,
+                         float attackerVelocityX = -1f, float attackerVelocityY = -1f,
+                         float attackerAngle = -1f, float attackerDistance = -1f)
     {
         Damage = damage;
         SourceDamage = sourceDamage;
@@ -144,6 +159,12 @@ public readonly struct BunnyHurtInfo
         ProjectileType = projectileType;
         ProjectileDamage = projectileDamage;
         ProjectileOwner = projectileOwner;
+        AttackerX = attackerX;
+        AttackerY = attackerY;
+        AttackerVelocityX = attackerVelocityX;
+        AttackerVelocityY = attackerVelocityY;
+        AttackerAngle = attackerAngle;
+        AttackerDistance = attackerDistance;
     }
 }
 
