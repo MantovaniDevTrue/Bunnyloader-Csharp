@@ -77,7 +77,7 @@ JSValue jsManagedVisualTexturePath(JSContext* ctx, JSValueConst, int argc, JSVal
     const std::string relative = qualified.substr(sep + 1);
     if (relative.empty() || relative[0] == '/' ||
         relative.find("..") != std::string::npos ||
-        relative.find('\\\\') != std::string::npos ||
+        relative.find(static_cast<char>(92)) != std::string::npos ||
         relative.find('|') != std::string::npos) return JS_NULL;
     for (size_t i = 0; i < modUid.size(); ++i) {
         const char ch = modUid[i];
