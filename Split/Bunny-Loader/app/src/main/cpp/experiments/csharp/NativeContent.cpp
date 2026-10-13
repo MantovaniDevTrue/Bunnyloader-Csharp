@@ -446,7 +446,87 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
     int count = 0;
     for (const auto& [name, message] : g_respawnMessages)
         if (sendPlayerLifecycleMessage(message)) ++count;
+    if (count > 0) g_deadEventDelivered = false;
     BL_INFO("csharp BunnyPlayer OnRespawn: %d mensagem(ns) enviadas(s)", count);
+}
+
+void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method) {
+    static bool loggedPre = false;
+    static bool loggedPost = false;
+    if (self && g_playerPoliciesReady && g_preUpdateEnabled && !loggedPre) {
+        loggedPre = true;
+        BL_INFO("csharp BunnyPlayer PreUpdate: politica nativa executada");
+    }
+    if (g_originalPlayerUpdate)
+        g_originalPlayerUpdate(self, index, method);
+    if (self && g_playerPoliciesReady && g_postUpdateEnabled && !loggedPost) {
+        loggedPost = true;
+        BL_INFO("csharp BunnyPlayer PostUpdate: politica nativa executada");
+    }
+}
+
+void hkPlayerUpdateDead(Il2CppObject* self, const MethodInfo* method) {
+    if (g_originalUpdateDead) g_originalUpdateDead(self, method);
+    if (!self || !g_playerPoliciesReady || g_deadEventDelivered ||
+        g_deadMessages.empty()) return;
+    using namespace bl::il2cpp;
+    auto& runtime = api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main && runtime.class_get_method_from_name
+        ? runtime.class_get_method_from_name(main, "get_LocalPlayer", 0)
+        : nullptr;
+    if (!getter || !runtime.runtime_invoke) return;
+    Il2CppObject* error = nullptr;
+    Il2CppObject* local = runtime.runtime_invoke(getter, nullptr, nullptr, &error);
+    if (error || local != self) return;
+    int delivered = 0;
+    for (const auto& [key, message] : g_deadMessages)
+        if (sendPlayerLifecycleMessage(message)) ++delivered;
+    if (delivered > 0) g_deadEventDelivered = true;
+    BL_INFO("csharp BunnyPlayer UpdateDead: %d mensagem(ns) enviadas(s)", delivered);
+}
+
+int equippedRegeneration(Il2CppObject* self, bool mana) {
+    if (!self || g_refs.playerArmor < 0 || g_refs.itemAccessory < 0 ||
+        g_refs.itemType < 0) return 0;
+    auto* armor = bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor);
+    if (!armor || armor->length < 10 || armor->length > 40) return 0;
+    auto** equipped = static_cast<Il2CppObject**>(arrayData(armor));
+    int sum = 0;
+    for (uintptr_t slot = 3; slot < 10; ++slot) {
+        Il2CppObject* item = equipped[slot];
+        if (!item || !bl::runtime::field<uint8_t>(item, g_refs.itemAccessory))
+            continue;
+        const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+        auto it = g_accessories.find(type);
+        if (it == g_accessories.end()) continue;
+        sum += mana ? it->second.manaRegenBonus : it->second.lifeRegenBonus;
+    }
+    return std::clamp(sum, 0, 100);
+}
+
+void hkPlayerLifeRegen(Il2CppObject* self, const MethodInfo* method) {
+    if (g_originalLifeRegen) g_originalLifeRegen(self, method);
+    if (!self || !g_playerPoliciesReady || !g_anyLifeRegen ||
+        g_refs.playerLifeRegen < 0) return;
+    const int bonus = equippedRegeneration(self, false);
+    if (!bonus) return;
+    bl::runtime::field<int32_t>(self, g_refs.playerLifeRegen) += bonus;
+    static int logged = 0;
+    if (logged++ < 2)
+        BL_INFO("csharp BunnyPlayer UpdateLifeRegen: bonus nativo +%d", bonus);
+}
+
+void hkPlayerManaRegen(Il2CppObject* self, const MethodInfo* method) {
+    if (g_originalManaRegen) g_originalManaRegen(self, method);
+    if (!self || !g_playerPoliciesReady || !g_anyManaRegen ||
+        g_refs.playerManaRegen < 0) return;
+    const int bonus = equippedRegeneration(self, true);
+    if (!bonus) return;
+    bl::runtime::field<int32_t>(self, g_refs.playerManaRegen) += bonus;
+    static int logged = 0;
+    if (logged++ < 2)
+        BL_INFO("csharp BunnyPlayer UpdateManaRegen: bonus nativo +%d", bonus);
 }
 
 void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
