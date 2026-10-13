@@ -113,14 +113,19 @@ public static class BunnyPlayerHurtDispatcher
     }
 
     public static int After(int slot, int damage, int sourceDamage,
-                            int direction, int flags, int lifeRemaining, int equippedMask)
+                            int direction, int flags, int lifeRemaining, int equippedMask,
+                            int npcIndex, int projectileIndex)
     {
         if (slot < 0 || slot >= Contexts.Count || damage <= 0)
             return 0;
         try
         {
+            npcIndex = npcIndex >= 0 && npcIndex < 200 ? npcIndex : -1;
+            projectileIndex = projectileIndex >= 0 && projectileIndex < 1000
+                ? projectileIndex : -1;
             var info = new BunnyHurtInfo(damage, sourceDamage, direction,
-                lifeRemaining, (flags & 1) != 0, (flags & 4) != 0);
+                lifeRemaining, (flags & 1) != 0, (flags & 4) != 0,
+                npcIndex, projectileIndex);
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
             {
@@ -128,6 +133,10 @@ public static class BunnyPlayerHurtDispatcher
                 bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                     (equippedMask & (1 << i)) != 0;
                 player.OnHurt(equipped, info);
+                if (npcIndex >= 0)
+                    player.OnHitByNPC(equipped, npcIndex, info);
+                else if (projectileIndex >= 0)
+                    player.OnHitByProjectile(equipped, projectileIndex, info);
             }
             return players.Length;
         }
