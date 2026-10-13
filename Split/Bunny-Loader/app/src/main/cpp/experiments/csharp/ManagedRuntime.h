@@ -27,13 +27,19 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                              int equipmentMask, int npcIndex, int projectileIndex,
                              int npcType, int npcDamage, int npcLife,
                              int projectileType, int projectileDamage, int projectileOwner,
+                             float attackerX, float attackerY,
+                             float attackerVelocityX, float attackerVelocityY,
+                             float attackerAngle, float attackerDistance,
                              ManagedHurtResult* result);
 bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int actualDamage, int hitDirection, int flags,
                              int lifeRemaining, int equipmentMask,
                              int npcIndex, int projectileIndex,
                              int npcType, int npcDamage, int npcLife,
-                             int projectileType, int projectileDamage, int projectileOwner);
+                             int projectileType, int projectileDamage, int projectileOwner,
+                             float attackerX, float attackerY,
+                             float attackerVelocityX, float attackerVelocityY,
+                             float attackerAngle, float attackerDistance);
 
 struct ManagedRuntimeStatus {
     bool attempted = false;
