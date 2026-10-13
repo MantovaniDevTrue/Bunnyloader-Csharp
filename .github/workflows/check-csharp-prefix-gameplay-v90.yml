@@ -259,7 +259,9 @@ jobs:
           assert swift.index('void SetDefaults()') < swift.index('void UpdateEquips(')
           assert 'public int MoveSpeedPercent' not in swift
           assert 'MoveSpeedPercent = 8;' in swift
-          assert 'membros externos a SetDefaults ainda nao suportados' in parser
+          assert 'declaracao de membro C# incompleta' in parser
+          assert 'if (value == "{")' in parser
+          assert 'if (!foundDefaults)' in parser
           print("BUNNY_CSHARP_SWIFT_SDK_SYNC_V90_14=PASS")
           PY
           python3 - <<'PY'
