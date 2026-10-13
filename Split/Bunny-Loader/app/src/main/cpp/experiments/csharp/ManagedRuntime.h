@@ -24,7 +24,8 @@ using ManagedHurtDiagnosticLogFn = void (*)(const char*);
 void setManagedHurtDiagnosticLogger(ManagedHurtDiagnosticLogFn logger);
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                              int hitDirection, int flags, int life, int lifeMax,
-                             int equipmentMask, ManagedHurtResult* result);
+                             int equipmentMask, int npcIndex, int projectileIndex,
+                             ManagedHurtResult* result);
 bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int actualDamage, int hitDirection, int flags,
                              int lifeRemaining, int equipmentMask,
