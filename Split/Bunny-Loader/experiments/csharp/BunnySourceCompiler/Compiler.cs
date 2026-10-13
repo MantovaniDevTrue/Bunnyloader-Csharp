@@ -12,10 +12,10 @@ namespace BunnyLoader.SourceCompiler;
 
 public static class Compiler
 {
-    private const int MaxFiles = 32;
+    private const int MaxFiles = 64;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 2 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v9-memory-optimized";
+    private const string CacheVersion = "roslyn-net8-source-v10-batch-diagnostics";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -68,7 +68,8 @@ public static class Compiler
             .OrderBy(path => path, StringComparer.Ordinal).ToArray();
         if (files.Length == 0 || files.Length > MaxFiles)
         {
-            WriteDiagnostic(diagnosticsFile, "SOURCE_FILE_COUNT_INVALID " + files.Length);
+            WriteDiagnostic(diagnosticsFile, "SOURCE_FILE_COUNT_INVALID atual=" + files.Length +
+                " permitido=1.." + MaxFiles + " pasta=content/; remova copias ou divida o pacote.");
             return -3;
         }
 
@@ -167,25 +168,25 @@ public static class Compiler
         if (extendedDiagnostics)
         {
             Stage(diagnosticsFile, "declaration-diagnostics-start");
-            string[] declarationErrors = compilation.GetDeclarationDiagnostics()
+            var declarationErrors = compilation.GetDeclarationDiagnostics()
                 .Where(item => item.Severity == DiagnosticSeverity.Error)
-                .Take(60).Select(item => item.ToString()).ToArray();
+                .ToArray();
             Stage(diagnosticsFile, "declaration-diagnostics-complete-" + declarationErrors.Length);
             if (declarationErrors.Length > 0)
             {
                 WriteDiagnostic(diagnosticsFile, "COMPILE_DECLARATION_FAILED\n" +
-                    string.Join("\n", declarationErrors));
+                    SourceDiagnostics.Format(declarationErrors));
                 return -8;
             }
             Stage(diagnosticsFile, "methodbody-diagnostics-start");
-            string[] bodyErrors = compilation.GetMethodBodyDiagnostics()
+            var bodyErrors = compilation.GetMethodBodyDiagnostics()
                 .Where(item => item.Severity == DiagnosticSeverity.Error)
-                .Take(60).Select(item => item.ToString()).ToArray();
+                .ToArray();
             Stage(diagnosticsFile, "methodbody-diagnostics-complete-" + bodyErrors.Length);
             if (bodyErrors.Length > 0)
             {
                 WriteDiagnostic(diagnosticsFile, "COMPILE_BODY_FAILED\n" +
-                    string.Join("\n", bodyErrors));
+                    SourceDiagnostics.Format(bodyErrors));
                 return -8;
             }
         }
@@ -210,10 +211,7 @@ public static class Compiler
             File.Delete(temporary);
             WriteDiagnostic(diagnosticsFile,
                 "COMPILE_FAILED\n" +
-                string.Join("\n", result.Diagnostics
-                    .Where(item => item.Severity == DiagnosticSeverity.Error)
-                    .Take(60)
-                    .Select(item => item.ToString())));
+                SourceDiagnostics.Format(result.Diagnostics));
             return -8;
         }
 
@@ -372,3 +370,4 @@ public static class Compiler
             message.Substring(0, 12000) : message);
     }
 }
+

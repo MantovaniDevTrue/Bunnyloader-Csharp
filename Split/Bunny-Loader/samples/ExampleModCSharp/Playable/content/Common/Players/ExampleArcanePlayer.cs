@@ -1,3 +1,6 @@
+// ExampleMod C# | Common/Players/ExampleArcanePlayer.cs
+// BunnyPlayer: confira quais callbacks sao de preparacao e quais recebem contexto durante o jogo.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -18,3 +21,4 @@ public sealed class ExampleArcanePlayer : BunnyPlayer
         return accessoryEquipped ? 10 : 0;
     }
 }
+

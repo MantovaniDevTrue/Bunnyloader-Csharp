@@ -1,3 +1,6 @@
+// ExampleMod C# | Content/Prefixes/ExampleMightyPrefix.cs
+// Prefixo: o C# prepara os dados; hooks nativos aplicam os modificadores e bonus no Terraria.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -21,3 +24,4 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
         valueMultiplier *= 1.05f;
     }
 }
+

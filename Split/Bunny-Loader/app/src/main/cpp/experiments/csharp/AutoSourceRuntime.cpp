@@ -154,7 +154,7 @@ void hashString(uint64_t* hash, const std::string& value) {
 
 bool hashSources(const std::string& dir, const std::string& relative,
                  uint64_t* hash, int* count, int depth) {
-    if (depth > 7 || *count > 32) return false;
+    if (depth > 7 || *count > 64) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
     if (!listing) return false;
@@ -174,7 +174,7 @@ bool hashSources(const std::string& dir, const std::string& relative,
             if (!hashSources(dir, rel, hash, count, depth + 1)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
                    name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
-            if (metadata.st_size < 1 || metadata.st_size > 256 * 1024 || ++*count > 32)
+            if (metadata.st_size < 1 || metadata.st_size > 256 * 1024 || ++*count > 64)
                 return false;
             std::string source = readText(full, 256 * 1024);
             if (source.empty()) return false;
@@ -877,3 +877,4 @@ AutoWorldLifecycleStatus autoWorldLifecycleStatus() {
 }
 
 }
+

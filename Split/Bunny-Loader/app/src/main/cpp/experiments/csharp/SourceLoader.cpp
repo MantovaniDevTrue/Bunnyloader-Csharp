@@ -56,8 +56,9 @@ bool collect(const std::string& folder, const std::string& rel,
         if (S_ISDIR(st.st_mode)) {
             if (!collect(folder, child, paths, error, depth + 1)) return false;
         } else if (S_ISREG(st.st_mode) && isSourceName(name)) {
-            if (st.st_size > 256 * 1024 || st.st_size < 0 || paths->size() >= 32) {
-                *error = "limite de arquivos/fontes C# excedido";
+            if (st.st_size > 256 * 1024 || st.st_size < 0 || paths->size() >= 64) {
+                *error = "content/" + child +
+                    ": limite C# excedido (64 arquivos; 256 KiB por arquivo)";
                 return false;
             }
             paths->push_back(child);
@@ -187,7 +188,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
-    if (paths.empty() || paths.size() > 32) {
+    if (paths.empty() || paths.size() > 64) {
         status->error = "pacote C# sem fontes .cs";
         return false;
     }
@@ -645,3 +646,4 @@ bool applyManagedSourceDefaults(
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
 
 }
+

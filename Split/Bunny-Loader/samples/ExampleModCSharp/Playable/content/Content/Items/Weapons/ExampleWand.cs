@@ -1,3 +1,6 @@
+// ExampleMod C# | Content/Items/Weapons/ExampleWand.cs
+// Arma: Shoot usa nameof da classe de projetil; Texture e um caminho dentro de content/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -14,3 +17,4 @@ public sealed class ExampleWand : BunnyWeapon
         Shoot = nameof(ExampleBolt);
     }
 }
+

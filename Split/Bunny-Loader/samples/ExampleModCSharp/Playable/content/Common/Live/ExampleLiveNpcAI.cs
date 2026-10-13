@@ -1,3 +1,6 @@
+// ExampleMod C# | Common/Live/ExampleLiveNpcAI.cs
+// Callback descoberto pelo nome da classe/metodo. Preserve as assinaturas ao adaptar este exemplo.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 namespace BunnyLoader.Source;
 
 public static class BunnyLiveNpc
@@ -13,3 +16,4 @@ public static class BunnyLiveNpc
         return playerDeltaX > 0 ? speed : -speed;
     }
 }
+

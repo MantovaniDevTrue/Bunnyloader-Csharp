@@ -297,6 +297,7 @@ int64_t g_managedHurtCompletedValue = -1;
 void* g_managedHurtRegisterMethod = nullptr;
 void* g_managedHurtModifyMethod = nullptr;
 void* g_managedHurtAfterMethod = nullptr;
+void* g_managedHurtErrorMethod = nullptr;
 std::atomic<ManagedHurtDiagnosticLogFn> g_hurtDiagnosticLogger{nullptr};
 
 bool g_pinnedStarted = false;
@@ -681,6 +682,38 @@ VmCompareMonoResult runVmCompareMono(
     return output;
 }
 
+void logManagedHurtFailure(const std::string& modId, int slot, const char* phase) {
+    // Only called on the serialized Mono owner, on failures; no hot-path IO.
+    static std::map<std::string, unsigned> reports;
+    unsigned& count = reports[modId + "/" + phase];
+    if (++count > 9) return;
+    std::string text = "csharp callback: mod=" + modId + " fase=" + phase;
+    if (count == 9) {
+        text += " (novas repeticoes omitidas nesta sessao)";
+    } else if (g_managedHurtErrorMethod) {
+        using Utf8Fn = char* (*)(void*);
+        using FreeFn = void (*)(void*);
+        auto utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        auto release = resolve<FreeFn>("mono_free");
+        void* args[] = {&slot};
+        void* exception = nullptr;
+        void* value = g_api.invoke(g_managedHurtErrorMethod, nullptr, args, &exception);
+        if (!exception && value && utf8 && release) {
+            char* message = utf8(value);
+            if (message) {
+                text += " ";
+                text.append(message, strnlen(message, 2304));
+                release(message);
+            }
+        }
+    }
+    if (auto logger = g_hurtDiagnosticLogger.load(std::memory_order_acquire))
+        logger(text.c_str());
+#ifdef __ANDROID__
+    else __android_log_print(ANDROID_LOG_ERROR, "BunnyCSharp", "%s", text.c_str());
+#endif
+}
+
 int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
@@ -715,6 +748,7 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
         g_managedHurtRegisterMethod = g_api.findMethod(cls, "Register", 2);
         g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 21);
         g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 21);
+        g_managedHurtErrorMethod = g_api.findMethod(cls, "GetLastError", 1);
         if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
             !g_managedHurtAfterMethod) return -1;
     }
@@ -730,7 +764,10 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
         void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
         if (!raw) return -1;
         std::memcpy(&slot, raw, sizeof(slot));
-        if (slot < 0 || slot >= 16) return -1;
+        if (slot < 0 || slot >= 16) {
+            logManagedHurtFailure(modId, -1, "Register");
+            return -1;
+        }
         {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
             if (static_cast<size_t>(job.modIndex) < g_managedHurtBindings.size() &&
@@ -783,10 +820,12 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     if (job.after) {
         int done = 0;
         std::memcpy(&done, raw, sizeof(done));
+        if (done < 0) logManagedHurtFailure(modId, slot, "After");
         return done >= 0 ? done : -1;
     }
     int64_t packed = -1;
     std::memcpy(&packed, raw, sizeof(packed));
+    if (packed < 0) logManagedHurtFailure(modId, slot, "Modify");
     return packed;
 }
 
@@ -2866,5 +2905,6 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
 }
 
 }
+
 
 

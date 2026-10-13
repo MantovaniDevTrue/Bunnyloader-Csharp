@@ -10,3 +10,4 @@
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/**/*.cs" />
   </ItemGroup>
 </Project>
+

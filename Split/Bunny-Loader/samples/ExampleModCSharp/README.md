@@ -1,6 +1,8 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
-**Versão do exemplo:** 0.1.15 (prefixos C# experimentais). **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
+**Versão atual do exemplo: 0.1.25**, para o lote .90.25. Comece pelo [guia incluído no .bmod](Playable/content/LEIA_PRIMEIRO.md) e pelas [oito receitas comentadas](Playable/content/Common/Recipes/).
+
+**Histórico anterior:** **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
 
 Este exemplo segue os fontes do Bunny Loader e do ExampleModBunny, sem copiar APIs do tModLoader. Não garante execução direta de mods de PC.
 
@@ -45,6 +47,7 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 - **.85.1 + ExampleModCSharp 0.1.13:** 479 chamadas V4, 410 efeitos aplicados, nenhum drop por fila e 60 FPS no Android; cache ativo no segundo carregamento.
 - **.86 + ExampleModCSharp 0.1.14:** 473 callbacks V4, 87 impulsos reais confirmados visualmente, sem falhas gerenciadas nem drops e 60 FPS no Android.
 
-Os prefixos da .90 ainda não foram validados no Android. Eles são executados pelo C# na preparação, enquanto hooks nativos aplicam os dados ao Terraria; não usar a .90 como baseline estável.
+A restauração dos três prefixos da .90.11 foi confirmada pelo usuário no Android. Os utilitários e diagnósticos novos da .90.25 têm validação automatizada de host; gameplay desta nova build ainda requer confirmação no aparelho.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
+
