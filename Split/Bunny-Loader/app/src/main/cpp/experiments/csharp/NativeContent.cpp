@@ -67,6 +67,13 @@ struct NativeRefs {
     int npcAiStyle = -1;
     int npcType = -1;
     int npcLife = -1;
+    int npcPosition = -1;
+    int npcVelocity = -1;
+    int projectilePosition = -1;
+    int projectileVelocity = -1;
+    int playerPosition = -1;
+    int playerWidth = -1;
+    int playerHeight = -1;
     int projectileType = -1;
     int projectileDamage = -1;
     int projectileOwner = -1;
@@ -598,7 +605,19 @@ void snapshotHurtSource(const void* source, int* npcIndex, int* projectileIndex,
         *projectileIndex = *rawProjectile;
 }
 
+struct HurtVector2 {
+    float x = 0.f;
+    float y = 0.f;
+};
+static_assert(sizeof(HurtVector2) == 8);
+
 struct HurtAttackerSnapshot {
+    float attackerX = -1.f;
+    float attackerY = -1.f;
+    float attackerVelocityX = -1.f;
+    float attackerVelocityY = -1.f;
+    float attackerAngle = -1.f;
+    float attackerDistance = -1.f;
     int npcType = -1;
     int npcDamage = -1;
     int npcLife = -1;
@@ -607,7 +626,28 @@ struct HurtAttackerSnapshot {
     int projectileOwner = -1;
 };
 
-HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
+bool readHurtMotion(Il2CppObject* attacker, int positionOffset, int velocityOffset,
+                    int widthOffset, int heightOffset, HurtAttackerSnapshot* snapshot) {
+    if (!attacker || !snapshot || positionOffset < 0 || velocityOffset < 0 ||
+        widthOffset < 0 || heightOffset < 0)
+        return false;
+    const HurtVector2 pos = bl::runtime::field<HurtVector2>(attacker, positionOffset);
+    const HurtVector2 speed = bl::runtime::field<HurtVector2>(attacker, velocityOffset);
+    const int width = bl::runtime::field<int32_t>(attacker, widthOffset);
+    const int height = bl::runtime::field<int32_t>(attacker, heightOffset);
+    if (!std::isfinite(pos.x) || !std::isfinite(pos.y) ||
+        !std::isfinite(speed.x) || !std::isfinite(speed.y) ||
+        width < 1 || width > 8192 || height < 1 || height > 8192)
+        return false;
+    snapshot->attackerX = pos.x + static_cast<float>(width) * 0.5f;
+    snapshot->attackerY = pos.y + static_cast<float>(height) * 0.5f;
+    snapshot->attackerVelocityX = speed.x;
+    snapshot->attackerVelocityY = speed.y;
+    return true;
+}
+
+HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex,
+                                         Il2CppObject* player) {
     HurtAttackerSnapshot snapshot;
     auto& runtime = bl::il2cpp::api();
     if (!runtime.field_static_get_value) return snapshot;
@@ -629,6 +669,8 @@ HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
                     snapshot.npcDamage = bl::runtime::field<int32_t>(attacker, g_refs.npcDamage);
                 if (g_refs.npcLife >= 0)
                     snapshot.npcLife = bl::runtime::field<int32_t>(attacker, g_refs.npcLife);
+                readHurtMotion(attacker, g_refs.npcPosition, g_refs.npcVelocity,
+                               g_refs.npcWidth, g_refs.npcHeight, &snapshot);
             }
         }
     } else if (projectileIndex >= 0 && projectileIndex < 1000 &&
@@ -653,6 +695,30 @@ HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
                 if (g_refs.projectileOwner >= 0)
                     snapshot.projectileOwner = bl::runtime::field<int32_t>(
                         attacker, g_refs.projectileOwner);
+                readHurtMotion(attacker, g_refs.projectilePosition,
+                               g_refs.projectileVelocity, g_refs.projWidth,
+                               g_refs.projHeight, &snapshot);
+            }
+        }
+    }
+    if (player && g_refs.playerPosition >= 0 &&
+        g_refs.playerWidth >= 0 && g_refs.playerHeight >= 0 &&
+        snapshot.attackerX >= 0.f && snapshot.attackerY >= 0.f) {
+        const HurtVector2 pos = bl::runtime::field<HurtVector2>(
+            player, g_refs.playerPosition);
+        const int width = bl::runtime::field<int32_t>(player, g_refs.playerWidth);
+        const int height = bl::runtime::field<int32_t>(player, g_refs.playerHeight);
+        if (std::isfinite(pos.x) && std::isfinite(pos.y) &&
+            width > 0 && width <= 8192 && height > 0 && height <= 8192) {
+            const float dx = pos.x + static_cast<float>(width) * 0.5f -
+                             snapshot.attackerX;
+            const float dy = pos.y + static_cast<float>(height) * 0.5f -
+                             snapshot.attackerY;
+            const float distance = std::hypot(dx, dy);
+            if (std::isfinite(distance) && distance <= 1000000.f) {
+                snapshot.attackerDistance = distance;
+                snapshot.attackerAngle = distance > 0.001f
+                    ? std::atan2(dy, dx) : 0.f;
             }
         }
     }
@@ -714,7 +780,7 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     int rawProjectile = -1;
     snapshotHurtSource(source, &npcSource, &projectileSource,
                        &rawNpc, &rawProjectile);
-    const HurtAttackerSnapshot attacker = snapshotHurtAttacker(npcSource, projectileSource);
+    const HurtAttackerSnapshot attacker = snapshotHurtAttacker(npcSource, projectileSource, self);
     static int contextNpcLogs = 0;
     static int contextProjectileLogs = 0;
     if (npcSource >= 0 && contextNpcLogs++ < 8)
@@ -724,6 +790,18 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         BL_INFO("csharp hit context projectile: index=%d tipo=%d dano=%d dono=%d",
                 projectileSource, attacker.projectileType,
                 attacker.projectileDamage, attacker.projectileOwner);
+    static int spatialNpcLogs = 0;
+    static int spatialProjectileLogs = 0;
+    if (npcSource >= 0 && spatialNpcLogs++ < 8)
+        BL_INFO("csharp hit spatial NPC: x=%.1f y=%.1f vx=%.1f vy=%.1f ang=%.3f distancia=%.1f",
+                attacker.attackerX, attacker.attackerY,
+                attacker.attackerVelocityX, attacker.attackerVelocityY,
+                attacker.attackerAngle, attacker.attackerDistance);
+    else if (projectileSource >= 0 && spatialProjectileLogs++ < 8)
+        BL_INFO("csharp hit spatial Projectile: x=%.1f y=%.1f vx=%.1f vy=%.1f ang=%.3f distancia=%.1f",
+                attacker.attackerX, attacker.attackerY,
+                attacker.attackerVelocityX, attacker.attackerVelocityY,
+                attacker.attackerAngle, attacker.attackerDistance);
     static int npcCaptures = 0;
     static int projectileCaptures = 0;
     static int unknownCaptures = 0;
@@ -757,7 +835,11 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
                                      life, lifeMax, mask, npcSource, projectileSource,
                                      attacker.npcType, attacker.npcDamage, attacker.npcLife,
                                      attacker.projectileType, attacker.projectileDamage,
-                                     attacker.projectileOwner, &result)) continue;
+                                     attacker.projectileOwner,
+                                     attacker.attackerX, attacker.attackerY,
+                                     attacker.attackerVelocityX, attacker.attackerVelocityY,
+                                     attacker.attackerAngle, attacker.attackerDistance,
+                                     &result)) continue;
         ++changed;
         damage = result.damage;
         direction = result.hitDirection;
@@ -820,7 +902,10 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
                 remaining, participant.equipmentMask, npcSource, projectileSource,
                 attacker.npcType, attacker.npcDamage, attacker.npcLife,
                 attacker.projectileType, attacker.projectileDamage,
-                attacker.projectileOwner);
+                attacker.projectileOwner,
+                attacker.attackerX, attacker.attackerY,
+                attacker.attackerVelocityX, attacker.attackerVelocityY,
+                attacker.attackerAngle, attacker.attackerDistance);
             if (logSource)
                 BL_INFO("csharp BunnyPlayer hit diag: evento OnHurt fila=%s npc=%d projectile=%d dano=%d vida=%d",
                         queued ? "aceito" : "recusado",
@@ -939,6 +1024,13 @@ bool prepareNativeContent() {
     r.npcAiStyle = fieldOffset(npc, "aiStyle");
     r.npcType = fieldOffset(npc, "type");
     r.npcLife = fieldOffset(npc, "life");
+    r.npcPosition = fieldOffset(npc, "position");
+    r.npcVelocity = fieldOffset(npc, "velocity");
+    r.projectilePosition = fieldOffset(projectile, "position");
+    r.projectileVelocity = fieldOffset(projectile, "velocity");
+    r.playerPosition = fieldOffset(player, "position");
+    r.playerWidth = fieldOffset(player, "width");
+    r.playerHeight = fieldOffset(player, "height");
     r.projectileType = fieldOffset(projectile, "type");
     r.projectileDamage = fieldOffset(projectile, "damage");
     r.projectileOwner = fieldOffset(projectile, "owner");
