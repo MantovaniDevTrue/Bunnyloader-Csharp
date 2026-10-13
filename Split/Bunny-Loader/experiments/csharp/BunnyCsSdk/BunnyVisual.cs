@@ -123,7 +123,7 @@ public static class BunnyVisual
             command.Opacity < 0f || command.Opacity > 1f ||
             command.Texture.Length > 240 ||
             command.Texture.Contains('|') || command.Texture.Contains("..") ||
-            command.Texture.Contains('\\\\'))
+            command.Texture.IndexOf((char)92) >= 0)
             return false;
 
         if (command.Kind == BunnyVisualKind.PlayerOverlay ||
