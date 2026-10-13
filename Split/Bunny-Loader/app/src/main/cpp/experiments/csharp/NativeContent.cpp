@@ -695,6 +695,28 @@ bool prepareNativePlayerEffects() {
     } else {
         BL_WARN("csharp BunnyPlayer OnRespawn: assinatura de Player.Spawn indisponivel");
     }
+    const MethodInfo* update = findMethodBySignature(
+        player, parseSignature("void Update(int i)"));
+    const MethodInfo* dead = findMethodBySignature(
+        player, parseSignature("void UpdateDead()"));
+    const MethodInfo* lifeRegen = findMethodBySignature(
+        player, parseSignature("void UpdateLifeRegen()"));
+    const MethodInfo* manaRegen = findMethodBySignature(
+        player, parseSignature("void UpdateManaRegen()"));
+    if (update && bl::hook::install(update, hkPlayerUpdate, &g_originalPlayerUpdate))
+        BL_INFO("csharp BunnyPlayer PreUpdate/PostUpdate: hooks instalados");
+    else BL_WARN("csharp BunnyPlayer PreUpdate/PostUpdate: hook indisponivel");
+    if (dead && bl::hook::install(dead, hkPlayerUpdateDead, &g_originalUpdateDead))
+        BL_INFO("csharp BunnyPlayer UpdateDead: hook instalado");
+    else BL_WARN("csharp BunnyPlayer UpdateDead: hook indisponivel");
+    if (r.playerLifeRegen >= 0 && lifeRegen &&
+        bl::hook::install(lifeRegen, hkPlayerLifeRegen, &g_originalLifeRegen))
+        BL_INFO("csharp BunnyPlayer UpdateLifeRegen: hook instalado");
+    else BL_WARN("csharp BunnyPlayer UpdateLifeRegen: hook indisponivel");
+    if (r.playerManaRegen >= 0 && manaRegen &&
+        bl::hook::install(manaRegen, hkPlayerManaRegen, &g_originalManaRegen))
+        BL_INFO("csharp BunnyPlayer UpdateManaRegen: hook instalado");
+    else BL_WARN("csharp BunnyPlayer UpdateManaRegen: hook indisponivel");
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
