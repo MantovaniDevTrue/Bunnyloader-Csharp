@@ -22,6 +22,13 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
     public int LastProjectileOwner { get; private set; } = -1;
     public int SlimePreHits { get; private set; }
     public int EnemyProjectilePreHits { get; private set; }
+    public float LastAttackerX { get; private set; } = -1f;
+    public float LastAttackerY { get; private set; } = -1f;
+    public float LastAttackerVelocityX { get; private set; } = -1f;
+    public float LastAttackerVelocityY { get; private set; } = -1f;
+    public float LastAttackerAngle { get; private set; } = -1f;
+    public float LastAttackerDistance { get; private set; } = -1f;
+    public float LastPostHitDistance { get; private set; } = -1f;
 
     public override void SetDefaults()
     {
@@ -45,6 +52,16 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
         modifiers.Damage = (int)((long)modifiers.Damage * 3 / 4);
     }
 
+    private void CaptureAttacker(BunnyHurtModifiers modifiers)
+    {
+        LastAttackerX = modifiers.AttackerX;
+        LastAttackerY = modifiers.AttackerY;
+        LastAttackerVelocityX = modifiers.AttackerVelocityX;
+        LastAttackerVelocityY = modifiers.AttackerVelocityY;
+        LastAttackerAngle = modifiers.AttackerAngle;
+        LastAttackerDistance = modifiers.AttackerDistance;
+    }
+
     public override void ModifyHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtModifiers modifiers)
     {
         if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0 ||
@@ -52,6 +69,7 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         NpcPreHitCalls++;
+        CaptureAttacker(modifiers);
         LastNpcType = modifiers.NpcType;
         LastNpcDamage = modifiers.NpcDamage;
         LastNpcLife = modifiers.NpcLife;
@@ -67,6 +85,7 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         ProjectilePreHitCalls++;
+        CaptureAttacker(modifiers);
         LastProjectileType = modifiers.ProjectileType;
         LastProjectileDamage = modifiers.ProjectileDamage;
         LastProjectileOwner = modifiers.ProjectileOwner;
@@ -96,6 +115,7 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
 
         HitsTaken++;
         LastDamageTaken = info.Damage;
+        LastPostHitDistance = info.AttackerDistance;
     }
 
     public override void OnHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtInfo info)
