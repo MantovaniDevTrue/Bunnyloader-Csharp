@@ -342,9 +342,36 @@ try
         if (damage != 60 || cancelled != (hit == 4) || dodgeFlag != (hit == 4))
             throw new InvalidOperationException("C# managed FreeDodge packed ABI differs");
         if (hit < 4 && BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
-                hurtSlot, 50, 80, 1, 8, 200, 1 << vitalIndex) <= 0)
+                hurtSlot, 50, 80, 1, 8, 200, 1 << vitalIndex, 7, -1) <= 0)
             throw new InvalidOperationException("C# managed OnHurt dispatch failed");
     }
+    var onNpc = vitalType.GetMethod("OnHitByNPC")
+        ?? throw new InvalidOperationException("Example Vital OnHitByNPC missing");
+    var onProjectile = vitalType.GetMethod("OnHitByProjectile")
+        ?? throw new InvalidOperationException("Example Vital OnHitByProjectile missing");
+    var fromNpc = new BunnyLoader.Source.BunnyHurtInfo(
+        11, 16, 1, 240, false, false, 7, -1);
+    var fromProjectile = new BunnyLoader.Source.BunnyHurtInfo(
+        15, 25, -1, 225, false, false, -1, 31);
+    if (fromNpc.NpcIndex != 7 || fromNpc.ProjectileIndex != -1 ||
+        fromProjectile.NpcIndex != -1 || fromProjectile.ProjectileIndex != 31)
+        throw new InvalidOperationException("BunnyHurtInfo source identity lost");
+    onNpc.Invoke(vital, new object[] { true, 7, fromNpc });
+    onNpc.Invoke(vital, new object[] { false, 9, fromNpc });
+    onProjectile.Invoke(vital, new object[] { true, 31, fromProjectile });
+    onProjectile.Invoke(vital, new object[] { false, 42, fromProjectile });
+    if ((int)(vitalType.GetProperty("NpcHitsTaken")?.GetValue(vital) ?? -1) != 1 ||
+        (int)(vitalType.GetProperty("ProjectileHitsTaken")?.GetValue(vital) ?? -1) != 1 ||
+        (int)(vitalType.GetProperty("LastNpcIndex")?.GetValue(vital) ?? -1) != 7 ||
+        (int)(vitalType.GetProperty("LastProjectileIndex")?.GetValue(vital) ?? -1) != 31)
+        throw new InvalidOperationException("C# hit source callbacks lost state");
+    if (BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
+        hurtSlot, 10, 15, -1, 8, 190, 1 << vitalIndex, -1, 31) <= 0)
+        throw new InvalidOperationException("C# projectile hit source dispatch failed");
+    if (BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
+        hurtSlot, 10, 15, -1, 8, 180, 1 << vitalIndex, -1, -1) <= 0)
+        throw new InvalidOperationException("C# generic hurt dispatch failed");
+    Console.WriteLine("BUNNY_CSHARP_HIT_SOURCE_DISPATCH=PASS");
     onHurt.Invoke(vital, new object[] {
         true, new BunnyLoader.Source.BunnyHurtInfo(50, 80, 1, 200, false, false)
     });
