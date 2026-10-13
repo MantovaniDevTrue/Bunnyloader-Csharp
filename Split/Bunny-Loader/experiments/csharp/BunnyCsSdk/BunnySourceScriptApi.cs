@@ -74,7 +74,46 @@ public abstract class BunnyPlayer
     public virtual string UpdateDead() => "";
     public virtual int UpdateLifeRegen(bool accessoryEquipped) => 0;
     public virtual int UpdateManaRegen(bool accessoryEquipped) => 0;
+    public virtual void ModifyHurt(bool accessoryEquipped, BunnyHurtModifiers modifiers) { }
+    public virtual void OnHurt(bool accessoryEquipped, BunnyHurtInfo info) { }
 }
+
+public sealed class BunnyHurtModifiers
+{
+    public int Damage { get; set; }
+    public int HitDirection { get; set; }
+    public int CurrentLife { get; set; }
+    public int MaxLife { get; set; }
+    public bool PvP { get; set; }
+    public bool Quiet { get; set; }
+    public bool Crit { get; set; }
+    public bool Dodgeable { get; set; }
+    public bool Cancelled { get; private set; }
+
+    public void Cancel() => Cancelled = true;
+}
+
+public readonly struct BunnyHurtInfo
+{
+    public int Damage { get; }
+    public int SourceDamage { get; }
+    public int HitDirection { get; }
+    public int LifeRemaining { get; }
+    public bool PvP { get; }
+    public bool Crit { get; }
+
+    public BunnyHurtInfo(int damage, int sourceDamage, int hitDirection,
+                         int lifeRemaining, bool pvp, bool crit)
+    {
+        Damage = damage;
+        SourceDamage = sourceDamage;
+        HitDirection = hitDirection;
+        LifeRemaining = lifeRemaining;
+        PvP = pvp;
+        Crit = crit;
+    }
+}
+
 public abstract class BunnyNPC
 {
     public string DisplayName { get; set; } = "";
