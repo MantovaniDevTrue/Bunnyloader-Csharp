@@ -811,6 +811,10 @@ void noteAutoGameUpdate() {
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (tick % 12 == 0) {
+            const std::string sdk = folderOfCheckpoint() + "BunnySourceSdk.dll";
+            pollManagedVisualCommands(sdk, 8);
+        }
         advanceManagedVisualState(tick, 32);
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
