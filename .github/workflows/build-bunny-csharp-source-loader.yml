@@ -815,8 +815,6 @@ jobs:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["entry"]=="main.cs"
-              assert "content/LEIA_PRIMEIRO.md" in names
-              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
               assert "content/main.cs" in names
               assert "content/Content/Items/Weapons/SourceWand.cs" in names
               assert "content/Content/Items/Weapons/SourceStaff.cs" in names
@@ -902,6 +900,8 @@ jobs:
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert len([n for n in names if n.endswith(".cs")])==36
+              assert "content/LEIA_PRIMEIRO.md" in names
+              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
               assert "content/main.cs" in names
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
