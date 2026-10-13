@@ -112,6 +112,7 @@ JSValue jsManagedVisualSnapshot(JSContext* ctx, JSValueConst, int argc, JSValueC
     for (const auto& effect : active) {
         JSValue record = JS_NewObject(ctx);
         JS_SetPropertyStr(ctx, record, "kind", JS_NewInt32(ctx, static_cast<int>(effect.kind)));
+        JS_SetPropertyStr(ctx, record, "style", JS_NewInt32(ctx, effect.style));
         JS_SetPropertyStr(ctx, record, "effectId", JS_NewInt32(ctx, effect.effectId));
         JS_SetPropertyStr(ctx, record, "texture", JS_NewString(ctx, effect.texture.c_str()));
         JS_SetPropertyStr(ctx, record, "scale", JS_NewFloat64(ctx, effect.scale));
