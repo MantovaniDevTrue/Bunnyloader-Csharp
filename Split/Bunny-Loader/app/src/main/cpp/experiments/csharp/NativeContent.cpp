@@ -619,7 +619,11 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         direction = result.hitDirection;
         flags = (flags & 1) | (result.flags & 14);
         if (result.cancelled) {
-            BL_INFO("csharp BunnyPlayer ModifyHurt: golpe cancelado");
+            if (result.dodged)
+                BL_INFO("csharp BunnyPlayer FreeDodge: golpe esquivado pelo C# (entrada=%d, apos ModifyHurt=%d)",
+                        sourceDamage, damage);
+            else
+                BL_INFO("csharp BunnyPlayer ModifyHurt: golpe cancelado");
             return 0.0;
         }
     }
