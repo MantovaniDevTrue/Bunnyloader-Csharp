@@ -127,6 +127,10 @@ struct ManagedPlayerEntry {
     int manaRegenBonus = 0;
 };
 
+bool bindManagedPlayerHurtMod(const std::string& modId,
+                              const std::string& assemblyPath);
+void pauseManagedPlayerHurtBindings();
+
 bool showManagedPlayerWorldJoinMessages();
 
 bool applyManagedNativePlayerDefaultsBatch(
