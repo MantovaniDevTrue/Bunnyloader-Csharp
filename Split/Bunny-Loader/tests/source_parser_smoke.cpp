@@ -54,11 +54,22 @@ int main(int argc, char** argv) {
     if (bl::csharp::parseCSharpSource(
         "class Bad : BunnyWeapon { public override void SetDefaults() { Damage = 10 + 2; } }",
         &unsupported, &error)) return 6;
-    std::vector<bl::csharp::ParsedSourceType> unsafeFields;
+    std::vector<bl::csharp::ParsedSourceType> statefulFields;
     error.clear();
-    if (bl::csharp::parseCSharpSource(
-        "class Unsafe : BunnyProjectile { public override void SetDefaults() { Width = 10; } public int score = 1; }",
-        &unsafeFields, &error)) return 11;
+    if (!bl::csharp::parseCSharpSource(
+        "class Stateful : BunnyProjectile { public int HitsTaken { get; private set; }"
+        " public int LastDamageTaken { get; private set; }"
+        " private int score = 1;"
+        " public override void OnHitNPC(int damage) { score = damage; }"
+        " public override void SetDefaults() { Width = 10; }"
+        " public int Total() => score + HitsTaken; }",
+        &statefulFields, &error)) {
+        std::cerr << "Stateful C# member rejected: " << error << std::endl;
+        return 11;
+    }
+    if (statefulFields.size() != 1 ||
+        statefulFields[0].properties.at("Width") != "10")
+        return 18;
     std::vector<bl::csharp::ParsedSourceType> methods;
     error.clear();
     if (!bl::csharp::parseCSharpSource(
@@ -66,6 +77,18 @@ int main(int argc, char** argv) {
         &methods, &error)) return 12;
     if (methods.size() != 1 || methods[0].properties.at("Width") != "10")
         return 13;
+    std::vector<bl::csharp::ParsedSourceType> invalidField;
+    error.clear();
+    if (bl::csharp::parseCSharpSource(
+        "class Incomplete : BunnyWeapon { public int HitsTaken { get;"
+        " public override void SetDefaults() { Damage = 10; } }",
+        &invalidField, &error)) return 19;
+    std::vector<bl::csharp::ParsedSourceType> doubleDefaults;
+    error.clear();
+    if (bl::csharp::parseCSharpSource(
+        "class Duplicate : BunnyWeapon { public override void SetDefaults() { Damage = 10; }"
+        " public override void SetDefaults() { Damage = 20; } }",
+        &doubleDefaults, &error)) return 20;
     std::ifstream liveInput(argv[6], std::ios::binary);
     if (!liveInput) return 14;
     const std::string liveSource(
