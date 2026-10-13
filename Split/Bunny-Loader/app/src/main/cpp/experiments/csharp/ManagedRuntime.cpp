@@ -722,8 +722,11 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
                 g_managedHurtBindings[static_cast<size_t>(job.modIndex)].modId == modId)
                 g_managedHurtBindings[static_cast<size_t>(job.modIndex)].managedSlot = slot;
         }
-        BL_INFO("csharp BunnyPlayer Hurt: MonoVM pronto para %s (slot=%d)",
-                modId.c_str(), slot);
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "BunnyPlayer Hurt MonoVM ready: %s (slot=%d)",
+                            modId.c_str(), slot);
+#endif
     }
     int d = job.damage;
     int origin = job.sourceDamage;
