@@ -31,3 +31,13 @@ jobs:
         run: g++ -std=c++17 -fno-exceptions -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_state_test.cpp -o /tmp/managed_visual_state_test
       - name: Run visual state test
         run: /tmp/managed_visual_state_test
+      - name: Parse actual ExampleModCSharp accessory visual defaults
+        run: |
+          g++ -std=c++20 -fno-exceptions -Wall -Wextra -Werror -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            Split/Bunny-Loader/tests/csharp_visual_source_parser_test.cpp \
+            -o /tmp/csharp_visual_source_parser_test
+          /tmp/csharp_visual_source_parser_test \
+            Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs \
+            Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs \
+            Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleMysticWardAccessory.cs
