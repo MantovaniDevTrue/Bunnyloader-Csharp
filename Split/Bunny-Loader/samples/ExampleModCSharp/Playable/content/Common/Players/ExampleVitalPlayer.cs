@@ -52,16 +52,6 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
         modifiers.Damage = (int)((long)modifiers.Damage * 3 / 4);
     }
 
-    private void CaptureAttacker(BunnyHurtModifiers modifiers)
-    {
-        LastAttackerX = modifiers.AttackerX;
-        LastAttackerY = modifiers.AttackerY;
-        LastAttackerVelocityX = modifiers.AttackerVelocityX;
-        LastAttackerVelocityY = modifiers.AttackerVelocityY;
-        LastAttackerAngle = modifiers.AttackerAngle;
-        LastAttackerDistance = modifiers.AttackerDistance;
-    }
-
     public override void ModifyHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtModifiers modifiers)
     {
         if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0 ||
@@ -69,7 +59,12 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         NpcPreHitCalls++;
-        CaptureAttacker(modifiers);
+        LastAttackerX = modifiers.AttackerX;
+        LastAttackerY = modifiers.AttackerY;
+        LastAttackerVelocityX = modifiers.AttackerVelocityX;
+        LastAttackerVelocityY = modifiers.AttackerVelocityY;
+        LastAttackerAngle = modifiers.AttackerAngle;
+        LastAttackerDistance = modifiers.AttackerDistance;
         LastNpcType = modifiers.NpcType;
         LastNpcDamage = modifiers.NpcDamage;
         LastNpcLife = modifiers.NpcLife;
@@ -85,7 +80,12 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         ProjectilePreHitCalls++;
-        CaptureAttacker(modifiers);
+        LastAttackerX = modifiers.AttackerX;
+        LastAttackerY = modifiers.AttackerY;
+        LastAttackerVelocityX = modifiers.AttackerVelocityX;
+        LastAttackerVelocityY = modifiers.AttackerVelocityY;
+        LastAttackerAngle = modifiers.AttackerAngle;
+        LastAttackerDistance = modifiers.AttackerDistance;
         LastProjectileType = modifiers.ProjectileType;
         LastProjectileDamage = modifiers.ProjectileDamage;
         LastProjectileOwner = modifiers.ProjectileOwner;
