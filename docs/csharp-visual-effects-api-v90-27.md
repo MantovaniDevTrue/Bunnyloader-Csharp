@@ -25,3 +25,10 @@ This is **NOT an operational render API**. No MonoVM-to-native command drain, Te
 6. Run compiler tests and Android 60 FPS QA before signing/publishing an APK.
 
 Keep the existing passive Mystic Ward protection and the existing Guardian/Trailblazer gameplay stats intact.
+
+## Runtime entry points (commit 3159746)
+
+- `pollManagedVisualCommands(assemblyPath, budget)` resolves `BunnyLoader.Source.BunnyVisual.TakeWire()` through the existing Mono embedding runtime, attaches the current thread when needed, and pumps bounded commands to a shared native queue.
+- `takeManagedVisualCommand()` reads from that queue; `clearManagedVisualCommands()` resets it.
+- These are *on-demand native API entry points*, not yet scheduled by the game loop. No renderer or texture draw has been connected. Full Android compilation and in-game validation are still required.
+- Caveat: the source assembly must include `BunnyVisual` in namespace `BunnyLoader.Source`. Confirm package/source compiler inclusion before using this path.
