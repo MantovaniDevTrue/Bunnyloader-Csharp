@@ -213,7 +213,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 22)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 28)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -237,10 +237,16 @@ try
         !independentDefaults.Contains("ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleGuardianShieldAccessory\t0\t+5 defesa, +4 regeneracao de vida; reduz dano de NPCs e projeteis\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleTrailblazerBootsAccessory\t0\t+12% velocidade, +8% aceleracao; efeito visual ao equipar\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleMysticWardAccessory\t0\t+3 defesa, +8 regeneracao de mana; protecao com pouca vida e contra projeteis proximos\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleGuardianShieldPlayer\tExampleGuardianShieldAccessory\t5\t0\t0\t0\t-\t-\t0\t0\t-\t4\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleTrailblazerBootsPlayer\tExampleTrailblazerBootsAccessory\t0\t12\t8\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleMysticWardPlayer\tExampleMysticWardAccessory\t3\t0\t0\t0\t-\t-\t0\t0\t-\t0\t8\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 23)
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 29)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
