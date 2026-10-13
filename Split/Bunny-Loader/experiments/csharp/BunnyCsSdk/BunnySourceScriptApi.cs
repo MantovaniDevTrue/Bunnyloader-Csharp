@@ -75,6 +75,7 @@ public abstract class BunnyPlayer
     public virtual int UpdateLifeRegen(bool accessoryEquipped) => 0;
     public virtual int UpdateManaRegen(bool accessoryEquipped) => 0;
     public virtual void ModifyHurt(bool accessoryEquipped, BunnyHurtModifiers modifiers) { }
+    public virtual bool FreeDodge(bool accessoryEquipped, BunnyHurtModifiers modifiers) => false;
     public virtual void OnHurt(bool accessoryEquipped, BunnyHurtInfo info) { }
 }
 
