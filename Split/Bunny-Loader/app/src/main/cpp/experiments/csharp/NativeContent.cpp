@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <vector>
 #include <cstddef>
@@ -23,6 +24,10 @@
 #include <cmath>
 #include <string>
 #include <sys/stat.h>
+
+namespace bl::script {
+size_t structFieldOffset(Il2CppClass* cls, size_t fieldOffset);
+}
 
 namespace bl::csharp {
 namespace {
@@ -80,6 +85,9 @@ struct NativeRefs {
     int playerImmune = -1;
     int playerImmuneTime = -1;
     int playerHurtCooldowns = -1;
+    int sourceNpcOffset = -1;
+    int sourceProjectileOffset = -1;
+    int sourceSize = 0;
 };
 
 struct NativeWeaponDefaults {
@@ -564,6 +572,24 @@ void hkPlayerUpdateDead(Il2CppObject* self, const MethodInfo* method) {
     BL_INFO("csharp BunnyPlayer UpdateDead: %d mensagem(ns) enviadas(s)", delivered);
 }
 
+void snapshotHurtSource(const void* source, int* npcIndex, int* projectileIndex) {
+    if (!npcIndex || !projectileIndex) return;
+    *npcIndex = -1;
+    *projectileIndex = -1;
+    if (!source || g_refs.sourceSize <= 0) return;
+    const auto* bytes = static_cast<const uint8_t*>(source);
+    int32_t npc = -1;
+    int32_t projectile = -1;
+    if (g_refs.sourceNpcOffset >= 0)
+        std::memcpy(&npc, bytes + g_refs.sourceNpcOffset, sizeof(npc));
+    if (g_refs.sourceProjectileOffset >= 0)
+        std::memcpy(&projectile, bytes + g_refs.sourceProjectileOffset, sizeof(projectile));
+    if (npc >= 0 && npc < 200)
+        *npcIndex = npc;
+    else if (projectile >= 0 && projectile < 1000)
+        *projectileIndex = projectile;
+}
+
 double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
                     int32_t direction, uint8_t pvp, uint8_t quiet, uint8_t crit,
                     int32_t cooldown, uint8_t dodgeable, const MethodInfo* method) {
@@ -613,6 +639,9 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     const int sourceDamage = damage;
     const int life = bl::runtime::field<int32_t>(self, g_refs.playerLife);
     const int lifeMax = bl::runtime::field<int32_t>(self, g_refs.playerLifeMax);
+    int npcSource = -1;
+    int projectileSource = -1;
+    snapshotHurtSource(source, &npcSource, &projectileSource);
     int changed = 0;
     for (const auto& binding : mods) {
         int mask = 0;
@@ -683,7 +712,8 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
             0, bl::runtime::field<int32_t>(self, g_refs.playerLife));
         for (const auto& participant : participants)
             notifyManagedPlayerHurt(participant.modId, sourceDamage, actual,
-                                    direction, flags, remaining, participant.equipmentMask);
+                                    direction, flags, remaining, participant.equipmentMask,
+                                    npcSource, projectileSource);
     }
     return applied;
 }
@@ -928,6 +958,34 @@ bool prepareNativePlayerEffects() {
     else BL_WARN("csharp BunnyPlayer UpdateManaRegen: hook indisponivel");
     const MethodInfo* hurt = findMethodBySignature(player, parseSignature(
         "double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)"));
+    if (hurt && api().method_get_param && api().class_from_il2cpp_type &&
+        api().field_get_offset && api().class_value_size) {
+        const Il2CppType* reasonType = api().method_get_param(hurt, 0);
+        Il2CppClass* reason = reasonType
+            ? api().class_from_il2cpp_type(reasonType) : nullptr;
+        FieldInfo* npc = reason ? findField(reason, "_sourceNPCIndex") : nullptr;
+        FieldInfo* projectile = reason
+            ? findField(reason, "_sourceProjectileLocalIndex") : nullptr;
+        uint32_t alignment = 0;
+        const int bytes = reason ? api().class_value_size(reason, &alignment) : 0;
+        if (npc && projectile && bytes >= 16 && bytes <= 128) {
+            const size_t npcOffset = bl::script::structFieldOffset(
+                reason, api().field_get_offset(npc));
+            const size_t projectileOffset = bl::script::structFieldOffset(
+                reason, api().field_get_offset(projectile));
+            if (npcOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
+                projectileOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
+                npcOffset != projectileOffset) {
+                g_refs.sourceNpcOffset = static_cast<int>(npcOffset);
+                g_refs.sourceProjectileOffset = static_cast<int>(projectileOffset);
+                g_refs.sourceSize = bytes;
+                BL_INFO("csharp BunnyPlayer fonte do dano: PlayerDeathReason size=%d npcOffset=%zu projectileOffset=%zu",
+                        bytes, npcOffset, projectileOffset);
+            }
+        }
+        if (g_refs.sourceSize == 0)
+            BL_WARN("csharp BunnyPlayer fonte do dano: metadata PlayerDeathReason indisponivel");
+    }
     if (hurt && r.playerLife >= 0 && r.playerLifeMax >= 0 &&
         r.playerImmune >= 0 && r.playerImmuneTime >= 0 &&
         bl::hook::install(hurt, hkPlayerHurt, &g_originalPlayerHurt))
