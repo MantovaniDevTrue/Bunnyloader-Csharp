@@ -14,6 +14,7 @@ struct ManagedHurtResult {
     int hitDirection = 0;
     int flags = 0;
     bool cancelled = false;
+    bool dodged = false;
 };
 
 bool registerManagedPlayerHurtMod(const std::string& modId,
