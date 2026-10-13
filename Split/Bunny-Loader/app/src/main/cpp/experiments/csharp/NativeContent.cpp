@@ -14,6 +14,7 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
@@ -447,16 +448,49 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
                              const MethodInfo* method) {
     if (g_originalSetArmorEffectVisuals)
         g_originalSetArmorEffectVisuals(self, drawPlayer, method);
-    if (!self || !managedShadowEquipped(drawPlayer ? drawPlayer : self))
+    if (!self) return;
+    Il2CppObject* actor = drawPlayer ? drawPlayer : self;
+    if (managedShadowEquipped(actor)) {
+        if (g_refs.playerFrameShadow >= 0)
+            bl::runtime::field<uint8_t>(self, g_refs.playerFrameShadow) = 1;
+        if (g_refs.playerFrameOutline >= 0)
+            bl::runtime::field<uint8_t>(self, g_refs.playerFrameOutline) = 1;
+        static int visualLogs = 0;
+        if (visualLogs++ < 3)
+            BL_INFO("csharp BunnyPlayer FrameEffects: sombra de desenho e contorno ativos");
+    }
+    if (g_refs.playerWhoAmI < 0 || g_refs.playerArmor < 0 || g_refs.itemType < 0)
         return;
-    if (g_refs.playerFrameShadow >= 0)
-        bl::runtime::field<uint8_t>(self, g_refs.playerFrameShadow) = 1;
-    if (g_refs.playerFrameOutline >= 0)
-        bl::runtime::field<uint8_t>(self, g_refs.playerFrameOutline) = 1;
-    static int visualLogs = 0;
-    if (visualLogs < 3) {
-        ++visualLogs;
-        BL_INFO("csharp BunnyPlayer FrameEffects: sombra de desenho e contorno ativos");
+    const int playerIndex = bl::runtime::field<int32_t>(actor, g_refs.playerWhoAmI);
+    if (playerIndex < 0 || playerIndex >= 256) return;
+    static std::array<uint32_t, 256> visualDrawCalls{};
+    if ((++visualDrawCalls[static_cast<size_t>(playerIndex)] & 7u) != 1u)
+        return;
+    auto* armor = bl::runtime::field<Il2CppArray*>(actor, g_refs.playerArmor);
+    if (!armor || armor->length < 10 || armor->length > 40) return;
+    auto** equipped = static_cast<Il2CppObject**>(arrayData(armor));
+    for (uintptr_t slot = 3; slot < 10; ++slot) {
+        Il2CppObject* item = equipped[slot];
+        if (!item || !bl::runtime::field<uint8_t>(item, g_refs.itemAccessory))
+            continue;
+        const int itemType = bl::runtime::field<int32_t>(item, g_refs.itemType);
+        const auto found = g_accessories.find(itemType);
+        if (found == g_accessories.end() || found->second.visualMode == 0)
+            continue;
+        const auto& visual = found->second;
+        ManagedVisualCommand command;
+        command.kind = visual.visualMode == 2
+            ? ManagedVisualKind::PlayerOverlay
+            : ManagedVisualKind::EquipmentSprite;
+        command.playerIndex = playerIndex;
+        command.effectId = itemType;
+        command.texture = visual.visualTexture;
+        command.scale = visual.visualScale;
+        command.opacity = visual.visualOpacity;
+        command.color = visual.visualColor;
+        command.durationTicks = 24;
+        command.style = visual.visualMode;
+        postManagedVisualCommand(std::move(command));
     }
 }
 
@@ -1359,6 +1393,12 @@ bool applyManagedNativePlayerDefaultsBatch(
             !values.emplace(accessory.type,
                 NativeAccessoryDefaults{accessory.defenseBonus, 0, 0, false, ""}).second)
             return false;
+        auto& config = values.at(accessory.type);
+        config.visualMode = accessory.visualMode;
+        config.visualTexture = accessory.visualMode > 0 ? modId + ":" + accessory.visualTexture : "";
+        config.visualScale = accessory.visualScale;
+        config.visualOpacity = accessory.visualOpacity;
+        config.visualColor = accessory.visualColor;
     }
     std::map<int, bool> linked;
     std::map<std::string, std::string> globalMessages;
