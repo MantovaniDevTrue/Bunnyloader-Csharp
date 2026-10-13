@@ -14,6 +14,14 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
     public int LastProjectileIndex { get; private set; } = -1;
     public int NpcPreHitCalls { get; private set; }
     public int ProjectilePreHitCalls { get; private set; }
+    public int LastNpcType { get; private set; } = -1;
+    public int LastNpcDamage { get; private set; } = -1;
+    public int LastNpcLife { get; private set; } = -1;
+    public int LastProjectileType { get; private set; } = -1;
+    public int LastProjectileDamage { get; private set; } = -1;
+    public int LastProjectileOwner { get; private set; } = -1;
+    public int SlimePreHits { get; private set; }
+    public int EnemyProjectilePreHits { get; private set; }
 
     public override void SetDefaults()
     {
@@ -44,6 +52,11 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         NpcPreHitCalls++;
+        LastNpcType = modifiers.NpcType;
+        LastNpcDamage = modifiers.NpcDamage;
+        LastNpcLife = modifiers.NpcLife;
+        if (modifiers.NpcType == 1)
+            SlimePreHits++;
         modifiers.Damage = (int)((long)modifiers.Damage * 4 / 5);
     }
 
@@ -54,6 +67,11 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         ProjectilePreHitCalls++;
+        LastProjectileType = modifiers.ProjectileType;
+        LastProjectileDamage = modifiers.ProjectileDamage;
+        LastProjectileOwner = modifiers.ProjectileOwner;
+        if (modifiers.ProjectileOwner == 255)
+            EnemyProjectilePreHits++;
         modifiers.Damage = (int)((long)modifiers.Damage * 2 / 3);
     }
 
