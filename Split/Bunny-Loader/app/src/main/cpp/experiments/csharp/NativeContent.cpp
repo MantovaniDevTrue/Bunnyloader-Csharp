@@ -677,7 +677,8 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         participants.push_back({binding.modId, mask});
         ManagedHurtResult result;
         if (!modifyManagedPlayerHurt(binding.modId, damage, direction, flags,
-                                     life, lifeMax, mask, &result)) continue;
+                                     life, lifeMax, mask, npcSource, projectileSource,
+                                     &result)) continue;
         ++changed;
         damage = result.damage;
         direction = result.hitDirection;
@@ -719,6 +720,14 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     if (changed && diagnosed++ < 12)
         BL_INFO("csharp BunnyPlayer ModifyHurt: entrada=%d final=%d callbacks=%d",
                 sourceDamage, damage, changed);
+    static int npcModifiedLogs = 0;
+    static int projectileModifiedLogs = 0;
+    if (changed && npcSource >= 0 && npcModifiedLogs++ < 8)
+        BL_INFO("csharp BunnyPlayer ModifyHitByNPC: npc=%d entrada=%d final=%d callbacks=%d",
+                npcSource, sourceDamage, damage, changed);
+    else if (changed && projectileSource >= 0 && projectileModifiedLogs++ < 8)
+        BL_INFO("csharp BunnyPlayer ModifyHitByProjectile: projectile=%d entrada=%d final=%d callbacks=%d",
+                projectileSource, sourceDamage, damage, changed);
     const double applied = g_originalPlayerHurt(
         self, source, damage, direction, pvp,
         (flags & 2) != 0, (flags & 4) != 0, cooldown, (flags & 8) != 0, method);
