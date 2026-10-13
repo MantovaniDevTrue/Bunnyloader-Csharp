@@ -276,6 +276,41 @@ try
             exampleKill[259 + i] == Math.Clamp(50 + i * 2, 50, 150).ToString()))
         throw new InvalidOperationException("Independent OnHitNPC/OnKill C# tables incorrect");
     var liveAssembly = Assembly.LoadFrom(independentOut);
+    var vitalType = liveAssembly.GetType("ExampleModCSharp.ExampleVitalPlayer")
+        ?? throw new InvalidOperationException("Example Vital C# player missing");
+    var vital = Activator.CreateInstance(vitalType)
+        ?? throw new InvalidOperationException("Example Vital C# player creation failed");
+    var modifyHurt = vitalType.GetMethod("ModifyHurt")
+        ?? throw new InvalidOperationException("Example Vital ModifyHurt missing");
+    var onHurt = vitalType.GetMethod("OnHurt")
+        ?? throw new InvalidOperationException("Example Vital OnHurt missing");
+    var incoming = new BunnyLoader.Source.BunnyHurtModifiers {
+        Damage = 80, HitDirection = 1, CurrentLife = 250,
+        MaxLife = 500, PvP = false, Dodgeable = true
+    };
+    modifyHurt.Invoke(vital, new object[] { true, incoming });
+    if (incoming.Damage != 60 || incoming.HitDirection != 1 || incoming.Cancelled)
+        throw new InvalidOperationException("C# Vital ModifyHurt did not reduce equipped damage");
+    var unbound = new BunnyLoader.Source.BunnyHurtModifiers { Damage = 80, PvP = false };
+    modifyHurt.Invoke(vital, new object[] { false, unbound });
+    var pvpHit = new BunnyLoader.Source.BunnyHurtModifiers { Damage = 80, PvP = true };
+    modifyHurt.Invoke(vital, new object[] { true, pvpHit });
+    if (unbound.Damage != 80 || pvpHit.Damage != 80)
+        throw new InvalidOperationException("C# Vital ModifyHurt affected unequipped or PvP");
+    onHurt.Invoke(vital, new object[] {
+        true, new BunnyLoader.Source.BunnyHurtInfo(50, 80, 1, 200, false, false)
+    });
+    onHurt.Invoke(vital, new object[] {
+        false, new BunnyLoader.Source.BunnyHurtInfo(20, 80, 1, 180, false, false)
+    });
+    if ((int)(vitalType.GetProperty("HitsTaken")?.GetValue(vital) ?? -1) != 1 ||
+        (int)(vitalType.GetProperty("LastDamageTaken")?.GetValue(vital) ?? -1) != 50)
+        throw new InvalidOperationException("C# Vital OnHurt did not retain callback state");
+    var dodge = new BunnyLoader.Source.BunnyHurtModifiers { Damage = 100 };
+    dodge.Cancel();
+    if (!dodge.Cancelled)
+        throw new InvalidOperationException("C# BunnyHurtModifiers.Cancel failed");
+    Console.WriteLine("BUNNY_CSHARP_HURT_SDK_CONTRACT=PASS runtime_dispatch=pending");
     var liveType = liveAssembly.GetType("BunnyLoader.Source.BunnyLiveEntry")
         ?? throw new InvalidOperationException("Independent live C# callback class missing");
     var liveTick = liveType.GetMethod("Tick", BindingFlags.Public | BindingFlags.Static)
