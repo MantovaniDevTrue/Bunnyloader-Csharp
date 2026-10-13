@@ -1436,7 +1436,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='137' versionName='0.1.10.16.90.19-csharp-player-hurt-events'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='138' versionName='0.1.10.16.90.19.1-csharp-hurt-source-parser'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
