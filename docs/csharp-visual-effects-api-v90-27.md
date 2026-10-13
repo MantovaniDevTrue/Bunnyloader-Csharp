@@ -36,3 +36,7 @@ Keep the existing passive Mystic Ward protection and the existing Guardian/Trail
 ## Native state integration (commit 786a294)
 
 The native ManagedRuntime now owns a persistent ManagedVisualState and offers `advanceManagedVisualState(tick, budget)` plus `activeManagedVisualCount()`. Clearing commands also clears overlay state. This implements a bounded way to transfer already-ingested commands into persistent visual state. The game update loop does NOT yet schedule it, and no drawing layer consumes it. The bridge therefore remains non-visual until frame integration and renderer implementation. Full Android compilation is still outstanding.
+
+## Game update lifecycle (commit 684c563)
+
+`AutoSourceRuntime::noteAutoGameUpdate()` now advances the native visual state once per game update while a world session is ready, with a maximum budget of 32 queue messages. World loading and world exit clear pending and active visual effects and reset the update counter. This is update-state integration only: the source assembly visual producer is not yet scheduled automatically, and no render hook draws active overlays or particles. No Android APK has been built or performance measured for this branch.
