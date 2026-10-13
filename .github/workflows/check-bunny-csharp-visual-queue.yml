@@ -16,3 +16,5 @@ jobs:
           dotnet-version: 10.0.x
       - name: Check visual command queue
         run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualQueueTests.csproj -c Release
+      - name: Check compiled BunnySourceSdk visual API
+        run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualSdkCompile.csproj -c Release
