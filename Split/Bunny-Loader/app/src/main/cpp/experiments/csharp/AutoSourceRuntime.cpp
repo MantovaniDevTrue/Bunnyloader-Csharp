@@ -53,6 +53,7 @@ std::atomic<bool> g_worldPrefixesRestored{false};
 std::atomic<bool> g_worldPlayerMessagesShown{false};
 std::atomic<int> g_worldMenuPollFrames{0};
 std::atomic<uint64_t> g_worldEpoch{0};
+std::atomic<uint64_t> g_visualUpdateTick{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
 std::atomic<int> g_worldLoads{0};
 std::atomic<int> g_worldExits{0};
@@ -791,6 +792,8 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    clearManagedVisualCommands();
+    g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
@@ -807,6 +810,10 @@ void noteAutoWorldTilesLoaded() {
 void noteAutoGameUpdate() {
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
+        advanceManagedVisualState(tick, 32);
+    }
+    if (g_worldSessionReady.load(std::memory_order_acquire)) {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
@@ -817,6 +824,8 @@ void noteAutoGameUpdate() {
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        clearManagedVisualCommands();
+        g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
