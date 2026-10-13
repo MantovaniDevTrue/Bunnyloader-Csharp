@@ -97,12 +97,35 @@ public static class BunnyVisual
 
     private static bool Add(BunnyVisualCommand command)
     {
-        if (count >= MaxCommandsPerFrame || command.PlayerIndex < 0 ||
+        if (command.PlayerIndex < 0 ||
             command.EffectId < 0 || command.DurationTicks < 0 ||
             float.IsNaN(command.Scale) || float.IsInfinity(command.Scale) ||
             command.Scale <= 0f || float.IsNaN(command.Opacity) ||
             command.Opacity < 0f || command.Opacity > 1f ||
             command.Texture.Length > 240)
+            return false;
+
+        if (command.Kind == BunnyVisualKind.PlayerOverlay ||
+            command.Kind == BunnyVisualKind.ClearOverlay ||
+            command.Kind == BunnyVisualKind.EquipmentSprite)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int index = (head + i) % MaxCommandsPerFrame;
+                BunnyVisualCommand previous = Commands[index];
+                if (previous.PlayerIndex == command.PlayerIndex &&
+                    previous.EffectId == command.EffectId &&
+                    (previous.Kind == command.Kind ||
+                     (previous.Kind == BunnyVisualKind.PlayerOverlay && command.Kind == BunnyVisualKind.ClearOverlay) ||
+                     (previous.Kind == BunnyVisualKind.ClearOverlay && command.Kind == BunnyVisualKind.PlayerOverlay)))
+                {
+                    Commands[index] = command;
+                    return true;
+                }
+            }
+        }
+
+        if (count >= MaxCommandsPerFrame)
             return false;
 
         Commands[(head + count) % MaxCommandsPerFrame] = command;
