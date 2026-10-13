@@ -6,6 +6,8 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
 {
     public int HitsTaken { get; private set; }
     public int LastDamageTaken { get; private set; }
+    public int DodgeAttempts { get; private set; }
+    public int DodgesPerformed { get; private set; }
 
     public override void SetDefaults()
     {
@@ -27,6 +29,20 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         modifiers.Damage = (int)((long)modifiers.Damage * 3 / 4);
+    }
+
+    public override bool FreeDodge(bool accessoryEquipped, BunnyHurtModifiers modifiers)
+    {
+        if (!accessoryEquipped || modifiers.PvP || !modifiers.Dodgeable ||
+            modifiers.Damage <= 0)
+            return false;
+
+        DodgeAttempts++;
+        if (DodgeAttempts % 4 != 0)
+            return false;
+
+        DodgesPerformed++;
+        return true;
     }
 
     public override void OnHurt(bool accessoryEquipped, BunnyHurtInfo info)
