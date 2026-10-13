@@ -70,6 +70,7 @@ struct NativeRefs {
     int playerWhoAmI = -1;
     int playerLifeRegen = -1;
     int playerManaRegen = -1;
+    int playerDead = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -466,7 +467,6 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
     int count = 0;
     for (const auto& [name, message] : g_respawnMessages)
         if (sendPlayerLifecycleMessage(message)) ++count;
-    if (count > 0) g_deadEventDelivered = false;
     BL_INFO("csharp BunnyPlayer OnRespawn: %d mensagem(ns) enviadas(s)", count);
 }
 
@@ -479,6 +479,23 @@ void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method)
     }
     if (g_originalPlayerUpdate)
         g_originalPlayerUpdate(self, index, method);
+    if (self && g_deadEventDelivered && g_refs.playerDead >= 0 &&
+        !bl::runtime::field<uint8_t>(self, g_refs.playerDead)) {
+        using namespace bl::il2cpp;
+        auto& runtime = api();
+        Il2CppClass* main = findClass({"Terraria", "Main", {}});
+        const MethodInfo* getter = main && runtime.class_get_method_from_name
+            ? runtime.class_get_method_from_name(main, "get_LocalPlayer", 0)
+            : nullptr;
+        if (getter && runtime.runtime_invoke) {
+            Il2CppObject* error = nullptr;
+            Il2CppObject* local = runtime.runtime_invoke(getter, nullptr, nullptr, &error);
+            if (!error && local == self) {
+                g_deadEventDelivered = false;
+                BL_INFO("csharp BunnyPlayer UpdateDead: ciclo encerrado; nova morte habilitada");
+            }
+        }
+    }
     if (self && g_playerPoliciesReady && g_postUpdateEnabled && !loggedPost) {
         loggedPost = true;
         BL_INFO("csharp BunnyPlayer PostUpdate: politica nativa executada");
@@ -486,8 +503,10 @@ void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method)
 }
 
 void hkPlayerUpdateDead(Il2CppObject* self, const MethodInfo* method) {
+    const bool wasDead = self && g_refs.playerDead >= 0 &&
+        bl::runtime::field<uint8_t>(self, g_refs.playerDead) != 0;
     if (g_originalUpdateDead) g_originalUpdateDead(self, method);
-    if (!self || !g_playerPoliciesReady || g_deadEventDelivered ||
+    if (!wasDead || !g_playerPoliciesReady || g_deadEventDelivered ||
         g_deadMessages.empty()) return;
     using namespace bl::il2cpp;
     auto& runtime = api();
@@ -624,6 +643,7 @@ bool prepareNativeContent() {
     r.playerWhoAmI = fieldOffset(player, "whoAmI");
     r.playerLifeRegen = fieldOffset(player, "lifeRegen");
     r.playerManaRegen = fieldOffset(player, "manaRegen");
+    r.playerDead = fieldOffset(player, "dead");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
