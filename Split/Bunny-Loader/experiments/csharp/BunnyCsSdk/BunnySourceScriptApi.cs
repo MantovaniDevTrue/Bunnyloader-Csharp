@@ -95,6 +95,12 @@ public sealed class BunnyHurtModifiers
     public bool Dodgeable { get; set; }
     public int NpcIndex { get; set; } = -1;
     public int ProjectileIndex { get; set; } = -1;
+    public int NpcType { get; set; } = -1;
+    public int NpcDamage { get; set; } = -1;
+    public int NpcLife { get; set; } = -1;
+    public int ProjectileType { get; set; } = -1;
+    public int ProjectileDamage { get; set; } = -1;
+    public int ProjectileOwner { get; set; } = -1;
     public bool Cancelled { get; private set; }
 
     public void Cancel() => Cancelled = true;
@@ -110,10 +116,19 @@ public readonly struct BunnyHurtInfo
     public bool Crit { get; }
     public int NpcIndex { get; }
     public int ProjectileIndex { get; }
+    public int NpcType { get; }
+    public int NpcDamage { get; }
+    public int NpcLife { get; }
+    public int ProjectileType { get; }
+    public int ProjectileDamage { get; }
+    public int ProjectileOwner { get; }
 
     public BunnyHurtInfo(int damage, int sourceDamage, int hitDirection,
                          int lifeRemaining, bool pvp, bool crit,
-                         int npcIndex = -1, int projectileIndex = -1)
+                         int npcIndex = -1, int projectileIndex = -1,
+                         int npcType = -1, int npcDamage = -1, int npcLife = -1,
+                         int projectileType = -1, int projectileDamage = -1,
+                         int projectileOwner = -1)
     {
         Damage = damage;
         SourceDamage = sourceDamage;
@@ -123,6 +138,12 @@ public readonly struct BunnyHurtInfo
         Crit = crit;
         NpcIndex = npcIndex;
         ProjectileIndex = projectileIndex;
+        NpcType = npcType;
+        NpcDamage = npcDamage;
+        NpcLife = npcLife;
+        ProjectileType = projectileType;
+        ProjectileDamage = projectileDamage;
+        ProjectileOwner = projectileOwner;
     }
 }
 
