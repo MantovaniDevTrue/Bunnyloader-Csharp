@@ -172,6 +172,36 @@ jobs:
           assert (1001 <= 1001 and 0 < 1001 and 999 < 1001)
           print("BUNNY_CSHARP_HURT_ATTACKER_ARRAY_BOUNDS_V90_23_1=PASS")
           PY
+      - name: Guard attacker spatial snapshots and MonoVM pre/post ABI
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          native = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          sdk = Path("experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
+          runtime = Path("app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          dispatcher = Path("experiments/csharp/BunnyCsSdk/BunnyPlayerHurtDispatcher.cs").read_text()
+          example = Path("samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs").read_text()
+          for field in ("AttackerX", "AttackerY", "AttackerVelocityX",
+                        "AttackerVelocityY", "AttackerAngle", "AttackerDistance"):
+              assert sdk.count("public float " + field) == 2, field
+              assert field + " = " in dispatcher, field
+              assert "Last" + field in example, field
+          assert 'fieldOffset(player, "position")' in native
+          assert 'fieldOffset(npc, "position")' in native
+          assert 'fieldOffset(projectile, "position")' in native
+          assert 'fieldOffset(npc, "velocity")' in native
+          assert 'fieldOffset(projectile, "velocity")' in native
+          assert "std::hypot(dx, dy)" in native
+          assert "std::atan2(dy, dx)" in native
+          assert "snapshotHurtAttacker(npcSource, projectileSource, self)" in native
+          assert 'findMethod(cls, "Modify", 21)' in runtime
+          assert 'findMethod(cls, "After", 21)' in runtime
+          assert "attackerDistance" in runtime
+          assert "spatialNpcLogs++ < 8" in native
+          assert "spatialProjectileLogs++ < 8" in native
+          print("BUNNY_CSHARP_SPATIAL_CONTEXT_V90_24=PASS")
+          PY
       - name: Restore prefixes before the first vanilla natural roll
         working-directory: Split/Bunny-Loader
         run: |
