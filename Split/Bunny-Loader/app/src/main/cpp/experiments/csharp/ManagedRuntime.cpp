@@ -701,7 +701,7 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
             image, "BunnyLoader.Source", "BunnyPlayerHurtDispatcher") : nullptr;
         if (!cls) return -1;
         g_managedHurtRegisterMethod = g_api.findMethod(cls, "Register", 2);
-        g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 7);
+        g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 9);
         g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 9);
         if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
             !g_managedHurtAfterMethod) return -1;
@@ -740,7 +740,8 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     int mask = job.equipmentMask;
     int npcIndex = job.npcIndex;
     int projectileIndex = job.projectileIndex;
-    void* argsModify[] = {&slot, &d, &direction, &flags, &life, &lifeMax, &mask};
+    void* argsModify[] = {&slot, &d, &direction, &flags, &life, &lifeMax, &mask,
+                          &npcIndex, &projectileIndex};
     void* argsAfter[] = {&slot, &d, &origin, &direction, &flags, &life, &mask,
                          &npcIndex, &projectileIndex};
     void* exception = nullptr;
@@ -1138,7 +1139,8 @@ void pauseManagedPlayerHurtMods() {
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                              int hitDirection, int flags, int life, int lifeMax,
-                             int equipmentMask, ManagedHurtResult* result) {
+                             int equipmentMask, int npcIndex, int projectileIndex,
+                             ManagedHurtResult* result) {
     if (!result || damage < 0 || damage > 1000000 || life < 0 ||
         lifeMax < 1 || equipmentMask < 0 || hitDirection < -1 ||
         hitDirection > 1)
@@ -1157,7 +1159,8 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
     if (index < 0) return false;
     const uint64_t ticket = ++g_managedHurtTicket;
     g_managedHurtQueue.push_back({ticket, index, false, damage, 0,
-                                  hitDirection, flags, life, lifeMax, equipmentMask});
+                                  hitDirection, flags, life, lifeMax, equipmentMask,
+                                  npcIndex, projectileIndex});
     g_pinnedWake.notify_one();
     const bool completed = g_managedHurtResultWake.wait_for(
         lock, std::chrono::milliseconds(5), [ticket] {
