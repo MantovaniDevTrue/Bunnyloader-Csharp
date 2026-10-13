@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <string>
 #include <string_view>
+#include <sys/stat.h>
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -60,6 +61,39 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
     return out;
+}
+
+JSValue jsManagedVisualTexturePath(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1 || !JS_IsString(argv[0]))
+        return JS_ThrowTypeError(ctx, "visualTexturePath('modUid:Content/...png')");
+    const char* raw = JS_ToCString(ctx, argv[0]);
+    if (!raw) return JS_EXCEPTION;
+    const std::string qualified(raw);
+    JS_FreeCString(ctx, raw);
+    const size_t sep = qualified.find(':');
+    if (sep != 36 || qualified.size() > 240 || qualified.find(':', sep + 1) != std::string::npos)
+        return JS_NULL;
+    const std::string modUid = qualified.substr(0, sep);
+    const std::string relative = qualified.substr(sep + 1);
+    if (relative.empty() || relative[0] == '/' ||
+        relative.find("..") != std::string::npos ||
+        relative.find('\\\\') != std::string::npos ||
+        relative.find('|') != std::string::npos) return JS_NULL;
+    for (size_t i = 0; i < modUid.size(); ++i) {
+        const char ch = modUid[i];
+        const bool dashed = i == 8 || i == 13 || i == 18 || i == 23;
+        if ((dashed && ch != '-') ||
+            (!dashed && !((ch >= '0' && ch <= '9') ||
+                          (ch >= 'a' && ch <= 'f') ||
+                          (ch >= 'A' && ch <= 'F')))) return JS_NULL;
+    }
+    const std::string modDir = bl::mods::dirOf(modUid);
+    if (modDir.empty()) return JS_NULL;
+    const std::string fullPath = modDir + "/" + relative;
+    struct stat st{};
+    if (stat(fullPath.c_str(), &st) != 0 || !S_ISREG(st.st_mode) ||
+        st.st_size <= 0 || st.st_size > 1024 * 1024) return JS_NULL;
+    return JS_NewString(ctx, fullPath.c_str());
 }
 
 JSValue jsManagedVisualActiveCount(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2693,6 +2727,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualActiveCount, "visualActiveCount", 0));
     JS_SetPropertyStr(ctx, api, "visualSnapshot",
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
+    JS_SetPropertyStr(ctx, api, "visualTexturePath",
+                      JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
     JS_SetPropertyStr(ctx, api, "managedInspect",
                       JS_NewCFunction(ctx, jsManagedInspect, "managedInspect", 0));
     JS_SetPropertyStr(ctx, api, "managedProbe",
