@@ -55,7 +55,9 @@ public static class BunnyPlayerHurtDispatcher
 
     public static long Modify(int slot, int damage, int direction, int flags,
                               int life, int maxLife, int equippedMask,
-                              int npcIndex, int projectileIndex)
+                              int npcIndex, int projectileIndex,
+                              int npcType, int npcDamage, int npcLife,
+                              int projectileType, int projectileDamage, int projectileOwner)
     {
         if (slot < 0 || slot >= Contexts.Count || damage < 0 || damage > 1000000)
             return -1;
@@ -75,7 +77,13 @@ public static class BunnyPlayerHurtDispatcher
                 CurrentLife = life,
                 MaxLife = maxLife,
                 NpcIndex = npcIndex,
-                ProjectileIndex = projectileIndex
+                ProjectileIndex = projectileIndex,
+                NpcType = npcType,
+                NpcDamage = npcDamage,
+                NpcLife = npcLife,
+                ProjectileType = projectileType,
+                ProjectileDamage = projectileDamage,
+                ProjectileOwner = projectileOwner
             };
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
@@ -124,7 +132,9 @@ public static class BunnyPlayerHurtDispatcher
 
     public static int After(int slot, int damage, int sourceDamage,
                             int direction, int flags, int lifeRemaining, int equippedMask,
-                            int npcIndex, int projectileIndex)
+                            int npcIndex, int projectileIndex,
+                            int npcType, int npcDamage, int npcLife,
+                            int projectileType, int projectileDamage, int projectileOwner)
     {
         if (slot < 0 || slot >= Contexts.Count || damage <= 0)
             return 0;
@@ -135,7 +145,9 @@ public static class BunnyPlayerHurtDispatcher
                 ? projectileIndex : -1;
             var info = new BunnyHurtInfo(damage, sourceDamage, direction,
                 lifeRemaining, (flags & 1) != 0, (flags & 4) != 0,
-                npcIndex, projectileIndex);
+                npcIndex, projectileIndex,
+                npcType, npcDamage, npcLife,
+                projectileType, projectileDamage, projectileOwner);
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
             {
