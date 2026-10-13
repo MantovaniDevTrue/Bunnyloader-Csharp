@@ -77,6 +77,8 @@ public abstract class BunnyPlayer
     public virtual void ModifyHurt(bool accessoryEquipped, BunnyHurtModifiers modifiers) { }
     public virtual bool FreeDodge(bool accessoryEquipped, BunnyHurtModifiers modifiers) => false;
     public virtual void OnHurt(bool accessoryEquipped, BunnyHurtInfo info) { }
+    public virtual void OnHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtInfo info) { }
+    public virtual void OnHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtInfo info) { }
 }
 
 public sealed class BunnyHurtModifiers
@@ -102,9 +104,12 @@ public readonly struct BunnyHurtInfo
     public int LifeRemaining { get; }
     public bool PvP { get; }
     public bool Crit { get; }
+    public int NpcIndex { get; }
+    public int ProjectileIndex { get; }
 
     public BunnyHurtInfo(int damage, int sourceDamage, int hitDirection,
-                         int lifeRemaining, bool pvp, bool crit)
+                         int lifeRemaining, bool pvp, bool crit,
+                         int npcIndex = -1, int projectileIndex = -1)
     {
         Damage = damage;
         SourceDamage = sourceDamage;
@@ -112,6 +117,8 @@ public readonly struct BunnyHurtInfo
         LifeRemaining = lifeRemaining;
         PvP = pvp;
         Crit = crit;
+        NpcIndex = npcIndex;
+        ProjectileIndex = projectileIndex;
     }
 }
 
