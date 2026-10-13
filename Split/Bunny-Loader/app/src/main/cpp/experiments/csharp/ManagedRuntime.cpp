@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <array>
+#include <deque>
 #include <atomic>
 #include <cstdint>
 #include <ctime>
@@ -254,6 +255,35 @@ std::chrono::steady_clock::time_point g_auditStart;
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
+struct ManagedHurtBinding {
+    std::string modId;
+    std::string assemblyPath;
+    int managedSlot = -1;
+    bool active = false;
+    bool failed = false;
+};
+struct ManagedHurtJob {
+    uint64_t ticket = 0;
+    int modIndex = -1;
+    bool after = false;
+    int damage = 0;
+    int sourceDamage = 0;
+    int direction = 0;
+    int flags = 0;
+    int life = 0;
+    int maxLife = 0;
+    int equipmentMask = 0;
+};
+std::vector<ManagedHurtBinding> g_managedHurtBindings;
+std::deque<ManagedHurtJob> g_managedHurtQueue;
+std::condition_variable g_managedHurtResultWake;
+uint64_t g_managedHurtTicket = 0;
+uint64_t g_managedHurtCompletedTicket = 0;
+int64_t g_managedHurtCompletedValue = -1;
+void* g_managedHurtRegisterMethod = nullptr;
+void* g_managedHurtModifyMethod = nullptr;
+void* g_managedHurtAfterMethod = nullptr;
+
 bool g_pinnedStarted = false;
 bool g_pinnedBusy = false;
 bool g_pinnedPending = false;
@@ -636,6 +666,90 @@ VmCompareMonoResult runVmCompareMono(
     return output;
 }
 
+int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.invoke || !g_api.unbox || !g_api.newString ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass || !g_api.findMethod)
+        return -1;
+    if (!g_api.attach(g_domain)) return -1;
+    std::string modId;
+    std::string dll;
+    int slot = -1;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size())
+            return -1;
+        const auto& binding = g_managedHurtBindings[static_cast<size_t>(job.modIndex)];
+        if (!binding.active || binding.failed) return -1;
+        modId = binding.modId;
+        dll = binding.assemblyPath;
+        slot = binding.managedSlot;
+    }
+    if (!g_managedHurtRegisterMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return -1;
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return -1;
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* cls = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyPlayerHurtDispatcher") : nullptr;
+        if (!cls) return -1;
+        g_managedHurtRegisterMethod = g_api.findMethod(cls, "Register", 2);
+        g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 7);
+        g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 7);
+        if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
+            !g_managedHurtAfterMethod) return -1;
+    }
+    if (slot < 0) {
+        if (!validAssembly(dll)) return -1;
+        void* args[] = {
+            g_api.newString(g_domain, modId.c_str()),
+            g_api.newString(g_domain, dll.c_str())
+        };
+        if (!args[0] || !args[1]) return -1;
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_managedHurtRegisterMethod, nullptr, args, &exception);
+        void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return -1;
+        std::memcpy(&slot, raw, sizeof(slot));
+        if (slot < 0 || slot >= 16) return -1;
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            if (static_cast<size_t>(job.modIndex) < g_managedHurtBindings.size() &&
+                g_managedHurtBindings[static_cast<size_t>(job.modIndex)].modId == modId)
+                g_managedHurtBindings[static_cast<size_t>(job.modIndex)].managedSlot = slot;
+        }
+        BL_INFO("csharp BunnyPlayer Hurt: MonoVM pronto para %s (slot=%d)",
+                modId.c_str(), slot);
+    }
+    int d = job.damage;
+    int origin = job.sourceDamage;
+    int direction = job.direction;
+    int flags = job.flags;
+    int life = job.life;
+    int lifeMax = job.maxLife;
+    int mask = job.equipmentMask;
+    void* argsModify[] = {&slot, &d, &direction, &flags, &life, &lifeMax, &mask};
+    void* argsAfter[] = {&slot, &d, &origin, &direction, &flags, &life, &mask};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(job.after ? g_managedHurtAfterMethod :
+        g_managedHurtModifyMethod, nullptr,
+        job.after ? argsAfter : argsModify, &exception);
+    void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!raw) return -1;
+    if (job.after) {
+        int done = 0;
+        std::memcpy(&done, raw, sizeof(done));
+        return done >= 0 ? done : -1;
+    }
+    int64_t packed = -1;
+    std::memcpy(&packed, raw, sizeof(packed));
+    return packed;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -651,6 +765,19 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if (!g_managedHurtQueue.empty()) {
+                    ManagedHurtJob job = std::move(g_managedHurtQueue.front());
+                    g_managedHurtQueue.pop_front();
+                    lock.unlock();
+                    const int64_t outcome = executeManagedHurtOnWorker(job);
+                    lock.lock();
+                    if (!job.after) {
+                        g_managedHurtCompletedTicket = job.ticket;
+                        g_managedHurtCompletedValue = outcome;
+                        g_managedHurtResultWake.notify_all();
+                    }
+                    continue;
+                }
                 if (g_vmComparePending) {
                     g_vmComparePending = false;
                     const int iterations = g_vmCompare.iterations;
@@ -883,7 +1010,8 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
                 if (!g_auditEnabled) {
-                    if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0)
+                    if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
+                        !g_managedHurtQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
