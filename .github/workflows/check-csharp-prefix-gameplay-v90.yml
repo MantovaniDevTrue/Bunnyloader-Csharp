@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-respawn-local-player-v90-17-2
       - csharp-respawn-enum-hotfix-v90-17-1
       - csharp-global-player-respawn-v90-17
       - csharp-shadow-tooltip-v90-16-2
@@ -164,7 +165,7 @@ jobs:
           assert 'globalMessages[key] = player.worldJoinMessage;' in native
           assert 'g_respawnMessages[key] = message;' in native
           assert 'void Spawn(PlayerSpawnContext context)' in native
-          assert 'if (who != localIndex) return;' in native
+          assert 'if (!localMatch) return;' in native
           assert 'if (!def.properties.empty())' in loader
           assert 'Accessory = ' not in example
           assert 'OnEnterWorld()' in example and 'OnRespawn()' in example
@@ -177,9 +178,19 @@ jobs:
           assert 'g_originalPlayerSpawn(self, context, method);' in native
           assert 'csharp BunnyPlayer Spawn: context=%d revive=%d' in native
           assert 'ReviveFromDeath")' not in native
-          assert 'if (who != localIndex) return;' in native
+          assert 'if (!localMatch) return;' in native
           assert 'if (sendPlayerLifecycleMessage(message)) ++count;' in native
           print("BUNNY_CSHARP_RESPAWN_ENUM_FIX_V90_17_1=PASS")
+          assert 'runtime.class_get_method_from_name(main, "get_LocalPlayer", 0)' in native
+          assert 'runtime.runtime_invoke(getter, nullptr, nullptr, &error)' in native
+          assert 'self == localPlayer' in native
+          assert 'who == localWho' in native
+          assert 'if (!localMatch) return;' in native
+          assert 'Main.LocalPlayer indisponivel no Spawn' in native
+          assert 'class_get_field_from_name(main, "myPlayer")' not in native
+          assert 'context != g_reviveSpawnContext' in native
+          assert 'if (sendPlayerLifecycleMessage(message)) ++count;' in native
+          print("BUNNY_CSHARP_RESPAWN_LOCAL_PLAYER_V90_17_2=PASS")
           PY
 
           python3 - <<'PY'
