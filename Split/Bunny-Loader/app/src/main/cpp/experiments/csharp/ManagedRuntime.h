@@ -1,5 +1,6 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
+#include "experiments/csharp/ManagedVisualQueue.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
 
@@ -320,4 +321,10 @@ ManagedSourceCompileResult compileManagedSource(
     const std::string& outputAssembly,
     const std::string& diagnosticsPath);
 
+}
+
+namespace bl::csharp {
+size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget = 32);
+bool takeManagedVisualCommand(ManagedVisualCommand& command);
+void clearManagedVisualCommands();
 }

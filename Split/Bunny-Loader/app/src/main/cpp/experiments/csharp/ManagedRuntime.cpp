@@ -1,4 +1,5 @@
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
 #include "experiments/csharp/ManagedHitCallbackDispatch.h"
@@ -2903,6 +2904,57 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
     *nextState = next;
     return true;
 }
+
+
+namespace {
+ManagedVisualQueue g_visualQueue;
+}
+
+size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
+    if (!validAssembly(assemblyPath) || budget == 0) return 0;
+    std::unique_lock<std::mutex> guard(g_mutex, std::try_to_lock);
+    if (!guard.owns_lock() || !g_domain || !g_status.domainInitialized ||
+        !g_api.currentThread || !g_api.attach || !g_api.invoke ||
+        !g_api.findClass || !g_api.findMethod) return 0;
+    if (g_visualQueue.size() >= ManagedVisualQueue::Capacity) return 0;
+
+    using Utf8Fn = char* (*)(void*);
+    using FreeFn = void (*)(void*);
+    Utf8Fn utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+    FreeFn release = resolve<FreeFn>("mono_free");
+    if (!utf8 || !release) return 0;
+    const bool alreadyAttached = g_api.currentThread() != nullptr;
+    void* attached = alreadyAttached ? g_api.currentThread() : g_api.attach(g_domain);
+    if (!attached) return 0;
+    struct DetachGuard {
+        DetachFn fn;
+        void* thread;
+        ~DetachGuard() { if (fn && thread) fn(thread); }
+    } detach{g_api.detachThread, alreadyAttached ? nullptr : attached};
+
+    void* assembly = g_api.openAssembly(g_domain, assemblyPath.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyVisual") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "TakeWire", 0) : nullptr;
+    if (!method) return 0;
+
+    ManagedVisualMonoApi api;
+    api.invoke = g_api.invoke;
+    api.utf8 = utf8;
+    api.freeString = release;
+    api.takeWireMethod = method;
+    const auto stats = ManagedVisualMonoPump::poll(g_visualQueue, api, budget);
+    return stats.accepted;
+}
+
+bool takeManagedVisualCommand(ManagedVisualCommand& command) {
+    return g_visualQueue.pop(command);
+}
+
+void clearManagedVisualCommands() {
+    g_visualQueue.clear();
+}
+
 
 }
 
