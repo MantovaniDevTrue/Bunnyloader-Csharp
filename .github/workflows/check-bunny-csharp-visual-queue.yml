@@ -18,3 +18,7 @@ jobs:
         run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualQueueTests.csproj -c Release
       - name: Check compiled BunnySourceSdk visual API
         run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualSdkCompile.csproj -c Release
+      - name: Compile and test real CSharp visual accessories
+        run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualAccessories.csproj -c Release
+      - name: Verify Bunny player draw layer syntax
+        run: node --check Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js
