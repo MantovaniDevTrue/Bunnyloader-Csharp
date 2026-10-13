@@ -9,6 +9,11 @@ public sealed class ExampleGuardianShieldAccessory : BunnyAccessory
         DisplayName = "Example Guardian Shield";
         Texture = "Content/Items/Accessories/ExampleGuardianShieldAccessory.png";
         DefenseBonus = 0;
+        VisualMode = BunnyAccessoryVisualMode.EquippedSprite;
+        VisualTexture = "Content/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png";
+        VisualScale = 1.15f;
+        VisualColor = 0xFFFFFFFF;
+        VisualOpacity = 1f;
         Tooltip = "+5 defesa, +4 regeneracao de vida; reduz dano de NPCs e projeteis";
     }
 }

@@ -108,6 +108,11 @@ struct ManagedAccessoryEntry {
     int type = -1;
     int defenseBonus = 0;
     std::string tooltip;
+    int visualMode = 0;
+    std::string visualTexture;
+    float visualScale = 1.f;
+    float visualOpacity = 1.f;
+    uint32_t visualColor = 0xffffffffu;
 };
 
 struct ManagedPlayerEntry {

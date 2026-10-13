@@ -44,12 +44,25 @@ public abstract class BunnyBuffPotion
     public abstract void SetDefaults();
 }
 
+public enum BunnyAccessoryVisualMode
+{
+    None = 0,
+    EquippedSprite = 1,
+    EnergyBarrier = 2,
+    RunningTrail = 3
+}
+
 public abstract class BunnyAccessory
 {
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;
     public string Tooltip { get; set; } = "";
+    public BunnyAccessoryVisualMode VisualMode { get; set; } = BunnyAccessoryVisualMode.None;
+    public string VisualTexture { get; set; } = "";
+    public float VisualScale { get; set; } = 1f;
+    public float VisualOpacity { get; set; } = 1f;
+    public uint VisualColor { get; set; } = 0xFFFFFFFF;
     public abstract void SetDefaults();
 }
 
