@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-player-modify-hit-source-v90-22
       - csharp-player-hit-source-layout-v90-21-2
       - csharp-player-hit-source-diagnostics-v90-21-1
       - csharp-player-hit-source-v90-21
