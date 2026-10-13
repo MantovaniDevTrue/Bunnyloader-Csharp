@@ -70,6 +70,17 @@ public:
     void clear() { active_.clear(); }
     size_t size() const { return active_.size(); }
 
+    std::vector<ManagedVisualCommand> snapshot(int playerIndex, size_t limit) const {
+        std::vector<ManagedVisualCommand> result;
+        if (playerIndex < 0 || playerIndex >= 256 || limit == 0) return result;
+        if (limit > 8) limit = 8;
+        const auto first = active_.lower_bound(Key{playerIndex, 0});
+        for (auto it = first; it != active_.end() &&
+             it->first.player == playerIndex && result.size() < limit; ++it)
+            result.push_back(it->second.command);
+        return result;
+    }
+
     const Entry* find(int playerIndex, int effectId) const {
         auto found = active_.find(Key{playerIndex, effectId});
         return found == active_.end() ? nullptr : &found->second;
