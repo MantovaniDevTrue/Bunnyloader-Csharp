@@ -8,7 +8,7 @@ example = root / 'samples/ExampleModCSharp'
 playable = example / 'Playable'
 manifest = json.loads((playable / 'manifest.json').read_text())
 compat = json.loads((example / 'compatibility.json').read_text())
-assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.26'
+assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.27'
 sources = sorted((playable / 'content').rglob('*.cs'))
 assert len(sources) == 42, f'Expected 42 examples; found {len(sources)}'
 assert sum(p.stat().st_size for p in sources) <= 2 * 1024 * 1024
@@ -29,4 +29,4 @@ loader = (native / 'SourceLoader.cpp').read_text()
 assert 'paths->size() >= 64' in loader and 'paths.size() > 64' in loader
 cache = (native / 'AutoSourceRuntime.cpp').read_text()
 assert '++*count > 64' in cache and '*count > 64' in cache
-print('PACKAGE_OK version=0.1.26 sources=42 recipes=8 limit=64 guide=included')
+print('PACKAGE_OK version=0.1.27 sources=42 recipes=8 limit=64 guide=included')
