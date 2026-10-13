@@ -515,7 +515,7 @@ public static class CompiledAssemblyProbe
                 (visualMode != 0 && (visualTexture.Length == 0 || visualTexture.Length > 180 ||
                                      !visualTexture.EndsWith(".png", StringComparison.OrdinalIgnoreCase))) ||
                 visualTexture.Contains("..", StringComparison.Ordinal) ||
-                visualTexture.Contains('|') || visualTexture.Contains('\\\\') ||
+                visualTexture.Contains('|') || visualTexture.IndexOf((char)92) >= 0 ||
                 visualTexture.Any(char.IsControl) ||
                 !float.IsFinite(visualScale) || visualScale < 0.25f || visualScale > 3f ||
                 !float.IsFinite(visualOpacity) || visualOpacity < 0f || visualOpacity > 1f)
