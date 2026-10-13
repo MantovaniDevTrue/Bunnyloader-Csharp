@@ -285,6 +285,7 @@ int64_t g_managedHurtCompletedValue = -1;
 void* g_managedHurtRegisterMethod = nullptr;
 void* g_managedHurtModifyMethod = nullptr;
 void* g_managedHurtAfterMethod = nullptr;
+std::atomic<ManagedHurtDiagnosticLogFn> g_hurtDiagnosticLogger{nullptr};
 
 bool g_pinnedStarted = false;
 bool g_pinnedBusy = false;
@@ -778,19 +779,33 @@ void* pinnedMonoWorker(void*) {
                     g_managedHurtQueue.pop_front();
                     lock.unlock();
                     const int64_t outcome = executeManagedHurtOnWorker(job);
-#ifdef __ANDROID__
-                    if (job.after && outcome >= 0) {
-                        static std::atomic<int> completedLogs{0};
-                        if (completedLogs.fetch_add(1, std::memory_order_relaxed) < 20)
-                            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
-                                "csharp BunnyPlayer %s: MonoVM processou %lld jogador(es), origem=%d, dano=%d, vida=%d",
-                                job.npcIndex >= 0 ? "OnHitByNPC" :
-                                job.projectileIndex >= 0 ? "OnHitByProjectile" : "OnHurt",
+                    if (job.after && job.damage > 0) {
+                        static std::atomic<int> npcLogs{0};
+                        static std::atomic<int> projectileLogs{0};
+                        static std::atomic<int> otherLogs{0};
+                        const bool fromNpc = job.npcIndex >= 0;
+                        const bool fromProjectile = !fromNpc && job.projectileIndex >= 0;
+                        const int logged = (fromNpc ? npcLogs :
+                                            fromProjectile ? projectileLogs : otherLogs)
+                                               .fetch_add(1, std::memory_order_relaxed);
+                        if (logged < 8) {
+                            char line[256];
+                            std::snprintf(line, sizeof(line),
+                                "csharp BunnyPlayer hit diag: MonoVM %s estado=%s instancias=%lld npc=%d projectile=%d dano=%d vida=%d",
+                                fromNpc ? "OnHitByNPC" :
+                                fromProjectile ? "OnHitByProjectile" : "OnHurt",
+                                outcome >= 0 ? "concluido" : "falhou",
                                 static_cast<long long>(outcome),
-                                job.npcIndex >= 0 ? job.npcIndex : job.projectileIndex,
+                                job.npcIndex, job.projectileIndex,
                                 job.damage, job.life);
-                    }
+                            if (auto logger = g_hurtDiagnosticLogger.load(std::memory_order_acquire))
+                                logger(line);
+#ifdef __ANDROID__
+                            else
+                                __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp", "%s", line);
 #endif
+                        }
+                    }
                     lock.lock();
                     if (!job.after) {
                         g_managedHurtCompletedTicket = job.ticket;
@@ -1111,6 +1126,10 @@ bool registerManagedPlayerHurtMod(const std::string& modId,
     return true;
 }
 
+void setManagedHurtDiagnosticLogger(ManagedHurtDiagnosticLogFn logger) {
+    g_hurtDiagnosticLogger.store(logger, std::memory_order_release);
+}
+
 void pauseManagedPlayerHurtMods() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     for (auto& entry : g_managedHurtBindings) entry.active = false;
@@ -1158,14 +1177,15 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
     return true;
 }
 
-void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
+bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int actualDamage, int hitDirection, int flags,
                              int lifeRemaining, int equipmentMask,
                              int npcIndex, int projectileIndex) {
     if (actualDamage <= 0 || sourceDamage < 0 || actualDamage > 1000000 ||
-        lifeRemaining < 0) return;
+        lifeRemaining < 0) return false;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
-    if (!lock.try_lock() || !g_pinnedStarted || g_managedHurtQueue.size() >= 32) return;
+    if (!lock.try_lock() || !g_pinnedStarted || g_managedHurtQueue.size() >= 32)
+        return false;
     for (size_t i = 0; i < g_managedHurtBindings.size(); ++i) {
         const auto& entry = g_managedHurtBindings[i];
         if (entry.modId != modId || !entry.active || entry.managedSlot < 0)
@@ -1176,8 +1196,9 @@ void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
             npcIndex, projectileIndex
         });
         g_pinnedWake.notify_one();
-        return;
+        return true;
     }
+    return false;
 }
 
 void setManagedCheckpointPath(const std::string& path) {
