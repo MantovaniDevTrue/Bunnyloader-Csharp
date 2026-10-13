@@ -2915,8 +2915,8 @@ std::mutex g_visualStateMutex;
 
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
     if (!validAssembly(assemblyPath) || budget == 0) return 0;
-    std::unique_lock<std::mutex> guard(g_mutex, std::try_to_lock);
-    if (!guard.owns_lock() || !g_domain || !g_status.domainInitialized ||
+    std::unique_lock<std::mutex> guard(g_mutex, std::defer_lock);
+    if (!guard.try_lock() || !g_domain || !g_status.domainInitialized ||
         !g_api.currentThread || !g_api.attach || !g_api.invoke ||
         !g_api.findClass || !g_api.findMethod) return 0;
     if (g_visualQueue.size() >= ManagedVisualQueue::Capacity) return 0;
