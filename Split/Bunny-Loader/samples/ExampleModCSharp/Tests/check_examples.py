@@ -87,7 +87,7 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.26"
+assert manifest2["version"] == "0.1.27"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert len(playable_files) == 42
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
