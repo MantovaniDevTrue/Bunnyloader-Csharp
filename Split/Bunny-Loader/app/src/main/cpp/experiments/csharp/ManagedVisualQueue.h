@@ -27,6 +27,7 @@ struct ManagedVisualCommand {
     float opacity = 1;
     uint32_t color = 0xffffffffu;
     int durationTicks = 0;
+    int style = 0;
 };
 
 class ManagedVisualQueue {
