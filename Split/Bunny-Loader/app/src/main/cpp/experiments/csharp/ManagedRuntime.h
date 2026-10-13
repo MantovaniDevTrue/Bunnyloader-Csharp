@@ -326,5 +326,7 @@ ManagedSourceCompileResult compileManagedSource(
 namespace bl::csharp {
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget = 32);
 bool takeManagedVisualCommand(ManagedVisualCommand& command);
+size_t advanceManagedVisualState(uint64_t tick, size_t budget = 32);
+size_t activeManagedVisualCount();
 void clearManagedVisualCommands();
 }

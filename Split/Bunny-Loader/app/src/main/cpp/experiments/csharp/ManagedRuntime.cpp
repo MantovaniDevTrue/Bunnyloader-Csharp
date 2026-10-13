@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
+#include "experiments/csharp/ManagedVisualState.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
 #include "experiments/csharp/ManagedHitCallbackDispatch.h"
@@ -2908,6 +2909,7 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
 
 namespace {
 ManagedVisualQueue g_visualQueue;
+ManagedVisualState g_visualState;
 }
 
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
@@ -2951,8 +2953,25 @@ bool takeManagedVisualCommand(ManagedVisualCommand& command) {
     return g_visualQueue.pop(command);
 }
 
+size_t advanceManagedVisualState(uint64_t tick, size_t budget) {
+    g_visualState.advance(tick);
+    size_t consumed = 0;
+    ManagedVisualCommand command;
+    if (budget > 64) budget = 64;
+    while (consumed < budget && g_visualQueue.pop(command)) {
+        g_visualState.apply(command, tick);
+        ++consumed;
+    }
+    return consumed;
+}
+
+size_t activeManagedVisualCount() {
+    return g_visualState.size();
+}
+
 void clearManagedVisualCommands() {
     g_visualQueue.clear();
+    g_visualState.clear();
 }
 
 
