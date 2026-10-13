@@ -273,6 +273,8 @@ struct ManagedHurtJob {
     int life = 0;
     int maxLife = 0;
     int equipmentMask = 0;
+    int npcIndex = -1;
+    int projectileIndex = -1;
 };
 std::vector<ManagedHurtBinding> g_managedHurtBindings;
 std::deque<ManagedHurtJob> g_managedHurtQueue;
@@ -699,7 +701,7 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
         if (!cls) return -1;
         g_managedHurtRegisterMethod = g_api.findMethod(cls, "Register", 2);
         g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 7);
-        g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 7);
+        g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 9);
         if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
             !g_managedHurtAfterMethod) return -1;
     }
@@ -735,8 +737,11 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     int life = job.life;
     int lifeMax = job.maxLife;
     int mask = job.equipmentMask;
+    int npcIndex = job.npcIndex;
+    int projectileIndex = job.projectileIndex;
     void* argsModify[] = {&slot, &d, &direction, &flags, &life, &lifeMax, &mask};
-    void* argsAfter[] = {&slot, &d, &origin, &direction, &flags, &life, &mask};
+    void* argsAfter[] = {&slot, &d, &origin, &direction, &flags, &life, &mask,
+                         &npcIndex, &projectileIndex};
     void* exception = nullptr;
     void* boxed = g_api.invoke(job.after ? g_managedHurtAfterMethod :
         g_managedHurtModifyMethod, nullptr,
@@ -776,10 +781,14 @@ void* pinnedMonoWorker(void*) {
 #ifdef __ANDROID__
                     if (job.after && outcome >= 0) {
                         static std::atomic<int> completedLogs{0};
-                        if (completedLogs.fetch_add(1, std::memory_order_relaxed) < 12)
+                        if (completedLogs.fetch_add(1, std::memory_order_relaxed) < 20)
                             __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
-                                "csharp BunnyPlayer OnHurt: MonoVM executou %lld callback(s), dano=%d, vida=%d",
-                                static_cast<long long>(outcome), job.damage, job.life);
+                                "csharp BunnyPlayer %s: MonoVM processou %lld jogador(es), origem=%d, dano=%d, vida=%d",
+                                job.npcIndex >= 0 ? "OnHitByNPC" :
+                                job.projectileIndex >= 0 ? "OnHitByProjectile" : "OnHurt",
+                                static_cast<long long>(outcome),
+                                job.npcIndex >= 0 ? job.npcIndex : job.projectileIndex,
+                                job.damage, job.life);
                     }
 #endif
                     lock.lock();
@@ -1151,7 +1160,8 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
 
 void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int actualDamage, int hitDirection, int flags,
-                             int lifeRemaining, int equipmentMask) {
+                             int lifeRemaining, int equipmentMask,
+                             int npcIndex, int projectileIndex) {
     if (actualDamage <= 0 || sourceDamage < 0 || actualDamage > 1000000 ||
         lifeRemaining < 0) return;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
@@ -1162,7 +1172,8 @@ void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
             continue;
         g_managedHurtQueue.push_back({
             0, static_cast<int>(i), true, actualDamage, sourceDamage,
-            hitDirection, flags, lifeRemaining, 0, equipmentMask
+            hitDirection, flags, lifeRemaining, 0, equipmentMask,
+            npcIndex, projectileIndex
         });
         g_pinnedWake.notify_one();
         return;
