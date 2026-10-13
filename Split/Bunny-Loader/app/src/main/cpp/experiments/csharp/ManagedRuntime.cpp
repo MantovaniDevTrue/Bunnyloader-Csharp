@@ -1065,6 +1065,97 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+bool registerManagedPlayerHurtMod(const std::string& modId,
+                                  const std::string& assemblyPath) {
+    if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
+        assemblyPath.size() > 2048 ||
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
+        assemblyPath.find("..") != std::string::npos)
+        return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (auto& entry : g_managedHurtBindings) {
+        if (entry.modId != modId) continue;
+        if (entry.assemblyPath != assemblyPath) return false;
+        entry.active = true;
+        return true;
+    }
+    if (g_managedHurtBindings.size() >= 16) return false;
+    const int index = static_cast<int>(g_managedHurtBindings.size());
+    g_managedHurtBindings.push_back({modId, assemblyPath, -1, true, false});
+    if (g_managedHurtQueue.size() < 32)
+        g_managedHurtQueue.push_back(ManagedHurtJob{
+            0, index, true, 0, 0, 0, 0, 0, 0, 0
+        });
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void pauseManagedPlayerHurtMods() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (auto& entry : g_managedHurtBindings) entry.active = false;
+    g_managedHurtQueue.clear();
+}
+
+bool modifyManagedPlayerHurt(const std::string& modId, int damage,
+                             int hitDirection, int flags, int life, int lifeMax,
+                             int equipmentMask, ManagedHurtResult* result) {
+    if (!result || damage < 0 || damage > 1000000 || life < 0 ||
+        lifeMax < 1 || equipmentMask < 0 || hitDirection < -1 ||
+        hitDirection > 1)
+        return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock || !g_pinnedStarted || g_managedHurtQueue.size() >= 8) return false;
+    int index = -1;
+    for (size_t i = 0; i < g_managedHurtBindings.size(); ++i) {
+        if (g_managedHurtBindings[i].modId == modId &&
+            g_managedHurtBindings[i].active &&
+            g_managedHurtBindings[i].managedSlot >= 0) {
+            index = static_cast<int>(i);
+            break;
+        }
+    }
+    if (index < 0) return false;
+    const uint64_t ticket = ++g_managedHurtTicket;
+    g_managedHurtQueue.push_back({ticket, index, false, damage, 0,
+                                  hitDirection, flags, life, lifeMax, equipmentMask});
+    g_pinnedWake.notify_one();
+    const bool completed = g_managedHurtResultWake.wait_for(
+        lock, std::chrono::milliseconds(5), [ticket] {
+            return g_managedHurtCompletedTicket >= ticket;
+        });
+    if (!completed || g_managedHurtCompletedTicket != ticket ||
+        g_managedHurtCompletedValue < 0)
+        return false;
+    const uint64_t packed = static_cast<uint64_t>(g_managedHurtCompletedValue);
+    const int newDamage = static_cast<int>(packed & 0xfffff);
+    const int newDirection = static_cast<int>((packed >> 20) & 3) - 1;
+    const int newFlags = static_cast<int>((packed >> 22) & 31);
+    if (newDamage < 0 || newDamage > 1000000 ||
+        newDirection < -1 || newDirection > 1) return false;
+    *result = {newDamage, newDirection, newFlags & 15, (newFlags & 16) != 0};
+    return true;
+}
+
+void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
+                             int actualDamage, int hitDirection, int flags,
+                             int lifeRemaining, int equipmentMask) {
+    if (actualDamage <= 0 || sourceDamage < 0 || actualDamage > 1000000 ||
+        lifeRemaining < 0) return;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock || !g_pinnedStarted || g_managedHurtQueue.size() >= 32) return;
+    for (size_t i = 0; i < g_managedHurtBindings.size(); ++i) {
+        const auto& entry = g_managedHurtBindings[i];
+        if (entry.modId != modId || !entry.active || entry.managedSlot < 0)
+            continue;
+        g_managedHurtQueue.push_back({
+            0, static_cast<int>(i), true, actualDamage, sourceDamage,
+            hitDirection, flags, lifeRemaining, 0, equipmentMask
+        });
+        g_pinnedWake.notify_one();
+        return;
+    }
+}
+
 void setManagedCheckpointPath(const std::string& path) {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (path.size() <= 2048 && path.find("..") == std::string::npos)
