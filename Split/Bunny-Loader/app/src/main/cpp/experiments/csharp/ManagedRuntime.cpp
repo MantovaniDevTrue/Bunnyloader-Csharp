@@ -2959,6 +2959,10 @@ bool takeManagedVisualCommand(ManagedVisualCommand& command) {
     return g_visualQueue.pop(command);
 }
 
+bool postManagedVisualCommand(ManagedVisualCommand command) {
+    return g_visualQueue.push(std::move(command));
+}
+
 size_t advanceManagedVisualState(uint64_t tick, size_t budget) {
     std::lock_guard<std::mutex> guard(g_visualStateMutex);
     g_visualState.advance(tick);
