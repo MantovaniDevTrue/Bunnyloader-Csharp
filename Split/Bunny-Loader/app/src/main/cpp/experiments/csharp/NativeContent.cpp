@@ -2,6 +2,7 @@
 
 #include "content/common/GameRefs.h"
 #include "content/items/ModItems.h"
+#include "content/common/TypeTables.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "il2cpp/Api.h"
@@ -190,22 +191,40 @@ bool validTexture(const char* path) {
 bool enableManagedPrefixEligibility(int type) {
     using namespace bl::il2cpp;
     static FieldInfo* prefixSet = nullptr;
+    static Il2CppClass* prefixSetsClass = nullptr;
     if (!prefixSet) {
         Il2CppClass* itemId = findClass({"Terraria.ID", "ItemID", {}});
-        Il2CppClass* sets = itemId ? findNested(itemId, "Sets") : nullptr;
-        prefixSet = sets ? findField(sets, "CanGetPrefixes") : nullptr;
+        prefixSetsClass = itemId ? findNested(itemId, "Sets") : nullptr;
+        prefixSet = prefixSetsClass ? findField(prefixSetsClass, "CanGetPrefixes") : nullptr;
     }
-    if (!prefixSet || type < 0) return false;
+    auto& runtime = api();
+    if (!prefixSet || type < 0 || type >= bl::runtime::itemTypeCount() ||
+        !runtime.field_static_get_value || !runtime.field_static_set_value)
+        return false;
+    if (prefixSetsClass && runtime.runtime_class_init)
+        runtime.runtime_class_init(prefixSetsClass);
     Il2CppArray* entries = nullptr;
-    api().field_static_get_value(prefixSet, &entries);
-    if (!entries || static_cast<uintptr_t>(type) >= entries->length) return false;
-    auto* flags = static_cast<uint8_t*>(arrayData(entries));
-    if (!flags[type]) {
-        flags[type] = 1;
-        BL_INFO("csharp prefix: item %d habilitado para reforja", type);
-        return true;
+    runtime.field_static_get_value(prefixSet, &entries);
+    if (!entries) {
+        BL_WARN("csharp prefix: tabela CanGetPrefixes ainda indisponivel para item %d", type);
+        return false;
     }
-    return false;
+    if (static_cast<uintptr_t>(type) >= entries->length) {
+        const uintptr_t required = static_cast<uintptr_t>(bl::runtime::itemTypeCount());
+        auto* expanded = bl::runtime::TypeTables::resizedCopy(entries, required);
+        if (!expanded) {
+            BL_WARN("csharp prefix: falha ao ampliar CanGetPrefixes para item %d", type);
+            return false;
+        }
+        runtime.field_static_set_value(prefixSet, expanded);
+        entries = expanded;
+        BL_INFO("csharp prefix: CanGetPrefixes ampliado para %zu itens", required);
+    }
+    auto* flags = static_cast<uint8_t*>(arrayData(entries));
+    if (flags[type]) return true;
+    flags[type] = 1;
+    BL_INFO("csharp prefix: item %d habilitado para reforja", type);
+    return true;
 }
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
