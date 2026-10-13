@@ -546,8 +546,13 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.ModifyHurt missing");
             var onHurt = playerType.GetMethod("OnHurt")
                 ?? throw new InvalidOperationException("BunnyPlayer.OnHurt missing");
+            var freeDodge = playerType.GetMethod("FreeDodge")
+                ?? throw new InvalidOperationException("BunnyPlayer.FreeDodge missing");
             if (modifyHurt.ReturnType != typeof(void) ||
                 onHurt.ReturnType != typeof(void) ||
+                freeDodge.ReturnType != typeof(bool) ||
+                !freeDodge.GetParameters().Select(p => p.ParameterType.FullName)
+                    .SequenceEqual(new[] { "System.Boolean", "BunnyLoader.Source.BunnyHurtModifiers" }) ||
                 !modifyHurt.GetParameters().Select(p => p.ParameterType.FullName)
                     .SequenceEqual(new[] { "System.Boolean", "BunnyLoader.Source.BunnyHurtModifiers" }) ||
                 !onHurt.GetParameters().Select(p => p.ParameterType.FullName)
