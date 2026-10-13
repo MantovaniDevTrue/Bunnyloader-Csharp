@@ -614,7 +614,12 @@ HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
     if (npcIndex >= 0 && npcIndex < 200 && g_mainNpcArrayField) {
         Il2CppArray* array = nullptr;
         runtime.field_static_get_value(g_mainNpcArrayField, &array);
-        if (array && array->length <= 200 &&
+        static bool reportedNpcArray = false;
+        if (array && !reportedNpcArray) {
+            reportedNpcArray = true;
+            BL_INFO("csharp hit context: Main.npc tamanho=%zu", static_cast<size_t>(array->length));
+        }
+        if (array && array->length <= 201 &&
             static_cast<uintptr_t>(npcIndex) < array->length) {
             auto** entries = static_cast<Il2CppObject**>(arrayData(array));
             if (Il2CppObject* attacker = entries[npcIndex]) {
@@ -630,7 +635,12 @@ HurtAttackerSnapshot snapshotHurtAttacker(int npcIndex, int projectileIndex) {
                g_mainProjectileArrayField) {
         Il2CppArray* array = nullptr;
         runtime.field_static_get_value(g_mainProjectileArrayField, &array);
-        if (array && array->length <= 1000 &&
+        static bool reportedProjectileArray = false;
+        if (array && !reportedProjectileArray) {
+            reportedProjectileArray = true;
+            BL_INFO("csharp hit context: Main.projectile tamanho=%zu", static_cast<size_t>(array->length));
+        }
+        if (array && array->length <= 1001 &&
             static_cast<uintptr_t>(projectileIndex) < array->length) {
             auto** entries = static_cast<Il2CppObject**>(arrayData(array));
             if (Il2CppObject* attacker = entries[projectileIndex]) {
