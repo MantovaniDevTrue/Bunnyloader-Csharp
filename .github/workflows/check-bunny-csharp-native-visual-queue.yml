@@ -27,3 +27,7 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_mono_pump_test.cpp -o /tmp/managed_visual_mono_pump_test
       - name: Run Mono pump mock test
         run: /tmp/managed_visual_mono_pump_test
+      - name: Compile visual state test
+        run: g++ -std=c++17 -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_state_test.cpp -o /tmp/managed_visual_state_test
+      - name: Run visual state test
+        run: /tmp/managed_visual_state_test
