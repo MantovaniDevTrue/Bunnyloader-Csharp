@@ -2934,10 +2934,10 @@ size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget)
         ~DetachGuard() { if (fn && thread) fn(thread); }
     } detach{g_api.detachThread, alreadyAttached ? nullptr : attached};
 
-    const size_t separator = assemblyPath.find_last_of('/');
+    const size_t separator = g_checkpointPath.find_last_of('/');
     if (separator == std::string::npos) return 0;
     const std::string sdkPath =
-        assemblyPath.substr(0, separator + 1) + "BunnySourceSdk.dll";
+        g_checkpointPath.substr(0, separator + 1) + "BunnySourceSdk.dll";
     if (!validAssembly(sdkPath)) return 0;
     void* assembly = g_api.openAssembly(g_domain, sdkPath.c_str());
     void* image = assembly ? g_api.image(assembly) : nullptr;
