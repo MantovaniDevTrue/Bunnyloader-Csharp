@@ -104,7 +104,7 @@ public static class BunnyPlayerHurtDispatcher
                 (modifiers.Dodgeable ? 8 : 0) |
                 (modifiers.Cancelled ? 16 : 0) |
                 (dodged ? 32 : 0);
-            return d | ((long)dir << 20) | ((long)outputFlags << 22);
+            return (long)(uint)d | ((long)dir << 20) | ((long)outputFlags << 22);
         }
         catch
         {
