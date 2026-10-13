@@ -229,3 +229,4 @@ public abstract class BunnyPrefix
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
 }
+

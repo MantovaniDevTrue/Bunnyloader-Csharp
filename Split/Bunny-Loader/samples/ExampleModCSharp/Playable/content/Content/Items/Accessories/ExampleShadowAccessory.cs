@@ -1,3 +1,6 @@
+// ExampleMod C# | Content/Items/Accessories/ExampleShadowAccessory.cs
+// Acessorio: Tooltip descreve o efeito; o BunnyPlayer vinculado decide o bonus ao equipar.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -12,3 +15,4 @@ public sealed class ExampleShadowAccessory : BunnyAccessory
         Tooltip = "Ativa um efeito visual de sombra enquanto equipado";
     }
 }
+

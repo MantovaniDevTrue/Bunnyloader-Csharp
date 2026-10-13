@@ -1,3 +1,6 @@
+// ExampleMod C# | main.cs
+// Conteudo do exemplo. Leia os membros do SDK desta build antes de copiar uma API de outro loader.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 using System;
 
@@ -36,3 +39,4 @@ public sealed class ExampleBolt : BunnyProjectile
         return Math.Clamp(50 + damage * 2, 50, 150);
     }
 }
+

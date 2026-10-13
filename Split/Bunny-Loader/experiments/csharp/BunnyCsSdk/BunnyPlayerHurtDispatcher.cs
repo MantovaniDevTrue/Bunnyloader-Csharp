@@ -12,9 +12,26 @@ public static class BunnyPlayerHurtDispatcher
         public string Id = "";
         public string Path = "";
         public BunnyPlayer[] Players = Array.Empty<BunnyPlayer>();
+        public string LastError = "";
     }
 
     private static readonly List<Context> Contexts = new();
+    private static string RegistrationError = "";
+
+    // O worker MonoVM serializa estas chamadas. O ultimo erro fica disponivel
+    // mesmo depois de outro callback funcionar; nao ha IO no caminho de sucesso.
+    public static string GetLastError(int slot) =>
+        slot >= 0 && slot < Contexts.Count ? Contexts[slot].LastError : RegistrationError;
+
+    private static string Describe(string mod, string type, string hook, Exception error)
+    {
+        if (error is TargetInvocationException wrapped && wrapped.InnerException is not null)
+            error = wrapped.InnerException;
+        string value = "BUNNY_CSHARP_CALLBACK_ERROR mod=" + mod + " class=" + type +
+            " hook=" + hook + " exception=" + error.GetType().Name + " message=" + error.Message +
+            "\n" + (error.StackTrace ?? "(pilha indisponivel; esta build nao emite PDB)");
+        return value.Length <= 2048 ? value : value.Substring(0, 2048) + " [truncado]";
+    }
 
     public static int Register(string modId, string assemblyPath)
     {
@@ -27,6 +44,8 @@ public static class BunnyPlayerHurtDispatcher
         }
         if (Contexts.Count >= 16)
             return -1;
+        string currentType = "(assembly)";
+        string currentHook = "LoadFrom";
         try
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
@@ -40,15 +59,19 @@ public static class BunnyPlayerHurtDispatcher
             var players = new BunnyPlayer[types.Length];
             for (int i = 0; i < types.Length; i++)
             {
+                currentType = types[i].FullName ?? types[i].Name;
+                currentHook = ".ctor";
                 players[i] = (BunnyPlayer)(Activator.CreateInstance(types[i])
                     ?? throw new InvalidOperationException("BunnyPlayer instance unavailable"));
+                currentHook = "SetDefaults";
                 players[i].SetDefaults();
             }
             Contexts.Add(new Context { Id = modId, Path = assemblyPath, Players = players });
             return Contexts.Count - 1;
         }
-        catch
+        catch (Exception error)
         {
+            RegistrationError = Describe(modId, currentType, currentHook, error);
             return -1;
         }
     }
@@ -64,6 +87,8 @@ public static class BunnyPlayerHurtDispatcher
     {
         if (slot < 0 || slot >= Contexts.Count || damage < 0 || damage > 1000000)
             return -1;
+        string currentType = "(dispatcher)";
+        string currentHook = "context";
         try
         {
             npcIndex = npcIndex >= 0 && npcIndex < 200 ? npcIndex : -1;
@@ -98,15 +123,25 @@ public static class BunnyPlayerHurtDispatcher
             for (int i = 0; i < players.Length; i++)
             {
                 var player = players[i];
+                currentType = player.GetType().FullName ?? player.GetType().Name;
                 bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                     (equippedMask & (1 << i)) != 0;
+                currentHook = "ResetEffects";
                 player.ResetEffects();
+                currentHook = "UpdateEquips";
                 player.UpdateEquips(equipped);
+                currentHook = "ModifyHurt";
                 player.ModifyHurt(equipped, modifiers);
                 if (npcIndex >= 0)
+                {
+                    currentHook = "ModifyHitByNPC";
                     player.ModifyHitByNPC(equipped, npcIndex, modifiers);
+                }
                 else if (projectileIndex >= 0)
+                {
+                    currentHook = "ModifyHitByProjectile";
                     player.ModifyHitByProjectile(equipped, projectileIndex, modifiers);
+                }
             }
             bool dodged = false;
             if (!modifiers.Cancelled && modifiers.Dodgeable)
@@ -114,8 +149,10 @@ public static class BunnyPlayerHurtDispatcher
                 for (int i = 0; i < players.Length; i++)
                 {
                     var player = players[i];
+                    currentType = player.GetType().FullName ?? player.GetType().Name;
                     bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                         (equippedMask & (1 << i)) != 0;
+                    currentHook = "FreeDodge";
                     if (!player.FreeDodge(equipped, modifiers))
                         continue;
                     modifiers.Cancel();
@@ -133,8 +170,9 @@ public static class BunnyPlayerHurtDispatcher
                 (dodged ? 32 : 0);
             return (long)(uint)d | ((long)dir << 20) | ((long)outputFlags << 22);
         }
-        catch
+        catch (Exception error)
         {
+            Contexts[slot].LastError = Describe(Contexts[slot].Id, currentType, currentHook, error);
             return -1;
         }
     }
@@ -150,6 +188,8 @@ public static class BunnyPlayerHurtDispatcher
     {
         if (slot < 0 || slot >= Contexts.Count || damage <= 0)
             return 0;
+        string currentType = "(dispatcher)";
+        string currentHook = "context";
         try
         {
             npcIndex = npcIndex >= 0 && npcIndex < 200 ? npcIndex : -1;
@@ -166,19 +206,29 @@ public static class BunnyPlayerHurtDispatcher
             for (int i = 0; i < players.Length; i++)
             {
                 var player = players[i];
+                currentType = player.GetType().FullName ?? player.GetType().Name;
                 bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                     (equippedMask & (1 << i)) != 0;
+                currentHook = "OnHurt";
                 player.OnHurt(equipped, info);
                 if (npcIndex >= 0)
+                {
+                    currentHook = "OnHitByNPC";
                     player.OnHitByNPC(equipped, npcIndex, info);
+                }
                 else if (projectileIndex >= 0)
+                {
+                    currentHook = "OnHitByProjectile";
                     player.OnHitByProjectile(equipped, projectileIndex, info);
+                }
             }
             return players.Length;
         }
-        catch
+        catch (Exception error)
         {
+            Contexts[slot].LastError = Describe(Contexts[slot].Id, currentType, currentHook, error);
             return -1;
         }
     }
 }
+

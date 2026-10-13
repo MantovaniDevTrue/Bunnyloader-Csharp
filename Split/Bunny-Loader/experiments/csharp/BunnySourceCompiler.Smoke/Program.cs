@@ -588,3 +588,4 @@ finally
 {
     try { Directory.Delete(scratch, recursive: true); } catch { }
 }
+

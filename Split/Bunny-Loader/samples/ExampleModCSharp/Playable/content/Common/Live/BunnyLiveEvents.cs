@@ -1,3 +1,6 @@
+// ExampleMod C# | Common/Live/BunnyLiveEvents.cs
+// Callback descoberto pelo nome da classe/metodo. Preserve as assinaturas ao adaptar este exemplo.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 namespace BunnyLoader.Source;
 
 public static class BunnyLiveEvents
@@ -17,3 +20,4 @@ public static class BunnyLiveEvents
         return damage + (call % 5) + kills;
     }
 }
+

@@ -171,3 +171,4 @@ public sealed class PortableSha256
         state[7] = unchecked(state[7] + h);
     }
 }
+
