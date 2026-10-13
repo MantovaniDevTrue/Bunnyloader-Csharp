@@ -138,7 +138,7 @@ UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 SetArmorEffectVisualsFn g_originalSetArmorEffectVisuals = nullptr;
 PlayerSpawnFn g_originalPlayerSpawn = nullptr;
-int g_reviveSpawnContext = -1;
+constexpr int g_reviveSpawnContext = 0;
 bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
@@ -392,9 +392,16 @@ bool sendPlayerLifecycleMessage(const std::string& message) {
 
 void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method) {
     if (g_originalPlayerSpawn) g_originalPlayerSpawn(self, context, method);
-    if (!self || !g_playerPoliciesReady || context != g_reviveSpawnContext ||
-        g_reviveSpawnContext < 0 || g_respawnMessages.empty() ||
-        g_refs.playerWhoAmI < 0) return;
+    if (!self || g_refs.playerWhoAmI < 0) return;
+    static int spawnDiagnostics = 0;
+    if (spawnDiagnostics < 6) {
+        ++spawnDiagnostics;
+        BL_INFO("csharp BunnyPlayer Spawn: context=%d revive=%d policies=%d callbacks=%zu",
+                context, g_reviveSpawnContext, g_playerPoliciesReady ? 1 : 0,
+                g_respawnMessages.size());
+    }
+    if (!g_playerPoliciesReady || context != g_reviveSpawnContext ||
+        g_respawnMessages.empty()) return;
     using namespace bl::il2cpp;
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     auto& runtime = api();
@@ -563,18 +570,16 @@ bool prepareNativePlayerEffects() {
                            &g_originalSetArmorEffectVisuals)) return false;
     const MethodInfo* spawn = findMethodBySignature(
         player, parseSignature("void Spawn(PlayerSpawnContext context)"));
-    Il2CppClass* spawnContext = findClass({"Terraria", "PlayerSpawnContext", {}});
-    FieldInfo* revive = spawnContext
-        ? api().class_get_field_from_name(spawnContext, "ReviveFromDeath") : nullptr;
-    if (revive && api().field_static_get_value)
-        api().field_static_get_value(revive, &g_reviveSpawnContext);
-    if (spawn && g_reviveSpawnContext >= 0 && g_reviveSpawnContext <= 8) {
+    if (!spawn)
+        spawn = findMethodBySignature(
+            player, parseSignature("void Spawn(PlayerSpawnContext)"));
+    if (spawn) {
         if (!bl::hook::install(spawn, hkPlayerSpawn, &g_originalPlayerSpawn))
             BL_WARN("csharp BunnyPlayer OnRespawn: hook nao instalado");
         else BL_INFO("csharp BunnyPlayer OnRespawn: hook instalado; reviveContext=%d",
                      g_reviveSpawnContext);
     } else {
-        BL_WARN("csharp BunnyPlayer OnRespawn: assinatura/contexto indisponivel");
+        BL_WARN("csharp BunnyPlayer OnRespawn: assinatura de Player.Spawn indisponivel");
     }
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
