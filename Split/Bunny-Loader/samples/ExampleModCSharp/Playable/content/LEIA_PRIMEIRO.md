@@ -1,17 +1,28 @@
-# ExampleMod C# — lote 0.1.25
+# ExampleMod C# — lote 0.1.26
 
 Requer Bunny Loader .90.25 ou mais recente. Este pacote inclui os exemplos
-existentes e oito receitas de combate em Common/Recipes, numeradas para estudo.
+existentes, tres acessorios compostos e oito receitas de combate em Common/Recipes.
 As receitas compilam junto do mod, mas so atuam quando chamadas por um callback.
 Nao instalam oito efeitos adicionais nem alteram o balanceamento automaticamente.
+
+## Acessorios e seus componentes
+
+- Seis acessorios basicos preservados: Focus, Swift, Momentum, Arcane, Shadow, Vital.
+- ExampleGuardianShield: +5 defesa, +4 regeneracao de vida, -15% dano de NPC e -10% de projetil.
+- ExampleTrailblazerBoots: +12% velocidade, +8% aceleracao, efeito visual do FrameEffects.
+- ExampleMysticWard: +3 defesa, +8 regeneracao de mana, -20% dano quando a vida esta em 35% ou menos, -10% adicional de projetil proximo (ate 192 pixels).
+
+Cada exemplo composto tem um BunnyAccessory em Content/Items/Accessories e um BunnyPlayer em Common/Players. Os efeitos so sao habilitados quando equipados; retirando o acessorio, o bonus deve sumir. As sprites reutilizam a textura de Focus nesta fase e devem ganhar artes proprias futuramente.
 
 ## Caminho de estudo
 
 1. Content/Items/Weapons + Content/Projectiles: ligar uma arma ao projetil com nameof.
 2. Content/Items/Accessories + Common/Players: item, Tooltip e efeito ao equipar.
-3. Content/Prefixes: multiplicadores e bonus de defesa do prefixo.
-4. Common/Players/ExampleVitalPlayer.cs: ordem de ModifyHurt, FreeDodge e OnHurt.
-5. Common/Recipes/01..08: reducao, vida baixa, NPC, projetil, distancia, velocidade,
+3. Content/Items/Accessories/ExampleGuardianShieldAccessory + Common/Players/ExampleGuardianShieldPlayer: escudo com multiplos callbacks.
+4. ExampleTrailblazerBoots e ExampleMysticWard: velocidade, regeneracao e defesa condicional.
+5. Content/Prefixes: multiplicadores e bonus de defesa do prefixo.
+6. Common/Players/ExampleVitalPlayer.cs: ordem de ModifyHurt, FreeDodge e OnHurt.
+7. Common/Recipes/01..08: reducao, vida baixa, NPC, projetil, distancia, velocidade,
    arco e observacao depois do golpe. Cada arquivo explica uso, unidades e limites.
 
 ## Integrar uma receita
