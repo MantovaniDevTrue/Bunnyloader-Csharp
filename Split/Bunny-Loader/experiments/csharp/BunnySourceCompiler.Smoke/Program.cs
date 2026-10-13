@@ -334,7 +334,8 @@ try
     {
         long packed = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
             hurtSlot, 80, 1, 8, 250, 500, 1 << vitalIndex, -1, -1,
-            -1, -1, -1, -1, -1, -1);
+            -1, -1, -1, -1, -1, -1,
+            -1f, -1f, -1f, -1f, -1f, -1f);
         if (packed < 0)
             throw new InvalidOperationException("C# managed hurt dispatcher returned failure");
         int damage = (int)(packed & 0xfffff);
@@ -344,24 +345,30 @@ try
             throw new InvalidOperationException("C# managed FreeDodge packed ABI differs");
         if (hit < 4 && BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
                 hurtSlot, 50, 80, 1, 8, 200, 1 << vitalIndex, 7, -1,
-                1, 23, 90, -1, -1, -1) <= 0)
+                1, 23, 90, -1, -1, -1,
+                100.5f, 200.25f, -2.5f, 3.75f, 1.25f, 64f) <= 0)
             throw new InvalidOperationException("C# managed OnHurt dispatch failed");
     }
     var testNpc = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
         hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, 7, -1,
-        1, 23, 90, -1, -1, -1);
+        1, 23, 90, -1, -1, -1,
+        100.5f, 200.25f, -2.5f, 3.75f, 1.25f, 64f);
     var testProjectile = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
         hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, -1, 31,
-        -1, -1, -1, 9, 35, 255);
+        -1, -1, -1, 9, 35, 255,
+        300f, 400f, 5f, -6f, -0.5f, 128f);
     var testUnknown = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
         hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, -1, -1,
-        -1, -1, -1, -1, -1, -1);
+        -1, -1, -1, -1, -1, -1,
+        -1f, -1f, -1f, -1f, -1f, -1f);
     var testUnequipped = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
         hurtSlot, 80, 1, 0, 250, 500, 0, 7, -1,
-        1, 23, 90, -1, -1, -1);
+        1, 23, 90, -1, -1, -1,
+        100.5f, 200.25f, -2.5f, 3.75f, 1.25f, 64f);
     var testPvp = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
         hurtSlot, 80, 1, 1, 250, 500, 1 << vitalIndex, -1, 31,
-        -1, -1, -1, 9, 35, 255);
+        -1, -1, -1, 9, 35, 255,
+        300f, 400f, 5f, -6f, -0.5f, 128f);
     if ((testNpc & 0xfffff) != 48 ||
         (testProjectile & 0xfffff) != 40 ||
         (testUnknown & 0xfffff) != 60 ||
@@ -371,11 +378,17 @@ try
 
     var freshNpc = new BunnyLoader.Source.BunnyHurtModifiers {
         Damage = 80, NpcIndex = 7, NpcType = 1, NpcDamage = 23,
-        NpcLife = 90
+        NpcLife = 90,
+        AttackerX = 100.5f, AttackerY = 200.25f,
+        AttackerVelocityX = -2.5f, AttackerVelocityY = 3.75f,
+        AttackerAngle = 1.25f, AttackerDistance = 64f
     };
     var freshProjectile = new BunnyLoader.Source.BunnyHurtModifiers {
         Damage = 80, ProjectileIndex = 31, ProjectileType = 9,
-        ProjectileDamage = 35, ProjectileOwner = 255
+        ProjectileDamage = 35, ProjectileOwner = 255,
+        AttackerX = 300f, AttackerY = 400f,
+        AttackerVelocityX = 5f, AttackerVelocityY = -6f,
+        AttackerAngle = -0.5f, AttackerDistance = 128f
     };
     var freshVital = Activator.CreateInstance(vitalType)
         ?? throw new InvalidOperationException("Vital attack context instance missing");
@@ -392,6 +405,30 @@ try
         (int)(vitalType.GetProperty("SlimePreHits")?.GetValue(freshVital) ?? 0) != 1 ||
         (int)(vitalType.GetProperty("EnemyProjectilePreHits")?.GetValue(freshVital) ?? 0) != 1)
         throw new InvalidOperationException("BunnyPlayer attacker context attributes not preserved");
+    float spatial(string name) =>
+        (float)(vitalType.GetProperty(name)?.GetValue(freshVital) ?? -10000f);
+    if (spatial("LastAttackerX") != 300f ||
+        spatial("LastAttackerY") != 400f ||
+        spatial("LastAttackerVelocityX") != 5f ||
+        spatial("LastAttackerVelocityY") != -6f ||
+        spatial("LastAttackerAngle") != -0.5f ||
+        spatial("LastAttackerDistance") != 128f)
+        throw new InvalidOperationException("Spatial context not delivered to Vital Player");
+    var postSpatial = new BunnyLoader.Source.BunnyHurtInfo(
+        17, 30, 1, 300, false, false, 7, -1,
+        1, 23, 90, -1, -1, -1,
+        100.5f, 200.25f, -2.5f, 3.75f, 1.25f, 64f);
+    onHurt.Invoke(freshVital, new object[] { true, postSpatial });
+    if (spatial("LastPostHitDistance") != 64f ||
+        postSpatial.AttackerX != 100.5f ||
+        postSpatial.AttackerY != 200.25f ||
+        postSpatial.AttackerVelocityX != -2.5f ||
+        postSpatial.AttackerVelocityY != 3.75f ||
+        postSpatial.AttackerAngle != 1.25f ||
+        postSpatial.AttackerDistance != 64f)
+        throw new InvalidOperationException("Six hurt spatial fields lost after damage");
+    Console.WriteLine("BUNNY_CSHARP_HURT_SPATIAL_CONTEXT=PASS");
+
     var contextInfo = new BunnyLoader.Source.BunnyHurtInfo(
         17, 30, 1, 300, false, false, 7, -1,
         1, 23, 90, -1, -1, -1);
@@ -439,11 +476,13 @@ try
         throw new InvalidOperationException("C# hit source callbacks lost state");
     if (BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
         hurtSlot, 10, 15, -1, 8, 190, 1 << vitalIndex, -1, 31,
-        -1, -1, -1, 9, 35, 255) <= 0)
+        -1, -1, -1, 9, 35, 255,
+        300f, 400f, 5f, -6f, -0.5f, 128f) <= 0)
         throw new InvalidOperationException("C# projectile hit source dispatch failed");
     if (BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
         hurtSlot, 10, 15, -1, 8, 180, 1 << vitalIndex, -1, -1,
-        -1, -1, -1, -1, -1, -1) <= 0)
+        -1, -1, -1, -1, -1, -1,
+        -1f, -1f, -1f, -1f, -1f, -1f) <= 0)
         throw new InvalidOperationException("C# generic hurt dispatch failed");
     Console.WriteLine("BUNNY_CSHARP_HIT_SOURCE_DISPATCH=PASS");
     onHurt.Invoke(vital, new object[] {
