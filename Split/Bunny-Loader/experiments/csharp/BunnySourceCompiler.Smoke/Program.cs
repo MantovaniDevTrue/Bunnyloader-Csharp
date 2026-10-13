@@ -213,7 +213,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 18)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 22)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -228,15 +228,19 @@ try
         !independentDefaults.Contains("ACCESSORY\tExampleSwiftAccessory\t0\tAumenta a velocidade de corrida em 8%\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleMomentumAccessory\t0\tAumenta a aceleracao ao correr em 6%\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\tAtiva um efeito visual de sombra enquanto equipado\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\t-\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\t-\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\tExample C#: BunnyPlayer OnRespawn ativo!\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tAumenta a regeneracao de vida em 12 enquanto equipado\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 19)
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 23)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
