@@ -1,0 +1,17 @@
+name: Check Bunny CSharp Native Visual Queue
+
+on:
+  push:
+    branches:
+      - csharp-visual-effects-v90-27-wip
+  workflow_dispatch:
+
+jobs:
+  native-visual-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile native queue test
+        run: g++ -std=c++17 -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_queue_test.cpp -o /tmp/managed_visual_queue_test
+      - name: Run native queue test
+        run: /tmp/managed_visual_queue_test
