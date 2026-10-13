@@ -12,6 +12,8 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
     public int ProjectileHitsTaken { get; private set; }
     public int LastNpcIndex { get; private set; } = -1;
     public int LastProjectileIndex { get; private set; } = -1;
+    public int NpcPreHitCalls { get; private set; }
+    public int ProjectilePreHitCalls { get; private set; }
 
     public override void SetDefaults()
     {
@@ -33,6 +35,26 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
             return;
 
         modifiers.Damage = (int)((long)modifiers.Damage * 3 / 4);
+    }
+
+    public override void ModifyHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtModifiers modifiers)
+    {
+        if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0 ||
+            modifiers.NpcIndex != npcIndex)
+            return;
+
+        NpcPreHitCalls++;
+        modifiers.Damage = (int)((long)modifiers.Damage * 4 / 5);
+    }
+
+    public override void ModifyHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtModifiers modifiers)
+    {
+        if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0 ||
+            modifiers.ProjectileIndex != projectileIndex)
+            return;
+
+        ProjectilePreHitCalls++;
+        modifiers.Damage = (int)((long)modifiers.Damage * 2 / 3);
     }
 
     public override bool FreeDodge(bool accessoryEquipped, BunnyHurtModifiers modifiers)
