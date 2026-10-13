@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-respawn-enum-hotfix-v90-17-1
       - csharp-global-player-respawn-v90-17
       - csharp-shadow-tooltip-v90-16-2
       - csharp-accessory-tooltips-v90-16-1
@@ -169,6 +170,16 @@ jobs:
           assert 'OnEnterWorld()' in example and 'OnRespawn()' in example
           assert not (sample/"Content/Items/Accessories/ExampleWelcomeAccessory.cs").exists()
           print("BUNNY_CSHARP_GLOBAL_PLAYER_RESPAWN_V90_17=PASS")
+          assert 'constexpr int g_reviveSpawnContext = 0;' in native
+          assert 'void Spawn(PlayerSpawnContext context)' in native
+          assert 'void Spawn(PlayerSpawnContext)' in native
+          assert 'context != g_reviveSpawnContext' in native
+          assert 'g_originalPlayerSpawn(self, context, method);' in native
+          assert 'csharp BunnyPlayer Spawn: context=%d revive=%d' in native
+          assert 'ReviveFromDeath")' not in native
+          assert 'if (who != localIndex) return;' in native
+          assert 'if (sendPlayerLifecycleMessage(message)) ++count;' in native
+          print("BUNNY_CSHARP_RESPAWN_ENUM_FIX_V90_17_1=PASS")
           PY
 
           python3 - <<'PY'
