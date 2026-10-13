@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/ManagedRuntime.h"
 
 #include "content/common/GameRefs.h"
 #include "content/items/ModItems.h"
@@ -12,7 +13,10 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <mutex>
+#include <vector>
 #include <cstddef>
 #include <cstdio>
 #include <map>
@@ -71,6 +75,8 @@ struct NativeRefs {
     int playerLifeRegen = -1;
     int playerManaRegen = -1;
     int playerDead = -1;
+    int playerLife = -1;
+    int playerLifeMax = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -118,6 +124,16 @@ struct NativeProjectileDefaults {
     bool hostile;
 };
 
+struct ManagedHurtBinding {
+    std::string modId;
+    std::string assemblyPath;
+    std::vector<int> accessoryTypes;
+    bool active = false;
+};
+
+std::mutex g_hurtBindingsMutex;
+std::map<std::string, ManagedHurtBinding> g_hurtBindings;
+
 using ItemDefaultsFn = void (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
 using ProjectileDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const MethodInfo*);
@@ -128,6 +144,9 @@ using SetArmorEffectVisualsFn = void (*)(Il2CppObject*, Il2CppObject*, const Met
 using PlayerSpawnFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using PlayerUpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using PlayerStageFn = void (*)(Il2CppObject*, const MethodInfo*);
+using PlayerHurtFn = double (*)(Il2CppObject*, const void*, int32_t, int32_t,
+                               uint8_t, uint8_t, uint8_t, int32_t, uint8_t,
+                               const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -156,6 +175,7 @@ PlayerUpdateFn g_originalPlayerUpdate = nullptr;
 PlayerStageFn g_originalUpdateDead = nullptr;
 PlayerStageFn g_originalLifeRegen = nullptr;
 PlayerStageFn g_originalManaRegen = nullptr;
+PlayerHurtFn g_originalPlayerHurt = nullptr;
 constexpr int g_reviveSpawnContext = 0;
 bool g_ready = false;
 bool g_npcReady = false;
@@ -525,6 +545,102 @@ void hkPlayerUpdateDead(Il2CppObject* self, const MethodInfo* method) {
     BL_INFO("csharp BunnyPlayer UpdateDead: %d mensagem(ns) enviadas(s)", delivered);
 }
 
+double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
+                    int32_t direction, uint8_t pvp, uint8_t quiet, uint8_t crit,
+                    int32_t cooldown, uint8_t dodgeable, const MethodInfo* method) {
+    if (!g_originalPlayerHurt) return 0.0;
+    static thread_local bool dispatching = false;
+    if (dispatching || !self || !g_playerPoliciesReady ||
+        g_refs.playerLife < 0 || g_refs.playerLifeMax < 0)
+        return g_originalPlayerHurt(self, source, damage, direction,
+                                    pvp, quiet, crit, cooldown, dodgeable, method);
+    std::vector<ManagedHurtBinding> mods;
+    {
+        std::lock_guard<std::mutex> lock(g_hurtBindingsMutex);
+        for (const auto& [id, binding] : g_hurtBindings)
+            if (binding.active && !binding.accessoryTypes.empty())
+                mods.push_back(binding);
+    }
+    if (mods.empty())
+        return g_originalPlayerHurt(self, source, damage, direction,
+                                    pvp, quiet, crit, cooldown, dodgeable, method);
+    using namespace bl::il2cpp;
+    auto& runtime = api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    const MethodInfo* localGetter = main && runtime.class_get_method_from_name
+        ? runtime.class_get_method_from_name(main, "get_LocalPlayer", 0) : nullptr;
+    Il2CppObject* error = nullptr;
+    Il2CppObject* local = localGetter && runtime.runtime_invoke
+        ? runtime.runtime_invoke(localGetter, nullptr, nullptr, &error) : nullptr;
+    if (error || local != self)
+        return g_originalPlayerHurt(self, source, damage, direction,
+                                    pvp, quiet, crit, cooldown, dodgeable, method);
+    dispatching = true;
+    struct DispatchGuard {
+        bool& running;
+        ~DispatchGuard() { running = false; }
+    } guard{dispatching};
+    struct HurtParticipant {
+        std::string modId;
+        int equipmentMask;
+    };
+    std::vector<HurtParticipant> participants;
+    auto* equipped = g_refs.playerArmor >= 0
+        ? bl::runtime::field<Il2CppArray*>(self, g_refs.playerArmor) : nullptr;
+    auto** items = equipped && equipped->length >= 10 && equipped->length <= 40
+        ? static_cast<Il2CppObject**>(arrayData(equipped)) : nullptr;
+    int flags = (pvp ? 1 : 0) | (quiet ? 2 : 0) |
+                (crit ? 4 : 0) | (dodgeable ? 8 : 0);
+    const int sourceDamage = damage;
+    const int life = bl::runtime::field<int32_t>(self, g_refs.playerLife);
+    const int lifeMax = bl::runtime::field<int32_t>(self, g_refs.playerLifeMax);
+    int changed = 0;
+    for (const auto& binding : mods) {
+        int mask = 0;
+        for (size_t i = 0; i < binding.accessoryTypes.size() && i < 16; ++i) {
+            const int target = binding.accessoryTypes[i];
+            if (target < 0) continue;
+            if (!items) continue;
+            for (uintptr_t slot = 3; slot < 10; ++slot) {
+                Il2CppObject* item = items[slot];
+                if (item && bl::runtime::field<int32_t>(item, g_refs.itemType) == target &&
+                    bl::runtime::field<uint8_t>(item, g_refs.itemAccessory)) {
+                    mask |= 1 << i;
+                    break;
+                }
+            }
+        }
+        participants.push_back({binding.modId, mask});
+        ManagedHurtResult result;
+        if (!modifyManagedPlayerHurt(binding.modId, damage, direction, flags,
+                                     life, lifeMax, mask, &result)) continue;
+        ++changed;
+        damage = result.damage;
+        direction = result.hitDirection;
+        flags = (flags & 1) | (result.flags & 14);
+        if (result.cancelled) {
+            BL_INFO("csharp BunnyPlayer ModifyHurt: golpe cancelado");
+            return 0.0;
+        }
+    }
+    static int diagnosed = 0;
+    if (changed && diagnosed++ < 12)
+        BL_INFO("csharp BunnyPlayer ModifyHurt: entrada=%d final=%d callbacks=%d",
+                sourceDamage, damage, changed);
+    const double applied = g_originalPlayerHurt(
+        self, source, damage, direction, pvp,
+        (flags & 2) != 0, (flags & 4) != 0, cooldown, (flags & 8) != 0, method);
+    if (applied > 0.0 && applied <= 1000000.0) {
+        const int actual = static_cast<int>(applied);
+        const int remaining = std::max(
+            0, bl::runtime::field<int32_t>(self, g_refs.playerLife));
+        for (const auto& participant : participants)
+            notifyManagedPlayerHurt(participant.modId, sourceDamage, actual,
+                                    direction, flags, remaining, participant.equipmentMask);
+    }
+    return applied;
+}
+
 int equippedRegeneration(Il2CppObject* self, bool mana) {
     if (!self || g_refs.playerArmor < 0 || g_refs.itemAccessory < 0 ||
         g_refs.itemType < 0) return 0;
@@ -644,6 +760,9 @@ bool prepareNativeContent() {
     r.playerLifeRegen = fieldOffset(player, "lifeRegen");
     r.playerManaRegen = fieldOffset(player, "manaRegen");
     r.playerDead = fieldOffset(player, "dead");
+    r.playerLife = fieldOffset(player, "statLife");
+    r.playerLifeMax = fieldOffset(player, "statLifeMax2");
+    if (r.playerLifeMax < 0) r.playerLifeMax = fieldOffset(player, "statLifeMax");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
@@ -757,6 +876,13 @@ bool prepareNativePlayerEffects() {
         bl::hook::install(manaRegen, hkPlayerManaRegen, &g_originalManaRegen))
         BL_INFO("csharp BunnyPlayer UpdateManaRegen: hook instalado");
     else BL_WARN("csharp BunnyPlayer UpdateManaRegen: hook indisponivel");
+    const MethodInfo* hurt = findMethodBySignature(player, parseSignature(
+        "double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)"));
+    if (hurt && r.playerLife >= 0 && r.playerLifeMax >= 0 &&
+        bl::hook::install(hurt, hkPlayerHurt, &g_originalPlayerHurt))
+        BL_INFO("csharp BunnyPlayer ModifyHurt/OnHurt: hook Player.Hurt instalado");
+    else
+        BL_WARN("csharp BunnyPlayer ModifyHurt/OnHurt: hook Player.Hurt indisponivel");
     g_effectsReady = true;
     BL_INFO("csharp native: hooks de acessorio e buff instalados");
     return true;
@@ -956,6 +1082,17 @@ bool applyManagedNativePlayerDefaultsBatch(
         g_anyLifeRegen = g_anyLifeRegen || effect.lifeRegenBonus > 0;
         g_anyManaRegen = g_anyManaRegen || effect.manaRegenBonus > 0;
     }
+    if (!players.empty()) {
+        std::vector<ManagedPlayerEntry> sorted = players;
+        std::sort(sorted.begin(), sorted.end(),
+            [](const auto& a, const auto& b) { return a.name < b.name; });
+        ManagedHurtBinding binding;
+        binding.modId = modId;
+        for (const auto& player : sorted)
+            binding.accessoryTypes.push_back(player.accessoryType);
+        std::lock_guard<std::mutex> lock(g_hurtBindingsMutex);
+        g_hurtBindings[modId] = std::move(binding);
+    }
     g_playerPoliciesReady = true;
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
             modId.c_str(), accessories.size(), players.size());
@@ -988,6 +1125,29 @@ bool applyManagedNativeNpcDefaultsBatch(
     BL_INFO("csharp native: managed NPC defaults applied for %s (%zu NPC)",
             modId.c_str(), staged.size());
     return true;
+}
+
+bool bindManagedPlayerHurtMod(const std::string& modId,
+                              const std::string& assemblyPath) {
+    {
+        std::lock_guard<std::mutex> lock(g_hurtBindingsMutex);
+        if (!g_hurtBindings.contains(modId)) return false;
+    }
+    if (!registerManagedPlayerHurtMod(modId, assemblyPath)) return false;
+    std::lock_guard<std::mutex> lock(g_hurtBindingsMutex);
+    auto it = g_hurtBindings.find(modId);
+    if (it == g_hurtBindings.end()) return false;
+    it->second.assemblyPath = assemblyPath;
+    it->second.active = true;
+    return true;
+}
+
+void pauseManagedPlayerHurtBindings() {
+    {
+        std::lock_guard<std::mutex> lock(g_hurtBindingsMutex);
+        for (auto& [id, binding] : g_hurtBindings) binding.active = false;
+    }
+    pauseManagedPlayerHurtMods();
 }
 
 bool showManagedPlayerWorldJoinMessages() {
