@@ -4,6 +4,9 @@ namespace ExampleModCSharp;
 
 public sealed class ExampleVitalPlayer : BunnyPlayer
 {
+    public int HitsTaken { get; private set; }
+    public int LastDamageTaken { get; private set; }
+
     public override void SetDefaults()
     {
         Accessory = nameof(ExampleVitalAccessory);
@@ -16,5 +19,22 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
     public override int UpdateLifeRegen(bool accessoryEquipped)
     {
         return accessoryEquipped ? 12 : 0;
+    }
+
+    public override void ModifyHurt(bool accessoryEquipped, BunnyHurtModifiers modifiers)
+    {
+        if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0)
+            return;
+
+        modifiers.Damage = (int)((long)modifiers.Damage * 3 / 4);
+    }
+
+    public override void OnHurt(bool accessoryEquipped, BunnyHurtInfo info)
+    {
+        if (!accessoryEquipped || info.Damage <= 0)
+            return;
+
+        HitsTaken++;
+        LastDamageTaken = info.Damage;
     }
 }
