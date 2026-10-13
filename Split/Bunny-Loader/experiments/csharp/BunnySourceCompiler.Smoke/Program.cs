@@ -233,7 +233,7 @@ try
         !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida, reduz dano nao PvP em 25% e esquiva a cada 4 golpes esquivaveis\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida; reducao adicional contra NPC e projetil; esquiva no quarto golpe\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
@@ -333,7 +333,7 @@ try
     for (int hit = 1; hit <= 4; hit++)
     {
         long packed = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
-            hurtSlot, 80, 1, 8, 250, 500, 1 << vitalIndex);
+            hurtSlot, 80, 1, 8, 250, 500, 1 << vitalIndex, -1, -1);
         if (packed < 0)
             throw new InvalidOperationException("C# managed hurt dispatcher returned failure");
         int damage = (int)(packed & 0xfffff);
@@ -345,6 +345,39 @@ try
                 hurtSlot, 50, 80, 1, 8, 200, 1 << vitalIndex, 7, -1) <= 0)
             throw new InvalidOperationException("C# managed OnHurt dispatch failed");
     }
+    var testNpc = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+        hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, 7, -1);
+    var testProjectile = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+        hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, -1, 31);
+    var testUnknown = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+        hurtSlot, 80, 1, 0, 250, 500, 1 << vitalIndex, -1, -1);
+    var testUnequipped = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+        hurtSlot, 80, 1, 0, 250, 500, 0, 7, -1);
+    var testPvp = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+        hurtSlot, 80, 1, 1, 250, 500, 1 << vitalIndex, -1, 31);
+    if ((testNpc & 0xfffff) != 48 ||
+        (testProjectile & 0xfffff) != 40 ||
+        (testUnknown & 0xfffff) != 60 ||
+        (testUnequipped & 0xfffff) != 80 ||
+        (testPvp & 0xfffff) != 80)
+        throw new InvalidOperationException("C# source-specific pre-hit reduction or equipment/PvP gating failed");
+
+    var directNpc = vitalType.GetMethod("ModifyHitByNPC")
+        ?? throw new InvalidOperationException("Example Vital ModifyHitByNPC missing");
+    var directProjectile = vitalType.GetMethod("ModifyHitByProjectile")
+        ?? throw new InvalidOperationException("Example Vital ModifyHitByProjectile missing");
+    var npcModifiers = new BunnyLoader.Source.BunnyHurtModifiers { Damage = 60, NpcIndex = 7 };
+    directNpc.Invoke(vital, new object[] { true, 7, npcModifiers });
+    var projectileModifiers = new BunnyLoader.Source.BunnyHurtModifiers {
+        Damage = 60, NpcIndex = -1, ProjectileIndex = 31
+    };
+    directProjectile.Invoke(vital, new object[] { true, 31, projectileModifiers });
+    if (npcModifiers.Damage != 48 || projectileModifiers.Damage != 40 ||
+        (int)(vitalType.GetProperty("NpcPreHitCalls")?.GetValue(vital) ?? -1) != 1 ||
+        (int)(vitalType.GetProperty("ProjectilePreHitCalls")?.GetValue(vital) ?? -1) != 1)
+        throw new InvalidOperationException("C# source-aware pre-hit callback state failed");
+    Console.WriteLine("BUNNY_CSHARP_PRE_HIT_NPC_PROJECTILE=PASS");
+
     var onNpc = vitalType.GetMethod("OnHitByNPC")
         ?? throw new InvalidOperationException("Example Vital OnHitByNPC missing");
     var onProjectile = vitalType.GetMethod("OnHitByProjectile")
