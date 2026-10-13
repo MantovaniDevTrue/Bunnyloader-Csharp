@@ -120,6 +120,11 @@ struct ManagedPlayerEntry {
     bool frameShadow = false;
     std::string worldJoinMessage;
     std::string respawnMessage;
+    bool preUpdate = false;
+    bool postUpdate = false;
+    std::string deadMessage;
+    int lifeRegenBonus = 0;
+    int manaRegenBonus = 0;
 };
 
 bool showManagedPlayerWorldJoinMessages();
