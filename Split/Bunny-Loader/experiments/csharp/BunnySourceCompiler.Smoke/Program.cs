@@ -233,7 +233,7 @@ try
         !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tExample C#: BunnyPlayer OnEnterWorld ativo!\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tAumenta a regeneracao de vida em 12 enquanto equipado\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida, reduz dano nao PvP em 25% e esquiva a cada 4 golpes esquivaveis\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
