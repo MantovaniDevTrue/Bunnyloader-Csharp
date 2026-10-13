@@ -21,4 +21,19 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
     {
         return "Example C#: BunnyPlayer OnRespawn ativo!";
     }
+
+    public override bool PreUpdate()
+    {
+        return true;
+    }
+
+    public override bool PostUpdate()
+    {
+        return true;
+    }
+
+    public override string UpdateDead()
+    {
+        return "Example C#: BunnyPlayer UpdateDead ativo!";
+    }
 }
