@@ -77,6 +77,9 @@ struct NativeRefs {
     int playerDead = -1;
     int playerLife = -1;
     int playerLifeMax = -1;
+    int playerImmune = -1;
+    int playerImmuneTime = -1;
+    int playerHurtCooldowns = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -181,6 +184,9 @@ bool g_ready = false;
 bool g_npcReady = false;
 bool g_effectsReady = false;
 bool g_playerPoliciesReady = false;
+Il2CppObject* g_dodgePendingPlayer = nullptr;
+int g_dodgePendingLife = 0;
+int g_dodgeLifeSamples = 0;
 
 bool validName(const char* value) {
     if (!value || !*value) return false;
@@ -499,6 +505,19 @@ void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method)
     }
     if (g_originalPlayerUpdate)
         g_originalPlayerUpdate(self, index, method);
+    if (self && self == g_dodgePendingPlayer && g_refs.playerLife >= 0) {
+        if (g_dodgeLifeSamples < 12) {
+            ++g_dodgeLifeSamples;
+            BL_INFO("csharp BunnyPlayer FreeDodge: vida apos Update=%d antes da esquiva=%d imune=%d tempo=%d",
+                    bl::runtime::field<int32_t>(self, g_refs.playerLife),
+                    g_dodgePendingLife,
+                    g_refs.playerImmune >= 0
+                        ? static_cast<int>(bl::runtime::field<uint8_t>(self, g_refs.playerImmune)) : -1,
+                    g_refs.playerImmuneTime >= 0
+                        ? bl::runtime::field<int32_t>(self, g_refs.playerImmuneTime) : -1);
+        }
+        g_dodgePendingPlayer = nullptr;
+    }
     if (self && g_deadEventDelivered && g_refs.playerDead >= 0 &&
         !bl::runtime::field<uint8_t>(self, g_refs.playerDead)) {
         using namespace bl::il2cpp;
@@ -619,11 +638,35 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         direction = result.hitDirection;
         flags = (flags & 1) | (result.flags & 14);
         if (result.cancelled) {
-            if (result.dodged)
-                BL_INFO("csharp BunnyPlayer FreeDodge: golpe esquivado pelo C# (entrada=%d, apos ModifyHurt=%d)",
-                        sourceDamage, damage);
-            else
+            if (result.dodged) {
+                const int lifeBeforeDodge = bl::runtime::field<int32_t>(self, g_refs.playerLife);
+                int immunityFrames = 0;
+                if (g_refs.playerImmune >= 0 && g_refs.playerImmuneTime >= 0) {
+                    bl::runtime::field<uint8_t>(self, g_refs.playerImmune) = 1;
+                    auto& immunity = bl::runtime::field<int32_t>(self, g_refs.playerImmuneTime);
+                    immunity = std::max(immunity, 40);
+                    immunityFrames = immunity;
+                    if (g_refs.playerHurtCooldowns >= 0) {
+                        auto* cooldowns = bl::runtime::field<Il2CppArray*>(
+                            self, g_refs.playerHurtCooldowns);
+                        if (cooldowns && cooldowns->length >= 2 && cooldowns->length <= 8) {
+                            auto* timers = static_cast<int32_t*>(arrayData(cooldowns));
+                            for (uintptr_t i = 0; i < cooldowns->length; ++i)
+                                timers[i] = std::max(timers[i], 40);
+                        }
+                    }
+                } else {
+                    BL_WARN("csharp BunnyPlayer FreeDodge: imunidade nao disponivel no Player; esquiva sem invulnerabilidade");
+                }
+                g_dodgePendingPlayer = self;
+                g_dodgePendingLife = lifeBeforeDodge;
+                BL_INFO("csharp BunnyPlayer FreeDodge: esquiva C# entrada=%d apos ModifyHurt=%d vida=%d->%d imuneTicks=%d",
+                        sourceDamage, damage, lifeBeforeDodge,
+                        bl::runtime::field<int32_t>(self, g_refs.playerLife),
+                        immunityFrames);
+            } else {
                 BL_INFO("csharp BunnyPlayer ModifyHurt: golpe cancelado");
+            }
             return 0.0;
         }
     }
@@ -765,6 +808,9 @@ bool prepareNativeContent() {
     r.playerManaRegen = fieldOffset(player, "manaRegen");
     r.playerDead = fieldOffset(player, "dead");
     r.playerLife = fieldOffset(player, "statLife");
+    r.playerImmune = fieldOffset(player, "immune");
+    r.playerImmuneTime = fieldOffset(player, "immuneTime");
+    r.playerHurtCooldowns = fieldOffset(player, "hurtCooldowns");
     r.playerLifeMax = fieldOffset(player, "statLifeMax2");
     if (r.playerLifeMax < 0) r.playerLifeMax = fieldOffset(player, "statLifeMax");
     r.playerBuffType = fieldOffset(player, "buffType");
@@ -883,6 +929,7 @@ bool prepareNativePlayerEffects() {
     const MethodInfo* hurt = findMethodBySignature(player, parseSignature(
         "double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)"));
     if (hurt && r.playerLife >= 0 && r.playerLifeMax >= 0 &&
+        r.playerImmune >= 0 && r.playerImmuneTime >= 0 &&
         bl::hook::install(hurt, hkPlayerHurt, &g_originalPlayerHurt))
         BL_INFO("csharp BunnyPlayer ModifyHurt/OnHurt: hook Player.Hurt instalado");
     else
