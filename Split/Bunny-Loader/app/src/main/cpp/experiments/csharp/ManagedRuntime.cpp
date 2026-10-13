@@ -2910,6 +2910,7 @@ bool invokeManagedProjectileAI(int tick, int state, int* nextState) {
 namespace {
 ManagedVisualQueue g_visualQueue;
 ManagedVisualState g_visualState;
+std::mutex g_visualStateMutex;
 }
 
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
@@ -2959,6 +2960,7 @@ bool takeManagedVisualCommand(ManagedVisualCommand& command) {
 }
 
 size_t advanceManagedVisualState(uint64_t tick, size_t budget) {
+    std::lock_guard<std::mutex> guard(g_visualStateMutex);
     g_visualState.advance(tick);
     size_t consumed = 0;
     ManagedVisualCommand command;
@@ -2971,10 +2973,17 @@ size_t advanceManagedVisualState(uint64_t tick, size_t budget) {
 }
 
 size_t activeManagedVisualCount() {
+    std::lock_guard<std::mutex> guard(g_visualStateMutex);
     return g_visualState.size();
 }
 
+std::vector<ManagedVisualCommand> snapshotManagedVisualCommands(int playerIndex, size_t limit) {
+    std::lock_guard<std::mutex> guard(g_visualStateMutex);
+    return g_visualState.snapshot(playerIndex, limit);
+}
+
 void clearManagedVisualCommands() {
+    std::lock_guard<std::mutex> guard(g_visualStateMutex);
     g_visualQueue.clear();
     g_visualState.clear();
 }
