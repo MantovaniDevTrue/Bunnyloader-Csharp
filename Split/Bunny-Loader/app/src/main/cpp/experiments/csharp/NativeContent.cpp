@@ -853,13 +853,22 @@ bool applyManagedNativePlayerDefaultsBatch(
     std::map<int, bool> linked;
     std::map<std::string, std::string> globalMessages;
     std::map<std::string, std::string> respawnMessages;
+    std::map<std::string, std::string> deadMessages;
+    bool newPreUpdate = false;
+    bool newPostUpdate = false;
     for (const auto& player : players) {
         const std::string key = modId + "/" + player.name;
-        if (player.respawnMessage.size() > 100) return false;
+        if (player.respawnMessage.size() > 100 || player.deadMessage.size() > 100 ||
+            player.lifeRegenBonus < 0 || player.lifeRegenBonus > 30 ||
+            player.manaRegenBonus < 0 || player.manaRegenBonus > 30) return false;
+        if (player.preUpdate) newPreUpdate = true;
+        if (player.postUpdate) newPostUpdate = true;
+        if (!player.deadMessage.empty()) deadMessages[key] = player.deadMessage;
         if (player.accessoryType < 0) {
             if (player.accessoryName != "-" || player.equippedDefenseBonus != 0 ||
                 player.moveSpeedPercent != 0 || player.runAccelerationPercent != 0 ||
-                player.frameShadow || player.worldJoinMessage.size() > 100) return false;
+                player.frameShadow || player.worldJoinMessage.size() > 100 ||
+                player.lifeRegenBonus != 0 || player.manaRegenBonus != 0) return false;
             if (!player.worldJoinMessage.empty())
                 globalMessages[key] = player.worldJoinMessage;
             if (!player.respawnMessage.empty())
@@ -882,6 +891,8 @@ bool applyManagedNativePlayerDefaultsBatch(
         bonus.movementAccelerationPercent = player.runAccelerationPercent;
         bonus.frameShadow = player.frameShadow;
         bonus.worldJoinMessage = player.worldJoinMessage;
+        bonus.lifeRegenBonus = player.lifeRegenBonus;
+        bonus.manaRegenBonus = player.manaRegenBonus;
         if (!player.respawnMessage.empty())
             respawnMessages[key] = player.respawnMessage;
     }
@@ -897,6 +908,14 @@ bool applyManagedNativePlayerDefaultsBatch(
         g_globalWorldMessages[key] = message;
     for (const auto& [key, message] : respawnMessages)
         g_respawnMessages[key] = message;
+    for (const auto& [key, message] : deadMessages)
+        g_deadMessages[key] = message;
+    g_preUpdateEnabled = g_preUpdateEnabled || newPreUpdate;
+    g_postUpdateEnabled = g_postUpdateEnabled || newPostUpdate;
+    for (const auto& [type, effect] : g_accessories) {
+        g_anyLifeRegen = g_anyLifeRegen || effect.lifeRegenBonus > 0;
+        g_anyManaRegen = g_anyManaRegen || effect.manaRegenBonus > 0;
+    }
     g_playerPoliciesReady = true;
     BL_INFO("csharp native: managed player equipment applied for %s (%zu accessory, %zu player)",
             modId.c_str(), accessories.size(), players.size());
