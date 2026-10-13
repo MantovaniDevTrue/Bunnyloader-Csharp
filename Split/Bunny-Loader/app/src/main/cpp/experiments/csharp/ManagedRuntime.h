@@ -25,11 +25,15 @@ void setManagedHurtDiagnosticLogger(ManagedHurtDiagnosticLogFn logger);
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                              int hitDirection, int flags, int life, int lifeMax,
                              int equipmentMask, int npcIndex, int projectileIndex,
+                             int npcType, int npcDamage, int npcLife,
+                             int projectileType, int projectileDamage, int projectileOwner,
                              ManagedHurtResult* result);
 bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int actualDamage, int hitDirection, int flags,
                              int lifeRemaining, int equipmentMask,
-                             int npcIndex, int projectileIndex);
+                             int npcIndex, int projectileIndex,
+                             int npcType, int npcDamage, int npcLife,
+                             int projectileType, int projectileDamage, int projectileOwner);
 
 struct ManagedRuntimeStatus {
     bool attempted = false;
