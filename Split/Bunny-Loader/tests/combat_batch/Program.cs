@@ -37,6 +37,94 @@ Check("recipe.04.projectile-cap", () => { var h=Hit(); h.NpcIndex=-1; h.Projecti
 Check("recipe.05.distance", () => { var h=Hit(); Equal(34,NearbyGuard.Apply(h)); h.AttackerDistance=-1; Equal(40,NearbyGuard.Apply(h)); });
 Check("recipe.06.velocity", () => Equal(36,FastAttackGuard.Apply(Hit())));
 Check("recipe.07.arc", () => { var h=Hit(); Equal(32,DirectionalGuard.Apply(h)); h.AttackerAngle=MathF.PI; Equal(40,DirectionalGuard.Apply(h)); });
+Check("composite.shield", () => {
+    var acc = new ExampleModCSharp.ExampleGuardianShieldAccessory();
+    acc.SetDefaults();
+    Equal("Example Guardian Shield", acc.DisplayName);
+    var p = new ExampleModCSharp.ExampleGuardianShieldPlayer();
+    p.SetDefaults();
+    Equal("ExampleGuardianShieldAccessory", p.Accessory);
+    p.ResetEffects();
+    p.UpdateEquips(true);
+    Equal(5, p.DefenseBonus);
+    Equal(4, p.UpdateLifeRegen(true));
+    var npc = new BunnyHurtModifiers { Damage=40, NpcIndex=0 };
+    p.ModifyHitByNPC(true,0,npc);
+    Equal(34,npc.Damage);
+    var proj = new BunnyHurtModifiers { Damage=40, ProjectileIndex=0 };
+    p.ModifyHitByProjectile(true,0,proj);
+    Equal(36,proj.Damage);
+    Equal(1,p.NpcBlocks);
+    Equal(1,p.ProjectileBlocks);
+    var notEquipped = new BunnyHurtModifiers { Damage=40, NpcIndex=0 };
+    p.ModifyHitByNPC(false,0,notEquipped);
+    Equal(40,notEquipped.Damage);
+    p.OnHurt(true,new BunnyHurtInfo(13,30,1,100,false,false));
+    Equal(13,p.LastDamageTaken);
+    p.ResetEffects();
+    p.UpdateEquips(false);
+    Equal(0,p.DefenseBonus);
+    Equal(0,p.UpdateLifeRegen(false));
+});
+Check("composite.boots", () => {
+    var acc = new ExampleModCSharp.ExampleTrailblazerBootsAccessory();
+    acc.SetDefaults();
+    Equal("Example Trailblazer Boots",acc.DisplayName);
+    var p = new ExampleModCSharp.ExampleTrailblazerBootsPlayer();
+    p.SetDefaults();
+    Equal("ExampleTrailblazerBootsAccessory",p.Accessory);
+    p.ResetEffects();
+    p.UpdateEquips(true);
+    Equal(12,p.MoveSpeedPercent);
+    Equal(8,p.UpdateMovement(true));
+    Equal(true,p.FrameEffects(true));
+    p.ResetEffects();
+    p.UpdateEquips(false);
+    Equal(0,p.MoveSpeedPercent);
+    Equal(0,p.UpdateMovement(false));
+    Equal(false,p.FrameEffects(false));
+});
+Check("composite.mystic-ward", () => {
+    var acc = new ExampleModCSharp.ExampleMysticWardAccessory();
+    acc.SetDefaults();
+    Equal("Example Mystic Ward",acc.DisplayName);
+    var p = new ExampleModCSharp.ExampleMysticWardPlayer();
+    p.SetDefaults();
+    Equal("ExampleMysticWardAccessory",p.Accessory);
+    p.ResetEffects();
+    p.UpdateEquips(true);
+    Equal(3,p.DefenseBonus);
+    Equal(8,p.UpdateManaRegen(true));
+    var npc = new BunnyHurtModifiers { Damage=40, CurrentLife=35, MaxLife=100, NpcIndex=0 };
+    p.ModifyHurt(true,npc);
+    Equal(32,npc.Damage);
+    Equal(1,p.LowLifeGuards);
+    var normal = new BunnyHurtModifiers { Damage=40, CurrentLife=36, MaxLife=100, NpcIndex=0 };
+    p.ModifyHurt(true,normal);
+    Equal(40,normal.Damage);
+    var closeProjectile = new BunnyHurtModifiers {
+        Damage=32, ProjectileIndex=0, AttackerDistance=192
+    };
+    p.ModifyHitByProjectile(true,0,closeProjectile);
+    Equal(28,closeProjectile.Damage);
+    var farProjectile = new BunnyHurtModifiers {
+        Damage=32, ProjectileIndex=0, AttackerDistance=193
+    };
+    p.ModifyHitByProjectile(true,0,farProjectile);
+    Equal(32,farProjectile.Damage);
+    Equal(1,p.NearbyProjectileGuards);
+    p.OnHurt(true,new BunnyHurtInfo(15,30,1,100,false,false,
+        npcIndex:-1,projectileIndex:0));
+    Equal(1,p.HitsObserved);
+    Equal(BunnyHurtSource.Projectile,p.LastHitSource);
+    p.ResetEffects();
+    p.UpdateEquips(false);
+    Equal(0,p.DefenseBonus);
+    Equal(0,p.UpdateManaRegen(false));
+    var unequipped = new BunnyHurtModifiers { Damage=40, CurrentLife=20, MaxLife=100 };
+    p.ModifyHurt(false,unequipped);
+    Equal(40,unequipped.Damage);
+});
 Check("recipe.08.after-hit", () => Contains("origem=Npc danoAplicado=20 vidaRestante=80",
     PostHitSummary.Describe(new BunnyHurtInfo(20,40,1,80,false,false,npcIndex:0))));
 Check("source.bounds", () => {
@@ -126,9 +214,9 @@ try
         Contains("content/Part00.cs:3:",error); Contains("[CS0115]",error);
         Contains("Como corrigir:",error); Contains("^",error);
     });
-    Check("compiler.full-example-36-files", () => {
+    Check("compiler.full-example-42-files", () => {
         string example=Path.GetFullPath("samples/ExampleModCSharp/Playable");
-        Equal(36,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
+        Equal(42,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
         int result=Compiler.Compile(example,Path.Combine(scratch,"example.dll"),runtime,diag);
         if(result!=1) throw new Exception(File.ReadAllText(diag));
     });
