@@ -19,3 +19,7 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_ingress_test.cpp -o /tmp/managed_visual_ingress_test
       - name: Run native ingress test
         run: /tmp/managed_visual_ingress_test
+      - name: Compile native drain test
+        run: g++ -std=c++17 -Wall -Wextra -Werror -pthread -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/managed_visual_drain_test.cpp -o /tmp/managed_visual_drain_test
+      - name: Run native drain test
+        run: /tmp/managed_visual_drain_test
