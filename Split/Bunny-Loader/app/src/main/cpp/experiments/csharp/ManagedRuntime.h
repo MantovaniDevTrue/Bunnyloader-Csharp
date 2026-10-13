@@ -9,6 +9,23 @@
 
 namespace bl::csharp {
 
+struct ManagedHurtResult {
+    int damage = 0;
+    int hitDirection = 0;
+    int flags = 0;
+    bool cancelled = false;
+};
+
+bool registerManagedPlayerHurtMod(const std::string& modId,
+                                  const std::string& assemblyPath);
+void pauseManagedPlayerHurtMods();
+bool modifyManagedPlayerHurt(const std::string& modId, int damage,
+                             int hitDirection, int flags, int life, int lifeMax,
+                             int equipmentMask, ManagedHurtResult* result);
+void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
+                             int actualDamage, int hitDirection, int flags,
+                             int lifeRemaining, int equipmentMask);
+
 struct ManagedRuntimeStatus {
     bool attempted = false;
     bool libraryLoaded = false;
