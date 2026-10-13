@@ -149,6 +149,28 @@ jobs:
           assert 'snapshotHurtSource(source, &npcSource, &projectileSource,' in src
           print("BUNNY_CSHARP_PLAYER_DEATH_REASON_LAYOUT_V90_21_2=PASS")
           PY
+      - name: Guard Terraria NPC and projectile array lengths for C# hurt snapshots
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          npc = src[src.index("if (npcIndex >= 0 && npcIndex < 200 && g_mainNpcArrayField)"):
+                    src.index("} else if (projectileIndex >= 0 && projectileIndex < 1000")]
+          projectile = src[src.index("} else if (projectileIndex >= 0 && projectileIndex < 1000"):
+                           src.index("    return snapshot;")]
+          js = Path("app/src/main/cpp/script/api/Npcs.cpp").read_text()
+          assert 'Main.npc tem 201' in js
+          assert 'array->length <= 201' in npc and 'array->length <= 200' not in npc
+          assert 'array->length <= 1001' in projectile and 'array->length <= 1000' not in projectile
+          assert 'static_cast<uintptr_t>(npcIndex) < array->length' in npc
+          assert 'static_cast<uintptr_t>(projectileIndex) < array->length' in projectile
+          assert 'Main.npc tamanho=%zu' in npc
+          assert 'Main.projectile tamanho=%zu' in projectile
+          assert (201 <= 201 and 4 < 201 and 6 < 201)
+          assert (1001 <= 1001 and 0 < 1001 and 999 < 1001)
+          print("BUNNY_CSHARP_HURT_ATTACKER_ARRAY_BOUNDS_V90_23_1=PASS")
+          PY
       - name: Restore prefixes before the first vanilla natural roll
         working-directory: Split/Bunny-Loader
         run: |
