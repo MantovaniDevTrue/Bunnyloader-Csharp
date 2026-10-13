@@ -1,32 +1,27 @@
-# Bunny C# visual effects — v90.27 work in progress
+# Bunny C# Visual API — v90.27 development
 
-This branch is based on `csharp-composite-accessories-v90-26`.
+Base: `csharp-composite-accessories-v90-26`.
 
-## Already staged
+## Implemented in branch
 
-- The original ExampleModBunny ExampleShield and ExampleBoots sprites were reused inside ExampleModCSharp.
-- Guardian and Trailblazer icon paths are no longer aliases of the Focus accessory.
-- Equipment sprites are preserved as separate assets for future equipment layer integration.
-- No C# gameplay damage callbacks were modified.
+- Reused original ExampleModBunny shield/boots inventory and equipment sprites under ExampleModCSharp.
+- Updated shield and boots inventory texture paths; all gameplay callbacks unchanged.
+- Added `BunnyLoader.Source.BunnyVisual` to BunnyCsSdk as a bounded managed command producer.
+- Commands: `SpawnParticle`, `SetPlayerOverlay`, `ClearPlayerOverlay`, `SetEquipmentSprite`.
+- Queue capacity: 64 commands, guarded against invalid players, effect IDs, opacity, scale and oversized paths.
+- `TryTake` and `ClearPending` are available for a future host consumer.
 
-## New API design (NOT IMPLEMENTED)
+## Not implemented yet
 
-The proposed native-backed **BunnyVisual** API will have:
+This is **NOT an operational render API**. No MonoVM-to-native command drain, Terraria draw-layer hook, asset resolution, animation renderer, or equipped-sprite placement is wired. The new methods can enqueue commands in a managed assembly but cannot display effects in-game. Do not ship a release advertising visual effects as functional.
 
-- `BunnyVisual.SpawnParticle(in BunnyParticleSpec particle)` — pooled particles, hard per-player budget.
-- `BunnyVisual.SetPlayerOverlay(in BunnyOverlaySpec overlay)` — a player-following energy shield, fades/pulses based on activation.
-- `BunnyVisual.ClearPlayerOverlay(int effectId)` — deterministic removal when an accessory is unequipped.
-- `BunnyVisual.SetEquipmentSprite(in BunnyEquipmentVisualSpec sprite)` — boots and shield visual layers.
+## Next integration
 
-These are proposed contracts, **not callable APIs** until implemented in BunnyCsSdk, the native gameplay bridge, and the source compiler/packager.
+1. Confirm the Source compiler links BunnyCsSdk's BunnyVisual definition into playable source mods.
+2. Implement a native command consumer with thread-safe bounded transport and lifecycle reset.
+3. Resolve textures from the originating mod, render player-following overlays and pooled particles.
+4. Wire the ExampleMysticWard overlay on equip and pulse on protection; visual cleanup on unequip/world exit.
+5. Emit Trailblazer particles only while moving; add equipped shield and boots layers.
+6. Run compiler tests and Android 60 FPS QA before signing/publishing an APK.
 
-The Mystic Ward remains a passive protective accessory; its existing low-life and nearby-projectile combat rules stay unchanged until visual bridge is validated. The shield overlay should be translucent blue, animate on successful protection, and expose customizable texture/color/scale/opacity to mod authors. The boots trail should be motion-gated and use a bounded number of particles per frame.
-
-## Implementation / validation criteria
-
-1. Dispatch visual commands from managed C# through an explicit bounded command queue.
-2. Resolve custom mod sprite textures and layer ownership without recreating them each frame.
-3. Apply visual state only to valid player instances, release on world leave and accessory removal.
-4. Implement a real drawing hook and texture compositing; do not mistake `FrameEffects() => true` for rendering.
-5. Validate both effect paths on-device and preserve 60 FPS.
-6. Do not claim a compiled APK until CI builds and signs one.
+Keep the existing passive Mystic Ward protection and the existing Guardian/Trailblazer gameplay stats intact.
