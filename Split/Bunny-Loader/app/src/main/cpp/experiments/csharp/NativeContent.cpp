@@ -572,22 +572,24 @@ void hkPlayerUpdateDead(Il2CppObject* self, const MethodInfo* method) {
     BL_INFO("csharp BunnyPlayer UpdateDead: %d mensagem(ns) enviadas(s)", delivered);
 }
 
-void snapshotHurtSource(const void* source, int* npcIndex, int* projectileIndex) {
-    if (!npcIndex || !projectileIndex) return;
+void snapshotHurtSource(const void* source, int* npcIndex, int* projectileIndex,
+                        int* rawNpc, int* rawProjectile) {
+    if (!npcIndex || !projectileIndex || !rawNpc || !rawProjectile) return;
     *npcIndex = -1;
     *projectileIndex = -1;
+    *rawNpc = -1;
+    *rawProjectile = -1;
     if (!source || g_refs.sourceSize <= 0) return;
     const auto* bytes = static_cast<const uint8_t*>(source);
-    int32_t npc = -1;
-    int32_t projectile = -1;
     if (g_refs.sourceNpcOffset >= 0)
-        std::memcpy(&npc, bytes + g_refs.sourceNpcOffset, sizeof(npc));
+        std::memcpy(rawNpc, bytes + g_refs.sourceNpcOffset, sizeof(*rawNpc));
     if (g_refs.sourceProjectileOffset >= 0)
-        std::memcpy(&projectile, bytes + g_refs.sourceProjectileOffset, sizeof(projectile));
-    if (npc >= 0 && npc < 200)
-        *npcIndex = npc;
-    else if (projectile >= 0 && projectile < 1000)
-        *projectileIndex = projectile;
+        std::memcpy(rawProjectile, bytes + g_refs.sourceProjectileOffset,
+                    sizeof(*rawProjectile));
+    if (*rawNpc >= 0 && *rawNpc < 200)
+        *npcIndex = *rawNpc;
+    else if (*rawProjectile >= 0 && *rawProjectile < 1000)
+        *projectileIndex = *rawProjectile;
 }
 
 double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
@@ -641,7 +643,21 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     const int lifeMax = bl::runtime::field<int32_t>(self, g_refs.playerLifeMax);
     int npcSource = -1;
     int projectileSource = -1;
-    snapshotHurtSource(source, &npcSource, &projectileSource);
+    int rawNpc = -1;
+    int rawProjectile = -1;
+    snapshotHurtSource(source, &npcSource, &projectileSource,
+                       &rawNpc, &rawProjectile);
+    static int npcCaptures = 0;
+    static int projectileCaptures = 0;
+    static int unknownCaptures = 0;
+    int& sourceLogs = npcSource >= 0 ? npcCaptures :
+                      projectileSource >= 0 ? projectileCaptures : unknownCaptures;
+    const bool logSource = sourceLogs++ < 8;
+    if (logSource)
+        BL_INFO("csharp BunnyPlayer hit diag: Player.Hurt capturou rawNpc=%d rawProjectile=%d npc=%d projectile=%d origem=%s dano=%d",
+                rawNpc, rawProjectile, npcSource, projectileSource,
+                npcSource >= 0 ? "NPC" : projectileSource >= 0 ? "Projectile" : "Unknown",
+                sourceDamage);
     int changed = 0;
     for (const auto& binding : mods) {
         int mask = 0;
@@ -710,10 +726,15 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
         const int actual = static_cast<int>(applied);
         const int remaining = std::max(
             0, bl::runtime::field<int32_t>(self, g_refs.playerLife));
-        for (const auto& participant : participants)
-            notifyManagedPlayerHurt(participant.modId, sourceDamage, actual,
-                                    direction, flags, remaining, participant.equipmentMask,
-                                    npcSource, projectileSource);
+        for (const auto& participant : participants) {
+            const bool queued = notifyManagedPlayerHurt(
+                participant.modId, sourceDamage, actual, direction, flags,
+                remaining, participant.equipmentMask, npcSource, projectileSource);
+            if (logSource)
+                BL_INFO("csharp BunnyPlayer hit diag: evento OnHurt fila=%s npc=%d projectile=%d dano=%d vida=%d",
+                        queued ? "aceito" : "recusado",
+                        npcSource, projectileSource, actual, remaining);
+        }
     }
     return applied;
 }
@@ -892,8 +913,13 @@ bool prepareNativeNpc() {
     return true;
 }
 
+void hurtDiagnosticToEditor(const char* line) {
+    if (line && *line) BL_INFO("%s", line);
+}
+
 bool prepareNativePlayerEffects() {
     if (g_effectsReady) return true;
+    setManagedHurtDiagnosticLogger(hurtDiagnosticToEditor);
     using namespace bl::il2cpp;
     const auto& r = g_refs;
     if (r.playerStatDefense < 0 || r.playerMoveSpeed < 0 ||
