@@ -40,3 +40,7 @@ The native ManagedRuntime now owns a persistent ManagedVisualState and offers `a
 ## Game update lifecycle (commit 684c563)
 
 `AutoSourceRuntime::noteAutoGameUpdate()` now advances the native visual state once per game update while a world session is ready, with a maximum budget of 32 queue messages. World loading and world exit clear pending and active visual effects and reset the update counter. This is update-state integration only: the source assembly visual producer is not yet scheduled automatically, and no render hook draws active overlays or particles. No Android APK has been built or performance measured for this branch.
+
+## SDK class resolution correction (7c703f4)
+
+The original Mono polling entry point incorrectly resolved `BunnyLoader.Source.BunnyVisual` in each compiled mod assembly. Because the Roslyn compiler references `BunnySourceSdk.dll`, the class belongs to the SDK. The polling entry point now resolves the class from an SDK DLL adjacent to the provided mod assembly. **This filesystem layout is an assumption that still requires verification against real APK extraction paths**. Do not enable per-frame Mono polling until assembly location, lifecycle and threading are verified in-game.
