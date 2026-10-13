@@ -297,6 +297,54 @@ try
     modifyHurt.Invoke(vital, new object[] { true, pvpHit });
     if (unbound.Damage != 80 || pvpHit.Damage != 80)
         throw new InvalidOperationException("C# Vital ModifyHurt affected unequipped or PvP");
+    var freeDodge = vitalType.GetMethod("FreeDodge")
+        ?? throw new InvalidOperationException("Example Vital FreeDodge missing");
+    for (int index = 1; index <= 4; index++)
+    {
+        var dodgeHit = new BunnyLoader.Source.BunnyHurtModifiers {
+            Damage = 60, HitDirection = 1, CurrentLife = 250,
+            MaxLife = 500, PvP = false, Dodgeable = true
+        };
+        bool dodged = (bool)(freeDodge.Invoke(vital, new object[] { true, dodgeHit }) ?? false);
+        if (dodged != (index == 4))
+            throw new InvalidOperationException("C# FreeDodge every fourth hit did not work");
+    }
+    foreach (var dodgeCase in new[] {
+        new BunnyLoader.Source.BunnyHurtModifiers { Damage = 60, Dodgeable = false },
+        new BunnyLoader.Source.BunnyHurtModifiers { Damage = 60, Dodgeable = true, PvP = true }
+    })
+    {
+        if ((bool)(freeDodge.Invoke(vital, new object[] { true, dodgeCase }) ?? true))
+            throw new InvalidOperationException("C# FreeDodge ignored PvP or Dodgeable gate");
+    }
+    if ((int)(vitalType.GetProperty("DodgeAttempts")?.GetValue(vital) ?? -1) != 4 ||
+        (int)(vitalType.GetProperty("DodgesPerformed")?.GetValue(vital) ?? -1) != 1)
+        throw new InvalidOperationException("C# FreeDodge managed state is incorrect");
+    var playerTypes = liveAssembly.GetTypes()
+        .Where(t => t.BaseType?.FullName == "BunnyLoader.Source.BunnyPlayer")
+        .OrderBy(t => t.Name, StringComparer.Ordinal).ToArray();
+    int vitalIndex = Array.FindIndex(playerTypes, t => t.Name == "ExampleVitalPlayer");
+    if (vitalIndex < 0)
+        throw new InvalidOperationException("Example Vital player missing in MonoVM order");
+    int hurtSlot = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Register(
+        "smoke-test-hurt", independentOut);
+    if (hurtSlot < 0)
+        throw new InvalidOperationException("C# managed hurt dispatcher registration failed");
+    for (int hit = 1; hit <= 4; hit++)
+    {
+        long packed = BunnyLoader.Source.BunnyPlayerHurtDispatcher.Modify(
+            hurtSlot, 80, 1, 8, 250, 500, 1 << vitalIndex);
+        if (packed < 0)
+            throw new InvalidOperationException("C# managed hurt dispatcher returned failure");
+        int damage = (int)(packed & 0xfffff);
+        bool cancelled = ((packed >> 22) & 16) != 0;
+        bool dodgeFlag = ((packed >> 22) & 32) != 0;
+        if (damage != 60 || cancelled != (hit == 4) || dodgeFlag != (hit == 4))
+            throw new InvalidOperationException("C# managed FreeDodge packed ABI differs");
+        if (hit < 4 && BunnyLoader.Source.BunnyPlayerHurtDispatcher.After(
+                hurtSlot, 50, 80, 1, 8, 200, 1 << vitalIndex) <= 0)
+            throw new InvalidOperationException("C# managed OnHurt dispatch failed");
+    }
     onHurt.Invoke(vital, new object[] {
         true, new BunnyLoader.Source.BunnyHurtInfo(50, 80, 1, 200, false, false)
     });
@@ -310,7 +358,7 @@ try
     dodge.Cancel();
     if (!dodge.Cancelled)
         throw new InvalidOperationException("C# BunnyHurtModifiers.Cancel failed");
-    Console.WriteLine("BUNNY_CSHARP_HURT_SDK_CONTRACT=PASS runtime_dispatch=pending");
+    Console.WriteLine("BUNNY_CSHARP_FREE_DODGE_DISPATCH=PASS expected_mod_runtime_pending");
     var liveType = liveAssembly.GetType("BunnyLoader.Source.BunnyLiveEntry")
         ?? throw new InvalidOperationException("Independent live C# callback class missing");
     var liveTick = liveType.GetMethod("Tick", BindingFlags.Public | BindingFlags.Static)
