@@ -532,13 +532,25 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.UpdateMovement missing");
             var frames = playerType.GetMethod("FrameEffects")
                 ?? throw new InvalidOperationException("BunnyPlayer.FrameEffects missing");
+            var pre = playerType.GetMethod("PreUpdate")
+                ?? throw new InvalidOperationException("BunnyPlayer.PreUpdate missing");
+            var post = playerType.GetMethod("PostUpdate")
+                ?? throw new InvalidOperationException("BunnyPlayer.PostUpdate missing");
+            var dead = playerType.GetMethod("UpdateDead")
+                ?? throw new InvalidOperationException("BunnyPlayer.UpdateDead missing");
+            var life = playerType.GetMethod("UpdateLifeRegen")
+                ?? throw new InvalidOperationException("BunnyPlayer.UpdateLifeRegen missing");
+            var mana = playerType.GetMethod("UpdateManaRegen")
+                ?? throw new InvalidOperationException("BunnyPlayer.UpdateManaRegen missing");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { false });
             int noMove = (int)(movement.Invoke(player, new object[] { false }) ?? -1);
             bool noFrames = (bool)(frames.Invoke(player, new object[] { false }) ?? true);
+            int noLife = (int)(life.Invoke(player, new object[] { false }) ?? -1);
+            int noMana = (int)(mana.Invoke(player, new object[] { false }) ?? -1);
             if (Value<int>(player, "DefenseBonus") != 0 ||
                 Value<int>(player, "MoveSpeedPercent") != 0 ||
-                noMove != 0 || noFrames)
+                noMove != 0 || noFrames || noLife != 0 || noMana != 0)
                 throw new InvalidOperationException("BunnyPlayer modified effects while unequipped");
             reset.Invoke(player, null);
             update.Invoke(player, new object[] { true });
@@ -548,12 +560,20 @@ public static class CompiledAssemblyProbe
             bool shadow = (bool)(frames.Invoke(player, new object[] { true }) ?? false);
             string welcome = (string)(entering.Invoke(player, null) ?? "");
             string respawn = (string)(respawning.Invoke(player, null) ?? "");
+            bool beforeTick = (bool)(pre.Invoke(player, null) ?? false);
+            bool afterTick = (bool)(post.Invoke(player, null) ?? false);
+            string deadMessage = (string)(dead.Invoke(player, null) ?? "");
+            int lifeRegen = (int)(life.Invoke(player, new object[] { true }) ?? -1);
+            int manaRegen = (int)(mana.Invoke(player, new object[] { true }) ?? -1);
             if (defense < 0 || defense > 100 || moveSpeed < 0 || moveSpeed > 50 ||
                 acceleration < 0 || acceleration > 30 || welcome.Length > 100 ||
-                respawn.Length > 100 ||
+                respawn.Length > 100 || deadMessage.Length > 100 ||
+                lifeRegen < 0 || lifeRegen > 30 || manaRegen < 0 || manaRegen > 30 ||
                 welcome.Any(c => char.IsControl(c) || c > 127) ||
                 respawn.Any(c => char.IsControl(c) || c > 127) ||
-                (globalPlayer && (defense != 0 || moveSpeed != 0 || acceleration != 0 || shadow)))
+                deadMessage.Any(c => char.IsControl(c) || c > 127) ||
+                (globalPlayer && (defense != 0 || moveSpeed != 0 || acceleration != 0 ||
+                                  shadow || lifeRegen != 0 || manaRegen != 0)))
                 throw new InvalidOperationException("BunnyPlayer event policy outside supported bounds");
             reset.Invoke(player, null);
             if (Value<int>(player, "DefenseBonus") != 0 ||
@@ -566,7 +586,12 @@ public static class CompiledAssemblyProbe
                 acceleration.ToString(CultureInfo.InvariantCulture),
                 shadow ? "1" : "0",
                 welcome.Length == 0 ? "-" : welcome,
-                respawn.Length == 0 ? "-" : respawn));
+                respawn.Length == 0 ? "-" : respawn,
+                beforeTick ? "1" : "0",
+                afterTick ? "1" : "0",
+                deadMessage.Length == 0 ? "-" : deadMessage,
+                lifeRegen.ToString(CultureInfo.InvariantCulture),
+                manaRegen.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (object npc in npcs)
         {
