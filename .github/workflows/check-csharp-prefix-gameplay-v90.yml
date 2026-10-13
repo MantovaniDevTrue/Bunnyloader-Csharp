@@ -125,6 +125,27 @@ jobs:
           assert 'job.after' in worker
           print("BUNNY_CSHARP_HIT_SOURCE_EDITOR_DIAG_V90_21_1=PASS")
           PY
+      - name: Guard PlayerDeathReason reference offsets on ARM64
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          metadata = src[src.index('const MethodInfo* hurt = findMethodBySignature'):src.index('if (hurt && r.playerLife >= 0')]
+          assert 'api().class_is_valuetype' in metadata
+          assert 'const bool valueType = reason && api().class_is_valuetype(reason);' in metadata
+          assert 'const size_t rawNpcOffset = api().field_get_offset(npc);' in metadata
+          assert 'const size_t rawProjectileOffset = api().field_get_offset(projectile);' in metadata
+          assert 'valueType\n                ? bl::script::structFieldOffset(reason, rawNpcOffset)\n                : rawNpcOffset;' in metadata
+          assert 'valueType\n                ? bl::script::structFieldOffset(reason, rawProjectileOffset)\n                : rawProjectileOffset;' in metadata
+          assert 'layout=%s size=%d' in metadata
+          assert 'npcOffset != projectileOffset' in metadata
+          assert 'sourceNpcOffset = static_cast<int>(npcOffset);' in metadata
+          assert 'sourceProjectileOffset = static_cast<int>(projectileOffset);' in metadata
+          assert 'rawNpc=%d rawProjectile=%d npc=%d projectile=%d' in src
+          assert 'snapshotHurtSource(source, &npcSource, &projectileSource,' in src
+          print("BUNNY_CSHARP_PLAYER_DEATH_REASON_LAYOUT_V90_21_2=PASS")
+          PY
       - name: Restore prefixes before the first vanilla natural roll
         working-directory: Split/Bunny-Loader
         run: |
