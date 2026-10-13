@@ -985,7 +985,8 @@ bool prepareNativePlayerEffects() {
     const MethodInfo* hurt = findMethodBySignature(player, parseSignature(
         "double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)"));
     if (hurt && api().method_get_param && api().class_from_il2cpp_type &&
-        api().field_get_offset && api().class_value_size) {
+        api().field_get_offset && api().class_value_size &&
+        api().class_is_valuetype) {
         const Il2CppType* reasonType = api().method_get_param(hurt, 0);
         Il2CppClass* reason = reasonType
             ? api().class_from_il2cpp_type(reasonType) : nullptr;
@@ -994,19 +995,26 @@ bool prepareNativePlayerEffects() {
             ? findField(reason, "_sourceProjectileLocalIndex") : nullptr;
         uint32_t alignment = 0;
         const int bytes = reason ? api().class_value_size(reason, &alignment) : 0;
+        const bool valueType = reason && api().class_is_valuetype(reason);
         if (npc && projectile && bytes >= 16 && bytes <= 128) {
-            const size_t npcOffset = bl::script::structFieldOffset(
-                reason, api().field_get_offset(npc));
-            const size_t projectileOffset = bl::script::structFieldOffset(
-                reason, api().field_get_offset(projectile));
+            const size_t rawNpcOffset = api().field_get_offset(npc);
+            const size_t rawProjectileOffset = api().field_get_offset(projectile);
+            const size_t npcOffset = valueType
+                ? bl::script::structFieldOffset(reason, rawNpcOffset)
+                : rawNpcOffset;
+            const size_t projectileOffset = valueType
+                ? bl::script::structFieldOffset(reason, rawProjectileOffset)
+                : rawProjectileOffset;
             if (npcOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
                 projectileOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
                 npcOffset != projectileOffset) {
                 g_refs.sourceNpcOffset = static_cast<int>(npcOffset);
                 g_refs.sourceProjectileOffset = static_cast<int>(projectileOffset);
                 g_refs.sourceSize = bytes;
-                BL_INFO("csharp BunnyPlayer fonte do dano: PlayerDeathReason size=%d npcOffset=%zu projectileOffset=%zu",
-                        bytes, npcOffset, projectileOffset);
+                BL_INFO("csharp BunnyPlayer fonte do dano: PlayerDeathReason layout=%s size=%d npcOffset=%zu projectileOffset=%zu offsetsOriginais=%zu,%zu",
+                        valueType ? "valor" : "referencia", bytes,
+                        npcOffset, projectileOffset,
+                        rawNpcOffset, rawProjectileOffset);
             }
         }
         if (g_refs.sourceSize == 0)
