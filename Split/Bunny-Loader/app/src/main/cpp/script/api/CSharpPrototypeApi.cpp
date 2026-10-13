@@ -62,6 +62,32 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     return out;
 }
 
+JSValue jsManagedVisualActiveCount(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "visualActiveCount()");
+    return JS_NewInt32(ctx, static_cast<int>(bl::csharp::activeManagedVisualCount()));
+}
+
+JSValue jsManagedVisualSnapshot(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1) return JS_ThrowTypeError(ctx, "visualSnapshot(playerIndex)");
+    int32_t player = -1;
+    if (JS_ToInt32(ctx, &player, argv[0]) < 0) return JS_EXCEPTION;
+    if (player < 0 || player >= 256) return JS_ThrowRangeError(ctx, "playerIndex fora do limite");
+    const auto active = bl::csharp::snapshotManagedVisualCommands(player, 8);
+    JSValue list = JS_NewArray(ctx);
+    uint32_t index = 0;
+    for (const auto& effect : active) {
+        JSValue record = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, record, "kind", JS_NewInt32(ctx, static_cast<int>(effect.kind)));
+        JS_SetPropertyStr(ctx, record, "effectId", JS_NewInt32(ctx, effect.effectId));
+        JS_SetPropertyStr(ctx, record, "texture", JS_NewString(ctx, effect.texture.c_str()));
+        JS_SetPropertyStr(ctx, record, "scale", JS_NewFloat64(ctx, effect.scale));
+        JS_SetPropertyStr(ctx, record, "opacity", JS_NewFloat64(ctx, effect.opacity));
+        JS_SetPropertyStr(ctx, record, "color", JS_NewInt64(ctx, static_cast<int64_t>(effect.color)));
+        JS_SetPropertyUint32(ctx, list, index++, record);
+    }
+    return list;
+}
+
 JSValue jsManagedRuntime(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return makeManagedStatus(ctx, bl::csharp::managedRuntimeStatus());
 }
@@ -2663,6 +2689,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "sourceMods", JS_NewCFunction(ctx, jsSourceMods, "sourceMods", 0));
     JS_SetPropertyStr(ctx, api, "managedRuntime",
                       JS_NewCFunction(ctx, jsManagedRuntime, "managedRuntime", 0));
+    JS_SetPropertyStr(ctx, api, "visualActiveCount",
+                      JS_NewCFunction(ctx, jsManagedVisualActiveCount, "visualActiveCount", 0));
+    JS_SetPropertyStr(ctx, api, "visualSnapshot",
+                      JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "managedInspect",
                       JS_NewCFunction(ctx, jsManagedInspect, "managedInspect", 0));
     JS_SetPropertyStr(ctx, api, "managedProbe",
