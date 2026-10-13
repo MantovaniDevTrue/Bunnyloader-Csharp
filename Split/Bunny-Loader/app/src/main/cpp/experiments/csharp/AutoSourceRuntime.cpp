@@ -486,6 +486,8 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
             }
             const auto live = managedLiveHitStatus();
             if (live.enabled && live.modId == modId) {
+                if (bindManagedPlayerHurtMod(modId, dll))
+                    BL_INFO("csharp BunnyPlayer Hurt: %s vinculado ao MonoVM", modId.c_str());
                 requestManagedNpcBuffDispatcher();
                 return;
             }
@@ -515,6 +517,8 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                   }(), &error)
                 : enableManagedLiveHit(modId, dll, projectileType, &error, true);
             if (success) {
+                if (bindManagedPlayerHurtMod(modId, dll))
+                    BL_INFO("csharp BunnyPlayer Hurt: %s vinculado ao MonoVM", modId.c_str());
                 requestManagedNpcBuffDispatcher();
                 BL_INFO("csharp auto live %s: OnHitNPC/OnKill vinculados ao tipo %d%s",
                         modId.c_str(), projectileType, live.enabled ? " (mod adicional)" : "");
@@ -796,6 +800,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldPlayerMessagesShown.store(false, std::memory_order_release);
     if (managedLiveHitStatus().enabled)
         pauseManagedLiveHit();
+    pauseManagedPlayerHurtBindings();
     g_worldTilesLoaded.store(true, std::memory_order_release);
 }
 
@@ -821,6 +826,7 @@ void noteAutoGameUpdate() {
     g_worldPlayerMessagesShown.store(false, std::memory_order_release);
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
+        pauseManagedPlayerHurtBindings();
         {
             std::lock_guard<std::mutex> guard(g_lock);
             for (auto& state : g_statuses)
