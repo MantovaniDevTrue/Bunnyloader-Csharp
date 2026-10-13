@@ -22,6 +22,9 @@ public sealed class ExampleTrailblazerBootsPlayer : BunnyPlayer
 
     public override bool FrameEffects(bool accessoryEquipped)
     {
+        if (accessoryEquipped)
+            BunnyVisual.SetEquipmentSprite(0, 1002,
+                "Content/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png");
         return accessoryEquipped;
     }
 }
