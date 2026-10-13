@@ -392,7 +392,7 @@ bool sendPlayerLifecycleMessage(const std::string& message) {
 
 void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method) {
     if (g_originalPlayerSpawn) g_originalPlayerSpawn(self, context, method);
-    if (!self || g_refs.playerWhoAmI < 0) return;
+    if (!self) return;
     static int spawnDiagnostics = 0;
     if (spawnDiagnostics < 6) {
         ++spawnDiagnostics;
@@ -405,12 +405,28 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
     using namespace bl::il2cpp;
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     auto& runtime = api();
-    FieldInfo* local = main ? runtime.class_get_field_from_name(main, "myPlayer") : nullptr;
-    if (!local || !runtime.field_static_get_value) return;
-    int32_t localIndex = -1;
-    runtime.field_static_get_value(local, &localIndex);
-    const int32_t who = bl::runtime::field<int32_t>(self, g_refs.playerWhoAmI);
-    if (who != localIndex) return;
+    const MethodInfo* getter = main && runtime.class_get_method_from_name
+        ? runtime.class_get_method_from_name(main, "get_LocalPlayer", 0)
+        : nullptr;
+    if (!getter || !runtime.runtime_invoke) {
+        BL_WARN("csharp BunnyPlayer OnRespawn: getter Main.LocalPlayer indisponivel");
+        return;
+    }
+    Il2CppObject* error = nullptr;
+    Il2CppObject* localPlayer = runtime.runtime_invoke(getter, nullptr, nullptr, &error);
+    if (error || !localPlayer) {
+        BL_WARN("csharp BunnyPlayer OnRespawn: Main.LocalPlayer indisponivel no Spawn");
+        return;
+    }
+    const int32_t who = g_refs.playerWhoAmI >= 0
+        ? bl::runtime::field<int32_t>(self, g_refs.playerWhoAmI) : -1;
+    const int32_t localWho = g_refs.playerWhoAmI >= 0
+        ? bl::runtime::field<int32_t>(localPlayer, g_refs.playerWhoAmI) : -1;
+    const bool localMatch = self == localPlayer ||
+        (who >= 0 && localWho >= 0 && who == localWho);
+    BL_INFO("csharp BunnyPlayer OnRespawn: jogador=%d local=%d corresponde=%d",
+            who, localWho, localMatch ? 1 : 0);
+    if (!localMatch) return;
     int count = 0;
     for (const auto& [name, message] : g_respawnMessages)
         if (sendPlayerLifecycleMessage(message)) ++count;
