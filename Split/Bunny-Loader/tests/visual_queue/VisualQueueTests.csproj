@@ -3,8 +3,10 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Program.cs" />
     <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
   </ItemGroup>
 </Project>
