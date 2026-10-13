@@ -546,11 +546,21 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyPlayer.ModifyHurt missing");
             var onHurt = playerType.GetMethod("OnHurt")
                 ?? throw new InvalidOperationException("BunnyPlayer.OnHurt missing");
+            var onHitByNpc = playerType.GetMethod("OnHitByNPC")
+                ?? throw new InvalidOperationException("BunnyPlayer.OnHitByNPC missing");
+            var onHitByProjectile = playerType.GetMethod("OnHitByProjectile")
+                ?? throw new InvalidOperationException("BunnyPlayer.OnHitByProjectile missing");
             var freeDodge = playerType.GetMethod("FreeDodge")
                 ?? throw new InvalidOperationException("BunnyPlayer.FreeDodge missing");
             if (modifyHurt.ReturnType != typeof(void) ||
                 onHurt.ReturnType != typeof(void) ||
                 freeDodge.ReturnType != typeof(bool) ||
+                onHitByNpc.ReturnType != typeof(void) ||
+                onHitByProjectile.ReturnType != typeof(void) ||
+                !onHitByNpc.GetParameters().Select(p => p.ParameterType.FullName)
+                    .SequenceEqual(new[] { "System.Boolean", "System.Int32", "BunnyLoader.Source.BunnyHurtInfo" }) ||
+                !onHitByProjectile.GetParameters().Select(p => p.ParameterType.FullName)
+                    .SequenceEqual(new[] { "System.Boolean", "System.Int32", "BunnyLoader.Source.BunnyHurtInfo" }) ||
                 !freeDodge.GetParameters().Select(p => p.ParameterType.FullName)
                     .SequenceEqual(new[] { "System.Boolean", "BunnyLoader.Source.BunnyHurtModifiers" }) ||
                 !modifyHurt.GetParameters().Select(p => p.ParameterType.FullName)
