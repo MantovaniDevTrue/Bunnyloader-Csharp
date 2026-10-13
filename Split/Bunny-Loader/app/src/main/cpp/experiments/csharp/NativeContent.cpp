@@ -116,6 +116,11 @@ struct NativeAccessoryDefaults {
     std::string worldJoinMessage;
     int lifeRegenBonus = 0;
     int manaRegenBonus = 0;
+    int visualMode = 0;
+    std::string visualTexture;
+    float visualScale = 1.f;
+    float visualOpacity = 1.f;
+    uint32_t visualColor = 0xffffffffu;
 };
 
 struct NativeBuffDefaults {
