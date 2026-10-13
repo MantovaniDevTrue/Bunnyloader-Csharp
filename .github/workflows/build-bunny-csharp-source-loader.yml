@@ -941,7 +941,12 @@ jobs:
               assert "content/Common/Live/ExampleLiveRuntime.cs" in names
               assert "content/Common/Live/ExampleLiveNpcAI.cs" in names
               assert "content/Common/Live/ExampleWaveBoltLiveEvents.cs" in names
-              assert len([n for n in names if n.endswith(".png")])==6
+              for visual in ("ExampleGuardianShieldAccessory.png",
+                             "ExampleGuardianShieldAccessory_Shield.png",
+                             "ExampleTrailblazerBootsAccessory.png",
+                             "ExampleTrailblazerBootsAccessory_Shoes.png"):
+                  assert "content/Content/Items/Accessories/" + visual in names
+              assert len([n for n in names if n.endswith(".png")])==10
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
