@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - csharp-player-free-dodge-v90-20
       - csharp-player-hurt-events-v90-19
       - csharp-player-regeneration-lifecycle-v90-18
       - csharp-respawn-local-player-v90-17-2
