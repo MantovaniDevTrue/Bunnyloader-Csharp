@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.25"
+assert catalog["exampleModCSharpVersion"] == "0.1.26"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -61,7 +61,10 @@ example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "ExampleVitalAccessory", "ExampleVitalPlayer", "ExampleArcaneAccessory", "ExampleArcanePlayer", "ExampleSlimeNPC",
                    "BunnyLiveEntry", "BunnyLiveNpc", "ExampleWaveWand",
                    "ExampleWaveBolt", "ExampleWaveBoltMotion", "ExampleWaveBoltLiveEvents",
-                   "ExampleMightyPrefix", "ExampleGuardedPrefix"}
+                   "ExampleMightyPrefix", "ExampleGuardedPrefix",
+                   "ExampleGuardianShieldAccessory", "ExampleGuardianShieldPlayer",
+                   "ExampleTrailblazerBootsAccessory", "ExampleTrailblazerBootsPlayer",
+                   "ExampleMysticWardAccessory", "ExampleMysticWardPlayer"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
@@ -84,9 +87,9 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.25"
+assert manifest2["version"] == "0.1.26"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 36
+assert len(playable_files) == 42
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "ExampleWaveWand", "ExampleWaveBolt", "ExampleWaveBoltMotion",
@@ -104,6 +107,9 @@ for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "UpdateLifeRegen(bool accessoryEquipped)", "UpdateManaRegen(bool accessoryEquipped)", "FreeDodge(bool accessoryEquipped, BunnyHurtModifiers modifiers)", "ModifyHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtModifiers modifiers)", "ModifyHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtModifiers modifiers)", "OnHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtInfo info)", "OnHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtInfo info)", "Tooltip =", "return accessoryEquipped ? 6 : 0;",
                  "Buff = nameof(ExampleDefenseBuff)", "BunnyPrefix",
                  "ExampleMightyPrefix", "ExampleGuardedPrefix", "ApplyAccessoryEffects",
+                 "ExampleGuardianShieldAccessory", "ExampleGuardianShieldPlayer",
+                 "ExampleTrailblazerBootsAccessory", "ExampleTrailblazerBootsPlayer",
+                 "ExampleMysticWardAccessory", "ExampleMysticWardPlayer",
          "OnHitNPC(int damage)", "OnKill(int damage)", "OnKillDuration(int damage)"):
     assert expected in source_text, expected
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
