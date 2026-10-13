@@ -72,6 +72,31 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - name: Guard FreeDodge native immunity and life tracing
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          native = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          js = Path("app/src/main/cpp/script/js/mod/Loaders/PlayerLoader.js").read_text()
+          part = native[native.index("double hkPlayerHurt("):native.index("int equippedRegeneration(")]
+          assert 'r.playerImmune = fieldOffset(player, "immune");' in native
+          assert 'r.playerImmuneTime = fieldOffset(player, "immuneTime");' in native
+          assert 'r.playerHurtCooldowns = fieldOffset(player, "hurtCooldowns");' in native
+          assert 'if (result.cancelled)' in part
+          assert 'if (result.dodged)' in part
+          dodge = part[part.index('if (result.cancelled)'):]
+          assert 'field<uint8_t>(self, g_refs.playerImmune) = 1;' in dodge
+          assert 'immunity = std::max(immunity, 40);' in dodge
+          assert 'timers[i] = std::max(timers[i], 40);' in dodge
+          assert 'return 0.0;' in dodge
+          assert dodge.index('immunity = std::max(immunity, 40);') < dodge.index('return 0.0;')
+          assert 'g_dodgePendingLife = lifeBeforeDodge;' in dodge
+          assert 'csharp BunnyPlayer FreeDodge: vida apos Update=' in native
+          assert 'if (applied > 0.0 && applied <= 1000000.0)' in part
+          assert "PlayerLoader.First(self, 'FreeDodge'" in js
+          print("BUNNY_CSHARP_FREE_DODGE_NATIVE_IMMUNITY_V90_20_1=PASS")
+          PY
       - name: Restore prefixes before the first vanilla natural roll
         working-directory: Split/Bunny-Loader
         run: |
