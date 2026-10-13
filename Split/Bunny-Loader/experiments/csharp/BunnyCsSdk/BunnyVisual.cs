@@ -46,6 +46,7 @@ public static class BunnyVisual
     private static readonly BunnyVisualCommand[] Commands =
         new BunnyVisualCommand[MaxCommandsPerFrame];
     private static int count;
+    private static int head;
 
     public static int PendingCount => count;
 
@@ -82,9 +83,8 @@ public static class BunnyVisual
             command = default;
             return false;
         }
-        command = Commands[0];
-        for (int i = 1; i < count; i++)
-            Commands[i - 1] = Commands[i];
+        command = Commands[head];
+        head = (head + 1) % MaxCommandsPerFrame;
         count--;
         return true;
     }
@@ -92,6 +92,7 @@ public static class BunnyVisual
     public static void ClearPending()
     {
         count = 0;
+        head = 0;
     }
 
     private static bool Add(BunnyVisualCommand command)
@@ -104,7 +105,8 @@ public static class BunnyVisual
             command.Texture.Length > 240)
             return false;
 
-        Commands[count++] = command;
+        Commands[(head + count) % MaxCommandsPerFrame] = command;
+        count++;
         return true;
     }
 }
