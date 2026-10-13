@@ -402,3 +402,84 @@ class PlayerDrawHooks {
         }
     }
 }
+
+class BunnyCSharpVisualLayer extends PlayerDrawLayer {
+    static Textures = new Map();
+    static Constructor = 'void .ctor(Texture2D texture, Vector2 position, Rectangle sourceRect, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effect, int inactiveLayerDepth)';
+
+    constructor() { super('BunnyCSharpVisual'); }
+
+    GetDefaultPosition() { return PlayerDrawLayer.AfterParent(PlayerDrawLayers.IceBarrier); }
+
+    GetDefaultVisibility(info) {
+        const api = bl.csharp;
+        return !!api && typeof api.visualSnapshot === 'function' &&
+            typeof api.visualActiveCount === 'function' &&
+            info.shadow === 0 && !info.drawPlayer.dead && !info.drawPlayer.invis &&
+            api.visualActiveCount() > 0;
+    }
+
+    static TextureOf(name) {
+        if (this.Textures.has(name)) return this.Textures.get(name);
+        if (this.Textures.size >= 32) this.Textures.clear();
+        let texture = null;
+        try {
+            const path = bl.csharp.visualTexturePath(name);
+            if (path) texture = bl.loadTexture(path);
+        } catch (error) {
+            Safe.Once('csharp.visual.texture:' + name, 'CSharp visual: textura indisponivel ' + name);
+        }
+        this.Textures.set(name, texture);
+        return texture;
+    }
+
+    static Put(info, texture, x, y, color, scale, shader = 0) {
+        const width = texture.Width, height = texture.Height;
+        if (!Number.isFinite(width) || !Number.isFinite(height) ||
+            width < 1 || height < 1 || width > 512 || height > 512) return;
+        const data = Terraria.DataStructures.DrawData.new();
+        data[this.Constructor](texture,
+            Vector2.new(Math.floor(x), Math.floor(y)),
+            Rectangle.new(0, 0, width, height),
+            color, 0, Vector2.new(width / 2, height / 2),
+            scale, info.playerEffect, 0);
+        data.shader = shader;
+        ModPlayer.AddDrawData(info, data);
+    }
+
+    static Ring(info, x, y, color, size) {
+        const pixel = Terraria.GameContent.TextureAssets.MagicPixel.Value;
+        for (let n = 0; n < 12; n++) {
+            const theta = n * Math.PI / 6;
+            const dx = Math.cos(theta) * 24 * size;
+            const dy = Math.sin(theta) * 37 * size;
+            this.Put(info, pixel, x + dx, y + dy, color, n % 3 === 0 ? 5 : 3);
+        }
+    }
+
+    Draw(info) {
+        const api = bl.csharp, player = info.drawPlayer;
+        const effects = api.visualSnapshot(player.whoAmI);
+        if (!effects || !effects.length) return;
+        const position = info.Position, screen = Terraria.Main.screenPosition;
+        const cx = position.X - screen.X + player.width / 2;
+        const cy = position.Y - screen.Y + player.height / 2;
+        for (const effect of effects) {
+            if (effect.kind !== 2 && effect.kind !== 4) continue;
+            const raw = Number(effect.color) >>> 0;
+            const alpha = Math.min(255, Math.max(0, Math.floor((raw >>> 24) * effect.opacity)));
+            if (!alpha) continue;
+            const color = Color.new((raw >>> 16) & 255, (raw >>> 8) & 255, raw & 255, alpha);
+            const texture = BunnyCSharpVisualLayer.TextureOf(effect.texture);
+            const scale = Math.max(0.2, Math.min(3, effect.scale));
+            if (texture) {
+                const y = effect.kind === 4 ? cy + player.height / 2 - texture.Height * scale / 2 : cy;
+                BunnyCSharpVisualLayer.Put(info, texture, cx, y, color, scale);
+            } else if (effect.kind === 2) {
+                BunnyCSharpVisualLayer.Ring(info, cx, cy, color, scale);
+            }
+        }
+    }
+}
+
+PlayerDrawHooks.AddLayer(new BunnyCSharpVisualLayer(), BunnyCSharpVisualLayer);
