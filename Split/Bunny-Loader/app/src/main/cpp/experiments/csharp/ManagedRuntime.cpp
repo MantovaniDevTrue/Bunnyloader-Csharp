@@ -1103,8 +1103,8 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
         lifeMax < 1 || equipmentMask < 0 || hitDirection < -1 ||
         hitDirection > 1)
         return false;
-    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
-    if (!lock || !g_pinnedStarted || g_managedHurtQueue.size() >= 8) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
+    if (!lock.try_lock() || !g_pinnedStarted || g_managedHurtQueue.size() >= 8) return false;
     int index = -1;
     for (size_t i = 0; i < g_managedHurtBindings.size(); ++i) {
         if (g_managedHurtBindings[i].modId == modId &&
@@ -1141,8 +1141,8 @@ void notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
                              int lifeRemaining, int equipmentMask) {
     if (actualDamage <= 0 || sourceDamage < 0 || actualDamage > 1000000 ||
         lifeRemaining < 0) return;
-    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
-    if (!lock || !g_pinnedStarted || g_managedHurtQueue.size() >= 32) return;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::defer_lock);
+    if (!lock.try_lock() || !g_pinnedStarted || g_managedHurtQueue.size() >= 32) return;
     for (size_t i = 0; i < g_managedHurtBindings.size(); ++i) {
         const auto& entry = g_managedHurtBindings[i];
         if (entry.modId != modId || !entry.active || entry.managedSlot < 0)
