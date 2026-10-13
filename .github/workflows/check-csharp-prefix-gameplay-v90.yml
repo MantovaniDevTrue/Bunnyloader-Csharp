@@ -99,6 +99,31 @@ jobs:
           assert "PlayerLoader.First(self, 'FreeDodge'" in js
           print("BUNNY_CSHARP_FREE_DODGE_NATIVE_IMMUNITY_V90_20_1=PASS")
           PY
+      - name: Guard CSharp hit source diagnostics in Bunny editor
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          native = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+          worker = Path("app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = Path("app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text()
+          assert 'rawNpc=%d rawProjectile=%d npc=%d projectile=%d' in native
+          assert 'evento OnHurt fila=%s npc=%d projectile=%d' in native
+          assert 'setManagedHurtDiagnosticLogger(hurtDiagnosticToEditor);' in native
+          assert 'BL_INFO("%s", line);' in native
+          assert 'bool notifyManagedPlayerHurt(' in header
+          assert 'bool notifyManagedPlayerHurt(' in worker
+          assert 'return true;' in worker[worker.index('bool notifyManagedPlayerHurt('):worker.index('void setManagedCheckpointPath(')]
+          assert 'g_hurtDiagnosticLogger.load(std::memory_order_acquire)' in worker
+          assert 'MonoVM %s estado=%s instancias=%lld' in worker
+          assert 'npcLogs{0}' in worker
+          assert 'projectileLogs{0}' in worker
+          assert 'otherLogs{0}' in worker
+          assert 'logged < 8' in worker
+          assert 'job.damage > 0' in worker
+          assert 'job.after' in worker
+          print("BUNNY_CSHARP_HIT_SOURCE_EDITOR_DIAG_V90_21_1=PASS")
+          PY
       - name: Restore prefixes before the first vanilla natural roll
         working-directory: Split/Bunny-Loader
         run: |
