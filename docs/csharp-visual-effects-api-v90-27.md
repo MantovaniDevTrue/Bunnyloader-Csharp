@@ -32,3 +32,7 @@ Keep the existing passive Mystic Ward protection and the existing Guardian/Trail
 - `takeManagedVisualCommand()` reads from that queue; `clearManagedVisualCommands()` resets it.
 - These are *on-demand native API entry points*, not yet scheduled by the game loop. No renderer or texture draw has been connected. Full Android compilation and in-game validation are still required.
 - Caveat: the source assembly must include `BunnyVisual` in namespace `BunnyLoader.Source`. Confirm package/source compiler inclusion before using this path.
+
+## Native state integration (commit 786a294)
+
+The native ManagedRuntime now owns a persistent ManagedVisualState and offers `advanceManagedVisualState(tick, budget)` plus `activeManagedVisualCount()`. Clearing commands also clears overlay state. This implements a bounded way to transfer already-ingested commands into persistent visual state. The game update loop does NOT yet schedule it, and no drawing layer consumes it. The bridge therefore remains non-visual until frame integration and renderer implementation. Full Android compilation is still outstanding.
