@@ -1,0 +1,18 @@
+name: Check Bunny CSharp Visual Queue
+
+on:
+  push:
+    branches:
+      - csharp-visual-effects-v90-27-wip
+  workflow_dispatch:
+
+jobs:
+  managed-visual-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Check visual command queue
+        run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualQueueTests.csproj -c Release
