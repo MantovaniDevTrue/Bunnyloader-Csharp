@@ -405,6 +405,7 @@ class PlayerDrawHooks {
 
 class BunnyCSharpVisualLayer extends PlayerDrawLayer {
     static Textures = new Map();
+    static Trails = new Map();
     static Constructor = 'void .ctor(Texture2D texture, Vector2 position, Rectangle sourceRect, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effect, int inactiveLayerDepth)';
 
     constructor() { super('BunnyCSharpVisual'); }
@@ -420,6 +421,7 @@ class BunnyCSharpVisualLayer extends PlayerDrawLayer {
     }
 
     static TextureOf(name) {
+        if (!name || typeof name !== 'string') return null;
         if (this.Textures.has(name)) return this.Textures.get(name);
         if (this.Textures.size >= 32) this.Textures.clear();
         let texture = null;
@@ -433,27 +435,70 @@ class BunnyCSharpVisualLayer extends PlayerDrawLayer {
         return texture;
     }
 
-    static Put(info, texture, x, y, color, scale, shader = 0) {
+    static Put(info, texture, x, y, color, scale, part = 0, useLegFrame = false) {
+        if (!texture) return;
         const width = texture.Width, height = texture.Height;
-        if (!Number.isFinite(width) || !Number.isFinite(height) ||
-            width < 1 || height < 1 || width > 512 || height > 512) return;
+        if (!Number.isInteger(width) || !Number.isInteger(height) ||
+            width < 1 || height < 1 || width > 512 || height > 4096) return;
+        const sheet = height > width * 2 && height % width === 0 && height / width <= 64;
+        const frameHeight = sheet ? width : height;
+        const count = sheet ? height / width : 1;
+        const player = info.drawPlayer;
+        const bodyFrame = useLegFrame ? player.legFrame : player.bodyFrame;
+        let frame = 0;
+        if (sheet && bodyFrame && bodyFrame.Height > 0)
+            frame = Math.max(0, Math.min(count - 1, Math.floor(bodyFrame.Y / bodyFrame.Height)));
         const data = Terraria.DataStructures.DrawData.new();
         data[this.Constructor](texture,
             Vector2.new(Math.floor(x), Math.floor(y)),
-            Rectangle.new(0, 0, width, height),
-            color, 0, Vector2.new(width / 2, height / 2),
+            Rectangle.new(0, frame * frameHeight, width, frameHeight),
+            color, 0, Vector2.new(width / 2, frameHeight / 2),
             scale, info.playerEffect, 0);
-        data.shader = shader;
+        data.shader = 0;
         ModPlayer.AddDrawData(info, data);
     }
 
-    static Ring(info, x, y, color, size) {
+    static EnergyRing(info, x, y, color, size) {
         const pixel = Terraria.GameContent.TextureAssets.MagicPixel.Value;
-        for (let n = 0; n < 12; n++) {
-            const theta = n * Math.PI / 6;
-            const dx = Math.cos(theta) * 24 * size;
-            const dy = Math.sin(theta) * 37 * size;
-            this.Put(info, pixel, x + dx, y + dy, color, n % 3 === 0 ? 5 : 3);
+        for (let n = 0; n < 20; n++) {
+            const angle = n * Math.PI / 10;
+            const dx = Math.cos(angle) * 24 * size;
+            const dy = Math.sin(angle) * 36 * size;
+            this.Put(info, pixel, x + dx, y + dy, color, n % 5 === 0 ? 4 : 2.5);
+        }
+    }
+
+    static RunningTrail(info, player, texture, cx, cy, color, scale) {
+        const id = player.whoAmI;
+        const movement = player.velocity;
+        if (!movement || Math.abs(movement.X) < 1.2) {
+            this.Trails.delete(id);
+            return;
+        }
+        let trail = this.Trails.get(id);
+        if (!trail) {
+            trail = [];
+            this.Trails.set(id, trail);
+        }
+        const screen = Terraria.Main.screenPosition;
+        const px = player.position.X + player.width / 2;
+        const py = player.position.Y + player.height - 7;
+        const last = trail.length ? trail[trail.length - 1] : null;
+        if (!last || Math.abs(last.x - px) + Math.abs(last.y - py) >= 4)
+            trail.push({ x: px, y: py });
+        while (trail.length > 6) trail.shift();
+        const magic = Terraria.GameContent.TextureAssets.MagicPixel.Value;
+        for (let i = 0; i < trail.length; ++i) {
+            const point = trail[i];
+            const factor = (i + 1) / trail.length;
+            const tint = Color.new(color.R, color.G, color.B,
+                Math.floor(color.A * factor * 0.7));
+            if (texture)
+                this.Put(info, texture, point.x - screen.X,
+                    point.y - screen.Y - 11, tint, scale * (0.6 + factor * 0.4), 0, true);
+            else
+                this.Put(info, magic, point.x - screen.X,
+                    point.y - screen.Y, tint, 3 + factor * 3);
         }
     }
 
@@ -468,15 +513,22 @@ class BunnyCSharpVisualLayer extends PlayerDrawLayer {
             if (effect.kind !== 2 && effect.kind !== 4) continue;
             const raw = Number(effect.color) >>> 0;
             const alpha = Math.min(255, Math.max(0, Math.floor((raw >>> 24) * effect.opacity)));
-            if (!alpha) continue;
+            if (alpha <= 0) continue;
             const color = Color.new((raw >>> 16) & 255, (raw >>> 8) & 255, raw & 255, alpha);
+            const scale = Math.max(0.25, Math.min(3, effect.scale));
+            const mode = effect.style || (effect.kind === 2 ? 2 : 1);
             const texture = BunnyCSharpVisualLayer.TextureOf(effect.texture);
-            const scale = Math.max(0.2, Math.min(3, effect.scale));
-            if (texture) {
-                const y = effect.kind === 4 ? cy + player.height / 2 - texture.Height * scale / 2 : cy;
-                BunnyCSharpVisualLayer.Put(info, texture, cx, y, color, scale);
-            } else if (effect.kind === 2) {
-                BunnyCSharpVisualLayer.Ring(info, cx, cy, color, scale);
+            if (mode === 2) {
+                BunnyCSharpVisualLayer.EnergyRing(info, cx, cy, color, scale);
+                if (texture) {
+                    const light = Color.new(color.R, color.G, color.B, Math.floor(alpha * 0.5));
+                    BunnyCSharpVisualLayer.Put(info, texture, cx, cy - 2, light, scale, 0);
+                }
+            } else if (mode === 3) {
+                BunnyCSharpVisualLayer.RunningTrail(info, player, texture, cx, cy, color, scale);
+            } else if (texture) {
+                BunnyCSharpVisualLayer.Put(info, texture,
+                    cx + player.direction * 7, cy - 3, color, scale);
             }
         }
     }
