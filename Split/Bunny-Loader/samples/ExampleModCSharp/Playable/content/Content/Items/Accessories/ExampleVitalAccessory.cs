@@ -9,6 +9,6 @@ public sealed class ExampleVitalAccessory : BunnyAccessory
         DisplayName = "Example Vital Accessory";
         Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
         DefenseBonus = 0;
-        Tooltip = "Aumenta a regeneracao de vida em 12 enquanto equipado";
+        Tooltip = "Regenera +12 vida, reduz dano nao PvP em 25% e esquiva a cada 4 golpes esquivaveis";
     }
 }
