@@ -131,6 +131,50 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
         if (accessory && key == "Tooltip") continue;
+        if (accessory && key == "VisualMode") {
+            if (value != "None" && value != "EquippedSprite" &&
+                value != "EnergyBarrier" && value != "RunningTrail") {
+                *error = type.name + ": VisualMode invalido";
+                return false;
+            }
+            continue;
+        }
+        if (accessory && key == "VisualTexture") {
+            if (value.empty() || value.size() > 180 ||
+                value.front() == '/' || value.find("..") != std::string::npos ||
+                value.find(static_cast<char>(92)) != std::string::npos ||
+                value.find(':') != std::string::npos ||
+                value.size() < 5 || value.substr(value.size() - 4) != ".png") {
+                *error = type.name + ": VisualTexture invalida";
+                return false;
+            }
+            continue;
+        }
+        if (accessory && (key == "VisualScale" || key == "VisualOpacity")) {
+            float parsed = 0.f;
+            if (!real(value, &parsed) ||
+                (key == "VisualScale" && (parsed < 0.25f || parsed > 3.f)) ||
+                (key == "VisualOpacity" && (parsed < 0.f || parsed > 1.f))) {
+                *error = type.name + ": " + key + " invalido";
+                return false;
+            }
+            continue;
+        }
+        if (accessory && key == "VisualColor") {
+            if (value.size() < 3 || value.size() > 10 ||
+                !(value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))) {
+                *error = type.name + ": VisualColor invalido";
+                return false;
+            }
+            for (size_t i = 2; i < value.size(); ++i) {
+                if (!std::isxdigit(static_cast<unsigned char>(value[i]))) {
+                    *error = type.name + ": VisualColor invalido";
+                    return false;
+                }
+            }
+            continue;
+        }
+
         if (weapon && key == "Shoot") { *shoot = value; continue; }
         if (potion && key == "Buff") { *shoot = value; continue; }
         if (key == "Friendly" && projectile) {
