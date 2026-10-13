@@ -57,7 +57,10 @@ public static class BunnyPlayerHurtDispatcher
                               int life, int maxLife, int equippedMask,
                               int npcIndex, int projectileIndex,
                               int npcType, int npcDamage, int npcLife,
-                              int projectileType, int projectileDamage, int projectileOwner)
+                              int projectileType, int projectileDamage, int projectileOwner,
+                              float attackerX, float attackerY,
+                              float attackerVelocityX, float attackerVelocityY,
+                              float attackerAngle, float attackerDistance)
     {
         if (slot < 0 || slot >= Contexts.Count || damage < 0 || damage > 1000000)
             return -1;
@@ -83,7 +86,13 @@ public static class BunnyPlayerHurtDispatcher
                 NpcLife = npcLife,
                 ProjectileType = projectileType,
                 ProjectileDamage = projectileDamage,
-                ProjectileOwner = projectileOwner
+                ProjectileOwner = projectileOwner,
+                AttackerX = attackerX,
+                AttackerY = attackerY,
+                AttackerVelocityX = attackerVelocityX,
+                AttackerVelocityY = attackerVelocityY,
+                AttackerAngle = attackerAngle,
+                AttackerDistance = attackerDistance
             };
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
@@ -134,7 +143,10 @@ public static class BunnyPlayerHurtDispatcher
                             int direction, int flags, int lifeRemaining, int equippedMask,
                             int npcIndex, int projectileIndex,
                             int npcType, int npcDamage, int npcLife,
-                            int projectileType, int projectileDamage, int projectileOwner)
+                            int projectileType, int projectileDamage, int projectileOwner,
+                            float attackerX, float attackerY,
+                            float attackerVelocityX, float attackerVelocityY,
+                            float attackerAngle, float attackerDistance)
     {
         if (slot < 0 || slot >= Contexts.Count || damage <= 0)
             return 0;
@@ -147,7 +159,9 @@ public static class BunnyPlayerHurtDispatcher
                 lifeRemaining, (flags & 1) != 0, (flags & 4) != 0,
                 npcIndex, projectileIndex,
                 npcType, npcDamage, npcLife,
-                projectileType, projectileDamage, projectileOwner);
+                projectileType, projectileDamage, projectileOwner,
+                attackerX, attackerY, attackerVelocityX, attackerVelocityY,
+                attackerAngle, attackerDistance);
             var players = Contexts[slot].Players;
             for (int i = 0; i < players.Length; i++)
             {
