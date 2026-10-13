@@ -194,8 +194,9 @@ bool enableManagedPrefixEligibility(int type) {
     static Il2CppClass* prefixSetsClass = nullptr;
     if (!prefixSet) {
         Il2CppClass* itemId = findClass({"Terraria.ID", "ItemID", {}});
-        prefixSetsClass = itemId ? findNested(itemId, "Sets") : nullptr;
-        prefixSet = prefixSetsClass ? findField(prefixSetsClass, "CanGetPrefixes") : nullptr;
+        Il2CppClass* sets = itemId ? findNested(itemId, "Sets") : nullptr;
+        prefixSetsClass = sets;
+        prefixSet = sets ? findField(sets, "CanGetPrefixes") : nullptr;
     }
     auto& runtime = api();
     if (!prefixSet || type < 0 || type >= bl::runtime::itemTypeCount() ||
@@ -205,11 +206,11 @@ bool enableManagedPrefixEligibility(int type) {
         runtime.runtime_class_init(prefixSetsClass);
     Il2CppArray* entries = nullptr;
     runtime.field_static_get_value(prefixSet, &entries);
-    if (!entries) {
-        BL_WARN("csharp prefix: tabela CanGetPrefixes ainda indisponivel para item %d", type);
-        return false;
-    }
-    if (static_cast<uintptr_t>(type) >= entries->length) {
+    if (!entries || static_cast<uintptr_t>(type) >= entries->length) {
+        if (!entries) {
+            BL_WARN("csharp prefix: tabela CanGetPrefixes ainda indisponivel para item %d", type);
+            return false;
+        }
         const uintptr_t required = static_cast<uintptr_t>(bl::runtime::itemTypeCount());
         auto* expanded = bl::runtime::TypeTables::resizedCopy(entries, required);
         if (!expanded) {
