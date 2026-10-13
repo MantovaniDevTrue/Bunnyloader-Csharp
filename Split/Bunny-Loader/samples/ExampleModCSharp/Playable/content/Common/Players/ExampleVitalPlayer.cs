@@ -8,6 +8,10 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
     public int LastDamageTaken { get; private set; }
     public int DodgeAttempts { get; private set; }
     public int DodgesPerformed { get; private set; }
+    public int NpcHitsTaken { get; private set; }
+    public int ProjectileHitsTaken { get; private set; }
+    public int LastNpcIndex { get; private set; } = -1;
+    public int LastProjectileIndex { get; private set; } = -1;
 
     public override void SetDefaults()
     {
@@ -52,5 +56,23 @@ public sealed class ExampleVitalPlayer : BunnyPlayer
 
         HitsTaken++;
         LastDamageTaken = info.Damage;
+    }
+
+    public override void OnHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtInfo info)
+    {
+        if (!accessoryEquipped || info.Damage <= 0)
+            return;
+
+        NpcHitsTaken++;
+        LastNpcIndex = npcIndex;
+    }
+
+    public override void OnHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtInfo info)
+    {
+        if (!accessoryEquipped || info.Damage <= 0)
+            return;
+
+        ProjectileHitsTaken++;
+        LastProjectileIndex = projectileIndex;
     }
 }
