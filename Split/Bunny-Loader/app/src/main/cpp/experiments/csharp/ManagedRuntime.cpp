@@ -5,9 +5,6 @@
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
-#ifdef __ANDROID__
-#include "core/Log.h"
-#endif
 
 #include <cstdio>
 #include <algorithm>
@@ -780,8 +777,9 @@ void* pinnedMonoWorker(void*) {
                     if (job.after && outcome >= 0) {
                         static std::atomic<int> completedLogs{0};
                         if (completedLogs.fetch_add(1, std::memory_order_relaxed) < 12)
-                            BL_INFO("csharp BunnyPlayer OnHurt: MonoVM executou %lld callback(s), dano=%d, vida=%d",
-                                    static_cast<long long>(outcome), job.damage, job.life);
+                            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                "csharp BunnyPlayer OnHurt: MonoVM executou %lld callback(s), dano=%d, vida=%d",
+                                static_cast<long long>(outcome), job.damage, job.life);
                     }
 #endif
                     lock.lock();
