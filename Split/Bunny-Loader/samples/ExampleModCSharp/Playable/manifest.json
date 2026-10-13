@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplo de armas e projeteis C# com callbacks gerenciados de impacto e morte por projetil em teste, IA de movimento, buff, acessorios com velocidade, BunnyPlayer, NPC e prefixos C# e combate com ModifyHurt, OnHurt e FreeDodge experimentais.",
+  "summary": "Exemplos de armas, projeteis, NPCs, buffs, prefixos e equipamentos C#; seis acessorios simples, tres acessorios compostos e oito receitas de combate para o Bunny Loader.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
