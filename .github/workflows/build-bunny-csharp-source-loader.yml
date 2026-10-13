@@ -900,7 +900,7 @@ jobs:
               assert manifest["id"]=="examplemodcsharp"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
-              assert len([n for n in names if n.endswith(".cs")])==36
+              assert len([n for n in names if n.endswith(".cs")])==42
               assert "content/LEIA_PRIMEIRO.md" in names
               assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
               assert "content/main.cs" in names
@@ -924,10 +924,15 @@ jobs:
               assert "content/Common/Players/ExampleVitalPlayer.cs" in names
               assert "content/Content/Items/Accessories/ExampleArcaneAccessory.cs" in names
               assert "content/Common/Players/ExampleArcanePlayer.cs" in names
+              for cls in ("ExampleGuardianShield", "ExampleTrailblazerBoots", "ExampleMysticWard"):
+                  assert "content/Content/Items/Accessories/" + cls + "Accessory.cs" in names
+                  assert "content/Common/Players/" + cls + "Player.cs" in names
               for cls in ("ExampleFocusAccessory", "ExampleSwiftAccessory",
                           "ExampleMomentumAccessory",
                           "ExampleShadowAccessory",
-                          "ExampleVitalAccessory", "ExampleArcaneAccessory"):
+                          "ExampleVitalAccessory", "ExampleArcaneAccessory",
+                          "ExampleGuardianShieldAccessory", "ExampleTrailblazerBootsAccessory",
+                          "ExampleMysticWardAccessory"):
                   assert b"Tooltip = " in z.read("content/Content/Items/Accessories/" + cls + ".cs")
               assert "content/Content/Items/Accessories/ExampleFocusAccessory.png" in names
               assert "content/Content/NPCs/ExampleSlimeNPC.cs" in names
