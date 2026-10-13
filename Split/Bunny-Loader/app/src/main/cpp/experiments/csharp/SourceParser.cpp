@@ -143,74 +143,103 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix") return true;
-    size_t method = end;
-    for (size_t i = begin + 1; i < end; ++i) {
-        if (tokens[i].value == "SetDefaults" && i + 1 < end &&
-            tokens[i + 1].value == "(") {
-            method = i;
-            break;
-        }
-    }
-    if (method == end || method + 3 >= end ||
-        tokens[method + 2].value != ")" || tokens[method + 3].value != "{") {
-        *error = name + ": precisa de void SetDefaults() com atribuicoes literais";
-        return false;
-    }
-    for (size_t i = begin + 1; i < method; ++i) {
-        const auto& v = tokens[i].value;
-        if (v != "public" && v != "override" && v != "void") {
-            *error = name + ": membros externos a SetDefaults ainda nao suportados";
-            return false;
-        }
-    }
-    const size_t close = closing(tokens, method + 3, "{", "}");
-    if (close >= end) {
-        *error = name + ": corpo SetDefaults sem fechamento";
-        return false;
-    }
-    size_t next = close + 1;
-    while (next < end) {
-        const size_t start = next;
-        size_t open = next;
-        while (open < end && tokens[open].value != "(" &&
-               tokens[open].value != ";" && tokens[open].value != "{")
-            ++open;
-        if (open >= end || tokens[open].value != "(" || open == start) {
-            *error = name + ": membro adicional C# deve ser um metodo";
-            return false;
-        }
-        const size_t signatureEnd = closing(tokens, open, "(", ")");
-        if (signatureEnd >= end || signatureEnd + 1 >= end) {
-            *error = name + ": assinatura de metodo adicional invalida";
-            return false;
-        }
-        const size_t bodyStart = signatureEnd + 1;
-        if (tokens[bodyStart].value == "{") {
-            const size_t bodyEnd = closing(tokens, bodyStart, "{", "}");
-            if (bodyEnd >= end) {
-                *error = name + ": metodo adicional sem fechamento";
-                return false;
-            }
-            next = bodyEnd + 1;
-        } else if (bodyStart + 1 < end &&
-                   tokens[bodyStart].value == "=" &&
-                   tokens[bodyStart + 1].value == ">") {
-            size_t semicolon = bodyStart + 2;
-            while (semicolon < end && tokens[semicolon].value != ";") ++semicolon;
-            if (semicolon >= end) {
-                *error = name + ": expressao de metodo sem terminador";
-                return false;
-            }
-            next = semicolon + 1;
-        } else {
-            *error = name + ": somente metodos adicionais sao permitidos";
-            return false;
-        }
-    }
     ParsedSourceType def;
     def.name = name;
     def.base = base;
-    if (!statements(tokens, method + 4, close, &def, error)) return false;
+    bool foundDefaults = false;
+    size_t member = begin + 1;
+    while (member < end) {
+        bool advanced = false;
+        for (size_t i = member; i < end;) {
+            const auto& value = tokens[i].value;
+            if (value == "(") {
+                const size_t parametersEnd = closing(tokens, i, "(", ")");
+                if (parametersEnd >= end) {
+                    *error = name + ": parametros de membro C# sem fechamento";
+                    return false;
+                }
+                if (i > member && tokens[i - 1].value == "SetDefaults" &&
+                    parametersEnd == i + 1 && parametersEnd + 1 < end &&
+                    tokens[parametersEnd + 1].value == "{") {
+                    if (foundDefaults) {
+                        *error = name + ": SetDefaults duplicado";
+                        return false;
+                    }
+                    const size_t bodyEnd = closing(tokens, parametersEnd + 1, "{", "}");
+                    if (bodyEnd >= end) {
+                        *error = name + ": corpo SetDefaults sem fechamento";
+                        return false;
+                    }
+                    if (!statements(tokens, parametersEnd + 2, bodyEnd, &def, error))
+                        return false;
+                    foundDefaults = true;
+                    member = bodyEnd + 1;
+                    advanced = true;
+                    break;
+                }
+                i = parametersEnd + 1;
+                continue;
+            }
+            if (value == "[") {
+                const size_t bracketEnd = closing(tokens, i, "[", "]");
+                if (bracketEnd >= end) {
+                    *error = name + ": atributo ou indice C# sem fechamento";
+                    return false;
+                }
+                i = bracketEnd + 1;
+                continue;
+            }
+            if (value == "{") {
+                const size_t bodyEnd = closing(tokens, i, "{", "}");
+                if (bodyEnd >= end) {
+                    *error = name + ": membro C# sem fechamento";
+                    return false;
+                }
+                size_t next = bodyEnd + 1;
+                if (next < end && tokens[next].value == "=") {
+                    ++next;
+                    while (next < end && tokens[next].value != ";") {
+                        if (tokens[next].value == "(" || tokens[next].value == "{" ||
+                            tokens[next].value == "[") {
+                            const std::string closer = tokens[next].value == "(" ? ")" :
+                                tokens[next].value == "{" ? "}" : "]";
+                            const size_t endOfValue = closing(tokens, next, tokens[next].value, closer);
+                            if (endOfValue >= end) {
+                                *error = name + ": inicializador C# sem fechamento";
+                                return false;
+                            }
+                            next = endOfValue;
+                        }
+                        ++next;
+                    }
+                    if (next >= end) {
+                        *error = name + ": inicializador C# sem terminador";
+                        return false;
+                    }
+                    ++next;
+                } else if (next < end && tokens[next].value == ";") {
+                    ++next;
+                }
+                member = next;
+                advanced = true;
+                break;
+            }
+            if (value == ";") {
+                member = i + 1;
+                advanced = true;
+                break;
+            }
+            ++i;
+        }
+        if (!advanced) {
+            *error = name + ": declaracao de membro C# incompleta";
+            return false;
+        }
+    }
+    if (!foundDefaults) {
+        *error = name + ": precisa de void SetDefaults() com atribuicoes literais";
+        return false;
+    }
     definitions->push_back(std::move(def));
     return true;
 }
