@@ -67,6 +67,8 @@ struct NativeRefs {
     int playerFrameShadow = -1;
     int playerFrameOutline = -1;
     int playerWhoAmI = -1;
+    int playerLifeRegen = -1;
+    int playerManaRegen = -1;
 };
 
 struct NativeWeaponDefaults {
@@ -82,6 +84,8 @@ struct NativeAccessoryDefaults {
     int movementAccelerationPercent = 0;
     bool frameShadow = false;
     std::string worldJoinMessage;
+    int lifeRegenBonus = 0;
+    int manaRegenBonus = 0;
 };
 
 struct NativeBuffDefaults {
@@ -120,6 +124,8 @@ using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using HorizontalMovementFn = void (*)(Il2CppObject*, const MethodInfo*);
 using SetArmorEffectVisualsFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using PlayerSpawnFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using PlayerUpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using PlayerStageFn = void (*)(Il2CppObject*, const MethodInfo*);
 
 NativeRefs g_refs{};
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -128,6 +134,12 @@ std::map<int, NativeNpcDefaults> g_npcs;
 std::map<int, NativeAccessoryDefaults> g_accessories;
 std::map<std::string, std::string> g_globalWorldMessages;
 std::map<std::string, std::string> g_respawnMessages;
+std::map<std::string, std::string> g_deadMessages;
+bool g_preUpdateEnabled = false;
+bool g_postUpdateEnabled = false;
+bool g_deadEventDelivered = false;
+bool g_anyLifeRegen = false;
+bool g_anyManaRegen = false;
 std::map<int, NativeBuffDefaults> g_buffs;
 std::map<int, NativePotionDefaults> g_potions;
 ItemDefaultsFn g_originalItem = nullptr;
@@ -138,6 +150,10 @@ UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 SetArmorEffectVisualsFn g_originalSetArmorEffectVisuals = nullptr;
 PlayerSpawnFn g_originalPlayerSpawn = nullptr;
+PlayerUpdateFn g_originalPlayerUpdate = nullptr;
+PlayerStageFn g_originalUpdateDead = nullptr;
+PlayerStageFn g_originalLifeRegen = nullptr;
+PlayerStageFn g_originalManaRegen = nullptr;
 constexpr int g_reviveSpawnContext = 0;
 bool g_ready = false;
 bool g_npcReady = false;
@@ -506,6 +522,8 @@ bool prepareNativeContent() {
     r.playerFrameShadow = fieldOffset(player, "armorEffectDrawShadow");
     r.playerFrameOutline = fieldOffset(player, "armorEffectDrawOutlines");
     r.playerWhoAmI = fieldOffset(player, "whoAmI");
+    r.playerLifeRegen = fieldOffset(player, "lifeRegen");
+    r.playerManaRegen = fieldOffset(player, "manaRegen");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
 
