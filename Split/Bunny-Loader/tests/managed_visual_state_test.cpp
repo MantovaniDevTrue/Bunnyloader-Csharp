@@ -12,6 +12,9 @@ int main() {
     overlay.durationTicks = 10;
     assert(state.apply(overlay, 100));
     assert(state.size() == 1);
+    assert(state.snapshot(0, 8).size() == 1);
+    assert(state.snapshot(1, 8).empty());
+    assert(state.snapshot(0, 0).empty());
     state.advance(109);
     assert(state.size() == 1);
     overlay.opacity = 0.8f;
@@ -21,6 +24,7 @@ int main() {
     assert(state.size() == 1);
     state.advance(119);
     assert(state.size() == 0);
+    assert(state.snapshot(0, 8).empty());
     assert(state.apply(overlay, 200));
     ManagedVisualCommand clear;
     clear.kind = ManagedVisualKind::ClearOverlay;
