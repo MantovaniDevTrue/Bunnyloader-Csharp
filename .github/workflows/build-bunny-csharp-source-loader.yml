@@ -1113,7 +1113,7 @@ jobs:
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
           assert "modId=" in count_contract and "executedTypes=" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_2" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -1125,7 +1125,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_2" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
