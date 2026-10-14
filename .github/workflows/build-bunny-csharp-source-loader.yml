@@ -1501,7 +1501,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='162' versionName='0.1.10.16.90.28.5-csharp-item-behaviors'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='163' versionName='0.1.10.16.90.28.6-csharp-texture-contract'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

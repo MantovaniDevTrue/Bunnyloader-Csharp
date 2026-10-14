@@ -84,7 +84,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
@@ -101,7 +102,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Accessories/ExampleStatBonusAccessory.js": {
       "status": "Parcial",
@@ -372,7 +374,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
@@ -390,7 +393,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Accessories/ExampleBeard.js": {
       "status": "Validado por testes automatizados",
@@ -412,7 +416,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
@@ -430,7 +435,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Armor/Vanity/ExampleBossMask.js": {
       "status": "Validado por testes automatizados",
@@ -451,7 +457,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
@@ -469,7 +476,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Armor/Vanity/ExampleRobe.js": {
       "status": "Validado por testes automatizados",
@@ -491,7 +499,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
@@ -510,7 +519,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Materials/ExampleSoul.js": {
       "status": "Validado por testes automatizados",
@@ -532,7 +542,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
@@ -549,7 +560,8 @@
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
-      ]
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -626,6 +638,15 @@
       "cSharpSourceFiles": 51,
       "apkBuildRun": 38560108522,
       "apkBuildSourceCommit": "2d1012b7d067347688ea242827762b4dfe6f51b3"
+    },
+    {
+      "loader": "0.1.10.16.90.28.5",
+      "exampleMod": "0.1.35",
+      "kind": "Android registration failure reported by user",
+      "class": "ExampleBeard",
+      "result": "Rejected before behavior installation; no Android validation for new group",
+      "rootCause": "Primary Texture lacks .png; native preflight required extension and discarded its reason",
+      "fix": "0.1.10.16.90.28.6 shared texture normalization and detailed preflight diagnostics; Android retest pending"
     }
   ],
   "deviceBaselines": [

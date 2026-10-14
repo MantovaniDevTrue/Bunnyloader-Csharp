@@ -91,3 +91,23 @@ Commit de runtime `2d9c534464750c1f626df6158fbec8373528b3f7`: auditoria/itens
 filas, ciclo de vida, sinal Mono e GC aprovados. Dez casos C# e contratos
 nativos/JS aprovados. Este registro promove os seis novos exemplos somente a
 Validado por testes automatizados. Validado no Android permanece pendente.
+
+## Correcao .90.28.6 — contrato de textura
+
+A execucao Android da .90.28.5 recusou ExampleBeard no registro. Os seis novos
+fontes declaram Texture sem extensao, enquanto NativeContent exigia .png e
+retornava -1 antes de registrar a causa. Os testes anteriores de wire e
+comportamento nao cobriam essa precondicao; seu sucesso nao validou o carregamento
+Android. Nenhum dos seis exemplos recebe validacao Android por esses testes.
+
+A .90.28.6 normaliza stems relativos Content/ para .png, preserva caminhos
+com extensao e rejeita extensoes diferentes, traversal, barras invalidas,
+controles e caminhos acima de 160 caracteres depois da normalizacao. A mesma
+funcao usada no registrador e testada com os nove BunnyItem dos fontes reais;
+o CI confere tambem os nove PNG no pacote. Falhas de preflight agora preservam
+mod/classe/arquivo/expected/actual/reason no erro retornado ao carregador.
+ExampleMod permanece 0.1.35: nao houve alteracao dos fontes ou identificadores.
+
+Repetir primeiro o passo 1 do roteiro Android. Se houver falha, o relatorio
+precisa incluir a causa concreta, e nao apenas NativeRegistrationRejected.
+Depois executar os testes de cada equipamento/material acima.

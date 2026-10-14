@@ -86,3 +86,11 @@ commit de build `2d1012b7d067347688ea242827762b4dfe6f51b3`, com assinatura V3.
 Todos os checks obrigatorios passaram. A matriz possui 199 arquivos: seis
 novos ports validados em host, sem validacao Android nova. Nenhuma alteracao
 funcional posterior ao commit de build nesta entrega.
+
+### Regressao Android .90.28.5 / correcao .90.28.6
+
+ExampleBeard foi recusado no registro real por Texture sem extensao. A correcao
+normaliza o caminho no registrador e elimina rejeicoes silenciosas no preflight.
+Teste novo cruza fontes reais, parser e o contrato de caminho do registrador;
+o CI tambem verifica os assets. Mantidos .90.28.4 como base estavel, todos os
+199 exemplos e o backlog do Lote 2. Validacao Android da correcao pendente.

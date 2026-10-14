@@ -66,6 +66,8 @@ jobs:
           /tmp/basic-wire-test build/basic-items/source-runtime-values.txt
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_source_parser_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/basic-parser-test
           /tmp/basic-parser-test
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/content_texture_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/content-texture-test
+          /tmp/content-texture-test samples/ExampleModCSharp/Playable/content --assets
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-basic-test
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --nullable

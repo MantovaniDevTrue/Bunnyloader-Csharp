@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -245,15 +246,6 @@ bool validName(const char* value) {
 bool fileExists(const std::string& path) {
     struct stat st{};
     return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0;
-}
-
-bool validTexture(const char* path) {
-    if (!path || !*path || path[0] == '/' || path[0] == '\\') return false;
-    std::string p(path);
-    return p.size() <= 160 && p.find("..") == std::string::npos &&
-           p.find('\\') == std::string::npos &&
-           p.compare(0, 8, "Content/") == 0 &&
-           p.size() > 12 && p.substr(p.size() - 4) == ".png";
 }
 
 bool enableManagedPrefixEligibility(int type) {
@@ -1746,11 +1738,30 @@ void refreshManagedPrefixEligibilityOnWorldReady() {
 }
 
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
-    if (!g_ready || !context || !spec || !validName(spec->name) ||
-        !validTexture(spec->texture)) return -1;
-    auto& ctx = *static_cast<NativeRegisterContext*>(context);
-    ctx.lastError.clear();
-    const std::string path = ctx.modDir + "/content/" + spec->texture;
+    auto* ctxPtr = static_cast<NativeRegisterContext*>(context);
+    if (ctxPtr) ctxPtr->lastError.clear();
+    auto reject = [&](const std::string& reason, const std::string& expected,
+                      const std::string& actual) {
+        const std::string detail = "[CSharp][ERROR][Register] Mod=" +
+            (ctxPtr ? ctxPtr->modId : "<unavailable>") + " Class=" +
+            (spec && spec->name ? spec->name : "<unavailable>") + " File=" +
+            (ctxPtr ? ctxPtr->sourceFile : "<unavailable>") +
+            " Stage=NativePreflight Expected=" + expected + " Actual=" + actual +
+            " Result=Rejected Reason=" + reason;
+        if (ctxPtr) ctxPtr->lastError = detail;
+        BL_ERROR("%s", detail.c_str());
+        return -1;
+    };
+    if (!ctxPtr) return reject("RegistrationContextMissing", "Context", "Null");
+    if (!spec) return reject("ContentSpecMissing", "ContentSpec", "Null");
+    if (!g_ready) return reject("NativeRuntimeNotReady", "Ready", "NotReady");
+    if (!validName(spec->name))
+        return reject("ContentNameInvalid", "ValidContentName", spec->name ? spec->name : "Null");
+    std::string texture, textureError;
+    if (!normalizeContentTexture(spec->texture, &texture, &textureError))
+        return reject(textureError, "RelativeContentPngOrStem", spec->texture ? spec->texture : "Null");
+    auto& ctx = *ctxPtr;
+    const std::string path = ctx.modDir + "/content/" + texture;
     if (!fileExists(path)) {
         ctx.lastError="[CSharp][ERROR][Asset] Mod="+ctx.modId+" Class="+spec->name+
             " Path="+path+" Stage=TextureLoad Expected=ExistingFile Actual=Missing Result=Rejected Reason=AssetMissing";

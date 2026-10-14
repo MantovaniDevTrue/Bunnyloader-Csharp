@@ -3043,7 +3043,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
@@ -3318,7 +3319,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
@@ -3554,7 +3556,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
@@ -4018,7 +4021,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
@@ -4106,7 +4110,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
@@ -4710,7 +4715,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
