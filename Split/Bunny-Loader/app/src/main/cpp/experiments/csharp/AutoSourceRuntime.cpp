@@ -56,7 +56,7 @@ std::atomic<int> g_worldCSharpSummaryWait{0};
 std::atomic<bool> g_preWorldBindingsArmed{false};
 std::atomic<bool> g_preWorldBindingsRunning{false};
 std::atomic<bool> g_delayedWorldEntry{false};
-std::atomic<int> g_delayedWorldTicks{0};
+std::chrono::steady_clock::time_point g_delayedWorldSince{};
 const MethodInfo* g_delayedPlayWorldMethod=nullptr;
 using PlayWorldFn=void (*)(const MethodInfo*);
 PlayWorldFn g_originalPlayWorld=nullptr;
@@ -1019,8 +1019,7 @@ bool preWorldCSharpContentReady() {
     }
     return content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 &&
-           (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled) &&
-           bl::runtime::pendingManagedPrefixCountForActivePlayer() == 0;
+           (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
 }
 
 bool finishPreWorldCSharpPlayer() {
@@ -1028,8 +1027,9 @@ bool finishPreWorldCSharpPlayer() {
         refreshManagedPrefixEligibilityOnWorldReady();
         bl::runtime::retryPendingManagedPrefixesOnWorldReady();
     }
-    if (bl::runtime::pendingManagedPrefixCountForActivePlayer() != 0)
-        return false;
+    const int unresolved = bl::runtime::pendingManagedPrefixCountForActivePlayer();
+    if (unresolved > 0)
+        BL_WARN("[CSharp][WARN][PrefixRestore] Stage=BeforeWorld Pending=%d Result=PreservedInSave Reason=NativePrefixRejected", unresolved);
     g_worldPrefixesRestored.store(true, std::memory_order_release);
     return true;
 }
@@ -1041,7 +1041,7 @@ void hkCSharpPlayWorld(const MethodInfo* method) {
     }
     if (!g_delayedWorldEntry.exchange(true, std::memory_order_acq_rel)) {
         g_delayedPlayWorldMethod = method;
-        g_delayedWorldTicks.store(0, std::memory_order_relaxed);
+        g_delayedWorldSince = std::chrono::steady_clock::now();
         BL_INFO("C# preparando mods antes de carregar o mundo...");
     }
 }
@@ -1055,7 +1055,7 @@ void flushDeferredWorldEntry() {
         if (g_originalPlayWorld) g_originalPlayWorld(method);
         return;
     }
-    if (g_delayedWorldTicks.fetch_add(1, std::memory_order_relaxed) < 14400)
+    if (std::chrono::steady_clock::now() - g_delayedWorldSince < std::chrono::minutes(4))
         return;
     if (!g_delayedWorldEntry.exchange(false, std::memory_order_acq_rel))
         return;

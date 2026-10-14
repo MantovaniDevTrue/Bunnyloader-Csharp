@@ -1103,7 +1103,15 @@ int pendingManagedPrefixCountForActivePlayer() {
     if (path.empty()) return 0;
     std::lock_guard<std::mutex> lock(g_mx);
     auto it = g_pendingPrefix.find(path);
-    return it == g_pendingPrefix.end() ? 0 : static_cast<int>(it->second.size());
+    if (it == g_pendingPrefix.end()) return 0;
+    int unresolved = 0;
+    for (const auto& [slot, prefix] : it->second) {
+        const int id = modPrefixByKey(prefix.key);
+        if (id > 0 && (bl::csharp::managedPrefixDescriptorReady(id) ||
+                       bl::csharp::managedPrefixDescriptorPending(id)))
+            ++unresolved;
+    }
+    return unresolved;
 }
 
 void retryPendingManagedPrefixesOnWorldReady() {
