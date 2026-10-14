@@ -24,3 +24,7 @@ jobs:
         run: node --check Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js
       - name: Verify real CSharp visual geometry
         run: node Split/Bunny-Loader/tests/csharp_visual_draw_geometry_test.js Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js
+      - name: Verify Bunny CSharp native shoe and shield equip slots
+        run: node Split/Bunny-Loader/tests/csharp_native_equips_test.js Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js
+      - name: Verify native EquipLoader syntax
+        run: node --check Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js
