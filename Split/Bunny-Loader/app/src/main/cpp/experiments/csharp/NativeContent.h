@@ -160,6 +160,16 @@ bool applyManagedNativeNpcDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedNpcEntry>& npcs);
 
+
+struct ManagedNativeEquipTexture {
+    int itemType = -1;
+    int visualMode = 0;
+    std::string texture;
+};
+
+std::vector<ManagedNativeEquipTexture> managedNativeEquipTextures();
+bool setManagedNativeEquipSlot(int itemType, int visualMode, int equipSlot);
+
 int managedNativeAccessoryDefense(int type);
 int managedNativeAccessoryMoveSpeedPercent(int type);
 int managedNativePrefixItemKind(int type);
