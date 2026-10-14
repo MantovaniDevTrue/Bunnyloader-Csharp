@@ -90,6 +90,7 @@ JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueCons
         JS_SetPropertyStr(ctx,entry,"result",JS_NewInt32(ctx,recipe.result));
         JS_SetPropertyStr(ctx,entry,"stack",JS_NewInt32(ctx,recipe.values.stack));
         JS_SetPropertyStr(ctx,entry,"station",JS_NewInt32(ctx,recipe.values.station));
+        JS_SetPropertyStr(ctx,entry,"stationKey",JS_NewString(ctx,recipe.values.stationKey.c_str()));
         JSValue ingredients=JS_NewArray(ctx);uint32_t j=0;
         for(const auto& ingredient:recipe.values.ingredients) {
             JSValue value=JS_NewObject(ctx);

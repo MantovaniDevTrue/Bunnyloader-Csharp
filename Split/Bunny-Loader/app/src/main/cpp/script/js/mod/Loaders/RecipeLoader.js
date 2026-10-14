@@ -24,6 +24,20 @@ class RecipeLoader {
                 !Number.isInteger(entry.stack) || entry.stack<1 ||
                 !Array.isArray(entry.ingredients) || !entry.ingredients.length || entry.ingredients.length>15)
                 throw new Error('csharp recipe: '+entry.id+' descritor invalido');
+            let station=entry.station;
+            if(entry.stationKey) {
+                if(typeof entry.stationKey!=='string'||entry.stationKey.length>160)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Reason=InvalidStationKey');
+                station=-1;
+                for(const [type,tile] of TileLoader.ByType) {
+                    const mod=tile.Mod;
+                    if(mod && entry.stationKey===mod.uuid+'/'+tile.constructor.name) {
+                        if(station>=0)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Reason=AmbiguousStation');
+                        station=type;
+                    }
+                }
+                if(!Number.isInteger(station)||station<2195)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Expected=RegisteredModTile Actual=Missing Result=Pending');
+            } else if(!Number.isInteger(station)||station < -1||station>=2195)
+                throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Expected=VanillaTile Actual='+station);
             const recipe=new ModRecipe();
             recipe.SetResult(entry.result,entry.stack);
             if (recipe.recipe.createItem.stack!==entry.stack)
@@ -33,7 +47,7 @@ class RecipeLoader {
                 if (recipe.recipe.requiredItem[recipe.ingredients-1].stack!==ingredient.count)
                     throw new Error('csharp recipe: '+entry.id+' ingrediente '+ingredient.type+' excede pilha real');
             }
-            if (entry.station>=0) recipe.AddTile(entry.station);
+            if (station>=0) recipe.AddTile(station);
             const index=Terraria.Recipe.numRecipes;
             recipe.Register();
             if (Terraria.Recipe.numRecipes!==index+1)

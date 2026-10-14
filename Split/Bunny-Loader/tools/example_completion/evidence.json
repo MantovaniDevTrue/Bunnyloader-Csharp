@@ -576,6 +576,93 @@
         }
       ],
       "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+    },
+    "Content/Items/Armor/ExampleHelmet.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+    },
+    "Content/Items/Armor/ExampleBreastplate.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+    },
+    "Content/Items/Armor/ExampleLeggings.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+    },
+    "Content/Items/Accessories/ExampleWings.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Fonte C# equivalente e assets originais ainda pendentes.",
+        "Receita depende de ExampleWorkbench C# ainda nao implementado.",
+        "Equipamento, voo, animacoes e ciclos de vida no Android ainda nao registrados."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpWingPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/WingLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/wing_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/wing_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "validation": "WingStats, slot e VerticalWingSpeeds conectados ao host em contrato independente; port do exemplo original pendente."
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -718,6 +805,13 @@
         "sustained FPS",
         "all lifecycle tests"
       ]
+    },
+    {
+      "kind": "Internal Lot A infrastructure validation",
+      "commit": "eefe0c304ee5272782c2df1c543193166bc755fe",
+      "androidBuildRun": 38569808364,
+      "auditRun": 38569808387,
+      "result": "8 host suites and Android build succeeded; no partial APK release; no Android gameplay validation"
     }
   ],
   "deviceBaselines": [
@@ -740,9 +834,12 @@
     "apis": [
       "BunnyItem.Defense",
       "BunnyArmorEffects",
-      "BunnyArmorSet"
+      "BunnyArmorSet",
+      "BunnyRecipe.AddTile(string)",
+      "BunnyEquipKind.Wings",
+      "BunnyItemBehavior.SetWingStats"
     ],
-    "status": "Implementacao de infraestrutura; nao significa port dos exemplos",
+    "status": "Infraestrutura real de armaduras, conjuntos, estacoes JS e asas; exemplos do Lote A ainda nao portados",
     "pending": [
       "all 33 Lot A counterparts and applicable behavior",
       "mod workbench and recipe dependencies",

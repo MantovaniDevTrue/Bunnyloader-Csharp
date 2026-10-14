@@ -15,7 +15,7 @@ inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
     "Width","Height","MaxStack","Value","Rare","Damage","Crit","UseTime",
     "UseAnimation","UseStyle","Pick","Axe","Hammer","Flags"};
 struct BasicRecipeIngredient { std::string key; int count=1; int type=-1; };
-struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; };
+struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; };
 struct BasicItemEntry {
     std::string name; int type=-1;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
@@ -53,8 +53,20 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     for(const auto& wire:recipes) {
         auto parts=basicSplit(wire,',');BasicRecipe recipe;
         if(parts.size()<3||parts.size()>17||!basicInteger(parts[0],&recipe.stack)||
-            recipe.stack<1||recipe.stack>item->values[BasicMaxStack]||!basicInteger(parts[1],&recipe.station)||
-            recipe.station < -1||recipe.station>=2195) { *error=item->name+": resultado/estacao da receita invalido";return false; }
+            recipe.stack<1||recipe.stack>item->values[BasicMaxStack]) { *error=item->name+": resultado da receita invalido";return false; }
+        if(parts[1].size()>1&&parts[1][0]=='m') {
+            const auto key=parts[1].substr(1);
+            bool valid=key.size()<=160&&key.front()!='/'&&key.back()!='/';
+            unsigned slashes=0;
+            for(unsigned char c:key) {
+                if(c=='/') {if(++slashes>1)valid=false;continue;}
+                if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'))valid=false;
+            }
+            if(!valid){*error=item->name+": Stage=ParseRecipe Field=station Expected=ModTileKey Actual="+parts[1]+" Reason=InvalidStationKey";return false;}
+            recipe.stationKey=key;
+        } else if(!basicInteger(parts[1],&recipe.station)||recipe.station < -1||recipe.station>=2195) {
+            *error=item->name+": Stage=ParseRecipe Field=station Expected=VanillaTileIdOrModTileKey Actual="+parts[1]+" Reason=InvalidStation";return false;
+        }
         for(size_t i=2;i<parts.size();++i) {
             auto pair=basicSplit(parts[i],':');BasicRecipeIngredient ingredient;
             if(pair.size()!=2||pair[0].size()<2||pair[0].size()>161||

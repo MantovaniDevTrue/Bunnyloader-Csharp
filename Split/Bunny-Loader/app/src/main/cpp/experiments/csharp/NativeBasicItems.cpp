@@ -257,6 +257,10 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
 #if !BL_HAVE_QUICKJS
         if(!entry.recipes.empty()||!entry.behavior.empty()) {*error=entry.name+": host compilado sem bridge QuickJS de receitas";return false;}
 #endif
+        for(auto& recipe:entry.recipes) {
+            if(!recipe.stationKey.empty()&&recipe.stationKey.find('/')==std::string::npos)
+                recipe.stationKey=modId+"/"+recipe.stationKey;
+        }
         for(auto& recipe:entry.recipes)for(auto& ingredient:recipe.ingredients) {
             if(ingredient.key.front()=='m') {
                 auto key=ingredient.key.substr(1);
@@ -316,7 +320,7 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
     const auto entry=definitions.find(type);
     const std::map<std::string,const char*> fields={
         {"Head","headSlot"},{"Body","bodySlot"},{"Legs","legSlot"},
-        {"Beard","beardSlot"},{"Back","backSlot"}};
+        {"Beard","beardSlot"},{"Back","backSlot"},{"Wings","wingSlot"}};
     const auto named=fields.find(kind);
     auto reject=[&](const std::string& reason,const std::string& actual) {
         *error="[CSharp][ERROR][EquipSlot] Mod="+(entry!=definitions.end()?entry->second.modId:"<unavailable>")+

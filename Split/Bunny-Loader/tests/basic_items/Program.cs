@@ -51,6 +51,14 @@ try {
   Reject(()=>owner.Behavior.WorldLight(float.NaN,0,0));
   Reject(()=>owner.Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage,-1));
  });
+ Check("recipe.mod-station-public-sdk",()=>{
+  var owner=new ExampleItem();owner.SetDefaults();
+  owner.CreateRecipe().AddIngredient("ExampleItem").AddTile("ExampleWorkbench").Register();
+  Equal("1,mExampleWorkbench,mExampleItem:1",owner.RecipeDefinitions.Single());
+  Reject(()=>owner.CreateRecipe().AddTile("../bad"));Reject(()=>owner.CreateRecipe().AddTile("/bad"));
+  Reject(()=>owner.CreateRecipe().AddTile("mod//bad"));Reject(()=>owner.CreateRecipe().AddTile("mod/a/b"));
+  Reject(()=>owner.CreateRecipe().AddTile("Station").AddTile(18));
+ });
  Check("armor.public-sdk-contract",()=>{
   var item=new ExampleItem();item.SetDefaults();item.Defense=6;
   item.Behavior.Armor.Add(BunnyArmorInteger.StatManaMax2,20);
@@ -67,12 +75,20 @@ try {
   Reject(()=>item.Behavior.DefineArmorSet(set));
   Reject(()=>new BunnyArmorSet("Head","Body","Legs","invalid\ntext"));
  });
+ Check("wings.real-source-wire",()=>{
+  string root="tests/basic_items/wing_fixture",output=Path.Combine(scratch,"wing.dll"),diag=Path.Combine(scratch,"wing.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/wing-source-runtime-values.txt",true);
+  var item=new ExampleItem();item.SetDefaults();Reject(()=>item.Behavior.SetWingStats(0,9,2.5f,.85f,.15f,1,3,.135f));
+  Reject(()=>item.Behavior.SetWingStats(180,float.NaN,2.5f,.85f,.15f,1,3,.135f));
+ });
  Check("armor.real-source-wire",()=>{
   string root="tests/basic_items/armor_fixture",output=Path.Combine(scratch,"armor.dll"),diag=Path.Combine(scratch,"armor.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/armor-source-runtime-values.txt",true);
   var lines=File.ReadAllLines("build/basic-items/armor-source-runtime-values.txt");Equal(4,lines.Length);
   foreach(var line in lines.Skip(1))Equal(21,line.Split('\t').Length);
+  var helmet=lines.Single(line=>line.StartsWith("ITEM\tContractHelmet\t")).Split('\t');Equal("1,mContractBench,v2:1",helmet[19]);
  });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));

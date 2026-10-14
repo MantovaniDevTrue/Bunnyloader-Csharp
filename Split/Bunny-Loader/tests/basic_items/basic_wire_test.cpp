@@ -18,6 +18,11 @@ int main(int argc,char** argv){
   bad=fields;bad[16]="NaN";assert(!parseBasicItemWire(bad,&entry,&error));
   bad=fields;bad[17]="Item1;inject";assert(!parseBasicItemWire(bad,&entry,&error));
   bad=fields;bad[19]="1,18,v0:10";assert(!parseBasicItemWire(bad,&entry,&error));
+  auto station=fields;station[19]="1,mExampleWorkbench,v2:1";
+  assert(parseBasicItemWire(station,&entry,&error));assert(entry.recipes[0].station==-1&&entry.recipes[0].stationKey=="ExampleWorkbench");
+  for(const std::string key:{"m../bad","m/bad","mmod//bad","mmod/a/b","2195","m"}) {
+   station[19]="1,"+key+",v2:1";assert(!parseBasicItemWire(station,&entry,&error));
+  }
   ++count;
  }
  assert(count==3);std::cout<<"BASIC_ITEM_CSHARP_WIRE_PASS=YES\n";

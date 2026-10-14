@@ -19,6 +19,7 @@ vm.runInContext('ModItem.prototype.SetItemAnimation=function(frames,ticks){ __an
 ctx.__animations=animations;
 for(const e of entries)samples.set(e.type,{type:e.type,stack:2,favorited:true});
 vm.runInContext(fs.readFileSync(root+'/Loaders/CSharpArmorPolicy.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync(root+'/Loaders/CSharpWingPolicy.js','utf8'),ctx);
 vm.runInContext(fs.readFileSync(root+'/Loaders/CSharpItemBehaviorLoader.js','utf8'),ctx);
 ctx.__blSyncCSharpItemBehaviors();assert.equal(acknowledgements,6);assert.equal(pending.size,0);
 ctx.__blSyncCSharpItemBehaviors();assert.equal(acknowledgements,6,'idempotent registration');

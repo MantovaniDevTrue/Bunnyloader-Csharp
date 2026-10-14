@@ -51,3 +51,38 @@ Proxima dependencia: contrato C# de tile/estacao e receitas com chave de tile,
 para ExampleWorkbench. Depois portar integralmente o conjunto e Costume;
 seguir o escopo completo para wings/boots/shield, consumiveis/pickups, tools,
 raridades/prefixos, tooltips/currency/quests e dependencias de combate/pesca.
+
+## Receitas com estacao de mod
+
+BunnyRecipe.AddTile(string) aceita classe local ou UID/Classe de outro mod.
+O wire preserva os 20/21 campos anteriores e amplia somente o token da estacao
+para mChave. O parser valida a chave, o nativo qualifica nomes locais pelo UID,
+e o RecipeLoader original resolve o tile pela instancia registrada no host.
+Estacao ausente recusa a receita antes de registrar, com ID da receita/chave,
+etapa, expected/actual e estado Pending. Uma tentativa posterior pode concluir
+o registro quando a estacao existir. IDs vanilla continuam limitados a 0..2194.
+
+Os testes cobrem SDK/wire reais, parser, qualificacao nativa, estacao de outro
+mod JS, ausencia/registro tardio, lookups e ACK sem duplicar receitas. A API
+ja funciona com tiles JS carregados. O contrato C# de Tile/ExampleWorkbench
+continua pendente: nao marcar receitas dos exemplos como concluidas por isso.
+A mudanca de tokens de estacao invalida caches anteriores; contratos vigentes registrados abaixo.
+
+## Wings e movimento nativo
+
+BunnyEquipKind.Wings registra a textura no EquipLoader original e persiste
+wingSlot com sua largura nativa. SetWingStats configura tempo, velocidade e
+aceleracao de voo, alem dos cinco refs de VerticalWingSpeeds. WingLoader original
+aplica o movimento, gravidade invertida e limite de subida, com filtro nativo
+apenas nos slots de mod. Nao existe passagem Mono por quadro.
+
+Teste wing_behavior_bridge_test.js usa o WingLoader real e wire Roslyn de um
+mod independente ContractWings, verifica todos os refs, caps, gravidade invertida,
+tempo de voo, filtro nativo, caso especial da asa vanilla e recriacao do item.
+Ainda faltam port integral do ExampleWings, sprite real, receita na bancada C#
+e validacao no Android. Nao declarar o exemplo concluido.
+
+Contratos atuais: cache Roslyn v14 e nativo armor_station_wings.
+Primeira infraestrutura de armadura passou em oito suites e build Android
+`38569808364` no commit eefe0c304ee5272782c2df1c543193166bc755fe;
+publicacao privada foi excluida por esta ser uma branch de lote incompleto.

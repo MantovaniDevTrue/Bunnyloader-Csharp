@@ -3467,18 +3467,27 @@
       "automatedEvidence": [],
       "preservedFeatures": [],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Fonte C# equivalente e assets originais ainda pendentes.",
+        "Receita depende de ExampleWorkbench C# ainda nao implementado.",
+        "Equipamento, voo, animacoes e ciclos de vida no Android ainda nao registrados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpWingPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/WingLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/wing_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/wing_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "WingStats, slot e VerticalWingSpeeds conectados ao host em contrato independente; port do exemplo original pendente.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3695,18 +3704,28 @@
       "automatedEvidence": [],
       "preservedFeatures": [],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3863,18 +3882,28 @@
       "automatedEvidence": [],
       "preservedFeatures": [],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3935,18 +3964,28 @@
       "automatedEvidence": [],
       "preservedFeatures": [],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Fonte C# equivalente, assets e port integral ainda pendentes.",
+        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
+        "Validacao Android do exemplo e roteiro completo ainda nao executados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/armor_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [

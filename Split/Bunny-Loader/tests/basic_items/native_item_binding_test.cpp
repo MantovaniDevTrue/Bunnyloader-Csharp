@@ -13,7 +13,7 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t beardSlot; unsigned char sentinel[3]; };
+struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; unsigned char sentinel[3]; };
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
@@ -52,6 +52,7 @@ void configure(){
  storage.push_back({"bodySlot",&shortType,offsetof(FakeItem,bodySlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"legSlot",&shortType,offsetof(FakeItem,legSlot),0});itemClass.fields.push_back(&storage.back());
  static Il2CppClass signedClass{"SByte",true,1,{}};static Il2CppType signedType{&signedClass};
+ storage.push_back({"wingSlot",&signedType,offsetof(FakeItem,wingSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"beardSlot",&signedType,offsetof(FakeItem,beardSlot),0});itemClass.fields.push_back(&storage.back());
  const char* names[]={"width","height","maxStack","value","rare","damage","crit","useTime","useAnimation","useStyle","pick","axe","hammer"};
  for(size_t i=0;i<13;i++){storage.push_back({names[i],i==9?&styleType:i==3&&narrowValue?&shortType:&intType,offsetof(FakeItem,values)+i*sizeof(int),0});itemClass.fields.push_back(&storage.back());}
@@ -154,6 +155,8 @@ int main(int argc,char** argv){
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Head",350,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Body",260,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Legs",220,&error));
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Wings",70,&error));
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Wings",128,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",127,&error));
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",128,&error));assert(error.find("SlotOutOfRange")!=std::string::npos);
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Back",1,&error));assert(error.find("Actual=Missing")!=std::string::npos);
@@ -165,6 +168,7 @@ int main(int argc,char** argv){
  const auto savedOffset=headField->offset;headField->offset=0;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("InvalidFieldOffset")!=std::string::npos);headField->offset=savedOffset;
  FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));std::memset(recreated.defenseSentinel,0x6b,sizeof(recreated.defenseSentinel));
  assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
+ assert(recreated.wingSlot==70);
  assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
  for(auto value:recreated.sentinel)assert(value==0x5a);
  assert(recreated.defense==6);for(auto value:recreated.defenseSentinel)assert(value==0x6b);
@@ -172,6 +176,15 @@ int main(int argc,char** argv){
  for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.type>0);
   assert(bl::csharp::acknowledgeBasicRecipe(recipe.id,17));assert(!bl::csharp::acknowledgeBasicRecipe(recipe.id,17));}
  assert(bl::csharp::pendingBasicRecipes().empty());
+ auto stationItem=entries[0];stationItem.type=7199;stationItem.name="StationFixture";
+ identities[stationItem.type]="mod/StationFixture";
+ assert(bl::csharp::registerBasicItemPlaceholder(stationItem.type,stationItem.name,&error));
+ stationItem.recipes[0].station=-1;stationItem.recipes[0].stationKey="ContractBench";
+ assert(bl::csharp::applyNativeBasicItemDefaults("mod",{stationItem},&error));
+ const auto stationPending=bl::csharp::pendingBasicRecipes();assert(stationPending.size()==1);
+ assert(stationPending[0].values.stationKey=="mod/ContractBench");
+ assert(bl::csharp::acknowledgeBasicRecipe(stationPending[0].id,18));
+
  auto bad=entries;bad[0].values[bl::csharp::BasicDamage]=999999;
  assert(!bl::csharp::applyNativeBasicItemDefaults("mod",bad,&error));
  FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries[0].type));assert(object.values[bl::csharp::BasicDamage]==entries[0].values[bl::csharp::BasicDamage]);

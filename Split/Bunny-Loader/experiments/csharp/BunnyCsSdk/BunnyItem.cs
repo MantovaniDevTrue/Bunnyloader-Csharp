@@ -56,7 +56,7 @@ public sealed class BunnyRecipe
 {
     private readonly BunnyItem owner;
     private readonly int stack;
-    private int station = -1;
+    private string station = "-1";
     private bool registered;
     private readonly List<string> ingredients = new();
     internal BunnyRecipe(BunnyItem owner, int stack)
@@ -84,9 +84,20 @@ public sealed class BunnyRecipe
     public BunnyRecipe AddTile(int vanillaTileId)
     {
         Mutable();
-        if (station!=-1) throw new InvalidOperationException("Receita ja possui estacao");
+        if (station!="-1") throw new InvalidOperationException("Receita ja possui estacao");
         if (vanillaTileId<0 || vanillaTileId>=2195) throw new ArgumentOutOfRangeException(nameof(vanillaTileId));
-        station=vanillaTileId; return this;
+        station=vanillaTileId.ToString(CultureInfo.InvariantCulture); return this;
+    }
+    /// <summary>Estacao de mod: nome local ou UID/Nome; resolvida no TileLoader original.</summary>
+    public BunnyRecipe AddTile(string modTileName)
+    {
+        Mutable();
+        if(station!="-1")throw new InvalidOperationException("Receita ja possui estacao");
+        if(string.IsNullOrWhiteSpace(modTileName)||modTileName.Length>160||
+            modTileName.Split('/').Any(part=>part.Length==0||part.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-')))||
+            modTileName.Count(c=>c=='/')>1)
+            throw new ArgumentException("Estacao deve ser nome local ou UID/Nome",nameof(modTileName));
+        station="m"+modTileName;return this;
     }
     public void Register()
     {
@@ -96,7 +107,7 @@ public sealed class BunnyRecipe
         // Nao e um sucesso simulado: o descritor entra nos defaults transferidos
         // ao host. O host resolve IDs, registra ModRecipe e confirma o indice.
         owner.RecordRecipe(stack.ToString(CultureInfo.InvariantCulture)+","+
-            station.ToString(CultureInfo.InvariantCulture)+","+string.Join(",",ingredients));
+            station+","+string.Join(",",ingredients));
         registered=true;
     }
     private void Mutable() { if(registered) throw new InvalidOperationException("Receita ja registrada"); }

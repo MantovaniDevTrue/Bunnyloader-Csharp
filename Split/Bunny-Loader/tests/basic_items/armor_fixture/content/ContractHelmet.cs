@@ -11,4 +11,5 @@ public sealed class ContractHelmet : BunnyItem
         set.Effects.Add(BunnyArmorStat.MinionDamage,0.2f);
         Behavior.DefineArmorSet(set);
     }
+    public override void AddRecipes() => CreateRecipe().AddIngredient(2).AddTile("ContractBench").Register();
 }

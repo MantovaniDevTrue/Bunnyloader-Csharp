@@ -33,7 +33,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_0"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_0_armor_station_wings"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -79,6 +79,7 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
+          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
           node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
           node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
