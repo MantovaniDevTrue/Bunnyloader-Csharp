@@ -406,6 +406,7 @@ class PlayerDrawHooks {
 class BunnyCSharpVisualLayer extends PlayerDrawLayer {
     static Textures = new Map();
     static Trails = new Map();
+    static Pulse = 0;
     static DrawDataCtor = 'void .ctor(Texture2D texture, Vector2 position, Rectangle sourceRect, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effect, int inactiveLayerDepth)';
 
     constructor() { super('BunnyCSharpVisual'); }
@@ -420,7 +421,9 @@ class BunnyCSharpVisualLayer extends PlayerDrawLayer {
             if (player && player.dead) BunnyCSharpVisualLayer.Trails.delete(player.whoAmI);
             return false;
         }
-        return typeof api.visualActiveCount === 'function' && api.visualActiveCount() > 0;
+        const visible = typeof api.visualActiveCount === 'function' && api.visualActiveCount() > 0;
+        if (!visible) BunnyCSharpVisualLayer.Trails.delete(player.whoAmI);
+        return visible;
     }
 
     static TextureOf(path) {
@@ -544,7 +547,7 @@ class BunnyCSharpVisualLayer extends PlayerDrawLayer {
             const mode = effect.style || (effect.kind === 2 ? 2 : 1);
             if (mode === 2) {
                 BunnyCSharpVisualLayer.EnergyRing(info, cx, cy,
-                    tint, scale, Terraria.Main.GameUpdateCount || 0);
+                    tint, scale, ++BunnyCSharpVisualLayer.Pulse);
             } else if (mode === 3) {
                 hasTrail = true;
                 BunnyCSharpVisualLayer.RunningTrail(info, player, tint, scale);
