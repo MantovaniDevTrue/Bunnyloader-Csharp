@@ -26,6 +26,7 @@ const sandbox = {
     },
     PlayerDrawLayers: { IceBarrier: { name: 'IceBarrier' }, Shield: { name: 'Shield' }, BackAcc: { name: 'BackAcc' } },
     PlayerDrawHooks: { AddLayer(layer) { registered.push(layer); } },
+    EquipLoader: { SyncCSharp() {} },
     ModPlayer: { AddDrawData(info, data) { draws.push(data.draw); return true; } },
     Terraria: {
         Main: { screenPosition: { X: 1000, Y: 1000 } },
