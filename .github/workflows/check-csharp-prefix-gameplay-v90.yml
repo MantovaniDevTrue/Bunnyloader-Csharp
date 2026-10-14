@@ -284,7 +284,8 @@ jobs:
           assert 'bl::hook::install(armorVisuals, hkSetArmorEffectVisuals' in native
           assert 'fieldOffset(player, "armorEffectDrawShadow")' in native
           assert 'fieldOffset(player, "armorEffectDrawOutlines")' in native
-          assert 'if (!self || !managedShadowEquipped(drawPlayer ? drawPlayer : self))' in native
+          assert 'Il2CppObject* actor = drawPlayer ? drawPlayer : self;' in native
+          assert 'if (managedShadowEquipped(actor))' in native
           assert 'armorEffectDrawShadowEOCShield' not in native
           assert 'g_originalHorizontalMovement(self, method);' in native
           assert 'maxSpeed *= factor;' in native
