@@ -31,4 +31,19 @@ for line_number, row in enumerate(rows[1:], start=2):
 if errors:
     raise SystemExit("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_FAIL\n" + "\n".join(errors))
 assert sum(counts.values()) >= 31, "Expected all ExampleMod CSharp descriptors"
+item_names = {parts[1] for row in rows[1:] if (parts := row.split("\t"))[0] == "ITEM" and len(parts) > 1}
+assert {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe"} <= item_names, (
+    f"ExampleMod general items missing from V2 export: {item_names}"
+)
+source = (pathlib.Path(__file__).resolve().parents[2] /
+          "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+start = source.index('if (fields[0] == "ITEM")')
+end = source.index('} else if (fields[0] == "PLAYER"', start)
+item_branch = source[start:end]
+assert 'parseBasicItemWire(fields,&record,error)' in item_branch
+assert 'basicItems.size() > 16' in item_branch
+assert 'continue;' in item_branch.split('basicItems.push_back(std::move(record));', 1)[1], (
+    "BunnyItem V2 rows must not fall through to the PROJECTILE/WEAPON/other dispatch"
+)
+print("BUNNY_MANAGED_ITEM_V2_DISPATCH_GUARD=PASS", sorted(item_names))
 print("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_PASS", dict(sorted(counts.items())))

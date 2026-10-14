@@ -1,4 +1,10 @@
-# ExampleMod 0.1.34 — itens e receitas / Bunny .90.28.0
+# ExampleMod 0.1.34 — itens e receitas / Bunny .90.28.3
+
+O Bunny .90.28.3 corrige o fluxo de interpretacao V2 de BunnyItem: depois
+de registrar ExampleItem/ExamplePickaxe/ExampleHamaxe, a linha nao deve cair
+na validacao de PROJECTILE/WEAPON. O limite de 16 itens gerais e preservado.
+A versao .90.28.2 ainda rejeita ExampleHamaxe mesmo com 20 campos corretos.
+Os fontes e assets do .bmod 0.1.34 continuam os mesmos.
 
 Comece por Content/Items/ExampleItem.cs e Content/Items/Tools/ExamplePickaxe.cs /
 ExampleHamaxe.cs. Os comentarios explicam cada atributo e a receita original.

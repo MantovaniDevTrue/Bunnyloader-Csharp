@@ -457,6 +457,11 @@ bool applyManagedSourceDefaults(
             }
             if(!parseBasicItemWire(fields,&record,error))return false;
             record.type=type->second;basicItems.push_back(std::move(record));
+            if (basicItems.size() > 16) {
+                *error = "Quantidade de BunnyItem C# excede 16";
+                return false;
+            }
+            continue;
         } else if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9 || fields.size() == 14)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
