@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <dlfcn.h>
 #include <map>
 #include <string>
 
@@ -42,7 +43,6 @@ DropFn g_origDrop = nullptr;
 KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
 FrameFn g_origFrame = nullptr;
-LargeDropFn g_largeDrop = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
 FieldInfo* g_solidTopField = nullptr;
@@ -171,7 +171,10 @@ void hkTileFrame(int32_t x, int32_t y, int32_t type, uint32_t tile,
     }
     runtime::TileArrays world{};
     if (!runtime::tileArrays(&world) || x < 0 || y < 0 ||
-        x >= world.width || y >= world.height || !world.frameX) return;
+        x >= world.width || y >= world.height || !world.frameX) {
+        if (g_origFrame) g_origFrame(x, y, type, tile, reset, method);
+        return;
+    }
     const int32_t index = y * world.width + x;
     const int left = tile_policy::leftOf2x1(x, world.frameX[world.lookup[index]]);
     const bool leftExists = cellIs(left, y, type, world);
@@ -182,15 +185,27 @@ void hkTileFrame(int32_t x, int32_t y, int32_t type, uint32_t tile,
                                     supportedLeft, supportedRight)) return;
     g_frameCleanup = true;
     const int sourceX = leftExists ? left : left + 1;
-    if ((leftExists || rightExists) && g_largeDrop && g_largeDropMethod) {
-        const uint32_t sourceTile = static_cast<uint32_t>(y * world.width + sourceX);
-        g_largeDrop(sourceX, y, sourceTile, true, g_largeDropMethod);
+    auto& a = il2cpp::api();
+    if ((leftExists || rightExists) && g_largeDropMethod) {
+        int32_t dropX = sourceX, dropY = y;
+        int32_t sourceTile = y * world.width + sourceX;
+        bool large = true;
+        void* args[] = {&dropX, &dropY, &sourceTile, &large};
+        Il2CppObject* exc = nullptr;
+        a.runtime_invoke(g_largeDropMethod, nullptr, args, &exc);
+        if (exc)
+            BL_ERROR("[CSharp][Tile] Falha ao produzir drop de objeto 2x1");
     }
     if (g_killMethod) {
-        auto kill = reinterpret_cast<KillFn>(il2cpp::methodPointer(g_killMethod));
-        if (kill) {
-            if (leftExists) kill(left, y, false, false, true, g_killMethod);
-            if (rightExists) kill(left + 1, y, false, false, true, g_killMethod);
+        for (int dx = 0; dx < 2; ++dx) {
+            if (dx == 0 ? !leftExists : !rightExists) continue;
+            int32_t killX = left + dx, killY = y;
+            bool fail = false, effectOnly = false, noItem = true;
+            void* args[] = {&killX, &killY, &fail, &effectOnly, &noItem};
+            Il2CppObject* exc = nullptr;
+            a.runtime_invoke(g_killMethod, nullptr, args, &exc);
+            if (exc)
+                BL_ERROR("[CSharp][Tile] Falha ao remover metade de objeto 2x1");
         }
     }
     g_frameCleanup = false;
@@ -201,9 +216,31 @@ int resolveDustId(const std::string& name) {
     auto& a = il2cpp::api();
     Il2CppClass* dust = il2cpp::findClass({"Terraria.ID", "DustID", {}});
     FieldInfo* f = dust ? il2cpp::findField(dust, name) : nullptr;
-    if (!f || !nameOf(a.field_get_type(f), "System.Int32")) return -1;
+    if (!f || !a.field_get_type || !a.field_get_flags) return -1;
+    const bool small = nameOf(a.field_get_type(f), "System.Int16");
+    const bool integer = nameOf(a.field_get_type(f), "System.Int32");
+    if (!small && !integer) return -1;
     int32_t value = -1;
-    a.field_static_get_value(f, &value);
+    if ((a.field_get_flags(f) & 0x40u) != 0u) {
+        using DefaultFn = const void* (*)(const FieldInfo*, const Il2CppType**);
+        auto fn = reinterpret_cast<DefaultFn>(dlsym(RTLD_DEFAULT, "il2cpp_field_get_default_value"));
+        const Il2CppType* type = nullptr;
+        const void* data = fn ? fn(f, &type) : nullptr;
+        if (!data) return -1;
+        if (small) {
+            int16_t shortValue = -1;
+            std::memcpy(&shortValue, data, sizeof(shortValue));
+            value = shortValue;
+        } else {
+            std::memcpy(&value, data, sizeof(value));
+        }
+    } else if (small) {
+        int16_t shortValue = -1;
+        a.field_static_get_value(f, &shortValue);
+        value = shortValue;
+    } else {
+        a.field_static_get_value(f, &value);
+    }
     return value > 0 && value < 2000 ? value : -1;
 }
 
@@ -229,8 +266,8 @@ bool setupHooks() {
     }
     g_killMethod = kill;
     g_largeDropMethod = largeDrop;
-    g_largeDrop = reinterpret_cast<LargeDropFn>(il2cpp::methodPointer(largeDrop));
-    if (!g_largeDrop || !hook::install(drop, hkGetItemDrops, &g_origDrop)) {
+    if (!il2cpp::methodPointer(largeDrop) ||
+        !hook::install(drop, hkGetItemDrops, &g_origDrop)) {
         BL_ERROR("[CSharp][Tile] Nao foi possivel vincular os drops");
         return false;
     }

@@ -77,3 +77,18 @@ originais ao ExampleModCSharp antes de habilitar as classes na amostra
 distribuida. Todos os hooks nativos de gameplay permanecem NAO
 VALIDADOS no Android ate teste de colocacao, quebra, relog,
 destruicao de suporte, multiplayer e desempenho.
+
+## Endurecimento de seguranca e desempenho
+
+Os registros de adjacencia usam uma tabela limitada e montada durante a
+inicializacao. Player.AdjTiles apenas percorre os registros e uma copia
+local dos TileArrays, sem alocar vetor, adquirir mutex, chamar Mono ou JS
+por tick. Os offsets de Player/TileData sao conferidos antes do hook.
+O DustID por nome aceita constantes IL2CPP de 16/32 bits, busca os bytes
+reais do campo na API nativa e cai no comportamento do jogo se nao puder
+identificar o identificador; nao inventa um DustID de outro Terraria.
+A limpeza dos frames 2x1 usa runtime_invoke com captura de excecao nas
+rotinas do WorldGen e preserva o restante das categorias de tile.
+
+Mesmo com CI aprovado, e necessario validar a ABI de Tile e o comportamento
+real de drops e frames no Android antes de distribuir a versao nova.

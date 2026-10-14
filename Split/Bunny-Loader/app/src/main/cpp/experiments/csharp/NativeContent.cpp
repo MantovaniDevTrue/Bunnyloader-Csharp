@@ -1831,6 +1831,20 @@ using NativeAdjFn = void (*)(Il2CppObject*, const MethodInfo*);
 NativeAdjFn g_previousAdj = nullptr;
 bool g_adjReady = false;
 int g_adjPosition = -1, g_adjWidth = -1, g_adjHeight = -1, g_adjArray = -1;
+constexpr size_t kMaxNativeAdjacencies = 1024;
+std::array<std::pair<int, int>, kMaxNativeAdjacencies> g_adjPairs{};
+size_t g_adjCount = 0;
+
+bool addNativeAdjacency(int type, int vanilla) {
+    for (size_t i = 0; i < g_adjCount; ++i) {
+        if (g_adjPairs[i].first != type) continue;
+        g_adjPairs[i].second = vanilla;
+        return true;
+    }
+    if (g_adjCount == g_adjPairs.size()) return false;
+    g_adjPairs[g_adjCount++] = {type, vanilla};
+    return true;
+}
 
 void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
     if (g_previousAdj) g_previousAdj(player, method);
@@ -1846,14 +1860,7 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
     if (!adjacent || adjacent->length < runtime::kVanillaTileCount ||
         !std::isfinite(pos[0]) || !std::isfinite(pos[1]) ||
         width < 1 || width > 256 || height < 1 || height > 256) return;
-    std::vector<std::pair<int, int>> types;
-    {
-        std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
-        for (const auto& [type, entry] : g_tileDefaults)
-            if (entry.second.adjacentTile >= 0)
-                types.emplace_back(type, entry.second.adjacentTile);
-    }
-    if (types.empty()) return;
+    if (g_adjCount == 0) return;
     const int x = static_cast<int>(std::floor((pos[0] + width / 2.f) / 16.f));
     const int y = static_cast<int>(std::floor((pos[1] + height) / 16.f));
     runtime::TileArrays world{};
@@ -1867,10 +1874,10 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
             const int type = world.type[definition];
             if (type < runtime::kVanillaTileCount ||
                 static_cast<uintptr_t>(type) >= adjacent->length) continue;
-            for (const auto& [modded, vanilla] : types)
-                if (type == modded) {
+            for (size_t pair = 0; pair < g_adjCount; ++pair)
+                if (type == g_adjPairs[pair].first) {
                     result[type] = 1;
-                    result[vanilla] = 1;
+                    result[g_adjPairs[pair].second] = 1;
                     break;
                 }
         }
@@ -1956,7 +1963,8 @@ void onManagedTilesInstalled(int first, int last) {
         const bool shape = applyTileShape(entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(entry.type);
         const bool guide = installCraftingStationIcon(mod, entry);
-        const bool adjacency = entry.adjacentTile < 0 || ensureNativeAdjTiles();
+        const bool adjacency = entry.adjacentTile < 0 ||
+            (ensureNativeAdjTiles() && addNativeAdjacency(entry.type, entry.adjacentTile));
         const bool gameplay = flags && shape &&
             registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
                                         entry.shape, entry.failDust, entry.normalDust});
