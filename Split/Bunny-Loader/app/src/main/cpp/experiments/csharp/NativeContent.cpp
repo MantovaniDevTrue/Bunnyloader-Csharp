@@ -10,6 +10,8 @@
 #include "content/common/TypeTables.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
+#include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTileMap.h"
 #include "il2cpp/Api.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
@@ -1904,6 +1906,17 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
+    if (spec->kind == NativeTile) {
+        bl::runtime::ModTileDef def{};
+        def.mod = ctx.modId;
+        def.name = spec->name;
+        def.texture = path;
+        const int type = bl::runtime::registerModTile(std::move(def));
+        if (type < 0)
+            return reject("DuplicateNativeTile", "UniqueModTileKey", spec->name);
+        ++ctx.tiles;
+        return type;
+    }
     if (spec->kind == NativeBasicItem) {
         std::string contractError;
         if(!checkBasicItemContract(&contractError)) {
