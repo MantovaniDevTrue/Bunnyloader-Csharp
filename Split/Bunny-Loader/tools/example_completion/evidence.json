@@ -1025,6 +1025,23 @@
         "monoSignals": 38617948980,
         "visual": 38617948879,
         "nativeVisual": 38617948676
+      },
+      "androidProbe": {
+        "id": "nativeplacementprobe",
+        "version": "0.1.0",
+        "uid": "943c352f-5b07-4b3a-b565-620fc7ea63d3",
+        "path": "samples/NativePlacementProbe/Playable",
+        "sources": 4,
+        "items": 3,
+        "assets": 3,
+        "minimumRuntime": "0.1.10.16.90.29.5",
+        "scope": "Vanilla tile placement/style/consumption/persistence test instructions; not CSharp station implementation",
+        "tests": [
+          "Compiler and CompiledAssemblyProbe",
+          "native_recipes_test --probe-wire",
+          "check_placement_probe.py"
+        ],
+        "status": "Packaged locally; CI and Android validation pending"
       }
     }
   }

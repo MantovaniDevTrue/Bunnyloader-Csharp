@@ -177,3 +177,21 @@ CompiledAssemblyProbe, nao apenas um wire escrito manualmente.
 Escopo entregue: API e bridge de itens colocaveis; 0 novos ports do ExampleMod.
 Escopo ainda aberto: bancada C# e receitas originais dependentes dela; Lote A
 permanece incompleto. Validacao Android nova nao executada nesta entrega.
+
+
+## Pacote de teste Android da API de colocacao
+
+NativePlacementProbe 0.1.0 e um mod separado, UID
+943c352f-5b07-4b3a-b565-620fc7ea63d3, com fontes editaveis e PNGs do
+ExampleModBunny original. Requer APK .90.29.5; nao modifica o runtime ou o
+ExampleMod 0.1.36. Tres itens colocam tile vanilla 18/estilo0 e tile19/estilos0 e1.
+Cada receita usa uma terra para dez unidades, sem estacao. README no bmod indica
+colocacao, consumo, crafting perto da bancada, estilos, drops vanilla,
+salvar/reabrir e coexistencia com C#/JS.
+
+Compiler/CompiledAssemblyProbe compilam os quatro fontes e geram tres registros.
+O --probe-wire executa o wire resultante no registrador, defaults e receitas
+nativos de producao sem QuickJS, com metadata Terraria emulada. Packaging verifica
+manifesto, fontes, ausencia de JS/DLL/SO, dimensoes e hashes dos PNGs reais.
+Este pacote NAO implementa o tile novo da bancada C#; nao promove nenhum dos
+201 exemplos da matriz. Teste Android da nova API permanece pendente.

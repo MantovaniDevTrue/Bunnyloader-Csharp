@@ -91,6 +91,9 @@ jobs:
           /tmp/native-recipes-test
           /tmp/native-recipes-test --pump
           /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
+          /tmp/native-recipes-test --probe-wire build/basic-items/probe-source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
+          /tmp/placement-probe-registration-test samples/NativePlacementProbe/Playable/content
           /tmp/native-recipes-test --type
           /tmp/native-recipes-test --bounds
           /tmp/native-recipes-test --method

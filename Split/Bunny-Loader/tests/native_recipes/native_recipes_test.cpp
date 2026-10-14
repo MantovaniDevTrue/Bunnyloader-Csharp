@@ -161,6 +161,31 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--probe-wire") {
+  assert(argc==3);std::ifstream file(argv[2]);std::string line;
+  assert(std::getline(file,line)&&line=="BUNNY_MANAGED_DEFAULTS_V2");
+  std::vector<bl::csharp::BasicItemEntry> entries;
+  while(std::getline(file,line)) {
+   if(line.empty())continue;
+   bl::csharp::BasicItemEntry entry;assert(bl::csharp::parseBasicItemWire(bl::csharp::basicSplit(line,'\t'),&entry,&error));
+   ModItemDef def;def.mod="probe";def.name=entry.name;def.texture="probe.png";entry.type=registerModItem(def);
+   assert(bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error,"/probe",entry.name+".cs"));entries.push_back(entry);
+  }
+  assert(entries.size()==3);item_registry::g_installed.store(5);numRecipes=1;
+  assert(bl::csharp::applyNativeBasicItemDefaults("probe",entries,&error));bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(bl::csharp::pendingBasicRecipes().empty()&&numRecipes==4&&commits==3);
+  auto** slots=static_cast<Recipe**>(arrayData(table));
+  for(int i=1;i<4;++i){auto* item=reinterpret_cast<Item*>(slots[i]->result);
+   auto it=std::find_if(entries.begin(),entries.end(),[&](const auto& entry){return entry.type==item->type;});assert(it!=entries.end());
+   assert(item->createTile==it->placeTile&&item->placeStyle==it->placeStyle&&item->stack==10&&item->maxStack==9999);
+   assert(item->useStyle==1&&item->useTime==10&&item->useAnimation==15&&item->flags[2]&&item->flags[3]&&item->flags[4]);
+   assert(item->placementSentinel==0x5a5a&&item->styleSentinel==0xa5a5);
+   Item restored;assert(bl::csharp::applyBasicItemToObject(&restored.obj,it->type));
+   assert(restored.createTile==it->placeTile&&restored.placeStyle==it->placeStyle);
+   auto** ingredients=static_cast<Item**>(arrayData(slots[i]->ingredients));assert(ingredients[0]->type==2&&ingredients[0]->stack==1);
+  }
+  assert(current==saved&&roots.empty());std::cout<<"ANDROID_PROBE_COMPILED_CSHARP_WIRE_NATIVE_REGISTRATION_DEFAULTS_RECIPES_PASS\n";return 0;
+ }
  if(mode=="--placement-wire") {
   assert(argc==3);std::ifstream file(argv[2]);std::string line;
   assert(std::getline(file,line)&&line=="BUNNY_MANAGED_DEFAULTS_V2");assert(std::getline(file,line));

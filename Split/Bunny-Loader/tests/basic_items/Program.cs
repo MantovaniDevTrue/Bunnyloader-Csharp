@@ -90,6 +90,15 @@ try {
   var item=new ExampleItem();item.SetDefaults();Reject(()=>item.Behavior.SetWingStats(0,9,2.5f,.85f,.15f,1,3,.135f));
   Reject(()=>item.Behavior.SetWingStats(180,float.NaN,2.5f,.85f,.15f,1,3,.135f));
  });
+ Check("placement.android-probe-source-wire",()=>{
+  string root="samples/NativePlacementProbe/Playable",output=Path.Combine(scratch,"probe.dll"),diag=Path.Combine(scratch,"probe.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));
+  var lines=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));Equal(4,lines.Length);
+  var actual=lines.Skip(1).Select(l=>l.Split('\t')).ToDictionary(f=>f[1]);
+  Equal("v18:0",actual["ProbeWorkbench"][21]);Equal("v19:0",actual["ProbePlatformA"][21]);Equal("v19:1",actual["ProbePlatformB"][21]);
+  foreach(var f in actual.Values){Equal(22,f.Length);Equal("10,-1,v2:1",f[19]);Equal("-",f[20]);}
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/probe-source-runtime-values.txt",true);
+ });
  Check("placement.real-source-wire",()=>{
   string root="tests/basic_items/placeable_fixture",output=Path.Combine(scratch,"placement.dll"),diag=Path.Combine(scratch,"placement.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));

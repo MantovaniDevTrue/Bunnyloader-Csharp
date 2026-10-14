@@ -1,0 +1,22 @@
+{
+  "uid": "943c352f-5b07-4b3a-b565-620fc7ea63d3",
+  "id": "nativeplacementprobe",
+  "name": "Teste de Colocacao CSharp",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Native placement API test"
+    }
+  ],
+  "category": "Example",
+  "summary": "Tres itens C# para testar colocacao vanilla, consumo, estilos e salvamento; fontes editaveis, sem JS.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

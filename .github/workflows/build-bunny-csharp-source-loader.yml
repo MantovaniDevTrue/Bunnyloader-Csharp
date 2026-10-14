@@ -884,6 +884,9 @@ jobs:
           "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test" --pump
           "$RUNNER_TEMP/native-recipes-test" --placement-wire build/basic-items/placement-source-runtime-values.txt
+          "$RUNNER_TEMP/native-recipes-test" --probe-wire build/basic-items/probe-source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
+          /tmp/placement-probe-registration-test samples/NativePlacementProbe/Playable/content
           "$RUNNER_TEMP/native-recipes-test" --type
           "$RUNNER_TEMP/native-recipes-test" --bounds
           "$RUNNER_TEMP/native-recipes-test" --method
@@ -1002,6 +1005,16 @@ jobs:
           PY
           sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" > \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod.sha256"
+
+      - name: Package native CSharp placement Android probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/tools/mods/pack.py" "$ROOT/samples/NativePlacementProbe/Playable"
+          cp "$ROOT/build/mods-packs/nativeplacementprobe-0.1.0.bl" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
+          python3 "$ROOT/tests/basic_items/check_placement_probe.py" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
+          sha256sum "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" > "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256"
 
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
@@ -1613,6 +1626,8 @@ jobs:
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod.sha256" \
+            "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" \
+            "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256" \
             "Split/Bunny-Loader/build/combat-batch-results.json" \
             "Split/Bunny-Loader/build/basic-items-results.json" \
             --repo "$PRIVATE_REPO" \
@@ -1626,7 +1641,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.36.bmod SecondExampleModCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.36.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -1646,6 +1661,8 @@ jobs:
             ${{ runner.temp }}/ExampleModCSharp-v0.1.36.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod
+            ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
 
 
 
