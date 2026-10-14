@@ -9,6 +9,7 @@ bool applyBasicItemToObject(Il2CppObject* item,int type);
 bool isBasicItem(int type);
 bool basicItemHasDamage(int type);
 bool basicItemIsAccessory(int type);
+bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string* error);
 std::vector<BasicItemEntry> pendingBasicItemBehaviors();
 bool acknowledgeBasicItemBehavior(int type,const std::string& error);
 std::vector<int> basicItemTypes();

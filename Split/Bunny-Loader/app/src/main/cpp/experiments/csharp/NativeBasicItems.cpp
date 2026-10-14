@@ -27,6 +27,9 @@ std::atomic<bool> instancesPending{false};
 std::atomic<bool> behaviorsPending{false};
 struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
 std::array<IntegerField,BasicFieldCount-1> integerFields{};
+struct EquipSlot { IntegerField field; int value=-1; };
+std::map<int,std::map<std::string,EquipSlot>> equipSlots;
+
 const char* integerNames[]={"width","height","maxStack","value","rare","damage","crit",
     "useTime","useAnimation","useStyle","pick","axe","hammer"};
 
@@ -279,6 +282,44 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     return true;
 }
 
+bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string* error) {
+    std::lock_guard lock(mutex);
+    const auto entry=definitions.find(type);
+    const std::map<std::string,const char*> fields={
+        {"Head","headSlot"},{"Body","bodySlot"},{"Legs","legSlot"},
+        {"Beard","beardSlot"},{"Back","backSlot"}};
+    const auto named=fields.find(kind);
+    auto reject=[&](const std::string& reason,const std::string& actual) {
+        *error="[CSharp][ERROR][EquipSlot] Mod="+(entry!=definitions.end()?entry->second.modId:"<unavailable>")+
+            " Class="+(entry!=definitions.end()?entry->second.name:"<unavailable>")+
+            " File="+(entry!=definitions.end()?entry->second.sourceFile:"<unavailable>")+
+            " ContentId="+std::to_string(type)+" Kind="+kind+
+            " Field="+(named!=fields.end()?named->second:"<unknown>")+
+            " Stage=BindNativeSlot Expected=InstanceIntegral8/16/32 Actual="+actual+
+            " Slot="+std::to_string(slot)+" Result=Rejected Reason="+reason;
+        return false;
+    };
+    if(entry==definitions.end())return reject("ItemNotRegistered","Missing");
+    if(named==fields.end())return reject("EquipKindUnsupported",kind);
+    if(slot<0)return reject("SlotOutOfRange",std::to_string(slot));
+    auto& api=il2cpp::api();
+    auto* item=il2cpp::findClass({"Terraria","Item",{}});
+    auto* field=item?il2cpp::findField(item,named->second):nullptr;
+    auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
+    IntegerField binding;
+    const char* actual=cls?api.class_get_name(cls):nullptr;
+    if(!field||(api.field_get_flags(field)&0x10u)||!integerContract(cls,&binding))
+        return reject("NativeTypeMismatch",actual?actual:"Missing");
+    const auto offset=api.field_get_offset(field);
+    if(offset<sizeof(Il2CppObject)||offset>static_cast<size_t>(INT32_MAX))
+        return reject("InvalidFieldOffset",std::to_string(offset));
+    binding.offset=static_cast<int>(offset);
+    if(slot>binding.max)return reject("SlotOutOfRange",actual?actual:"Unknown");
+    equipSlots[type][kind]={binding,slot};
+    error->clear();
+    return true;
+}
+
 bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
@@ -293,6 +334,15 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
         }
     }
     for(size_t i=0;i<flagOffsets.size();++i)runtime::field<uint8_t>(object,flagOffsets[i])=!!(entry.values[BasicFlags]&(1<<i));
+    const auto slots=equipSlots.find(type);
+    if(slots!=equipSlots.end())for(const auto& [kind,slot]:slots->second) {
+        auto* destination=reinterpret_cast<unsigned char*>(object)+slot.field.offset;
+        switch(slot.field.bytes) {
+            case 1: {const auto v=static_cast<uint8_t>(slot.value);std::memcpy(destination,&v,1);break;}
+            case 2: {const auto v=static_cast<uint16_t>(slot.value);std::memcpy(destination,&v,2);break;}
+            case 4: {const auto v=static_cast<uint32_t>(slot.value);std::memcpy(destination,&v,4);break;}
+        }
+    }
     runtime::field<float>(object,knockBackOffset)=entry.knockBack;
     auto& api=il2cpp::api();auto* destination=reinterpret_cast<unsigned char*>(object)+soundOffset;
     std::memset(destination,0,static_cast<size_t>(soundSize));

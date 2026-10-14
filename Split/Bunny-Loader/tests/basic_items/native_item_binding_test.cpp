@@ -13,7 +13,7 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; };
+struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t beardSlot; unsigned char sentinel[3]; };
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
@@ -46,7 +46,12 @@ void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> 
 }
 
 void configure(){
- storage.reserve(32);
+ storage.reserve(40);
+ storage.push_back({"headSlot",&intType,offsetof(FakeItem,headSlot),0});itemClass.fields.push_back(&storage.back());
+ storage.push_back({"bodySlot",&shortType,offsetof(FakeItem,bodySlot),0});itemClass.fields.push_back(&storage.back());
+ storage.push_back({"legSlot",&shortType,offsetof(FakeItem,legSlot),0});itemClass.fields.push_back(&storage.back());
+ static Il2CppClass signedClass{"SByte",true,1,{}};static Il2CppType signedType{&signedClass};
+ storage.push_back({"beardSlot",&signedType,offsetof(FakeItem,beardSlot),0});itemClass.fields.push_back(&storage.back());
  const char* names[]={"width","height","maxStack","value","rare","damage","crit","useTime","useAnimation","useStyle","pick","axe","hammer"};
  for(size_t i=0;i<13;i++){storage.push_back({names[i],i==9?&styleType:i==3&&narrowValue?&shortType:&intType,offsetof(FakeItem,values)+i*sizeof(int),0});itemClass.fields.push_back(&storage.back());}
  const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable","accessory","vanity"};
@@ -136,7 +141,25 @@ int main(int argc,char** argv){
    if(nullable)assert(object.sound[0]==1);
   }
  }
- assert(barriers==2);auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);
+ assert(barriers==2);
+ const int equippedType=entries[0].type;
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Head",350,&error));
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Body",260,&error));
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Legs",220,&error));
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",127,&error));
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",128,&error));assert(error.find("SlotOutOfRange")!=std::string::npos);
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Back",1,&error));assert(error.find("Actual=Missing")!=std::string::npos);
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Other",1,&error));
+ assert(!bl::csharp::setBasicItemEquipSlot(-1,"Head",1,&error));
+ auto* headField=bl::il2cpp::findField(&itemClass,"headSlot");
+ headField->flags=0x10;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));headField->flags=0;
+ headField->type=&floatType;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("Actual=Single")!=std::string::npos);headField->type=&intType;
+ const auto savedOffset=headField->offset;headField->offset=0;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("InvalidFieldOffset")!=std::string::npos);headField->offset=savedOffset;
+ FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));
+ assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
+ assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
+ for(auto value:recreated.sentinel)assert(value==0x5a);
+ auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);
  for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.type>0);
   assert(bl::csharp::acknowledgeBasicRecipe(recipe.id,17));assert(!bl::csharp::acknowledgeBasicRecipe(recipe.id,17));}
  assert(bl::csharp::pendingBasicRecipes().empty());

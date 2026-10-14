@@ -137,6 +137,18 @@ JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueC
     return JS_NewBool(ctx,bl::csharp::acknowledgeBasicRecipe(id,index));
 }
 
+JSValue jsSetNativeItemEquipSlot(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=3||!JS_IsString(argv[1]))return JS_ThrowTypeError(ctx,"setNativeItemEquipSlot(type,kind,slot)");
+    int32_t type=-1,slot=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0||JS_ToInt32(ctx,&slot,argv[2])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[1]);if(!raw)return JS_EXCEPTION;
+    const std::string kind(raw);JS_FreeCString(ctx,raw);
+    std::string error;
+    if(!bl::csharp::setBasicItemEquipSlot(type,kind,slot,&error))
+        return JS_ThrowInternalError(ctx,"%s",error.c_str());
+    return JS_TRUE;
+}
+
 JSValue jsManagedSetNativeEquipSlot(JSContext* ctx, JSValueConst, int argc,
                                    JSValueConst* argv) {
     if (argc != 3) return JS_ThrowTypeError(ctx, "setNativeEquipSlot(itemType, kind, slot)");
@@ -2814,6 +2826,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
     JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
     JS_SetPropertyStr(ctx, api, "pendingItemRecipes", JS_NewCFunction(ctx, jsPendingItemRecipes, "pendingItemRecipes", 0));

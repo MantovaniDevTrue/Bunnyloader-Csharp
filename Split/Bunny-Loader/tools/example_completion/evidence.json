@@ -458,13 +458,14 @@
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
@@ -477,7 +478,7 @@
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
       ],
-      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+      "androidRegistration": ".90.28.6 loads according to user; native armor slots require .90.28.7 correction; device retest pending"
     },
     "Content/Items/Armor/Vanity/ExampleRobe.js": {
       "status": "Validado por testes automatizados",
@@ -500,13 +501,14 @@
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
@@ -520,7 +522,7 @@
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
       ],
-      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+      "androidRegistration": ".90.28.6 loads according to user; native armor slots require .90.28.7 correction; device retest pending"
     },
     "Content/Items/Materials/ExampleSoul.js": {
       "status": "Validado por testes automatizados",
@@ -664,6 +666,13 @@
       "result": "All eight host suites passed; Android device validation pending",
       "androidBuildRun": 38563527063,
       "buildResult": "APK signed and pipeline completed successfully; no device validation"
+    },
+    {
+      "loader": "0.1.10.16.90.28.6-csharp-texture-contract",
+      "exampleMod": "0.1.35",
+      "kind": "User Android feedback",
+      "result": "Automatic loading successful; ExampleBossMask and ExampleRobe cannot equip",
+      "scope": "Loading only; equipment behavior not validated"
     }
   ],
   "deviceBaselines": [

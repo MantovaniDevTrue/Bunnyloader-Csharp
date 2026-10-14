@@ -96,6 +96,8 @@ class CSharpItemBehaviorLoader {
                 for(const [kind,path,flags] of b.equips) {
                     EquipLoader.RegisterCSharpItemTexture(inst,kind,entry.root+path+'.png');
                     const slot=EquipLoader.CSharpItemSlot(entry.type,kind);
+                    if(typeof api.setNativeItemEquipSlot!=='function' || !api.setNativeItemEquipSlot(entry.type,kind,slot))
+                        throw new Error('bridge de slot nativo indisponivel/rejeitada item='+entry.type+' kind='+kind+' slot='+slot);
                     if(flags&1)Terraria.ID.ArmorIDs[kind].Sets.UseHairColor[slot]=true;
                     if(flags&2)Terraria.ID.ArmorIDs[kind].Sets.HidesHands[slot]=false;
                 }

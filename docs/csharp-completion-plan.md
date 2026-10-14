@@ -99,3 +99,23 @@ Build corretiva .90.28.6 aprovada no run `38563527063`, commit de runtime
 `cec309b023f4092723d29c43567865c3ebb2fe33`, ExampleMod 0.1.35. Oito suites
 independentes passaram. Proximo passo: confirmar registro no Android; o proximo
 grupo de implementacao continua Workbench/receitas e armaduras.
+
+## Regra de entrega atualizada pelo usuario
+
+Lotes A, B, C e seguintes sao entregas integrais de suas categorias: todos os
+exemplos contabilizados na matriz, com suas funcionalidades originais aplicaveis.
+Grupos por dependencia servem para organizar commits e testes internos, mas nao
+substituem o lote completo nem sao anunciados como uma entrega de novos exemplos.
+Nao passar ao lote seguinte enquanto o atual estiver incompleto. Bloqueios reais
+exigem evidencia e permanecem na matriz; nunca contam como exemplos funcionais.
+Correcoes de regressao dos exemplos ja entregues podem gerar APK corretivo,
+identificado explicitamente como correcao, sem declarar o lote concluido.
+
+### Correcao .90.28.7: equipamento de vaidade
+
+Usuario confirmou carregamento sem erros na .90.28.6, mas ExampleBossMask e
+ExampleRobe nao equipam. Slots atribuídos apenas no host nao eram persistidos
+no caminho nativo de SetDefaults dos BunnyItem. A bridge agora liga o slot ao
+registro do item e o reaplica em novas instancias, validando campo/tipo/largura
+e limite antes da escrita. O Lote A permanece aberto e precisa ser entregue
+com TODOS os seus exemplos, nao apenas os seis da entrega anterior.

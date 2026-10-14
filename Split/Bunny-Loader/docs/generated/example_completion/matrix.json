@@ -4022,13 +4022,14 @@
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4111,13 +4112,14 @@
         "tests/basic_items/Program.cs",
         "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [

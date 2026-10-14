@@ -111,3 +111,30 @@ ExampleMod permanece 0.1.35: nao houve alteracao dos fontes ou identificadores.
 Repetir primeiro o passo 1 do roteiro Android. Se houver falha, o relatorio
 precisa incluir a causa concreta, e nao apenas NativeRegistrationRejected.
 Depois executar os testes de cada equipamento/material acima.
+
+Pipeline .90.28.6 aprovado: run `38563527063`, runtime commit
+`cec309b023f4092723d29c43567865c3ebb2fe33`. Oito suites independentes passaram,
+incluindo auditoria/itens `38563527368`. APK assinado e pacote fonte 0.1.35
+gerados pelo fluxo existente. Evidencia final de CI registrada depois do build;
+o pacote desse run contem a matriz e o roteiro do commit de runtime.
+Teste no Android da correcao continua pendente.
+
+## Correcao .90.28.7 — slots nativos de mascara e robe
+
+O usuario confirmou que .90.28.6 carrega, mas mascara e robe nao podem ser
+equipados. O SetDefaults nativo intercepta BunnyItem e retorna sem aplicar
+os slots mantidos somente pelo host. Agora o instalador sincroniza Head, Body,
+Legs, Beard e Back para o registro nativo, atraves de setNativeItemEquipSlot.
+O binding valida campos integrais de instancia, seus tamanhos, offsets e range
+do slot; escreve somente a largura real e recusa campos ausentes ou incompativeis.
+Slot instalado e reaplicado em cada SetDefaults sem consulta JS por instancia.
+A API publica C# EquipTexture continua a mesma e vale para qualquer mod.
+
+Testes nativos criam nova instancia apos o registro e verificam Head Int32,
+Body/Legs Int16 e Beard SByte com sentinelas. Recusam overflow, campo ausente,
+tipo desconhecido e item nao registrado. O teste host exige sincronizacao dos
+slots antes do ACK. Teste no celular ainda pendente: criar/copiar os itens pelo
+inventario, equipar mascara em cabeca de vaidade e robe no corpo de vaidade,
+trocar loadout, virar/caminhar/saltar e repetir apos Save/Exit.
+Nao atribuir Accessory=true para tornar armaduras equipaveis: preservar slots
+de armadura e defaults originais. Esta entrega e corretiva; Lote A nao concluido.
