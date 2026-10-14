@@ -266,3 +266,5 @@ class EquipLoader {
         if (!Terraria.ID.ArmorIDs.Wing.Sets.Stats) init.Load();
     }
 }
+
+Ready.Add(() => EquipLoader.SyncCSharp(), 'content');
