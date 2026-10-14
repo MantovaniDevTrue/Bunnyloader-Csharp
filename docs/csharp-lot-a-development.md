@@ -134,3 +134,25 @@ e a versao 0.1.35. Os 33 ports do Lote A ainda nao estao completos. Retomar
 pelo contrato de tile/identidade descrito acima e concluir todos os arquivos
 do escopo antes de gerar a entrega final. Nao reinterpretar os fixtures de
 teste como exemplos finais nem os resultados de CI como gameplay Android.
+
+## Continuidade .90.29.1 — servico nativo de receitas
+
+O novo `content/recipes/NativeRecipes` substitui a passagem das receitas C#
+pelo RecipeLoader JS. Os registros existentes de itens/tiles foram separados
+dos instaladores graficos, conservando suas estruturas, ordem e chaves.
+Ingredientes e estacoes intermod resolvem tarde, sem rejeitar todos os defaults
+do mod quando uma dependencia ainda nao carregou. Contratos IL2CPP incluem
+bounds contra tamanho real da instancia, transacao de Recipe.currentRecipe,
+rollback e ACK somente depois dos lookups. Cache do compilador/host invalidado.
+
+Testes executaveis sem QuickJS usam registradores e adapter de producao com
+host IL2CPP controlado. Ver [auditoria de independencia](csharp-independence-audit.md)
+para escopo e limitacoes. Equipment policies ainda passam pelo JS; a bancada
+C# ainda precisa da bridge completa de colocacao, suporte, drops e demais
+comportamentos ja descritos. Nenhum dos 33 exemplos foi promovido nesta etapa.
+
+Proximo grupo exato: API publica de tile/estacao e item colocavel, identidade
+por categoria, TileObjectData.Style2x1/CoordinateHeights [18], housing/map/dust,
+frames/suporte/drop nativos, adjacencia e CraftingStationItemId, port dos dois
+ExampleWorkbench e receitas originais dos tres itens de armadura. Nao usar
+2195 como TileID.Count: o core usa 754; 2195 pertence a paleta de mapa.

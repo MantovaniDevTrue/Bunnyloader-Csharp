@@ -76,6 +76,7 @@ bool Api::load() {
     bindSoft(lib, "il2cpp_class_get_rank", &class_get_rank);
     bindSoft(lib, "il2cpp_value_box", &value_box);
     ok &= bind(lib, "il2cpp_class_value_size", &class_value_size);
+    ok &= bind(lib, "il2cpp_class_instance_size", &class_instance_size);
     ok &= bind(lib, "il2cpp_class_get_type", &class_get_type);
     ok &= bind(lib, "il2cpp_type_get_name", &type_get_name);
     bindSoft(lib, "il2cpp_type_get_attrs", &type_get_attrs);

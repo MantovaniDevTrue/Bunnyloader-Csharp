@@ -12,7 +12,7 @@ class FakeRecipe {
  AddTile(type){this.station=type;return this;}
  Register(){registrations.push(this);context.Terraria.Recipe.numRecipes++;context.Loader.Added(registrations.length-1,this.station);}
 }
-const context={bl:{csharp:api,log:s=>logs.push(s)},Ready:{Add(){}},Hooks:{Once(){}},Safe:{Run(_,f){f();}},
+const context={bl:{tiles:{vanillaCount:754},csharp:api,log:s=>logs.push(s)},Ready:{Add(){}},Hooks:{Once(){}},Safe:{Run(_,f){f();}},
  ModRecipe:FakeRecipe,TileLoader:{ByType:new Map(),SetCraftingStations(){}},
  Terraria:{Recipe:{maxRecipes:3700,numRecipes:0,
   'void CreateRequiredItemQuickLookups()'(){lookups++;if(failLookup)throw new Error('lookup unavailable');},
@@ -43,4 +43,7 @@ const valid={id:'healthy/Valid#0',result:6203,stack:1,station:18,ingredients:[{t
 assert.throws(()=>context.__blSyncCSharpRecipes(),/Recipe=broken\/Missing#0.*Result=Pending/);
 assert(ack.has(valid.id),'broken station must not block an independent valid recipe');assert(!ack.has(isolated.id));assert(recipeErrors.get(isolated.id).includes('Actual=Missing'));
 assert.equal(registrations.length,6);
+api.nativeRecipes=true;
+descriptors.push({id:'native/NotJS#0',result:6204,stack:1,station:18,ingredients:[{type:2,count:1}]});
+context.__blSyncCSharpRecipes();assert.equal(registrations.length,6,'native recipes never pass through JS');
 console.log('BASIC_RECIPE_BRIDGE_PASS=YES');

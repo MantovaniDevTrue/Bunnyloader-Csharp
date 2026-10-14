@@ -149,3 +149,12 @@ Escopo completo: 33 arquivos, em lot-a-scope.json. Ver
 [codigo, contratos e continuidade](csharp-lot-a-development.md).
 Infraestrutura de armadura testada por mod de contrato independente; exemplos
 ainda nao portados nao recebem promocao na matriz. Nao publicar entrega parcial.
+
+### Retomada .90.29.1: receitas independentes
+
+Servico nativo de recipes implementado e ligado a fila C#, com registradores
+compartilhados separados da instalacao de assets. Mantem .90.28.7 e historico;
+nao conclui o Lote A. [Auditoria de independencia](csharp-independence-audit.md)
+registra testes reais do adapter no host sem QuickJS e dependencias restantes.
+Prioridade seguinte permanece bancada completa, seus dois arquivos originais
+e receitas das armaduras. 33 arquivos do escopo e 199 da matriz preservados.

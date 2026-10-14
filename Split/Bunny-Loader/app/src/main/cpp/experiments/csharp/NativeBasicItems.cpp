@@ -1,14 +1,15 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/items/ModItems.h"
+#include "content/recipes/NativeRecipes.h"
 #include "content/common/GameRefs.h"
 #include "experiments/csharp/NativeContent.h"
 #include "il2cpp/Signature.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
-#include "script/bridge/ScriptEngine.h"
 #include "core/Log.h"
 #if BL_HAVE_QUICKJS
+#include "script/bridge/ScriptEngine.h"
 #include <quickjs.h>
 #endif
 #include <atomic>
@@ -173,7 +174,6 @@ bool cacheSound(const std::string& name,std::string* error) {
     soundCache.emplace(name,std::move(data));return true;
 }
 
-#if BL_HAVE_QUICKJS
 void refreshLiveBasicItems() {
     auto& api=il2cpp::api();auto* main=il2cpp::findClass({"Terraria","Main",{}});
     auto* item=il2cpp::findClass({"Terraria","Item",{}});
@@ -232,7 +232,6 @@ void refreshLiveBasicItems() {
     // cria Item via SetDefaults ao abrir; nunca reinterpretar esses structs.
     BL_INFO("csharp items: %d instancia(s) existentes reidratadas sem alterar pilha/favorito",count);
 }
-#endif
 }
 
 bool checkBasicItemContract(std::string* error) {std::lock_guard lock(mutex);return error&&prepare(error);}
@@ -257,7 +256,8 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
 #if !BL_HAVE_QUICKJS
-        if(!entry.recipes.empty()||!entry.behavior.empty()) {*error=entry.name+": host compilado sem bridge QuickJS de receitas";return false;}
+        if(!entry.behavior.empty()) {*error="[CSharp][ERROR][NativeItem] Mod="+modId+" Class="+entry.name+
+            " Stage=ApplyBehavior Expected=EquipmentPolicyBridge Actual=QuickJSDisabled Result=Rejected Reason=BehaviorDecouplingPending";return false;}
 #endif
         for(auto& recipe:entry.recipes) {
             if(!recipe.stationKey.empty()&&recipe.stationKey.find('/')==std::string::npos)
@@ -267,8 +267,9 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
             if(ingredient.key.front()=='m') {
                 auto key=ingredient.key.substr(1);
                 if(key.find('/')==std::string::npos)key=modId+"/"+key;
-                ingredient.type=runtime::modItemTypeByKey(key);
-                if(ingredient.type<0){*error=entry.name+": ingrediente nao carregado: "+key;return false;}
+                ingredient.key="m"+key;
+                // Dependencies resolve on the game thread, after all mods reserve their IDs.
+                ingredient.type=-1;
             }
         }
     }
@@ -450,8 +451,30 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
     recipesPending.store(pending,std::memory_order_release);return true;
 }
 void pumpBasicRecipesOnGameThread() {
-#if BL_HAVE_QUICKJS
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
+    if(recipesPending.load(std::memory_order_acquire)) {
+        static unsigned ticks=0;
+        if((ticks++%120u)==0)for(const auto& pending:pendingBasicRecipes()) {
+            runtime::NativeRecipeRequest request;
+            request.key=pending.id;request.mod=pending.modId;request.source=pending.source;
+            const auto slash=pending.id.find('/'), hash=pending.id.rfind('#');
+            request.name=pending.id.substr(slash+1,hash-slash-1);
+            request.result=pending.result;request.stack=pending.values.stack;
+            request.station=pending.values.station;request.stationKey=pending.values.stationKey;
+            for(const auto& ingredient:pending.values.ingredients)
+                request.ingredients.push_back({ingredient.type,ingredient.count,
+                    ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{}});
+            const auto result=runtime::installNativeRecipe(request);
+            if(result.index>=0) {
+                if(acknowledgeBasicRecipe(pending.id,result.index))
+                    BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
+            } else if(result.error.substr(0,1000)!=pending.error) {
+                reportBasicRecipeError(pending.id,result.error);
+                BL_ERROR("%s",result.error.c_str());
+            }
+        }
+    }
+#if BL_HAVE_QUICKJS
     static unsigned behaviorTicks=0;
     if(behaviorsPending.load(std::memory_order_acquire)&&(behaviorTicks++%120u)==0) {
         script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
@@ -470,23 +493,6 @@ void pumpBasicRecipesOnGameThread() {
         JS_FreeValue(ctx,function);JS_FreeValue(ctx,global);
 
     }
-    if(!recipesPending.load(std::memory_order_acquire))return;
-    static unsigned ticks=0;if((ticks++%120u)!=0)return;
-    script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
-    auto* ctx=static_cast<JSContext*>(script::engine().context());
-    auto global=JS_GetGlobalObject(ctx);
-    auto function=JS_GetPropertyStr(ctx,global,"__blSyncCSharpRecipes");
-    if(JS_IsFunction(ctx,function)) {
-        auto result=JS_Call(ctx,function,global,0,nullptr);
-        if(JS_IsException(result)) {
-            auto exception=JS_GetException(ctx);const char* text=JS_ToCString(ctx,exception);
-            static unsigned errors=0;if(errors++<8)BL_ERROR("csharp recipes: %s",text?text:"falha sem mensagem");
-            if(text)JS_FreeCString(ctx,text);
-            JS_FreeValue(ctx,exception);
-        }
-        JS_FreeValue(ctx,result);
-    }
-    JS_FreeValue(ctx,function);JS_FreeValue(ctx,global);
 #endif
 }
 }

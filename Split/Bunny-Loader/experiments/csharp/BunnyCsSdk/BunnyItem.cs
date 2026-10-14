@@ -85,10 +85,10 @@ public sealed class BunnyRecipe
     {
         Mutable();
         if (station!="-1") throw new InvalidOperationException("Receita ja possui estacao");
-        if (vanillaTileId<0 || vanillaTileId>=2195) throw new ArgumentOutOfRangeException(nameof(vanillaTileId));
+        if (vanillaTileId<0 || vanillaTileId>=754) throw new ArgumentOutOfRangeException(nameof(vanillaTileId));
         station=vanillaTileId.ToString(CultureInfo.InvariantCulture); return this;
     }
-    /// <summary>Estacao de mod: nome local ou UID/Nome; resolvida no TileLoader original.</summary>
+    /// <summary>Estacao de mod: nome local ou UID/Nome; resolvida no registro nativo compartilhado.</summary>
     public BunnyRecipe AddTile(string modTileName)
     {
         Mutable();
@@ -105,7 +105,7 @@ public sealed class BunnyRecipe
         if (ingredients.Count==0) throw new InvalidOperationException("Receita sem ingredientes");
         if (stack>owner.MaxStack) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
         // Nao e um sucesso simulado: o descritor entra nos defaults transferidos
-        // ao host. O host resolve IDs, registra ModRecipe e confirma o indice.
+        // ao host. O nucleo resolve IDs, registra Recipe e confirma seus lookups.
         owner.RecordRecipe(stack.ToString(CultureInfo.InvariantCulture)+","+
             station+","+string.Join(",",ingredients));
         registered=true;

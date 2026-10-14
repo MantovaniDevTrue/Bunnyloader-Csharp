@@ -64,7 +64,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
             }
             if(!valid){*error=item->name+": Stage=ParseRecipe Field=station Expected=ModTileKey Actual="+parts[1]+" Reason=InvalidStationKey";return false;}
             recipe.stationKey=key;
-        } else if(!basicInteger(parts[1],&recipe.station)||recipe.station < -1||recipe.station>=2195) {
+        } else if(!basicInteger(parts[1],&recipe.station)||recipe.station < -1||recipe.station>=754) {
             *error=item->name+": Stage=ParseRecipe Field=station Expected=VanillaTileIdOrModTileKey Actual="+parts[1]+" Reason=InvalidStation";return false;
         }
         for(size_t i=2;i<parts.size();++i) {

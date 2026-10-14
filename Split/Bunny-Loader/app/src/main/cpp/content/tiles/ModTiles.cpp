@@ -1,3 +1,4 @@
+#include "content/tiles/TileRegistryInternal.h"
 #include "content/tiles/ModTiles.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -19,16 +20,12 @@ namespace bl::runtime {
 
 namespace {
 
-struct Entry {
-    ModTileDef def;
-    uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
-};
-
-std::mutex g_mx;
-std::vector<Entry> g_regs;   // indice = type - kVanillaTileCount
+using tile_registry::Entry;
+using tile_registry::g_mx;
+using tile_registry::g_regs;
+using tile_registry::g_total;
+using tile_registry::g_installed;
 std::atomic<TilesInstalledHook> g_installedHook{nullptr};
-std::atomic<int> g_total{0};
-std::atomic<int> g_installed{0};
 // O SetStaticDefaults do lote ja rodou (ele espera o TileObjectData existir).
 std::atomic<bool> g_staticDone{false};
 bool g_failed = false;
@@ -941,26 +938,6 @@ void growInstances(int size) {
 
 } // namespace
 
-int registerModTile(ModTileDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& e : g_regs) {
-        if (e.def.mod == def.mod && e.def.name == def.name) return -1;
-    }
-    Entry e;
-    e.def = std::move(def);
-    g_regs.push_back(std::move(e));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaTileCount + static_cast<int>(g_regs.size()) - 1;
-}
-
-bool isModTile(int type) {
-    return type >= kVanillaTileCount && type < kVanillaTileCount + g_total.load(std::memory_order_acquire);
-}
-
-int tileTypeCount() {
-    return kVanillaTileCount + g_installed.load(std::memory_order_acquire);
-}
-
 void tickModTiles() {
     const int total = g_total.load(std::memory_order_acquire);
     if (total == 0 || g_failed) return;
@@ -1044,29 +1021,6 @@ bool modTilesSettled() {
 
 void setTilesInstalledHook(TilesInstalledHook hook) {
     g_installedHook.store(hook, std::memory_order_release);
-}
-
-int modTileTypeByName(const std::string& mod, const std::string& name) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (size_t i = 0; i < g_regs.size(); ++i) {
-        if (g_regs[i].def.mod == mod && g_regs[i].def.name == name) {
-            return kVanillaTileCount + static_cast<int>(i);
-        }
-    }
-    return -1;
-}
-
-std::string modTileKey(int type) {
-    std::lock_guard<std::mutex> l(g_mx);
-    const size_t i = static_cast<size_t>(type - kVanillaTileCount);
-    if (type < kVanillaTileCount || i >= g_regs.size()) return {};
-    return g_regs[i].def.mod + "/" + g_regs[i].def.name;
-}
-
-int modTileTypeByKey(const std::string& key) {
-    const size_t slash = key.find('/');
-    if (slash == std::string::npos) return -1;
-    return modTileTypeByName(key.substr(0, slash), key.substr(slash + 1));
 }
 
 void setModTileAnimation(int type, int frameHeight) {

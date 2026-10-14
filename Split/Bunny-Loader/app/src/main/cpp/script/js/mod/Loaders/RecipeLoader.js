@@ -15,6 +15,7 @@ class RecipeLoader {
 
     static SyncCSharp() {
         const api=bl.csharp;
+        if(api?.nativeRecipes===true)return; // Native queue owns C# registration; never register twice.
         if (!api || typeof api.pendingItemRecipes !== 'function') return;
         const pending=api.pendingItemRecipes(); // no maximo oito por lote
         if (!Array.isArray(pending) || !pending.length) return;
@@ -37,8 +38,8 @@ class RecipeLoader {
                             station=type;
                         }
                     }
-                    if(!Number.isInteger(station)||station<2195)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Expected=RegisteredModTile Actual=Missing Result=Pending');
-                } else if(!Number.isInteger(station)||station < -1||station>=2195)
+                    if(!Number.isInteger(station)||station<bl.tiles.vanillaCount)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Expected=RegisteredModTile Actual=Missing Result=Pending');
+                } else if(!Number.isInteger(station)||station < -1||station>=bl.tiles.vanillaCount)
                     throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Expected=VanillaTile Actual='+station);
                 const recipe=new ModRecipe();
                 recipe.SetResult(entry.result,entry.stack);

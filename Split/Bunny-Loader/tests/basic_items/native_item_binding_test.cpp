@@ -118,6 +118,22 @@ int main(int argc,char** argv){
   std::cout<<"NATIVE_BASIC_ITEM_192_AND_CATEGORY_LIMIT_PASS\n";return 0;
  }
  assert(entries.size()==3);
+ if(mode=="--recipes-only") {
+  for(auto& entry:entries)entry.behavior.clear();
+  entries[0].recipes[0].station=-1;entries[0].recipes[0].stationKey="late/Bench";
+  entries[0].recipes[0].ingredients[0].key="mlate/Material";
+  assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
+  const auto queued=bl::csharp::pendingBasicRecipes();assert(queued.size()==3);
+  bool delayed=false;
+  for(const auto& recipe:queued)if(recipe.values.stationKey=="late/Bench") {
+   assert(recipe.values.ingredients[0].key=="mlate/Material");
+   assert(recipe.values.ingredients[0].type==-1);delayed=true;
+  }
+  assert(delayed);
+  FakeItem item{};assert(bl::csharp::applyBasicItemToObject(&item.header,entries[0].type));
+  assert(item.values[bl::csharp::BasicMaxStack]==entries[0].values[bl::csharp::BasicMaxStack]);
+  std::cout<<"CSHARP_ITEM_DEFAULTS_AND_RECIPES_WITHOUT_QUICKJS_PASS\n";return 0;
+ }
  if(narrowValue) {
   assert(!bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
   assert(error.find("value=50000 fora do tipo nativo (16 bits)")!=std::string::npos);
@@ -173,7 +189,7 @@ int main(int argc,char** argv){
  for(auto value:recreated.sentinel)assert(value==0x5a);
  assert(recreated.defense==6);for(auto value:recreated.defenseSentinel)assert(value==0x6b);
  auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);
- for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.type>0);
+ for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.key.front()=='m'?ingredient.type==-1:ingredient.type>0);
   assert(bl::csharp::acknowledgeBasicRecipe(recipe.id,17));assert(!bl::csharp::acknowledgeBasicRecipe(recipe.id,17));}
  assert(bl::csharp::pendingBasicRecipes().empty());
  auto stationItem=entries[0];stationItem.type=7199;stationItem.name="StationFixture";
