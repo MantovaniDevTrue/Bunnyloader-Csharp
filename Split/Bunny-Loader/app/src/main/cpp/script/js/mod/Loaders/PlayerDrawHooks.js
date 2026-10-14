@@ -553,9 +553,12 @@ class BunnyCSharpVisualRender {
 }
 
 class BunnyCSharpTrailLayer extends PlayerDrawLayer {
+    static NativeEquipPoll = 0;
     constructor() { super('BunnyCSharpTrail'); }
     GetDefaultPosition() { return PlayerDrawLayer.BeforeParent(PlayerDrawLayers.BackAcc); }
     GetDefaultVisibility(info) {
+        if (++BunnyCSharpTrailLayer.NativeEquipPoll % 120 === 1)
+            EquipLoader.SyncCSharp();
         const visible = BunnyCSharpVisualRender.Visible(info);
         if (!visible) BunnyCSharpVisualRender.Trails.delete(info.drawPlayer.whoAmI);
         return visible;
