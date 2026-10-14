@@ -946,7 +946,9 @@ jobs:
                              "ExampleTrailblazerBootsAccessory.png",
                              "ExampleTrailblazerBootsAccessory_Shoes.png"):
                   assert "content/Content/Items/Accessories/" + visual in names
-              assert len([n for n in names if n.endswith(".png")])==10
+              for effect in ("MysticWardBarrier.png", "TrailblazerSpark.png"):
+                  assert "content/Content/Effects/" + effect in names
+              assert len([n for n in names if n.endswith(".png")])==12
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
