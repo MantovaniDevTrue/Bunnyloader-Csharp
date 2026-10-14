@@ -7,6 +7,9 @@ on:
       - 'Split/Bunny-Loader/app/src/main/cpp/content/tiles/**'
       - 'Split/Bunny-Loader/tests/native_source_identity.cpp'
       - 'Split/Bunny-Loader/tests/native_tile_policy.cpp'
+      - 'Split/Bunny-Loader/app/build.gradle.kts'
+      - 'Split/Bunny-Loader/tools/check_lot_a_delivery.py'
+      - '.github/workflows/build-bunny-csharp-source-loader.yml'
       - '.github/workflows/check-csharp-native-tile-compile.yml'
 permissions:
   contents: read
