@@ -26,7 +26,7 @@ const sandbox = {
     },
     PlayerDrawLayers: { IceBarrier: { name: 'IceBarrier' }, Shield: { name: 'Shield' }, BackAcc: { name: 'BackAcc' } },
     PlayerDrawHooks: { AddLayer(layer) { registered.push(layer); } },
-    EquipLoader: { SyncCSharp() {} },
+    EquipLoader: { Install() {} },
     ModPlayer: { AddDrawData(info, data) { draws.push(data.draw); return true; } },
     Terraria: {
         Main: { screenPosition: { X: 1000, Y: 1000 } },
@@ -107,3 +107,4 @@ effects = [];
 assert.equal(trailLayer.GetDefaultVisibility(info), false);
 assert.equal(Visual.Trails.size, 0);
 console.log('CSHARP_VISUAL_GEOMETRY_PASS=YES');
+
