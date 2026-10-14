@@ -10,7 +10,7 @@ public sealed class ExampleTrailblazerBootsAccessory : BunnyAccessory
         Texture = "Content/Items/Accessories/ExampleTrailblazerBootsAccessory.png";
         DefenseBonus = 0;
         VisualMode = BunnyAccessoryVisualMode.RunningTrail;
-        VisualTexture = "Content/Effects/TrailblazerSpark.png";
+        VisualTexture = "Content/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png";
         VisualScale = 1f;
         VisualColor = 0xFFFF9632;
         VisualOpacity = 0.85f;
