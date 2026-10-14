@@ -20,11 +20,4 @@ public sealed class ExampleTrailblazerBootsPlayer : BunnyPlayer
         return accessoryEquipped ? 8 : 0;
     }
 
-    public override bool FrameEffects(bool accessoryEquipped)
-    {
-        if (accessoryEquipped)
-            BunnyVisual.SetEquipmentSprite(0, 1002,
-                "68c3115f-62f4-49f2-a56b-388256781d5f:Content/Effects/TrailblazerSpark.png");
-        return accessoryEquipped;
-    }
 }
