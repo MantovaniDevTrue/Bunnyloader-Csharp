@@ -6,7 +6,8 @@
   },
   "upstream": {
     "repository": "JonataOliveiraa/Bunny-Loader",
-    "commit": "bc4f240082a589823536eff74462a11acbdba8ec"
+    "commit": "e608114efb15a3a021887a6132d9e2a487ba6b62",
+    "previousCommit": "bc4f240082a589823536eff74462a11acbdba8ec"
   },
   "initialReferenceCount": 169,
   "forkExampleFiles": [
@@ -2273,6 +2274,16 @@
       "size": 771
     },
     {
+      "path": "samples/ExampleMod/content/Assets/TouchButtons/LearningExample.png",
+      "sha": "3cff199acebfe786d1f87e100974c2b6efb1bf49",
+      "size": 269
+    },
+    {
+      "path": "samples/ExampleMod/content/Assets/TouchButtons/RandomBuff.png",
+      "sha": "faa29a7f47d43d26209f1d25c119743deaed62db",
+      "size": 242
+    },
+    {
       "path": "samples/ExampleMod/content/Common/Commands/ExampleTimeCommand.js",
       "sha": "b394034975bd782b153a8e285c4755f558374b48",
       "size": 1507
@@ -2328,6 +2339,11 @@
       "size": 756
     },
     {
+      "path": "samples/ExampleMod/content/Common/Players/ExampleTouchButtonPlayer.js",
+      "sha": "cdc6ea1a829cadf298dc963dec3c27fca56d5c4c",
+      "size": 2113
+    },
+    {
       "path": "samples/ExampleMod/content/Common/Players/WingsGlowmask.js",
       "sha": "275804a4b46efe120e0d025345045e32c45904cb",
       "size": 3108
@@ -2341,6 +2357,11 @@
       "path": "samples/ExampleMod/content/Common/Systems/ExampleBiomeTileCount.js",
       "sha": "f2885d2b2f97de0408d8231236ce2b7e0395fe20",
       "size": 289
+    },
+    {
+      "path": "samples/ExampleMod/content/Common/Systems/TouchButtonSystem.js",
+      "sha": "23bfdd66733b50a64fe68e61976839c778d6e65a",
+      "size": 1058
     },
     {
       "path": "samples/ExampleMod/content/Content/Achievements/ExampleBossKilled.js",
@@ -4489,13 +4510,13 @@
     },
     {
       "path": "samples/ExampleMod/content/Localization/en-US.json",
-      "sha": "44f6d39d33efe2e5a6bad684432c88f1c2d5df28",
-      "size": 16392
+      "sha": "f7c74060e55bf996276778caa0b75e6c5d9ef02a",
+      "size": 16816
     },
     {
       "path": "samples/ExampleMod/content/Localization/pt-BR.json",
-      "sha": "dfdc7ad89bd4b6773739098f2650c36d2cb05010",
-      "size": 17363
+      "sha": "fcd58f1be21dd2428dbf255801c6d6dbbd3e4db8",
+      "size": 17792
     },
     {
       "path": "samples/ExampleMod/content/main.js",
@@ -6288,8 +6309,8 @@
   "upstreamCoreFiles": [
     {
       "path": "app/src/main/cpp/CMakeLists.txt",
-      "sha": "551f2f63bb4a72d8b48f6737109288a22b9cb4bc",
-      "size": 9071
+      "sha": "2bb7663abf50124ff3a24a8589be551158eed833",
+      "size": 9207
     },
     {
       "path": "app/src/main/cpp/boot/Boot.cpp",
@@ -6828,8 +6849,8 @@
     },
     {
       "path": "app/src/main/cpp/menu/CheatBridgeDex.h",
-      "sha": "6591bed0447a798a1e7096c2076406658531ca9b",
-      "size": 691392
+      "sha": "ce6517eb2ec2353cfe3f027f1c37d332997a99de",
+      "size": 692022
     },
     {
       "path": "app/src/main/cpp/menu/CheatButton.cpp",
@@ -7242,9 +7263,14 @@
       "size": 4683
     },
     {
+      "path": "app/src/main/cpp/script/js/mod/Core/DrawBatches.js",
+      "sha": "1631c9a938e45096d5feae5f459e0940db6e15df",
+      "size": 1498
+    },
+    {
       "path": "app/src/main/cpp/script/js/mod/Core/Entities.js",
-      "sha": "010d1da8ce989be065078d67873f5396749bbff0",
-      "size": 1527
+      "sha": "8430948bbf30426d6001d1d571bdbb6e1580b515",
+      "size": 2939
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/GlobalRegistries.js",
@@ -7253,13 +7279,13 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/GlobalRegistry.js",
-      "sha": "4e0935565c36f29660fa601dbe228e985f50cba2",
-      "size": 6593
+      "sha": "f95b84e306308531114291186d9c2de2cf432387",
+      "size": 6626
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/GlobalType.js",
-      "sha": "d8c19d76d5a22bfedbc571c77ea160241574a160",
-      "size": 641
+      "sha": "dfe584a87410c172e63f962305d25179f37ba25d",
+      "size": 647
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/Hooks.js",
@@ -7553,8 +7579,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Exports.js",
-      "sha": "a3883972017a4bd238ab02280a2df6c802434e10",
-      "size": 1847
+      "sha": "d478ae2dcdf2f05b4ee0d2b7f0f6b835ee117397",
+      "size": 1929
     },
     {
       "path": "app/src/main/cpp/script/js/mod/GenPass.js",
@@ -7633,8 +7659,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/BestiaryLoader.js",
-      "sha": "8134c756ce3b36e8b59589f2f93942e7efa210b0",
-      "size": 4853
+      "sha": "170a7cbfcace8bd0948dcec0803a925648a17369",
+      "size": 5563
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/BiomeBestiaryLoader.js",
@@ -7777,6 +7803,11 @@
       "size": 8227
     },
     {
+      "path": "app/src/main/cpp/script/js/mod/Loaders/KeybindLoader.js",
+      "sha": "ee6e26885a439d992a52443c99ab0d1430e804de",
+      "size": 371
+    },
+    {
       "path": "app/src/main/cpp/script/js/mod/Loaders/LocalizationLoader.js",
       "sha": "113a35a245a5dc7dc570a17502b5560b254a21f7",
       "size": 13340
@@ -7798,13 +7829,13 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/ModConfigMenu.js",
-      "sha": "8b17cc82e7716e61059b0b5c92cad03249092587",
-      "size": 54131
+      "sha": "d100733317e767fceb1188a8e30812f413fa48dc",
+      "size": 55401
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/ModMusic.js",
-      "sha": "05a56c8bb661bcb9858ad27eca78dd28227069dc",
-      "size": 9307
+      "sha": "9f12c509345aac248d30588ac4f3f20ec496f1f1",
+      "size": 9486
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/MountLoader.js",
@@ -7813,8 +7844,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/NPCLoader.js",
-      "sha": "6f93c67df4e607a9aed5d34c8aebef03aa80d2a9",
-      "size": 21185
+      "sha": "d6d5d5d4673d81e087df7a9bcaa059c9c492edf9",
+      "size": 21798
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js",
@@ -7977,6 +8008,21 @@
       "size": 29318
     },
     {
+      "path": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonHooks.js",
+      "sha": "f5cb4bdf5bed7ef89b1b040b6829a455c1df5417",
+      "size": 14638
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonLayouts.js",
+      "sha": "af844699d995ea7974abb12707183f32101f379c",
+      "size": 6607
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js",
+      "sha": "c15c956bc6b722e1ee3aec738f61419a4c10df92",
+      "size": 9407
+    },
+    {
       "path": "app/src/main/cpp/script/js/mod/Loaders/TownNPCLoader.js",
       "sha": "82e46bda23094dc3cb2e92d81056ad246f16fae4",
       "size": 12661
@@ -8088,8 +8134,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "sha": "10eea3dd4dbf04a26bc8e6ed26e04ad9f6b6e36d",
-      "size": 18664
+      "sha": "3a9dc6078b6fa51434232197ee024797cc581bfe",
+      "size": 19010
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModLoader.js",
@@ -8113,8 +8159,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModNPC.js",
-      "sha": "f935f7a7499be3be3797a87f4bc7610b9477b022",
-      "size": 9966
+      "sha": "e1bfc668636c68d59d58650e5bb3ec55ba33f066",
+      "size": 11025
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModPacket.js",
@@ -8133,8 +8179,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModProjectile.js",
-      "sha": "928eb98f8765e5692a72e06a0038349e488623b9",
-      "size": 7423
+      "sha": "28beb9e94d98447ca09ec27edd9c5a14538b1766",
+      "size": 7769
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModPylon.js",
@@ -8163,8 +8209,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModSystem.js",
-      "sha": "1ef4e86aef2eac5c4f776d917c09aafc9d967a70",
-      "size": 3317
+      "sha": "55acf0f1d26e162c5bae0f75b66c7d3270097521",
+      "size": 3492
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModTile.js",
@@ -8175,6 +8221,11 @@
       "path": "app/src/main/cpp/script/js/mod/ModTileEntity.js",
       "sha": "00ad2f9f7bccc63ccbbaf4b1939ca7b2c1db528f",
       "size": 3893
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/ModTouchButton.js",
+      "sha": "d7748fbeace3f66bdecc360655c07febfcab906e",
+      "size": 2091
     },
     {
       "path": "app/src/main/cpp/script/js/mod/ModTree.js",
@@ -8291,5 +8342,9 @@
       "sha": "5eaaf87591e5a3497f43a3a74be18e6837131acf",
       "size": 1166
     }
-  ]
+  ],
+  "expectedJsCounts": {
+    "canonical": 201,
+    "fork": 178
+  }
 }

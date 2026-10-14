@@ -64,7 +64,7 @@ verifica que nativeRecipes=true impede a passagem de receitas C# pelo JS.
 
 ## Android ainda obrigatorio
 
-1. Abrir ExampleMod 0.1.35 e conferir recipes de ExampleItem/Pickaxe/Hamaxe.
+1. Abrir ExampleMod 0.1.36 e conferir recipes de ExampleItem/Pickaxe/Hamaxe.
 2. Com ingredientes e bancada vanilla, verificar menu, Guia, material e craft.
 3. Mod C# independente com AddTile("UID/EstacaoJS") e AddIngredient("UID/ItemJS"):
    verificar ausencia/presenca da dependencia, log individual e ordem inversa.
@@ -83,5 +83,11 @@ O workflow da branch permite uma prerelease privada identificada como
 EXPERIMENTAL / Lote A incomplete. Antes de enviar, exige os oito workflows
 independentes aprovados para o SHA exato, alem dos testes e build do proprio
 job. Falha, cancelamento, SHA diferente ou suite ausente recusam a entrega.
-A release oficial do lote completo continua pendente. O ExampleMod permanece
-0.1.35/51 fontes: esta etapa modifica a infraestrutura, nao adiciona ports.
+A release oficial do lote completo continua pendente. O ExampleMod 0.1.36 atualiza documentacao/matriz e conserva
+51 fontes: esta etapa modifica infraestrutura e documentacao, nao adiciona ports.
+
+O teste adicional registry_regression_test executa os registradores reais com
+oito threads disputando 192 chaves por categoria. Confere duplicatas, nomes
+iguais em mods/categorias diferentes, lookup reverso e reserva dos 64 itens
+nao carregados, que nao pode satisfazer dependencia de ingrediente. Nao e
+teste de salvar/abrir um mundo no Terraria.

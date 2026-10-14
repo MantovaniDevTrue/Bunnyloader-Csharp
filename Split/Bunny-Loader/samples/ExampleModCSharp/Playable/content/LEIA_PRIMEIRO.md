@@ -1,3 +1,11 @@
+# ExampleMod 0.1.36 / Bunny .90.29.1 — experimental
+
+Esta atualizacao documenta receitas sem intermediacao da VM JavaScript e
+atualiza a matriz para 201 arquivos. Os 51 fontes e IDs anteriores permanecem.
+Leia Documentation/RECEITAS_NATIVAS.md; as receitas existentes demonstram
+a API publica. A bancada C# propria e os exemplos restantes nao foram incluidos.
+Nao tratar esta entrega como Lote A completo nem validacao nova no Android.
+
 # ExampleMod 0.1.35 / Bunny .90.28.5
 
 Seis exemplos originais novos usam BunnyItem.Behavior. Leia

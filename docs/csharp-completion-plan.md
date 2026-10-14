@@ -5,8 +5,8 @@
 Base estavel atual: Bunny .90.28.4 / ExampleMod 0.1.34, relatada pelo usuario
 como funcional no Android. A referencia historica .90.27.6 / 0.1.33 dos
 equipamentos nativos tambem foi preservada. Original atualizado: JonataOliveiraa/
-Bunny-Loader, commit bc4f240082a589823536eff74462a11acbdba8ec. O inventario e de
-199 arquivos JS (178 no fork; 21 adicionados pelo upstream). A referencia antiga
+Bunny-Loader, commit e608114efb15a3a021887a6132d9e2a487ba6b62. O inventario e de
+201 arquivos JS (178 no fork; 23 adicionados pelo upstream). A referencia antiga
 de 169 arquivos nao limita o trabalho. Cada arquivo, inclusive helpers, main,
 configs e interfaces, tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
 e dados completos em [JSON](../Split/Bunny-Loader/docs/generated/example_completion/matrix.json).
@@ -158,3 +158,15 @@ nao conclui o Lote A. [Auditoria de independencia](csharp-independence-audit.md)
 registra testes reais do adapter no host sem QuickJS e dependencias restantes.
 Prioridade seguinte permanece bancada completa, seus dois arquivos originais
 e receitas das armaduras. 33 arquivos do escopo e 199 da matriz preservados.
+
+### Atualizacao da referencia original em 14/10
+
+Original avancou seis commits; dois exemplos de touch buttons foram incluidos
+sem remover os 199 anteriores. Matriz atual tem 201 JS. O escopo A permanece
+33. Novos exemplos estao Nao implementado no Lote F/sistemas especiais; APIs
+de botoes de toque, ProcessTriggers e layout persistente devem ser auditadas
+nesse lote. Nenhuma alteracao do core original foi transplantada nesta etapa.
+
+ExampleMod 0.1.36: matriz embutida 201 e guia editavel RECEITAS_NATIVAS.md,
+mesmos 51 fontes/26 texturas; nenhuma classe nova anunciada. Catalogo marca
+receitas nativas como experimentais ate validacao no Android.

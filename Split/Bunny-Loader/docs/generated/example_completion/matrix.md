@@ -1,6 +1,6 @@
 # Matriz completa ExampleModBunny → C#
 
-Referencia canonica: **199 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
+Referencia canonica: **201 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
 As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.
 O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.
 
@@ -27,12 +27,12 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Placeable | 36 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Players | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
+| Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Quests | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Systems | 5 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Systems | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tiles | 37 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -54,9 +54,11 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Common/Players/ExampleFishingPlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleLowLifePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExamplePlayer.js | samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Todos os hooks/estado persistente do ModPlayer original; exemplos atuais nao sao portas integrais. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
+| Common/Players/ExampleTouchButtonPlayer.js | — | Não implementado | ProcessTriggers C#; JustPressed/Current; estado por jogador; tocar/segurar/double-tap; random buff e texto localizado. | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/WingsGlowmask.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para PlayerDrawLayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/DownedBossSystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/ExampleBiomeTileCount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Systems/TouchButtonSystem.js | — | Não implementado | API C# publica de registro de botoes; labels/icones; registro Load; integracao e persistencia do layout de controles. | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ExampleBossKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ManyWormsKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleSurfaceBackgroundStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle | Sem validacao funcional C# deste exemplo inteiro. |

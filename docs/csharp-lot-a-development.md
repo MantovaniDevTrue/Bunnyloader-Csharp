@@ -3,11 +3,11 @@
 Branch: codex/lot-a-complete-v90-29, derivada do commit
 28a9d71dac28a4ce14bff16fb492707c55227d05 da branch validada.
 O usuario confirmou mascara/robe e carregamento na .90.28.7. Essa versao
-permanece intacta. O ExampleMod continua 0.1.35 enquanto o lote estiver aberto.
+permanece intacta. O ExampleMod 0.1.36 atualiza documentacao/matriz; o lote continua aberto.
 
 O escopo obrigatorio possui 33 arquivos, todos listados em
 Split/Bunny-Loader/tools/example_completion/lot-a-scope.json. A matriz global
-continua com 199 arquivos. Dependencias em lotes futuros precisam de bridges
+agora tem 201 arquivos (os 199 anteriores mais dois touch buttons). Dependencias em lotes futuros precisam de bridges
 reais; nao justificar simplificacoes dos exemplos.
 
 ## Infraestrutura presente nesta branch
@@ -156,3 +156,16 @@ por categoria, TileObjectData.Style2x1/CoordinateHeights [18], housing/map/dust,
 frames/suporte/drop nativos, adjacencia e CraftingStationItemId, port dos dois
 ExampleWorkbench e receitas originais dos tres itens de armadura. Nao usar
 2195 como TileID.Count: o core usa 754; 2195 pertence a paleta de mapa.
+
+### Resultado verificavel do runtime .90.29.1
+
+Commit 051766a6c0a34b9b27def096ff891f5667933820: oito suites aprovadas e
+Android build/assinatura aprovados no run 38596246405. Artefato experimental
+privado disponibilizado pelo workflow, com APK .90.29.1 e .bmod 0.1.35; nao e
+release oficial do Lote A. Nenhuma validacao Android/FPS nova registrada.
+As alteracoes posteriores a esse SHA sao regressao adicional dos registradores
+e documentacao; devem manter o mesmo runtime e nenhum novo port e declarado.
+
+Atualizacao posterior: original e608114efb15a3a021887a6132d9e2a487ba6b62,
+matriz 201 e escopo A 33. ExampleMod 0.1.36 atualiza documentacao das recipes,
+matriz embutida e catalogo; mesmos 51 fontes e 26 PNG, nenhum port novo.

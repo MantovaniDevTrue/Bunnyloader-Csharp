@@ -886,6 +886,8 @@ jobs:
           "$RUNNER_TEMP/native-recipes-test" --bounds
           "$RUNNER_TEMP/native-recipes-test" --method
           python3 tests/native_recipes/delivery_gate_test.py
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
+          /tmp/shared-registry-test
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/native-items-no-js"
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --recipes-only
       - name: Execute combat batch and actionable diagnostic regressions
@@ -901,7 +903,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.35
+      - name: Package independent ExampleMod CSharp 0.1.36
         shell: bash
         run: |
           set -euo pipefail
@@ -925,10 +927,10 @@ jobs:
             "$PKG/content/Content/NPCs/ExampleSlimeNPC.png"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.35.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.36.bl"
           test -s "$SOURCE"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -991,8 +993,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod.sha256"
 
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
@@ -1602,8 +1604,8 @@ jobs:
             NOTES="Experimental infrastructure checkpoint, not a complete Lot A release. Native CSharp recipe registration is available for device validation; the CSharp workbench and remaining examples are still pending. Eight independent regression suites succeeded. Android gameplay and 60 FPS have not been validated for this build. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod.sha256" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod.sha256" \
             "Split/Bunny-Loader/build/combat-batch-results.json" \
             "Split/Bunny-Loader/build/basic-items-results.json" \
             --repo "$PRIVATE_REPO" \
@@ -1617,7 +1619,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.35.bmod SecondExampleModCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.36.bmod SecondExampleModCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -1627,14 +1629,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.35
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.36
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.35.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.35.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.36.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.36.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
 

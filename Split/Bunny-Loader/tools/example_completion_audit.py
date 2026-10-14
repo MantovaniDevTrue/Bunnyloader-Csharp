@@ -54,7 +54,8 @@ def build(upstream):
     evidence = json.loads((SPEC/'evidence.json').read_text())
     originals = {x['path']:x for x in refs['upstreamExampleFiles'] if x['path'].endswith('.js')}
     fork = {x['path']:x for x in refs['forkExampleFiles'] if x['path'].endswith('.js')}
-    if len(originals)!=199 or len(fork)!=178: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
+    expected=refs.get('expectedJsCounts', {'canonical':199,'fork':178})
+    if len(originals)!=expected['canonical'] or len(fork)!=expected['fork']: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
     if set(evidence['examples'])-set(p.removeprefix('samples/ExampleMod/content/') for p in originals):
         raise ValueError('Evidence refers to nonexistent JS example')
     rows=[]
@@ -140,7 +141,7 @@ def build(upstream):
 
 def markdown(report):
     lines=['# Matriz completa ExampleModBunny → C#','',
-        'Referencia canonica: **199 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.',
+        f"Referencia canonica: **{report['counts']['canonicalJsFiles']} JS**, fork: **{report['counts']['forkJsFiles']} JS**, referencia inicial informada: **{report['references']['initialReferenceCount']} JS**.",
         'As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.',
         'O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.','',
         '| Categoria | Total | Implementados | Validados | Parciais | Limitacoes tecnicas |',

@@ -663,6 +663,30 @@
         "tests/basic_items/native_item_binding_test.cpp"
       ],
       "validation": "WingStats, slot e VerticalWingSpeeds conectados ao host em contrato independente; port do exemplo original pendente."
+    },
+    "Common/Players/ExampleTouchButtonPlayer.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "ProcessTriggers C#; JustPressed/Current; estado por jogador; tocar/segurar/double-tap; random buff e texto localizado."
+      ],
+      "terrariaTests": [
+        "Adicionar botoes ao layout de controles; pressionar/segurar/double-tap; multiplayer/ciclo de jogador."
+      ]
+    },
+    "Common/Systems/TouchButtonSystem.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "API C# publica de registro de botoes; labels/icones; registro Load; integracao e persistencia do layout de controles."
+      ],
+      "assets": [
+        "samples/ExampleMod/content/Assets/TouchButtons/RandomBuff.png",
+        "samples/ExampleMod/content/Assets/TouchButtons/LearningExample.png"
+      ],
+      "terrariaTests": [
+        "Registrar dois botoes em mod C# independente; editor de controles; salvar e reabrir layout."
+      ]
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -889,6 +913,16 @@
         "equipment policy QuickJS decoupling",
         "Android validation"
       ]
+    },
+    "upstreamRefresh": {
+      "commit": "e608114efb15a3a021887a6132d9e2a487ba6b62",
+      "previousCanonicalCount": 199,
+      "canonicalCount": 201,
+      "addedExamples": [
+        "samples/ExampleMod/content/Common/Players/ExampleTouchButtonPlayer.js",
+        "samples/ExampleMod/content/Common/Systems/TouchButtonSystem.js"
+      ],
+      "lotAScopeUnchanged": 33
     }
   }
 }
