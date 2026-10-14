@@ -153,6 +153,7 @@ on:
       - bunny-csharp-source-0.1.10.16.70-live-gameplay-profiler
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
+      - ".github/workflows/check-csharp-native-tile-compile.yml"
       - "Split/Bunny-Loader/**"
 
 permissions:
