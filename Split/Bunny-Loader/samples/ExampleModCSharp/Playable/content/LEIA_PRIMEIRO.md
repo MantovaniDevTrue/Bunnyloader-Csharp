@@ -1,4 +1,13 @@
-# ExampleMod 0.1.36 / Bunny .90.29.3 — experimental
+# ExampleMod 0.1.37 / Bunny .90.29.11 — experimental
+
+A bancada ExampleWorkbench e suas tres armaduras agora integram este
+ExampleMod CSharp, sem mod separado. Consulte Content/Tiles/Furniture,
+Content/Items/Placeable/Furniture e Content/Items/Armor.
+A bancada e os efeitos da armadura ainda requerem verificacao no Android.
+O cache C# de compilacao foi ajustado para evitar recompilacao repetida
+apos falhas na aplicacao de hooks nativos.
+
+# ExampleMod 0.1.36 / Bunny .90.29.3 — historico
 
 Esta atualizacao documenta receitas sem intermediacao da VM JavaScript e
 atualiza a matriz para 201 arquivos. Os 51 fontes e IDs anteriores permanecem.

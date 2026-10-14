@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplos de armas, projeteis, NPCs, buffs, prefixos e equipamentos C#; seis acessorios simples, tres acessorios compostos e oito receitas de combate para o Bunny Loader.",
+  "summary": "ExampleMod CSharp com armas, NPCs, efeitos, acessorios, armaduras e ExampleWorkbench 2x1 nativa, receitas e assets originais do ExampleModBunny.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
@@ -20,5 +20,3 @@
   "entry": "main.cs",
   "dependencies": []
 }
-
-
