@@ -1041,7 +1041,19 @@
           "native_recipes_test --probe-wire",
           "check_placement_probe.py"
         ],
-        "status": "Packaged locally; CI and Android validation pending"
+        "status": "Real CSharp compilation, early registration/assets, native wire integration, eight CI suites and Android build passed; private package delivered; Android validation pending",
+        "runtimeCommit": "4a15074920521d812a964a71568d1a26ed660f3e",
+        "buildRun": 38620813619,
+        "eightSuiteRuns": {
+          "audit": 38620813424,
+          "combat": 38620814061,
+          "prefix": 38620813444,
+          "lifecycle": 38620813593,
+          "monoGc": 38620813870,
+          "monoSignals": 38620813842,
+          "visual": 38620813699,
+          "nativeVisual": 38620813712
+        }
       }
     }
   }

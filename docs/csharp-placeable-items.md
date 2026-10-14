@@ -57,3 +57,25 @@ Pendencia explicita da bancada C#: criar o contrato publico de tile, instalar
 Style2x1/CoordinateHeights [18] com a janela readOnlyData correta, housing/mapa,
 adjacencia, suporte/frame, drop unico, DustType/NumDust e icone no Guia. Os dois
 ExampleWorkbench ainda nao sao ports completos e nao foram promovidos na matriz.
+
+
+## Teste pronto para importar
+
+`samples/NativePlacementProbe/Playable` gera NativePlacementProbe-v0.1.0.bmod.
+Possui tres itens C# completos de teste: bancada vanilla (tile18), plataforma
+vanilla estilo0 e plataforma vanilla estilo1 (tile19). Uma terra fabrica dez
+unidades de cada item, sem estacao. Os fontes e o guia COMO_TESTAR.md acompanham
+o pacote, com PNGs de inventario reutilizados do ExampleModBunny original.
+
+O pacote usa UID independente, nao altera ExampleMod 0.1.36 e nao requer DLLs,
+compilador externo ou mod JS. Requer runtime .90.29.5. Apos importar/habilitar,
+procurar "Teste C#" no crafting/menu de itens. Validar consumo de uma unidade,
+aparencia por estilo, crafting perto da bancada, drops vanilla e persistencia
+apos salvar/reabrir. Os drops vanilla sao intencionais: este teste coloca tiles
+vanilla, nao implementa a estacao C# propria do Lote A.
+
+Compiler/CompiledAssemblyProbe executam os quatro fontes e geram tres registros.
+O --probe-wire usa essa saida real no registro/defaults/receitas nativos de
+producao sem QuickJS. O registro antecipado parseia os mesmos fontes e verifica
+cada textura; o pacote e validado por manifesto, PNGs e hashes. Testes no host
+nao comprovam colocacao, persistencia de mundo ou FPS no Android.

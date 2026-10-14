@@ -195,3 +195,16 @@ nativos de producao sem QuickJS, com metadata Terraria emulada. Packaging verifi
 manifesto, fontes, ausencia de JS/DLL/SO, dimensoes e hashes dos PNGs reais.
 Este pacote NAO implementa o tile novo da bancada C#; nao promove nenhum dos
 201 exemplos da matriz. Teste Android da nova API permanece pendente.
+
+
+### Entrega do NativePlacementProbe 0.1.0
+
+Commit `4a15074920521d812a964a71568d1a26ed660f3e`, oito suites aprovadas
+(audit 38620813424, combat 38620814061, prefix 38620813444,
+lifecycle 38620813593, monoGc 38620813870, monoSignals 38620813842,
+visual 38620813699, nativeVisual 38620813712).
+[Build 38620813619](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38620813619)
+aprovou compilacao Android, assinatura e publicacao experimental privada do APK
+.90.29.5 e NativePlacementProbe-v0.1.0.bmod. Quem ja usa .90.29.5 precisa apenas
+importar/habilitar o pacote novo. ExampleMod 0.1.36 e runtime preservados.
+Validacao de gameplay, salvamento e FPS no Android pendente.
