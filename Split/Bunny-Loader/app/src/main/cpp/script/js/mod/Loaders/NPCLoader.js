@@ -7,6 +7,54 @@ class NPCLoader {
     static ByType = new Map();
     static Spawnable = [];   // os que têm SpawnChance
 
+    static #defaulting = null;
+    static #cloning = new Set();
+
+    static Defaults(m, npc) {
+        const outer = NPCLoader.#defaulting;
+        NPCLoader.#defaulting = npc;
+        try {
+            m.SetDefaults(npc);
+            m.ApplyBuffImmunity(npc);
+            m.PostSetDefaults(npc);
+        } finally { NPCLoader.#defaulting = outer; }
+    }
+
+    static CloneDefaults(m, type) {
+        const npc = m.NPC;
+        if (!npc) throw new Error('CloneDefaults: use no SetDefaults de um NPC vinculado');
+        if (!Number.isInteger(type) || type === npc.type || (type >= FIRST_NPC && !NPCLoader.ByType.has(type))) {
+            throw new RangeError('CloneDefaults: tipo de NPC inválido: ' + type);
+        }
+        if (NPCLoader.#cloning.has(type)) throw new Error('CloneDefaults: cópia circular de NPC ' + type);
+        const hasGlobals = globalNPCs.ready;
+        const saved = { type: npc.type, netID: npc.netID, mod: npc.ModNPC, globals: hasGlobals ? npc.__globalNPCs : undefined,
+            interaction: Array.from(npc.playerInteraction) };
+        const nested = NPCLoader.#defaulting && bl.addressOf(NPCLoader.#defaulting) === bl.addressOf(npc);
+        const params = Terraria.NPCSpawnParams.new();
+        params.difficultyOverride = Terraria.DataStructures.GameDifficultyLevel.Classic;
+        params.sizeScaleOverride = 1;
+        NPCLoader.#cloning.add(type);
+        try {
+            npc['void SetDefaults(int Type, NPCSpawnParams spawnparams)'](type, params);
+            // O bridge evita reentrar no mesmo hook. Dentro de SetDefaults,
+            // os defaults de mod/globais do tipo copiado precisam rodar aqui.
+            if (nested) {
+                const template = NPCLoader.ByType.get(type);
+                if (template) NPCLoader.Defaults(Entities.Bind(template.NewInstance(npc), npc, 'ModNPC'), npc);
+                if (globalNPCs.cached) globalNPCs.Attach(npc, true);
+                globalNPCs.Each(npc, 'SetDefaults', g => g.SetDefaults(npc));
+            }
+        } finally {
+            npc.type = saved.type;
+            npc.netID = saved.netID;
+            npc.ModNPC = saved.mod;
+            if (hasGlobals) npc.__globalNPCs = saved.globals;
+            for (let i = 0; i < saved.interaction.length; i++) npc.playerInteraction[i] = saved.interaction[i];
+            NPCLoader.#cloning.delete(type);
+        }
+    }
+
     static #everyType = new Set();   // as marcas que valem para todo tipo (algum Global)
 
     static Of(npc) {
@@ -244,9 +292,9 @@ class NPCLoader {
     }
 
     // O de mod e depois cada Global (o mesmo método e argumentos).
-    static CallAll(npc, name, a, b, c, d) {
-        NPCLoader.Call(npc, name, a, b, c, d);
-        globalNPCs.Call(npc, name, a, b, c, d);
+    static CallAll(npc, name, ...args) {
+        NPCLoader.Call(npc, name, ...args);
+        globalNPCs.Call(npc, name, ...args);
     }
 }
 
@@ -338,6 +386,12 @@ class NPCDrawHooks {
     static #behind = new Map();
     static #light = null;
 
+    static #DrawsOwn(npc) {
+        const m = NPCLoader.Of(npc);
+        if (m && (NPCLoader.Has(m, 'PreDraw') || NPCLoader.Has(m, 'PostDraw'))) return true;
+        return globalNPCs.For(npc, 'PreDraw').length > 0 || globalNPCs.For(npc, 'PostDraw').length > 0;
+    }
+
     static Track(npc) {
         NPCDrawHooks.#behind.set(npc.whoAmI, npc);
     }
@@ -356,6 +410,10 @@ class NPCDrawHooks {
                     const light = new Ref(Terraria.Lighting['Color GetColor(int x, int y)'](Math.floor(center.X / 16), Math.floor(center.Y / 16)));
                     const before = NPCDrawHooks.#ColorKey(light.value);
                     NPCLoader.CallAll(npc, 'DrawEffects', light);
+                    // Quem desenha por conta própria fica num lote só dele: no
+                    // celular o lote junta tudo da mesma textura (DrawBatches).
+                    const own = NPCDrawHooks.#DrawsOwn(npc);
+                    if (own) DrawBatches.Restart(batch);
                     // Os Globais antes do de mod no Pre, depois no Post (como o tModLoader).
                     let go = globals.AllCall(npc, 'PreDraw', batch, screen, light.value);
                     if (go) go = NPCLoader.Call(npc, 'PreDraw', batch, screen, light.value) !== false;
@@ -372,6 +430,7 @@ class NPCDrawHooks {
                         }
                     }
                     NPCLoader.CallAll(npc, 'PostDraw', batch, screen, light.value);
+                    if (own) DrawBatches.Restart(batch);
                 }, { ...draw, on: 1 });
             }
             N['Color GetNPCColorTintedByBuffs(Color npcColor)'].hook((original, npc, color) => {

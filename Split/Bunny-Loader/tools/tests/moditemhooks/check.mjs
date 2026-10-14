@@ -53,7 +53,7 @@ function native(name) {
     const target = {};
     const proxy = new Proxy(target, { get(fields, key) {
         if (key in fields) return fields[key];
-        if (key === 'new') return () => entity(0);
+        if (key === 'new') return () => Object.assign(entity(0), { 'void .ctor()'() {}, 'void SetDefaults(int Type, ItemVariant variant)'(type) { this.type = type; }, 'bool Prefix(int prefixWeWant)'(prefix) { this.prefix = prefix; return true; } });
         if (typeof key !== 'string') return undefined;
         if (!key.includes('(')) return native(name + '.' + key);
         const id = name + ':' + signature(key);
@@ -68,6 +68,9 @@ function native(name) {
             if (expected && JSON.stringify(expected) !== JSON.stringify(names(key))) missing.push(name + ':' + key + ': parameter names');
             entry.hooks.push({ callback, filter });
         };
+        // Escopo nativo: marca a entrada e guarda o self, sem callback.
+        fn.scope = () => { if (!entry.hooks.length) entry.hooks.push({ scope: true, filter: {} }); };
+        fn.scopeSelf = () => entry.selves?.at(-1) ?? null;
         return fn;
     } });
     natives.set(name, proxy);
@@ -75,8 +78,14 @@ function native(name) {
 }
 function invoke(entry, args, index = 0) {
     if (index >= entry.hooks.length) return entry.vanilla(...args);
-    const { callback, filter } = entry.hooks[index];
+    const { callback, filter, scope } = entry.hooks[index];
     const original = (...next) => invoke(entry, next.length ? next : args, index + 1);
+    if (scope) {
+        entry.active++;
+        (entry.selves ||= []).push(args[0] ?? null);
+        try { return original(); }
+        finally { entry.selves.pop(); entry.active--; }
+    }
     const selected = args[filter.on >= 0 ? filter.on + (entry.instance ? 1 : 0) : 0];
     const indexed = filter.field?.match(/^(\w+)\[([\w.]+)\]\.(\w+)$/);
     const type = filter.arg >= 0 ? args[filter.arg] : indexed ? selected?.[indexed[1]]?.[indexed[2].split('.').reduce((value, key) => value?.[key], selected)]?.[indexed[3]] : selected?.[filter.field || 'type'];
@@ -101,7 +110,7 @@ Main.npc = []; Main.projectile = []; Main.player = []; Main.myPlayer = 0; Main.n
 let talking = null;
 const sandbox = {
     Terraria, Microsoft, assert, state: {}, events: [], SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697, FIRST_ITEM: 6145,
-    Templates: { Adopt() {} },
+    Templates: { Adopt() {} }, PvpItemNetwork: { Install() {}, Source: () => null },
     Ref: class { constructor(value) { this.value = value; } },
     Vector2: { new: vector }, Color: { new: color },
     Entities: { InstanceOf: (entity, field, templates) => {
@@ -111,6 +120,7 @@ const sandbox = {
         return entity[field];
     }, Define() {} },
     ModNet: { InstallEntity() {} }, Ready: { Add: f => ready.push(f) }, SpawnLoader: { InstallPool() {} },
+    BannerLoader: { Install() {}, Track() {} }, ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, ProjectileLoader: { Of: p => p.ModProjectile }, ModProjectile: class {}, globalProjectiles: { For: () => [] }, globalNPCs: { For: () => [], Call() {}, Each() {}, AllCall: () => true, First() {}, Templates: () => [] },
     TownNPCLoader: { Hook() {}, TalkingTo: () => talking },
     Safe: { Run(label, fn) { try { return fn(); } catch (e) { errors.push([label, e]); } }, Report(label, e) { errors.push([label, e]); } },
     bl: { addressOf: p => p?.__address, mod: { uuid: 'item-hooks' }, log() {},
@@ -120,7 +130,7 @@ const sandbox = {
 const context = vm.createContext(sandbox);
 for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'ModNPC.js',
     'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js',
-    'Loaders/GlobalItemLoader.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js']) {
+    'Loaders/GlobalItemLoader.js', 'Loaders/PlayerItemHooks.js', 'HitModifiers.js', 'HitInfo.js', 'HurtModifiers.js', 'HurtInfo.js', 'Loaders/CombatLoader.js', 'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }
 vm.runInContext(`
@@ -164,14 +174,14 @@ class NPCMod extends ModNPC {
 }
 NPCLoader.ByType.set(697, new NPCMod());
 globalThis.api = { Local, Plain, Late, PlayerMod, GlobalMod, NPCMod, ItemLoader, ItemCombatHooks,
-    PlayerItemHooks, PlayerCombatHooks, PlayerLoader, GlobalItemLoader, NPCLoader, globalItems };
+    PlayerItemHooks, CombatLoader, PlayerLoader, GlobalItemLoader, NPCLoader, globalItems };
 `, context);
 const { Local, Plain, Late, PlayerMod, GlobalMod, NPCMod, ItemLoader, ItemCombatHooks,
-    PlayerItemHooks, PlayerCombatHooks, PlayerLoader, GlobalItemLoader, NPCLoader, globalItems } = sandbox.api;
-function entity(type) { return { __address: address++, type, stack: 1, prefix: 0, scale: 1, melee: true }; }
+    PlayerItemHooks, CombatLoader, PlayerLoader, GlobalItemLoader, NPCLoader, globalItems } = sandbox.api;
+function entity(type) { return { __address: address++, type, defense: 0, stack: 1, prefix: 0, scale: 1, melee: true }; }
 const weapon = entity(6145), plain = entity(6146), late = entity(6147), vanillaItem = entity(1);
 const player = (index) => {
-    const p = { __address: address++, whoAmI: index, inventory: [weapon], selectedItem: 0, statLife: 100, dead: false };
+    const p = { __address: address++, whoAmI: index, active: true, inventory: [weapon], selectedItem: 0, statLife: 100, dead: false };
     for (const entry of installed.values()) if (entry.owner === 'Terraria.Player') p[entry.key] = (...args) => invoke(entry, [p, ...args]);
     p['void ApplyMeleeScale(ref float scale)'] = ref => { if (p.meleeScaleGlove) ref.value *= 1.1; };
     Main.player[index] = p;
@@ -180,7 +190,7 @@ const player = (index) => {
 const p = player(0), targetPlayer = player(1);
 Object.defineProperty(p, 'selectedItemState', { get: () => ({ selected: p.selectedItem }) });
 const rect = { X: 0, Y: 0, Width: 10, Height: 10 };
-const npc = Object.assign(entity(697), { whoAmI: 0, Hitbox: rect }); Main.npc[0] = npc;
+const npc = Object.assign(entity(697), { whoAmI: 0, defense: 0, Hitbox: rect }); Main.npc[0] = npc;
 let nativePermission = true, nativeDamage = 20, nativeKnockback = 3, nativeCrit = false, hurtDamage = 0, lastStrike;
 const setVanilla = (owner, name, fn) => vanilla(owner, name, fn);
 setVanilla('Terraria.Player', 'GetWeaponDamage', () => 20);
@@ -204,9 +214,14 @@ setVanilla('Terraria.NPC', 'StrikeNPC', (npc, damage, kb, direction, crit, fromN
     lastStrike = { damage, kb, direction, crit, fromNet };
     return nativeDamage;
 });
+Terraria.Main['double CalculateDamagePlayersTakeInPVP(int Damage, int Defense)'];
+setVanilla('Terraria.Main', 'CalculateDamagePlayersTakeInPVP', damage => damage);
 setVanilla('Terraria.Player', 'Hurt', (player, source, damage, direction, pvp, quiet, crit) => { hurtDamage = damage; return damage; });
-setVanilla('Terraria.Player', 'ItemCheck_MeleeHitPVP', (player, item, box, damage, kb) =>
-    call('Terraria.Player', 'Hurt', targetPlayer, { _sourceNPCIndex: -1, _sourceProjectileLocalIndex: -1 }, damage, 1, true, false, false, 0, true));
+setVanilla('Terraria.Player', 'CanHit', () => true);
+setVanilla('Terraria.Player', 'ItemCheck_MeleeHitPVP', (player, item, box, damage, kb) => {
+    if (!call('Terraria.Player', 'CanHit', player, targetPlayer)) return 0;
+    return call('Terraria.Player', 'Hurt', targetPlayer, { _sourcePlayerIndex: player.whoAmI, _sourceItemType: item.type, _sourceItemPrefix: item.prefix, _sourceNPCIndex: -1, _sourceProjectileLocalIndex: -1 }, damage, 1, true, false, false, 0, true);
+});
 setVanilla('Terraria.Player', 'ItemCheck_EmitUseVisuals', () => sandbox.events.push('native.MeleeEffects'));
 let checks = 0;
 function test(name, run) {
@@ -326,7 +341,7 @@ test('forced collision affects only the attack and target rectangles', () => {
     const entry = method('Terraria.Player', 'ProcessHitAgainstNPC'), original = entry.vanilla;
     entry.vanilla = (...args) => { assert.equal(call('Microsoft.Xna.Framework.Rectangle', 'Intersects', { ...rect, X: 99 }, rect), false); return original(...args); };
     try { assert.equal(hit(), 20); } finally { entry.vanilla = original; }
-    assert.equal(flags.get('player.MeleeCollisionActive'), false);
+    assert.equal(flags.get('combat.MeleeCollisionActive'), false);
 });
 test('ModifyHitNPC changes strike fields and modifiers', () => {
     sandbox.state['item.ModifyHitNPC'] = (item, player, target, m) => { assert.equal(target, npc); m.SourceDamage.Multiplicative = 2; m.Knockback.Flat = 4; m.hitDirection = -1; m.SetCrit(); };
@@ -342,7 +357,7 @@ test('native exception restores attack flags', () => {
     const entry = method('Terraria.Player', 'ProcessHitAgainstNPC'), original = entry.vanilla;
     entry.vanilla = () => { throw Error('native failure'); };
     try { assert.throws(hit); } finally { entry.vanilla = original; }
-    assert.equal(flags.get('player.Attack'), false); assert.equal(flags.get('player.CanHitNPCActive'), false);
+    assert.equal(flags.get('combat.Strike'), false); assert.equal(flags.get('combat.CanHitNPC'), false);
 });
 test('nested item strikes restore the outer source and notification target', () => {
     const seen = [];
@@ -352,11 +367,11 @@ test('nested item strikes restore the outer source and notification target', () 
         else m.damage = 5;
     };
     hit(); assert.deepEqual(seen, [weapon, late]); assert.equal(lastStrike.damage, 40);
-    assert.equal(flags.get('player.Attack'), false);
+    assert.equal(flags.get('combat.Strike'), false);
 });
 test('nonfinite hit modifiers do not reach the native strike', () => {
     sandbox.state['item.ModifyHitNPC'] = (_, player, target, m) => { m.damage = NaN; m.knockBack = Infinity; };
-    hit(); assert.equal(lastStrike.damage, 0); assert.equal(lastStrike.kb, 0);
+    hit(); assert.equal(lastStrike.damage, 1); assert.equal(lastStrike.kb, 0);
 });
 test('item MeleeEffects receives the actual hitbox after native visuals', () => {
     sandbox.state['item.MeleeEffects'] = (item, player, box) => { assert.equal(item, weapon); assert.equal(player, p); assert.equal(box, rect); };
@@ -364,6 +379,13 @@ test('item MeleeEffects receives the actual hitbox after native visuals', () => 
     assert.deepEqual(sandbox.events, ['native.MeleeEffects', 'item.MeleeEffects']);
 });
 test('PvP veto prevents Hurt and notification', () => { sandbox.state['item.CanHitPvp'] = false; assert.equal(pvp(), 0); assert.equal(sandbox.events.includes('item.OnHitPvp'), false); });
+test('PvP veto uses the CanHit target, not a stale whoAmI', () => {
+    // Jogador ativado antes do Update dele: whoAmI ainda 0 (o do atacante).
+    const index = targetPlayer.whoAmI; targetPlayer.whoAmI = p.whoAmI;
+    sandbox.state['item.CanHitPvp'] = (_, player, target) => { assert.equal(target, targetPlayer); return false; };
+    try { assert.equal(pvp(), 0); } finally { targetPlayer.whoAmI = index; }
+    assert.equal(sandbox.events.includes('item.CanHitPvp'), true); assert.equal(sandbox.events.includes('item.OnHitPvp'), false);
+});
 test('PvP modifiers reach native Hurt and actual damage notification', () => {
     sandbox.state['item.ModifyHitPvp'] = (item, player, target, m) => { assert.equal(item, weapon); assert.equal(player, p); assert.equal(target, targetPlayer); m.damage = 35; m.crit = true; };
     sandbox.state['item.OnHitPvp'] = (_, player, target, info) => { assert.equal(info.Damage, 35); assert.equal(info.Crit, true); };
@@ -377,18 +399,18 @@ test('failed PvP strike does not notify', () => {
 test('PvP context and flags restore after native failure', () => {
     const entry = method('Terraria.Player', 'ItemCheck_MeleeHitPVP'), original = entry.vanilla; entry.vanilla = () => { throw Error('native failure'); };
     try { assert.throws(pvp); } finally { entry.vanilla = original; }
-    assert.equal(PlayerCombatHooks.PvpAttack, null); assert.equal(flags.get('player.HurtActive'), false);
+    assert.equal(CombatLoader.PvpAttack, null); assert.equal(flags.get('combat.Hurt'), true);
 });
 test('nested PvP scopes restore their outer weapon', () => {
     const entry = method('Terraria.Player', 'ItemCheck_MeleeHitPVP'), original = entry.vanilla;
     entry.vanilla = (player, item, ...args) => {
         if (item === weapon) {
-            pvp(late); assert.equal(PlayerCombatHooks.PvpAttack.item, weapon);
+            pvp(late); assert.equal(CombatLoader.PvpAttack.item, weapon);
         }
         return original(player, item, ...args);
     };
     try { pvp(); } finally { entry.vanilla = original; }
-    assert.equal(PlayerCombatHooks.PvpAttack, null);
+    assert.equal(CombatLoader.PvpAttack, null);
 });
 test('callback failure is isolated and attributed to the class and method', () => {
     sandbox.state['item.ModifyWeaponDamage'] = () => { throw Error('callback failure'); };
@@ -403,7 +425,7 @@ test('item copies have independent callback state', () => {
 globalItems.list.push(new GlobalMod()); GlobalItemLoader.Hook(GlobalMod);
 PlayerLoader.Add(PlayerMod);
 for (const key of ['player.WeaponDamage', 'player.WeaponCrit', 'player.WeaponKnockback', 'player.ItemScale', 'player.ItemHitbox']) ItemCombatHooks.All(key);
-PlayerItemHooks.Install(PlayerMod); PlayerCombatHooks.Install(PlayerMod); PlayerLoader.InstallNPCContact();
+PlayerItemHooks.Install(PlayerMod); CombatLoader.WantPlayer(PlayerMod); CombatLoader.InstallHurt(true);
 test('weapon damage composes item, global and player in one native hook', () => {
     sandbox.state['item.ModifyWeaponDamage'] = (_, player, m) => { m.Flat = 2; };
     sandbox.state['global.ModifyWeaponDamage'] = (_, player, m) => { m.Multiplicative = 2; };
@@ -468,14 +490,14 @@ for (const order of ['item global player', 'global player item', 'player item gl
     const local = vm.createContext({
         Terraria: { Player: { 'int GetWeaponDamage(Item sItem)': damageMethod } },
         FIRST_ITEM: 6145, SceneEffectPriority: { BossLow: 0 },
-        PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other,
+        ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other,
         Entities: { InstanceOf: (item, field, templates) => item[field] || (item[field] = Object.assign(Object.create(Object.getPrototypeOf(templates.get(item.type))), templates.get(item.type))) },
         Safe: { Report: (name, e) => issues.push([name, e]), Run: (name, fn) => fn() },
         bl: { mod: { uuid: 'order' }, addressOf: value => value.__address,
             hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
     });
     for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js',
-        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
+        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'HitModifiers.js', 'HitInfo.js', 'HurtModifiers.js', 'HurtInfo.js', 'Loaders/CombatLoader.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
         vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local, { filename: file });
     }
     vm.runInContext(`

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(bunny CXX C)
+project(bunny CXX C ASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,20 +48,20 @@ configure_file(
 # (um escopo so, privado) e embutidos como um texto. A ordem importa: a base
 # antes do `extends`, e as classes que um inicializador estatico usa antes dele.
 set(BL_MOD_CLASSES_PARTS
-    Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
+    Core/Constants Core/Safe Core/Hooks Core/SharedHooks Core/Ready Core/Entities Core/DrawBatches Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
-    Enums/CommandType Enums/TooltipNames
+    Enums/CommandType Enums/TooltipNames Enums/TreeTypes
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
     StatModifier HitModifiers HitInfo HurtModifiers HurtInfo StatInheritanceData DamageClass Loaders/DamageClassLoader
     Loaders/RecipeLoader ModRecipe
-    Loaders/ItemLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
+    Loaders/ItemLoader Loaders/ItemDrawLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader Loaders/ItemPickupLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
     EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
-    Loaders/CombatLoader Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
+    Loaders/CombatLoader Loaders/PvpItemNetwork Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
     Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
@@ -73,10 +73,12 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
     Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader Loaders/ChestNetworkHooks
-    ModTile TileRestingInfo
+    ModTile ModBannerTile TileRestingInfo Loaders/TileEntityLoader ModTileEntity TEModdedPylon Loaders/TreeLoader ModTree
+    Loaders/PylonLoader ModPylon
     Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
-    NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
+    Loaders/BossBarLoader ModBossBar
+    NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries
@@ -84,7 +86,16 @@ set(BL_MOD_CLASSES_PARTS
     GlobalLoot Loaders/GlobalLootLoader
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
-    Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu Loaders/HostSettingsMenu Loaders/ServerSyncLoader Loaders/ServerSyncMenu
+    Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu Loaders/MenuThemeSetting Loaders/HostSettingsMenu Loaders/ServerSyncLoader Loaders/ServerSyncMenu
+    Effects/ScreenSpace Effects/Easing Effects/ColorMath Effects/ScreenShader Effects/ScreenTarget Effects/ScreenTexture
+    Effects/ScreenPasses Effects/ScreenMask Effects/ScreenTween Effects/ScreenCurve
+    Effects/ScreenGraphics Effects/ScreenUtils Effects/ScreenFrame Effects/ScreenCommands Effects/DistortionMap
+    Effects/ScreenEffects Effects/ModScreenEffect
+    Effects/Presets/Twirl Effects/Presets/Shockwave Effects/Presets/Blur Effects/Presets/Bloom Effects/Presets/Echo
+    Effects/Presets/BlackHole Effects/Presets/HeatHaze Effects/Presets/Tint Effects/Presets/ColorGrade
+    Effects/Presets/Vignette Effects/Presets/Ripple Effects/Presets/ForceField Effects/Presets/ChromaticAberration
+    Effects/Presets/Pixelate Effects/Presets/Flash Effects/Presets/Glitch Effects/Presets/ZoomBlur Effects/Presets/Lens
+    Effects/ScreenPresets Effects/ScreenDebug Effects/ScreenFxCommand Loaders/ScreenEffectsSetting
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")
@@ -111,7 +122,10 @@ configure_file(
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
-add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})
+# O trampolim da chamada guardada (il2cpp/GuardedCall.h), em assembly.
+file(GLOB_RECURSE BL_ASM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.S)
+
+add_library(bunny SHARED ${BL_SOURCES} ${BL_ASM_SOURCES} ${BL_QUICKJS_SOURCES})
 
 target_include_directories(bunny PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -122,14 +136,12 @@ endif()
 
 target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 
-# Abi.cpp e o UNICO que entra no codigo do jogo por chamada direta, e uma
-# excecao gerida pelo IL2CPP e uma excecao C++ de verdade. Sem tabela de
-# desenrolar aqui, ela passaria por um frame -fno-exceptions e chamaria
-# std::terminate. -fexceptions so neste arquivo custa as tabelas dele e nada
-# mais; -fno-rtti continua valendo (catch(...) nao precisa de RTTI).
-# MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
-# milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
-set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
-    content/textures/TexturePacks.cpp
-    PROPERTIES COMPILE_OPTIONS -fexceptions)
+# Sem -fexceptions em arquivo nenhum. Uma excecao do jogo vem do __cxa_throw
+# do libil2cpp, com o desenrolador do libgcc; um `catch` daqui, ou um frame
+# daqui com destrutor pendente, usaria a personalidade da libbunny, que le o
+# contexto como o do LLVM libunwind e derruba o processo. Quem chama codigo do
+# jogo e pode ver uma excecao usa o il2cpp::guardedCall (il2cpp/GuardedCall.S),
+# que nao depende de desenrolador. Um hook nativo no meio da pilha do jogo (o
+# loadHook do TexturePacks.cpp) nao precisa de nada: sem personalidade, o frame
+# dele e so atravessado (um destrutor pendente ali fica sem rodar).
 target_link_libraries(bunny shadowhook::shadowhook log dl)

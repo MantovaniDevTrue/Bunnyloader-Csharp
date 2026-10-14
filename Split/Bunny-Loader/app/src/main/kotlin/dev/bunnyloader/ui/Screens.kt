@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +23,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -142,13 +144,13 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
             val featured = shell.entries.firstOrNull { it.manifest.featured }
                 ?: shell.entries.firstOrNull()
             if (featured != null) {
-                SectionTitle("Em destaque")
+                SectionTitle(tr("Em destaque"))
                 FeaturedCard(featured, shell, onOpen)
             }
 
             val populares = shell.catalogEntries.filter { it.uid != featured?.uid }.take(3)
             if (populares.isNotEmpty()) {
-                SectionTitle("Populares")
+                SectionTitle(tr("Populares"))
                 for (e in populares) {
                     ModRow(e, shell.catalog, { onOpen(e.uid) }, Modifier.padding(bottom = 8.dp))
                 }
@@ -204,7 +206,7 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
             ) {
                 PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
                 Spacer(Modifier.weight(1f))
-                PixelText("Ver detalhes", size = Ts.Small, color = Bl.PressedText)
+                PixelText(tr("Ver detalhes"), size = Ts.Small, color = Bl.PressedText)
                 PixelIcon(R.drawable.ic_seta_esq, 16.dp, Modifier.rotate(180f))
             }
         }
@@ -212,6 +214,9 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 }
 
 // =============================== Explorar ===============================
+
+/** Quantos cartões o Explorar acrescenta por vez. */
+private const val EXPLORE_PAGE = 10
 
 /**
  * O que vem dentro do app e o catálogo online. É daqui que um mod vai parar em
@@ -233,6 +238,17 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     }
     val state = rememberLazyListState()
     LaunchedEffect(type, query) { state.scrollToItem(0) }
+    // De 10 em 10: o catálogo vai passar de mil pacotes, e cada cartão que
+    // aparece pede o ícone pela rede. A próxima página entra quando a rolagem
+    // chega perto do fim; trocar de busca ou de tipo volta à primeira.
+    var shown by rememberSaveable(type, query) { mutableIntStateOf(EXPLORE_PAGE) }
+    val page = remember(list, shown) { list.take(shown) }
+    LaunchedEffect(state, list.size, type, query) {
+        snapshotFlow { state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .collect { last ->
+                if (last >= shown - 3 && shown < list.size) shown = (shown + EXPLORE_PAGE).coerceAtMost(list.size)
+            }
+    }
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
@@ -251,18 +267,25 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(list, key = { it.uid }, contentType = { "package" }) { e ->
+                    items(page, key = { it.uid }, contentType = { "package" }) { e ->
                         ModRow(e, shell.catalog, { onOpen(e.uid) }) {
                             val progress = shell.downloads[e.uid]
                             when {
                                 progress != null -> PixelTag("${(progress * 100).toInt()}%")
-                                shell.updateFor(e.uid) != null -> PixelTag("Atualizar", Bl.Good)
-                                e.uid in shell.installed -> PixelTag("Instalado")
+                                shell.updateFor(e.uid) != null -> PixelTag(tr("Atualizar"), Bl.Good)
+                                e.uid in shell.installed -> PixelTag(tr("Instalado"))
                             }
                         }
                     }
+                    if (page.size < list.size) {
+                        item(key = "more", contentType = "more") {
+                            PixelText(tr("Carregando mais... (%1\$s de %2\$s)", page.size, list.size), size = Ts.Small,
+                                color = Bl.TextFaint, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                align = TextAlign.Center)
+                        }
+                    }
                     if (list.isEmpty() && shell.remoteStatus != RemoteStatus.Loading) {
-                        item { Empty("Nenhum pacote corresponde aos filtros.") }
+                        item { Empty(tr("Nenhum pacote corresponde aos filtros.")) }
                     }
                 }
                 PixelScrollbar(state, Modifier.fillMaxSize())
@@ -280,11 +303,11 @@ private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
     if (status !is RemoteStatus.Failed) return
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PixelText(
-            "Catálogo online: ${status.message}." +
-                if (shell.remote.isEmpty()) "" else " Mostrando a última lista baixada.",
+            tr("Catálogo online: %1\$s.", status.message) +
+                if (shell.remote.isEmpty()) "" else tr(" Mostrando a última lista baixada."),
             size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
         )
-        PixelButton("Tentar de novo", { shell.refreshRemote(force = true) },
+        PixelButton(tr("Tentar de novo"), { shell.refreshRemote(force = true) },
             fontSize = Ts.Small, shadow = false)
     }
 }
@@ -294,7 +317,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
     Box(modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false)
         .padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (value.isEmpty()) {
-            PixelText("Nome, autor ou categoria...", size = Ts.Body, color = Bl.TextMuted)
+            PixelText(tr("Nome, autor ou categoria..."), size = Ts.Body, color = Bl.TextMuted)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             BasicTextField(
@@ -308,7 +331,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
                 modifier = Modifier.weight(1f),
             )
             if (value.isNotEmpty()) {
-                Box(Modifier.semantics { contentDescription = "Limpar busca" }
+                Box(Modifier.semantics { contentDescription = tr("Limpar busca") }
                     .pixelClickable { onChange("") }.padding(4.dp)) {
                     PixelIcon(R.drawable.ic_fechar, 18.dp)
                 }
@@ -331,20 +354,28 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf<String?>(null) }
-    var status by rememberSaveable { mutableStateOf(PackageStatus.ALL) }
-    var sort by rememberSaveable { mutableStateOf(PackageSort.LOAD) }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
-    var showFilters by rememberSaveable { mutableStateOf(false) }
     val search = rememberPackageSearchIndex(shell.packages)
-    val categories = remember(shell.packages, type) { packageCategories(shell.packages, type) }
-    val packages = remember(shell.packages, shell.enabled, status, sort, type, query, category) {
-        filterPackages(shell.packages, shell.enabled, status, sort, type, query, category, search)
+    val packages = remember(shell.packages, shell.enabled, type, query) {
+        filterPackages(shell.packages, shell.enabled, PackageStatus.ALL, PackageSort.LOAD, type, query, index = search)
     }
     val counts = remember(shell.packages) { shell.packages.groupingBy { it.manifest.packType }.eachCount() }
-    val manualOrder = status == PackageStatus.ALL && sort == PackageSort.LOAD && query.isBlank() && category == null
+    val manualOrder = query.isBlank()
     val state = rememberLazyListState()
-    LaunchedEffect(status, sort, type, query, category) { state.scrollToItem(0) }
+    LaunchedEffect(type, query) { state.scrollToItem(0) }
+    // Cada troca de lugar pedida por toque (interruptor, setas) anima a lista
+    // por um instante; o arraste não (ver DraggablePackageList). A animação liga
+    // no próprio toque, no mesmo quadro em que a ordem muda: ligada depois,
+    // a lista já teria pulado para o lugar novo.
+    var moves by remember { mutableIntStateOf(0) }
+    var animateMoves by remember { mutableStateOf(false) }
+    var movedUid by remember { mutableStateOf<String?>(null) }
+    val animateNextMove = { uid: String -> animateMoves = true; movedUid = uid; moves++ }
+    LaunchedEffect(moves) {
+        if (moves == 0) return@LaunchedEffect
+        delay(MOVE_MS + 250L)
+        animateMoves = false
+    }
     // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var asking by remember { mutableStateOf(false) }
@@ -358,8 +389,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             shell.importPackage(uri) { result ->
                 importing = false
                 aviso = result.fold(
-                    onSuccess = { "${it.name} instalado" to true },
-                    onFailure = { "Não deu: ${it.message}" to false },
+                    onSuccess = { tr("%1\$s instalado", it.name) to true },
+                    onFailure = { tr("Não deu: %1\$s", it.message) to false },
                 )
             }
         }
@@ -370,25 +401,25 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             Modifier.fillMaxWidth().padding(start = EdgePad, end = EdgePad, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PixelText("Pacotes", size = Ts.Big, modifier = Modifier.weight(1f))
-            PixelText("${shell.enabled.size}/${shell.installed.size} ligados",
+            PixelText(tr("Pacotes"), size = Ts.Big, modifier = Modifier.weight(1f))
+            PixelText(tr("%1\$s/%2\$s ligados", shell.enabled.size, shell.installed.size),
                 size = Ts.Body, color = Bl.TextFaint)
         }
 
         Box(Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp)) {
             PixelButton(
-                if (importing) "Importando..." else "Importar pacote",
+                if (importing) tr("Importando...") else tr("Importar pacote"),
                 { if (!importing) asking = true },
                 Modifier.fillMaxWidth(),
                 icon = R.drawable.ic_folder,
             )
         }
         if (asking) {
-            PixelDialog("Importar pacote", onDismiss = { asking = false }) {
+            PixelDialog(tr("Importar pacote"), onDismiss = { asking = false }) {
                 for (line in listOf(
-                    "Um mod roda código dentro do jogo: só instale pacotes de quem você confia.",
-                    "O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/.",
-                    "Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual.",
+                    tr("Um mod roda código dentro do jogo: só instale pacotes de quem você confia."),
+                    tr("O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/."),
+                    tr("Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual."),
                 )) {
                     Row {
                         PixelText("•", size = Ts.Body, color = Bl.PressedText, modifier = Modifier.padding(end = 8.dp))
@@ -396,8 +427,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PixelButton("Cancelar", { asking = false }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
-                    PixelButton("Escolher arquivo", { asking = false; picker.launch(arrayOf("*/*")) },
+                    PixelButton(tr("Cancelar"), { asking = false }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+                    PixelButton(tr("Escolher arquivo"), { asking = false; picker.launch(arrayOf("*/*")) },
                         Modifier.weight(1f), fill = Bl.TitleFill, fontSize = Ts.Body, shadow = false)
                 }
             }
@@ -410,23 +441,11 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             PixelText(it, size = Ts.Small, color = Bl.Bad, modifier = Modifier.padding(horizontal = EdgePad))
         }
         SearchField(query, { query = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
-        PackTypeTabs(type, counts, { type = it; category = null }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
-        FilterResultLine(packages.size, query.isNotBlank() || category != null || status != PackageStatus.ALL || sort != PackageSort.LOAD,
-            { query = ""; category = null; status = PackageStatus.ALL; sort = PackageSort.LOAD },
-            Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp),
-            onToggle = { showFilters = !showFilters }, expanded = showFilters)
-        if (showFilters) {
-            CategoryFilter(categories, category, { category = it }, Modifier.padding(horizontal = EdgePad))
-            PackageFilterControls(status, { status = it }, sort, { sort = it },
-                Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
-        } else {
-            val selectedFilters = listOfNotNull(category, status.takeIf { it != PackageStatus.ALL }?.label,
-                sort.takeIf { it != PackageSort.LOAD }?.label)
-            if (selectedFilters.isNotEmpty()) PixelText(selectedFilters.joinToString(" · "),
-                size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(horizontal = EdgePad))
-        }
-        PixelText(if (manualOrder) "Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro."
-                  else "Para mover, limpe a busca e escolha Todos e Ordem de carga.", size = Ts.Small, color = Bl.TextFaint,
+        PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
+        FilterResultLine(packages.size, query.isNotBlank(), { query = "" },
+            Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
+        PixelText(if (manualOrder) tr("Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro.")
+                  else tr("Para mover, limpe a busca."), size = Ts.Small, color = Bl.TextFaint,
             modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
 
         DraggablePackageList(
@@ -435,10 +454,12 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             enabledUids = shell.enabled,
             reorderEnabled = manualOrder,
             onDrop = shell::moveModTo,
+            animateMoves = animateMoves,
+            raisedUid = movedUid,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) "Lendo pacotes..."
-                           else if (shell.installed.isEmpty()) "Nenhum pacote. Pegue um em Explorar ou importe um .bmod."
-                           else "Nenhum pacote neste filtro.") },
+            empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) tr("Lendo pacotes...")
+                           else if (shell.installed.isEmpty()) tr("Nenhum pacote. Pegue um em Explorar ou importe um .bmod.")
+                           else tr("Nenhum pacote neste filtro.")) },
         ) { index, modifier, preview ->
             val e = packages[index]
             // Ligado: o cartão inteiro fica verde, e a lista se lê de longe.
@@ -449,14 +470,19 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                 val canMoveUp = index > 0 && (packages[index - 1].uid in shell.enabled) == (e.uid in shell.enabled)
                 val canMoveDown = index < packages.lastIndex && (packages[index + 1].uid in shell.enabled) == (e.uid in shell.enabled)
                 ModOrderButtons(e.manifest.name, canMoveUp, canMoveDown,
-                    { if (!preview) shell.moveModTo(e.uid, packages[index - 1].uid) },
-                    { if (!preview) shell.moveModTo(e.uid, packages[index + 1].uid) })
+                    { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index - 1].uid) } },
+                    { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index + 1].uid) } })
             }) else null) {
                 SwitchSprite(e.uid in shell.enabled) {
                     if (!preview) {
-                        // O LazyColumn ancora a rolagem na chave do primeiro item visível: sem
-                        // isto, o cartão que muda de grupo arrasta a tela junto com ele.
-                        state.requestScrollToItem(state.firstVisibleItemIndex, state.firstVisibleItemScrollOffset)
+                        // O LazyColumn ancora a rolagem na chave do primeiro item visível.
+                        // No topo, a âncora é o item vazio da lista e o cartão desliza;
+                        // rolada até este cartão, ela o seguiria e levaria a tela junto:
+                        // aí a rolagem fica fixa, e o cartão troca de lugar sem animação.
+                        if (state.anchoredAt(e.uid)) {
+                            state.requestScrollToItem(state.firstVisibleItemIndex, state.firstVisibleItemScrollOffset)
+                        }
+                        animateNextMove(e.uid)
                         shell.setEnabled(e.uid, e.uid !in shell.enabled)
                     }
                 }
@@ -464,10 +490,6 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         }
     }
 }
-
-private fun packageCategories(packages: List<Catalog.Entry>, type: PackType): List<String> =
-    packages.filter { it.manifest.packType == type }.map { it.manifest.category }
-        .filter { it.isNotBlank() }.distinct().sorted()
 
 @Composable
 private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSearchIndex {
@@ -477,73 +499,13 @@ private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSe
 }
 
 @Composable
-private fun CategoryFilter(categories: List<String>, selected: String?, onSelect: (String?) -> Unit,
-                           modifier: Modifier = Modifier) {
-    if (categories.size < 2 && selected == null) return
-    Row(modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (category in listOf<String?>(null) + categories) {
-            Box(Modifier.pixelPanel(fill = if (category == selected) Bl.TitleFill else Bl.Select)
-                .pixelClickable { onSelect(category) }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                PixelText(category ?: "Todas as categorias", size = Ts.Small,
-                    color = if (category == selected) Bl.PressedText else Bl.TextDim)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier,
-                             onToggle: (() -> Unit)? = null, expanded: Boolean = false) {
+private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        PixelText("$count ${if (count == 1) "pacote" else "pacotes"}", size = Ts.Small,
+        PixelText(tr(if (count == 1) "%1\$s pacote" else "%1\$s pacotes", count), size = Ts.Small,
             color = Bl.TextFaint, modifier = Modifier.weight(1f))
-        if (onToggle != null) {
-            Box(Modifier.pixelClickable(onToggle).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                PixelText(if (expanded) "Ocultar filtros" else "Filtros", size = Ts.Small, color = Bl.PressedText)
-            }
-        }
         if (active) {
             Box(Modifier.pixelClickable(onReset).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                PixelText("Limpar filtros", size = Ts.Small, color = Bl.PressedText)
-            }
-        }
-    }
-}
-
-@Composable
-private fun PackageFilterControls(
-    status: PackageStatus, onStatus: (PackageStatus) -> Unit,
-    sort: PackageSort, onSort: (PackageSort) -> Unit, modifier: Modifier = Modifier,
-) {
-    val show: @Composable (Modifier) -> Unit = { m ->
-        Column(m) {
-            PixelText("Mostrar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
-            PixelSelect(status.label,
-                { onStatus(PackageStatus.entries[(status.ordinal - 1).mod(PackageStatus.entries.size)]) },
-                { onStatus(PackageStatus.entries[(status.ordinal + 1).mod(PackageStatus.entries.size)]) },
-                label = "Mostrar mods")
-        }
-    }
-    val order: @Composable (Modifier) -> Unit = { m ->
-        Column(m) {
-            PixelText("Ordenar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
-            PixelSelect(sort.label,
-                { onSort(PackageSort.entries[(sort.ordinal - 1).mod(PackageSort.entries.size)]) },
-                { onSort(PackageSort.entries[(sort.ordinal + 1).mod(PackageSort.entries.size)]) },
-                label = "Ordenar mods")
-        }
-    }
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth >= 320.dp) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                show(Modifier.weight(1f))
-                order(Modifier.weight(1f))
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                show(Modifier.fillMaxWidth())
-                order(Modifier.fillMaxWidth())
+                PixelText(tr("Limpar busca"), size = Ts.Small, color = Bl.PressedText)
             }
         }
     }
@@ -581,86 +543,81 @@ fun ConfigTab(
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
             ProfileHeader(prefs, Modifier.padding(top = 14.dp))
 
-            SectionTitle("Coleção")
+            SectionTitle(tr("Coleção"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("${shell.installed.size}", "instalados", Modifier.weight(1f))
-                Stat("${shell.enabled.size}", "ligados", Modifier.weight(1f))
-                Stat("${shell.catalogEntries.size}", "no catálogo", Modifier.weight(1f))
+                Stat("${shell.installed.size}", tr("instalados"), Modifier.weight(1f))
+                Stat("${shell.enabled.size}", tr("ligados"), Modifier.weight(1f))
+                Stat("${shell.catalogEntries.size}", tr("no catálogo"), Modifier.weight(1f))
             }
 
-            SectionTitle("Mundos e personagens")
+            SectionTitle(tr("Mundos e personagens"))
             SavesCard()
 
-            SectionTitle("Aparência")
+            SectionTitle(tr("Aparência"))
+            LanguagePicker()
             SceneryPicker(scenery, onScenery)
             Setting(
-                "Efeitos do tema",
-                "Cada cenário tem o seu: folhas e cartões balançando na Floresta, chuva e brilho " +
-                    "molhado no Oceano, bolhas no Lago, neve na Neve. Desligado, o fundo fica parado.",
+                tr("Efeitos do tema"),
+                tr("Cada cenário tem o seu: folhas e cartões balançando na Floresta, chuva e brilho molhado no Oceano, bolhas no Lago, neve na Neve. Desligado, o fundo fica parado."),
                 themeEffects,
                 onThemeEffects,
             )
 
-            SectionTitle("Mods")
+            SectionTitle(tr("Mods"))
             Setting(
-                "Ligar ao instalar",
-                "Um pacote recém-instalado já entra valendo no próximo boot.",
+                tr("Ligar ao instalar"),
+                tr("Um pacote recém-instalado já entra valendo no próximo boot."),
                 enableNewMods,
             ) { enableNewMods = it; prefs.enableOnInstall = it }
             Setting(
-                "Mostrar erro dentro do jogo",
-                "Quando um mod quebra, o log aparece na tela em vez de só no logcat.",
+                tr("Mostrar erro dentro do jogo"),
+                tr("Quando um mod quebra, o log aparece na tela em vez de só no logcat."),
                 errorPanel,
             ) { errorPanel = it; prefs.errorPanel = it }
             Setting(
-                "Log detalhado",
-                "O log de sessão (pasta logs/) ganha cada tabela, hook e tipo que o núcleo " +
-                    "registra. Desligado, fica o resumo e as linhas dos mods.",
+                tr("Log detalhado"),
+                tr("O log de sessão (pasta logs/) ganha cada tabela, hook e tipo que o núcleo registra. Desligado, fica o resumo e as linhas dos mods."),
                 verboseLog,
             ) { verboseLog = it; prefs.verboseLog = it }
             Setting(
-                "Canal de comando por arquivo",
-                "Aceita comandos via adb durante o jogo. Só para desenvolver.",
+                tr("Canal de comando por arquivo"),
+                tr("Aceita comandos via adb durante o jogo. Só para desenvolver."),
                 devChannel,
             ) { devChannel = it; prefs.devChannel = it }
 
-            SectionTitle("Desenvolvedor")
+            SectionTitle(tr("Desenvolvedor"))
             QuickStartCard(prefs)
             Setting(
-                "Mod Menu",
-                "O botão do coelho dentro do jogo: poderes, itens, NPCs e buffs. Desligado, " +
-                    "nenhum poder volta ligado da última partida.",
+                tr("Mod Menu"),
+                tr("O botão do coelho dentro do jogo: poderes, itens, NPCs e buffs. Desligado, nenhum poder volta ligado da última partida."),
                 modMenu,
             ) { modMenu = it; prefs.devModMenu = it }
             Setting(
-                "Editor de JS",
-                "Roda JavaScript dentro do jogo. O ícone flutuante de JS fica disponível " +
-                    "desde o menu inicial, com ou sem o Mod Menu.",
+                tr("Editor de JS"),
+                tr("Roda JavaScript dentro do jogo. O ícone flutuante de JS fica disponível desde o menu inicial, com ou sem o Mod Menu."),
                 editor,
             ) { editor = it; prefs.devEditor = it }
             Setting(
-                "Reiniciar",
-                "O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu " +
-                    "e no Editor).",
+                tr("Reiniciar"),
+                tr("O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu e no Editor)."),
                 restart,
             ) { restart = it; prefs.devRestart = it }
 
-            SectionTitle("Diagnóstico")
+            SectionTitle(tr("Diagnóstico"))
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     PixelText(
-                        "O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o " +
-                            "texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod.",
+                        tr("O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod."),
                         size = Ts.Small, color = Bl.TextDim,
                     )
                     Row(
                         Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PixelButton("Ver relatório", { log = BootLog.read(ctx) },
+                        PixelButton(tr("Ver relatório"), { log = BootLog.read(ctx) },
                             fontSize = Ts.Small, shadow = false)
                         if (log.isNotEmpty()) {
-                            PixelButton("Copiar", {
+                            PixelButton(tr("Copiar"), {
                                 clipboard.setText(AnnotatedString(log))
                             }, fontSize = Ts.Small, shadow = false)
                         }
@@ -676,20 +633,45 @@ fun ConfigTab(
                 }
             }
 
-            SectionTitle("Sobre")
+            SectionTitle(tr("Sobre"))
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Field("Bunny Loader", "v${dev.bunnyloader.BuildConfig.VERSION_NAME}")
                     Spacer(Modifier.height(8.dp))
                     Field(
-                        "Terraria embutido",
+                        tr("Terraria embutido"),
                         "${BundledRuntime.VERSION_NAME} (${BundledRuntime.VERSION_CODE})",
                     )
                 }
             }
+            LicensesCard(Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(16.dp))
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+private fun LanguagePicker() {
+    val context = LocalContext.current
+    val options = listOf("", "pt-BR", "en", "ru", "es")
+    val names = listOf(tr("Automático"), "Português (Brasil)", "English", "Русский", "Español")
+    val index = options.indexOf(UiLocalization.choice).coerceAtLeast(0)
+    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Column(Modifier.padding(12.dp).fillMaxWidth()) {
+            PixelText(tr("Idioma"), size = Ts.Item)
+            PixelText(
+                tr("Usar o idioma do aparelho. A escolha também vale para o Mod Menu na próxima abertura do jogo."),
+                size = Ts.Small, color = Bl.TextFaint,
+            )
+            PixelSelect(
+                names[index],
+                label = tr("Idioma"),
+                onPrev = { UiLocalization.select(context, options[(index - 1).mod(options.size)]) },
+                onNext = { UiLocalization.select(context, options[(index + 1).mod(options.size)]) },
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
     }
 }
 
@@ -701,11 +683,11 @@ fun ConfigTab(
 private fun SceneryPicker(choice: String, onChoice: (String) -> Unit) {
     val options = listOf("") + Biome.entries.map { it.name }
     val i = options.indexOf(choice).coerceAtLeast(0)
-    val label = Biome.entries.firstOrNull { it.name == choice }?.label ?: "Automático"
+    val label = Biome.entries.firstOrNull { it.name == choice }?.label?.let { tr(it) } ?: tr("Automático")
     PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText("Cenário", size = Ts.Item)
-            PixelText("O fundo do launcher. O céu segue o relógio do celular; no automático, o cenário troca a cada abertura.",
+            PixelText(tr("Cenário"), size = Ts.Item)
+            PixelText(tr("O fundo do launcher. O céu segue o relógio do celular; no automático, o cenário troca a cada abertura."),
                 size = Ts.Small, color = Bl.TextFaint)
             PixelSelect(
                 label,
@@ -759,10 +741,9 @@ private fun QuickStartCard(prefs: Prefs) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                    PixelText("Início rápido", size = Ts.Item)
+                    PixelText(tr("Início rápido"), size = Ts.Item)
                     PixelText(
-                        "A logo da Re-Logic some assim que o jogo termina de carregar, e o jogo " +
-                            "entra direto no mundo abaixo. Vale também para o Reiniciar do Mod Menu.",
+                        tr("A logo da Re-Logic some assim que o jogo termina de carregar, e o jogo entra direto no mundo abaixo. Vale também para o Reiniciar do Mod Menu."),
                         size = Ts.Small, color = Bl.TextFaint,
                     )
                 }
@@ -770,15 +751,15 @@ private fun QuickStartCard(prefs: Prefs) {
             }
             if (on) {
                 if (saves == null) {
-                    PixelText("Carregando personagens e mundos...", size = Ts.Small,
+                    PixelText(tr("Carregando personagens e mundos..."), size = Ts.Small,
                         modifier = Modifier.padding(top = 10.dp))
                 } else if (player == null) {
                     PixelText(
-                        "Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título.",
+                        tr("Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título."),
                         size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),
                     )
                 } else {
-                    PixelText("Personagem", size = Ts.Small, color = Bl.TextFaint,
+                    PixelText(tr("Personagem"), size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(top = 10.dp))
                     val pi = players.indexOf(player)
                     PixelSelect(
@@ -787,21 +768,21 @@ private fun QuickStartCard(prefs: Prefs) {
                         onNext = { playerFile = players[(pi + 1).mod(players.size)].file },
                         modifier = Modifier.padding(top = 4.dp),
                     )
-                    PixelText("Mundo", size = Ts.Small, color = Bl.TextFaint,
+                    PixelText(tr("Mundo"), size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(top = 8.dp))
                     val wi = worldOptions.indexOf(world)
                     val pickWorld = { i: Int ->
                         worldFile = worldOptions[i.mod(worldOptions.size)]?.file ?: Prefs.TITLE_ONLY
                     }
                     PixelSelect(
-                        world?.let { saveLabel(it) } ?: "Nenhum: parar no título",
+                        world?.let { saveLabel(it) } ?: tr("Nenhum: parar no título"),
                         onPrev = { pickWorld(wi - 1) },
                         onNext = { pickWorld(wi + 1) },
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     if (fitting.isEmpty()) {
                         PixelText(
-                            if (player.journey) "Nenhum mundo de Jornada salvo." else "Nenhum mundo salvo.",
+                            if (player.journey) tr("Nenhum mundo de Jornada salvo.") else tr("Nenhum mundo salvo."),
                             size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 6.dp),
                         )
                     }
@@ -811,7 +792,7 @@ private fun QuickStartCard(prefs: Prefs) {
     }
 }
 
-private fun saveLabel(save: SaveFiles.Save) = if (save.journey) "${save.name} (Jornada)" else save.name
+private fun saveLabel(save: SaveFiles.Save) = if (save.journey) tr("%1\$s (Jornada)", save.name) else save.name
 
 /** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
 @Composable

@@ -264,6 +264,8 @@ const TileSetsExtras = Object.freeze({
     IsValidSpawnPoint: TypeSet(false, { 79: true }),
     MultiTileSway: TypeSet(false),
     CanDropFromRightClick: TypeSet(false),
+    // A muda que cresce em árvore (a 20 do jogo e as de mod): o TreeLoader a faz crescer.
+    TreeSapling: TypeSet(false, { 20: true }),
     // Lido no PlaceThing pelo TileUseLoader (o jogo tem a lista fixa).
     CanPlaceNextToNonSolidTile: TypeSet(false),
     // Só guardam o valor: o jogo daqui não os consulta.
@@ -474,7 +476,9 @@ const DustIDExtras = Object.freeze({
     MechanicalCart: 260, BloodWater: 266, LastPrism: 267,
 });
 
-// Main.netMode: 0 sozinho, 1 cliente, 2 servidor.
+// Main.netMode: 0 sozinho, 1 cliente, 2 servidor. No celular é campo de bits e
+// quem hospeda e joga fica com 3: "sou o servidor" é (Main.netMode & 2), e o
+// === NetmodeID.Server só pega o dedicado (sem tela).
 const NetmodeID = Object.freeze({ SinglePlayer: 0, MultiplayerClient: 1, Server: 2 });
 
 const NPCAIStyleID = Object.freeze({

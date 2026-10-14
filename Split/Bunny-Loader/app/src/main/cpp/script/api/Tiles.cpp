@@ -5,6 +5,7 @@
 #include "content/tiles/ModDoors.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
 #include "content/tiles/ModWater.h"
 #include "script/bridge/Bridge.h"
 #include "script/api/Items.h"
@@ -185,13 +186,13 @@ const DrawField kDrawFields[] = {
  * do objeto e o desenho usa o que voltar. Motor ocupado por muito tempo: a
  * celula sai como o jogo a montou (false: nao entra no cache).
  */
-bool onDrawData(int x, int y, int type, runtime::TileDrawData* d) {
+bool onDrawData(int x, int y, int type, runtime::TileDrawData* d, bool special) {
     JsLock lock(500);
     if (!lock.held() || !g_ctx || !JS_IsFunction(g_ctx, g_drawDataFn)) return false;
     JSContext* ctx = g_ctx;
     for (const DrawField& f : kDrawFields) JS_SetPropertyStr(ctx, g_drawDataObj, f.name, JS_NewInt32(ctx, d->*f.member));
-    JSValue args[4] = {JS_NewInt32(ctx, x), JS_NewInt32(ctx, y), JS_NewInt32(ctx, type), JS_DupValue(ctx, g_drawDataObj)};
-    JSValue r = JS_Call(ctx, g_drawDataFn, JS_UNDEFINED, 4, args);
+    JSValue args[5] = {JS_NewInt32(ctx, x), JS_NewInt32(ctx, y), JS_NewInt32(ctx, type), JS_DupValue(ctx, g_drawDataObj), JS_NewBool(ctx, special)};
+    JSValue r = JS_Call(ctx, g_drawDataFn, JS_UNDEFINED, 5, args);
     for (JSValue& a : args) JS_FreeValue(ctx, a);
     if (JS_IsException(r)) {
         static bool warned = false;
@@ -291,6 +292,22 @@ JSValue js_setDoor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
 }
 
 /**
+ * bl.tiles.setTree(chao, troncoTexture2D, estiloDaCopa): a árvore de mod que
+ * cresce no tile `chao` (ModTrees.h). O estilo é o índice da copa e dos galhos
+ * em TextureAssets.TreeTop/TreeBranch, que o JS já cresceu.
+ */
+JSValue js_setTree(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t ground = -1, style = -1;
+    if (argc < 3 || JS_ToInt32(ctx, &ground, argv[0]) < 0 || JS_ToInt32(ctx, &style, argv[2]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.tiles.setTree(groundType, trunkTexture2D, topStyle)");
+    }
+    Il2CppObject* trunk = objectFromJS(argv[1]);
+    if (!trunk) return JS_ThrowTypeError(ctx, "bl.tiles.setTree: the trunk must be a Texture2D");
+    runtime::setModTree(ground, trunk, style);
+    return JS_UNDEFINED;
+}
+
+/**
  * bl.tiles.find(marcas, x0, y0, x1, y1[, quadros]) -> [i, j, i, j, ...] (com
  * `quadros`: [i, j, frameX, frameY, ...]): os tiles ativos
  * do retangulo (x1/y1 inclusos) cujo tipo esta marcado em bl.hookMarks. Varre
@@ -358,6 +375,7 @@ void installTilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, tiles, "find", JS_NewCFunction(ctx, js_find, "find", 6));
     JS_SetPropertyStr(ctx, tiles, "addLights", JS_NewCFunction(ctx, js_addLights, "addLights", 1));
     JS_SetPropertyStr(ctx, tiles, "setDoor", JS_NewCFunction(ctx, js_setDoor, "setDoor", 2));
+    JS_SetPropertyStr(ctx, tiles, "setTree", JS_NewCFunction(ctx, js_setTree, "setTree", 3));
     JS_SetPropertyStr(ctx, tiles, "setWaterStyleCount",
                       JS_NewCFunction(ctx, js_setWaterStyleCount, "setWaterStyleCount", 1));
     JS_SetPropertyStr(ctx, tiles, "onDrawData", JS_NewCFunction(ctx, js_onDrawData, "onDrawData", 1));

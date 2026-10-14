@@ -1,4 +1,5 @@
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -528,6 +529,7 @@ bool setObjectDataLocked(bool locked) {
 struct DrawShape {
     bool ok = false;
     int width = 16, yOffset = 0, padding = 2, rows = 1, fullHeight = 18;
+    int cols = 1, fullWidth = 18;   // a forma do objeto inteiro (o save repõe por objeto)
     std::vector<int> heights;
 };
 
@@ -547,6 +549,7 @@ using DrawDataFn = void (*)(Il2CppObject*, int32_t, int32_t, void*, uint16_t, in
                             int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, Il2CppObject**, void*,
                             void*, const MethodInfo*);
 DrawDataFn g_origDrawData = nullptr;
+DrawDataFn g_origSpecialDrawData = nullptr;
 
 // ---- cache do SetDrawPositions & cia. ----
 //
@@ -674,12 +677,9 @@ void hkRangeFrame(int32_t x0, int32_t y0, int32_t x1, int32_t y1, const MethodIn
     touchDrawArea(x0 - 2, y0 - 2, x1 + 2, y1 + 2);
 }
 
-void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
+void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
                        int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
-                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
-                       void* glowColor, const MethodInfo* m) {
-    g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects,
-                   glow, glowRect, glowColor, m);
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, bool special) {
     if (type < kVanillaTileCount) return;
     const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
 
@@ -730,11 +730,11 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     const DrawEpoch epoch = drawEpochAt(x, y);
     const int64_t now = coarseNowNs();
     const std::atomic<uint8_t>* uncached = g_drawDataUncached.load(std::memory_order_acquire);
-    const bool cached = !uncached || !uncached[type].load(std::memory_order_relaxed);
+    const bool cached = !special && (!uncached || !uncached[type].load(std::memory_order_relaxed));
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
-        if (hook(x, y, type, &d) && cached) drawCachePut(key, epoch, now, d);
+        if (hook(x, y, type, &d, special) && cached) drawCachePut(key, epoch, now, d);
     }
     *frameX = static_cast<int16_t>(d.frameX);
     *frameY = static_cast<int16_t>(d.frameY);
@@ -744,6 +744,23 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     *addFrX = d.addFrX;
     *addFrY = d.addFrY;
     *effects = d.effects;
+}
+
+void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
+                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
+                       void* glowColor, const MethodInfo* m) {
+    g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    noteTreeDrawTile(x, y, type, *frameX, *frameY);
+    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
+}
+
+void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* tile, uint16_t type, int16_t* frameX,
+                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
+                       void* glowColor, const MethodInfo* m) {
+    g_origSpecialDrawData(self, x, y, tile, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, true);
 }
 
 int invokeInt(Il2CppObject* obj, const char* getter, bool* ok) {
@@ -767,6 +784,8 @@ DrawShape readDrawShape(Il2CppObject* data) {
     s.padding = invokeInt(data, "get_CoordinatePadding", &ok);
     s.rows = invokeInt(data, "get_Height", &ok);
     s.fullHeight = invokeInt(data, "get_CoordinateFullHeight", &ok);
+    s.cols = invokeInt(data, "get_Width", &ok);
+    s.fullWidth = invokeInt(data, "get_CoordinateFullWidth", &ok);
     const MethodInfo* get = a.class_get_method_from_name(a.object_get_class(data), "get_CoordinateHeights", 0);
     Il2CppObject* exc = nullptr;
     auto* heights = get ? reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc)) : nullptr;
@@ -788,15 +807,21 @@ void hookDrawData() {
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
     Il2CppClass* cls = il2cpp::findClass({"Terraria.GameContent.Drawing", "TileDrawing", {}});
     const MethodInfo* target = nullptr;
+    const MethodInfo* special = nullptr;
     void* it = nullptr;
     // Tres sobrecargas: a de TileDrawInfo e a do DrawTiles (as outras sao de grama e vinhas).
     while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
         if (std::strcmp(a.method_get_name(m), "GetTileDrawData") != 0 || a.method_get_param_count(m) != 16) continue;
         char* name = a.type_get_name(a.method_get_param(m, 2));
         const bool drawInfo = name && std::strstr(name, "TileDrawInfo");
+        const bool drawTile = name && std::strcmp(name, "Terraria.Tile") == 0;
         std::free(name);
         if (drawInfo) target = m;
+        if (drawTile) special = m;
     }
+
+    if (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData))
+        BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
     if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
         return;
@@ -941,6 +966,10 @@ void growInstances(int size) {
 
 } // namespace
 
+void ensureTileDrawHook() {
+    hookDrawData();
+}
+
 int registerModTile(ModTileDef def) {
     std::lock_guard<std::mutex> l(g_mx);
     for (const Entry& e : g_regs) {
@@ -1054,6 +1083,22 @@ int modTileTypeByName(const std::string& mod, const std::string& name) {
         }
     }
     return -1;
+}
+
+bool modObjectShape(int type, ModObjectShape* out) {
+    if (type < kVanillaTileCount) return false;
+    const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
+    if (i >= g_drawShapes.size() || !g_drawShapes[i].ok) return false;
+    const DrawShape& s = g_drawShapes[i];
+    if (s.cols * s.rows <= 1 || s.fullWidth <= 0 || s.fullHeight <= 0) return false;
+    out->cols = s.cols;
+    out->rows = s.rows;
+    out->coordWidth = s.width;
+    out->padding = s.padding;
+    out->fullWidth = s.fullWidth;
+    out->fullHeight = s.fullHeight;
+    out->heights = s.heights;
+    return true;
 }
 
 std::string modTileKey(int type) {

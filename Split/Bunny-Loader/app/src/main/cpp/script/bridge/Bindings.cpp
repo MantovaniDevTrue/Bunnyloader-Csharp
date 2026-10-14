@@ -17,6 +17,7 @@
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
 #include "script/api/Sounds.h"
+#include "script/api/Screen.h"
 #include "script/api/Console.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
@@ -537,7 +538,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (!o) return -1;
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
-    if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
+    if (m.field) return writeField(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, propertyThis(o, cls), value);
     if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
     if (const int r = extraAccessorSet(ctx, cls, obj, atom, value)) return r;
@@ -1093,8 +1094,31 @@ JSValue js_hookFlagsGet(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return JS_NewBool(ctx, flag->load(std::memory_order_relaxed) != 0);
 }
 
+// NativeMethod.scope() — sem callback: marca, sem entrar no JS, que a thread
+// esta dentro do metodo e guarda o self. Serve de `whileIn` a outros hooks e
+// ao scopeSelf(). Num metodo que ja tem hook JS, nao instala nada (ele ja marca).
+JSValue nm_scope(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
+    if (!r) return JS_EXCEPTION;
+    HookFilter filter;
+    filter.scopeOnly = true;
+    if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, JS_UNDEFINED, &filter)) return JS_EXCEPTION;
+    return JS_UNDEFINED;
+}
+
+// NativeMethod.scopeSelf() — o objeto da chamada mais interna deste metodo
+// nesta thread (precisa de hook ou scope() nele), ou null fora dela.
+JSValue nm_scopeSelf(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
+    if (!r) return JS_EXCEPTION;
+    Il2CppObject* obj = hookScopeSelf(r->method);
+    return obj ? makeNativeObject(ctx, obj) : JS_NULL;
+}
+
 const JSCFunctionListEntry nm_proto[] = {
     JS_CFUNC_DEF("hook", 2, nm_hook),
+    JS_CFUNC_DEF("scope", 0, nm_scope),
+    JS_CFUNC_DEF("scopeSelf", 0, nm_scopeSelf),
 };
 
 
@@ -1230,9 +1254,9 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     }
     const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return -1;
-    return writeAt(ctx, reinterpret_cast<char*>(arrayData(arr)) +
-                            static_cast<size_t>(idx) * strideOf(d),
-                   d, value);
+    return writeField(ctx, reinterpret_cast<char*>(arrayData(arr)) +
+                               static_cast<size_t>(idx) * strideOf(d),
+                      d, value);
 }
 
 void ga_finalizer(JSRuntime*, JSValue val) {
@@ -1847,6 +1871,7 @@ void installBindings(void* context) {
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);
+    installScreenApi(ctx, bl);
     installConsoleApi(ctx, global, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 

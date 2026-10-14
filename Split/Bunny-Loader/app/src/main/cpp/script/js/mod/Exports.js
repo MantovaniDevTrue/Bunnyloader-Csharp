@@ -6,12 +6,13 @@ Object.assign(globalThis, {
     ModSystem, GenPass, PassLegacy, TagCompound, ModSceneEffect, ModBiome,
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
     ModWaterStyle, ModWaterfallStyle, ModMenu,
-    ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModWall, ModProjectile,
+    ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModBannerTile, ModTileEntity, TEModdedPylon, ModPylon, ModTree, TreeTypes, ModWall, ModProjectile,
     ModCommand, CommandType, UsageException, CommandLoader, ModHair, ModCloud, CloudLoader, ModEmoteBubble, ModAchievement,
-    ModNPC, NPCLoot, NPCSpawnInfo, SpawnPool, SpawnCondition, NPCShop, NPCHappiness, AffectionLevel, ModGore,
+    ModNPC, ModBossBar, NPCLoot, NPCSpawnInfo, SpawnPool, SpawnCondition, NPCShop, NPCHappiness, AffectionLevel, ModGore,
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
     ModPacket, NetWriter, NetReader,
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,
+    ModScreenEffect, ScreenEffects, ScreenPresets, ScreenGraphics, ScreenUtils,
 });
 
 ArmorSetLoader.InstallHairSettings();
@@ -20,6 +21,9 @@ ArmorSetLoader.InstallHairSettings();
 ModConfigMenu.Install();
 // As opções do Bunny Loader na tela de Host do multijogador.
 HostSettingsMenu.Install();
+// Os efeitos de tela: a linha das Configurações e o /fx.
+ScreenEffectsSetting.Install();
+ScreenFxCommand.Install();
 // A conferência dos mods e das texturas ao entrar num servidor.
 ServerSyncLoader.Install();
 ServerSyncMenu.Install();

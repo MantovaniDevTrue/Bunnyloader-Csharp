@@ -2,6 +2,7 @@ class GlobalItemLoader {
     static #shot = null;   // o tiro de agora, para o NewProjectile dele
 
     static Hook(cls) {
+        ItemDrawLoader.Want(cls);
         const P = Terraria.Player;
         const registry = globalItems;
         const has = (name) => Hooks.Overrides(cls, GlobalItem, name);
@@ -145,6 +146,7 @@ class GlobalItemLoader {
         if (has('VerticalWingSpeeds')) WingLoader.Want('Vertical', true);
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal', true);
         if (has('WingUpdate')) WingLoader.Want('Update', true);
+        for (const name of ItemPickupLoader.METHODS) if (has(name)) ItemPickupLoader.Want(name);
     }
 
     static #HookShoot() {

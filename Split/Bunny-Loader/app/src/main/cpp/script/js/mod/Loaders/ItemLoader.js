@@ -262,6 +262,7 @@ class ItemLoader {
     }
 
     static Hook(cls, type) {
+        ItemDrawLoader.Want(cls, type);
         ItemCombatHooks.Install(cls, type);
         const P = Terraria.Player;
         const has = (name) => Hooks.Overrides(cls, ModItem, name);
@@ -415,6 +416,9 @@ class ItemLoader {
         if (has('VerticalWingSpeeds')) WingLoader.Want('Vertical');
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal');
         if (has('WingUpdate')) WingLoader.Want('Update');
+
+        // A coleta do chão: no ItemPickupLoader.
+        for (const name of ItemPickupLoader.METHODS) if (has(name)) ItemPickupLoader.Want(name, type);
 
         const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
         if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);

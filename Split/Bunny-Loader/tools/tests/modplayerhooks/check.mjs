@@ -67,6 +67,9 @@ function native(name) {
                     entry.callbacks.push(callback);
                     entry.filters.push(filter);
                 };
+                // Escopo nativo: marca a entrada e guarda o self, sem callback.
+                fn.scope = () => { if (!entry.callbacks.length) { entry.callbacks.push(null); entry.filters.push({ scope: true }); } };
+                fn.scopeSelf = () => entry.selves?.at(-1) ?? null;
                 return fn;
             }
             if (key === 'new') return () => ({ __address: address++ });
@@ -79,6 +82,12 @@ function native(name) {
 function invoke(entry, args, index = 0) {
     if (index >= entry.callbacks.length) return entry.vanilla(...args);
     const filter = entry.filters[index];
+    if (filter.scope) {
+        entry.active++;
+        (entry.selves ||= []).push(args[0] ?? null);
+        try { return invoke(entry, args, index + 1); }
+        finally { entry.selves.pop(); entry.active--; }
+    }
     if (filter.flag && !flags.get(filter.flag) || filter.whileIn && !filter.whileIn.entry.active) return invoke(entry, args, index + 1);
     entry.active++;
     try { return entry.callbacks[index]((...next) => invoke(entry, next, index + 1), ...args); }
@@ -117,7 +126,7 @@ const sandbox = {
     Color: { new: (R, G, B, A = 255) => ({ R, G, B, A }) },
     Entities: { Define: () => {}, InstanceOf: (npc) => npc.ModNPC, Of: (inst) => Main.player.find((player) => player.__address === inst.__entity) },
     SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697, FIRST_ITEM: 6145,
-    globalItems: { Each() {} },
+    PvpItemNetwork: { Install() {}, Source: () => null }, globalItems: { Each() {}, For: () => [] }, globalNPCs: { For: () => [] }, globalProjectiles: { For: () => [] }, ModProjectile: class {}, ProjectileLoader: { Of: p => p.ModProjectile }, BannerLoader: { Install() {} }, ItemDrawLoader: { Want() {} },
     Hooks: {
         Once: (key, fn) => { if (!once.has(key)) { fn(); once.add(key); } },
         Overrides: (cls, base, key) => cls.prototype[key] !== base.prototype[key],
@@ -133,7 +142,7 @@ const sandbox = {
 };
 const context = vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(source, 'Core/Templates.js'), 'utf8'), context);
-const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'Loaders/PlayerCombatHooks.js',
+const filesToLoad = ['Core/SharedHooks.js', 'TagCompound.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'HitModifiers.js', 'HitInfo.js', 'HurtModifiers.js', 'HurtInfo.js', 'Loaders/CombatLoader.js',
     'Loaders/PlayerItemHooks.js', 'Loaders/PlayerUpdateHooks.js', 'Loaders/PlayerJumpHooks.js',
     'Loaders/PlayerDrawHooks.js', 'Loaders/PlayerWorldHooks.js', 'Loaders/PlayerNetworkHooks.js', 'Loaders/PlayerLoader.js'];
 for (const file of filesToLoad) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
@@ -164,7 +173,7 @@ const player = (index) => {
     return value;
 };
 const item = (type = 0, stack = 0) => ({ __address: address++, type, stack, consumable: true, autoReuse: false, healLife: 0, healMana: 0 });
-const p = player(0), second = player(1), npc = { __address: address++, whoAmI: 0, Hitbox: { X: 0, Y: 0, Width: 10, Height: 10 } };
+const p = player(0), second = player(1), npc = { __address: address++, whoAmI: 0, defense: 0, Hitbox: { X: 0, Y: 0, Width: 10, Height: 10 } };
 Main.npc[0] = npc;
 const reset = () => {
     for (const [key, method] of defaults) All.prototype[key] = method;
@@ -249,6 +258,7 @@ test('incoming modifiers precede dodge, non-dodgeable damage cannot consume', ()
     All.prototype.ModifyHitByNPC = (_, target, hit) => { hit.damage = 11; events.push('modify'); };
     All.prototype.FreeDodge = (_, source, damage) => { assert.equal(damage, 11); events.push('free'); return false; };
     All.prototype.ConsumableDodge = (_, info) => { assert.equal(info.Damage, 11); events.push('consume'); return true; };
+    Terraria.Main['double CalculateDamagePlayersTake(int Damage, int Defense)']; vanilla('Terraria.Main', 'CalculateDamagePlayersTake', damage => damage);
     vanilla('Terraria.Player', 'Hurt', (_, source, damage) => { events.push('hurt'); return damage; });
     assert.equal(call('Terraria.Player', 'Hurt', p, reason, 20, 1, false, false, false, 0, true), 0);
     assert.deepEqual(events, ['modify', 'free', 'consume']);
@@ -882,9 +892,12 @@ test('collision and sound callbacks stay outside JS when their native gates are 
 });
 
 test('attack gates recover after native failures', () => {
-    vanilla('Terraria.Player', 'ProcessHitAgainstNPC', () => { assert.equal(flags.get('player.Attack'), true); throw Error('attack failure'); });
+    // Com combate de projétil, o StrikeNPC fica sempre ligado (o projétil vem
+    // do escopo do Damage_PVE): o portão volta ao que era antes do golpe.
+    const before = flags.get('combat.Strike');
+    vanilla('Terraria.Player', 'ProcessHitAgainstNPC', () => { assert.equal(flags.get('combat.Strike'), true); throw Error('attack failure'); });
     assert.throws(() => call('Terraria.Player', 'ProcessHitAgainstNPC', p, item(1), npc.Hitbox, 20, 0, 0), /attack failure/);
-    assert.equal(flags.get('player.Attack'), false);
+    assert.equal(flags.get('combat.Strike'), before);
 });
 
 test('jump veto restores availability after failure and sound resumes outside jumping', () => {

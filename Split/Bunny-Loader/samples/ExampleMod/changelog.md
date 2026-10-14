@@ -3,10 +3,22 @@
 ## Ainda sem versão
 
 - Montaria de mod (`ModMount`) e o carrinho de mina do Exemplo.
-- Menu de título de mod (`ModMenu`).
+- Menu de título de mod (`ModMenu`), com a música própria (*Mysterious
+  Mystery*); escolha em Configurações > Tema do Menu.
 - Bioma de mod: nome, felicidade dos moradores, Bestiário, fundo do mapa e
   spawn natural.
 - `ModCommand`, `ModHair`, `ModCloud`, `ModEmoteBubble`, `ModAchievement` e pesca.
+- Pilar de Exemplo (`ModPylon`), vendido pelos moradores no bioma de exemplo.
+- Tile entity (`ModTileEntity`): o barril que junta água da chuva.
+- Árvore de Exemplo (`ModTree`), com muda e folha, no Bloco de Exemplo.
+- Barra de vida própria do Olho de ??? (`ModBossBar`).
+- Item de coleta (`OnPickup`, `GrabRange`), Espada Curta de Exemplo
+  (`ShouldUpdatePosition`), o gancho com `GrappleRange`, `NumGrappleHooks` e as
+  velocidades, e o tempo restante na dica da Defesa (`ModifyBuffText`).
+- Efeitos de tela: o Último Prisma de Exemplo (porte do `ExampleLastPrism`,
+  com a tela ondulando onde os feixes batem), o Cajado da Fenda de Exemplo
+  (efeito com shader `.frag` próprio, distorção e os prontos) e as bordas
+  vermelhas com pouca vida (`ExampleLowLifePlayer`).
 
 ## 1.8.0 - 2026-09-27
 

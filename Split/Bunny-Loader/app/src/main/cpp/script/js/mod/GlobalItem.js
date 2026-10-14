@@ -52,7 +52,17 @@ class GlobalItem extends GlobalType {
     // O item no chão, todo quadro (ver ModItem.PreUpdateInWorld).
     PreUpdateInWorld(item, worldItem) { return true; }
     PostUpdateInWorld(item, worldItem) {}
+    // A coleta do chão, de qualquer item (ver ModItem.CanPickup).
+    CanPickup(worldItem, player) { return true; }
+    OnPickup(worldItem, player) { return true; }
+    ItemSpace(item, player) { return false; }
+    GrabRange(worldItem, player, grabRange) {}
+    GrabStyle(worldItem, player) { return false; }
     OnCraft(item, player, recipe) {}
+    PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) { return true; }
+    PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) {}
+    PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) { return true; }
+    PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) {}
     ModifyTooltips(item, tooltips) {}
     // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
     // x, y e yOffset são Ref; false no Pre não desenha.

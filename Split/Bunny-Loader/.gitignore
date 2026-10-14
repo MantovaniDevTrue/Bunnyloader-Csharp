@@ -2,6 +2,10 @@
 *.iml
 .gradle/
 local.properties
+# Tokens do GitHub: o que o APK do catálogo (catalog/) embute e o de publicar
+# mods no Bunny-Loader-Mods (publish.py, migrate_releases.py). Nunca no Git.
+_token.txt
+bunnyloadermodstoken.txt
 .idea/
 .DS_Store
 build/
@@ -12,6 +16,9 @@ build/
 *.aab
 *.keystore
 !debug.keystore
+# Chave e senhas do APK de release (ver keystore.properties.example).
+*.jks
+keystore.properties
 
 # --- Bunny Loader ---
 # Dumps do jogo: gerados localmente, NUNCA versionados.
@@ -69,3 +76,13 @@ exmod_tl/
 
 # Pacote temporario de mod do tools/bench/run.sh (um por rodada).
 /blmod.*.tar
+
+# Os ports de textura moram no repositorio de mods (Bunny-Loader-Mods); o
+# clone que o publish.py mantem fica em build/mods-repo.
+/ports/
+
+# Componentes de terceiros que o build usa, mas que nao sao nossos para publicar:
+# as classes Java da Unity (procedencia em app/libs/README.md) e a fonte Andy
+# Bold, da Monotype (sem ela o build usa app/src/fontFallback).
+app/libs/unity-classes.jar
+app/src/main/res/font/bunny.ttf

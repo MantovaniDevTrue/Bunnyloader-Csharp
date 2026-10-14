@@ -137,6 +137,9 @@ class ModNet {
         const Main = Terraria.Main;
 
         switch (envelope.k) {
+            case 'pvp-item':
+                PvpItemNetwork.Receive(envelope, from);
+                return;
             case 'item-data':
                 ItemNetworkHooks.Queue(envelope, from);
                 return;
@@ -161,6 +164,11 @@ class ModNet {
             case 'te-place':
             case 'te-data':
                 TileEntityItemHooks.Receive(envelope, from);
+                return;
+            case 'mte':
+            case 'mte-kill':
+            case 'mte-place':
+                TileEntityLoader.Receive(envelope, from);
                 return;
             case 'hair':
                 HairLoader.Receive(envelope, from);
