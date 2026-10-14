@@ -20,6 +20,9 @@ public static class CompiledAssemblyProbe
             var projectileTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyProjectile")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var basicItemTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyItem")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var weaponTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyWeapon")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -46,10 +49,12 @@ public static class CompiledAssemblyProbe
                 })
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (prefixTypes.Length > 16 || npcTypes.Length > 16 || accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
-                projectileTypes.Length < 1 || projectileTypes.Length > 16 ||
-                weaponTypes.Length < 1 || weaponTypes.Length > 16 ||
+                projectileTypes.Length > 16 ||
+                weaponTypes.Length > 16 || basicItemTypes.Length > 16 ||
                 buffTypes.Length > 16 || potionTypes.Length > 16)
                 throw new InvalidOperationException("C# content class count out of bounds");
+            if (basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
+                throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
             object? primaryProjectile = fixture ? VerifyProjectile(assembly) : null;
@@ -60,6 +65,7 @@ public static class CompiledAssemblyProbe
             object[] weapons = weaponTypes.Select(type =>
                 fixture && type.FullName == "SourceCSharpMod.SourceWand"
                     ? primaryWeapon! : CreateContent(type)).ToArray();
+            object[] basicItems = basicItemTypes.Select(CreateContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
@@ -67,7 +73,7 @@ public static class CompiledAssemblyProbe
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -79,7 +85,7 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
@@ -88,7 +94,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length;
         }
         catch (Exception exception)
         {
@@ -412,7 +418,7 @@ public static class CompiledAssemblyProbe
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
-        object[] players, object[] npcs, object[] prefixes, string diagnosticsPath)
+        object[] players, object[] npcs, object[] prefixes, object[] basicItems, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -436,6 +442,13 @@ public static class CompiledAssemblyProbe
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
+        foreach (object item in basicItems)
+        {
+            string name=item.GetType().Name;
+            CheckName(name);
+            if(!names.Add(name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
+            lines.Add(BasicItemWriter.Write(item));
+        }
         foreach (object projectile in projectiles)
         {
             string name = projectile.GetType().Name;
@@ -764,4 +777,5 @@ public static class CompiledAssemblyProbe
     }
 
 }
+
 
