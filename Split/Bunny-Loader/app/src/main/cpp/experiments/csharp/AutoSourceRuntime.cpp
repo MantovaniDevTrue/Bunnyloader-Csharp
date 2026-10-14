@@ -294,8 +294,22 @@ bool compile(const std::string& root, const std::string& id,
             status.find("modId=" + id + "\n") != std::string::npos &&
             !validCompileStatus(status, id, mod)) {
             const int expected = expectedManagedSourceTypes(mod);
+            std::string actual = "desconhecido";
+            const std::string marker = "executedTypes=";
+            const size_t start = status.find(marker);
+            if (start != std::string::npos) {
+                const size_t value = start + marker.size();
+                const size_t end = status.find('\n', value);
+                const std::string raw = status.substr(value, end == std::string::npos ?
+                                                        16 : std::min<size_t>(end - value, 16));
+                if (!raw.empty() &&
+                    std::all_of(raw.begin(), raw.end(), [](unsigned char c) {
+                        return c >= '0' && c <= '9';
+                    })) actual = raw;
+            }
             *error = "Compilacao C# concluida, mas contrato de classes divergente: esperado " +
-                     std::to_string(expected) + "; verifique sourceCompileStatus";
+                     std::to_string(expected) + ", compilado " + actual +
+                     "; verifique sourceCompileStatus";
             return false;
         }
         if (!validCompileStatus(status, id, mod)) {

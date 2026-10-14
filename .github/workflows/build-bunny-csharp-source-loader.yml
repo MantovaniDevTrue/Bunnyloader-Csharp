@@ -1537,7 +1537,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='174' versionName='0.1.10.16.90.29.9-csharp-lot-a1-checkpoint'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='175' versionName='0.1.10.16.90.29.10-csharp-tile-count-fix'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

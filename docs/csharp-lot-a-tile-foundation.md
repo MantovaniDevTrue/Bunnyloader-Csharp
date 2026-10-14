@@ -92,3 +92,23 @@ rotinas do WorldGen e preserva o restante das categorias de tile.
 
 Mesmo com CI aprovado, e necessario validar a ABI de Tile e o comportamento
 real de drops e frames no Android antes de distribuir a versao nova.
+
+## Android A1 .90.29.10 — corrigido o bloqueio de carregamento
+
+A APK .90.29.9 rejeitou o mod A1 por divergencia na contagem do contrato
+de compilacao MonoVM. O probe inclui seis classes (5 BunnyItem e
+1 BunnyTile), mas expectedManagedSourceTypes esperava apenas cinco,
+ignorando mod.tiles. O status "expected 5" era rejeitado ANTES de
+aplicar os defaults: armaduras, receitas e bancada nao eram registradas.
+
+A rotina expectedManagedSourceTypes agora inclui mod.tiles. O teste
+managed_prefix_auto_count_v90_1 verifica A1 5+1=6, preserva os mods
+anteriores e tambem verifica mods contendo apenas BunnyTile. O fixture
+C# original foi ampliado com ExampleItem e agora verifica 6 classes,
+alinhado ao pacote A1 que foi enviado. Erros futuros mostram tambem
+quantos tipos o worker executou, quando o status fornecer o numero.
+
+A correcao preserva MonoVM, assinatura v3 e warm-start; nao altera
+algoritmos de renderizacao ou os efeitos existentes. Ainda e preciso
+validar dentro do Terraria Android a quebra de tiles, drops, poeira,
+instalacao de receitas, armaduras e FPS.

@@ -47,7 +47,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           app = Path("app/build.gradle.kts").read_text()
-          assert 'versionName = "0.1.10.16.90.29.9-csharp-lot-a1-checkpoint"' in app
+          assert 'versionName = "0.1.10.16.90.29.10-csharp-tile-count-fix"' in app
           assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
           assert 'status.cached = readCache(cacheFile, mod.id, key' in auto
           assert 'g_cachedMods.fetch_add(1' in auto

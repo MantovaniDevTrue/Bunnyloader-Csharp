@@ -35,6 +35,22 @@ int main() {
     assert(managedSourceCompileFinished(finished(second.id, 2), second.id, second));
     assert(!managedSourceCompileFinished(finished(second.id, 4), second.id, second));
 
+    SourceModStatus a1;
+    a1.id = "a1workbenchprobe";
+    a1.items = 5;
+    a1.tiles = 1;
+    assert(expectedManagedSourceTypes(a1) == 6);
+    assert(managedSourceCompileFinished(finished(a1.id, 6), a1.id, a1));
+    assert(!managedSourceCompileFinished(finished(a1.id, 5), a1.id, a1));
+    assert(!managedSourceCompileFinished(finished(a1.id, 7), a1.id, a1));
+
+    SourceModStatus tilesOnly;
+    tilesOnly.id = "tilesonly";
+    tilesOnly.tiles = 2;
+    assert(expectedManagedSourceTypes(tilesOnly) == 2);
+    assert(managedSourceCompileFinished(finished(tilesOnly.id, 2),
+                                        tilesOnly.id, tilesOnly));
+
     SourceModStatus prefixOnly;
     prefixOnly.id = "prefixonly";
     prefixOnly.prefixes = 3;

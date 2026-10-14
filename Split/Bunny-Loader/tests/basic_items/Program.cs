@@ -132,9 +132,11 @@ try {
   string root="tests/basic_items/tile_fixture";
   string output=Path.Combine(scratch,"tile.dll"),diag=Path.Combine(scratch,"tile.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));
-  Equal(5,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(6,CompiledAssemblyProbe.Verify(output,diag));
   var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(6,rows.Length);
+  Equal(7,rows.Length);
+  var exampleMaterial=rows.Single(row=>row.StartsWith("ITEM\tExampleItem\t")).Split('\t');
+  Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
   Equal(13,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
