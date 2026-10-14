@@ -12,6 +12,7 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/ModTileMap.h"
+#include "content/tiles/TileAccess.h"
 #include "il2cpp/Api.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
@@ -1825,6 +1826,75 @@ bool applyTileFlags(int type, const ManagedTileEntry& e) {
     return ok;
 }
 
+using NativeAdjFn = void (*)(Il2CppObject*, const MethodInfo*);
+NativeAdjFn g_previousAdj = nullptr;
+bool g_adjReady = false;
+int g_adjPosition = -1, g_adjWidth = -1, g_adjHeight = -1, g_adjArray = -1;
+
+void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
+    if (g_previousAdj) g_previousAdj(player, method);
+    if (!g_adjReady || !player) return;
+    const auto* bytes = reinterpret_cast<const unsigned char*>(player);
+    float pos[2] = {};
+    int32_t width = 0, height = 0;
+    Il2CppArray* adjacent = nullptr;
+    std::memcpy(pos, bytes + g_adjPosition, sizeof(pos));
+    std::memcpy(&width, bytes + g_adjWidth, sizeof(width));
+    std::memcpy(&height, bytes + g_adjHeight, sizeof(height));
+    std::memcpy(&adjacent, bytes + g_adjArray, sizeof(adjacent));
+    if (!adjacent || adjacent->length < runtime::kVanillaTileCount ||
+        !std::isfinite(pos[0]) || !std::isfinite(pos[1]) ||
+        width < 1 || width > 256 || height < 1 || height > 256) return;
+    std::vector<std::pair<int, int>> types;
+    {
+        std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
+        for (const auto& [type, entry] : g_tileDefaults)
+            if (entry.second.adjacentTile >= 0)
+                types.emplace_back(type, entry.second.adjacentTile);
+    }
+    if (types.empty()) return;
+    const int x = static_cast<int>(std::floor((pos[0] + width / 2.f) / 16.f));
+    const int y = static_cast<int>(std::floor((pos[1] + height) / 16.f));
+    auto* result = static_cast<uint8_t*>(arrayData(adjacent));
+    for (int i = x - 4; i <= x + 4; ++i)
+        for (int j = y - 3; j <= y + 2; ++j) {
+            const int type = runtime::tileTypeAt(i, j);
+            if (type < runtime::kVanillaTileCount ||
+                static_cast<uintptr_t>(type) >= adjacent->length) continue;
+            for (const auto& [modded, vanilla] : types)
+                if (type == modded) {
+                    result[type] = 1;
+                    result[vanilla] = 1;
+                    break;
+                }
+        }
+}
+
+bool ensureNativeAdjTiles() {
+    if (g_adjReady) return true;
+    auto& a = il2cpp::api();
+    Il2CppClass* cls = il2cpp::findClass({"Terraria", "Player", {}});
+    const MethodInfo* target = cls ? a.class_get_method_from_name(cls, "AdjTiles", 0) : nullptr;
+    if (!target || !a.class_instance_size) return false;
+    const int position = il2cpp::fieldOffset(cls, "position");
+    const int width = il2cpp::fieldOffset(cls, "width");
+    const int height = il2cpp::fieldOffset(cls, "height");
+    const int adjacent = il2cpp::fieldOffset(cls, "adjTile");
+    const unsigned size = a.class_instance_size(cls);
+    const auto fits = [&](int offset, unsigned count) {
+        return offset >= static_cast<int>(sizeof(Il2CppObject)) &&
+               static_cast<unsigned>(offset) <= size &&
+               count <= size - static_cast<unsigned>(offset);
+    };
+    if (!fits(position, 8) || !fits(width, 4) ||
+        !fits(height, 4) || !fits(adjacent, sizeof(void*))) return false;
+    if (!hook::install(target, nativePlayerAdjTiles, &g_previousAdj)) return false;
+    g_adjPosition = position; g_adjWidth = width;
+    g_adjHeight = height; g_adjArray = adjacent;
+    g_adjReady = true;
+    return true;
+}
+
 bool appendNativeHousingTable(int type) {
     auto& a = il2cpp::api();
     Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
@@ -1880,6 +1950,10 @@ void onManagedTilesInstalled(int first, int last) {
         const bool shape = applyTileShape(entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(entry.type);
         const bool guide = installCraftingStationIcon(mod, entry);
+        const bool adjacency = entry.adjacentTile < 0 || ensureNativeAdjTiles();
+        if (!adjacency)
+            BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Stage=NativeAdjacency Result=Unavailable",
+                     mod.c_str(), entry.name.c_str());
         if (!flags || !shape || !housing)
             BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Type=%d Stage=SetStaticDefaults Flags=%d Shape=%d Housing=%d Result=Incomplete",
                      mod.c_str(), entry.name.c_str(), entry.type, flags, shape, housing);

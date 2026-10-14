@@ -41,7 +41,12 @@ A bridge atual aplica flags estaticas, copia TileObjectData.Style2x1,
 configura CoordinateHeights, registra addTile e cor/mapa. O segundo incremento
 inclui entrada nativa em RoomNeeds.CountsAsTableTypes e associação da estacao
 com o item colocavel em CraftingStationItemId, se a resolucao do item estiver
-pronta. Ainda faltam a adjacencia funcional (Player.AdjTiles), dust/drop de
-objetos multitile, fallback de localizacao do nome no mapa e os testes de ABI
+pronta. Um hook nativo adicional de Player.AdjTiles verifica somente os
+metatile C# com adjacencia declarada, num retangulo pequeno proximo ao jogador;
+se uma bancada de mod estiver proxima, marca o proprio tile e WorkBenches como
+adjacentes. O hook ainda precisa de validacao no dispositivo.
+
+Faltam dust/drop de objetos multitile, fallback de localizacao do nome no mapa
+e os testes de ABI
 e Android para colocacao, remocao, save/reload e 60 FPS.
 Nao inferir que a aprovacao das suites comprova esses efeitos.
