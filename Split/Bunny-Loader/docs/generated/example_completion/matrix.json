@@ -16,7 +16,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 201,
     "newUpstreamFiles": 23,
-    "cSharpSourceFiles": 51
+    "cSharpSourceFiles": 56
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -15426,6 +15426,33 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
+      "classes": [
+        "ExampleBreastplate"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs",
+      "classes": [
+        "ExampleHelmet"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs",
+      "classes": [
+        "ExampleLeggings"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs",
       "classes": [
         "ExampleBossMask"
@@ -15477,6 +15504,15 @@
       "mappedToJs": [
         "Content/Items/Materials/ExampleSoul.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs",
+      "classes": [
+        "ExampleWorkbench"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -15557,6 +15593,15 @@
       "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
       "classes": [
         "ExampleWaveBolt"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/Furniture/ExampleWorkbench.cs",
+      "classes": [
+        "ExampleWorkbench"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],
