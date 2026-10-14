@@ -236,11 +236,12 @@ NativeRecipeResult installNativeRecipe(const NativeRecipeRequest& request) {
         auto** slots=static_cast<Il2CppObject**>(arrayData(table));
         auto* oldSlot=slots[index];Root slotRoot(oldSlot);
         if(oldSlot&&!slotRoot.handle){detail="Root=Main.recipe[Index]";return fail("Commit","AllocationFailed");}
-        a.field_static_set_value(contract.current.field,&recipe);
+        // IL2CPP reference setters receive the object itself; only value fields use addresses.
+        a.field_static_set_value(contract.current.field,recipe);
         const bool invoked=invoke(contract.add,nullptr,nullptr,&detail);
         int after=0;a.field_static_get_value(contract.count.field,&after);
         // Preserve any JS registration transaction that owned currentRecipe.
-        a.field_static_set_value(contract.current.field,&previous);
+        a.field_static_set_value(contract.current.field,previous);
         if(!invoked||after!=index+1||slots[index]!=recipe) {
             a.gc_wbarrier_set_field(&table->obj,reinterpret_cast<void**>(&slots[index]),oldSlot);
             a.field_static_set_value(contract.count.field,&index);

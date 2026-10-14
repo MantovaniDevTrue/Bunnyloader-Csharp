@@ -84,3 +84,38 @@ registro paralelo nem voltar a chamar RecipeLoader JS. Portar ambos os arquivos
 ExampleWorkbench e as receitas originais das armaduras depois dos contratos
 funcionais, mantendo os demais 33 exemplos no escopo. Policies de equipamento
 e suporte de recipes alem do limite ainda precisam de desacoplamento.
+
+
+## Correção experimental .90.29.4 — ABI de referência de receitas
+
+O relatório Android da .90.29.3 enviado pelo usuário registra dois SIGSEGV na
+UnityMain, PIDs 4610 e 4424, com fault address 0x10000004b. A build anterior
+passou na CI, mas falhou no dispositivo; sua aprovação automática não é evidência
+de estabilidade Android. O relatório não contém os primeiros frames legíveis
+para atribuir sozinho o endereço de falha a uma função específica.
+
+A inspeção encontrou um defeito concreto: NativeRecipes passava `&recipe` e
+`&previous` a `il2cpp_field_static_set_value` para o campo de referência
+Recipe.currentRecipe. O ABI exige o objeto diretamente para referências e o
+endereço do valor somente para tipos de valor. Isso instalava uma referência à
+pilha como objeto gerenciado, inclusive ao restaurar a transação anterior.
+As duas escritas foram corrigidas, preservando o isolamento de receitas e a
+transação JavaScript existente.
+
+O mock foi corrigido para reproduzir o ABI de produção e recusar referências
+que não pertencem aos objetos alocados. O código anterior foi executado com esse
+mesmo teste e abortou na verificação de referência; o código corrigido passa nas
+execuções normal, pump, tipo inválido, bounds inválidos e assinatura ausente.
+A execução normal verifica registro, rollback e restauração de currentRecipe.
+O cache de fontes e o cache Roslyn foram incrementados; ExampleMod permanece
+0.1.36, pois seus fontes e assets não mudaram.
+
+Estado: correção testada no host; build/CI e nova validação Android pendentes.
+Não há novos exemplos portados nem conclusão do Lote A.
+
+Teste Android: instalar o APK experimental .90.29.4, abrir o mesmo personagem e
+mundo com ExampleMod 0.1.36, aguardar os registros de receitas, abrir crafting,
+fabricar itens acessíveis, salvar/sair e reabrir. Conferir ausência de SIGSEGV,
+registro das receitas e preservação de itens/prefixos. Repetir com um mod JS
+habilitado. Enviar o relatório se houver qualquer falha. FPS requer medição no
+aparelho; não é garantido pela CI.

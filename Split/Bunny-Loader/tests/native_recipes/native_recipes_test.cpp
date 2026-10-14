@@ -5,6 +5,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -98,7 +99,15 @@ void configure(){
  apiInstance.field_get_flags=[](FieldInfo* f){return f->flags;};
  apiInstance.field_get_offset=[](FieldInfo* f){return f->offset;};
  apiInstance.field_static_get_value=[](FieldInfo* f,void* out){assert(f->storage);std::memcpy(out,f->storage,f->type.cls==&intClass?4:sizeof(void*));};
- apiInstance.field_static_set_value=[](FieldInfo* f,void* in){assert(f->storage);std::memcpy(f->storage,in,f->type.cls==&intClass?4:sizeof(void*));};
+ apiInstance.field_static_set_value=[](FieldInfo* f,void* in){
+  assert(f->storage);
+  if(f->type.cls==&intClass)std::memcpy(f->storage,in,sizeof(int));
+  else {
+   // Match IL2CPP's reference ABI, unlike field_static_get_value's output address.
+   assert(!in||std::find(allocated.begin(),allocated.end(),in)!=allocated.end());
+   *static_cast<void**>(f->storage)=in;
+  }
+ };
  apiInstance.runtime_class_init=[](Il2CppClass*){};
  apiInstance.class_get_rank=[](const Il2CppClass* c){return c->element?1:0;};
  apiInstance.class_get_element_class=[](Il2CppClass* c){return c->element;};
