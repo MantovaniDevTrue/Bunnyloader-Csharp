@@ -926,6 +926,10 @@ jobs:
               assert len([n for n in names if n.endswith(".cs")])==45
               assert "content/LEIA_PRIMEIRO.md" in names
               assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
+              for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
+                  assert "content/Content/Items/" + file in names
+              for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
+                  assert "content/Documentation/" + file in names
               assert "content/main.cs" in names
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
@@ -970,7 +974,7 @@ jobs:
                   assert "content/Content/Items/Accessories/" + visual in names
               for effect in ("MysticWardBarrier.png", "TrailblazerSpark.png"):
                   assert "content/Content/Effects/" + effect in names
-              assert len([n for n in names if n.endswith(".png")])==12
+              assert len([n for n in names if n.endswith(".png")])==15
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
