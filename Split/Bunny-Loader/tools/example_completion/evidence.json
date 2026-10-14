@@ -398,8 +398,7 @@
       "prefixRegressionRun": 38508838414,
       "apkBuildRun": 38508373513,
       "hostCasesPassed": 8,
-      "deviceTested": false,
-      "release": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-38508373513-a1"
+      "deviceTested": false
     }
   ]
 }
