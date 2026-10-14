@@ -4,7 +4,8 @@ import pathlib
 import sys
 
 expected = {
-    "ITEM": {20, 21},
+    "ITEM": {20, 21, 22},
+    "TILE": {13},
     "PROJECTILE": {8},
     "WEAPON": {6},
     "BUFF": {3},
@@ -30,7 +31,7 @@ for line_number, row in enumerate(rows[1:], start=2):
         errors.append(f"line={line_number} kind={kind!r} missing class")
 if errors:
     raise SystemExit("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_FAIL\n" + "\n".join(errors))
-assert sum(counts.values()) >= 37, "Expected all ExampleMod CSharp descriptors"
+assert sum(counts.values()) >= 42, "Expected unified ExampleMod CSharp descriptors"
 item_names = {parts[1] for row in rows[1:] if (parts := row.split("\t"))[0] == "ITEM" and len(parts) > 1}
 assert {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe"} <= item_names, (
     f"ExampleMod general items missing from V2 export: {item_names}"
