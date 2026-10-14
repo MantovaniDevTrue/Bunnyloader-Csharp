@@ -11,7 +11,6 @@
 #include <quickjs.h>
 #endif
 #include <atomic>
-#include <cstdint>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -24,7 +23,43 @@ std::map<int,BasicItemEntry> definitions;
 std::map<std::string,PendingBasicRecipe> recipes;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
-std::array<int,BasicFieldCount-1> offsets{};
+struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
+std::array<IntegerField,BasicFieldCount-1> integerFields{};
+const char* integerNames[]={"width","height","maxStack","value","rare","damage","crit",
+    "useTime","useAnimation","useStyle","pick","axe","hammer"};
+
+bool integerContract(Il2CppClass* cls,IntegerField* out) {
+    auto& api=il2cpp::api();
+    if(cls&&api.class_is_enum&&api.class_is_enum(cls)) {
+        if(!api.class_enum_basetype)return false;
+        const auto* base=api.class_enum_basetype(cls);
+        cls=base?api.class_from_il2cpp_type(base):nullptr;
+    }
+    if(!cls)return false;
+    const char* name=api.class_get_name(cls);
+    if(!name)return false;
+    struct Kind { const char* name; int bytes; int64_t min,max; };
+    const Kind kinds[]={
+        {"SByte",1,-128,127},{"Byte",1,0,255},
+        {"Int16",2,-32768,32767},{"UInt16",2,0,65535},
+        {"Int32",4,INT32_MIN,INT32_MAX},{"UInt32",4,0,UINT32_MAX}};
+    for(const auto& kind:kinds)if(std::strcmp(name,kind.name)==0) {
+        uint32_t alignment=0;
+        if(!api.class_is_valuetype(cls)||api.class_value_size(cls,&alignment)!=kind.bytes)return false;
+        out->bytes=kind.bytes;out->min=kind.min;out->max=kind.max;return true;
+    }
+    return false;
+}
+bool fitIntegerFields(const BasicItemEntry& entry,std::string* error) {
+    for(size_t i=0;i<integerFields.size();++i) {
+        const auto& field=integerFields[i];const int64_t value=entry.values[i];
+        if(value<field.min||value>field.max) {
+            *error=entry.name+": "+integerNames[i]+"="+std::to_string(value)+
+                " fora do tipo nativo ("+std::to_string(field.bytes*8)+" bits)";return false;
+        }
+    }
+    return true;
+}
 std::array<int,5> flagOffsets{};
 int knockBackOffset=-1,soundOffset=-1;
 int soundSize=0,soundValueOffset=0,soundHasValueOffset=-1;
@@ -41,19 +76,19 @@ bool prepare(std::string* error) {
        !api.class_get_fields||!api.field_get_flags||!api.field_get_offset||
        !api.class_value_size||!api.class_is_valuetype||
        !api.runtime_class_init||!api.field_static_get_value) {*error="BunnyItem: contrato de campos IL2CPP indisponivel";return false;}
-    const char* names[]={"width","height","maxStack","value","rare","damage","crit",
-        "useTime","useAnimation","useStyle","pick","axe","hammer"};
-    for(size_t i=0;i<offsets.size();++i) {
-        auto* field=il2cpp::findField(item,names[i]);
+    for(size_t i=0;i<integerFields.size();++i) {
+        auto* field=il2cpp::findField(item,integerNames[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
-        const bool byteField=i==BasicUseStyle;
-        const char* expected=byteField?"Byte":"Int32";
-        if(!field||!cls||std::strcmp(api.class_get_name(cls),expected)!=0) {
-            *error=std::string("BunnyItem: campo ")+(byteField?"byte":"int")+" ausente/incompativel: "+names[i];
-            return false;
+        auto& binding=integerFields[i];
+        if(!field||!integerContract(cls,&binding)) {
+            const char* actual=cls?api.class_get_name(cls):nullptr;
+            *error=std::string("BunnyItem: campo integral ausente/incompativel: ")+integerNames[i]+
+                " (tipo="+(actual?actual:"ausente")+")";return false;
         }
-        offsets[i]=il2cpp::fieldOffset(item,names[i]);
-        if(offsets[i]<0) {*error=std::string("BunnyItem: offset invalido: ")+names[i];return false;}
+        binding.offset=il2cpp::fieldOffset(item,integerNames[i]);
+        if(binding.offset<0) {*error=std::string("BunnyItem: offset invalido: ")+integerNames[i];return false;}
+        BL_INFO("csharp item field: %s tipo=%s bytes=%d offset=%d",integerNames[i],
+            api.class_get_name(cls),binding.bytes,binding.offset);
     }
     const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable"};
     for(size_t i=0;i<flagOffsets.size();++i) {
@@ -189,7 +224,7 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     std::vector<BasicItemEntry> resolved=entries;
     for(auto& entry:resolved) {
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
-           !validateBasicItem(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
+           !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
 #if !BL_HAVE_QUICKJS
         if(!entry.recipes.empty()) {*error=entry.name+": host compilado sem bridge QuickJS de receitas";return false;}
 #endif
@@ -220,9 +255,14 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
-    for(size_t i=0;i<offsets.size();++i) {
-        if(i==BasicUseStyle)runtime::field<uint8_t>(object,offsets[i])=static_cast<uint8_t>(entry.values[i]);
-        else runtime::field<int32_t>(object,offsets[i])=entry.values[i];
+    for(size_t i=0;i<integerFields.size();++i) {
+        const auto& field=integerFields[i];auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
+        // Converter antes de copiar: jamais escrever quatro bytes em Byte/Int16.
+        switch(field.bytes) {
+            case 1: {const auto value=static_cast<uint8_t>(entry.values[i]);std::memcpy(destination,&value,1);break;}
+            case 2: {const auto value=static_cast<uint16_t>(entry.values[i]);std::memcpy(destination,&value,2);break;}
+            case 4: {const auto value=static_cast<uint32_t>(entry.values[i]);std::memcpy(destination,&value,4);break;}
+        }
     }
     for(size_t i=0;i<flagOffsets.size();++i)runtime::field<uint8_t>(object,flagOffsets[i])=!!(entry.values[BasicFlags]&(1<<i));
     runtime::field<float>(object,knockBackOffset)=entry.knockBack;

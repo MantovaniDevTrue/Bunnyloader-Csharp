@@ -35,6 +35,11 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-basic-test
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --nullable
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --int16
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --int32
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --enum
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
       - uses: actions/upload-artifact@v4
         with:

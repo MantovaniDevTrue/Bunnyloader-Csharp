@@ -3,7 +3,6 @@
 #include "il2cpp/Resolver.h"
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -13,22 +12,18 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem {
- Il2CppObject header;
- int values[13];
- uint8_t useStyle;
- uint8_t useStyleGuards[3];
- bool flags[5];
- float knockBack;
- alignas(void*) unsigned char sound[64];
-};
+struct FakeItem { Il2CppObject header; int values[13]; bool flags[5]; float knockBack; alignas(void*) unsigned char sound[64]; };
 struct SoundValue { int volume; void* path; };
-Il2CppClass intClass{"Int32",true,4,{}},byteClass{"Byte",true,1,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
+Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
     soundClass{"SoundStyle",true,static_cast<int>(sizeof(SoundValue)),{}},
     nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,0,{}},idClass{"SoundID",false,0,{}};
-Il2CppType intType{&intClass},byteType{&byteClass},boolType{&boolClass},floatType{&floatClass},legacyType{&legacyClass},
+Il2CppType intType{&intClass},boolType{&boolClass},floatType{&floatClass},legacyType{&legacyClass},
     stringType{&stringClass},soundType{&soundClass},nullableType{&nullableClass};
+Il2CppClass styleClass{"Byte",true,1,{}};
+Il2CppType styleType{&styleClass};
+bool enumStyle=false,rejectStyle=false,narrowValue=false;
+Il2CppClass shortClass{"Int16",true,2,{}};Il2CppType shortType{&shortClass};
 std::vector<FieldInfo> storage;std::map<int,std::string> identities;
 std::map<int,std::string> tooltips;bl::il2cpp::Api apiInstance;
 bool nullable=false,initialized=false;int barriers=0;
@@ -52,11 +47,7 @@ void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> 
 void configure(){
  storage.reserve(24);
  const char* names[]={"width","height","maxStack","value","rare","damage","crit","useTime","useAnimation","useStyle","pick","axe","hammer"};
- for(size_t i=0;i<13;i++){
-  storage.push_back({names[i],i==bl::csharp::BasicUseStyle?&byteType:&intType,
-   i==bl::csharp::BasicUseStyle?offsetof(FakeItem,useStyle):offsetof(FakeItem,values)+i*sizeof(int),0});
-  itemClass.fields.push_back(&storage.back());
- }
+ for(size_t i=0;i<13;i++){storage.push_back({names[i],i==9?&styleType:i==3&&narrowValue?&shortType:&intType,offsetof(FakeItem,values)+i*sizeof(int),0});itemClass.fields.push_back(&storage.back());}
  const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable"};
  for(size_t i=0;i<5;i++){storage.push_back({flags[i],&boolType,offsetof(FakeItem,flags)+i,0});itemClass.fields.push_back(&storage.back());}
  storage.push_back({"knockBack",&floatType,offsetof(FakeItem,knockBack),0});itemClass.fields.push_back(&storage.back());
@@ -69,6 +60,8 @@ void configure(){
  }
  apiInstance.field_get_type=[](FieldInfo* f){return static_cast<const Il2CppType*>(f->type);};
  apiInstance.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};
+ apiInstance.class_is_enum=[](const Il2CppClass* c){return enumStyle&&c==&styleClass;};
+ apiInstance.class_enum_basetype=[](Il2CppClass*){return static_cast<const Il2CppType*>(&intType);};
  apiInstance.class_get_name=[](Il2CppClass* c){return c->name;};
  apiInstance.class_get_fields=[](Il2CppClass* c,void** iter)->FieldInfo*{auto index=reinterpret_cast<uintptr_t>(*iter);if(index>=c->fields.size())return nullptr;*iter=reinterpret_cast<void*>(index+1);return c->fields[index];};
  apiInstance.field_get_flags=[](FieldInfo* f){return f->flags;};
@@ -81,28 +74,44 @@ void configure(){
 }
 
 int main(int argc,char** argv){
- assert(argc>=2);nullable=argc==3;configure();
- auto* styleField=bl::il2cpp::findField(&itemClass,"useStyle");
- assert(styleField && styleField->type==&byteType);
- styleField->type=&intType;
- std::string typeError;
- assert(!bl::csharp::registerBasicItemPlaceholder(6195,"InvalidUseStyle",&typeError));
- assert(typeError.find("campo byte ausente/incompativel: useStyle")!=std::string::npos);
- styleField->type=&byteType;
+ assert(argc>=2);
+ const std::string mode=argc>=3?argv[2]:"--byte";
+ narrowValue=mode=="--range";nullable=mode=="--nullable";enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";
+ if(mode=="--int16") {styleClass.name="Int16";styleClass.size=2;}
+ if(mode=="--int32"||enumStyle) {styleClass.name=enumStyle?"ItemUseStyle":"Int32";styleClass.size=4;}
+ if(rejectStyle) {styleClass.name="Single";styleClass.size=4;}
+ configure();
  std::ifstream file(argv[1]);std::string line,error;std::getline(file,line);
  std::vector<bl::csharp::BasicItemEntry> entries;int next=6196;
  while(std::getline(file,line)){if(line.empty())continue;bl::csharp::BasicItemEntry entry;
   assert(bl::csharp::parseBasicItemWire(bl::csharp::basicSplit(line,'\t'),&entry,&error));
   entry.type=next++;identities[entry.type]="mod/"+entry.name;
+  if(rejectStyle) {
+   assert(!bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));
+   assert(error.find("useStyle (tipo=Single)")!=std::string::npos);
+   std::cout<<"NATIVE_BASIC_ITEM_REJECT_INCOMPATIBLE_TYPE_PASS\n";return 0;
+  }
   assert(bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));entries.push_back(entry);
  }
- assert(entries.size()==3);assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));assert(initialized);
+ assert(entries.size()==3);
+ if(narrowValue) {
+  assert(!bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
+  assert(error.find("value=50000 fora do tipo nativo (16 bits)")!=std::string::npos);
+  FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries[0].type));
+  assert(object.values[bl::csharp::BasicMaxStack]==1); // nenhum defaults parcial foi publicado
+  std::cout<<"NATIVE_BASIC_ITEM_NATIVE_RANGE_PASS\n";return 0;
+ }
+ assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));assert(initialized);
  for(const auto& entry:entries){FakeItem object{};
-  object.useStyleGuards[0]=0xA5;object.useStyleGuards[1]=0x5A;object.useStyleGuards[2]=0xC3;
+  // Sentinel ocupa bytes adjacentes ao Byte/Int16: escrita larga corromperia aqui.
+  object.values[9]=static_cast<int>(0x5a5a5a5a);
   assert(bl::csharp::applyBasicItemToObject(&object.header,entry.type));
-  for(size_t i=0;i<13;i++)if(i!=bl::csharp::BasicUseStyle)assert(object.values[i]==entry.values[i]);
-  assert(object.useStyle==entry.values[bl::csharp::BasicUseStyle]);
-  assert(object.useStyleGuards[0]==0xA5&&object.useStyleGuards[1]==0x5A&&object.useStyleGuards[2]==0xC3);
+  for(size_t i=0;i<13;i++)if(i!=9)assert(object.values[i]==entry.values[i]);
+  const auto* style=reinterpret_cast<const unsigned char*>(&object.values[9]);
+  const int width=enumStyle?4:styleClass.size;
+  uint32_t value=0;std::memcpy(&value,style,static_cast<size_t>(width));
+  assert(value==static_cast<uint32_t>(entry.values[9]));
+  for(int i=width;i<4;i++)assert(style[i]==0x5a);
   assert(object.knockBack==entry.knockBack);assert(object.flags[0]==!!(entry.values[bl::csharp::BasicFlags]&1));
   if(!entry.useSound.empty()){
    void* ptr=nullptr;std::memcpy(&ptr,object.sound+(nullable?16:0),sizeof(ptr));
@@ -119,5 +128,5 @@ int main(int argc,char** argv){
  FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries[0].type));assert(object.values[bl::csharp::BasicDamage]==entries[0].values[bl::csharp::BasicDamage]);
  bad=entries;bad[0].useSound="DoesNotExist";assert(!bl::csharp::applyNativeBasicItemDefaults("mod",bad,&error));
  assert(error.find("SoundID.DoesNotExist")!=std::string::npos);
- std::cout<<"NATIVE_BASIC_ITEM_BINDING_PASS="<<(nullable?"nullable":"mobile-legacy-reference")<<"\n";
+ std::cout<<"NATIVE_BASIC_ITEM_BINDING_PASS="<<mode<<"\n";
 }
