@@ -133,3 +133,26 @@ Receitas aguardam policies do resultado/ingredientes quando declaradas; erro de
 policy nao vira ACK. Ausencia da VM para as policies legadas nao impede receitas
 nativas de itens independentes. Readiness/ACK de policy e exercitado pelos testes
 de binding; nao alegar que as policies foram portadas para C++.
+
+## Checkpoint final desta continuidade
+
+Runtime .90.29.3 / code168, ExampleMod 0.1.36. Commit:
+6fac739d8e748ca390d83cc7ebe55ba4e7b9f44a. Oito suites de regressao aprovadas;
+Android build/assinatura e entrega experimental privada aprovados em
+[38609568759](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38609568759).
+PR de acompanhamento em rascunho: [21](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/21).
+Nao e release oficial do Lote A. Nenhuma validacao de gameplay/FPS nova no Android.
+
+Lote A permanece: 33 exemplos; 8 implementados, 6 com evidencias automatizadas,
+7 parciais e 18 nao implementados. Matriz global 201, sem remover os anteriores.
+Os 51 fontes/26 texturas do ExampleMod foram preservados. Nao foram adicionados
+ports neste grupo. A versao 0.1.36 atualiza guia/matriz/catalogo.
+
+Proximo passo concreto continua sendo a bancada C# completa: identidade por
+categoria, SDK publico de tile/estacao/item colocavel; registro e TileObjectData;
+frames/ancoras, destruicao/drop/dust, mapa/housing, adjacencia e icone do Guia.
+Usar os registradores independentes e NativeRecipes existentes; nao criar
+registro paralelo nem voltar a chamar RecipeLoader JS. Portar ambos os arquivos
+ExampleWorkbench e as receitas originais das armaduras depois dos contratos
+funcionais, mantendo os demais 33 exemplos no escopo. Policies de equipamento
+e suporte de recipes alem do limite ainda precisam de desacoplamento.

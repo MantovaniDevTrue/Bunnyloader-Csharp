@@ -894,9 +894,9 @@
       "other Lot A APIs",
       "Android lifecycle validation"
     ],
-    "runtimeCommit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
-    "androidBuildRun": 38573406719,
-    "result": "Consistent tested infrastructure checkpoint; Lot A not complete; no partial feature release",
+    "runtimeCommit": "6fac739d8e748ca390d83cc7ebe55ba4e7b9f44a",
+    "androidBuildRun": 38609568759,
+    "result": "Eight CI suites and Android build/signing passed; experimental private delivery; no Android gameplay or FPS validation; Lot A incomplete",
     "recipeInfrastructure": {
       "version": "0.1.10.16.90.29.1-native-recipe-service",
       "source": "app/src/main/cpp/content/recipes/NativeRecipes.cpp",
@@ -904,7 +904,7 @@
         "tests/native_recipes/native_recipes_test.cpp",
         "tests/basic_items/native_item_binding_test.cpp --recipes-only"
       ],
-      "status": "Eight CI suites passed for 9bf34a9; readiness and experimental delivery follow-up awaiting CI; Android gameplay pending",
+      "status": "Host integration and eight CI suites passed; Android build/signing passed; Android gameplay pending",
       "scope": "Production registries/IL2CPP adapter executed without QuickJS; not a placed CSharp workbench",
       "remaining": [
         "CSharp station API and placement/hooks",
@@ -931,7 +931,7 @@
         "tests/native_recipes/value_layout_test.cpp",
         "tests/basic_items/native_item_binding_test.cpp --nullable --nullable-unboxed --bounds"
       ],
-      "status": "Host tests passed; CI/Android build pending",
+      "status": "Production helper exercised without QuickJS; eight CI suites and Android build passed; device validation pending",
       "preserved": [
         "useStyle native width",
         "optional Item.active",
@@ -944,7 +944,7 @@
     "recipePumpIntegration": {
       "version": "0.1.10.16.90.29.3-recipe-policy-ready",
       "test": "tests/native_recipes/native_recipes_test.cpp --pump",
-      "status": "Executed on IL2CPP host without QuickJS; CI/Android build pending",
+      "status": "Production queue executed on host without QuickJS; eight CI suites and Android build passed; device validation pending",
       "scope": [
         "Production NativeBasicItems queue and NativeRecipes adapter linked to production registries",
         "Preview/defaults and delayed station retry",
@@ -955,6 +955,17 @@
         "Full Android boot without VM",
         "Android gameplay or 60 FPS"
       ]
+    },
+    "previousRuntimeCommit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
+    "eightSuiteRuns": {
+      "audit": 38609568681,
+      "combat": 38609568434,
+      "prefix": 38609568384,
+      "lifecycle": 38609568885,
+      "monoGc": 38609568717,
+      "monoSignals": 38609568721,
+      "visual": 38609568862,
+      "nativeVisual": 38609568707
     }
   }
 }
