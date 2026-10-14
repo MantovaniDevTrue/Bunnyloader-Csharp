@@ -38,6 +38,11 @@ Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 }
+namespace bl::csharp {
+bool managedPrefixDescriptorReady(int) { return false; }
+bool managedPrefixDescriptorPending(int) { return false; }
+bool applyManagedPrefixStatFallback(Il2CppObject*, int, std::string*) { return false; }
+}
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
 std::string modItemKey(int type){return identities[type];}

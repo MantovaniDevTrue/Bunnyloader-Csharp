@@ -55,6 +55,11 @@ Signature parseSignature(std::string_view s){Signature out;out.name=std::string(
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& s,bool*,const MethodInfo**){auto it=methods.find(s.name);return it==methods.end()?nullptr:&it->second;}
 std::string describeMethod(const MethodInfo* m){return m->signature;}
 }
+namespace bl::csharp {
+bool managedPrefixDescriptorReady(int) { return false; }
+bool managedPrefixDescriptorPending(int) { return false; }
+bool applyManagedPrefixStatFallback(Il2CppObject*, int, std::string*) { return false; }
+}
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
 void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> text){
