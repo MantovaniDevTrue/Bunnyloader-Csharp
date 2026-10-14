@@ -40,6 +40,7 @@ class EquipLoader {
     static #vanilla = new Map();     // tipo de equipamento -> o Count do jogo
     static #installed = false;
     static #nativeSynced = new Set();
+    static #nativeFailures = new Set();
 
     // No registro do item (bl.mod ainda é o dele): as texturas <Texture>_<tipo>,
     // ou só as de `static AutoloadEquip = [EquipType.Head, ...]` (o atributo do
@@ -129,9 +130,18 @@ class EquipLoader {
                 typeof entry.texture !== 'string') continue;
             const key = entry.type + ':' + entry.kind;
             if (EquipLoader.#nativeSynced.has(key)) continue;
+            if (EquipLoader.#pending.some(t => t.CSharpNativeKind === entry.kind &&
+                t.Item && t.Item.Type === entry.type)) continue;
             const kind = entry.kind === 1 ? 'Shield' : 'Shoes';
             const file = api.visualTexturePath(entry.texture);
-            if (!file || !bl.file.exists(file)) continue;
+            if (!file || !bl.file.exists(file)) {
+                if (!EquipLoader.#nativeFailures.has(key)) {
+                    EquipLoader.#nativeFailures.add(key);
+                    bl.log('csharp equip: item=' + entry.type + ' tipo=' + kind +
+                        ' erro=texture_missing textura=' + entry.texture);
+                }
+                continue;
+            }
             const item = { Type: entry.type };
             const tex = new EquipTexture();
             tex.Texture = file;
@@ -147,10 +157,6 @@ class EquipLoader {
                 Safe.Run('CSharp equip ' + kind, () => EquipLoader.#InstallKind(kind, entries));
             } else {
                 EquipLoader.#pending.push(...entries);
-            }
-            for (const tex of entries) {
-                if (tex.Slot >= 0 || !EquipLoader.#installed)
-                    EquipLoader.#nativeSynced.add(tex.Item.Type + ':' + tex.CSharpNativeKind);
             }
         }
     }
@@ -239,10 +245,16 @@ class EquipLoader {
 
             if (!EquipLoader.#slots.has(item.Type)) EquipLoader.#slots.set(item.Type, {});
             const slots = EquipLoader.#slots.get(item.Type);
-            if (slots[k.slot] === undefined) slots[k.slot] = slot;
+            if (slots[k.slot] === undefined || tex.CSharpNativeKind) slots[k.slot] = slot;
             if (k.itemTypes) Terraria.Item[k.itemTypes][slot] = item.Type;
-            if (tex.CSharpNativeKind)
-                bl.csharp.setNativeEquipSlot(item.Type, tex.CSharpNativeKind, slot);
+            if (tex.CSharpNativeKind) {
+                if (!bl.csharp.setNativeEquipSlot(item.Type, tex.CSharpNativeKind, slot))
+                    throw new Error('csharp equip: item=' + item.Type + ' tipo=' + kind +
+                        ' slot=' + slot + ' erro=native_slot_rejected');
+                const key = item.Type + ':' + tex.CSharpNativeKind;
+                EquipLoader.#nativeSynced.add(key);
+                EquipLoader.#nativeFailures.delete(key);
+            }
         });
 
         bl.log('texturas vestidas: ' + list.length + ' de ' + kind + ' (slots ' + vanilla + '..' + (total - 1) + ')');
@@ -267,4 +279,8 @@ class EquipLoader {
     }
 }
 
-Ready.Add(() => EquipLoader.SyncCSharp(), 'content');
+// C# nao registra ModItem JS: nao depende de um SetDefaults JS para instalar.
+// Nesta fase as texturas vanilla ja existem; os descritores tardios sao
+// instalados pelo poll do desenho, usando o mesmo caminho idempotente.
+Ready.Add(() => EquipLoader.Install(), 'content');
+

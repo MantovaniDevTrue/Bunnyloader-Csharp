@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
 #include "content/items/ModItems.h"
@@ -60,6 +61,9 @@ struct NativeRefs {
     int itemShieldSlot = -1;
     int itemShoeSlot = -1;
     int playerHellfireTreads = -1;
+    int playerHideVisibleAccessory = -1;
+    int playerVelocity = -1;
+    int playerMount = -1;
     int itemBuffType = -1;
     int itemBuffTime = -1;
     int itemConsumable = -1;
@@ -201,6 +205,10 @@ ItemDefaultsFn g_originalItem = nullptr;
 ProjectileDefaultsFn g_originalProjectile = nullptr;
 NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
+ApplyEquipFn g_originalEquipVanity = nullptr;
+const MethodInfo* g_cancelBootVisuals = nullptr;
+const MethodInfo* g_placeBootFlames = nullptr;
+const MethodInfo* g_mountActive = nullptr;
 UpdateBuffsFn g_originalUpdateBuffs = nullptr;
 HorizontalMovementFn g_originalHorizontalMovement = nullptr;
 SetArmorEffectVisualsFn g_originalSetArmorEffectVisuals = nullptr;
@@ -376,7 +384,60 @@ void hkNpcDefaults(Il2CppObject* self, int32_t type, const void* params, const M
     bl::runtime::finishModNpc(self, type);
 }
 
+void refreshNativeEquipSlot(Il2CppObject* item) {
+    if (!item || g_refs.itemType < 0) return;
+    const auto found = g_accessories.find(bl::runtime::field<int32_t>(item, g_refs.itemType));
+    if (found == g_accessories.end()) return;
+    const auto& visual = found->second;
+    const int offset = visual.visualMode == 1 ? g_refs.itemShieldSlot :
+                       visual.visualMode == 3 ? g_refs.itemShoeSlot : -1;
+    if (offset >= 0 && visual.nativeEquipSlot > 0 && visual.nativeEquipSlot < 128)
+        bl::runtime::field<int8_t>(item, offset) = static_cast<int8_t>(visual.nativeEquipSlot);
+}
+
+void applyNativeBootVisuals(Il2CppObject* self, int32_t slot,
+                           Il2CppObject* item, bool vanity) {
+    if (!self || !item || g_refs.playerHellfireTreads < 0) return;
+    const auto found = g_accessories.find(bl::runtime::field<int32_t>(item, g_refs.itemType));
+    if (found == g_accessories.end() || found->second.visualMode != 3) return;
+    if (!vanity) {
+        if (g_refs.playerHideVisibleAccessory < 0) return;
+        auto* hidden = bl::runtime::field<Il2CppArray*>(self, g_refs.playerHideVisibleAccessory);
+        if (!hidden || slot < 0 || static_cast<uintptr_t>(slot) >= hidden->length ||
+            static_cast<uint8_t*>(arrayData(hidden))[slot]) return;
+    }
+    if (g_cancelBootVisuals && bl::il2cpp::methodPointer(g_cancelBootVisuals)) {
+        using Fn = void (*)(Il2CppObject*, const MethodInfo*);
+        reinterpret_cast<Fn>(bl::il2cpp::methodPointer(g_cancelBootVisuals))(self, g_cancelBootVisuals);
+    }
+    bl::runtime::field<uint8_t>(self, g_refs.playerHellfireTreads) = 1;
+    if (!g_placeBootFlames || !bl::il2cpp::methodPointer(g_placeBootFlames) ||
+        g_refs.playerVelocity < 0 || g_refs.playerPosition < 0 ||
+        g_refs.playerWidth < 0 || g_refs.playerHeight < 0 || g_refs.playerDead < 0 ||
+        g_refs.playerMount < 0 || !g_mountActive || !bl::il2cpp::methodPointer(g_mountActive)) return;
+    auto* mount = bl::runtime::field<Il2CppObject*>(self, g_refs.playerMount);
+    using ActiveFn = bool (*)(Il2CppObject*, const MethodInfo*);
+    const bool mounted = mount && reinterpret_cast<ActiveFn>(bl::il2cpp::methodPointer(g_mountActive))(mount, g_mountActive);
+    struct Vec { float x, y; };
+    const auto pos = bl::runtime::field<Vec>(self, g_refs.playerPosition);
+    const auto velocity = bl::runtime::field<Vec>(self, g_refs.playerVelocity);
+    int32_t x = 0, y = 0;
+    if (!nativeBootFlameTile(pos.x, pos.y,
+            bl::runtime::field<int32_t>(self, g_refs.playerWidth),
+            bl::runtime::field<int32_t>(self, g_refs.playerHeight),
+            velocity.x, velocity.y, bl::runtime::field<uint8_t>(self, g_refs.playerDead),
+            mounted, &x, &y)) return;
+    using FlameFn = bool (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
+    const bool placed = reinterpret_cast<FlameFn>(bl::il2cpp::methodPointer(g_placeBootFlames))(self, x, y, g_placeBootFlames);
+    static unsigned logs = 0;
+    if (logs++ < 3)
+        BL_INFO("csharp boots: rotina nativa tile=%d,%d chama=%d", x, y, placed);
+}
+
 void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const MethodInfo* method) {
+    // Itens salvos nasceram antes do registro de texturas. Atualize ANTES
+    // de o Terraria selecionar shield/shoe para o desenho deste tick.
+    refreshNativeEquipSlot(item);
     if (g_originalEquip) g_originalEquip(self, slot, item, method);
     if (!self || !item) return;
     const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
@@ -384,8 +445,13 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
     defense += it->second.defenseBonus;
-    if (it->second.visualMode == 3 && g_refs.playerHellfireTreads >= 0)
-        bl::runtime::field<uint8_t>(self, g_refs.playerHellfireTreads) = 1;
+    applyNativeBootVisuals(self, slot, item, false);
+}
+
+void hkApplyEquipVanity(Il2CppObject* self, int32_t slot, Il2CppObject* item, const MethodInfo* method) {
+    refreshNativeEquipSlot(item);
+    if (g_originalEquipVanity) g_originalEquipVanity(self, slot, item, method);
+    applyNativeBootVisuals(self, slot, item, true);
 }
 
 void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
@@ -1077,6 +1143,9 @@ bool prepareNativeContent() {
     r.itemShieldSlot = fieldOffset(item, "shieldSlot");
     r.itemShoeSlot = fieldOffset(item, "shoeSlot");
     r.playerHellfireTreads = fieldOffset(player, "hellfireTreads");
+    r.playerHideVisibleAccessory = fieldOffset(player, "hideVisibleAccessory");
+    r.playerVelocity = fieldOffset(player, "velocity");
+    r.playerMount = fieldOffset(player, "mount");
     r.itemBuffType = fieldOffset(item, "buffType");
     r.itemBuffTime = fieldOffset(item, "buffTime");
     r.itemConsumable = fieldOffset(item, "consumable");
@@ -1194,6 +1263,22 @@ bool prepareNativePlayerEffects() {
         player, parseSignature("void SetArmorEffectVisuals(Player drawPlayer)"));
     if (!equip || !buffs || !runSpeeds || !armorVisuals) return false;
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
+    const MethodInfo* vanity = findMethodBySignature(
+        player, parseSignature("void ApplyEquipVanity(int itemSlot, Item currentItem)"));
+    if (!vanity || !bl::hook::install(vanity, hkApplyEquipVanity, &g_originalEquipVanity))
+        BL_WARN("csharp equip: hook de vaidade indisponivel");
+    g_cancelBootVisuals = findMethodBySignature(
+        player, parseSignature("void CancelAllBootRunVisualEffects()"));
+    g_placeBootFlames = findMethodBySignature(
+        player, parseSignature("bool DoBootsEffect_PlaceFlamesOnTile(int X, int Y)"));
+    auto* mountClass = findClass({"Terraria", "Mount", {}});
+    if (mountClass) g_mountActive = findMethodBySignature(mountClass, parseSignature("bool get_Active()"));
+    if (!g_cancelBootVisuals || !g_placeBootFlames || !g_mountActive ||
+        g_refs.playerHideVisibleAccessory < 0 || g_refs.playerVelocity < 0 || g_refs.playerMount < 0)
+        BL_WARN("csharp boots: contrato nativo incompleto cancel=%d flames=%d mount=%d hide=%d velocity=%d",
+            !!g_cancelBootVisuals, !!g_placeBootFlames, !!g_mountActive,
+            g_refs.playerHideVisibleAccessory, g_refs.playerVelocity);
+    else BL_INFO("csharp boots: cancelamento e chamas nativas prontos");
     if (!bl::hook::install(buffs, hkUpdateBuffs, &g_originalUpdateBuffs)) return false;
     if (!bl::hook::install(runSpeeds, hkHorizontalMovement,
                            &g_originalHorizontalMovement)) return false;
@@ -1773,3 +1858,4 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
 }
 
 }
+

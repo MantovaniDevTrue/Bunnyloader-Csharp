@@ -1,3 +1,27 @@
+# Equipamentos nativos — ExampleMod 0.1.33 / Bunny .90.27.6
+
+Guardian Shield: equipe em um slot funcional (ou de vaidade) e deixe o visual
+visivel. O Terraria recebe shieldSlot e seleciona os quadros de andar/pular,
+com espelhamento ao virar. A defesa e os callbacks ficam no BunnyPlayer.
+Trailblazer Boots: a folha Shoes veste os pes; o rastro usa a rotina nativa de
+chamas no tile sob o jogador. Corra no chao, com velocidade horizontal > 1
+pixel/tick, sem montaria. Parado/pulando/morto/visual oculto nao produz chamas.
+O tile ainda precisa aceitar fogo; o retorno nativo pode ser falso.
+Mystic Ward: a barreira azul continua no renderer de overlay existente.
+
+Em caso de falha, procure no relatorio:
+- csharp equip: item/tipo/slot: confirma o vinculo nativo.
+- texture_missing: inclui a textura ausente; confira nome, caminho e maiusculas.
+- native_slot_rejected: o loader recusou aquele slot, e pode tentar novamente.
+- csharp boots: contrato nativo incompleto: mostra metodos/campos indisponiveis.
+- csharp boots: rotina nativa tile=..., chama=...: primeiras tentativas no chao.
+
+Nao precisa ligar um mod JS para instalar estes equipamentos. Os comentarios
+nos acessorios explicam quais partes sao textura, desenho nativo e gameplay.
+Esta correcao tem testes de host; animacao/FPS no Android precisam de confirmacao.
+
+---
+
 # ExampleMod C# — lote 0.1.26
 
 Requer Bunny Loader .90.25 ou mais recente. Este pacote inclui os exemplos
@@ -74,3 +98,4 @@ Os testes de host executam todas as oito receitas, casos de fronteira, erros
 reais do Roslyn e excecoes intencionais de callbacks. O relatorio JSON associa
 cada caso ao resultado/erro. Isso nao substitui validacao de gameplay no Android.
 Os fontes comentados deste diretorio sao os mesmos empacotados no .bmod.
+

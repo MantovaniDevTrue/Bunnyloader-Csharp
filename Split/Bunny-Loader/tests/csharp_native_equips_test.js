@@ -57,7 +57,7 @@ const Equip = global.Equip;
 assert.equal(jobs.length, 1, 'automatic content-ready equip registration');
 assert.equal(jobs[0].phase, 'content');
 jobs[0].fn();
-assert.equal(requests.length, 0, 'registration stays pending until equip install');
+assert.equal(requests.length, 2, 'content-ready installs with ONLY CSharp mods, without ModItem JS');
 Equip.Install();
 assert.equal(assigned.get(6197).kind, 1);
 assert.equal(assigned.get(6197).slot, 15);
@@ -79,4 +79,52 @@ assert.equal(Equip.VanillaCount('Shield'), 15, 'real vanilla count preserved on 
 assert.equal(global.Terraria.ID.ArmorIDs.Shield.Count, 17);
 assert.equal(requests.length, 3);
 assert.equal(Equip.InstalledKinds().length, 2);
+
+// A nova sessao nao tem ModItem JS chamando Install. Simula Safe.Run real,
+// falhas recuperaveis e o poll do desenho, sem inicializacao manual escondida.
+function harness(entries) {
+    const queue = [], errors = [], messages = [], bound = new Map();
+    let available = true, reject = false;
+    const shields = assets(), shoes = assets();
+    shields.length = 15; shoes.length = 25;
+    const context = { ...global, Equip: undefined,
+        Terraria: { ID: { ArmorIDs: { Shield: {Count:15}, Shoe: {Count:25} } },
+            GameContent: {TextureAssets: {AccShield:shields, AccShoes:shoes}} },
+        Ready: {Add(fn) {queue.push(fn);}},
+        Safe: {Run(label,fn) {try {fn();} catch(e) {errors.push(e.message);}}},
+        bl: {...global.bl, log(s) {messages.push(s);}, file: {exists() {return available;}},
+            csharp: {...global.bl.csharp,
+                nativeEquipTextures() {return entries.filter(e=>!bound.has(e.type));},
+                setNativeEquipSlot(type,kind,slot) {
+                    if (reject) return false;
+                    bound.set(type,{kind,slot}); return true;
+                }}}
+    };
+    vm.runInNewContext(source+'\nglobalThis.Equip = EquipLoader;',context);
+    return {context,queue,errors,messages,bound,
+        available(v) {available=v;}, reject(v) {reject=v;}};
+}
+const delayed = harness(pending.slice(0,2));
+delayed.context.Equip.SyncCSharp();
+delayed.context.Equip.SyncCSharp();
+delayed.queue[0]();
+assert.equal(delayed.bound.size,2,'pre-content sync must not duplicate pending entries');
+assert.equal(delayed.context.Terraria.ID.ArmorIDs.Shield.Count,16);
+const missing = harness(pending.slice(0,1));
+missing.available(false); missing.queue[0](); missing.context.Equip.Install();
+assert.equal(missing.bound.size,0);
+assert.equal(missing.messages.filter(s=>s.includes('texture_missing')).length,1);
+assert.ok(missing.messages.some(s=>s.includes('item=6197')&&s.includes('Shield_Shield.png')));
+missing.available(true); missing.context.Equip.Install();
+assert.equal(missing.bound.size,1,'texture recovery after content-ready');
+const rejected = harness(pending.slice(0,1));
+rejected.reject(true); rejected.queue[0]();
+assert.equal(rejected.bound.size,0);
+assert.ok(rejected.errors.some(s=>s.includes('native_slot_rejected')&&s.includes('item=6197')));
+rejected.reject(false); rejected.context.Equip.Install();
+assert.equal(rejected.bound.size,1,'failed native assignment stays retryable');
+const retryCount = rejected.context.Terraria.ID.ArmorIDs.Shield.Count;
+rejected.context.Equip.Install();
+assert.equal(rejected.context.Terraria.ID.ArmorIDs.Shield.Count,retryCount);
 console.log('CSHARP_NATIVE_EQUIP_LOADER_PASS=YES');
+

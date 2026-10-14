@@ -1,5 +1,22 @@
 # Bunny C# Visual API — v90.27 development
 
+## Current status: .90.27.6
+
+The earlier sections below are historical integration notes. The Mystic Ward
+overlay is connected and has user-confirmed device rendering. Shield/Shoes use
+native equipment textures; this patch installs them at content-ready even when
+there are no JS ModItems, and also installs late descriptors from the draw poll.
+Saved functional/vanity items refresh their native slot before the original
+equipment method. Trailblazer boots cancel conflicting boot visuals, set
+hellfireTreads and call DoBootsEffect_PlaceFlamesOnTile while visible, grounded,
+moving faster than one pixel/tick, alive and unmounted. Stats are unchanged.
+
+Host tests cover C#-only startup, late install, deduplication, missing textures,
+native assignment rejection/recovery and boot tile geometry. Android rendering
+and frame rate of this fix are pending device verification. No custom shader API
+is introduced. Logs identify missing texture paths, rejected slots and missing
+native methods/fields; the first eligible flame attempts log tile/result.
+
 Base: `csharp-composite-accessories-v90-26`.
 
 ## Implemented in branch
@@ -48,3 +65,4 @@ The original Mono polling entry point incorrectly resolved `BunnyLoader.Source.B
 ## Automatic polling (commit 21cff14)
 
 During an active world session, AutoSourceRuntime polls up to eight pending SDK commands once every twelve game updates, then advances native visual state with a budget of 32. The Mono entry point uses a try-lock to avoid waiting for the Mono runtime mutex. Polling is experimental and requires an Android APK build plus device FPS/crash verification. Effects still cannot be seen: no active visual draw-layer consumer is installed, and the texture resolver is not wired. The sample accessories emit commands but their player index and graphics bindings remain placeholders.
+
