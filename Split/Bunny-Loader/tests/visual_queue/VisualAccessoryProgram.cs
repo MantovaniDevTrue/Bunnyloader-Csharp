@@ -12,10 +12,8 @@ if (!wire.StartsWith("V1|2|0|1001|", StringComparison.Ordinal) ||
     throw new Exception("Mystic Ward visual emission not found: " + wire);
 var boots = new ExampleTrailblazerBootsPlayer();
 boots.SetDefaults();
-if (!boots.FrameEffects(true))
-    throw new Exception("Boots frame callback returned false");
-wire = BunnyVisual.TakeWire();
-if (!wire.StartsWith("V1|4|0|1002|", StringComparison.Ordinal) ||
-    !wire.EndsWith("Content/Effects/TrailblazerSpark.png", StringComparison.Ordinal))
-    throw new Exception("Boots visual emission not found: " + wire);
-Console.WriteLine("CSharp accessory visual commands verified");
+if (boots.UpdateMovement(true) != 8)
+    throw new Exception("Boots acceleration missing");
+if (!string.IsNullOrEmpty(BunnyVisual.TakeWire()))
+    throw new Exception("Native shoe visual must not enqueue manual particle sprite");
+Console.WriteLine("CSharp Ward custom overlay and native shoe behavior verified");
