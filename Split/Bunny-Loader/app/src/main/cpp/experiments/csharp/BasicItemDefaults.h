@@ -20,7 +20,9 @@ struct BasicItemEntry {
     std::string name; int type=-1;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
-    std::string useSound,tooltip;
+    std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
+    bool behaviorInstalled=false;
+    std::string behaviorError;
     std::vector<BasicRecipe> recipes;
 };
 inline bool basicInteger(const std::string& s,int* n) {
@@ -35,7 +37,7 @@ inline std::vector<std::string> basicSplit(const std::string& s,char c) {
 }
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
     const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
-    const int max[]={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000,31};
+    const int max[]={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000,127};
     for(size_t i=0;i<BasicFieldCount;++i) if(item.values[i]<min[i]||item.values[i]>max[i]) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
     }
@@ -70,7 +72,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if(fields.size()!=20||fields[0]!="ITEM") {*error="ITEM requer 20 campos";return false;}
+    if((fields.size()!=20&&fields.size()!=21)||fields[0]!="ITEM") {*error="ITEM requer 20 ou 21 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -81,6 +83,16 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         if(hex.size()%2||hex.size()>1024) {*error=out.name+": tooltip hex invalido";return false;}
         auto digit=[](char c)->int {return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
         for(size_t i=0;i<hex.size();i+=2) {int a=digit(hex[i]),b=digit(hex[i+1]);if(a<0||b<0){*error=out.name+": tooltip hex invalido";return false;}char c=static_cast<char>((a<<4)|b);if(c==0||static_cast<unsigned char>(c)==127){*error=out.name+": tooltip com controle invalido";return false;}out.tooltip+=c;}
+    }
+    if(fields.size()==21) {
+        const auto& wire=fields[20];
+        if(wire.empty()||wire.size()>8192||wire.size()%2) {*error=out.name+": comportamento hex invalido";return false;}
+        auto digit=[](char c)->int {return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
+        for(size_t i=0;i<wire.size();i+=2) {
+            const int a=digit(wire[i]),b=digit(wire[i+1]);
+            if(a<0||b<0||((a<<4)|b)<32) {*error=out.name+": comportamento hex invalido";return false;}
+            out.behavior+=static_cast<char>((a<<4)|b);
+        }
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

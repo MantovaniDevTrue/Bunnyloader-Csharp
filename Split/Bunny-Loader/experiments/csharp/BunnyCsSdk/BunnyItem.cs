@@ -32,6 +32,10 @@ public abstract class BunnyItem
     // Unidade interna Terraria: Axe=30 mostra 150% no tooltip (30 * 5).
     public int Axe { get; set; }
     public int Hammer { get; set; }
+    public bool Accessory { get; set; }
+    public bool Vanity { get; set; }
+    public BunnyItemBehavior Behavior { get; } = new();
+    public string BehaviorDefinition => Behavior.ToJson();
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
     public string UseSound { get; set; } = "";
     public abstract void SetDefaults();

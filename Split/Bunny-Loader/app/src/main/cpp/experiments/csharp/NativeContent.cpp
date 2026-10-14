@@ -1,3 +1,4 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -302,7 +303,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
             BL_ERROR("csharp item: defaults indisponiveis para type=%d",type);
             return;
         }
-        if (basicItemHasDamage(type)) enableManagedPrefixEligibility(type);
+        if (basicItemHasDamage(type)||basicItemIsAccessory(type)) enableManagedPrefixEligibility(type);
         bl::runtime::finishModItem(self,type);
         return;
     }
@@ -1426,7 +1427,7 @@ bool applyManagedNativeDefaultsBatch(
     const std::vector<ManagedProjectileEntry>& projectiles,
     const std::vector<ManagedWeaponEntry>& weapons) {
     if (!g_ready || projectiles.empty() || weapons.empty() ||
-        projectiles.size() > 16 || weapons.size() > 16) return false;
+        projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory) return false;
 
     std::map<int, NativeProjectileDefaults> stagedProjectiles;
     std::map<int, NativeWeaponDefaults> stagedWeapons;
@@ -1504,7 +1505,7 @@ bool applyManagedNativePlayerDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedAccessoryEntry>& accessories,
     const std::vector<ManagedPlayerEntry>& players) {
-    if (!g_effectsReady || accessories.size() > 16 || players.size() > 16)
+    if (!g_effectsReady || accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory)
         return false;
     std::map<int, NativeAccessoryDefaults> values;
     for (const auto& accessory : accessories) {
@@ -1609,7 +1610,7 @@ bool applyManagedNativeNpcDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedNpcEntry>& npcs) {
     if (npcs.empty()) return true;
-    if (!g_npcReady || npcs.size() > 16) return false;
+    if (!g_npcReady || npcs.size() > kSourceMaxCategory) return false;
     std::map<int, NativeNpcDefaults> staged;
     for (const auto& npc : npcs) {
         if (npc.type < 0 ||
@@ -1725,6 +1726,7 @@ int managedNativeAccessoryMoveSpeedPercent(int type) {
 }
 
 int managedNativePrefixItemKind(int type) {
+    if (basicItemIsAccessory(type)) return 2;
     if (basicItemHasDamage(type)) return 1;
     if (g_weapons.contains(type)) return 1;
     if (g_accessories.contains(type)) return 2;
@@ -1747,22 +1749,33 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (!g_ready || !context || !spec || !validName(spec->name) ||
         !validTexture(spec->texture)) return -1;
     auto& ctx = *static_cast<NativeRegisterContext*>(context);
+    ctx.lastError.clear();
     const std::string path = ctx.modDir + "/content/" + spec->texture;
     if (!fileExists(path)) {
-        BL_ERROR("csharp native: textura inexistente %s", path.c_str());
+        ctx.lastError="[CSharp][ERROR][Asset] Mod="+ctx.modId+" Class="+spec->name+
+            " Path="+path+" Stage=TextureLoad Expected=ExistingFile Actual=Missing Result=Rejected Reason=AssetMissing";
+        BL_ERROR("%s",ctx.lastError.c_str());
         return -1;
     }
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
     if (spec->kind == NativeBasicItem) {
+        std::string contractError;
+        if(!checkBasicItemContract(&contractError)) {
+            ctx.lastError="[CSharp][ERROR][NativeItem] Mod="+ctx.modId+" Class="+spec->name+
+                " Stage=Register Result=Rejected Detail="+contractError;
+            BL_ERROR("%s",ctx.lastError.c_str());return -1;
+        }
         bl::runtime::ModItemDef def{};
         def.mod=ctx.modId;def.name=spec->name;def.texture=path;
         def.names.push_back({"",display});
         const int type=bl::runtime::registerModItem(std::move(def));
         std::string error;
-        if (type < 0 || !registerBasicItemPlaceholder(type,spec->name,&error)) {
-            BL_ERROR("csharp item: %s",error.c_str());return -1;
+        if (type < 0 || !registerBasicItemPlaceholder(type,spec->name,&error,ctx.modDir,ctx.sourceFile)) {
+            ctx.lastError="[CSharp][ERROR][NativeItem] Mod="+ctx.modId+" Class="+spec->name+
+                " Stage=Register Actual="+std::to_string(type)+" Result=Rejected Detail="+error;
+            BL_ERROR("%s",ctx.lastError.c_str());return -1;
         }
         ++ctx.items;++ctx.basicItems;return type;
     }

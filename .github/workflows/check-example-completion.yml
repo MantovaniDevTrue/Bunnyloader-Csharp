@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: JonataOliveiraa/Bunny-Loader
-          ref: 5b65929a590ff16278a6a645cb322d76360fb547
+          ref: bc4f240082a589823536eff74462a11acbdba8ec
           path: .audit-upstream
       - name: Check all canonical JS examples and evidence gates
         working-directory: Split/Bunny-Loader
@@ -31,7 +31,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_2"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_5"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -74,6 +74,8 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --enum
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
+          /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
+          node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
       - uses: actions/upload-artifact@v4
         with:

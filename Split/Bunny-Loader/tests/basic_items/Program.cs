@@ -34,11 +34,35 @@ try {
   string output=Path.Combine(scratch,"items.dll"),diag=Path.Combine(scratch,"compile.txt");
   Equal(1,Compiler.Compile(mod,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));Equal(2,Compiler.Compile(mod,output,runtime,diag));
  });
- Check("roslyn.full-45-source-package",()=>{
+ Check("roslyn.full-51-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
-  Equal(45,Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Length);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(31,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(51,Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Length);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(37,CompiledAssemblyProbe.Verify(output,diag));
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
-  if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>8192)throw new Exception("wire exceeds runtime budget");
+  if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>2*1024*1024)throw new Exception("wire exceeds runtime budget");
+ });
+ Check("behavior.public-sdk-validation",()=>{
+  var owner=new ExampleItem();owner.SetDefaults();
+  owner.Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage,1.1f);
+  owner.Behavior.SetOnEquip(BunnyEquipFlag.StrongBees);
+  using var json=JsonDocument.Parse(owner.BehaviorDefinition);
+  Equal(2,json.RootElement.GetProperty("effects").GetArrayLength());
+  Reject(()=>owner.Behavior.EquipTexture(BunnyEquipKind.Head,"../escape"));
+  Reject(()=>owner.Behavior.Animate(0,6));
+  Reject(()=>owner.Behavior.WorldLight(float.NaN,0,0));
+  Reject(()=>owner.Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage,-1));
+ });
+ Check("compiler.192-content-classes-and-expanded-wire",()=>{
+  string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));
+  for(int i=0;i<192;i++)File.WriteAllText(Path.Combine(root,"content",$"Item{i:D3}.cs"),
+    $"using BunnyLoader.Source; public sealed class Item{i:D3}:BunnyItem {{ public override void SetDefaults() {{ DisplayName=\"Item\"; Texture=\"Items/Item\"; MaxStack=9999; }} }}");
+  string output=Path.Combine(scratch,"capacity.dll"),diag=Path.Combine(scratch,"capacity.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(192,CompiledAssemblyProbe.Verify(output,diag));
+  var wire=File.ReadAllText(Path.Combine(scratch,"source-runtime-values.txt"));
+  if(wire.Length<=8192||wire.Length>2*1024*1024)throw new Exception("192 descriptors did not exercise expanded bounded wire");
+  File.WriteAllText("build/basic-items/capacity-source-runtime-values.txt",wire);
+  for(int i=192;i<513;i++)File.WriteAllText(Path.Combine(root,"content",$"Extra{i:D3}.cs"),"// helper");
+  Equal(-3,Compiler.Compile(root,output,runtime,diag));
+  if(!File.ReadAllText(diag).Contains("512"))throw new Exception("file limit diagnostic absent");
  });
 } finally {if(Directory.Exists(scratch))Directory.Delete(scratch,true);}
 Directory.CreateDirectory("build");string json=JsonSerializer.Serialize(new{schemaVersion=1,failures,results},new JsonSerializerOptions{WriteIndented=true});File.WriteAllText("build/basic-items-results.json",json);Console.WriteLine(json);return failures==0?0:1;

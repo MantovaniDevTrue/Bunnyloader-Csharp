@@ -1,3 +1,4 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -57,9 +58,9 @@ bool collect(const std::string& folder, const std::string& rel,
         if (S_ISDIR(st.st_mode)) {
             if (!collect(folder, child, paths, error, depth + 1)) return false;
         } else if (S_ISREG(st.st_mode) && isSourceName(name)) {
-            if (st.st_size > 256 * 1024 || st.st_size < 0 || paths->size() >= 64) {
+            if (st.st_size > kSourceMaxFileBytes || st.st_size < 0 || paths->size() >= kSourceMaxFiles) {
                 *error = "content/" + child +
-                    ": limite C# excedido (64 arquivos; 256 KiB por arquivo)";
+                    ": limite C# excedido (512 arquivos; 256 KiB por arquivo)";
                 return false;
             }
             paths->push_back(child);
@@ -72,7 +73,7 @@ bool read(const std::string& path, std::string* out) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return false;
     out->assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
-    return out->size() <= 256 * 1024;
+    return out->size() <= kSourceMaxFileBytes;
 }
 
 bool integer(const std::string& value, int* out) {
@@ -241,28 +242,34 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
-    if (paths.empty() || paths.size() > 64) {
+    if (paths.empty() || paths.size() > kSourceMaxFiles) {
         status->error = "pacote C# sem fontes .cs";
         return false;
     }
     std::vector<ParsedSourceType> defs;
+    std::map<std::string,std::string> sourcePaths;
+    size_t totalSourceBytes=0;
     for (const auto& path : paths) {
         std::string contents;
         if (!read(folder + "/" + path, &contents)) {
             status->error = "nao foi possivel ler " + path;
             return false;
         }
+        totalSourceBytes+=contents.size();
+        if(totalSourceBytes>kSourceMaxTotalBytes) {status->error="Fontes excedem 16 MiB";return false;}
+        const size_t previousTypes=defs.size();
         if (!parseCSharpSource(contents, &defs, &status->error, false)) {
             status->error = path + ": " + status->error;
             return false;
         }
+        for(size_t i=previousTypes;i<defs.size();++i)sourcePaths[defs[i].name]=path;
         ++status->sourceFiles;
     }
     if (defs.empty()) {
         status->error = "mod C# sem nenhuma classe BunnyWeapon ou BunnyProjectile";
         return false;
     }
-    if (defs.size() > 128) { status->error = "tipos C# demais"; return false; }
+    if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> types;
     for (const auto& def : defs) {
         if (!types.emplace(def.name, -1).second) {
@@ -320,9 +327,13 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             spec.name = def.name.c_str();
             spec.texture = texture.c_str();
             spec.displayName = display.c_str();
+            ctx.sourceFile="content/"+sourcePaths[def.name];
             const int type = registerNativeContent(&ctx, &spec);
             if (type < 0) {
-                status->error = def.name + ": registro nativo falhou; confira PNG e propriedades";
+                status->error="[CSharp][ERROR][Register] Mod="+mod.id+" Class="+def.name+
+                    " File=content/"+sourcePaths[def.name]+" Category="+base+" Stage=NativeRegister Expected=NonNegativeContentId Actual="+
+                    std::to_string(type)+" Result=LoadInterrupted Detail="+
+                    (ctx.lastError.empty()?"NativeRegistrationRejected; confira diagnostico anterior do registrador":ctx.lastError);
                 return false;
             }
             types[def.name] = type;
@@ -401,7 +412,7 @@ bool applyManagedSourceDefaults(
     const std::string& modId, const std::string& runtimeValues, std::string* error) {
     if (!error) return false;
     error->clear();
-    if (runtimeValues.empty() || runtimeValues.size() > 8192) {
+    if (runtimeValues.empty() || runtimeValues.size() > kSourceDefaultsBytes) {
         *error = "Resultado gerenciado inexistente ou grande demais";
         return false;
     }
@@ -457,8 +468,8 @@ bool applyManagedSourceDefaults(
             }
             if(!parseBasicItemWire(fields,&record,error))return false;
             record.type=type->second;basicItems.push_back(std::move(record));
-            if (basicItems.size() > 16) {
-                *error = "Quantidade de BunnyItem C# excede 16";
+            if (basicItems.size() > kSourceMaxCategory) {
+                *error = "Quantidade de BunnyItem C# excede 256";
                 return false;
             }
             continue;
@@ -685,11 +696,11 @@ bool applyManagedSourceDefaults(
                      " campos=" + std::to_string(fields.size());
             return false;
         }
-        if (basicItems.size() > 16 || projectiles.size() > 16 || weapons.size() > 16 ||
-            buffs.size() > 16 || potions.size() > 16 ||
-            accessories.size() > 16 || players.size() > 16 ||
-            npcs.size() > 16 || prefixes.size() > 16) {
-            *error = "Quantidade de conteudo C# excede 16 por categoria";
+        if (basicItems.size() > kSourceMaxCategory || projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory ||
+            buffs.size() > kSourceMaxCategory || potions.size() > kSourceMaxCategory ||
+            accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory ||
+            npcs.size() > kSourceMaxCategory || prefixes.size() > kSourceMaxCategory) {
+            *error = "Quantidade de conteudo C# excede 256 por categoria";
             return false;
         }
     }

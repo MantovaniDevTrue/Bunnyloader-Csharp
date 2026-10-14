@@ -46,6 +46,8 @@ struct NativeRegisterContext {
     int firstNpcType = -1;
     int firstAccessoryType = -1;
     int firstBuffType = -1;
+    std::string lastError = "";
+    std::string sourceFile = "";
 };
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);

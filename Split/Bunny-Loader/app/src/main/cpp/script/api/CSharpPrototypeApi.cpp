@@ -101,6 +101,34 @@ JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueCons
     }
     return array;
 }
+JSValue jsPendingItemBehaviors(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
+    if(argc)return JS_ThrowTypeError(ctx,"pendingItemBehaviors()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& item:bl::csharp::pendingBasicItemBehaviors()) {
+        JSValue value=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,item.type));
+        JS_SetPropertyStr(ctx,value,"name",JS_NewString(ctx,item.name.c_str()));
+        JS_SetPropertyStr(ctx,value,"mod",JS_NewString(ctx,item.modId.c_str()));
+        JS_SetPropertyStr(ctx,value,"source",JS_NewString(ctx,item.sourceFile.c_str()));
+        JS_SetPropertyStr(ctx,value,"root",JS_NewString(ctx,(item.modDir+"/content/").c_str()));
+        JS_SetPropertyStr(ctx,value,"definition",JS_NewString(ctx,item.behavior.c_str()));
+        JS_SetPropertyStr(ctx,value,"error",JS_NewString(ctx,item.behaviorError.c_str()));
+        JSValue defaults=JS_NewArray(ctx);
+        for(uint32_t j=0;j<item.values.size();++j)JS_SetPropertyUint32(ctx,defaults,j,JS_NewInt32(ctx,item.values[j]));
+        JS_SetPropertyStr(ctx,value,"defaults",defaults);
+        JS_SetPropertyStr(ctx,value,"knockBack",JS_NewFloat64(ctx,item.knockBack));
+        JS_SetPropertyUint32(ctx,array,i++,value);
+    }
+    return array;
+}
+JSValue jsAcknowledgeItemBehavior(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=2||!JS_IsString(argv[1]))return JS_ThrowTypeError(ctx,"acknowledgeItemBehavior(type,error)");
+    int32_t type=-1;if(JS_ToInt32(ctx,&type,argv[0])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[1]);if(!raw)return JS_EXCEPTION;
+    const std::string error(raw);JS_FreeCString(ctx,raw);
+    return JS_NewBool(ctx,bl::csharp::acknowledgeBasicItemBehavior(type,error));
+}
+
 JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if(argc!=2||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"acknowledgeItemRecipe(id,index)");
     int32_t index=-1;if(JS_ToInt32(ctx,&index,argv[1])<0)return JS_EXCEPTION;
@@ -2786,6 +2814,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
+    JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
     JS_SetPropertyStr(ctx, api, "pendingItemRecipes", JS_NewCFunction(ctx, jsPendingItemRecipes, "pendingItemRecipes", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemRecipe", JS_NewCFunction(ctx, jsAcknowledgeItemRecipe, "acknowledgeItemRecipe", 2));
     JS_SetPropertyStr(ctx, api, "nativeEquipTextures",

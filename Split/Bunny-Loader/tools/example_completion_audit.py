@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / 'tools/example_completion'
 OUT = ROOT / 'docs/generated/example_completion'
-STATES = ('Não implementado', 'Parcial', 'Implementado, aguardando teste',
-          'Validado', 'Bloqueado por limitação técnica documentada')
+STATES = ('Não implementado', 'Parcial', 'Implementado, aguardando validação',
+          'Validado por testes automatizados', 'Validado no Android', 'Bloqueado por limitação comprovada')
 CLASSES = re.compile(r'\bclass\s+(\w+)(?:\s+extends\s+(\w+))?')
 METHODS = re.compile(r'^\s*(?:static\s+)?(?:get\s+|set\s+)?([A-Za-z_]\w*)\s*\([^;{}]*\)\s*\{', re.M)
 LOADER = {'ModItem':'ModItem.js', 'ModProjectile':'ModProjectile.js', 'ModNPC':'ModNPC.js',
@@ -54,7 +54,7 @@ def build(upstream):
     evidence = json.loads((SPEC/'evidence.json').read_text())
     originals = {x['path']:x for x in refs['upstreamExampleFiles'] if x['path'].endswith('.js')}
     fork = {x['path']:x for x in refs['forkExampleFiles'] if x['path'].endswith('.js')}
-    if len(originals)!=192 or len(fork)!=178: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
+    if len(originals)!=199 or len(fork)!=178: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
     if set(evidence['examples'])-set(p.removeprefix('samples/ExampleMod/content/') for p in originals):
         raise ValueError('Evidence refers to nonexistent JS example')
     rows=[]
@@ -68,12 +68,14 @@ def build(upstream):
         cs=state.get('cSharp',[])
         for p in cs:
             if not (ROOT/p).is_file(): raise ValueError('Missing C# counterpart: '+p)
-        if status==STATES[3] and not state.get('deviceEvidence'):
+        if status==STATES[4] and not state.get('deviceEvidence'):
             raise ValueError('Validated without device evidence: '+rel)
-        if status==STATES[4] and not state.get('technicalBlockEvidence'):
+        if status==STATES[5] and not state.get('technicalBlockEvidence'):
             raise ValueError('Technical block without proof: '+rel)
-        if status in STATES[2:4] and (not cs or state.get('missingFeatures')):
+        if status in STATES[2:5] and (not cs or state.get('missingFeatures')):
             raise ValueError('Complete implementation still missing features: '+rel)
+        if status==STATES[3] and not state.get('automatedEvidence'):
+            raise ValueError('Host validation without evidence: '+rel)
         bases=[c['base'] for c in detail['classes'] if c['base']]
         corePaths={x['path'] for x in refs['upstreamCoreFiles']} | {x['path'] for x in refs['forkCoreFiles']}
         dependencies=[]
@@ -95,7 +97,7 @@ def build(upstream):
                 'upstreamBlob':record['sha'], 'forkBlob':fork.get(path,{}).get('sha'),
                 'differentFromFork':path in fork and record['sha']!=fork[path]['sha'], **detail},
             cSharp=cs,requiredApis=sorted(set(bases+detail['hooksAndMethods']+detail['nativeSignatures'])),
-            status=status,preservedFeatures=state.get('preservedFeatures',[]),missingFeatures=missing,
+            status=status,assets=state.get('assets',[entry['path'] for entry in refs['upstreamExampleFiles'] if entry['path'].startswith(path.removesuffix('.js')+'_') or entry['path']==path.removesuffix('.js')+'.png']),automatedEvidence=state.get('automatedEvidence',[]),preservedFeatures=state.get('preservedFeatures',[]),missingFeatures=missing,
             nativeDependencies=state.get('nativeDependencies',dependencies),
             automatedTests=state.get('automatedTests',[]),
             terrariaTests=state.get('terrariaTests',[
@@ -111,12 +113,12 @@ def build(upstream):
     for row in rows: groups[row['category']][row['status']]+=1
     coverage={}
     for cat,count in sorted(groups.items()):
-        total=sum(count.values());implemented=count[STATES[2]]+count[STATES[3]]
-        coverage[cat]=dict(total=total,states=dict(count),implemented=implemented,validated=count[STATES[3]],
+        total=sum(count.values());implemented=sum(count[state] for state in STATES[2:5])
+        coverage[cat]=dict(total=total,states=dict(count),implemented=implemented,validated=count[STATES[4]],automated=count[STATES[3]]+count[STATES[4]],automatedPercent=round(100*(count[STATES[3]]+count[STATES[4]])/total,2),
             partial=count[STATES[1]],implementedPercent=round(100*implemented/total,2),
-            validatedPercent=round(100*count[STATES[3]]/total,2),
+            validatedPercent=round(100*count[STATES[4]]/total,2),
             partialPercent=round(100*count[STATES[1]]/total,2),
-            limitations=count[STATES[4]],missingExamples=total-implemented)
+            limitations=count[STATES[5]],missingExamples=total-implemented)
     csharp=[]
     csroot=ROOT/'samples/ExampleModCSharp/Playable/content'
     for p in sorted(csroot.rglob('*.cs')):
@@ -132,7 +134,7 @@ def build(upstream):
         forkOnly=sorted(set(forkCore)-set(upstreamCore)),upstreamOnly=sorted(set(upstreamCore)-set(forkCore)))
     return dict(schemaVersion=1,references={k:refs[k] for k in ('fork','upstream','initialReferenceCount')},
         counts={'forkJsFiles':len(fork),'canonicalJsFiles':len(originals),'newUpstreamFiles':len(set(originals)-set(fork)),
-                'cSharpSourceFiles':len(csharp)},statePolicy='Validado exige evidencia de jogo para o exemplo inteiro; efeitos isolados nao promovem uma porta parcial.',
+                'cSharpSourceFiles':len(csharp)},statePolicy='Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.',
         coverageByCategory=coverage,examples=rows,additionalCSharp=csharp,coreComparison=core,
         deviceBaseline=evidence.get('deviceBaseline',{}))
 

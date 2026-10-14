@@ -66,28 +66,35 @@
       "deviceEvidence": []
     },
     "Content/Items/Accessories/ExampleStatAccessory.js": {
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs",
-        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs"
-      ],
-      "missingFeatures": [
-        "Contrato completo de atributos/hooks do ExampleStatAccessory e equivalencia de valores."
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
       ],
       "preservedFeatures": [
-        "Bonus nativos de defesa/equipamento com ResetEffects."
+        "Defaults e tooltip de 10%",
+        "Multiplicador de melee/ranged/magic; nao altera minion; vaidade sem bonus"
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
       ],
       "automatedTests": [
-        "tests/combat_batch/Program.cs",
-        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
-        ".github/workflows/build-bunny-csharp-source-loader.yml"
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
       ],
-      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
-      "deviceEvidence": []
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png"
+      ]
     },
     "Content/Items/Accessories/ExampleStatBonusAccessory.js": {
       "status": "Parcial",
@@ -254,7 +261,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Tools/ExamplePickaxe.js": {
-      "status": "Implementado, aguardando teste",
+      "status": "Implementado, aguardando validação",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
       ],
@@ -282,7 +289,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Tools/ExampleHamaxe.js": {
-      "status": "Implementado, aguardando teste",
+      "status": "Implementado, aguardando validação",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
       ],
@@ -337,6 +344,170 @@
       ],
       "validation": "Item/receita aprovados nos testes de host e build Android (runs 38508838476 / 38508373513). Arquivo JS inteiro permanece Parcial: moeda customizada nao implementada. Gameplay no aparelho pendente.",
       "deviceEvidence": []
+    },
+    "Content/Items/Accessories/WaspNest.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults e economia original",
+        "Back nativo com asset original",
+        "strongBees apenas no slot funcional; reset pelo ciclo nativo"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest_Back.png"
+      ]
+    },
+    "Content/Items/Accessories/ExampleBeard.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults, valor e vaidade originais",
+        "Beard nativo e tintura pela cor de cabelo",
+        "Cor de inventario a partir do jogador local"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard_Beard.png"
+      ]
+    },
+    "Content/Items/Armor/Vanity/ExampleBossMask.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults, valor, raridade e pilha originais",
+        "Head nativo com sprite original"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
+      ]
+    },
+    "Content/Items/Armor/Vanity/ExampleRobe.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults de vaidade originais",
+        "Body e Legs originais; HidesHands=false",
+        "SetMatch: robes=true e slot Legs associado ao mesmo item"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Legs.png"
+      ]
+    },
+    "Content/Items/Materials/ExampleSoul.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs"
+      ],
+      "preservedFeatures": [
+        "Clone real de SoulofSight e overrides originais",
+        "4 frames/6 ticks, AnimatesAsSoul, ItemIconPulse e ItemNoGravity",
+        "PostUpdate luz escalada por essScale; GetAlpha 255/255/255/50"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
+      ]
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -399,6 +570,18 @@
       "apkBuildRun": 38508373513,
       "hostCasesPassed": 8,
       "deviceTested": false
+    }
+  ],
+  "deviceBaselines": [
+    {
+      "loader": "0.1.10.16.90.28.4-csharp-item-active-optional",
+      "exampleMod": "0.1.34",
+      "sourceCommit": "67e6be55d495472e0dfb8e3b6b0d411aa61e821e",
+      "reportedBy": "usuario",
+      "device": "Xiaomi 2109119DG / Android 14 / arm64 / Terraria 1.4.5.8.6",
+      "observedFps": 60,
+      "benchmarkMeasured": false,
+      "scope": "Carga automatica, MonoVM, registros, callbacks, persistencia e sessao sem erros/avisos. Nao prova equivalencia de todos os arquivos JS."
     }
   ]
 }

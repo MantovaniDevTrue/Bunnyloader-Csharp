@@ -25,7 +25,7 @@ internal static class BasicItemWriter
             parts.Add(value.ToString(CultureInfo.InvariantCulture));
         }
         int flags=(Get<bool>("Melee")?1:0)|(Get<bool>("NoMelee")?2:0)|(Get<bool>("AutoReuse")?4:0)|
-            (Get<bool>("UseTurn")?8:0)|(Get<bool>("Consumable")?16:0);
+            (Get<bool>("UseTurn")?8:0)|(Get<bool>("Consumable")?16:0)|(Get<bool>("Accessory")?32:0)|(Get<bool>("Vanity")?64:0);
         parts.Add(flags.ToString(CultureInfo.InvariantCulture));
         float knock=Get<float>("KnockBack");
         if(!float.IsFinite(knock)||knock<0||knock>50)throw new InvalidOperationException(name+": KnockBack invalido");
@@ -42,6 +42,10 @@ internal static class BasicItemWriter
         item.GetType().GetMethod("AddRecipes",Type.EmptyTypes)!.Invoke(item,null);
         var recipes=Get<IReadOnlyList<string>>("RecipeDefinitions");
         parts.Add(recipes.Count==0?"-":string.Join(";",recipes));
+        string behavior=Get<string>("BehaviorDefinition");
+        if(behavior.Length!=0)behavior="{\"class\":\""+item.GetType().FullName+"\","+behavior.Substring(1);
+        if(Encoding.UTF8.GetByteCount(behavior)>4096)throw new InvalidOperationException(name+": comportamento excede 4 KiB");
+        if(behavior.Length!=0)parts.Add(Convert.ToHexString(Encoding.UTF8.GetBytes(behavior)));
         return string.Join("\t",parts);
     }
 }

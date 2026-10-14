@@ -4,8 +4,8 @@
 
 Base preservada: Bunny .90.27.6 / ExampleMod 0.1.33, confirmada no Android pelo
 usuario para os equipamentos nativos. Original atualizado: JonataOliveiraa/
-Bunny-Loader, commit 5b65929a590ff16278a6a645cb322d76360fb547. O inventario e de
-192 arquivos JS (178 no fork; 14 adicionados pelo upstream). A referencia antiga
+Bunny-Loader, commit bc4f240082a589823536eff74462a11acbdba8ec. O inventario e de
+199 arquivos JS (178 no fork; 21 adicionados pelo upstream). A referencia antiga
 de 169 arquivos nao limita o trabalho. Cada arquivo, inclusive helpers, main,
 configs e interfaces, tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
 e dados completos em [JSON](../Split/Bunny-Loader/docs/generated/example_completion/matrix.json).
@@ -52,9 +52,9 @@ mas todos os arquivos permanecem no backlog numerado na matriz.
   Faltam contratos gerais de ModItem, ModSystem, Tile/Wall, biome etc.
 - Verify/SourceLoader exigem arma + projetil mesmo para mods que so precisam de
   material ou ferramenta. O lote de itens deve corrigir esse bloqueio do loader.
-- Arquivo: 64 .cs, 256 KiB cada, 2 MiB totais; defaults wire de 8 KiB e limites
-  de 16 por categoria/128 tipos. A conclusao de 192 JS em um unico pacote exige
-  evolucao desses budgets com testes de limites, sem simplesmente remover guards.
+- Arquivo atualizado no grupo .90.28.5: 512 .cs, 256 KiB cada, 16 MiB totais; defaults
+  wire de 2 MiB, 256 por categoria/1024 tipos. Contratos de fronteira continuam
+  obrigatorios; slots e filas nativas tem limites proprios.
 - SetDefaults e politica precomputada nao substituem callbacks de jogo; cada
   hook novo precisa de contexto, caminho runtime e teste de comportamento.
 - O pipeline JS original ja tem receitas, equipment, tiles e sistemas; priorizar
@@ -71,3 +71,11 @@ compilacao isolada prova FPS sustentado. Shaders customizados estao fora desta e
 Ao retomar: ler matriz JSON, evidencias e este plano; verificar HEAD e atualizar
 o inventario se houver novos exemplos upstream. Nunca promover estados de forma
 automatica so porque o build passou. Roteiros Android acompanham cada lote.
+
+## Ponto atual para retomar
+
+Base estavel Android .90.28.4 preservada. Grupo .90.28.5: ver
+[codigo, contratos e roteiro](csharp-lot2-item-behaviors.md). A matriz registra
+199 arquivos e separa CI de Android. Proximo grupo obrigatorio: ExampleWorkbench,
+receitas com estacao de mod e o conjunto Helmet/Breastplate/Leggings.
+O Lote A/2 continua aberto; nenhum lote posterior foi abandonado.

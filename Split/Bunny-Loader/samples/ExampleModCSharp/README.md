@@ -1,4 +1,4 @@
-# Lote de conclusao .90.28.0 / ExampleMod 0.1.34
+# Lote de conclusao .90.28.0 / ExampleMod 0.1.35
 
 O [plano global](../../../..//docs/csharp-completion-plan.md) contabiliza TODOS os
 192 arquivos JS do upstream atualizado, sem excluir categorias. Consulte a
@@ -80,3 +80,6 @@ Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou mul
 
 
 
+
+Grupo Lote A .90.28.5: 51 fontes, incluindo WaspNest, ExampleStatAccessory, Beard,
+BossMask, Robe e Soul. Leia content/Documentation/LOTE2_ITENS.md dentro do bmod.

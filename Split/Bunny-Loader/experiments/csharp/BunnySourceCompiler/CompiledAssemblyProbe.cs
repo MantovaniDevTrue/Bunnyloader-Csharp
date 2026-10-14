@@ -48,10 +48,10 @@ public static class CompiledAssemblyProbe
                     return false;
                 })
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (prefixTypes.Length > 16 || npcTypes.Length > 16 || accessoryTypes.Length > 16 || playerTypes.Length > 16 ||
-                projectileTypes.Length > 16 ||
-                weaponTypes.Length > 16 || basicItemTypes.Length > 16 ||
-                buffTypes.Length > 16 || potionTypes.Length > 16)
+            if (prefixTypes.Length > 256 || npcTypes.Length > 256 || accessoryTypes.Length > 256 || playerTypes.Length > 256 ||
+                projectileTypes.Length > 256 ||
+                weaponTypes.Length > 256 || basicItemTypes.Length > 256 ||
+                buffTypes.Length > 256 || potionTypes.Length > 256)
                 throw new InvalidOperationException("C# content class count out of bounds");
             if (basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
@@ -302,7 +302,7 @@ public static class CompiledAssemblyProbe
             }
             policies.Add(projectile.Name + "\t" + string.Join("\t", samples));
         }
-        if (policies.Count > 16)
+        if (policies.Count > 256)
             throw new InvalidOperationException("More than 16 independent projectile motion curves");
         string dir = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing diagnostics directory");

@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 expected = {
-    "ITEM": {20},
+    "ITEM": {20, 21},
     "PROJECTILE": {8},
     "WEAPON": {6},
     "BUFF": {3},
@@ -30,7 +30,7 @@ for line_number, row in enumerate(rows[1:], start=2):
         errors.append(f"line={line_number} kind={kind!r} missing class")
 if errors:
     raise SystemExit("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_FAIL\n" + "\n".join(errors))
-assert sum(counts.values()) >= 31, "Expected all ExampleMod CSharp descriptors"
+assert sum(counts.values()) >= 37, "Expected all ExampleMod CSharp descriptors"
 item_names = {parts[1] for row in rows[1:] if (parts := row.split("\t"))[0] == "ITEM" and len(parts) > 1}
 assert {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe"} <= item_names, (
     f"ExampleMod general items missing from V2 export: {item_names}"
@@ -41,7 +41,7 @@ start = source.index('if (fields[0] == "ITEM")')
 end = source.index('} else if (fields[0] == "PLAYER"', start)
 item_branch = source[start:end]
 assert 'parseBasicItemWire(fields,&record,error)' in item_branch
-assert 'basicItems.size() > 16' in item_branch
+assert 'basicItems.size() > kSourceMaxCategory' in item_branch
 assert 'continue;' in item_branch.split('basicItems.push_back(std::move(record));', 1)[1], (
     "BunnyItem V2 rows must not fall through to the PROJECTILE/WEAPON/other dispatch"
 )

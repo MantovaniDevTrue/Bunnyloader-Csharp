@@ -1,8 +1,14 @@
+# ExampleMod 0.1.35 / Bunny .90.28.5
+
+Seis exemplos originais novos usam BunnyItem.Behavior. Leia
+Documentation/LOTE2_ITENS.md para a API, testes e pendencias.
+Os exemplos anteriores e seus identificadores foram preservados.
+
 # ExampleMod 0.1.34 — itens e receitas / Bunny .90.28.3
 
 O Bunny .90.28.3 corrige o fluxo de interpretacao V2 de BunnyItem: depois
 de registrar ExampleItem/ExamplePickaxe/ExampleHamaxe, a linha nao deve cair
-na validacao de PROJECTILE/WEAPON. O limite de 16 itens gerais e preservado.
+na validacao de PROJECTILE/WEAPON. O limite antigo de 16 foi ampliado com contratos na .90.28.5.
 A versao .90.28.2 ainda rejeita ExampleHamaxe mesmo com 20 campos corretos.
 Os fontes e assets do .bmod 0.1.34 continuam os mesmos.
 

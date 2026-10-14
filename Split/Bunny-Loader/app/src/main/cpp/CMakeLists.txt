@@ -58,7 +58,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
-    EquipTexture ItemLoot ModItem
+    EquipTexture ItemLoot ModItem Loaders/CSharpItemBehaviorLoader
     Loaders/PrefixLoader ModPrefix
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
     Loaders/PlayerCombatHooks Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
@@ -142,3 +142,4 @@ set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
     content/textures/TexturePacks.cpp
     PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)
+

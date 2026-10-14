@@ -6,7 +6,7 @@
   },
   "upstream": {
     "repository": "JonataOliveiraa/Bunny-Loader",
-    "commit": "5b65929a590ff16278a6a645cb322d76360fb547"
+    "commit": "bc4f240082a589823536eff74462a11acbdba8ec"
   },
   "initialReferenceCount": 169,
   "forkExampleFiles": [
@@ -2189,8 +2189,8 @@
     },
     {
       "path": "samples/ExampleMod/changelog.md",
-      "sha": "38278e8f7bb1df36bcc17577edab5f35901ebb66",
-      "size": 2212
+      "sha": "88c04f7d9531397e4e69b533c2d62b518161949f",
+      "size": 2494
     },
     {
       "path": "samples/ExampleMod/content/Assets/Music/MysteriousMystery.ogg",
@@ -2316,6 +2316,11 @@
       "path": "samples/ExampleMod/content/Common/Players/ExampleFishingPlayer.js",
       "sha": "17fdd48fcd3976940bce8bdb4767e6f5565917b3",
       "size": 623
+    },
+    {
+      "path": "samples/ExampleMod/content/Common/Players/ExampleLowLifePlayer.js",
+      "sha": "406e092341bf08e900b953cf5d061d57fbcc312a",
+      "size": 1298
     },
     {
       "path": "samples/ExampleMod/content/Common/Players/ExamplePlayer.js",
@@ -2506,6 +2511,16 @@
       "path": "samples/ExampleMod/content/Content/DamageClasses/ExampleDamageClass.js",
       "sha": "9395ddf282f0781b9191220d03ea115c38f8b6fc",
       "size": 1037
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Effects/ExampleRiftEffect.frag",
+      "sha": "a3aa680d902e6f2ad8033f6c423b3d173d26dd4a",
+      "size": 897
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Effects/ExampleRiftEffect.js",
+      "sha": "325acf7c09d82a4a87e34a833f66bdfc631421ec",
+      "size": 987
     },
     {
       "path": "samples/ExampleMod/content/Content/EmoteBubbles/ExampleAnimatedEmote.js",
@@ -3418,6 +3433,11 @@
       "size": 291
     },
     {
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleLastPrism.js",
+      "sha": "a623949db1fc08f98c1a3f513663dc4195b36341",
+      "size": 888
+    },
+    {
       "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleMagicWeapon.js",
       "sha": "dfb766f537eab8fae29d1b8dbaee99b58cc7fa34",
       "size": 541
@@ -3426,6 +3446,11 @@
       "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleMagicWeapon.png",
       "sha": "d214056a6a95678ec5c423abb5bbc2601126b990",
       "size": 713
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Items/Weapons/Magic/ExampleRiftStaff.js",
+      "sha": "5bf231af8056e70be2198a2df36af75d0f2c444f",
+      "size": 1016
     },
     {
       "path": "samples/ExampleMod/content/Content/Items/Weapons/Melee/ExampleFlail.js",
@@ -3823,6 +3848,21 @@
       "size": 930
     },
     {
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleLastPrismBeam.js",
+      "sha": "01fd4901cb94bcda0c98c8cea9dbb81cca7e58d1",
+      "size": 12239
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleLastPrismBeam.png",
+      "sha": "4bcb09bbf2c79b9a78f509ae232c0a8a5706bcdd",
+      "size": 526
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleLastPrismHoldout.js",
+      "sha": "f801f22cac5bb9fc5f70a9e314868f2fc833774b",
+      "size": 6114
+    },
+    {
       "path": "samples/ExampleMod/content/Content/Projectiles/ExampleMinion.js",
       "sha": "f7b62f950f9636b3ffc1c16722c0cfae8d213497",
       "size": 5959
@@ -3831,6 +3871,11 @@
       "path": "samples/ExampleMod/content/Content/Projectiles/ExampleMinion.png",
       "sha": "3b8fd2cb1084d11d9d2abf77203dd7c6a0bd7cab",
       "size": 510
+    },
+    {
+      "path": "samples/ExampleMod/content/Content/Projectiles/ExampleRiftProjectile.js",
+      "sha": "db21e2337917f8f49d3f5caa65aebb15f64ef8ab",
+      "size": 2240
     },
     {
       "path": "samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js",
@@ -4444,13 +4489,13 @@
     },
     {
       "path": "samples/ExampleMod/content/Localization/en-US.json",
-      "sha": "82eb5803c8b334739e708c1aac2c5da0dfb7af99",
-      "size": 15945
+      "sha": "44f6d39d33efe2e5a6bad684432c88f1c2d5df28",
+      "size": 16392
     },
     {
       "path": "samples/ExampleMod/content/Localization/pt-BR.json",
-      "sha": "fed8f329c968cc97b9554f6b87f447d7fc3797d9",
-      "size": 16885
+      "sha": "dfdc7ad89bd4b6773739098f2650c36d2cb05010",
+      "size": 17363
     },
     {
       "path": "samples/ExampleMod/content/main.js",
@@ -4459,13 +4504,13 @@
     },
     {
       "path": "samples/ExampleMod/description.md",
-      "sha": "7878d9c8135c5be76e6a9cf19fbb4f7ffb0a1827",
-      "size": 2382
+      "sha": "b51e37caa2fdbbef044198151a943168832725d3",
+      "size": 2884
     },
     {
       "path": "samples/ExampleMod/docs/receitas.md",
-      "sha": "6ff1c08a84efdafd738fa83adb10148c3e8c5f50",
-      "size": 1736
+      "sha": "54a169283d0ddbecb725ce7483d4dbc207d2e81c",
+      "size": 2009
     },
     {
       "path": "samples/ExampleMod/icon.png",
@@ -6243,8 +6288,8 @@
   "upstreamCoreFiles": [
     {
       "path": "app/src/main/cpp/CMakeLists.txt",
-      "sha": "ebaa71e20c5cb6378b0f3cef1525c3cb1cc6e3d3",
-      "size": 8151
+      "sha": "551f2f63bb4a72d8b48f6737109288a22b9cb4bc",
+      "size": 9071
     },
     {
       "path": "app/src/main/cpp/boot/Boot.cpp",
@@ -6283,8 +6328,8 @@
     },
     {
       "path": "app/src/main/cpp/boot/Probe.cpp",
-      "sha": "bc719531a70e5fdd32ce083edc951b240976b64d",
-      "size": 4266
+      "sha": "f2d0c31140cc21e6ca0e1dece6c5bf5a622350ac",
+      "size": 4342
     },
     {
       "path": "app/src/main/cpp/boot/Probe.h",
@@ -6607,6 +6652,106 @@
       "size": 1632
     },
     {
+      "path": "app/src/main/cpp/graphics/EffectRenderer.cpp",
+      "sha": "d363c7c7eeb22df9b1cbbcc5586ed32af2a36d3c",
+      "size": 16507
+    },
+    {
+      "path": "app/src/main/cpp/graphics/EffectRenderer.h",
+      "sha": "2c2621ee4ac11579db0362dcc616787e87625e4e",
+      "size": 1138
+    },
+    {
+      "path": "app/src/main/cpp/graphics/EffectTypes.h",
+      "sha": "9ee8b8f923fcc3bfed0a6d41659f3dd3673796fa",
+      "size": 2405
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlApi.cpp",
+      "sha": "a99c192f2dc4c2e71cd80e818c1fa73219024811",
+      "size": 1211
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlApi.h",
+      "sha": "afab012933733392fe890914ee871a2b67f3149d",
+      "size": 1598
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlHooks.cpp",
+      "sha": "233ae452ca0cda7177fffe3deb9508482006a099",
+      "size": 11383
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlHooks.h",
+      "sha": "b029995e74dbb307c67be93fd3e41ed2312ebe6c",
+      "size": 854
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlShadow.cpp",
+      "sha": "b3f8416d04b9917267737a5c69f4c5ec1b91df49",
+      "size": 1949
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlShadow.h",
+      "sha": "813ef090835f3fbfb90c6d3c4099bf856216596e",
+      "size": 1100
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GlState.h",
+      "sha": "f92bcfe7198d1af0eabd42d360f3f8ff9b27c88e",
+      "size": 4878
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GpuTimer.cpp",
+      "sha": "88bef6538ddacc71697eed39f79e42afb54b6056",
+      "size": 3870
+    },
+    {
+      "path": "app/src/main/cpp/graphics/GpuTimer.h",
+      "sha": "f7dc38bd530536ae7a84889250c14d9e5c114d00",
+      "size": 1018
+    },
+    {
+      "path": "app/src/main/cpp/graphics/RenderHook.cpp",
+      "sha": "4f0e4925888aee771d0b86b59c3a0e2b0ec67e58",
+      "size": 13207
+    },
+    {
+      "path": "app/src/main/cpp/graphics/RenderHook.h",
+      "sha": "f61e1df215d33aa75027002b28a493f68a7d4ef8",
+      "size": 2167
+    },
+    {
+      "path": "app/src/main/cpp/graphics/ShaderLibrary.cpp",
+      "sha": "f04e8dfbd07675c532723012911dc5a2dbf43d7a",
+      "size": 12352
+    },
+    {
+      "path": "app/src/main/cpp/graphics/ShaderLibrary.h",
+      "sha": "698d7428794631f7a4e93fe9c5fdc76ea2923f0e",
+      "size": 1127
+    },
+    {
+      "path": "app/src/main/cpp/graphics/ShaderRegistry.cpp",
+      "sha": "928b63a2fc7f21786f075a03c48479e95fca8a41",
+      "size": 4852
+    },
+    {
+      "path": "app/src/main/cpp/graphics/ShaderRegistry.h",
+      "sha": "f2122021326e7df4d5509f4d16317f8115578eb9",
+      "size": 1435
+    },
+    {
+      "path": "app/src/main/cpp/graphics/TextureRegistry.cpp",
+      "sha": "736e2feb648a1953db07e0dd45a11b598117aa6d",
+      "size": 6054
+    },
+    {
+      "path": "app/src/main/cpp/graphics/TextureRegistry.h",
+      "sha": "2734e0b763bb6cfac336d22936b00c94064717ba",
+      "size": 1245
+    },
+    {
       "path": "app/src/main/cpp/hook/Arm64Frame.h",
       "sha": "93bc074961edd8aae59633ff74a42fa7cd6e2524",
       "size": 2316
@@ -6823,8 +6968,8 @@
     },
     {
       "path": "app/src/main/cpp/script/api/Files.cpp",
-      "sha": "f8a0e0bef688fcc527200c0ef2958ddaa418b943",
-      "size": 17568
+      "sha": "1d95524f2d2f62e0abd2646b22810179eb829939",
+      "size": 17990
     },
     {
       "path": "app/src/main/cpp/script/api/Files.h",
@@ -6885,6 +7030,16 @@
       "path": "app/src/main/cpp/script/api/Projectiles.h",
       "sha": "0f0ba937e94386589704e2863176e9fae6923d70",
       "size": 356
+    },
+    {
+      "path": "app/src/main/cpp/script/api/Screen.cpp",
+      "sha": "0adabab97dff89b03096da48752a5d443d609940",
+      "size": 12061
+    },
+    {
+      "path": "app/src/main/cpp/script/api/Screen.h",
+      "sha": "ab8a5a31b11e1ba0b88113f3cf0a6526a3a6bca2",
+      "size": 938
     },
     {
       "path": "app/src/main/cpp/script/api/Sounds.cpp",
@@ -6948,8 +7103,8 @@
     },
     {
       "path": "app/src/main/cpp/script/bridge/Bindings.cpp",
-      "sha": "62b03b2237509743cf0f90d98f073164e32f6f15",
-      "size": 87746
+      "sha": "8f4847d7bce6f14388abdedad631af3fbc7ff654",
+      "size": 87808
     },
     {
       "path": "app/src/main/cpp/script/bridge/Bridge.h",
@@ -7078,8 +7233,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/ContentAutoload.js",
-      "sha": "7299ec000ac28525202981645177cca2b13de962",
-      "size": 3864
+      "sha": "41d8fc6fe5704a1d0932680a17504a9d394d4677",
+      "size": 3881
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Core/ContentLookup.js",
@@ -7162,6 +7317,196 @@
       "size": 1096
     },
     {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ColorMath.js",
+      "sha": "e27217ced1edc0b74a5ab2d2d301e4e23c87e047",
+      "size": 2171
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/DistortionMap.js",
+      "sha": "fd213ee532fee865adf76e5142ff31fceef7a9fa",
+      "size": 5153
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Easing.js",
+      "sha": "82aacaf7553b77ea7486c38e3f43bb25f31a1bb2",
+      "size": 1438
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js",
+      "sha": "5c1b8c11af3f90ea0b7ccfec4310dc81511f85e5",
+      "size": 2936
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/BlackHole.js",
+      "sha": "748919dc34fe4c3dc1168a53cbe8ba8362943262",
+      "size": 1323
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Bloom.js",
+      "sha": "7d26dbb1ef70cb6f5d85f2cb3871be2d8aedbc76",
+      "size": 1528
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Blur.js",
+      "sha": "6fccaac89caec146bed2a09ca0f96563fe8a7867",
+      "size": 1302
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/ChromaticAberration.js",
+      "sha": "b780856789a06d66a2484dcb5a9c8475cf12a906",
+      "size": 2269
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/ColorGrade.js",
+      "sha": "7e2c6008c44bce0255d17a7387886e80466d8116",
+      "size": 1749
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Echo.js",
+      "sha": "cbecc6a054653c907bd6766ea697a6caaab51b5f",
+      "size": 1247
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Flash.js",
+      "sha": "a0cf43fb67eac13ec17f70fb303cb9c5acbd6f9e",
+      "size": 551
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/ForceField.js",
+      "sha": "41a61909171550ed0a60c87a01c9973748967149",
+      "size": 2678
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Glitch.js",
+      "sha": "e699882b9dd903442aad17c69c98b231120945aa",
+      "size": 1718
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/HeatHaze.js",
+      "sha": "32e01826b7a4dcc1f7bd900aec8fd1f662624be8",
+      "size": 641
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Lens.js",
+      "sha": "86ca66d8e6884fd2b7226e4943ed3f279b026bda",
+      "size": 486
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Pixelate.js",
+      "sha": "360efbf20d8bde6c9d17c410328bdc93946c40da",
+      "size": 1337
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Ripple.js",
+      "sha": "a97359bfc6d899317909dc6c11dd34785a0c9aac",
+      "size": 1931
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Shockwave.js",
+      "sha": "887848e5e8ca51c80ac215cbc86fd78d73f4e750",
+      "size": 1224
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Tint.js",
+      "sha": "9c8aa8fe1be0481c6176b0d3a06965430ab47082",
+      "size": 2981
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Twirl.js",
+      "sha": "b4ceeb4c39240ea79db4808acbe3d7aa8122a3e5",
+      "size": 844
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/Vignette.js",
+      "sha": "4f2352fe5052baa309ff13fcf882913f327fea13",
+      "size": 1047
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/Presets/ZoomBlur.js",
+      "sha": "07a3491bb88c7307f00ac2453c1c3a5e05d9fb5b",
+      "size": 1439
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenCommands.js",
+      "sha": "cdefede8e1ab9662627bb0bed56544a28729d7aa",
+      "size": 6244
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenCurve.js",
+      "sha": "7d6aa511cafae7f352ad497c8dce41a42c129540",
+      "size": 1159
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenDebug.js",
+      "sha": "480cab34a5cf1df6c49d28bc5e8f5687063077f0",
+      "size": 7625
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js",
+      "sha": "56fb32b319ce90ba7550ef53017fab009f7a1203",
+      "size": 9687
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenFrame.js",
+      "sha": "91576cfafd058c1a1be09ec5ff893d841313c3b5",
+      "size": 1051
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenFxCommand.js",
+      "sha": "4ce3be8464d745dae907bc754937c91d2ef63373",
+      "size": 5542
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenGraphics.js",
+      "sha": "141d3fc7e3d65b8e21d0135907c356c6029c00a7",
+      "size": 959
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenMask.js",
+      "sha": "06acbdf68e2f3efb3e9805b08810510bf7bfdf3d",
+      "size": 5625
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenPasses.js",
+      "sha": "6cab2f8bf19be8ae8036acb25ae657d971577891",
+      "size": 1735
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenPresets.js",
+      "sha": "126b031c960d513a4d7ad2ea1a04366805c32cd0",
+      "size": 497
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenShader.js",
+      "sha": "f270976aea8815429cafd7dd5390d152c55a28e6",
+      "size": 2514
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenSpace.js",
+      "sha": "b2d36f322cbd7cbd832bcf10cb097d7d0f9d3bf2",
+      "size": 2367
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenTarget.js",
+      "sha": "d85ed77d79e40a3cc691f69500461f4ed61932ec",
+      "size": 763
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenTexture.js",
+      "sha": "ee16dfd5d3971adbf6b73026f1a018076f24df59",
+      "size": 1571
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenTween.js",
+      "sha": "7ebb422d4d77a5703d9f76f97dcada4623fad39c",
+      "size": 2731
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Effects/ScreenUtils.js",
+      "sha": "e4186e04312b5987f806893a241a5a05ef475e6f",
+      "size": 286
+    },
+    {
       "path": "app/src/main/cpp/script/js/mod/Enums/AffectionLevel.js",
       "sha": "e5a0fd9da71e78c3933f45cea6cae305ae16d860",
       "size": 89
@@ -7208,8 +7553,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Exports.js",
-      "sha": "e13501eca6a5638ee9e03f161af89ced42b968a9",
-      "size": 1648
+      "sha": "a3883972017a4bd238ab02280a2df6c802434e10",
+      "size": 1847
     },
     {
       "path": "app/src/main/cpp/script/js/mod/GenPass.js",
@@ -7448,8 +7793,8 @@
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/MenuThemeSetting.js",
-      "sha": "ab8c03acc70f639a047014cf9eb45a8e7c706084",
-      "size": 3264
+      "sha": "1687d587f63173de32e960852842bdce2420c45e",
+      "size": 3369
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/ModConfigMenu.js",
@@ -7540,6 +7885,11 @@
       "path": "app/src/main/cpp/script/js/mod/Loaders/SceneEffectLoader.js",
       "sha": "a7f01846b224967ed061ef36683a44f781557549",
       "size": 6548
+    },
+    {
+      "path": "app/src/main/cpp/script/js/mod/Loaders/ScreenEffectsSetting.js",
+      "sha": "d630da200708c24fc090180ceee44aa9eea76df4",
+      "size": 4791
     },
     {
       "path": "app/src/main/cpp/script/js/mod/Loaders/ServerSyncLoader.js",
@@ -7935,6 +8285,11 @@
       "path": "app/src/main/cpp/script/js/mod/TooltipLine.js",
       "sha": "9fd4775f5d00c5c39e9501847f1060954de9ffaf",
       "size": 907
+    },
+    {
+      "path": "app/src/main/cpp/third_party/README.md",
+      "sha": "5eaaf87591e5a3497f43a3a74be18e6837131acf",
+      "size": 1166
     }
   ]
 }

@@ -1,3 +1,4 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/items/ModItems.h"
 #include "content/common/GameRefs.h"
@@ -23,6 +24,7 @@ std::map<int,BasicItemEntry> definitions;
 std::map<std::string,PendingBasicRecipe> recipes;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
+std::atomic<bool> behaviorsPending{false};
 struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
 std::array<IntegerField,BasicFieldCount-1> integerFields{};
 const char* integerNames[]={"width","height","maxStack","value","rare","damage","crit",
@@ -35,7 +37,7 @@ bool integerContract(Il2CppClass* cls,IntegerField* out) {
         const auto* base=api.class_enum_basetype(cls);
         cls=base?api.class_from_il2cpp_type(base):nullptr;
     }
-    if(!cls)return false;
+    if(!cls||!api.class_get_namespace||std::strcmp(api.class_get_namespace(cls),"System")!=0)return false;
     const char* name=api.class_get_name(cls);
     if(!name)return false;
     struct Kind { const char* name; int bytes; int64_t min,max; };
@@ -60,7 +62,7 @@ bool fitIntegerFields(const BasicItemEntry& entry,std::string* error) {
     }
     return true;
 }
-std::array<int,5> flagOffsets{};
+std::array<int,7> flagOffsets{};
 int knockBackOffset=-1,soundOffset=-1;
 int soundSize=0,soundValueOffset=0,soundHasValueOffset=-1;
 Il2CppClass* soundClass=nullptr;
@@ -73,29 +75,39 @@ bool prepare(std::string* error) {
     auto& api=il2cpp::api();
     auto* item=il2cpp::findClass({"Terraria","Item",{}});
     if(!item||!api.field_get_type||!api.class_from_il2cpp_type||!api.class_get_name||
-       !api.class_get_fields||!api.field_get_flags||!api.field_get_offset||
+       !api.class_get_namespace||!api.class_get_fields||!api.field_get_flags||!api.field_get_offset||
        !api.class_value_size||!api.class_is_valuetype||
        !api.runtime_class_init||!api.field_static_get_value) {*error="BunnyItem: contrato de campos IL2CPP indisponivel";return false;}
     for(size_t i=0;i<integerFields.size();++i) {
         auto* field=il2cpp::findField(item,integerNames[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
         auto& binding=integerFields[i];
-        if(!field||!integerContract(cls,&binding)) {
+        if(!field||(api.field_get_flags(field)&0x10u)||!integerContract(cls,&binding)) {
             const char* actual=cls?api.class_get_name(cls):nullptr;
-            *error=std::string("BunnyItem: campo integral ausente/incompativel: ")+integerNames[i]+
-                " (tipo="+(actual?actual:"ausente")+")";return false;
+            *error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+integerNames[i]+
+                " Expected=Integral8/16/32 Actual="+(actual?actual:"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;
         }
         binding.offset=il2cpp::fieldOffset(item,integerNames[i]);
-        if(binding.offset<0) {*error=std::string("BunnyItem: offset invalido: ")+integerNames[i];return false;}
-        BL_INFO("csharp item field: %s tipo=%s bytes=%d offset=%d",integerNames[i],
+        if(binding.offset<static_cast<int>(sizeof(Il2CppObject))) {*error=std::string("BunnyItem: offset invalido: ")+integerNames[i];return false;}
+        BL_DEBUG("csharp item field: %s tipo=%s bytes=%d offset=%d",integerNames[i],
             api.class_get_name(cls),binding.bytes,binding.offset);
     }
-    const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable"};
+    const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable","accessory","vanity"};
     for(size_t i=0;i<flagOffsets.size();++i) {
         auto* field=il2cpp::findField(item,flags[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
-        if(!field||!cls||std::strcmp(api.class_get_name(cls),"Boolean")!=0) {*error=std::string("BunnyItem: campo bool ausente/incompativel: ")+flags[i];return false;}
+        if(!field||!cls||std::strcmp(api.class_get_namespace(cls),"System")!=0||std::strcmp(api.class_get_name(cls),"Boolean")!=0||(api.field_get_flags(field)&0x10u)) {*error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+flags[i]+" Expected=System.Boolean/1Byte Actual="+(cls?api.class_get_name(cls):"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;}
+        uint32_t alignment=0;
         flagOffsets[i]=il2cpp::fieldOffset(item,flags[i]);
+        if(flagOffsets[i]<static_cast<int>(sizeof(Il2CppObject))||api.class_value_size(cls,&alignment)!=1) {
+            *error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+flags[i]+" Expected=Boolean/1Byte Result=Rejected Reason=InvalidLayout";return false;
+        }
+    }
+    auto* knockField=il2cpp::findField(item,"knockBack");
+    auto* knockClass=knockField?api.class_from_il2cpp_type(api.field_get_type(knockField)):nullptr;
+    uint32_t knockAlign=0;
+    if(!knockClass||(api.field_get_flags(knockField)&0x10u)||std::strcmp(api.class_get_namespace(knockClass),"System")!=0||std::strcmp(api.class_get_name(knockClass),"Single")!=0||api.class_value_size(knockClass,&knockAlign)!=4) {
+        *error="[CSharp][ERROR][NativeItem] Stage=BindFields Field=knockBack Expected=Single/4Bytes Result=Rejected Reason=NativeTypeMismatch";return false;
     }
     knockBackOffset=il2cpp::fieldOffset(item,"knockBack");
     auto* field=il2cpp::findField(item,"UseSound");
@@ -211,23 +223,29 @@ void refreshLiveBasicItems() {
 #endif
 }
 
-bool registerBasicItemPlaceholder(int type,const std::string& name,std::string* error) {
+bool checkBasicItemContract(std::string* error) {std::lock_guard lock(mutex);return error&&prepare(error);}
+
+bool registerBasicItemPlaceholder(int type,const std::string& name,std::string* error,const std::string& modDir,const std::string& sourceFile) {
     std::lock_guard lock(mutex);
     if(!prepare(error))return false;
-    BasicItemEntry item;item.type=type;item.name=name;
+    BasicItemEntry item;item.type=type;item.name=name;item.modDir=modDir;item.sourceFile=sourceFile;
     return definitions.emplace(type,std::move(item)).second;
 }
 
 bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<BasicItemEntry>& entries,std::string* error) {
     if(entries.empty())return true; // mods anteriores nao dependem deste contrato novo
     std::lock_guard lock(mutex);
-    if(entries.size()>16||!prepare(error))return false;
+    if(entries.size()>kSourceMaxCategory) {
+        *error="[CSharp][ERROR][NativeItem] Mod="+modId+" Stage=ApplyDefaults Expected=256 Actual="+
+            std::to_string(entries.size())+" Result=Rejected Reason=ContentCountExceeded";return false;
+    }
+    if(!prepare(error))return false;
     std::vector<BasicItemEntry> resolved=entries;
     for(auto& entry:resolved) {
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
 #if !BL_HAVE_QUICKJS
-        if(!entry.recipes.empty()) {*error=entry.name+": host compilado sem bridge QuickJS de receitas";return false;}
+        if(!entry.recipes.empty()||!entry.behavior.empty()) {*error=entry.name+": host compilado sem bridge QuickJS de receitas";return false;}
 #endif
         for(auto& recipe:entry.recipes)for(auto& ingredient:recipe.ingredients) {
             if(ingredient.key.front()=='m') {
@@ -239,6 +257,9 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         }
     }
     for(auto& entry:resolved) {
+        entry.modDir=definitions.at(entry.type).modDir;
+        entry.sourceFile=definitions.at(entry.type).sourceFile;entry.modId=modId;
+        if(!entry.behavior.empty())behaviorsPending.store(true,std::memory_order_release);
         runtime::setModItemTooltip(entry.type,{{"",entry.tooltip}});
         for(size_t i=0;i<entry.recipes.size();++i) {
             auto id=modId+"/"+entry.name+"#"+std::to_string(i);
@@ -280,6 +301,21 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     }
     return true;
 }
+bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
+std::vector<BasicItemEntry> pendingBasicItemBehaviors() {
+    std::lock_guard lock(mutex);std::vector<BasicItemEntry> out;
+    for(const auto& [type,entry]:definitions)if(!entry.behavior.empty()&&!entry.behaviorInstalled){out.push_back(entry);if(out.size()==8)break;}
+    return out;
+}
+bool acknowledgeBasicItemBehavior(int type,const std::string& error) {
+    std::lock_guard lock(mutex);auto it=definitions.find(type);
+    if(it==definitions.end()||it->second.behavior.empty()||(it->second.behaviorInstalled&&error.empty()))return false;
+    it->second.behaviorError=error.substr(0,1000);
+    if(error.empty())it->second.behaviorInstalled=true;
+    bool pending=false;
+    for(const auto& [id,entry]:definitions)if(!entry.behavior.empty()&&!entry.behaviorInstalled){pending=true;break;}
+    behaviorsPending.store(pending,std::memory_order_release);return true;
+}
 bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&it->second.values[BasicDamage]>0;}
 bool isBasicItem(int type) {std::lock_guard lock(mutex);return definitions.contains(type);}
 std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> out;for(const auto& p:definitions)out.push_back(p.first);return out;}
@@ -294,6 +330,24 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
 void pumpBasicRecipesOnGameThread() {
 #if BL_HAVE_QUICKJS
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
+    static unsigned behaviorTicks=0;
+    if(behaviorsPending.load(std::memory_order_acquire)&&(behaviorTicks++%120u)==0) {
+        script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
+        auto* ctx=static_cast<JSContext*>(script::engine().context());
+        auto global=JS_GetGlobalObject(ctx);auto function=JS_GetPropertyStr(ctx,global,"__blSyncCSharpItemBehaviors");
+        if(JS_IsFunction(ctx,function)) {
+            auto result=JS_Call(ctx,function,global,0,nullptr);
+            if(JS_IsException(result)) {
+                auto exception=JS_GetException(ctx);const char* text=JS_ToCString(ctx,exception);
+                static unsigned failures=0;if(failures++<8)BL_ERROR("csharp item behavior: %s",text?text:"falha sem mensagem");
+                if(text)JS_FreeCString(ctx,text);
+                JS_FreeValue(ctx,exception);
+            }
+            JS_FreeValue(ctx,result);
+        }
+        JS_FreeValue(ctx,function);JS_FreeValue(ctx,global);
+
+    }
     if(!recipesPending.load(std::memory_order_acquire))return;
     static unsigned ticks=0;if((ticks++%120u)!=0)return;
     script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;

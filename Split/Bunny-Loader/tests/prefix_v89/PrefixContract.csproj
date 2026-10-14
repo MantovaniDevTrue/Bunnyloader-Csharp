@@ -8,8 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs" Link="CompiledAssemblyProbe.cs" />
-    <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />
   </ItemGroup>
 </Project>
+
