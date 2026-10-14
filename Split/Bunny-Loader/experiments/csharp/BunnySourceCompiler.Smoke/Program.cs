@@ -213,7 +213,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 37)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 42)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
