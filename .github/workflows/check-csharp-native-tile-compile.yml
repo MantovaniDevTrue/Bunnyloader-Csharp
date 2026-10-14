@@ -6,6 +6,7 @@ on:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
       - 'Split/Bunny-Loader/app/src/main/cpp/content/tiles/**'
       - 'Split/Bunny-Loader/tests/native_source_identity.cpp'
+      - 'Split/Bunny-Loader/tests/native_tile_policy.cpp'
       - '.github/workflows/check-csharp-native-tile-compile.yml'
 permissions:
   contents: read
@@ -35,6 +36,7 @@ jobs:
           CFLAGS=(-std=c++20 -DBL_HAVE_QUICKJS=0 -I"$SRC" -I"$RUNNER_TEMP/stubs" -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux")
           for file in \
             "$SRC/experiments/csharp/NativeContent.cpp" \
+            "$SRC/experiments/csharp/NativeTileGameplay.cpp" \
             "$SRC/experiments/csharp/SourceLoader.cpp" \
             "$SRC/content/tiles/ModTiles.cpp"; do
             echo "Checking $file"
@@ -44,3 +46,7 @@ jobs:
             "Split/Bunny-Loader/tests/native_source_identity.cpp" \
             -o "$RUNNER_TEMP/source-identity"
           "$RUNNER_TEMP/source-identity"
+          g++ "${CFLAGS[@]}" -Wall -Wextra -Werror \
+            "Split/Bunny-Loader/tests/native_tile_policy.cpp" \
+            -o "$RUNNER_TEMP/native-tile-policy"
+          "$RUNNER_TEMP/native-tile-policy"

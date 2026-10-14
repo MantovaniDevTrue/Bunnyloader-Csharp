@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -1855,10 +1856,15 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
     if (types.empty()) return;
     const int x = static_cast<int>(std::floor((pos[0] + width / 2.f) / 16.f));
     const int y = static_cast<int>(std::floor((pos[1] + height) / 16.f));
+    runtime::TileArrays world{};
+    if (!runtime::tileArrays(&world)) return;
     auto* result = static_cast<uint8_t*>(arrayData(adjacent));
-    for (int i = x - 4; i <= x + 4; ++i)
-        for (int j = y - 3; j <= y + 2; ++j) {
-            const int type = runtime::tileTypeAt(i, j);
+    for (int i = std::max(0, x - 4); i <= std::min(world.width - 1, x + 4); ++i)
+        for (int j = std::max(0, y - 3); j <= std::min(world.height - 1, y + 2); ++j) {
+            const int64_t offset = static_cast<int64_t>(j) * world.width + i;
+            const uint32_t definition = world.lookup[offset];
+            if ((world.sHeader[definition] & runtime::kTileActiveBit) == 0) continue;
+            const int type = world.type[definition];
             if (type < runtime::kVanillaTileCount ||
                 static_cast<uintptr_t>(type) >= adjacent->length) continue;
             for (const auto& [modded, vanilla] : types)
@@ -1951,6 +1957,12 @@ void onManagedTilesInstalled(int first, int last) {
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(entry.type);
         const bool guide = installCraftingStationIcon(mod, entry);
         const bool adjacency = entry.adjacentTile < 0 || ensureNativeAdjTiles();
+        const bool gameplay = flags && shape &&
+            registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
+                                        entry.shape, entry.failDust, entry.normalDust});
+        if (!gameplay)
+            BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Stage=NativeGameplay Result=Incomplete",
+                     mod.c_str(), entry.name.c_str());
         if (!adjacency)
             BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Stage=NativeAdjacency Result=Unavailable",
                      mod.c_str(), entry.name.c_str());

@@ -50,3 +50,30 @@ Faltam dust/drop de objetos multitile, fallback de localizacao do nome no mapa
 e os testes de ABI
 e Android para colocacao, remocao, save/reload e 60 FPS.
 Nao inferir que a aprovacao das suites comprova esses efeitos.
+
+## A1 — lote de destruicao e receitas originais
+
+O teste de compilacao Roslyn inclui a bancada 2x1, seu item colocavel e tres
+pecas de armadura com os mesmos nomes, ingredientes, estacao e bonus dos
+arquivos JS originais do ExampleModBunny: capacete +5 defesa, bonus completo
+de 20% de dano melee/ranged/magic/minion; peitoral +6 defesa, +20 mana,
++1 minion e imunidade OnFire; calca +5 defesa e +5% movement.
+O teste exige os tres itens e a recipe station ExampleWorkbench, alem da
+identidade separada TILE:ExampleWorkbench / ITEM:ExampleWorkbench.
+
+A implementacao de tile permanece native-first: NativeTileGameplay usa
+os ganchos do WorldGen para drop unico de moveis grandes, verificacao
+de integridade 2x1 e limpeza da metade sobrevivente. A poeira usa
+KillTile_MakeTileDust e limite fail=1/normal=3, com DustID por nome.
+Os hooks verificam o tamanho real de Terraria.Tile antes de instalar;
+se falhar, nao tentam usar a ABI desconhecida. Sem callbacks Mono/JS
+na renderizacao. O algoritmo de geometria e limites e coberto por um teste
+C++ separado.
+
+A implementacao C# do conjunto passa pelo contrato de comportamento
+BunnyItemBehavior ja existente; ainda depende da ponte de comportamento
+para a aplicacao em jogo. Falta validar a ponte e adicionar os assets
+originais ao ExampleModCSharp antes de habilitar as classes na amostra
+distribuida. Todos os hooks nativos de gameplay permanecem NAO
+VALIDADOS no Android ate teste de colocacao, quebra, relog,
+destruicao de suporte, multiplayer e desempenho.
