@@ -492,6 +492,14 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
         if (found == g_accessories.end() || found->second.visualMode == 0)
             continue;
         const auto& visual = found->second;
+        if ((visual.visualMode == 1 || visual.visualMode == 3) &&
+            visual.nativeEquipSlot > 0 && visual.nativeEquipSlot < 128) {
+            const int slotOffset = visual.visualMode == 1
+                ? g_refs.itemShieldSlot : g_refs.itemShoeSlot;
+            if (slotOffset >= 0)
+                bl::runtime::field<int8_t>(item, slotOffset) =
+                    static_cast<int8_t>(visual.nativeEquipSlot);
+        }
         if (visual.visualMode != 2) continue;
         ManagedVisualCommand command;
         command.kind = visual.visualMode == 2
