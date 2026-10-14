@@ -866,7 +866,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.31
+      - name: Package independent ExampleMod CSharp 0.1.32
         shell: bash
         run: |
           set -euo pipefail
@@ -890,10 +890,10 @@ jobs:
             "$PKG/content/Content/NPCs/ExampleSlimeNPC.png"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.31.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.32.bl"
           test -s "$SOURCE"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
@@ -952,8 +952,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod.sha256"
 
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
@@ -1475,7 +1475,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='154' versionName='0.1.10.16.90.27.4-csharp-visual-layers'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='155' versionName='0.1.10.16.90.27.5-csharp-native-equips'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1542,8 +1542,8 @@ jobs:
           trap 'rm -f "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256"' EXIT
           TAG="csharp-v3-run-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod" \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.31.bmod.sha256" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.32.bmod.sha256" \
             "Split/Bunny-Loader/build/combat-batch-results.json" \
             --repo "$PRIVATE_REPO" \
             --target main \
@@ -1556,7 +1556,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.31.bmod SecondExampleModCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.32.bmod SecondExampleModCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -1566,14 +1566,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.31
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.32
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.31.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.31.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.32.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.32.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
 
