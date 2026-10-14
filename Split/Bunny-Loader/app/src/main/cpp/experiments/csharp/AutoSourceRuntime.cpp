@@ -305,7 +305,7 @@ bool parseCurves(const std::string& id, const std::string& input,
     int count = 0;
     while (std::getline(lines, line)) {
         if (line.empty()) continue;
-        if (++count > kSourceMaxCategory || line.size() > 1300) return false;
+        if (static_cast<size_t>(++count) > kSourceMaxCategory || line.size() > 1300) return false;
         std::istringstream fields(line);
         std::string name;
         if (!std::getline(fields, name, '\t') ||
@@ -339,7 +339,7 @@ bool parseCombat(const std::string& id, const std::string& input,
     int total = 0;
     while (std::getline(stream, line)) {
         if (line.empty()) continue;
-        if (++total > kSourceMaxCategory || line.size() > 3200) return false;
+        if (static_cast<size_t>(++total) > kSourceMaxCategory || line.size() > 3200) return false;
         std::istringstream row(line);
         std::vector<std::string> parts;
         std::string part;

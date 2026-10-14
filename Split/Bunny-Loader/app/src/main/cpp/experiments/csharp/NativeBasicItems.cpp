@@ -30,6 +30,12 @@ std::array<IntegerField,BasicFieldCount-1> integerFields{};
 const char* integerNames[]={"width","height","maxStack","value","rare","damage","crit",
     "useTime","useAnimation","useStyle","pick","axe","hammer"};
 
+bool systemPrimitive(Il2CppClass* cls,const char* name) {
+    auto& api=il2cpp::api();
+    if(!cls||!api.class_get_namespace)return false;
+    const char* ns=api.class_get_namespace(cls),*actual=api.class_get_name(cls);
+    return ns&&actual&&std::strcmp(ns,"System")==0&&std::strcmp(actual,name)==0&&api.class_is_valuetype(cls);
+}
 bool integerContract(Il2CppClass* cls,IntegerField* out) {
     auto& api=il2cpp::api();
     if(cls&&api.class_is_enum&&api.class_is_enum(cls)) {
@@ -37,7 +43,7 @@ bool integerContract(Il2CppClass* cls,IntegerField* out) {
         const auto* base=api.class_enum_basetype(cls);
         cls=base?api.class_from_il2cpp_type(base):nullptr;
     }
-    if(!cls||!api.class_get_namespace||std::strcmp(api.class_get_namespace(cls),"System")!=0)return false;
+    if(!cls||!api.class_get_namespace||(!api.class_get_namespace(cls)||std::strcmp(api.class_get_namespace(cls),"System")!=0))return false;
     const char* name=api.class_get_name(cls);
     if(!name)return false;
     struct Kind { const char* name; int bytes; int64_t min,max; };
@@ -96,7 +102,7 @@ bool prepare(std::string* error) {
     for(size_t i=0;i<flagOffsets.size();++i) {
         auto* field=il2cpp::findField(item,flags[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
-        if(!field||!cls||std::strcmp(api.class_get_namespace(cls),"System")!=0||std::strcmp(api.class_get_name(cls),"Boolean")!=0||(api.field_get_flags(field)&0x10u)) {*error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+flags[i]+" Expected=System.Boolean/1Byte Actual="+(cls?api.class_get_name(cls):"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;}
+        if(!field||!systemPrimitive(cls,"Boolean")||(api.field_get_flags(field)&0x10u)) {*error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+flags[i]+" Expected=System.Boolean/1Byte Actual="+(cls?api.class_get_name(cls):"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;}
         uint32_t alignment=0;
         flagOffsets[i]=il2cpp::fieldOffset(item,flags[i]);
         if(flagOffsets[i]<static_cast<int>(sizeof(Il2CppObject))||api.class_value_size(cls,&alignment)!=1) {
@@ -106,7 +112,7 @@ bool prepare(std::string* error) {
     auto* knockField=il2cpp::findField(item,"knockBack");
     auto* knockClass=knockField?api.class_from_il2cpp_type(api.field_get_type(knockField)):nullptr;
     uint32_t knockAlign=0;
-    if(!knockClass||(api.field_get_flags(knockField)&0x10u)||std::strcmp(api.class_get_namespace(knockClass),"System")!=0||std::strcmp(api.class_get_name(knockClass),"Single")!=0||api.class_value_size(knockClass,&knockAlign)!=4) {
+    if(!systemPrimitive(knockClass,"Single")||(api.field_get_flags(knockField)&0x10u)||api.class_value_size(knockClass,&knockAlign)!=4) {
         *error="[CSharp][ERROR][NativeItem] Stage=BindFields Field=knockBack Expected=Single/4Bytes Result=Rejected Reason=NativeTypeMismatch";return false;
     }
     knockBackOffset=il2cpp::fieldOffset(item,"knockBack");

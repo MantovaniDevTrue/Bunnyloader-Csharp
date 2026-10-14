@@ -58,7 +58,7 @@ bool collect(const std::string& folder, const std::string& rel,
         if (S_ISDIR(st.st_mode)) {
             if (!collect(folder, child, paths, error, depth + 1)) return false;
         } else if (S_ISREG(st.st_mode) && isSourceName(name)) {
-            if (st.st_size > kSourceMaxFileBytes || st.st_size < 0 || paths->size() >= kSourceMaxFiles) {
+            if (st.st_size < 0 || static_cast<uint64_t>(st.st_size) > kSourceMaxFileBytes || paths->size() >= kSourceMaxFiles) {
                 *error = "content/" + child +
                     ": limite C# excedido (512 arquivos; 256 KiB por arquivo)";
                 return false;
