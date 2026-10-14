@@ -119,3 +119,16 @@ fabricar itens acessíveis, salvar/sair e reabrir. Conferir ausência de SIGSEGV
 registro das receitas e preservação de itens/prefixos. Repetir com um mod JS
 habilitado. Enviar o relatório se houver qualquer falha. FPS requer medição no
 aparelho; não é garantido pela CI.
+
+
+### Evidências de entrega .90.29.4
+
+Commit de runtime: `cf1a24d9196aac51feb0d96e9e30029a374771c6`.
+Oito suítes aprovadas no mesmo commit: audit 38613198853, combat 38613198723,
+prefix 38613198765, lifecycle 38613198818, monoGc 38613198960,
+monoSignals 38613198782, visual 38613198669, nativeVisual 38613198759.
+[Build Android 38613198798](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38613198798)
+compilou, assinou V3 e entregou o APK experimental privado com ExampleMod 0.1.36.
+Matriz verificada: 201 JS canônicos, 178 na referência do fork, 51 fontes C#;
+33 exemplos do Lote A preservados, sem novos estados de conclusão.
+Validação da correção no aparelho continua pendente.
