@@ -48,6 +48,23 @@ TimeLeft = 240;
     assert(sourceIdentityForWire("TILE", "ExampleWorkbench") !=
            sourceIdentityForWire("ITEM", "ExampleWorkbench"));
     types.clear();
+    const std::string tileSource = R"(
+namespace Example.Tiles;
+public class ExampleWorkbench : BunnyTile {
+public override void SetStaticDefaults() {
+Texture = "Content/Tiles/Furniture/ExampleWorkbench.png";
+Flags = BunnyTileFlags.Table | BunnyTileFlags.FrameImportant;
+AddMapEntry(200, 200, 200, "ExampleWorkbench");
+}
+}
+)";
+    assert(parseCSharpSource(tileSource, &types, &error));
+    assert(types.size() == 1);
+    assert(types[0].namespaceName == "Example.Tiles");
+    assert(types[0].base == "BunnyTile");
+    assert(types[0].properties.at("Texture") ==
+           "Content/Tiles/Furniture/ExampleWorkbench.png");
+    types.clear();
     const std::string scoped = R"(
 namespace Example.Tools;
 public class Tool : BunnyItem {

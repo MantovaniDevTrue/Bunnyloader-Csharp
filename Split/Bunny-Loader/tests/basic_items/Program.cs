@@ -128,6 +128,22 @@ try {
      !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))
       throw new Exception("native domain identity dropped a class");
  });
+ Check("tiles.original-bench-and-item-same-name-wire",()=>{
+  string root="tests/basic_items/tile_fixture";
+  string output=Path.Combine(scratch,"tile.dll"),diag=Path.Combine(scratch,"tile.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(2,CompiledAssemblyProbe.Verify(output,diag));
+  var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(3,rows.Length);
+  var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
+  var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
+  Equal(13,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
+  Equal("1",tile[11]);Equal("3",tile[12]);
+  Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);
+  Equal("1,-1,v36:1,mExampleItem:10",item[19]);
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/tiles-source-runtime-values.txt",true);
+ });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));
   for(int i=0;i<192;i++)File.WriteAllText(Path.Combine(root,"content",$"Item{i:D3}.cs"),

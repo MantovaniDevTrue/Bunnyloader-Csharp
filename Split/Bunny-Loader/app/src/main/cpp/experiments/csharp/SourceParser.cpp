@@ -158,7 +158,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix") return true;
+        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -175,7 +175,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                     *error = name + ": parametros de membro C# sem fechamento";
                     return false;
                 }
-                if (i > member && tokens[i - 1].value == "SetDefaults" &&
+                if (i > member && (tokens[i - 1].value == "SetDefaults" ||
+                    (base == "BunnyTile" && tokens[i - 1].value == "SetStaticDefaults")) &&
                     parametersEnd == i + 1 && parametersEnd + 1 < end &&
                     tokens[parametersEnd + 1].value == "{") {
                     if (foundDefaults) {
@@ -187,7 +188,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         *error = name + ": corpo SetDefaults sem fechamento";
                         return false;
                     }
-                    if (base == "BunnyItem") {
+                    if (base == "BunnyItem" || base == "BunnyTile") {
                         // So recursos/nomes sao necessarios ANTES do Mono. Todos
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.
@@ -356,7 +357,8 @@ bool parseCSharpSource(const std::string& source,
         if (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
-            base == "BunnyNPC" || base == "BunnyPrefix") {
+            base == "BunnyNPC" || base == "BunnyPrefix" ||
+            base == "BunnyTile") {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
@@ -369,7 +371,7 @@ bool parseCSharpSource(const std::string& source,
         i = end;
     }
     if (found == 0 && requireContent) {
-        *error = "nenhuma classe BunnyProjectile, BunnyWeapon, BunnyBuff, BunnyBuffPotion, BunnyPlayer, BunnyAccessory , BunnyNPC ou BunnyPrefix encontrada";
+        *error = "nenhuma classe BunnyItem, BunnyTile ou outro conteudo Bunny encontrada";
         return false;
     }
     return true;

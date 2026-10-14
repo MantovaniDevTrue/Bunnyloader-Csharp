@@ -52,6 +52,8 @@ bool modTilesSettled();
 /** Chamado uma vez por lote instalado (thread do jogo): a hora do SetStaticDefaults. */
 using TilesInstalledHook = void (*)(int first, int last);
 void setTilesInstalledHook(TilesInstalledHook hook);
+void setNativeTilesInstalledHook(TilesInstalledHook hook);
+void requestNativeTileDefaults();
 
 /** O tipo do tile `name` do mod `mod`, ou -1. */
 int modTileTypeByName(const std::string& mod, const std::string& name);

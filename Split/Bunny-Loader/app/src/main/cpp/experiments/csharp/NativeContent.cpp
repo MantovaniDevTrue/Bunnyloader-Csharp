@@ -1737,6 +1737,139 @@ void refreshManagedPrefixEligibilityOnWorldReady() {
             g_weapons.size() + g_accessories.size(), corrected);
 }
 
+namespace {
+
+std::mutex g_tileDefaultsMutex;
+std::map<int, std::pair<std::string, ManagedTileEntry>> g_tileDefaults;
+
+bool writeTileFlag(Il2CppClass* cls, const char* name, int type, bool enabled) {
+    if (!enabled) return true;
+    auto& a = il2cpp::api();
+    FieldInfo* field = cls ? il2cpp::findField(cls, name) : nullptr;
+    if (!field || !a.field_get_type || !a.type_get_name || !a.il2cpp_free) return false;
+    char* signature = a.type_get_name(a.field_get_type(field));
+    const bool safe = signature && std::strcmp(signature, "System.Boolean[]") == 0;
+    if (signature) a.il2cpp_free(signature);
+    if (!safe) return false;
+    Il2CppArray* values = nullptr;
+    a.field_static_get_value(field, &values);
+    if (!values || type < 0 || static_cast<uintptr_t>(type) >= values->length) return false;
+    static_cast<uint8_t*>(arrayData(values))[type] = 1;
+    return true;
+}
+
+Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
+    auto& a = il2cpp::api();
+    if (!cls) return nullptr;
+    if (FieldInfo* field = il2cpp::findField(cls, name)) {
+        Il2CppObject* result = nullptr;
+        a.field_static_get_value(field, &result);
+        if (result) return result;
+    }
+    const std::string getter = std::string("get_") + name;
+    const MethodInfo* method = a.class_get_method_from_name(cls, getter.c_str(), 0);
+    Il2CppObject* exc = nullptr;
+    return method ? a.runtime_invoke(method, nullptr, nullptr, &exc) : nullptr;
+}
+
+bool applyTileShape(int type, const ManagedTileEntry& e) {
+    if (e.shape == 0) return true;
+    if (e.shape != 1) return false;
+    auto& a = il2cpp::api();
+    Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
+    Il2CppObject* tile = tileStaticObject(cls, "newTile");
+    Il2CppObject* shape = tileStaticObject(cls, "Style2x1");
+    if (!tile || !shape) return false;
+    Il2CppClass* tileClass = a.object_get_class(tile);
+    const MethodInfo* copy = a.class_get_method_from_name(tileClass, "CopyFrom", 1);
+    const MethodInfo* setHeights = a.class_get_method_from_name(tileClass, "set_CoordinateHeights", 1);
+    const MethodInfo* addTile = cls ? a.class_get_method_from_name(cls, "addTile", 1) : nullptr;
+    Il2CppClass* intClass = il2cpp::findClass({"System", "Int32", {}});
+    if (!copy || !setHeights || !addTile || !intClass) return false;
+    Il2CppArray* heights = a.array_new(intClass, 1);
+    if (!heights) return false;
+    *static_cast<int32_t*>(arrayData(heights)) = e.coordinateHeight;
+    Il2CppObject* exc = nullptr;
+    void* copyArgs[1] = {shape};
+    a.runtime_invoke(copy, tile, copyArgs, &exc);
+    if (exc) return false;
+    void* heightArgs[1] = {heights};
+    a.runtime_invoke(setHeights, tile, heightArgs, &exc);
+    if (exc) return false;
+    int32_t id = type;
+    void* addArgs[1] = {&id};
+    a.runtime_invoke(addTile, nullptr, addArgs, &exc);
+    return !exc;
+}
+
+bool applyTileFlags(int type, const ManagedTileEntry& e) {
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
+    Il2CppClass* room = sets ? il2cpp::findNested(sets, "RoomNeeds") : nullptr;
+    bool ok = true;
+    const auto apply = [&](Il2CppClass* cls, const char* field, int bit) {
+        if (!writeTileFlag(cls, field, type, (e.flags & bit) != 0)) ok = false;
+    };
+    apply(main, "tileTable", 1);
+    apply(main, "tileSolidTop", 2);
+    apply(main, "tileNoAttach", 4);
+    apply(main, "tileLavaDeath", 8);
+    apply(main, "tileFrameImportant", 16);
+    apply(sets, "DisableSmartCursor", 32);
+    apply(sets, "HasOutlines", 64);
+    apply(sets, "IgnoredByNpcStepUp", 128);
+    apply(room, "CountsAsTable", 256);
+    apply(main, "tileObsidianKill", 8);
+    return ok;
+}
+
+void onManagedTilesInstalled(int first, int last) {
+    std::vector<std::pair<std::string, ManagedTileEntry>> records;
+    {
+        std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
+        for (const auto& [type, entry] : g_tileDefaults)
+            if (type >= first && type <= last) records.push_back(entry);
+    }
+    for (const auto& [mod, entry] : records) {
+        const bool flags = applyTileFlags(entry.type, entry);
+        const bool shape = applyTileShape(entry.type, entry);
+        if (!flags || !shape)
+            BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Type=%d Stage=SetStaticDefaults Flags=%d Shape=%d Result=Incomplete",
+                     mod.c_str(), entry.name.c_str(), entry.type, flags, shape);
+    }
+}
+
+}
+
+bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
+                                         const std::vector<ManagedTileEntry>& tiles) {
+    for (const auto& entry : tiles) {
+        if (entry.type < runtime::kVanillaTileCount ||
+            runtime::modTileTypeByName(modId, entry.name) != entry.type ||
+            entry.flags < 0 || entry.flags > 511 ||
+            entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
+            entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
+            entry.mapR < 0 || entry.mapR > 255 ||
+            entry.mapG < 0 || entry.mapG > 255 ||
+            entry.mapB < 0 || entry.mapB > 255)
+            return false;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
+        for (const auto& entry : tiles)
+            g_tileDefaults[entry.type] = {modId, entry};
+    }
+    for (const auto& entry : tiles) {
+        if (!entry.mapName.empty() &&
+            runtime::addModTileMapEntry(entry.type, entry.mapR, entry.mapG, entry.mapB,
+                "Mods." + modId + ".MapObject." + entry.name) < 0)
+            return false;
+    }
+    runtime::setNativeTilesInstalledHook(onManagedTilesInstalled);
+    runtime::requestNativeTileDefaults();
+    return true;
+}
+
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
     auto* ctxPtr = static_cast<NativeRegisterContext*>(context);
     if (ctxPtr) ctxPtr->lastError.clear();

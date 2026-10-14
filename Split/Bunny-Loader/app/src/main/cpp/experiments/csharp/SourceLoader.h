@@ -13,6 +13,7 @@ struct SourceModStatus {
     std::string error;
     int sourceFiles = 0;
     int items = 0;
+    int tiles = 0;
     int projectiles = 0;
     int buffs = 0;
     int potions = 0;

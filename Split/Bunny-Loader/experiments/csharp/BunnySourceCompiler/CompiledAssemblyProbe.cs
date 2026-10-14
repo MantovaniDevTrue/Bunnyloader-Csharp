@@ -20,6 +20,9 @@ public static class CompiledAssemblyProbe
             var projectileTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyProjectile")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var tileTypes = assembly.GetTypes()
+                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyTile")
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var basicItemTypes = assembly.GetTypes()
                 .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyItem")
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -48,12 +51,12 @@ public static class CompiledAssemblyProbe
                     return false;
                 })
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (prefixTypes.Length > 256 || npcTypes.Length > 256 || accessoryTypes.Length > 256 || playerTypes.Length > 256 ||
+            if (tileTypes.Length > 256 || prefixTypes.Length > 256 || npcTypes.Length > 256 || accessoryTypes.Length > 256 || playerTypes.Length > 256 ||
                 projectileTypes.Length > 256 ||
                 weaponTypes.Length > 256 || basicItemTypes.Length > 256 ||
                 buffTypes.Length > 256 || potionTypes.Length > 256)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -66,6 +69,7 @@ public static class CompiledAssemblyProbe
                 fixture && type.FullName == "SourceCSharpMod.SourceWand"
                     ? primaryWeapon! : CreateContent(type)).ToArray();
             object[] basicItems = basicItemTypes.Select(CreateContent).ToArray();
+            object[] tiles = tileTypes.Select(CreateTileContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
@@ -73,7 +77,7 @@ public static class CompiledAssemblyProbe
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -85,16 +89,16 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
-                " npcs=" + npcs.Length + " prefixes=" + prefixes.Length +
+                " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length;
         }
         catch (Exception exception)
         {
@@ -110,6 +114,16 @@ public static class CompiledAssemblyProbe
             ?? throw new InvalidOperationException("Failed to instantiate " + type.Name);
         MethodInfo method = type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
+        method.Invoke(instance, null);
+        return instance;
+    }
+
+    private static object CreateTileContent(Type type)
+    {
+        object instance = Activator.CreateInstance(type)
+            ?? throw new InvalidOperationException("Failed to instantiate tile " + type.FullName);
+        MethodInfo method = type.GetMethod("SetStaticDefaults", BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("Missing tile SetStaticDefaults in " + type.FullName);
         method.Invoke(instance, null);
         return instance;
     }
@@ -418,7 +432,8 @@ public static class CompiledAssemblyProbe
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
-        object[] players, object[] npcs, object[] prefixes, object[] basicItems, string diagnosticsPath)
+        object[] players, object[] npcs, object[] prefixes, object[] basicItems,
+        object[] tiles, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -438,10 +453,18 @@ public static class CompiledAssemblyProbe
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
-            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + 1)
+            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + tiles.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
+        foreach (object tile in tiles)
+        {
+            string name = tile.GetType().Name;
+            CheckName(name);
+            if (!names.Add("TILE:" + name))
+                throw new InvalidOperationException("Duplicate BunnyTile: " + name);
+            lines.Add(TileWriter.Write(tile));
+        }
         foreach (object item in basicItems)
         {
             string name=item.GetType().Name;
