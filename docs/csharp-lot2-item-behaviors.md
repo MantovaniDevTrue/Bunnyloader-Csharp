@@ -138,3 +138,9 @@ inventario, equipar mascara em cabeca de vaidade e robe no corpo de vaidade,
 trocar loadout, virar/caminhar/saltar e repetir apos Save/Exit.
 Nao atribuir Accessory=true para tornar armaduras equipaveis: preservar slots
 de armadura e defaults originais. Esta entrega e corretiva; Lote A nao concluido.
+
+Correcao .90.28.7: pipeline `38566058511` aprovado, runtime commit
+`e50e613f649e8806f8a82c919859dbc4c60309db`; oito suites de regressao passaram,
+APK assinado e ExampleMod 0.1.35 gerados. Evidencia de CI final registrada apos
+o build; o pacote inclui a matriz/roteiro do commit de runtime. Validacao
+Android da mascara e do robe pendente. Lote A permanece incompleto.

@@ -119,3 +119,9 @@ no caminho nativo de SetDefaults dos BunnyItem. A bridge agora liga o slot ao
 registro do item e o reaplica em novas instancias, validando campo/tipo/largura
 e limite antes da escrita. O Lote A permanece aberto e precisa ser entregue
 com TODOS os seus exemplos, nao apenas os seis da entrega anterior.
+
+Correcao .90.28.7: pipeline `38566058511` aprovado, runtime commit
+`e50e613f649e8806f8a82c919859dbc4c60309db`; oito suites de regressao passaram,
+APK assinado e ExampleMod 0.1.35 gerados. Evidencia de CI final registrada apos
+o build; o pacote inclui a matriz/roteiro do commit de runtime. Validacao
+Android da mascara e do robe pendente. Lote A permanece incompleto.

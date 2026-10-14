@@ -673,6 +673,22 @@
       "kind": "User Android feedback",
       "result": "Automatic loading successful; ExampleBossMask and ExampleRobe cannot equip",
       "scope": "Loading only; equipment behavior not validated"
+    },
+    {
+      "loader": "0.1.10.16.90.28.7-csharp-native-armor-slots",
+      "exampleMod": "0.1.35",
+      "commit": "e50e613f649e8806f8a82c919859dbc4c60309db",
+      "kind": "Corrective build and automated validation",
+      "androidBuildRun": 38566058511,
+      "auditRun": 38566058963,
+      "combatRun": 38566067509,
+      "prefixRun": 38566058717,
+      "lifecycleRun": 38566067638,
+      "monoSignalRun": 38566067925,
+      "monoGcRun": 38566067576,
+      "visualRun": 38566058875,
+      "nativeVisualRun": 38566058926,
+      "result": "All eight regression suites and signed Android APK pipeline passed; no Android validation of mask/robe correction"
     }
   ],
   "deviceBaselines": [
