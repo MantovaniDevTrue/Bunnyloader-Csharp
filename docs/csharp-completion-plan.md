@@ -75,17 +75,32 @@ automatica so porque o build passou. Roteiros Android acompanham cada lote.
 
 ## Ponto atual para retomar
 
-Base estavel Android .90.28.4 preservada. Grupo .90.28.5: ver
-[codigo, contratos e roteiro](csharp-lot2-item-behaviors.md). A matriz registra
-199 arquivos e separa CI de Android. Proximo grupo obrigatorio: ExampleWorkbench,
-receitas com estacao de mod e o conjunto Helmet/Breastplate/Leggings.
-O Lote A/2 continua aberto; nenhum lote posterior foi abandonado.
+Base validada: .90.28.7 / ExampleMod 0.1.35, incluindo mascara e robe confirmados
+pelo usuario. Branch dessa base: codex/example-completion-v90-28; preservar seus
+commits. Branch de trabalho do Lote A completo: codex/lot-a-complete-v90-29.
 
-Entrega .90.28.5 / ExampleMod 0.1.35 gerada pelo pipeline 38560108522,
-commit de build `2d1012b7d067347688ea242827762b4dfe6f51b3`, com assinatura V3.
-Todos os checks obrigatorios passaram. A matriz possui 199 arquivos: seis
-novos ports validados em host, sem validacao Android nova. Nenhuma alteracao
-funcional posterior ao commit de build nesta entrega.
+Escopo fechado e verificavel: 33 arquivos em lot-a-scope.json; inventario global
+199 JS. Nao publicar novo lote por partes nem passar a B antes de concluir A.
+
+Infraestrutura ja implementada na branch de trabalho: defesa nativa, UpdateEquip
+com imunidade/mana/minions/atributos, ArmorSetBonuses com tooltip e bonus real,
+receitas em estacoes de mod por UID/nome (inclusive tiles JS), wingSlot/WingStats/
+VerticalWingSpeeds no WingLoader original, diagnosticos por receita e round-robin
+nas filas de registros pendentes. APIs sao publicas e testes usam fontes C# de
+mods independentes. Isso ainda nao e port dos exemplos finais.
+
+Proxima dependencia concreta: BunnyTile e bridge para ExampleWorkbench original,
+com TileObjectData 2x1, flags de mesa/estacao, drop, mapa, frames e AdjTiles; depois
+port integral Helmet/Breastplate/Leggings com texturas e receitas originais.
+Seguir todos os 33 arquivos e dependencias, inclusive Costume, asas/acessorios,
+consumiveis, fishing/tools/projeteis, prefixos/raridades e tooltips/currency.
+Checkpoint testado: runtime e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b,
+run Android 38573406719, oito suites aprovadas.
+Ver [contratos e continuidade](csharp-lot-a-development.md). CI compila Android,
+mas nao publica APK desta branch de lote incompleto. Nenhuma nova alegacao de
+validacao no Android ou 60 FPS para as APIs em desenvolvimento.
+
+## Historico das correcoes preservadas
 
 ### Regressao Android .90.28.5 / correcao .90.28.6
 

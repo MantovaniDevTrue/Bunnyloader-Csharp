@@ -103,3 +103,34 @@ trabalho por frame ou retirar limites seguros.
 Armadura+estacoes+asas passaram nas oito suites e build Android do run
 38571726472, commit a3242340700dd16bba4b2e528907892130cc5ee3.
 Alteracoes de isolamento posteriores precisam de nova regressao.
+
+## Proximo contrato: bancada, sem perda de comportamento
+
+Referencia original: Content/Tiles/Furniture/ExampleWorkbench.js e
+Content/Items/Placeable/Furniture/ExampleWorkbench.js. O tile exige todas as
+flags tileTable/SolidTop/NoAttach/LavaDeath/FrameImportant, DisableSmartCursor,
+HasOutlines, IgnoredByNpcStepUp, DustType Platinum, AdjTiles WorkBenches,
+TileObjectData.Style2x1 com CoordinateHeights [18], RoomNeeds.CountsAsTable,
+mapa RGB 200/200/200 e NumDust(fail?1:3). O item exige DefaultToPlaceableTile,
+tamanho 28x14, valor 150 e receita WorkBench + ExampleItem x10 sem estacao.
+Nao simplificar bancada para tile de 1x1 nem trocar a receita por estacao vanilla.
+
+O original tem a mesma classe ExampleWorkbench em dois tipos de conteudo.
+Antes de adicionar ambos em C#, revisar identidade (categoria/nome nativo versus
+classe CLR/namespace) no SourceParser, SourceLoader, CompiledAssemblyProbe e
+serializacao. Preservar identificadores persistidos e diagnosticos da fonte
+correta; nao permitir que colisao sobrescreva o mapa de tipos/arquivos.
+Essa lacuna e do SDK, nao evidencia de impossibilidade tecnica no Terraria.
+
+## Checkpoint final desta execucao
+
+Runtime commit e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b. Auditoria/SDK/bridges
+38573406958 e sete outras suites aprovadas; pipeline Android 38573406719
+compilou e assinou com sucesso. O passo de publicacao privada ficou skipped.
+Nenhum APK de lote parcial foi publicado, e .90.28.7 segue como base validada.
+
+Estado: infraestrutura nova consistente; ExampleMod segue com seus 51 fontes
+e a versao 0.1.35. Os 33 ports do Lote A ainda nao estao completos. Retomar
+pelo contrato de tile/identidade descrito acima e concluir todos os arquivos
+do escopo antes de gerar a entrega final. Nao reinterpretar os fixtures de
+teste como exemplos finais nem os resultados de CI como gameplay Android.

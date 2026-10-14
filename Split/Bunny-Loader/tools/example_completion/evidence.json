@@ -819,6 +819,20 @@
       "androidBuildRun": 38571726472,
       "auditRun": 38571726537,
       "result": "8 host suites and Android build succeeded; no release; no Android gameplay validation"
+    },
+    {
+      "kind": "Internal complete-Lot-A infrastructure final verification",
+      "commit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
+      "androidBuildRun": 38573406719,
+      "auditRun": 38573406958,
+      "combatRun": 38573406634,
+      "prefixRun": 38573406671,
+      "lifecycleRun": 38573407022,
+      "monoSignalRun": 38573406878,
+      "monoGcRun": 38573406772,
+      "visualRun": 38573406814,
+      "nativeVisualRun": 38573406876,
+      "result": "All 8 independent suites and Android build/signing passed; private publication skipped; device gameplay not validated"
     }
   ],
   "deviceBaselines": [
@@ -854,6 +868,9 @@
       "mod workbench and recipe dependencies",
       "other Lot A APIs",
       "Android lifecycle validation"
-    ]
+    ],
+    "runtimeCommit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
+    "androidBuildRun": 38573406719,
+    "result": "Consistent tested infrastructure checkpoint; Lot A not complete; no partial feature release"
   }
 }
