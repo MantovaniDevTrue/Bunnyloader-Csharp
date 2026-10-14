@@ -38,9 +38,10 @@ fontes, assets ou versao. A fonte JS original nao foi modificada.
 ## Gaps para finalizar A1
 
 A bridge atual aplica flags estaticas, copia TileObjectData.Style2x1,
-configura CoordinateHeights, registra addTile e cor/mapa. Ainda sao
-necessarios os hooks nativos de adjacencia (Player.AdjTiles),
-RoomNeeds.CountsAsTableTypes, dust/drop de objetos multitile e
-CraftingStationItemId para Guia, com verificacoes de ABI e testes Android
-para colocacao, remocao, save/reload e 60 FPS.
+configura CoordinateHeights, registra addTile e cor/mapa. O segundo incremento
+inclui entrada nativa em RoomNeeds.CountsAsTableTypes e associação da estacao
+com o item colocavel em CraftingStationItemId, se a resolucao do item estiver
+pronta. Ainda faltam a adjacencia funcional (Player.AdjTiles), dust/drop de
+objetos multitile, fallback de localizacao do nome no mapa e os testes de ABI
+e Android para colocacao, remocao, save/reload e 60 FPS.
 Nao inferir que a aprovacao das suites comprova esses efeitos.

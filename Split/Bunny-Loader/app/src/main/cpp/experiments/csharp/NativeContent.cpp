@@ -1825,6 +1825,49 @@ bool applyTileFlags(int type, const ManagedTileEntry& e) {
     return ok;
 }
 
+bool appendNativeHousingTable(int type) {
+    auto& a = il2cpp::api();
+    Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
+    Il2CppClass* room = sets ? il2cpp::findNested(sets, "RoomNeeds") : nullptr;
+    FieldInfo* field = room ? il2cpp::findField(room, "CountsAsTableTypes") : nullptr;
+    if (!field) return false;
+    Il2CppArray* array = nullptr;
+    a.field_static_get_value(field, &array);
+    if (!array) return false;
+    const auto* values = static_cast<const int32_t*>(arrayData(array));
+    for (uintptr_t i = 0; i < array->length; ++i)
+        if (values[i] == type) return true;
+    if (array->length >= 4096) return false;
+    Il2CppArray* enlarged = runtime::TypeTables::resizedCopy(array, array->length + 1);
+    if (!enlarged) return false;
+    static_cast<int32_t*>(arrayData(enlarged))[array->length] = type;
+    a.field_static_set_value(field, enlarged);
+    return true;
+}
+
+bool installCraftingStationIcon(const std::string& modId,
+                                const ManagedTileEntry& e) {
+    auto& a = il2cpp::api();
+    const int item = basicItemForTile(modId + "/" + e.name);
+    if (item < 0) return false;
+    Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
+    FieldInfo* field = sets ? il2cpp::findField(sets, "CraftingStationItemId") : nullptr;
+    if (!field) return false;
+    Il2CppArray* arr = nullptr;
+    a.field_static_get_value(field, &arr);
+    if (!arr) return false;
+    if (static_cast<uintptr_t>(e.type) >= arr->length) {
+        Il2CppArray* grown = runtime::TypeTables::resizedCopy(arr, e.type + 1);
+        if (!grown) return false;
+        arr = grown;
+        a.field_static_set_value(field, arr);
+    }
+    auto* values = static_cast<int32_t*>(arrayData(arr));
+    if (values[e.type] == 0 || values[e.type] == item)
+        values[e.type] = item;
+    return values[e.type] == item;
+}
+
 void onManagedTilesInstalled(int first, int last) {
     std::vector<std::pair<std::string, ManagedTileEntry>> records;
     {
@@ -1835,9 +1878,14 @@ void onManagedTilesInstalled(int first, int last) {
     for (const auto& [mod, entry] : records) {
         const bool flags = applyTileFlags(entry.type, entry);
         const bool shape = applyTileShape(entry.type, entry);
-        if (!flags || !shape)
-            BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Type=%d Stage=SetStaticDefaults Flags=%d Shape=%d Result=Incomplete",
-                     mod.c_str(), entry.name.c_str(), entry.type, flags, shape);
+        const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(entry.type);
+        const bool guide = installCraftingStationIcon(mod, entry);
+        if (!flags || !shape || !housing)
+            BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Type=%d Stage=SetStaticDefaults Flags=%d Shape=%d Housing=%d Result=Incomplete",
+                     mod.c_str(), entry.name.c_str(), entry.type, flags, shape, housing);
+        if (!guide)
+            BL_DEBUG("[CSharp][Tile] Mod=%s Class=%s GuideIcon=Pending",
+                     mod.c_str(), entry.name.c_str());
     }
 }
 

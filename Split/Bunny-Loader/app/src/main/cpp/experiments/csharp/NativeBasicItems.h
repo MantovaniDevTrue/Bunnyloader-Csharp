@@ -24,6 +24,7 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
 std::vector<BasicItemEntry> pendingBasicItemBehaviors();
 bool acknowledgeBasicItemBehavior(int type,const std::string& error);
 std::vector<int> basicItemTypes();
+int basicItemForTile(const std::string& key);
 struct PendingBasicRecipe { std::string id,modId; int result=-1,index=-1; BasicRecipe values; std::string source="",error=""; };
 std::vector<PendingBasicRecipe> pendingBasicRecipes();
 bool acknowledgeBasicRecipe(const std::string& id,int index);

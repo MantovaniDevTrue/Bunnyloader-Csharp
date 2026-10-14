@@ -581,6 +581,14 @@ BasicItemLoadStatus basicItemLoadStatus() {
     return state;
 }
 std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> out;for(const auto& p:definitions)out.push_back(p.first);return out;}
+int basicItemForTile(const std::string& key) {
+    std::lock_guard lock(mutex);
+    for (const auto& [id, entry] : definitions)
+        if (entry.placeable && entry.placeStyle == 0 && entry.placeTileKey == key)
+            return id;
+    return -1;
+}
+
 std::vector<PendingBasicRecipe> pendingBasicRecipes() {
     std::lock_guard lock(mutex);std::vector<PendingBasicRecipe> out;
     auto cursor=recipes.upper_bound(lastRecipeKey);
