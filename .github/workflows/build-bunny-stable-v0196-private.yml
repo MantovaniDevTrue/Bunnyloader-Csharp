@@ -130,6 +130,8 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT/classes"
           javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes" \
+            app/src/main/java/bunny/TranslationCatalog.java \
+            app/src/main/java/bunny/MenuLocalization.java \
             tools/cheatbridge/bunny/CheatBridge.java \
             tools/cheatbridge/bunny/CheatData.java \
             tools/cheatbridge/bunny/DevTools.java
