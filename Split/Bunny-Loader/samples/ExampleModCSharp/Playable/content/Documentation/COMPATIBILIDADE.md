@@ -1,6 +1,6 @@
 # Matriz completa ExampleModBunny → C#
 
-Referencia canonica: **192 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
+Referencia canonica: **199 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
 As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.
 O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.
 
