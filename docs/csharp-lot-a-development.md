@@ -86,3 +86,20 @@ Contratos atuais: cache Roslyn v14 e nativo armor_station_wings.
 Primeira infraestrutura de armadura passou em oito suites e build Android
 `38569808364` no commit eefe0c304ee5272782c2df1c543193166bc755fe;
 publicacao privada foi excluida por esta ser uma branch de lote incompleto.
+
+## Isolamento e diagnostico de registros pendentes
+
+Uma receita com estacao ausente nao interrompe as outras do mesmo lote. Erros
+de registro/lookups/ACK incluem mod, classe, ID, arquivo, etapa e excecao/stack,
+e ficam visiveis por registro em bl.csharp.pendingItemRecipes(). Sucesso so
+recebe ACK apos recriar lookups. Registros ja feitos nao se duplicam no retry.
+
+As filas de comportamento e receitas continuam limitadas a oito entradas por
+consulta, mas agora usam round-robin: oito registros com erro nao impedem o
+nono de ser processado. Teste nativo cria nove registros sem ACK e verifica
+rotacao de ambas as filas e persistencia do diagnostico/source. Sem aumentar
+trabalho por frame ou retirar limites seguros.
+
+Armadura+estacoes+asas passaram nas oito suites e build Android do run
+38571726472, commit a3242340700dd16bba4b2e528907892130cc5ee3.
+Alteracoes de isolamento posteriores precisam de nova regressao.

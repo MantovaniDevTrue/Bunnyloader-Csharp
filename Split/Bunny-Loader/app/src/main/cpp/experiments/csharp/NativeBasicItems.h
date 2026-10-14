@@ -14,9 +14,10 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
 std::vector<BasicItemEntry> pendingBasicItemBehaviors();
 bool acknowledgeBasicItemBehavior(int type,const std::string& error);
 std::vector<int> basicItemTypes();
-struct PendingBasicRecipe { std::string id,modId; int result=-1,index=-1; BasicRecipe values; };
+struct PendingBasicRecipe { std::string id,modId; int result=-1,index=-1; BasicRecipe values; std::string source="",error=""; };
 std::vector<PendingBasicRecipe> pendingBasicRecipes();
 bool acknowledgeBasicRecipe(const std::string& id,int index);
+bool reportBasicRecipeError(const std::string& id,const std::string& error);
 // Native game-update calls only if a batch is pending; no Mono or JS per frame.
 void pumpBasicRecipesOnGameThread();
 }

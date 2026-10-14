@@ -812,6 +812,13 @@
       "androidBuildRun": 38569808364,
       "auditRun": 38569808387,
       "result": "8 host suites and Android build succeeded; no partial APK release; no Android gameplay validation"
+    },
+    {
+      "kind": "Internal Lot A armor/station/wing validation",
+      "commit": "a3242340700dd16bba4b2e528907892130cc5ee3",
+      "androidBuildRun": 38571726472,
+      "auditRun": 38571726537,
+      "result": "8 host suites and Android build succeeded; no release; no Android gameplay validation"
     }
   ],
   "deviceBaselines": [
@@ -837,7 +844,9 @@
       "BunnyArmorSet",
       "BunnyRecipe.AddTile(string)",
       "BunnyEquipKind.Wings",
-      "BunnyItemBehavior.SetWingStats"
+      "BunnyItemBehavior.SetWingStats",
+      "per-recipe diagnostic reporting",
+      "round-robin pending registrations"
     ],
     "status": "Infraestrutura real de armaduras, conjuntos, estacoes JS e asas; exemplos do Lote A ainda nao portados",
     "pending": [

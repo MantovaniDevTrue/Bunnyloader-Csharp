@@ -185,6 +185,22 @@ int main(int argc,char** argv){
  assert(stationPending[0].values.stationKey=="mod/ContractBench");
  assert(bl::csharp::acknowledgeBasicRecipe(stationPending[0].id,18));
 
+ std::vector<bl::csharp::BasicItemEntry> retryItems;
+ for(int i=0;i<9;++i) {
+  auto item=entries[0];item.type=7300+i;item.name="RetryFixture"+std::to_string(i);item.recipes[0].station=-1;item.recipes[0].stationKey="MissingStation";
+  item.behavior="{\"v\":1}";identities[item.type]="mod/"+item.name;
+  assert(bl::csharp::registerBasicItemPlaceholder(item.type,item.name,&error,"/mod","content/"+item.name+".cs"));retryItems.push_back(item);
+ }
+ assert(bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
+ const auto first=bl::csharp::pendingBasicItemBehaviors(),second=bl::csharp::pendingBasicItemBehaviors();assert(first.size()==8&&second.size()==8);
+ bool ninth=false;for(const auto& item:second)if(item.type==7308)ninth=true;assert(ninth);
+ const auto recipesFirst=bl::csharp::pendingBasicRecipes(),recipesSecond=bl::csharp::pendingBasicRecipes();assert(recipesFirst.size()==8&&recipesSecond.size()==8);
+ bool lastRecipe=false;for(const auto& recipe:recipesSecond)if(recipe.result==7308)lastRecipe=true;assert(lastRecipe);
+ assert(bl::csharp::reportBasicRecipeError(recipesSecond[0].id,"missing station"));
+ assert(!bl::csharp::reportBasicRecipeError("not-registered","error"));
+ bool persisted=false;for(const auto& recipe:bl::csharp::pendingBasicRecipes())if(recipe.id==recipesSecond[0].id){assert(recipe.error=="missing station");assert(!recipe.source.empty());persisted=true;}
+ if(!persisted)for(const auto& recipe:bl::csharp::pendingBasicRecipes())if(recipe.id==recipesSecond[0].id){assert(recipe.error=="missing station");persisted=true;}
+ assert(persisted);
  auto bad=entries;bad[0].values[bl::csharp::BasicDamage]=999999;
  assert(!bl::csharp::applyNativeBasicItemDefaults("mod",bad,&error));
  FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries[0].type));assert(object.values[bl::csharp::BasicDamage]==entries[0].values[bl::csharp::BasicDamage]);

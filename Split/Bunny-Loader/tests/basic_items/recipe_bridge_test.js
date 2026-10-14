@@ -3,7 +3,8 @@ const fs=require('node:fs'),vm=require('node:vm');
 const descriptors=[{id:'mod/ExampleItem#0',result:6196,stack:999,station:18,ingredients:[{type:2,count:10}]},
  {id:'mod/ExamplePickaxe#0',result:6197,stack:1,station:18,ingredients:[{type:6196,count:10}]}];
 let failLookup=false,failAck=false,lookups=0,logs=[],ack=new Map(),registrations=[];
-const api={pendingItemRecipes:()=>descriptors.filter(r=>!ack.has(r.id)),acknowledgeItemRecipe(id,index){if(failAck)return false;ack.set(id,index);return true;}};
+const recipeErrors=new Map();
+const api={reportItemRecipeError:(id,error)=>recipeErrors.set(id,error),pendingItemRecipes:()=>descriptors.filter(r=>!ack.has(r.id)),acknowledgeItemRecipe(id,index){if(failAck)return false;ack.set(id,index);return true;}};
 class FakeRecipe {
  constructor(){this.recipe={createItem:{},requiredItem:[]};this.ingredients=0;this.station=-1;}
  SetResult(type,stack){this.recipe.createItem={type,stack};return this;}
@@ -20,6 +21,7 @@ const context={bl:{csharp:api,log:s=>logs.push(s)},Ready:{Add(){}},Hooks:{Once()
 vm.runInNewContext(fs.readFileSync(process.argv[2],'utf8')+'\nglobalThis.Loader=RecipeLoader;',context);
 failLookup=true;assert.throws(()=>context.__blSyncCSharpRecipes(),/lookup unavailable/);
 assert.equal(registrations.length,2);assert.equal(ack.size,0,'no success ACK before lookups work');
+assert(recipeErrors.get('mod/ExampleItem#0').includes('Stage=RebuildLookups'));
 failLookup=false;context.__blSyncCSharpRecipes();assert.equal(registrations.length,2,'retry must not duplicate recipes');
 assert.equal(ack.size,2);assert.equal(lookups,2);assert.equal(registrations[0].recipe.createItem.stack,999);
 assert.equal(registrations[1].recipe.requiredItem[0].type,6196);assert.equal(registrations[1].station,18);
@@ -36,4 +38,9 @@ assert.throws(()=>context.__blSyncCSharpRecipes(),/Key=later\/Station.*Actual=Mi
 assert.equal(registrations.length,4,'missing station rejects before native recipe registration');assert(!ack.has(missing.id));
 const later=new Station();later.Mod={uuid:'later'};context.TileLoader.ByType.set(2201,later);
 context.__blSyncCSharpRecipes();assert.equal(registrations.length,5);assert.equal(registrations[4].station,2201);
+const isolated={id:'broken/Missing#0',result:6202,stack:1,station:-1,stationKey:'broken/Missing',ingredients:[{type:2,count:1}]};
+const valid={id:'healthy/Valid#0',result:6203,stack:1,station:18,ingredients:[{type:2,count:1}]};descriptors.push(isolated,valid);
+assert.throws(()=>context.__blSyncCSharpRecipes(),/Recipe=broken\/Missing#0.*Result=Pending/);
+assert(ack.has(valid.id),'broken station must not block an independent valid recipe');assert(!ack.has(isolated.id));assert(recipeErrors.get(isolated.id).includes('Actual=Missing'));
+assert.equal(registrations.length,6);
 console.log('BASIC_RECIPE_BRIDGE_PASS=YES');

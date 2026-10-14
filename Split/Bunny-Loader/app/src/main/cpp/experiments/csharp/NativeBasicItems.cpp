@@ -22,6 +22,8 @@ namespace {
 std::mutex mutex;
 std::map<int,BasicItemEntry> definitions;
 std::map<std::string,PendingBasicRecipe> recipes;
+std::string lastRecipeKey;
+int lastBehaviorType=-1;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
 std::atomic<bool> behaviorsPending{false};
@@ -277,7 +279,7 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         runtime::setModItemTooltip(entry.type,{{"",entry.tooltip}});
         for(size_t i=0;i<entry.recipes.size();++i) {
             auto id=modId+"/"+entry.name+"#"+std::to_string(i);
-            recipes.emplace(id,PendingBasicRecipe{id,modId,entry.type,-1,entry.recipes[i]});
+            recipes.emplace(id,PendingBasicRecipe{id,modId,entry.type,-1,entry.recipes[i],entry.sourceFile,""});
             recipesPending.store(true,std::memory_order_release);
         }
         definitions[entry.type]=std::move(entry);
@@ -403,7 +405,14 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
 bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
 std::vector<BasicItemEntry> pendingBasicItemBehaviors() {
     std::lock_guard lock(mutex);std::vector<BasicItemEntry> out;
-    for(const auto& [type,entry]:definitions)if(!entry.behavior.empty()&&!entry.behaviorInstalled){out.push_back(entry);if(out.size()==8)break;}
+    auto cursor=definitions.upper_bound(lastBehaviorType);
+    for(size_t scanned=0;scanned<definitions.size();++scanned) {
+        if(cursor==definitions.end())cursor=definitions.begin();
+        const auto& [type,entry]=*cursor++;
+        if(!entry.behavior.empty()&&!entry.behaviorInstalled) {
+            out.push_back(entry);lastBehaviorType=type;if(out.size()==8)break;
+        }
+    }
     return out;
 }
 bool acknowledgeBasicItemBehavior(int type,const std::string& error) {
@@ -418,11 +427,25 @@ bool acknowledgeBasicItemBehavior(int type,const std::string& error) {
 bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&it->second.values[BasicDamage]>0;}
 bool isBasicItem(int type) {std::lock_guard lock(mutex);return definitions.contains(type);}
 std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> out;for(const auto& p:definitions)out.push_back(p.first);return out;}
-std::vector<PendingBasicRecipe> pendingBasicRecipes() {std::lock_guard lock(mutex);std::vector<PendingBasicRecipe> out;for(const auto& p:recipes)if(p.second.index<0){out.push_back(p.second);if(out.size()==8)break;}return out;}
+std::vector<PendingBasicRecipe> pendingBasicRecipes() {
+    std::lock_guard lock(mutex);std::vector<PendingBasicRecipe> out;
+    auto cursor=recipes.upper_bound(lastRecipeKey);
+    for(size_t scanned=0;scanned<recipes.size();++scanned) {
+        if(cursor==recipes.end())cursor=recipes.begin();
+        const auto& [key,entry]=*cursor++;
+        if(entry.index<0) {out.push_back(entry);lastRecipeKey=key;if(out.size()==8)break;}
+    }
+    return out;
+}
+bool reportBasicRecipeError(const std::string& id,const std::string& error) {
+    std::lock_guard lock(mutex);auto it=recipes.find(id);
+    if(it==recipes.end()||it->second.index>=0)return false;
+    it->second.error=error.substr(0,1000);return true;
+}
 bool acknowledgeBasicRecipe(const std::string& id,int index) {
     std::lock_guard lock(mutex);auto it=recipes.find(id);
     if(it==recipes.end()||index<0||it->second.index>=0)return false;
-    it->second.index=index;
+    it->second.index=index;it->second.error.clear();
     bool pending=false;for(const auto& p:recipes)if(p.second.index<0){pending=true;break;}
     recipesPending.store(pending,std::memory_order_release);return true;
 }
