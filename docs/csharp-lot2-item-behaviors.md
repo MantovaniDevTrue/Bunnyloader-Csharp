@@ -83,3 +83,11 @@ Boots/Dash completos, StatBonusAccessory/DamageClass, ferramentas com projeteis,
 prefixos, tooltip desenhado e moeda de ExampleItem. Os 199 arquivos permanecem
 contabilizados, incluindo todos os lotes posteriores. Nao avancar ao Lote B
 como se A estivesse completo.
+
+## Evidencia de host registrada
+
+Commit de runtime `2d9c534464750c1f626df6158fbec8373528b3f7`: auditoria/itens
+38559202417, combate 38559216905, prefixos 38559202414 e as regressoes de
+filas, ciclo de vida, sinal Mono e GC aprovados. Dez casos C# e contratos
+nativos/JS aprovados. Este registro promove os seis novos exemplos somente a
+Validado por testes automatizados. Validado no Android permanece pendente.

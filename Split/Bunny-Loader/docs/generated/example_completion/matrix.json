@@ -22,14 +22,14 @@
     "Accessories": {
       "total": 7,
       "states": {
-        "Implementado, aguardando validação": 3,
+        "Validado por testes automatizados": 3,
         "Parcial": 3,
         "Não implementado": 1
       },
       "implemented": 3,
       "validated": 0,
-      "automated": 0,
-      "automatedPercent": 0.0,
+      "automated": 3,
+      "automatedPercent": 42.86,
       "partial": 3,
       "implementedPercent": 42.86,
       "validatedPercent": 0.0,
@@ -73,12 +73,12 @@
       "total": 6,
       "states": {
         "Não implementado": 4,
-        "Implementado, aguardando validação": 2
+        "Validado por testes automatizados": 2
       },
       "implemented": 2,
       "validated": 0,
-      "automated": 0,
-      "automatedPercent": 0.0,
+      "automated": 2,
+      "automatedPercent": 33.33,
       "partial": 0,
       "implementedPercent": 33.33,
       "validatedPercent": 0.0,
@@ -284,12 +284,12 @@
     "Materials": {
       "total": 1,
       "states": {
-        "Implementado, aguardando validação": 1
+        "Validado por testes automatizados": 1
       },
       "implemented": 1,
       "validated": 0,
-      "automated": 0,
-      "automatedPercent": 0.0,
+      "automated": 1,
+      "automatedPercent": 100.0,
       "partial": 0,
       "implementedPercent": 100.0,
       "validatedPercent": 0.0,
@@ -3016,12 +3016,18 @@
         "SetDefaults",
         "SetStaticDefaults"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard_Beard.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Defaults, valor e vaidade originais",
         "Beard nativo e tintura pela cor de cabelo",
@@ -3043,7 +3049,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3287,11 +3293,17 @@
         "SetDefaults",
         "UpdateAccessory"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Defaults e tooltip de 10%",
         "Multiplicador de melee/ranged/magic; nao altera minion; vaidade sem bonus"
@@ -3312,7 +3324,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3515,12 +3527,18 @@
         "SetDefaults",
         "UpdateAccessory"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest_Back.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Defaults e economia original",
         "Back nativo com asset original",
@@ -3542,7 +3560,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -3974,12 +3992,18 @@
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Defaults, valor, raridade e pilha originais",
         "Head nativo com sprite original"
@@ -4000,7 +4024,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4054,13 +4078,19 @@
         "SetMatch",
         "SetStaticDefaults"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Legs.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Defaults de vaidade originais",
         "Body e Legs originais; HidesHands=false",
@@ -4082,7 +4112,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4654,11 +4684,17 @@
         "SetStaticDefaults",
         "void AddLight(Vector2 position, float r, float g, float b)"
       ],
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
       ],
-      "automatedEvidence": [],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
+      ],
       "preservedFeatures": [
         "Clone real de SoulofSight e overrides originais",
         "4 frames/6 ticks, AnimatesAsSoul, ItemIconPulse e ItemNoGravity",
@@ -4680,7 +4716,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [

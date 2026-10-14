@@ -66,7 +66,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Accessories/ExampleStatAccessory.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
       ],
@@ -90,10 +90,17 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     },
     "Content/Items/Accessories/ExampleStatBonusAccessory.js": {
@@ -346,7 +353,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Accessories/WaspNest.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
       ],
@@ -371,15 +378,22 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest_Back.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     },
     "Content/Items/Accessories/ExampleBeard.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
       ],
@@ -404,15 +418,22 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard_Beard.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     },
     "Content/Items/Armor/Vanity/ExampleBossMask.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs"
       ],
@@ -436,15 +457,22 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     },
     "Content/Items/Armor/Vanity/ExampleRobe.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs"
       ],
@@ -469,16 +497,23 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Legs.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     },
     "Content/Items/Materials/ExampleSoul.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Validado por testes automatizados",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs"
       ],
@@ -503,10 +538,17 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Implementacao ligada ao host; testes e build pendentes nesta entrega. Nenhuma prova nova no Android.",
+      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        }
       ]
     }
   },
@@ -570,6 +612,18 @@
       "apkBuildRun": 38508373513,
       "hostCasesPassed": 8,
       "deviceTested": false
+    },
+    {
+      "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+      "loader": "0.1.10.16.90.28.5",
+      "exampleMod": "0.1.35",
+      "hostAuditRun": 38559202417,
+      "combatRun": 38559216905,
+      "prefixRegressionRun": 38559202414,
+      "hostCasesPassed": 10,
+      "deviceTested": false,
+      "canonicalJsFiles": 199,
+      "cSharpSourceFiles": 51
     }
   ],
   "deviceBaselines": [
