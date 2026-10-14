@@ -555,7 +555,11 @@ class BunnyCSharpVisualRender {
 class BunnyCSharpTrailLayer extends PlayerDrawLayer {
     constructor() { super('BunnyCSharpTrail'); }
     GetDefaultPosition() { return PlayerDrawLayer.BeforeParent(PlayerDrawLayers.BackAcc); }
-    GetDefaultVisibility(info) { return BunnyCSharpVisualRender.Visible(info); }
+    GetDefaultVisibility(info) {
+        const visible = BunnyCSharpVisualRender.Visible(info);
+        if (!visible) BunnyCSharpVisualRender.Trails.delete(info.drawPlayer.whoAmI);
+        return visible;
+    }
     Draw(info) { BunnyCSharpVisualRender.Trail(info); }
 }
 
