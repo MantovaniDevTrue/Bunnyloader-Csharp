@@ -39,6 +39,29 @@ public abstract class BunnyItem
     public string BehaviorDefinition => Behavior.ToJson();
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
     public string UseSound { get; set; } = "";
+    /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>
+    public string PlacementDefinition { get; private set; } = "";
+    /// <summary>Defaults do Bunny original: coloca um tile vanilla com o estilo indicado.</summary>
+    public void DefaultToPlaceableTile(int vanillaTileId, int style = 0)
+    {
+        if(vanillaTileId<0 || vanillaTileId>=754)throw new ArgumentOutOfRangeException(nameof(vanillaTileId));
+        Placeable("v"+vanillaTileId.ToString(CultureInfo.InvariantCulture),style);
+    }
+    /// <summary>Nome local ou UID/Nome de tile C# ou JS no registro nativo compartilhado.</summary>
+    public void DefaultToPlaceableTile(string modTileName, int style = 0)
+    {
+        if(string.IsNullOrWhiteSpace(modTileName)||modTileName.Length>160||modTileName.Count(c=>c=='/')>1||
+           modTileName.Split('/').Any(p=>p.Length==0||p.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'))))
+            throw new ArgumentException("Tile deve ser nome local ou UID/Nome",nameof(modTileName));
+        Placeable("m"+modTileName,style);
+    }
+    private void Placeable(string token,int style)
+    {
+        if(style<0||style>32767)throw new ArgumentOutOfRangeException(nameof(style));
+        PlacementDefinition=token+":"+style.ToString(CultureInfo.InvariantCulture);
+        UseStyle=1;UseAnimation=15;UseTime=10;MaxStack=9999;
+        UseTurn=true;AutoReuse=true;Consumable=true;
+    }
     public abstract void SetDefaults();
     public virtual void AddRecipes() { }
     private readonly List<string> recipes = new();

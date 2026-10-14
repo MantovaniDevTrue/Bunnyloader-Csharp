@@ -23,6 +23,12 @@ int main(int argc,char** argv){
   for(const std::string key:{"m../bad","m/bad","mmod//bad","mmod/a/b","754","2195","m"}) {
    station[19]="1,"+key+",v2:1";assert(!parseBasicItemWire(station,&entry,&error));
   }
+  auto placement=fields;if(placement.size()==20)placement.push_back("-");placement.push_back("mmod/Bench:3");
+  assert(parseBasicItemWire(placement,&entry,&error)&&entry.placeable&&entry.placeTileKey=="mod/Bench"&&entry.placeStyle==3);
+  placement[21]="v18:0";assert(parseBasicItemWire(placement,&entry,&error)&&entry.placeTile==18);
+  for(const std::string token:{"m../bad:0","mmod//Tile:0","mmod/a/b:0","m:0","v754:0","v18:-1","v18:32768","v18:0:1"}) {
+      placement[21]=token;assert(!parseBasicItemWire(placement,&entry,&error));assert(error.find("Stage=ParsePlacement")!=std::string::npos);
+  }
   ++count;
  }
  assert(count==3);std::cout<<"BASIC_ITEM_CSHARP_WIRE_PASS=YES\n";

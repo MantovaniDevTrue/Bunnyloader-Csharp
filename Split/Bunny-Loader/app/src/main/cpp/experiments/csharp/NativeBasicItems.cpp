@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/items/ModItems.h"
+#include "content/tiles/ModTiles.h"
 #include "content/recipes/NativeRecipes.h"
 #include "content/common/GameRefs.h"
 #include "experiments/csharp/NativeContent.h"
@@ -33,6 +34,10 @@ std::array<IntegerField,BasicFieldCount-1> integerFields{};
 struct EquipSlot { IntegerField field; int value=-1; };
 std::map<int,std::map<std::string,EquipSlot>> equipSlots;
 std::map<int,EquipSlot> defenseDefaults;
+std::array<IntegerField,2> placementFields{};
+bool placementPrepared=false;
+std::map<int,std::string> placementErrors;
+int lastPlacementType=-1;
 
 const char* integerNames[]={"width","height","maxStack","value","rare","damage","crit",
     "useTime","useAnimation","useStyle","pick","axe","hammer"};
@@ -89,6 +94,60 @@ bool instanceBounds(Il2CppClass* item,int offset,size_t width,const char* field,
     *error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+field+
         " Expected=FieldWithinInstance Actual=Offset:"+std::to_string(offset)+",Width:"+std::to_string(width)+
         ",InstanceSize:"+std::to_string(size)+" Result=Rejected Reason=InvalidFieldBounds";return false;
+}
+
+bool preparePlacement(std::string* error) {
+    if(placementPrepared)return true;
+    auto& a=il2cpp::api();auto* cls=il2cpp::findClass({"Terraria","Item",{}});
+    std::array<IntegerField,2> resolved{};const char* names[]={"createTile","placeStyle"};
+    for(size_t i=0;i<resolved.size();++i) {
+        auto* f=cls?il2cpp::findField(cls,names[i]):nullptr;
+        auto* type=f?a.class_from_il2cpp_type(a.field_get_type(f)):nullptr;
+        if(!f||(a.field_get_flags(f)&0x10u)||!integerContract(type,&resolved[i])||
+           (i==0&&resolved[i].min> -1)) {
+            *error=std::string("[CSharp][ERROR][NativeItem] API=DefaultToPlaceableTile Stage=BindPlacement Field=")+names[i]+
+                " Expected=InstanceIntegral"+(i==0?std::string("WithMinusOne"):std::string{})+
+                " Actual="+(type?a.class_get_name(type):"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;
+        }
+        const auto offset=a.field_get_offset(f);
+        resolved[i].offset=offset<=INT32_MAX?static_cast<int>(offset):-1;
+        if(!instanceBounds(cls,resolved[i].offset,resolved[i].bytes,names[i],error))return false;
+    }
+    placementFields=resolved;placementPrepared=true;return true;
+}
+void writeIntegral(Il2CppObject* object,const IntegerField& field,int value) {
+    auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
+    if(field.bytes==1){const auto v=static_cast<uint8_t>(value);std::memcpy(destination,&v,1);}
+    else if(field.bytes==2){const auto v=static_cast<uint16_t>(value);std::memcpy(destination,&v,2);}
+    else {const auto v=static_cast<uint32_t>(value);std::memcpy(destination,&v,4);}
+}
+// Only on the game thread: IDs must exist in the installed native tile tables.
+void resolvePlacements() {
+    std::lock_guard lock(mutex);unsigned processed=0;
+    auto it=definitions.upper_bound(lastPlacementType);
+    if(it==definitions.end())it=definitions.begin();
+    for(size_t scanned=0;scanned<definitions.size()&&processed<8;++scanned) {
+        if(it==definitions.end())it=definitions.begin();
+        auto& entry=it->second;lastPlacementType=it->first;++it;
+        if(!entry.placeable||entry.placeTileKey.empty()||entry.placeTile>=0)continue;
+        ++processed;const int target=runtime::modTileTypeByKey(entry.placeTileKey);
+        std::string reason=target<0?"MissingDependency":target>=runtime::tileTypeCount()?"DependencyNotInstalled":
+            target>placementFields[0].max?"NativeRangeExceeded":"";
+        if(!reason.empty()) {
+            auto message="[CSharp]["+std::string(reason=="NativeRangeExceeded"?"ERROR":"WARN")+
+                "][Placement] Mod="+entry.modId+" Class="+entry.name+" File="+entry.sourceFile+
+                " API=DefaultToPlaceableTile ContentId="+std::to_string(entry.type)+" Tile="+entry.placeTileKey+
+                " Stage=ResolveTile Expected=InstalledTileWithinNativeRange Actual="+std::to_string(target)+
+                " Result=PlacementDisabled Reason="+reason;
+            if(placementErrors[entry.type]!=message){placementErrors[entry.type]=message;
+                if(reason=="NativeRangeExceeded")BL_ERROR("%s",message.c_str());else BL_WARN("%s",message.c_str());}
+            continue;
+        }
+        entry.placeTile=target;placementErrors.erase(entry.type);
+        instancesPending.store(true,std::memory_order_release);
+        BL_INFO("[CSharp][INFO][Placement] Mod=%s Class=%s Tile=%s ContentId=%d TileId=%d Stage=ResolveTile Result=Ready",
+            entry.modId.c_str(),entry.name.c_str(),entry.placeTileKey.c_str(),entry.type,target);
+    }
 }
 
 bool prepare(std::string* error) {
@@ -281,6 +340,19 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     for(auto& entry:resolved) {
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
+        if(entry.placeable) {
+            if(!preparePlacement(error)) {
+                *error="[CSharp][ERROR][Placement] Mod="+modId+" Class="+entry.name+
+                    " File="+definitions.at(entry.type).sourceFile+" ContentId="+std::to_string(entry.type)+" Detail="+*error;return false;
+            }
+            if(entry.placeTile>placementFields[0].max||entry.placeStyle>placementFields[1].max) {
+                *error="[CSharp][ERROR][Placement] Mod="+modId+" Class="+entry.name+
+                    " Stage=BindPlacement Expected=ValuesWithinNativeWidths Actual=Tile:"+std::to_string(entry.placeTile)+
+                    ",Style:"+std::to_string(entry.placeStyle)+" Result=Rejected Reason=NativeRangeExceeded";return false;
+            }
+            if(!entry.placeTileKey.empty()&&entry.placeTileKey.find('/')==std::string::npos)
+                entry.placeTileKey=modId+"/"+entry.placeTileKey;
+        }
 #if !BL_HAVE_QUICKJS
         if(!entry.behavior.empty()) {*error="[CSharp][ERROR][NativeItem] Mod="+modId+" Class="+entry.name+
             " Stage=ApplyBehavior Expected=EquipmentPolicyBridge Actual=QuickJSDisabled Result=Rejected Reason=BehaviorDecouplingPending";return false;}
@@ -392,6 +464,10 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
+    if(entry.placeable) {
+        writeIntegral(object,placementFields[0],entry.placeTile);
+        writeIntegral(object,placementFields[1],entry.placeStyle);
+    }
     for(size_t i=0;i<integerFields.size();++i) {
         const auto& field=integerFields[i];auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
         // Converter antes de copiar: jamais escrever quatro bytes em Byte/Int16.
@@ -487,6 +563,8 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
     recipesPending.store(pending,std::memory_order_release);return true;
 }
 void pumpBasicRecipesOnGameThread() {
+    static unsigned placementTicks=0;
+    if((placementTicks++%120u)==0)resolvePlacements();
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
 #if BL_HAVE_QUICKJS
     static unsigned behaviorTicks=0;

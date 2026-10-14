@@ -132,3 +132,32 @@ compilou, assinou V3 e entregou o APK experimental privado com ExampleMod 0.1.36
 Matriz verificada: 201 JS canônicos, 178 na referência do fork, 51 fontes C#;
 33 exemplos do Lote A preservados, sem novos estados de conclusão.
 Validação da correção no aparelho continua pendente.
+
+
+## Continuidade .90.29.5 — vinculo item/tile nativo
+
+O usuario confirmou que a .90.29.4 abriu corretamente e que as receitas do
+ExampleMod nao tiveram erros. Isso valida essa sessao de carregamento/receitas;
+nao prova cada receita fabricada, multiplayer, saves de bancada ou FPS.
+
+Implementada API publica DefaultToPlaceableTile vanilla/mod e bridge direta
+para createTile/placeStyle, com larguras/offsets reais, dependencias tardias,
+retry limitado, refresh das instancias e preservacao dos wires de 20/21 campos.
+Wire novo de 22 campos possui marcador explicito de behavior ausente. A API
+usa registradores nativos compartilhados, sem JS como intermediario.
+
+O fixture C# independente e compilado de verdade e seu wire entra na fila e
+no adapter de receitas de producao sem QuickJS. Nao foi tratado como um port do
+ExampleWorkbench nem contabilizado como novo exemplo concluido. Nenhum dos
+201 exemplos foi removido; 33 do Lote A continuam no escopo. Ver
+[cookbook e contratos](csharp-placeable-items.md).
+
+Proximo passo da bancada permanece o tile nativo, especialmente sua instalacao
+apos TileObjectData.Initialize: os defaults compilados chegam depois do registro
+antecipado, e repetir SetStaticDefaults JS seria incorreto. A configuracao C#
+precisa de janela nativa propria com restauracao de readOnlyData e cache de forma,
+sem sobrescrever callback JS nem perder o formato ao trocar de mundo. Em seguida
+implementar frames/apoio/drop/dust/adjacencia/Guia e portar ambos os fontes.
+
+Versao .90.29.5/code170, cache Roslyn v19; ExampleMod permanece 0.1.36. Build
+experimental e validacao Android pendentes; Lote A nao concluido.

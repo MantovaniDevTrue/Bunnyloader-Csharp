@@ -21,6 +21,7 @@ struct BasicItemEntry {
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
+    std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
     bool behaviorInstalled=false;
     std::string behaviorError;
     std::vector<BasicRecipe> recipes;
@@ -84,7 +85,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()!=20&&fields.size()!=21)||fields[0]!="ITEM") {*error="ITEM requer 20 ou 21 campos";return false;}
+    if((fields.size()!=20&&fields.size()!=21&&fields.size()!=22)||fields[0]!="ITEM") {*error="ITEM requer 20, 21 ou 22 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -96,7 +97,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         auto digit=[](char c)->int {return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
         for(size_t i=0;i<hex.size();i+=2) {int a=digit(hex[i]),b=digit(hex[i+1]);if(a<0||b<0){*error=out.name+": tooltip hex invalido";return false;}char c=static_cast<char>((a<<4)|b);if(c==0||static_cast<unsigned char>(c)==127){*error=out.name+": tooltip com controle invalido";return false;}out.tooltip+=c;}
     }
-    if(fields.size()==21) {
+    if(fields.size()>=21&&fields[20]!="-") {
         const auto& wire=fields[20];
         if(wire.empty()||wire.size()>8192||wire.size()%2) {*error=out.name+": comportamento hex invalido";return false;}
         auto digit=[](char c)->int {return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
@@ -105,6 +106,24 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             if(a<0||b<0||((a<<4)|b)<32) {*error=out.name+": comportamento hex invalido";return false;}
             out.behavior+=static_cast<char>((a<<4)|b);
         }
+    }
+    if(fields.size()==22) {
+        auto pair=basicSplit(fields[21],':');
+        if(pair.size()!=2||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
+            *error=out.name+": Stage=ParsePlacement Field=placeStyle Expected=0..32767 Actual="+fields[21]+" Reason=InvalidPlacement";return false;
+        }
+        if(pair[0][0]=='v') {
+            if(!basicInteger(pair[0].substr(1),&out.placeTile)||out.placeTile<0||out.placeTile>=754) {
+                *error=out.name+": Stage=ParsePlacement Field=createTile Expected=VanillaTileId Actual="+pair[0]+" Reason=InvalidTileId";return false;
+            }
+        } else if(pair[0][0]=='m') {
+            out.placeTileKey=pair[0].substr(1);const auto& key=out.placeTileKey;
+            bool valid=!key.empty()&&key.size()<=160&&key.front()!='/'&&key.back()!='/';unsigned slashes=0;
+            for(size_t i=0;i<key.size();++i){unsigned char c=key[i];if(c=='/') {if(++slashes>1||i==0||key[i-1]=='/')valid=false;}
+                else if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'))valid=false;}
+            if(!valid){*error=out.name+": Stage=ParsePlacement Field=createTile Expected=NameOrUID/Name Actual="+key+" Reason=InvalidContentKey";return false;}
+        } else {*error=out.name+": Stage=ParsePlacement Reason=UnknownTileToken Actual="+pair[0];return false;}
+        out.placeable=true;
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

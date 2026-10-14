@@ -33,7 +33,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_4_recipe_reference_abi"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_5_native_placeable_items"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -90,6 +90,7 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -o /tmp/native-recipes-test
           /tmp/native-recipes-test
           /tmp/native-recipes-test --pump
+          /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
           /tmp/native-recipes-test --type
           /tmp/native-recipes-test --bounds
           /tmp/native-recipes-test --method

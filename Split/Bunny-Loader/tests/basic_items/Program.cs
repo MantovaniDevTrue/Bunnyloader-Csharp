@@ -51,6 +51,14 @@ try {
   Reject(()=>owner.Behavior.WorldLight(float.NaN,0,0));
   Reject(()=>owner.Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage,-1));
  });
+ Check("placement.public-sdk-native-defaults",()=>{
+  var owner=new ExampleItem();owner.SetDefaults();owner.DefaultToPlaceableTile("other/Bench",3);
+  Equal("mother/Bench:3",owner.PlacementDefinition);Equal(1,owner.UseStyle);Equal(15,owner.UseAnimation);
+  Equal(10,owner.UseTime);Equal(9999,owner.MaxStack);Equal(true,owner.UseTurn);Equal(true,owner.AutoReuse);Equal(true,owner.Consumable);
+  Reject(()=>owner.DefaultToPlaceableTile("mod//Tile"));Reject(()=>owner.DefaultToPlaceableTile("../Tile"));
+  Reject(()=>owner.DefaultToPlaceableTile(754));Reject(()=>owner.DefaultToPlaceableTile(18,-1));
+  owner.DefaultToPlaceableTile(18,0);Equal("v18:0",owner.PlacementDefinition);
+});
  Check("recipe.mod-station-public-sdk",()=>{
   var owner=new ExampleItem();owner.SetDefaults();
   owner.CreateRecipe().AddIngredient("ExampleItem").AddTile("ExampleWorkbench").Register();
@@ -81,6 +89,13 @@ try {
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/wing-source-runtime-values.txt",true);
   var item=new ExampleItem();item.SetDefaults();Reject(()=>item.Behavior.SetWingStats(0,9,2.5f,.85f,.15f,1,3,.135f));
   Reject(()=>item.Behavior.SetWingStats(180,float.NaN,2.5f,.85f,.15f,1,3,.135f));
+ });
+ Check("placement.real-source-wire",()=>{
+  string root="tests/basic_items/placeable_fixture",output=Path.Combine(scratch,"placement.dll"),diag=Path.Combine(scratch,"placement.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var lines=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));Equal(2,lines.Length);
+  var fields=lines[1].Split('\t');Equal(22,fields.Length);Equal("-",fields[20]);Equal("mother/Workbench:3",fields[21]);
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/placement-source-runtime-values.txt",true);
  });
  Check("armor.real-source-wire",()=>{
   string root="tests/basic_items/armor_fixture",output=Path.Combine(scratch,"armor.dll"),diag=Path.Combine(scratch,"armor.txt");

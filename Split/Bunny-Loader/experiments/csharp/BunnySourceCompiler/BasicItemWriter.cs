@@ -45,7 +45,9 @@ internal static class BasicItemWriter
         string behavior=Get<string>("BehaviorDefinition");
         if(behavior.Length!=0)behavior="{\"class\":\""+item.GetType().FullName+"\","+behavior.Substring(1);
         if(Encoding.UTF8.GetByteCount(behavior)>4096)throw new InvalidOperationException(name+": comportamento excede 4 KiB");
-        if(behavior.Length!=0)parts.Add(Convert.ToHexString(Encoding.UTF8.GetBytes(behavior)));
+        string placement=Get<string>("PlacementDefinition");
+        if(behavior.Length!=0||placement.Length!=0)parts.Add(behavior.Length==0?"-":Convert.ToHexString(Encoding.UTF8.GetBytes(behavior)));
+        if(placement.Length!=0)parts.Add(placement);
         return string.Join("\t",parts);
     }
 }

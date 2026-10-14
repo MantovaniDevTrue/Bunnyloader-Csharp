@@ -988,7 +988,7 @@
         "Previous production code fails under corrected mock",
         "Fixed production adapter passes registration, restoration, rollback and --pump without QuickJS"
       ],
-      "validation": "Eight CI suites and Android build/signing passed; private experimental APK delivered; Android retest pending",
+      "validation": "Eight CI suites and Android build/signing passed; user confirms .90.29.4 opens successfully and ExampleMod recipes have no errors; scope limited to reported session",
       "newExamples": 0,
       "eightSuiteRuns": {
         "audit": 38613198853,
@@ -1000,6 +1000,20 @@
         "visual": 38613198669,
         "nativeVisual": 38613198759
       }
+    },
+    "nativePlacement": {
+      "version": "0.1.10.16.90.29.5-native-placeable-items",
+      "api": "BunnyItem.DefaultToPlaceableTile(int|string, int style=0)",
+      "test": "tests/native_recipes/native_recipes_test.cpp --placement-wire",
+      "scope": "Compiled CSharp descriptor to production registry/defaults/queue/recipe adapter without QuickJS, with emulated Terraria metadata",
+      "status": "Host tests pass; CI/build/device pending",
+      "remaining": [
+        "CSharp tile/station API",
+        "TileObjectData configuration lifecycle",
+        "placement/break/support/dust/housing/adjacency on Android",
+        "all incomplete Lot A examples"
+      ],
+      "newCompletedExamples": 0
     }
   }
 }

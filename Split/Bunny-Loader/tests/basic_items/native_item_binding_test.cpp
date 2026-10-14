@@ -41,6 +41,8 @@ int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cl
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
 std::string modItemKey(int type){return identities[type];}
+int modTileTypeByKey(const std::string&){return -1;}
+int tileTypeCount(){return 754;}
 int modItemTypeByKey(const std::string& key){for(auto& p:identities)if(p.second==key)return p.first;return -1;}
 void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> values){tooltips[type]=values.at(0).second;}
 }
