@@ -337,7 +337,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::field<int32_t>(self, r.itemRare) = 2;
         bl::runtime::field<int32_t>(self, r.itemUseTime) = 15;
         bl::runtime::field<int32_t>(self, r.itemUseAnimation) = 15;
-        bl::runtime::field<int32_t>(self, r.itemUseStyle) = 2;
+        bl::runtime::field<uint8_t>(self, r.itemUseStyle) = 2;
         bl::runtime::field<uint8_t>(self, r.itemConsumable) = 1;
         bl::runtime::field<int32_t>(self, r.itemBuffType) = potion->second.buffType;
         bl::runtime::field<int32_t>(self, r.itemBuffTime) = potion->second.duration;
@@ -348,7 +348,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemDamage) = d.damage;
     bl::runtime::field<int32_t>(self, r.itemUseTime) = d.useTime;
     bl::runtime::field<int32_t>(self, r.itemUseAnimation) = d.useTime;
-    bl::runtime::field<int32_t>(self, r.itemUseStyle) = 5;
+    bl::runtime::field<uint8_t>(self, r.itemUseStyle) = 5;
     bl::runtime::field<int32_t>(self, r.itemShoot) = d.shootType;
     bl::runtime::field<float>(self, r.itemShootSpeed) = d.shootSpeed;
     bl::runtime::field<float>(self, r.itemKnockBack) = 2.0f;

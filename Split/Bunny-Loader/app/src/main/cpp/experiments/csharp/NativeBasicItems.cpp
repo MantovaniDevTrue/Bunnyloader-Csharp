@@ -11,6 +11,7 @@
 #include <quickjs.h>
 #endif
 #include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -45,8 +46,14 @@ bool prepare(std::string* error) {
     for(size_t i=0;i<offsets.size();++i) {
         auto* field=il2cpp::findField(item,names[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
-        if(!field||!cls||std::strcmp(api.class_get_name(cls),"Int32")!=0) {*error=std::string("BunnyItem: campo int ausente/incompativel: ")+names[i];return false;}
+        const bool byteField=i==BasicUseStyle;
+        const char* expected=byteField?"Byte":"Int32";
+        if(!field||!cls||std::strcmp(api.class_get_name(cls),expected)!=0) {
+            *error=std::string("BunnyItem: campo ")+(byteField?"byte":"int")+" ausente/incompativel: "+names[i];
+            return false;
+        }
         offsets[i]=il2cpp::fieldOffset(item,names[i]);
+        if(offsets[i]<0) {*error=std::string("BunnyItem: offset invalido: ")+names[i];return false;}
     }
     const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable"};
     for(size_t i=0;i<flagOffsets.size();++i) {
@@ -213,7 +220,10 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
-    for(size_t i=0;i<offsets.size();++i)runtime::field<int32_t>(object,offsets[i])=entry.values[i];
+    for(size_t i=0;i<offsets.size();++i) {
+        if(i==BasicUseStyle)runtime::field<uint8_t>(object,offsets[i])=static_cast<uint8_t>(entry.values[i]);
+        else runtime::field<int32_t>(object,offsets[i])=entry.values[i];
+    }
     for(size_t i=0;i<flagOffsets.size();++i)runtime::field<uint8_t>(object,flagOffsets[i])=!!(entry.values[BasicFlags]&(1<<i));
     runtime::field<float>(object,knockBackOffset)=entry.knockBack;
     auto& api=il2cpp::api();auto* destination=reinterpret_cast<unsigned char*>(object)+soundOffset;
