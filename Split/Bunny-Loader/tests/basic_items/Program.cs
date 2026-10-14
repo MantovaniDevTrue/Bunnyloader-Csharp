@@ -37,6 +37,7 @@ try {
  Check("roslyn.full-45-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
   Equal(45,Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Length);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(31,CompiledAssemblyProbe.Verify(output,diag));
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>8192)throw new Exception("wire exceeds runtime budget");
  });
 } finally {if(Directory.Exists(scratch))Directory.Delete(scratch,true);}

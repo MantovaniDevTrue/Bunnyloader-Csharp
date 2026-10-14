@@ -24,6 +24,9 @@ jobs:
       - name: Run real CSharp items-only and full-package compiler tests
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Validate full ExampleMod CSharp V2 wire schema
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
       - name: Test actual CSharp wire and native field/sound binding
         working-directory: Split/Bunny-Loader
         run: |

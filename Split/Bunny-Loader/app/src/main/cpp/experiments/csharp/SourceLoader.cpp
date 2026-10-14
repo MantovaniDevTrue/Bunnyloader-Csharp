@@ -675,7 +675,9 @@ bool applyManagedSourceDefaults(
             record.buffType = target->second;
             potions.push_back(std::move(record));
         } else {
-            *error = "Linha V2 inesperada no resultado do C#";
+            *error = "Linha V2 inesperada: tipo=" + fields[0] +
+                     " classe=" + fields[1] +
+                     " campos=" + std::to_string(fields.size());
             return false;
         }
         if (basicItems.size() > 16 || projectiles.size() > 16 || weapons.size() > 16 ||
