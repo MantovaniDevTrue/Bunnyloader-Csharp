@@ -1179,7 +1179,7 @@ jobs:
           assert 'base == "BunnyBuffPotion"' in parser
           assert "NativeBuffPotion" in source
           assert "applyManagedNativeBuffDefaultsBatch" in source
-          assert "mod.items + mod.projectiles + mod.buffs" in count_contract
+          assert "mod.items + mod.tiles + mod.projectiles + mod.buffs" in count_contract
           assert "mod.players + mod.npcs + mod.prefixes" in count_contract
           assert "BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS" in smoke
           assert "g_buffs.find(typeValues[slot])" in nativeContent
