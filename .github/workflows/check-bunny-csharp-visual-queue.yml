@@ -22,3 +22,5 @@ jobs:
         run: dotnet run --project Split/Bunny-Loader/tests/visual_queue/VisualAccessories.csproj -c Release
       - name: Verify Bunny player draw layer syntax
         run: node --check Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js
+      - name: Verify real CSharp visual geometry
+        run: node Split/Bunny-Loader/tests/csharp_visual_draw_geometry_test.js Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js
