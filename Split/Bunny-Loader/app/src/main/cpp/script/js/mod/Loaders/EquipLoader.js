@@ -39,6 +39,7 @@ class EquipLoader {
     static #slots = new Map();       // tipo do item -> { campo do Item: slot }
     static #vanilla = new Map();     // tipo de equipamento -> o Count do jogo
     static #installed = false;
+    static #nativeSynced = new Set();
 
     // No registro do item (bl.mod ainda é o dele): as texturas <Texture>_<tipo>,
     // ou só as de `static AutoloadEquip = [EquipType.Head, ...]` (o atributo do
@@ -97,6 +98,7 @@ class EquipLoader {
     // jogo ou o SetStaticDefaults): nessa hora o jogo já carregou as texturas
     // dele. Antes disso, subir o Count faria o jogo procurar Armor_Head_293.
     static Install() {
+        EquipLoader.SyncCSharp();
         if (EquipLoader.#installed) return;
         EquipLoader.#installed = true;
         if (!EquipLoader.#pending.length) return;
@@ -113,6 +115,46 @@ class EquipLoader {
     }
 
     // O this.Mod do tModLoader: a classe Mod do mod ou o bl.mod (o que os moldes guardam).
+    static SyncCSharp() {
+        const api = bl.csharp;
+        if (!api || typeof api.nativeEquipTextures !== 'function' ||
+            typeof api.setNativeEquipSlot !== 'function' ||
+            typeof api.visualTexturePath !== 'function') return;
+        const descriptors = api.nativeEquipTextures();
+        if (!Array.isArray(descriptors) || !descriptors.length) return;
+        const batches = new Map();
+        for (const entry of descriptors) {
+            if (!Number.isInteger(entry.type) ||
+                (entry.kind !== 1 && entry.kind !== 3) ||
+                typeof entry.texture !== 'string') continue;
+            const key = entry.type + ':' + entry.kind;
+            if (EquipLoader.#nativeSynced.has(key)) continue;
+            const kind = entry.kind === 1 ? 'Shield' : 'Shoes';
+            const file = api.visualTexturePath(entry.texture);
+            if (!file || !bl.file.exists(file)) continue;
+            const item = { Type: entry.type };
+            const tex = new EquipTexture();
+            tex.Texture = file;
+            tex.Name = 'CSharp:' + key;
+            tex.Type = kind;
+            tex.Item = item;
+            tex.CSharpNativeKind = entry.kind;
+            if (!batches.has(kind)) batches.set(kind, []);
+            batches.get(kind).push(tex);
+        }
+        for (const [kind, entries] of batches) {
+            if (EquipLoader.#installed) {
+                Safe.Run('CSharp equip ' + kind, () => EquipLoader.#InstallKind(kind, entries));
+            } else {
+                EquipLoader.#pending.push(...entries);
+            }
+            for (const tex of entries) {
+                if (tex.Slot >= 0 || !EquipLoader.#installed)
+                    EquipLoader.#nativeSynced.add(tex.Item.Type + ':' + tex.CSharpNativeKind);
+            }
+        }
+    }
+
     static #IsMod(x) {
         return x instanceof Mod || (!!x && typeof x === 'object' && 'uuid' in x && 'path' in x);
     }
@@ -167,8 +209,10 @@ class EquipLoader {
 
         bl.items.growEquipSets(k.ids, vanilla, total);
         Ids.Count = total;
-        EquipLoader.#vanilla.set(kind, vanilla);
-        EquipLoader.#kinds.push(kind);
+        if (!EquipLoader.#vanilla.has(kind)) {
+            EquipLoader.#vanilla.set(kind, vanilla);
+            EquipLoader.#kinds.push(kind);
+        }
         if (kind === EquipType.Wings) EquipLoader.#PrepareWingStats(vanilla, total);
 
         const T = Terraria.GameContent.TextureAssets;
@@ -197,6 +241,8 @@ class EquipLoader {
             const slots = EquipLoader.#slots.get(item.Type);
             if (slots[k.slot] === undefined) slots[k.slot] = slot;
             if (k.itemTypes) Terraria.Item[k.itemTypes][slot] = item.Type;
+            if (tex.CSharpNativeKind)
+                bl.csharp.setNativeEquipSlot(item.Type, tex.CSharpNativeKind, slot);
         });
 
         bl.log('texturas vestidas: ' + list.length + ' de ' + kind + ' (slots ' + vanilla + '..' + (total - 1) + ')');
