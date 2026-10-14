@@ -92,6 +92,7 @@ jobs:
           /tmp/native-recipes-test --type
           /tmp/native-recipes-test --bounds
           /tmp/native-recipes-test --method
+          python3 tests/native_recipes/delivery_gate_test.py
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-items-no-js
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --recipes-only
       - uses: actions/upload-artifact@v4

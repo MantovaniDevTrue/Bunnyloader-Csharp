@@ -13,7 +13,9 @@ namespace bl::runtime {
 namespace {
 std::string diagnostic(const NativeRecipeRequest& r, const std::string& stage,
                        const std::string& reason, const std::string& expected, const std::string& actual) {
-    return "[CSharp][ERROR][Recipe] Mod="+r.mod+" Class="+r.name+" File="+r.source+
+    const bool dependency=reason=="MissingDependency"||reason=="DependencyNotInstalled"||reason=="RecipeSetupNotReady";
+    return std::string("[CSharp][")+(dependency?"WARN":"ERROR")+
+        "][Recipe] Mod="+r.mod+" Class="+r.name+" File="+r.source+
         " API=BunnyRecipe Recipe="+r.key+" ContentId="+std::to_string(r.result)+
         " Station="+(r.stationKey.empty()?std::to_string(r.station):r.stationKey)+
         " Stage="+stage+" Expected="+expected+" Actual="+actual+" Result=Pending Reason="+reason;
@@ -178,6 +180,8 @@ bool resolveNativeRecipe(const NativeRecipeRequest& r,NativeRecipeRequest* out,s
     };
     if(r.key.empty()||r.result<1||r.stack<1||r.stack>9999||r.ingredients.empty()||r.ingredients.size()>15)
         return fail("ValidateDescriptor","InvalidDescriptor","Result>0,Stack=1..9999,Ingredients=1..15",std::to_string(r.ingredients.size()));
+    if(r.result>=kVanillaItemCount&&(!isModItem(r.result)||r.result>=itemTypeCount()))
+        return fail("ResolveResult","DependencyNotInstalled","InstalledItem",std::to_string(r.result));
     if(!r.stationKey.empty()) {
         if(!keyValid(r.stationKey))return fail("ResolveStation","InvalidContentKey","NameOrUID/Name",r.stationKey);
         const auto key=qualified(r.mod,r.stationKey);out->station=modTileTypeByKey(key);
@@ -191,6 +195,7 @@ bool resolveNativeRecipe(const NativeRecipeRequest& r,NativeRecipeRequest* out,s
             if(!keyValid(ingredient.key))return fail("ResolveIngredient","InvalidContentKey","NameOrUID/Name",ingredient.key);
             const auto key=qualified(r.mod,ingredient.key);ingredient.type=modItemTypeByKey(key);
             if(ingredient.type<0)return fail("ResolveIngredient","MissingDependency","RegisteredItem",key);
+            if(ingredient.type>=itemTypeCount())return fail("ResolveIngredient","DependencyNotInstalled","InstalledItem",key);
         } else if(ingredient.type<1||ingredient.type>=kVanillaItemCount)
             return fail("ResolveIngredient","InvalidVanillaItem","1.."+std::to_string(kVanillaItemCount-1),std::to_string(ingredient.type));
     }
@@ -209,6 +214,8 @@ NativeRecipeResult installNativeRecipe(const NativeRecipeRequest& request) {
         int index=0,maximum=0;Il2CppArray* table=nullptr;Il2CppObject* previous=nullptr;
         a.field_static_get_value(contract.count.field,&index);a.field_static_get_value(contract.maximum.field,&maximum);
         a.field_static_get_value(contract.table.field,&table);a.field_static_get_value(contract.current.field,&previous);
+        // Do not commit into the empty table that SetupRecipes will overwrite.
+        if(index==0||!previous) {detail="NumRecipes="+std::to_string(index)+" CurrentRecipe="+(previous?"Present":"Null");return fail("WaitRecipeSetup","RecipeSetupNotReady");}
         if(index<0||maximum<1||index>=maximum) {
             detail="Index="+std::to_string(index)+" NativeMaximum="+std::to_string(maximum);return fail("CheckCapacity","NativeRecipeLimitReached");
         }

@@ -102,6 +102,7 @@ int main(int argc,char** argv){
  configure();
  ModItemDef item;item.mod="cs";item.name="Material";item.texture="asset.png";
  assert(registerModItem(item)==kVanillaItemCount);assert(registerModItem(item)==-1);
+ item_registry::g_installed.store(1);
  assert(modItemKey(kVanillaItemCount)=="cs/Material");assert(modItemTypeByKey("cs/Material")==kVanillaItemCount);
  ModTileDef station{"cs","Bench","bench.png"};const auto bench=registerModTile(station);
  assert(bench==kVanillaTileCount);assert(registerModTile(station)==-1);assert(modTileKey(bench)=="cs/Bench");
@@ -112,7 +113,7 @@ int main(int argc,char** argv){
  assert(registerModTile({"other","Bench","other.png"})==bench+1);tile_registry::g_installed.store(2);
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.station==bench+1);
  r.ingredients={{-1,1,"later/Material"}};assert(!resolveNativeRecipe(r,&resolved,&error));assert(error.find("Stage=ResolveIngredient")!=std::string::npos);
- ModItemDef later;later.mod="later";later.name="Material";const auto laterId=registerModItem(later);
+ ModItemDef later;later.mod="later";later.name="Material";const auto laterId=registerModItem(later);item_registry::g_installed.store(2);
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
@@ -124,22 +125,24 @@ int main(int argc,char** argv){
   assert(result.error.find(mode=="--type"?"Actual=System.Single":mode=="--bounds"?"InvalidFieldBounds":"MissingOrIncompatibleSignature")!=std::string::npos);
   assert(numRecipes==0&&current==saved&&roots.empty());std::cout<<"NATIVE_RECIPE_CONTRACT_REJECTION_PASS "<<mode<<'\n';return 0;
  }
- auto result=installNativeRecipe(r);assert(result.index==0&&result.error.empty());assert(current==saved&&numRecipes==1&&roots.empty());
- auto** slots=static_cast<Recipe**>(arrayData(table));assert(slots[0]->station==bench+1);
- assert(reinterpret_cast<Item*>(slots[0]->result)->type==r.result);
- auto** ingredients=static_cast<Item**>(arrayData(slots[0]->ingredients));assert(ingredients[0]->type==laterId);
+ auto result=installNativeRecipe(r);assert(result.index<0&&result.error.find("RecipeSetupNotReady")!=std::string::npos);assert(numRecipes==0&&commits==0);
+ numRecipes=1; // A completed vanilla SetupRecipes provides the first recipe.
+ result=installNativeRecipe(r);assert(result.index==1&&result.error.empty());assert(current==saved&&numRecipes==2&&roots.empty());
+ auto** slots=static_cast<Recipe**>(arrayData(table));assert(slots[1]->station==bench+1);
+ assert(reinterpret_cast<Item*>(slots[1]->result)->type==r.result);
+ auto** ingredients=static_cast<Item**>(arrayData(slots[1]->ingredients));assert(ingredients[0]->type==laterId);
  assert(ingredients[0]->sentinel==0x12345678);assert(lookups==6);
- result=installNativeRecipe(r);assert(result.index==0&&commits==1);
- r=request("RetryLookups");failLookup=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("RebuildLookups")!=std::string::npos);assert(numRecipes==2&&roots.empty());
- failLookup=false;result=installNativeRecipe(r);assert(result.index==1&&numRecipes==2&&commits==2);
- r=request("BadAdd");failAdd=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("System.InvalidOperationException")!=std::string::npos);assert(numRecipes==2&&slots[2]==nullptr&&current==saved&&roots.empty());
- failAdd=false;result=installNativeRecipe(r);assert(result.index==2&&numRecipes==3);
- r=request("BadDefaults");failDefaults=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("Stage=SetResult")!=std::string::npos);assert(numRecipes==3&&roots.empty());failDefaults=false;
- r=request("BadArray");wrongArray=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("InvalidArrayLayout")!=std::string::npos);assert(numRecipes==3);wrongArray=false;
- r=request("BadAllocation");failedAllocation=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("AllocationFailed")!=std::string::npos);assert(numRecipes==3);failedAllocation=false;
- r=request("OversizeStack");r.ingredients={{3,2,{}}};result=installNativeRecipe(r);assert(result.index<0&&result.error.find("MaxStack=1")!=std::string::npos);assert(numRecipes==3);
+ result=installNativeRecipe(r);assert(result.index==1&&commits==1);
+ r=request("RetryLookups");failLookup=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("RebuildLookups")!=std::string::npos);assert(numRecipes==3&&roots.empty());
+ failLookup=false;result=installNativeRecipe(r);assert(result.index==2&&numRecipes==3&&commits==2);
+ r=request("BadAdd");failAdd=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("System.InvalidOperationException")!=std::string::npos);assert(numRecipes==3&&slots[3]==nullptr&&current==saved&&roots.empty());
+ failAdd=false;result=installNativeRecipe(r);assert(result.index==3&&numRecipes==4);
+ r=request("BadDefaults");failDefaults=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("Stage=SetResult")!=std::string::npos);assert(numRecipes==4&&roots.empty());failDefaults=false;
+ r=request("BadArray");wrongArray=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("InvalidArrayLayout")!=std::string::npos);assert(numRecipes==4);wrongArray=false;
+ r=request("BadAllocation");failedAllocation=true;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("AllocationFailed")!=std::string::npos);assert(numRecipes==4);failedAllocation=false;
+ r=request("OversizeStack");r.ingredients={{3,2,{}}};result=installNativeRecipe(r);assert(result.index<0&&result.error.find("MaxStack=1")!=std::string::npos);assert(numRecipes==4);
  r=request("Missing");r.stationKey="missing/Station";result=installNativeRecipe(r);assert(result.index<0&&result.error.find("MissingDependency")!=std::string::npos);
- r=request("Independent");result=installNativeRecipe(r);assert(result.index==3&&numRecipes==4);
+ r=request("Independent");result=installNativeRecipe(r);assert(result.index==4&&numRecipes==5);
  r=request("InvalidVanillaStation");r.station=754;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("InvalidVanillaTile")!=std::string::npos);
  r=request("Limit");maxRecipes=numRecipes;result=installNativeRecipe(r);assert(result.index<0&&result.error.find("NativeRecipeLimitReached")!=std::string::npos);assert(current==saved&&roots.empty());
  assert(barriers>0);std::cout<<"NATIVE_RECIPES_WITHOUT_QUICKJS_PASS registry,station,intermod,load-order,rollback,lookups,types,bounds,allocation,isolation,capacity\n";

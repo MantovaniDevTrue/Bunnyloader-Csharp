@@ -851,7 +851,7 @@
     "branch": "codex/lot-a-complete-v90-29",
     "baseCommit": "28a9d71dac28a4ce14bff16fb492707c55227d05",
     "lot": "A",
-    "delivery": "internal-only until complete",
+    "delivery": "experimental private prerelease after eight independent suites and Android build; official complete-lot release remains disabled",
     "apis": [
       "BunnyItem.Defense",
       "BunnyArmorEffects",
@@ -880,7 +880,7 @@
         "tests/native_recipes/native_recipes_test.cpp",
         "tests/basic_items/native_item_binding_test.cpp --recipes-only"
       ],
-      "status": "Validado por testes automatizados no host; aguardando build/Android",
+      "status": "Eight CI suites passed for 9bf34a9; readiness and experimental delivery follow-up awaiting CI; Android gameplay pending",
       "scope": "Production registries/IL2CPP adapter executed without QuickJS; not a placed CSharp workbench",
       "remaining": [
         "CSharp station API and placement/hooks",

@@ -54,4 +54,7 @@ bool isUnloadedType(int type) {
     return g_poolFirst >= 0 && type >= g_poolFirst && type < g_poolFirst + kUnloadedPoolSize;
 }
 
+int itemTypeCount() {
+    return kVanillaItemCount + g_installed.load(std::memory_order_acquire);
+}
 }

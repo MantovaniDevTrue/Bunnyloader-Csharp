@@ -10,5 +10,10 @@ assert set(ids)==expected, f'missing={expected-set(ids)} unexpected={set(ids)-ex
 workflow=Path('../../.github/workflows/build-bunny-csharp-source-loader.yml').read_text()
 start=workflow.index('- name: Deliver signed APK to private Builds repository')
 end=workflow.index('\n        shell:',start)
-assert 'codex/lot-a-complete-v90-29' not in workflow[start:end], 'Incomplete feature branch must not publish a private release'
-print('COMPLETE_LOT_A_SCOPE_AND_NO_PARTIAL_RELEASE_GUARD_PASS=33')
+assert 'codex/lot-a-complete-v90-29' in workflow[start:end]
+assert 'TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"' in workflow
+assert 'EXPERIMENTAL — Lote A incomplete' in workflow
+assert 'check_lot_a_delivery.py' in workflow
+assert '--prerelease' in workflow
+assert 'the CSharp workbench and remaining examples are still pending' in workflow
+print('COMPLETE_LOT_A_SCOPE_AND_EXPERIMENTAL_DELIVERY_GUARD_PASS=33')

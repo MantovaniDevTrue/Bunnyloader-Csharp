@@ -885,6 +885,7 @@ jobs:
           "$RUNNER_TEMP/native-recipes-test" --type
           "$RUNNER_TEMP/native-recipes-test" --bounds
           "$RUNNER_TEMP/native-recipes-test" --method
+          python3 tests/native_recipes/delivery_gate_test.py
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/native-items-no-js"
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --recipes-only
       - name: Execute combat batch and actionable diagnostic regressions
@@ -1552,7 +1553,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ (github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
@@ -1579,6 +1580,27 @@ jobs:
           (cd "$RUNNER_TEMP" && sha256sum "$FILE" > "$FILE.sha256")
           trap 'rm -f "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256"' EXIT
           TAG="csharp-v3-run-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          TITLE="Bunny Loader C# $VERSION | private signing v3"
+          NOTES="Private Android test build signed with the v3 key. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contains the Terraria runtime for restricted development/testing; do not publish or redistribute without appropriate rights."
+          if [ "$GITHUB_REF" = "refs/heads/codex/lot-a-complete-v90-29" ]; then
+            # Experimental delivery requires all eight independent regression workflows.
+            for attempt in $(seq 1 40); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/lot-a-workflows.json"
+              set +e
+              python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/lot-a-workflows.json" "$GITHUB_SHA"
+              DELIVERY_STATUS=$?
+              set -e
+              if [ "$DELIVERY_STATUS" = "0" ]; then break; fi
+              if [ "$DELIVERY_STATUS" != "2" ] || [ "$attempt" = "40" ]; then
+                echo "::error::Experimental delivery refused: independent regressions did not all succeed."
+                exit 1
+              fi
+              sleep 15
+            done
+            TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+            TITLE="EXPERIMENTAL — Lote A incomplete | Bunny Loader C# $VERSION"
+            NOTES="Experimental infrastructure checkpoint, not a complete Lot A release. Native CSharp recipe registration is available for device validation; the CSharp workbench and remaining examples are still pending. Eight independent regression suites succeeded. Android gameplay and 60 FPS have not been validated for this build. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+          fi
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.35.bmod.sha256" \
@@ -1586,8 +1608,8 @@ jobs:
             "Split/Bunny-Loader/build/basic-items-results.json" \
             --repo "$PRIVATE_REPO" \
             --target main \
-            --title "Bunny Loader C# $VERSION | private signing v3" \
-            --notes "Private Android test build signed with the v3 key. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contains the Terraria runtime for restricted development/testing; do not publish or redistribute without appropriate rights." \
+            --title "$TITLE" \
+            --notes "$NOTES" \
             --prerelease
           echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
 

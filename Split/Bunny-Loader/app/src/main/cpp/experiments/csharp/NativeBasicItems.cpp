@@ -470,7 +470,8 @@ void pumpBasicRecipesOnGameThread() {
                     BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
             } else if(result.error.substr(0,1000)!=pending.error) {
                 reportBasicRecipeError(pending.id,result.error);
-                BL_ERROR("%s",result.error.c_str());
+                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_WARN("%s",result.error.c_str());
+                else BL_ERROR("%s",result.error.c_str());
             }
         }
     }

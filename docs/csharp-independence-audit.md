@@ -24,6 +24,9 @@ TileIDs vanilla 0..753. `2195` era indevidamente usado como limite: e indice da
 paleta do mapa, nao TileID.Count. `AddTile(string)` usa nome local ou UID/nome,
 resolvido no registro nativo, sem consultar TileLoader.ByType.
 
+Antes do commit, o servico espera SetupRecipes e os itens/tiles instalados.
+Dependencias e setup ainda pendentes geram WARN; falhas reais geram ERROR.
+
 O descriptor e resolvido na thread de update, ate oito receitas por rodada,
 com round-robin e intervalo de 120 updates. Dependencia ausente nao impede
 aplicar defaults do item nem registrar receitas independentes. O diagnostico
@@ -73,3 +76,12 @@ A bancada C# propria ainda NAO foi portada; seu teste de colocacao/destruicao e
 persistencia nao pode ser substituido por teste de registro do TileRegistry.
 Proximo passo continua sendo a bancada completa e as receitas originais das
 armaduras. Nao trocar por estacoes vanilla para aparentar conclusao.
+
+## Entrega experimental autorizada
+
+O workflow da branch permite uma prerelease privada identificada como
+EXPERIMENTAL / Lote A incomplete. Antes de enviar, exige os oito workflows
+independentes aprovados para o SHA exato, alem dos testes e build do proprio
+job. Falha, cancelamento, SHA diferente ou suite ausente recusam a entrega.
+A release oficial do lote completo continua pendente. O ExampleMod permanece
+0.1.35/51 fontes: esta etapa modifica a infraestrutura, nao adiciona ports.

@@ -628,9 +628,6 @@ void setupUnloadedItem(Il2CppObject* item, int type) {
     finishModItem(item, type);
 }
 
-int itemTypeCount() {
-    return kVanillaItemCount + g_installed.load(std::memory_order_acquire);
-}
 
 namespace {
 std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
