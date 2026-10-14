@@ -1,6 +1,7 @@
 #include "content/recipes/NativeRecipes.h"
 #include "content/items/ItemRegistryInternal.h"
 #include "content/tiles/TileRegistryInternal.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -15,9 +16,14 @@ struct Il2CppClass { std::string ns,name; unsigned size=0; bool value=false; Il2
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { std::string name; Il2CppType type; size_t offset; unsigned flags; void* storage=nullptr; };
 struct MethodInfo { std::string signature; bool instance; };
-struct Item { Il2CppObject obj; int type=0, stack=1, maxStack=9999; unsigned sentinel=0x12345678; };
+struct Item {
+ Il2CppObject obj; int type=0, stack=1, maxStack=9999; unsigned sentinel=0x12345678;
+ int width=0,height=0,value=0,rare=0,damage=0,crit=0,useTime=0,useAnimation=0,useStyle=0,pick=0,axe=0,hammer=0;
+ bool flags[7]{};float knockBack=0;void* sound=nullptr;
+};
 struct Recipe { Il2CppObject obj; Il2CppObject* result=nullptr; Il2CppArray* ingredients=nullptr; int station=-1; };
 Il2CppClass intClass{"System","Int32",4,true},floatClass{"System","Single",4,true},
+    boolClass{"System","Boolean",1,true},byteClass{"System","Byte",1,true},legacyClass{"Terraria.Audio","LegacySoundStyle"},
     itemClass{"Terraria","Item",sizeof(Item)},recipeClass{"Terraria","Recipe",sizeof(Recipe)},
     mainClass{"Terraria","Main"},itemArray{"Terraria","Item[]",0,false,&itemClass},
     recipeArray{"Terraria","Recipe[]",0,false,&recipeClass},variantClass{"Terraria","ItemVariant",4,true},
@@ -42,10 +48,19 @@ namespace bl::il2cpp {
 Api& api(){return apiInstance;}
 Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){const auto key=cls->name+"."+std::string(name);for(auto& f:fields)if(f.name==key)return &f;return nullptr;}
+int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 Signature parseSignature(std::string_view s){Signature out;out.name=std::string(s);return out;}
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& s,bool*,const MethodInfo**){auto it=methods.find(s.name);return it==methods.end()?nullptr:&it->second;}
 std::string describeMethod(const MethodInfo* m){return m->signature;}
 }
+namespace bl::log {void write(int,const char*,...) {}}
+namespace bl::runtime {
+void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> text){
+ std::lock_guard lock(item_registry::g_mx);item_registry::g_regs.at(type-kVanillaItemCount).def.tooltips=std::move(text);
+}
+void finishModItem(Il2CppObject*,int){}
+}
+namespace bl::csharp {void refreshManagedPrefixEligibilityOnWorldReady() {}}
 void configure(){
  fields={
   {"Recipe.currentRecipe",{&recipeClass},0,0x10,&current},{"Recipe.numRecipes",{&intClass},0,0x10,&numRecipes},
@@ -53,6 +68,16 @@ void configure(){
   {"Recipe.createItem",{&itemClass},offsetof(Recipe,result),0},{"Recipe.requiredItem",{&itemArray},offsetof(Recipe,ingredients),0},
   {"Item.type",{&intClass},offsetof(Item,type),0},{"Item.stack",{&intClass},offsetof(Item,stack),0},
   {"Item.maxStack",{&intClass},offsetof(Item,maxStack),0}};
+ const std::pair<const char*,size_t> extra[]={
+  {"width",offsetof(Item,width)},{"height",offsetof(Item,height)},{"value",offsetof(Item,value)},
+  {"rare",offsetof(Item,rare)},{"damage",offsetof(Item,damage)},{"crit",offsetof(Item,crit)},
+  {"useTime",offsetof(Item,useTime)},{"useAnimation",offsetof(Item,useAnimation)},{"useStyle",offsetof(Item,useStyle)},
+  {"pick",offsetof(Item,pick)},{"axe",offsetof(Item,axe)},{"hammer",offsetof(Item,hammer)}};
+ for(const auto& [name,off]:extra)fields.push_back({"Item."+std::string(name),{std::string(name)=="useStyle"?&byteClass:&intClass},off,0});
+ const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable","accessory","vanity"};
+ for(unsigned i=0;i<7;i++)fields.push_back({"Item."+std::string(flags[i]),{&boolClass},offsetof(Item,flags)+i,0});
+ fields.push_back({"Item.knockBack",{&floatClass},offsetof(Item,knockBack),0});
+ fields.push_back({"Item.UseSound",{&legacyClass},offsetof(Item,sound),0});
  for(const char* s:{"void .ctor()","void SetDefaults(int Type, ItemVariant variant)","void SetCraftingStation(int tileType)",
    "void AddRecipe()","void CreateRequiredItemQuickLookups()","void UpdateMaterialFieldForAllRecipes()",
    "void UpdateWhichItemsAreMaterials()","void UpdateWhichItemsAreCrafted()","void UpdateRecipeSets()","void FixItemsAfterRecipesAreAdded()"})
@@ -61,6 +86,12 @@ void configure(){
  apiInstance.class_get_namespace=[](Il2CppClass* c){return c->ns.c_str();};
  apiInstance.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};
  apiInstance.class_is_valuetype=[](const Il2CppClass* c){return c->value;};
+ apiInstance.class_is_enum=[](const Il2CppClass*){return false;};
+ apiInstance.class_get_fields=[](Il2CppClass* c,void** it)->FieldInfo*{
+  auto i=reinterpret_cast<uintptr_t>(*it);
+  for(;i<fields.size();++i)if(fields[i].name.rfind(c->name+".",0)==0){*it=reinterpret_cast<void*>(i+1);return &fields[i];}
+  return nullptr;
+ };
  apiInstance.class_instance_size=[](Il2CppClass* c){return c->size;};
  apiInstance.class_value_size=[](Il2CppClass* c,uint32_t* alignment){*alignment=4;return static_cast<int>(c->size);};
  apiInstance.field_get_type=[](FieldInfo* f){return static_cast<const Il2CppType*>(&f->type);};
@@ -85,6 +116,7 @@ void configure(){
    auto** slots=static_cast<Il2CppObject**>(arrayData(r->ingredients));for(int i=0;i<15;i++)slots[i]=&makeItem()->obj;
   }else if(m->signature=="void SetDefaults(int Type, ItemVariant variant)"){
    assert(*static_cast<int*>(args[1])==0);auto* item=static_cast<Item*>(self);item->type=*static_cast<int*>(args[0]);
+   if(bl::csharp::isBasicItem(item->type))assert(bl::csharp::applyBasicItemToObject(&item->obj,item->type));
    if(item->type==3)item->maxStack=1;
    if(failDefaults)*ex=&exception;
   }else if(m->signature=="void SetCraftingStation(int tileType)")static_cast<Recipe*>(self)->station=*static_cast<int*>(args[0]);
@@ -117,6 +149,27 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--pump") {
+  numRecipes=1;
+  bl::csharp::BasicItemEntry own;own.type=kVanillaItemCount;own.name="Material";own.values[bl::csharp::BasicMaxStack]=9999;
+  own.values[bl::csharp::BasicWidth]=28;own.values[bl::csharp::BasicHeight]=14;own.values[bl::csharp::BasicUseStyle]=5;
+  own.recipes.push_back({1,18,{{"v2",10,2}},""});
+  assert(bl::csharp::registerBasicItemPlaceholder(own.type,own.name,&error,"/cs","Material.cs"));
+  assert(bl::csharp::applyNativeBasicItemDefaults("cs",{own},&error));
+  auto broken=own;broken.type=laterId;broken.recipes[0].station=-1;broken.recipes[0].stationKey="late/Bench";
+  assert(bl::csharp::registerBasicItemPlaceholder(broken.type,broken.name,&error,"/later","Material.cs"));
+  assert(bl::csharp::applyNativeBasicItemDefaults("later",{broken},&error));
+  bl::csharp::pumpBasicRecipesOnGameThread();
+  auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==1&&pending[0].modId=="later");
+  assert(pending[0].error.find("MissingDependency")!=std::string::npos);assert(numRecipes==2&&commits==1);
+  auto** slots=static_cast<Recipe**>(arrayData(table));auto* preview=reinterpret_cast<Item*>(slots[1]->result);
+  assert(preview->width==28&&preview->height==14&&preview->maxStack==9999&&preview->useStyle==5);
+  assert(registerModTile({"late","Bench","late.png"})==kVanillaTileCount+2);tile_registry::g_installed.store(3);
+  for(int i=0;i<120;i++)bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(bl::csharp::pendingBasicRecipes().empty()&&numRecipes==3&&commits==2&&roots.empty());
+  assert(slots[2]->station==kVanillaTileCount+2);
+  std::cout<<"CSHARP_PRODUCTION_QUEUE_PUMP_REGISTRY_DEFAULTS_RECIPE_AND_LATE_DEPENDENCY_WITHOUT_QUICKJS_PASS\n";return 0;
+ }
  if(mode=="--type")fields[7].type.cls=&floatClass;
  if(mode=="--bounds")fields[7].offset=sizeof(Item)-1;
  if(mode=="--method")methods.erase("void SetCraftingStation(int tileType)");

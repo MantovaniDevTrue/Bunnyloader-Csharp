@@ -880,8 +880,9 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: |
           set -euo pipefail
-          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o "$RUNNER_TEMP/native-recipes-test"
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -o "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test"
+          "$RUNNER_TEMP/native-recipes-test" --pump
           "$RUNNER_TEMP/native-recipes-test" --type
           "$RUNNER_TEMP/native-recipes-test" --bounds
           "$RUNNER_TEMP/native-recipes-test" --method
@@ -1133,7 +1134,7 @@ jobs:
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
           assert "modId=" in count_contract and "executedTypes=" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_2_native_value_layout" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_3_recipe_policy_ready" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -1145,7 +1146,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_2_native_value_layout" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_3_recipe_policy_ready" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
@@ -1521,7 +1522,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='167' versionName='0.1.10.16.90.29.2-native-value-layout'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='168' versionName='0.1.10.16.90.29.3-recipe-policy-ready'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

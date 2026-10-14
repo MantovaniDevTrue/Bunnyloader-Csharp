@@ -940,6 +940,21 @@
       ],
       "correctedDependency": "NativeBasicItems no longer calls QuickJS-compiled script::structFieldOffset",
       "scope": "No new examples; CSharp station placement and policies still pending"
+    },
+    "recipePumpIntegration": {
+      "version": "0.1.10.16.90.29.3-recipe-policy-ready",
+      "test": "tests/native_recipes/native_recipes_test.cpp --pump",
+      "status": "Executed on IL2CPP host without QuickJS; CI/Android build pending",
+      "scope": [
+        "Production NativeBasicItems queue and NativeRecipes adapter linked to production registries",
+        "Preview/defaults and delayed station retry",
+        "Policy readiness isolated per item"
+      ],
+      "notProven": [
+        "CSharp placed station",
+        "Full Android boot without VM",
+        "Android gameplay or 60 FPS"
+      ]
     }
   }
 }

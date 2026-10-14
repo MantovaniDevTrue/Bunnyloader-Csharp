@@ -7,6 +7,7 @@ bool registerBasicItemPlaceholder(int type,const std::string& name,std::string* 
 bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<BasicItemEntry>& entries,std::string* error);
 bool applyBasicItemToObject(Il2CppObject* item,int type);
 bool isBasicItem(int type);
+bool basicItemPolicyReady(int type);
 bool basicItemHasDamage(int type);
 bool basicItemIsAccessory(int type);
 bool setBasicItemDefense(int type,int value,std::string* error);

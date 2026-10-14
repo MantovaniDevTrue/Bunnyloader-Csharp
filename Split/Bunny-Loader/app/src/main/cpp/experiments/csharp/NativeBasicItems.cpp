@@ -459,6 +459,10 @@ bool acknowledgeBasicItemBehavior(int type,const std::string& error) {
 }
 bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&it->second.values[BasicDamage]>0;}
 bool isBasicItem(int type) {std::lock_guard lock(mutex);return definitions.contains(type);}
+bool basicItemPolicyReady(int type) {
+    std::lock_guard lock(mutex);const auto it=definitions.find(type);
+    return it==definitions.end()||it->second.behavior.empty()||it->second.behaviorInstalled;
+}
 std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> out;for(const auto& p:definitions)out.push_back(p.first);return out;}
 std::vector<PendingBasicRecipe> pendingBasicRecipes() {
     std::lock_guard lock(mutex);std::vector<PendingBasicRecipe> out;
@@ -484,32 +488,10 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
 }
 void pumpBasicRecipesOnGameThread() {
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
-    if(recipesPending.load(std::memory_order_acquire)) {
-        static unsigned ticks=0;
-        if((ticks++%120u)==0)for(const auto& pending:pendingBasicRecipes()) {
-            runtime::NativeRecipeRequest request;
-            request.key=pending.id;request.mod=pending.modId;request.source=pending.source;
-            const auto slash=pending.id.find('/'), hash=pending.id.rfind('#');
-            request.name=pending.id.substr(slash+1,hash-slash-1);
-            request.result=pending.result;request.stack=pending.values.stack;
-            request.station=pending.values.station;request.stationKey=pending.values.stationKey;
-            for(const auto& ingredient:pending.values.ingredients)
-                request.ingredients.push_back({ingredient.type,ingredient.count,
-                    ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{}});
-            const auto result=runtime::installNativeRecipe(request);
-            if(result.index>=0) {
-                if(acknowledgeBasicRecipe(pending.id,result.index))
-                    BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
-            } else if(result.error.substr(0,1000)!=pending.error) {
-                reportBasicRecipeError(pending.id,result.error);
-                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_WARN("%s",result.error.c_str());
-                else BL_ERROR("%s",result.error.c_str());
-            }
-        }
-    }
 #if BL_HAVE_QUICKJS
     static unsigned behaviorTicks=0;
     if(behaviorsPending.load(std::memory_order_acquire)&&(behaviorTicks++%120u)==0) {
+        const auto sync=[] {
         script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
         auto* ctx=static_cast<JSContext*>(script::engine().context());
         auto global=JS_GetGlobalObject(ctx);auto function=JS_GetPropertyStr(ctx,global,"__blSyncCSharpItemBehaviors");
@@ -524,8 +506,43 @@ void pumpBasicRecipesOnGameThread() {
             JS_FreeValue(ctx,result);
         }
         JS_FreeValue(ctx,function);JS_FreeValue(ctx,global);
-
+        };
+        sync(); // A missing legacy policy VM must not block native recipes of other items.
     }
 #endif
+    if(recipesPending.load(std::memory_order_acquire)) {
+        static unsigned ticks=0;
+        if((ticks++%120u)==0)for(const auto& pending:pendingBasicRecipes()) {
+            runtime::NativeRecipeRequest request;
+            request.key=pending.id;request.mod=pending.modId;request.source=pending.source;
+            const auto slash=pending.id.find('/'), hash=pending.id.rfind('#');
+            request.name=pending.id.substr(slash+1,hash-slash-1);
+            request.result=pending.result;request.stack=pending.values.stack;
+            request.station=pending.values.station;request.stationKey=pending.values.stationKey;
+            for(const auto& ingredient:pending.values.ingredients)
+                request.ingredients.push_back({ingredient.type,ingredient.count,
+                    ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{}});
+            runtime::NativeRecipeRequest resolved;std::string dependencyError;
+            runtime::NativeRecipeResult result;
+            if(!runtime::resolveNativeRecipe(request,&resolved,&dependencyError))result.error=dependencyError;
+            else {
+                int waiting=!basicItemPolicyReady(resolved.result)?resolved.result:-1;
+                for(const auto& ingredient:resolved.ingredients)if(!basicItemPolicyReady(ingredient.type)){waiting=ingredient.type;break;}
+                if(waiting>=0)result.error="[CSharp][WARN][Recipe] Mod="+request.mod+" Class="+request.name+
+                    " File="+request.source+" Recipe="+request.key+" Stage=WaitItemPolicy Expected=InstalledItemPolicy Actual=ContentId:"+
+                    std::to_string(waiting)+" Result=Pending Reason=ItemPolicyNotReady";
+                else result=runtime::installNativeRecipe(request);
+            }
+            if(result.index>=0) {
+                if(acknowledgeBasicRecipe(pending.id,result.index))
+                    BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
+            } else if(result.error.substr(0,1000)!=pending.error) {
+                reportBasicRecipeError(pending.id,result.error);
+                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_WARN("%s",result.error.c_str());
+                else BL_ERROR("%s",result.error.c_str());
+            }
+        }
+    }
+
 }
 }

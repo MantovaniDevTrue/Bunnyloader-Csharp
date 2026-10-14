@@ -179,3 +179,12 @@ Testes sem QuickJS agora ligam essa implementacao real em vez de um stub do
 helper JS. Nova versao .90.29.2/code167 e nova geracao de cache; ExampleMod
 permanece 0.1.36, pois seus exemplos/documentacao de receitas nao mudaram.
 Retomar bancada pelo contrato acima; nenhum dos 33 exemplos foi promovido.
+
+### Continuidade .90.29.3
+
+A fila real de recipes foi executada no host sem QuickJS, junto aos registradores
+reais e NativeBasicItems, incluindo preview, estacao tardia e nao duplicacao.
+Foi preservada a ordem policy → receita e adicionado readiness por item: recipes
+com policy ainda pendente aguardam, sem bloquear as de outros itens. Code168 e
+nova geracao de cache. Bancada continua sendo a proxima implementacao concreta;
+nenhum exemplo foi promovido. ExampleMod mantem 0.1.36/51 fontes/26 PNG.

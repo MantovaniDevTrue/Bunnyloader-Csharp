@@ -220,9 +220,14 @@ int main(int argc,char** argv){
 #if BL_HAVE_QUICKJS
  const auto first=bl::csharp::pendingBasicItemBehaviors(),second=bl::csharp::pendingBasicItemBehaviors();assert(first.size()==8&&second.size()==8);
  bool ninth=false;for(const auto& item:second)if(item.type==7308)ninth=true;assert(ninth);
+ assert(!bl::csharp::basicItemPolicyReady(7300));
+ assert(bl::csharp::acknowledgeBasicItemBehavior(7300,"policy failed"));assert(!bl::csharp::basicItemPolicyReady(7300));
+ assert(bl::csharp::acknowledgeBasicItemBehavior(7300,""));assert(bl::csharp::basicItemPolicyReady(7300));
 #else
  assert(bl::csharp::pendingBasicItemBehaviors().empty());
+ assert(bl::csharp::basicItemPolicyReady(7300));
 #endif
+ assert(bl::csharp::basicItemPolicyReady(entries[0].type)&&bl::csharp::basicItemPolicyReady(2));
  const auto recipesFirst=bl::csharp::pendingBasicRecipes(),recipesSecond=bl::csharp::pendingBasicRecipes();assert(recipesFirst.size()==8&&recipesSecond.size()==8);
  bool lastRecipe=false;for(const auto& recipe:recipesSecond)if(recipe.result==7308)lastRecipe=true;assert(lastRecipe);
  assert(bl::csharp::reportBasicRecipeError(recipesSecond[0].id,"missing station"));

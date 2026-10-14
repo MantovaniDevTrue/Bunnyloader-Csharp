@@ -175,3 +175,8 @@ Checkpoint de codigo seguinte: .90.29.2/code167 remove o helper QuickJS de
 ValueLayout dos itens, valida bounds reais de Item e amplia regressao boxed/
 unboxed/nullable sem mocks da bridge JS. Ver csharp-independence-audit.md.
 A entrega permanece experimental; bancada e demais exemplos continuam pendentes.
+
+Checkpoint .90.29.3/code168: teste executavel --pump cobre a fila real, registradores,
+defaults e recipes sem QuickJS, com preview/dependencia tardia. Policies precedem
+recipes e sua ausencia nao bloqueia itens independentes. SDK/examples continuam
+preservados; bancada completa ainda e prioridade de retomada.

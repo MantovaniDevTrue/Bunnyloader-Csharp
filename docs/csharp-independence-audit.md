@@ -118,3 +118,18 @@ link com a bridge Value.cpp. Cache do host/compilador teve nova geracao.
 Native equipment policies continuam pendentes de desacoplamento; a bancada e
 os testes reais Android continuam pendentes. Isto nao prova boot integral do
 loader sem JS, nem adiciona qualquer exemplo artificialmente concluido.
+
+## .90.29.3 — integracao real da fila e ordem das policies
+
+O teste --pump agora liga NativeBasicItems, NativeRecipes e ambos os registradores
+reais de producao, com BL_HAVE_QUICKJS=0. Aplica defaults, executa a fila real de
+update, registra uma receita e confirma o preview, deixa outra pendente por
+estacao ausente e a registra depois de a dependencia aparecer, sem duplicar a
+primeira. Nao fornece mocks de ScriptEngine, JsLock ou structFieldOffset.
+O host ainda emula metadata/metodos Terraria e nao possui mundo/renderizacao.
+
+O pump preserva processamento de policies antes de criar previews de receitas.
+Receitas aguardam policies do resultado/ingredientes quando declaradas; erro de
+policy nao vira ACK. Ausencia da VM para as policies legadas nao impede receitas
+nativas de itens independentes. Readiness/ACK de policy e exercitado pelos testes
+de binding; nao alegar que as policies foram portadas para C++.
