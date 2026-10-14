@@ -1,0 +1,46 @@
+name: Validate CSharp Native Tile Bridge
+on:
+  push:
+    branches: [codex/lot-a-complete-v90-29]
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/tiles/**'
+      - 'Split/Bunny-Loader/tests/native_source_identity.cpp'
+      - '.github/workflows/check-csharp-native-tile-compile.yml'
+permissions:
+  contents: read
+jobs:
+  native-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check C++ native bridge without an Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="Split/Bunny-Loader/app/src/main/cpp"
+          mkdir -p "$RUNNER_TEMP/stubs/android"
+          cat > "$RUNNER_TEMP/stubs/android/log.h" <<'H'
+          #pragma once
+          #define ANDROID_LOG_UNKNOWN 0
+          #define ANDROID_LOG_DEFAULT 1
+          #define ANDROID_LOG_VERBOSE 2
+          #define ANDROID_LOG_DEBUG 3
+          #define ANDROID_LOG_INFO 4
+          #define ANDROID_LOG_WARN 5
+          #define ANDROID_LOG_ERROR 6
+          #define ANDROID_LOG_FATAL 7
+          H
+          CFLAGS=(-std=c++20 -DBL_HAVE_QUICKJS=0 -I"$SRC" -I"$RUNNER_TEMP/stubs" -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux")
+          for file in \
+            "$SRC/experiments/csharp/NativeContent.cpp" \
+            "$SRC/experiments/csharp/SourceLoader.cpp" \
+            "$SRC/content/tiles/ModTiles.cpp"; do
+            echo "Checking $file"
+            g++ "${CFLAGS[@]}" -fsyntax-only "$file"
+          done
+          g++ "${CFLAGS[@]}" "$SRC/experiments/csharp/SourceParser.cpp" \
+            "Split/Bunny-Loader/tests/native_source_identity.cpp" \
+            -o "$RUNNER_TEMP/source-identity"
+          "$RUNNER_TEMP/source-identity"
