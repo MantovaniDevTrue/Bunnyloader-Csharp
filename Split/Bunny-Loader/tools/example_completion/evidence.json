@@ -623,7 +623,9 @@
       "hostCasesPassed": 10,
       "deviceTested": false,
       "canonicalJsFiles": 199,
-      "cSharpSourceFiles": 51
+      "cSharpSourceFiles": 51,
+      "apkBuildRun": 38560108522,
+      "apkBuildSourceCommit": "2d1012b7d067347688ea242827762b4dfe6f51b3"
     }
   ],
   "deviceBaselines": [

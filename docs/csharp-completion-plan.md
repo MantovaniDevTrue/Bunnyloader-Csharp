@@ -2,8 +2,9 @@
 
 ## Referencias e regra de conclusao
 
-Base preservada: Bunny .90.27.6 / ExampleMod 0.1.33, confirmada no Android pelo
-usuario para os equipamentos nativos. Original atualizado: JonataOliveiraa/
+Base estavel atual: Bunny .90.28.4 / ExampleMod 0.1.34, relatada pelo usuario
+como funcional no Android. A referencia historica .90.27.6 / 0.1.33 dos
+equipamentos nativos tambem foi preservada. Original atualizado: JonataOliveiraa/
 Bunny-Loader, commit bc4f240082a589823536eff74462a11acbdba8ec. O inventario e de
 199 arquivos JS (178 no fork; 21 adicionados pelo upstream). A referencia antiga
 de 169 arquivos nao limita o trabalho. Cada arquivo, inclusive helpers, main,
@@ -11,8 +12,8 @@ configs e interfaces, tem uma entrada na [matriz](../Split/Bunny-Loader/docs/gen
 e dados completos em [JSON](../Split/Bunny-Loader/docs/generated/example_completion/matrix.json).
 
 Estado implementado exige comportamento original, assets e bridge reutilizavel.
-Estado Validado exige evidencia de jogo para o exemplo inteiro, alem dos testes
-automatizados aplicaveis. O efeito isolado de Shield/Shoes validado nao equivale
+Estado Validado no Android exige evidencia de jogo do exemplo inteiro;
+Validado por testes automatizados registra apenas os contratos exercitados no host. O efeito isolado de Shield/Shoes validado nao equivale
 a portar dash, voo, waterWalk, pesca ou outras mecanicas do arquivo JS.
 Ausencia de API C# nao e prova de limitacao tecnica do Terraria.
 
@@ -48,10 +49,10 @@ mas todos os arquivos permanecem no backlog numerado na matriz.
 
 ## Lacunas da arquitetura identificadas antes do lote seguinte
 
-- SourceParser/SourceLoader reconhecem apenas oito bases C# especializadas.
-  Faltam contratos gerais de ModItem, ModSystem, Tile/Wall, biome etc.
-- Verify/SourceLoader exigem arma + projetil mesmo para mods que so precisam de
-  material ou ferramenta. O lote de itens deve corrigir esse bloqueio do loader.
+- SourceParser/SourceLoader agora reconhecem BunnyItem alem das bases especializadas.
+  Ainda faltam contratos gerais de ModSystem, Tile/Wall, biome e outros sistemas.
+- Mods somente de BunnyItem ja carregam sem arma/projetil. A faixa de verificacao
+  Mono foi ampliada de 2..32 para 1..1024 com testes de fronteira; preservar esse contrato.
 - Arquivo atualizado no grupo .90.28.5: 512 .cs, 256 KiB cada, 16 MiB totais; defaults
   wire de 2 MiB, 256 por categoria/1024 tipos. Contratos de fronteira continuam
   obrigatorios; slots e filas nativas tem limites proprios.
@@ -79,3 +80,9 @@ Base estavel Android .90.28.4 preservada. Grupo .90.28.5: ver
 199 arquivos e separa CI de Android. Proximo grupo obrigatorio: ExampleWorkbench,
 receitas com estacao de mod e o conjunto Helmet/Breastplate/Leggings.
 O Lote A/2 continua aberto; nenhum lote posterior foi abandonado.
+
+Entrega .90.28.5 / ExampleMod 0.1.35 gerada pelo pipeline 38560108522,
+commit de build `2d1012b7d067347688ea242827762b4dfe6f51b3`, com assinatura V3.
+Todos os checks obrigatorios passaram. A matriz possui 199 arquivos: seis
+novos ports validados em host, sem validacao Android nova. Nenhuma alteracao
+funcional posterior ao commit de build nesta entrega.
