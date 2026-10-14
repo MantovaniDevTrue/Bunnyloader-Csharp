@@ -132,9 +132,9 @@ try {
   string root="tests/basic_items/tile_fixture";
   string output=Path.Combine(scratch,"tile.dll"),diag=Path.Combine(scratch,"tile.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));
-  Equal(2,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(5,CompiledAssemblyProbe.Verify(output,diag));
   var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(3,rows.Length);
+  Equal(6,rows.Length);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
   Equal(13,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
@@ -142,6 +142,30 @@ try {
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);
   Equal("1,-1,v36:1,mExampleItem:10",item[19]);
+  foreach (string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
+   var values=rows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t")).Split('\t');
+   Equal(21,values.Length);
+   Equal("1,mExampleWorkbench,mExampleItem:1",values[19]);
+   using var behavior=JsonDocument.Parse(Convert.FromHexString(values[20]));
+   var rootBehavior=behavior.RootElement;
+   Equal(armorName=="ExampleBreastplate"?6:5,rootBehavior.GetProperty("defense").GetInt32());
+   if(armorName=="ExampleHelmet") {
+    var set=rootBehavior.GetProperty("armorSet");
+    Equal("ExampleHelmet",set.GetProperty("head").GetString());
+    Equal("ExampleBreastplate",set.GetProperty("body").GetString());
+    Equal("ExampleLeggings",set.GetProperty("legs").GetString());
+    Equal(4,set.GetProperty("effects").GetProperty("effects").GetArrayLength());
+    Equal(0.2f,set.GetProperty("effects").GetProperty("effects")[0][2].GetSingle());
+   } else if(armorName=="ExampleBreastplate") {
+    var effects=rootBehavior.GetProperty("armor");
+    Equal(2,effects.GetProperty("effects").GetArrayLength());
+    Equal("OnFire",effects.GetProperty("immune")[0].GetString());
+   } else {
+    var effects=rootBehavior.GetProperty("armor").GetProperty("effects");
+    Equal("moveSpeed",effects[0][0].GetString());
+    Equal(0.05f,effects[0][2].GetSingle());
+   }
+  }
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/tiles-source-runtime-values.txt",true);
  });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{

@@ -408,7 +408,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
     status->basicItems = ctx.basicItems;
-    if (status->items+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
+    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
