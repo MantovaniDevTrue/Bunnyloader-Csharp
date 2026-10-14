@@ -7,6 +7,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
@@ -61,6 +62,31 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
     return out;
+}
+
+JSValue jsManagedNativeEquipTextures(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc) return JS_ThrowTypeError(ctx, "nativeEquipTextures()");
+    const auto records = bl::csharp::managedNativeEquipTextures();
+    JSValue array = JS_NewArray(ctx);
+    uint32_t index = 0;
+    for (const auto& entry : records) {
+        JSValue record = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, record, "type", JS_NewInt32(ctx, entry.itemType));
+        JS_SetPropertyStr(ctx, record, "kind", JS_NewInt32(ctx, entry.visualMode));
+        JS_SetPropertyStr(ctx, record, "texture", JS_NewString(ctx, entry.texture.c_str()));
+        JS_SetPropertyUint32(ctx, array, index++, record);
+    }
+    return array;
+}
+
+JSValue jsManagedSetNativeEquipSlot(JSContext* ctx, JSValueConst, int argc,
+                                   JSValueConst* argv) {
+    if (argc != 3) return JS_ThrowTypeError(ctx, "setNativeEquipSlot(itemType, kind, slot)");
+    int32_t type = -1, kind = -1, slot = -1;
+    if (JS_ToInt32(ctx, &type, argv[0]) < 0 ||
+        JS_ToInt32(ctx, &kind, argv[1]) < 0 ||
+        JS_ToInt32(ctx, &slot, argv[2]) < 0) return JS_EXCEPTION;
+    return JS_NewBool(ctx, bl::csharp::setManagedNativeEquipSlot(type, kind, slot));
 }
 
 JSValue jsManagedVisualTexturePath(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
@@ -2730,6 +2756,10 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "nativeEquipTextures",
+                      JS_NewCFunction(ctx, jsManagedNativeEquipTextures, "nativeEquipTextures", 0));
+    JS_SetPropertyStr(ctx, api, "setNativeEquipSlot",
+                      JS_NewCFunction(ctx, jsManagedSetNativeEquipSlot, "setNativeEquipSlot", 3));
     JS_SetPropertyStr(ctx, api, "managedInspect",
                       JS_NewCFunction(ctx, jsManagedInspect, "managedInspect", 0));
     JS_SetPropertyStr(ctx, api, "managedProbe",
