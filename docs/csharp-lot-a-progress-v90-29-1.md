@@ -161,3 +161,19 @@ implementar frames/apoio/drop/dust/adjacencia/Guia e portar ambos os fontes.
 
 Versao .90.29.5/code170, cache Roslyn v19; ExampleMod permanece 0.1.36. Build
 experimental e validacao Android pendentes; Lote A nao concluido.
+
+
+### Evidencias de entrega .90.29.5
+
+Runtime `f0ba6804d6cc53b546e9b6133182083ad7321394`: oito suites aprovadas
+(audit 38617948795, combat 38617948838, prefix 38617948716,
+lifecycle 38617948914, monoGc 38617948691, monoSignals 38617948980,
+visual 38617948879, nativeVisual 38617948676).
+[Android 38617948804](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38617948804)
+compilou, assinou V3 e entregou artefato experimental privado; ExampleMod
+permanece 0.1.36. O teste --placement-wire usa a saida real de Compiler e
+CompiledAssemblyProbe, nao apenas um wire escrito manualmente.
+
+Escopo entregue: API e bridge de itens colocaveis; 0 novos ports do ExampleMod.
+Escopo ainda aberto: bancada C# e receitas originais dependentes dela; Lote A
+permanece incompleto. Validacao Android nova nao executada nesta entrega.

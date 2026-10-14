@@ -1006,14 +1006,26 @@
       "api": "BunnyItem.DefaultToPlaceableTile(int|string, int style=0)",
       "test": "tests/native_recipes/native_recipes_test.cpp --placement-wire",
       "scope": "Compiled CSharp descriptor to production registry/defaults/queue/recipe adapter without QuickJS, with emulated Terraria metadata",
-      "status": "Host tests pass; CI/build/device pending",
+      "status": "Compiled-source contract, eight CI suites and Android build/signing passed; experimental private artifact delivered; device validation pending",
       "remaining": [
         "CSharp tile/station API",
         "TileObjectData configuration lifecycle",
         "placement/break/support/dust/housing/adjacency on Android",
         "all incomplete Lot A examples"
       ],
-      "newCompletedExamples": 0
+      "newCompletedExamples": 0,
+      "runtimeCommit": "f0ba6804d6cc53b546e9b6133182083ad7321394",
+      "androidBuildRun": 38617948804,
+      "eightSuiteRuns": {
+        "audit": 38617948795,
+        "combat": 38617948838,
+        "prefix": 38617948716,
+        "lifecycle": 38617948914,
+        "monoGc": 38617948691,
+        "monoSignals": 38617948980,
+        "visual": 38617948879,
+        "nativeVisual": 38617948676
+      }
     }
   }
 }

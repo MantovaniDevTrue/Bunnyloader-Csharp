@@ -156,3 +156,19 @@ registro paralelo nem voltar a chamar RecipeLoader JS. Portar ambos os arquivos
 ExampleWorkbench e as receitas originais das armaduras depois dos contratos
 funcionais, mantendo os demais 33 exemplos no escopo. Policies de equipamento
 e suporte de recipes alem do limite ainda precisam de desacoplamento.
+
+
+## .90.29.5 — colocacao por itens
+
+DefaultToPlaceableTile recebe IDs vanilla ou chaves de mod e escreve os campos
+reais createTile/placeStyle pelo NativeBasicItems. Registro/resolucao/retry usam
+TileRegistry diretamente. O --placement-wire liga o wire de C# realmente
+compilado ao pump, registradores e Recipe adapter de producao sem QuickJS.
+Metadados e chamadas do Terraria sao emulados no host; nao prova mundo Android.
+
+Classificacao: API C# com bridge propria usando registro nativo independente
+compartilhado. O layout/renderizacao/housing/apoio/drop/dust de uma estacao C#
+ainda precisa de contratos adicionais; nao foi exposta uma falsa BunnyTile nem
+foi promovido ExampleWorkbench. Policies de equipamento continuam dependendo
+do caminho JS existente. Eight suites e Android build 38617948804 aprovados;
+validacao da nova API no Android pendente.
