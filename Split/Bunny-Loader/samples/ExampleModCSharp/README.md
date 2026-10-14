@@ -1,5 +1,13 @@
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
+**Pacote atual: 0.1.33 / Bunny .90.27.6.** O Guardian Shield e as Trailblazer
+Boots usam slots nativos Shield/Shoes. A instalacao funciona com apenas mods C#;
+itens salvos recebem o slot antes de o Terraria processar o equipamento. As botas
+visiveis chamam a rotina nativa de chamas ao correr no chao, sem montaria.
+Veja os comentarios nos dois acessorios e o guia dentro do .bmod.
+Testes de host cobrem instalacao automatica, registro tardio, repeticoes,
+falhas/retry e condicoes do rastro. O desenho no aparelho ainda exige verificacao.
+
 **Versão atual do exemplo: 0.1.25**, para o lote .90.25. Comece pelo [guia incluído no .bmod](Playable/content/LEIA_PRIMEIRO.md) e pelas [oito receitas comentadas](Playable/content/Common/Recipes/).
 
 **Histórico anterior:** **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
@@ -50,4 +58,5 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 A restauração dos três prefixos da .90.11 foi confirmada pelo usuário no Android. Os utilitários e diagnósticos novos da .90.25 têm validação automatizada de host; gameplay desta nova build ainda requer confirmação no aparelho.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
+
 

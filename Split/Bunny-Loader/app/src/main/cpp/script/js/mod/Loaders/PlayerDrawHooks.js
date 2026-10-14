@@ -558,7 +558,7 @@ class BunnyCSharpTrailLayer extends PlayerDrawLayer {
     GetDefaultPosition() { return PlayerDrawLayer.BeforeParent(PlayerDrawLayers.BackAcc); }
     GetDefaultVisibility(info) {
         if (++BunnyCSharpTrailLayer.NativeEquipPoll % 120 === 1)
-            EquipLoader.SyncCSharp();
+            EquipLoader.Install();
         const visible = BunnyCSharpVisualRender.Visible(info);
         if (!visible) BunnyCSharpVisualRender.Trails.delete(info.drawPlayer.whoAmI);
         return visible;
@@ -583,3 +583,4 @@ class BunnyCSharpBarrierLayer extends PlayerDrawLayer {
 PlayerDrawHooks.AddLayer(new BunnyCSharpTrailLayer(), BunnyCSharpTrailLayer);
 PlayerDrawHooks.AddLayer(new BunnyCSharpShieldLayer(), BunnyCSharpShieldLayer);
 PlayerDrawHooks.AddLayer(new BunnyCSharpBarrierLayer(), BunnyCSharpBarrierLayer);
+
