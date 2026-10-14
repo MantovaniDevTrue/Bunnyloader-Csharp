@@ -40,6 +40,32 @@ jobs:
           assert '" campos=" + std::to_string(fields.size())' in loader
           print("BUNNY_ANDROID_V2_CACHE_RECOVERY_GUARD=PASS")
           PY
+      - name: Guard CSharp warm-start and stable compatible cache
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          app = Path("app/build.gradle.kts").read_text()
+          assert 'versionName = "0.1.10.16.90.29.8-csharp-warm-start"' in app
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
+          assert 'status.cached = readCache(cacheFile, mod.id, key' in auto
+          assert 'g_cachedMods.fetch_add(1' in auto
+          assert 'g_compiledMods.fetch_add(1' in auto
+          compile_part = auto[auto.index("bool compile("):auto.index("bool parseCurves(")]
+          assert 'const auto deadline = started + std::chrono::seconds(180)' in compile_part
+          assert 'elapsed < 2500ms ? 35ms' in compile_part
+          assert 'elapsed < 12s ? 100ms : 300ms' in compile_part
+          assert compile_part.index('const std::string status = readText(path, 8192)') < compile_part.index('std::this_thread::sleep_for(elapsed <')
+          assert 'elapsed < 2s ? 35ms : 150ms' in auto
+          assert 'g_runtimeWarming.store(true, std::memory_order_release)' in auto
+          assert 'probeManagedRuntimePinnedThread(probe, "PINNED_MONO")' in auto
+          assert auto.index('g_runtimeWarming.store(true, std::memory_order_release)') < auto.index('note(&status, "applying")')
+          assert 'g_preWorldBindingsArmed.load(std::memory_order_acquire)' in auto
+          assert 'preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()' in auto
+          assert 'C# carregou sem problemas:' in auto
+          print("BUNNY_CSHARP_WARM_START_GUARD=PASS")
+          PY
       - name: Guard optional Terraria Item.active lookup
         working-directory: Split/Bunny-Loader
         run: |

@@ -46,6 +46,11 @@ namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
 constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate";
+std::chrono::steady_clock::time_point g_sourceStart{};
+std::atomic<int> g_cachedMods{0};
+std::atomic<int> g_compiledMods{0};
+std::atomic<bool> g_runtimeWarmStarted{false};
+std::atomic<bool> g_runtimeWarming{false};
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
@@ -275,8 +280,9 @@ bool compile(const std::string& root, const std::string& id,
     std::remove((workDir + "source-combat-policies.txt").c_str());
     if (!requestIsolatedMonoCompile(root, id, *error)) return false;
     const std::string path = workDir + "source-compile-status.txt";
-    for (int poll = 0; poll < 600; ++poll) {
-        std::this_thread::sleep_for(300ms);
+    const auto started = std::chrono::steady_clock::now();
+    const auto deadline = started + std::chrono::seconds(180);
+    for (; std::chrono::steady_clock::now() < deadline;) {
         const std::string status = readText(path, 8192);
         if (status.find("state=failed\n") != std::string::npos &&
             (status.find("modId=" + id + "\n") != std::string::npos ||
@@ -292,7 +298,12 @@ bool compile(const std::string& root, const std::string& id,
                      std::to_string(expected) + "; verifique sourceCompileStatus";
             return false;
         }
-        if (!validCompileStatus(status, id, mod)) continue;
+        if (!validCompileStatus(status, id, mod)) {
+            const auto elapsed = std::chrono::steady_clock::now() - started;
+            std::this_thread::sleep_for(elapsed < 2500ms ? 35ms :
+                                        elapsed < 12s ? 100ms : 300ms);
+            continue;
+        }
         *defaults = readText(workDir + "source-runtime-values.txt", kSourceDefaultsBytes);
         *curves = readText(workDir + "source-projectile-turns.txt", kSourceMotionBytes);
         *combat = readText(workDir + "source-combat-policies.txt", kSourceMotionBytes);
@@ -510,14 +521,15 @@ bool bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 return true;
             }
             ManagedRuntimeStatus mono = managedRuntimeStatus();
-            if (!mono.domainInitialized || !mono.methodExecuted)
+            if ((!mono.domainInitialized || !mono.methodExecuted) &&
+                !g_runtimeWarming.load(std::memory_order_acquire))
                 mono = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
             if (!mono.domainInitialized || !mono.methodExecuted || mono.result != 42) {
                 if (attempt == 0 || attempt == 10 || attempt == 30)
                     BL_DEBUG("csharp auto live %s: aguardando MonoVM (%s), tentativa=%d",
                             modId.c_str(), mono.phase.c_str(), attempt);
                 if (attempt >= 60) return false;
-                std::this_thread::sleep_for(500ms);
+                std::this_thread::sleep_for(attempt < 16 ? 75ms : 200ms);
                 continue;
             }
             std::unique_lock<std::mutex> sessionGuard(g_worldTransitionMutex);
@@ -574,7 +586,7 @@ bool bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                     error.find("unavailable") != std::string::npos;
                 if (temporary && attempt < 60) {
                     sessionGuard.unlock();
-                    std::this_thread::sleep_for(500ms);
+                    std::this_thread::sleep_for(attempt < 16 ? 75ms : 200ms);
                     continue;
                 }
                 BL_WARN("csharp auto live %s: nao vinculado (%s)",
@@ -670,12 +682,14 @@ void run() {
         }
         note(&status, "waiting-content");
         bool ready = false;
-        for (int i = 0; i < 300; ++i) {
+        const auto tablesStarted = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - tablesStarted < 90s) {
             if (runtime::modProjectilesSettled()) {
                 ready = true;
                 break;
             }
-            std::this_thread::sleep_for(300ms);
+            const auto elapsed = std::chrono::steady_clock::now() - tablesStarted;
+            std::this_thread::sleep_for(elapsed < 2s ? 35ms : 150ms);
         }
         if (!ready) {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
@@ -697,6 +711,22 @@ void run() {
                 continue;
             }
         }
+        if (mod.projectiles > 0 &&
+            !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
+            const std::string probe = work + "BunnyManagedProbe.dll";
+            struct stat probeStat{};
+            if (stat(probe.c_str(), &probeStat) == 0 && S_ISREG(probeStat.st_mode)) {
+                g_runtimeWarming.store(true, std::memory_order_release);
+                std::thread([probe] {
+                    const ManagedRuntimeStatus state =
+                        probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
+                    if (!state.methodExecuted || state.result != 42)
+                        BL_DEBUG("csharp startup: MonoVM prewarm pendente (%s)",
+                                 state.phase.c_str());
+                    g_runtimeWarming.store(false, std::memory_order_release);
+                }).detach();
+            }
+        }
         note(&status, "applying");
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
         if (!defaultsApplied && status.cached &&
@@ -713,6 +743,8 @@ void run() {
             continue;
         }
         status.applied = true;
+        if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
+        else g_compiledMods.fetch_add(1, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
         std::vector<Curve> entries;
         if (!parseCurves(mod.id, curves, mod, &entries)) {
@@ -874,9 +906,12 @@ void reportCSharpLoadSummary() {
                 successful, failed, pending, basic.pendingBehaviors, basic.pendingRecipes,
                 basic.pendingPlacements, pendingCallbacks);
     else
-        BL_INFO("C# carregou sem problemas: %d mod(s), %d item(ns), %d prefixo(s), %d receita(s)",
+        BL_INFO("C# carregou sem problemas: %d mod(s), %d item(ns), %d prefixo(s), %d receita(s), cache=%d, compilados=%d, preparo=%lldms",
                 successful, basic.items, registeredManagedPrefixCount(),
-                basic.installedRecipes);
+                basic.installedRecipes, g_cachedMods.load(std::memory_order_relaxed),
+                g_compiledMods.load(std::memory_order_relaxed),
+                static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - g_sourceStart).count()));
 }
 
 void showWorldPlayerMessagesWhenReady() {
@@ -935,7 +970,7 @@ void noteAutoGameUpdate() {
     flushDeferredWorldEntry();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
         static unsigned retries = 0;
-        if (++retries % 120u == 0) schedulePreWorldBindings();
+        if (++retries % 12u == 0) schedulePreWorldBindings();
         reportCSharpLoadSummary();
         return;
     }
@@ -1093,6 +1128,7 @@ bool installCSharpWorldEntryGate() {
 
 void startAutoSourceRuntime() {
     if (g_started.exchange(true, std::memory_order_acq_rel)) return;
+    g_sourceStart = std::chrono::steady_clock::now();
     std::thread(run).detach();
 }
 
