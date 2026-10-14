@@ -4020,7 +4020,7 @@
       "terrariaTests": [
         "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Item/receita ligados ao runtime; arquivo JS inteiro permanece Parcial por conter moeda customizada.",
+      "validation": "Item/receita aprovados nos testes de host e build Android (runs 38508838476 / 38508373513). Arquivo JS inteiro permanece Parcial: moeda customizada nao implementada. Gameplay no aparelho pendente.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -6777,7 +6777,7 @@
       "terrariaTests": [
         "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
+      "validation": "Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -6905,7 +6905,7 @@
       "terrariaTests": [
         "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
+      "validation": "Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
