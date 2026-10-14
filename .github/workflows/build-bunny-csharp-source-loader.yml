@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -1535,7 +1536,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='173' versionName='0.1.10.16.90.29.8-csharp-warm-start'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='174' versionName='0.1.10.16.90.29.9-csharp-lot-a1-checkpoint'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
@@ -1604,7 +1605,7 @@ jobs:
           TITLE="Bunny Loader C# $VERSION | private signing v3"
           NOTES="Private Android test build signed with the v3 key. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contains the Terraria runtime for restricted development/testing; do not publish or redistribute without appropriate rights."
           if [ "$GITHUB_REF" = "refs/heads/codex/lot-a-complete-v90-29" ]; then
-            # Experimental delivery requires all eight independent regression workflows.
+            # Experimental delivery requires all nine independent regression workflows.
             for attempt in $(seq 1 40); do
               gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/lot-a-workflows.json"
               set +e
@@ -1619,8 +1620,8 @@ jobs:
               sleep 15
             done
             TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
-            TITLE="EXPERIMENTAL — Lote A incomplete | Bunny Loader C# $VERSION"
-            NOTES="Experimental infrastructure checkpoint, not a complete Lot A release. Native CSharp recipe registration is available for device validation; the CSharp workbench and remaining examples are still pending. Eight independent regression suites succeeded. Android gameplay and 60 FPS have not been validated for this build. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+            TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
+            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use the separate A1_ExampleWorkbench_Armor_CSharp_Probe_0.1.0.bmod to test. Existing ExampleMod CSharp remains at 0.1.36. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.36.bmod" \

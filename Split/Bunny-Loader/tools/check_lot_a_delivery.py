@@ -11,6 +11,7 @@ REQUIRED = frozenset({
     'Check Mono pinned worker GC transitions',
     'Check Mono Android signal ownership',
     'Check Bunny CSharp Native Visual Queue',
+    'Validate CSharp Native Tile Bridge',
 })
 
 def verdict(data, sha):
