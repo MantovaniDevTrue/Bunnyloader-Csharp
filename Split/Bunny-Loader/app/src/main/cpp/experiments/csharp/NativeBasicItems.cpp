@@ -31,6 +31,7 @@ int lastBehaviorType=-1;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
 std::atomic<bool> behaviorsPending{false};
+std::atomic<bool> placementsPending{false};
 std::atomic<unsigned> contentGeneration{0};
 struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
 std::array<IntegerField,BasicFieldCount-1> integerFields{};
@@ -143,7 +144,7 @@ void resolvePlacements() {
                 " Stage=ResolveTile Expected=InstalledTileWithinNativeRange Actual="+std::to_string(target)+
                 " Result=PlacementDisabled Reason="+reason;
             if(placementErrors[entry.type]!=message){placementErrors[entry.type]=message;
-                if(reason=="NativeRangeExceeded")BL_ERROR("%s",message.c_str());else BL_WARN("%s",message.c_str());}
+                if(reason=="NativeRangeExceeded")BL_ERROR("%s",message.c_str());else BL_DEBUG("%s",message.c_str());}
             continue;
         }
         entry.placeTile=target;placementErrors.erase(entry.type);
@@ -151,6 +152,13 @@ void resolvePlacements() {
         BL_INFO("[CSharp][INFO][Placement] Mod=%s Class=%s Tile=%s ContentId=%d TileId=%d Stage=ResolveTile Result=Ready",
             entry.modId.c_str(),entry.name.c_str(),entry.placeTileKey.c_str(),entry.type,target);
     }
+    bool pending=false;
+    for(const auto& [id,entry]:definitions)
+        if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0) {
+            pending=true;
+            break;
+        }
+    placementsPending.store(pending,std::memory_order_release);
 }
 
 bool prepare(std::string* error) {
@@ -388,6 +396,8 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         entry.modDir=definitions.at(entry.type).modDir;
         entry.sourceFile=definitions.at(entry.type).sourceFile;entry.modId=modId;
         if(!entry.behavior.empty())behaviorsPending.store(true,std::memory_order_release);
+        if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0)
+            placementsPending.store(true,std::memory_order_release);
         runtime::setModItemTooltip(entry.type,{{"",entry.tooltip}});
         for(size_t i=0;i<entry.recipes.size();++i) {
             auto id=modId+"/"+entry.name+"#"+std::to_string(i);
@@ -603,7 +613,7 @@ void pumpBasicRecipesOnGameThread() {
     const bool fast=fastPasses>0;
     if(fast)--fastPasses;
     ++ticks;
-    if(fast||ticks%120u==0)resolvePlacements();
+    if(placementsPending.load(std::memory_order_acquire)&&(fast||ticks%120u==0))resolvePlacements();
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
 #if BL_HAVE_QUICKJS
     if(behaviorsPending.load(std::memory_order_acquire)&&(fast||ticks%120u==0)) {
@@ -653,7 +663,7 @@ void pumpBasicRecipesOnGameThread() {
                     BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
             } else if(result.error.substr(0,1000)!=pending.error) {
                 reportBasicRecipeError(pending.id,result.error);
-                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_WARN("%s",result.error.c_str());
+                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_DEBUG("%s",result.error.c_str());
                 else BL_ERROR("%s",result.error.c_str());
             }
         }

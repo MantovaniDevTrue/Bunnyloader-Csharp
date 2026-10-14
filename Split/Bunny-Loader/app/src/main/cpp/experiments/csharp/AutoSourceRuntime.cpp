@@ -5,6 +5,7 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/items/ModItemSave.h"
+#include "hook/HookManager.h"
 
 #include "content/common/GameRefs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -44,7 +45,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_6_startup_prefix";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate";
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
@@ -52,6 +53,13 @@ std::atomic<bool> g_started{false};
 std::atomic<bool> g_initialCSharpRegistrationFinished{false};
 std::atomic<bool> g_worldCSharpSummaryShown{false};
 std::atomic<int> g_worldCSharpSummaryWait{0};
+std::atomic<bool> g_preWorldBindingsArmed{false};
+std::atomic<bool> g_preWorldBindingsRunning{false};
+std::atomic<bool> g_delayedWorldEntry{false};
+std::atomic<int> g_delayedWorldTicks{0};
+const MethodInfo* g_delayedPlayWorldMethod=nullptr;
+using PlayWorldFn=void (*)(const MethodInfo*);
+PlayWorldFn g_originalPlayWorld=nullptr;
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
 std::atomic<int> g_worldReadyFrames{0};
@@ -476,17 +484,17 @@ ActivationContext readActivationContext() {
     return result;
 }
 
-void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
-                           const std::string& work, uint64_t epoch) {
+bool bindLiveEventsOnWorld(const std::string& modId, int projectileType,
+                           const std::string& work, uint64_t epoch, bool preWorld=false) {
     il2cpp::api().thread_attach(il2cpp::api().domain_get());
     const std::string dll = work + "compiled/" + modId + ".dll";
     const std::string probe = work + "BunnyManagedProbe.dll";
     for (int attempt = 0; attempt < 14400; ++attempt) {
-        if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
-            !g_worldSessionReady.load(std::memory_order_acquire)) return;
+        if (!preWorld && (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
+            !g_worldSessionReady.load(std::memory_order_acquire))) return false;
         const ActivationContext context = readActivationContext();
         if (context.netMode == 0 &&
-            (context.gameMenu == 0 ||
+            (preWorld || context.gameMenu == 0 ||
              (context.gameMenu < 0 && context.worldReady))) {
             {
                 std::lock_guard<std::mutex> guard(g_lock);
@@ -499,22 +507,22 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 if (bindManagedPlayerHurtMod(modId, dll))
                     BL_INFO("csharp BunnyPlayer Hurt: %s vinculado ao MonoVM", modId.c_str());
                 requestManagedNpcBuffDispatcher();
-                return;
+                return true;
             }
             ManagedRuntimeStatus mono = managedRuntimeStatus();
             if (!mono.domainInitialized || !mono.methodExecuted)
                 mono = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
             if (!mono.domainInitialized || !mono.methodExecuted || mono.result != 42) {
                 if (attempt == 0 || attempt == 10 || attempt == 30)
-                    BL_WARN("csharp auto live %s: aguardando MonoVM (%s), tentativa=%d",
+                    BL_DEBUG("csharp auto live %s: aguardando MonoVM (%s), tentativa=%d",
                             modId.c_str(), mono.phase.c_str(), attempt);
-                if (attempt >= 60) return;
+                if (attempt >= 60) return false;
                 std::this_thread::sleep_for(500ms);
                 continue;
             }
             std::unique_lock<std::mutex> sessionGuard(g_worldTransitionMutex);
-            if (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
-                !g_worldSessionReady.load(std::memory_order_acquire)) return;
+            if (!preWorld && (g_worldEpoch.load(std::memory_order_acquire) != epoch ||
+                !g_worldSessionReady.load(std::memory_order_acquire))) return false;
             std::string error;
             const bool success = live.enabled
                 ? enableManagedLiveMod(modId, dll, projectileType, [&] {
@@ -559,7 +567,7 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 }
             } else {
                 if (attempt == 0 || attempt == 10 || attempt == 30)
-                    BL_WARN("csharp auto live %s: vinculacao pendente (%s), tentativa=%d",
+                    BL_DEBUG("csharp auto live %s: vinculacao pendente (%s), tentativa=%d",
                             modId.c_str(), error.c_str(), attempt);
                 const bool temporary = error.find("ocupado") != std::string::npos ||
                     error.find("PINNED_MONO") != std::string::npos ||
@@ -572,14 +580,47 @@ void bindLiveEventsOnWorld(const std::string& modId, int projectileType,
                 BL_WARN("csharp auto live %s: nao vinculado (%s)",
                         modId.c_str(), error.c_str());
             }
-            return;
+            return success;
         }
-        if (context.netMode > 0 && context.gameMenu == 0) return;
+        if (context.netMode > 0 && context.gameMenu == 0) return false;
         if (context.netMode == 0 && context.gameMenu < 0 && attempt == 10)
             BL_WARN("csharp auto live %s: Main.gameMenu indisponivel; aguardando evento de mundo e jogador ativo",
                     modId.c_str());
         std::this_thread::sleep_for(1000ms);
     }
+    return false;
+}
+
+void schedulePreWorldBindings() {
+    if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
+        g_preWorldBindingsArmed.load(std::memory_order_acquire) ||
+        g_preWorldBindingsRunning.exchange(true, std::memory_order_acq_rel))
+        return;
+    std::vector<std::pair<std::string, int>> bindings;
+    std::string work;
+    {
+        std::lock_guard<std::mutex> guard(g_lock);
+        bindings = g_pendingLiveSpecs;
+        work = g_pendingLiveWork;
+    }
+    if (bindings.empty()) {
+        g_preWorldBindingsArmed.store(true, std::memory_order_release);
+        g_preWorldBindingsRunning.store(false, std::memory_order_release);
+        return;
+    }
+    std::thread([bindings = std::move(bindings), work] {
+        bool successful = true;
+        for (const auto& [id, type] : bindings) {
+            if (!bindLiveEventsOnWorld(id, type, work, 0, true)) {
+                BL_WARN("C# callback nao preparado antes do mundo: mod=%s tipo=%d",
+                        id.c_str(), type);
+                successful = false;
+                break;
+            }
+        }
+        g_preWorldBindingsArmed.store(successful, std::memory_order_release);
+        g_preWorldBindingsRunning.store(false, std::memory_order_release);
+    }).detach();
 }
 
 void scheduleAutoLiveBindings() {
@@ -695,6 +736,7 @@ void run() {
     }
     if (pending.empty() && pendingCombat.empty()) {
         g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
+        schedulePreWorldBindings();
         return;
     }
     const ActivationContext context = readActivationContext();
@@ -790,16 +832,15 @@ void run() {
             g_pendingLiveSpecs = std::move(bindings);
             g_pendingLiveWork = work;
         }
-        scheduleAutoLiveBindings();
     }
     g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
+    schedulePreWorldBindings();
 }
 
 }
 
 void reportCSharpLoadSummary() {
-    if (!g_worldSessionReady.load(std::memory_order_acquire) ||
-        !g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
+    if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
         g_worldCSharpSummaryShown.load(std::memory_order_acquire)) return;
 
     const auto statuses = autoSourceStatuses();
@@ -816,10 +857,16 @@ void reportCSharpLoadSummary() {
                 status.enabledKills < status.killPolicies) ++pendingCallbacks;
         }
     }
+    if (!g_preWorldBindingsArmed.load(std::memory_order_acquire))
+        ++pendingCallbacks;
+    else {
+        std::lock_guard<std::mutex> lock(g_lock);
+        if (!g_pendingLiveSpecs.empty() &&
+            !managedNpcBuffEffectStatus().gameHookInstalled) ++pendingCallbacks;
+    }
     const int pending = basic.pendingBehaviors + basic.pendingRecipes +
         basic.pendingPlacements + pendingCallbacks;
-    if (pending && g_worldCSharpSummaryWait.fetch_add(1, std::memory_order_relaxed) < 300)
-        return;
+    if (pending) return;
     if (g_worldCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
         return;
     if (pending || failed)
@@ -845,7 +892,7 @@ void retryWorldManagedPrefixesWhenReady() {
         !managedPrefixGameplayReady()) return;
     if (g_worldPrefixesRestored.exchange(true, std::memory_order_acq_rel))
         return;
-    BL_INFO("csharp prefix: hooks e descritores prontos; iniciando restauracao tardia");
+    BL_DEBUG("csharp prefix: restauracao do personagem pendente");
     bl::runtime::retryPendingManagedPrefixesOnWorldReady();
 }
 
@@ -858,19 +905,40 @@ void noteAutoWorldTilesLoaded() {
     g_worldSessionReady.store(false, std::memory_order_release);
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
-    g_worldPrefixesRestored.store(false, std::memory_order_release);
-    g_worldCSharpSummaryShown.store(false, std::memory_order_release);
-    g_worldCSharpSummaryWait.store(0, std::memory_order_release);
+    if (!g_preWorldBindingsArmed.load(std::memory_order_acquire))
+        g_worldPrefixesRestored.store(false, std::memory_order_release);
     g_worldPlayerMessagesShown.store(false, std::memory_order_release);
-    if (managedLiveHitStatus().enabled)
-        pauseManagedLiveHit();
-    pauseManagedPlayerHurtBindings();
     g_worldTilesLoaded.store(true, std::memory_order_release);
+    if (g_preWorldBindingsArmed.load(std::memory_order_acquire)) {
+        g_liveBoundEpoch.store(g_worldEpoch.load(std::memory_order_acquire),
+                               std::memory_order_release);
+    } else {
+        if (managedLiveHitStatus().enabled) pauseManagedLiveHit();
+        pauseManagedPlayerHurtBindings();
+    }
 }
+
+void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
     pumpBasicRecipesOnGameThread();
-    if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
+    if (!g_worldTilesLoaded.load(std::memory_order_acquire))
+        updateManagedNpcBuffDispatcherOnGameThread();
+    if (!g_worldTilesLoaded.load(std::memory_order_acquire) &&
+        g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) &&
+        managedPrefixGameplayReady()) {
+        static unsigned restorationTick = 0;
+        if (++restorationTick % 120u == 0 &&
+            bl::runtime::pendingManagedPrefixCountForActivePlayer() > 0)
+            bl::runtime::retryPendingManagedPrefixesOnWorldReady();
+    }
+    flushDeferredWorldEntry();
+    if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
+        static unsigned retries = 0;
+        if (++retries % 120u == 0) schedulePreWorldBindings();
+        reportCSharpLoadSummary();
+        return;
+    }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
@@ -899,7 +967,11 @@ void noteAutoGameUpdate() {
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
-    g_worldPlayerMessagesShown.store(false, std::memory_order_release);
+        g_worldCSharpSummaryShown.store(false, std::memory_order_release);
+        g_worldCSharpSummaryWait.store(0, std::memory_order_release);
+        g_preWorldBindingsArmed.store(false, std::memory_order_release);
+        g_liveBoundEpoch.store(0, std::memory_order_release);
+        g_worldPlayerMessagesShown.store(false, std::memory_order_release);
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
@@ -926,6 +998,97 @@ void noteAutoGameUpdate() {
         showWorldPlayerMessagesWhenReady();
         scheduleAutoLiveBindings();
     }
+}
+
+bool preWorldCSharpContentReady() {
+    bool hasCSharpMods = false;
+    for (const auto& source : sourceModStatuses())
+        if (source.loaded && source.sourceFiles > 0) {
+            hasCSharpMods = true;
+            break;
+        }
+    if (!hasCSharpMods) return true;
+    if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
+        !g_preWorldBindingsArmed.load(std::memory_order_acquire))
+        return false;
+    const auto content = basicItemLoadStatus();
+    bool needsNpcDispatcher = false;
+    {
+        std::lock_guard<std::mutex> lock(g_lock);
+        needsNpcDispatcher = !g_pendingLiveSpecs.empty();
+    }
+    return content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
+           content.pendingPlacements == 0 &&
+           (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled) &&
+           bl::runtime::pendingManagedPrefixCountForActivePlayer() == 0;
+}
+
+bool finishPreWorldCSharpPlayer() {
+    if (managedPrefixGameplayReady()) {
+        refreshManagedPrefixEligibilityOnWorldReady();
+        bl::runtime::retryPendingManagedPrefixesOnWorldReady();
+    }
+    if (bl::runtime::pendingManagedPrefixCountForActivePlayer() != 0)
+        return false;
+    g_worldPrefixesRestored.store(true, std::memory_order_release);
+    return true;
+}
+
+void hkCSharpPlayWorld(const MethodInfo* method) {
+    if (preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()) {
+        if (g_originalPlayWorld) g_originalPlayWorld(method);
+        return;
+    }
+    if (!g_delayedWorldEntry.exchange(true, std::memory_order_acq_rel)) {
+        g_delayedPlayWorldMethod = method;
+        g_delayedWorldTicks.store(0, std::memory_order_relaxed);
+        BL_INFO("C# preparando mods antes de carregar o mundo...");
+    }
+}
+
+void flushDeferredWorldEntry() {
+    if (!g_delayedWorldEntry.load(std::memory_order_acquire)) return;
+    if (preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()) {
+        const MethodInfo* method = g_delayedPlayWorldMethod;
+        g_delayedWorldEntry.store(false, std::memory_order_release);
+        BL_INFO("C# conteudo pronto; continuando entrada no mundo");
+        if (g_originalPlayWorld) g_originalPlayWorld(method);
+        return;
+    }
+    if (g_delayedWorldTicks.fetch_add(1, std::memory_order_relaxed) < 14400)
+        return;
+    if (!g_delayedWorldEntry.exchange(false, std::memory_order_acq_rel))
+        return;
+    const auto content = basicItemLoadStatus();
+    BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=BeforeWorld Reason=ContentNotReady Timeout=240s Result=WorldEntryCancelled "
+             "PendingItems=%d PendingRecipes=%d PendingPlacements=%d PendingPrefixes=%d MonoBindingsReady=%d",
+             content.pendingBehaviors, content.pendingRecipes, content.pendingPlacements,
+             bl::runtime::pendingManagedPrefixCountForActivePlayer(),
+             g_preWorldBindingsArmed.load(std::memory_order_acquire) ? 1 : 0);
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* setMenu = main
+        ? il2cpp::api().class_get_method_from_name(main, "set_menuMode", 1)
+        : nullptr;
+    if (setMenu) {
+        int mode = 6;
+        void* args[1] = {&mode};
+        Il2CppObject* exception = nullptr;
+        il2cpp::api().runtime_invoke(setMenu, nullptr, args, &exception);
+        if (exception)
+            BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=ReturnToWorldList Reason=NativeMenuException");
+    }
+}
+
+bool installCSharpWorldEntryGate() {
+    Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
+    const MethodInfo* playWorld = worldGen
+        ? il2cpp::api().class_get_method_from_name(worldGen, "playWorld", 0)
+        : nullptr;
+    if (!playWorld || !bl::hook::install(playWorld, hkCSharpPlayWorld, &g_originalPlayWorld)) {
+        BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=InstallEntryHook Reason=WorldGenPlayWorldUnavailable");
+        return false;
+    }
+    return true;
 }
 
 void startAutoSourceRuntime() {

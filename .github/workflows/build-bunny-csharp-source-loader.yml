@@ -1148,7 +1148,7 @@ jobs:
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
           assert "modId=" in count_contract and "executedTypes=" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_6_startup_prefix" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -1160,7 +1160,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_6_startup_prefix" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
@@ -1536,7 +1536,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='171' versionName='0.1.10.16.90.29.6-csharp-startup-prefix'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='172' versionName='0.1.10.16.90.29.7-csharp-preworld-gate'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

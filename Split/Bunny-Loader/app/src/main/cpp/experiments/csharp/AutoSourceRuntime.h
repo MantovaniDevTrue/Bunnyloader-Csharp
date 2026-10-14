@@ -34,6 +34,8 @@ struct AutoWorldLifecycleStatus {
 
 AutoWorldLifecycleStatus autoWorldLifecycleStatus();
 void startAutoSourceRuntime();
+bool preWorldCSharpContentReady();
+bool installCSharpWorldEntryGate();
 void noteAutoWorldTilesLoaded();
 void noteAutoGameUpdate();
 std::vector<AutoSourceStatus> autoSourceStatuses();

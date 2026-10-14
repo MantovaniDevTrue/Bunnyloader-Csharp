@@ -1089,6 +1089,23 @@ bool resolve() {
 
 } // namespace
 
+int pendingManagedPrefixCountForActivePlayer() {
+    auto& api = il2cpp::api();
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main
+        ? api.class_get_method_from_name(main, "get_ActivePlayerFileData", 0)
+        : nullptr;
+    if (!getter) return 0;
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* data = api.runtime_invoke(getter, nullptr, nullptr, &exception);
+    if (exception || !data) return 0;
+    const std::string path = localPath(data);
+    if (path.empty()) return 0;
+    std::lock_guard<std::mutex> lock(g_mx);
+    auto it = g_pendingPrefix.find(path);
+    return it == g_pendingPrefix.end() ? 0 : static_cast<int>(it->second.size());
+}
+
 void retryPendingManagedPrefixesOnWorldReady() {
     retryPendingManagedPrefixesInWorld();
 }

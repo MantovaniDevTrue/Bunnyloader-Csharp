@@ -21,6 +21,7 @@ namespace bl::runtime {
  * no chao.
  */
 void retryPendingManagedPrefixesOnWorldReady();
+int pendingManagedPrefixCountForActivePlayer();
 void installModItemSave();
 
 } // namespace bl::runtime

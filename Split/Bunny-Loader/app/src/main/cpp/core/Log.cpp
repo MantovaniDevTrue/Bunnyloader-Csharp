@@ -24,7 +24,9 @@ std::atomic<bool> g_verbose{false};
 bool routineCSharpInfo(int level, const char* line) {
     if (level != ANDROID_LOG_INFO || !line) return false;
     return std::strncmp(line, "csharp ", 7) == 0 ||
-           std::strncmp(line, "[CSharp][INFO]", 14) == 0;
+           std::strncmp(line, "C# source ", 10) == 0 ||
+           std::strncmp(line, "[CSharp][INFO]", 14) == 0 ||
+           std::strncmp(line, "[mod] texturas vestidas:", 23) == 0;
 }
 
 std::string g_errors;
@@ -92,8 +94,8 @@ void write(int level, const char* fmt, ...) {
     va_end(again);
 
     toLogcat(level, buffer, length);
-    const bool compact = routineCSharpInfo(level, buffer) &&
-        !g_verbose.load(std::memory_order_relaxed);
+    const bool routine = routineCSharpInfo(level, buffer);
+    const bool compact = routine && !g_verbose.load(std::memory_order_relaxed);
 
     void (*notify)(const char*) = nullptr;
     {
@@ -121,7 +123,7 @@ void write(int level, const char* fmt, ...) {
     }
     // Fora do lock: quem escuta vai mexer em UI e pode logar de volta.
     if (notify) notify(buffer);
-    if (level >= ANDROID_LOG_INFO && !compact) {
+    if (level >= ANDROID_LOG_INFO && !routine) {
         if (auto line = g_onLine.load(std::memory_order_acquire)) line(level, buffer);
     }
 }
