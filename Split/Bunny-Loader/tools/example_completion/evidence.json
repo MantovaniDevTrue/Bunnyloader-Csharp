@@ -91,7 +91,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png"
@@ -381,7 +381,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
@@ -423,7 +423,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
@@ -464,7 +464,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
@@ -506,7 +506,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
@@ -549,7 +549,7 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou compilacao automatica, wire C# real, contrato nativo e comportamento nos hooks originais com doubles de Terraria. Android ainda nao executado nesta entrega.",
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
       "deviceEvidence": [],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
@@ -647,6 +647,23 @@
       "result": "Rejected before behavior installation; no Android validation for new group",
       "rootCause": "Primary Texture lacks .png; native preflight required extension and discarded its reason",
       "fix": "0.1.10.16.90.28.6 shared texture normalization and detailed preflight diagnostics; Android retest pending"
+    },
+    {
+      "loader": "0.1.10.16.90.28.6-csharp-texture-contract",
+      "exampleMod": "0.1.35",
+      "commit": "cec309b023f4092723d29c43567865c3ebb2fe33",
+      "kind": "Automated regressions",
+      "auditRun": 38563527368,
+      "combatRun": 38563534832,
+      "prefixRun": 38563527455,
+      "lifecycleRun": 38563534821,
+      "monoSignalRun": 38563534910,
+      "monoGcRun": 38563534879,
+      "visualRun": 38563527245,
+      "nativeVisualRun": 38563527051,
+      "result": "All eight host suites passed; Android device validation pending",
+      "androidBuildRun": 38563527063,
+      "buildResult": "APK signed and pipeline completed successfully; no device validation"
     }
   ],
   "deviceBaselines": [

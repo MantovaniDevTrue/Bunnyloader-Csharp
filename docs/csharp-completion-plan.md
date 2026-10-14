@@ -94,3 +94,8 @@ normaliza o caminho no registrador e elimina rejeicoes silenciosas no preflight.
 Teste novo cruza fontes reais, parser e o contrato de caminho do registrador;
 o CI tambem verifica os assets. Mantidos .90.28.4 como base estavel, todos os
 199 exemplos e o backlog do Lote 2. Validacao Android da correcao pendente.
+
+Build corretiva .90.28.6 aprovada no run `38563527063`, commit de runtime
+`cec309b023f4092723d29c43567865c3ebb2fe33`, ExampleMod 0.1.35. Oito suites
+independentes passaram. Proximo passo: confirmar registro no Android; o proximo
+grupo de implementacao continua Workbench/receitas e armaduras.

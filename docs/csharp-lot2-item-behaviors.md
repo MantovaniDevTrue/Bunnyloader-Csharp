@@ -111,3 +111,10 @@ ExampleMod permanece 0.1.35: nao houve alteracao dos fontes ou identificadores.
 Repetir primeiro o passo 1 do roteiro Android. Se houver falha, o relatorio
 precisa incluir a causa concreta, e nao apenas NativeRegistrationRejected.
 Depois executar os testes de cada equipamento/material acima.
+
+Pipeline .90.28.6 aprovado: run `38563527063`, runtime commit
+`cec309b023f4092723d29c43567865c3ebb2fe33`. Oito suites independentes passaram,
+incluindo auditoria/itens `38563527368`. APK assinado e pacote fonte 0.1.35
+gerados pelo fluxo existente. Evidencia final de CI registrada depois do build;
+o pacote desse run contem a matriz e o roteiro do commit de runtime.
+Teste no Android da correcao continua pendente.
