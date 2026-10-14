@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "deviceBaseline": {
+    "loader": "0.1.10.16.90.27.6",
+    "exampleMod": "0.1.33",
+    "platform": "Terraria Android 1.4.5.8.6 arm64-v8a / Xiaomi 2109119DG Android 14",
+    "report": "Usuario: \"funcionou perfeitamente\"",
+    "attachment": "1000279487.jpg",
+    "scope": [
+      "equipamento nativo Guardian Shield",
+      "Trailblazer Boots / chamas",
+      "barreira Mystic Ward preservada"
+    ],
+    "fps": null,
+    "doesNotProve": "Equivalencia integral de cada arquivo JS; FPS sustentado desta versao nao foi medido neste relato."
+  },
+  "examples": {
+    "Content/Items/Accessories/ExampleShield.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Dash e double-tap originais ainda nao portados.",
+        "Valores/efeitos originais do ExampleShield diferem dos atributos preservados do Guardian Shield."
+      ],
+      "preservedFeatures": [
+        "shieldSlot nativo, folha animada e atualizacao do slot de item salvo"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/ExampleBoots.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs"
+      ],
+      "missingFeatures": [
+        "rocketBoots, waterWalk, iceSkate, desertBoots, fireWalk, noFallDmg, lavaRose/lavaMax do original.",
+        "Rastro em montarias permitidas pelo JS original; C# atual restringe a personagem sem montaria."
+      ],
+      "preservedFeatures": [
+        "shoeSlot nativo, CancelAllBootRunVisualEffects, hellfireTreads e chamas no chao; velocidade/aceleracao do exemplo C#"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/ExampleStatAccessory.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Contrato completo de atributos/hooks do ExampleStatAccessory e equivalencia de valores."
+      ],
+      "preservedFeatures": [
+        "Bonus nativos de defesa/equipamento com ResetEffects."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/ExampleStatBonusAccessory.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente."
+      ],
+      "preservedFeatures": [
+        "Hurt, FreeDodge, NPC/projetil, vida e contexto espacial."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Buffs/ExampleDefenseBuff.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "missingFeatures": [
+        "ModifyDescription com localizacao e ModifyBuffText com duracao restante."
+      ],
+      "preservedFeatures": [
+        "+10 defesa em UpdatePlayer pelo hook nativo de buffs."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Consumables/ExampleBuffPotion.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+      ],
+      "missingFeatures": [
+        "DrinkParticleColors, som Item3, pilha/valor/raridade/duracao original e defaults de uso completos."
+      ],
+      "preservedFeatures": [
+        "consumivel que aplica o buff via Terraria."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/NPCs/ExampleSlimeNPC.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs"
+      ],
+      "missingFeatures": [
+        "Comparacao de toda a IA/animacao/spawn/loot com o original atualizado; contrato NPC geral."
+      ],
+      "preservedFeatures": [
+        "registro, defaults e IA seletiva nativa/MonoVM."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Prefixes/ExampleAccessoryPrefix.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleGuardedPrefix.cs"
+      ],
+      "missingFeatures": [
+        "API publica GetTooltipLines modificavel como no original."
+      ],
+      "preservedFeatures": [
+        "+4 defesa, valor 1.2, elegibilidade/rolagem/restauracao e tooltip nativo."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Prefixes/ExamplePrefix.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs"
+      ],
+      "missingFeatures": [
+        "Power sobrescrevivel, heranca do ExampleDerivedPrefix, GetTooltipLines e Apply genericos."
+      ],
+      "preservedFeatures": [
+        "dano 1.2, valor 1.05, RollWeight 5 e restauracao."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Common/Players/ExamplePlayer.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Todos os hooks/estado persistente do ModPlayer original; exemplos atuais nao sao portas integrais."
+      ],
+      "preservedFeatures": [
+        "OnEnterWorld, respawn, UpdateDead e callbacks de dano existentes."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    }
+  },
+  "additionalCSharpDeviceEvidence": {
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleMysticWardAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleMysticWardPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ]
+  }
+}
