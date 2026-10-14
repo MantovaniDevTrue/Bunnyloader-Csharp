@@ -157,7 +157,8 @@ void refreshLiveBasicItems() {
     if(!main||!item||!player)return;
     const int typeOffset=il2cpp::fieldOffset(item,"type");
     const int prefixOffset=il2cpp::fieldOffset(item,"prefix");
-    const int activeItem=il2cpp::fieldOffset(item,"active");
+    auto* itemActiveField=il2cpp::findField(item,"active");
+    const int activeItem=itemActiveField?static_cast<int>(api.field_get_offset(itemActiveField)):-1;
     const int activePlayer=il2cpp::fieldOffset(player,"active");
     const MethodInfo* prefix=il2cpp::findMethodBySignature(item,il2cpp::parseSignature("bool Prefix(int pre, bool topTier)"));
     if(typeOffset<0||prefixOffset<0)return;

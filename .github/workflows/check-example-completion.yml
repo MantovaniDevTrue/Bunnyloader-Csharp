@@ -38,6 +38,23 @@ jobs:
           assert '" campos=" + std::to_string(fields.size())' in loader
           print("BUNNY_ANDROID_V2_CACHE_RECOVERY_GUARD=PASS")
           PY
+      - name: Guard optional Terraria Item.active lookup
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path("app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp").read_text()
+          start=source.index("void refreshLiveBasicItems()")
+          end=source.index("bool registerBasicItemPlaceholder",start)
+          refresh=source[start:end]
+          assert 'il2cpp::fieldOffset(item,"active")' not in refresh
+          assert 'itemActiveField=il2cpp::findField(item,"active")' in refresh
+          assert 'itemActiveField?static_cast<int>(api.field_get_offset(itemActiveField)):-1' in refresh
+          assert 'activeItem<0||runtime::field<uint8_t>(values[i],activeItem)' in refresh
+          assert 'if(!isBasicItem(type))return;' in refresh
+          assert 'runtime::field<int32_t>(object,typeOffset)' in refresh
+          print("BUNNY_OPTIONAL_ITEM_ACTIVE_LOOKUP_PASS")
+          PY
       - name: Validate full ExampleMod CSharp V2 wire schema
         working-directory: Split/Bunny-Loader
         run: python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
