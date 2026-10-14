@@ -77,7 +77,9 @@ Check("composite.boots", () => {
     p.UpdateEquips(true);
     Equal(12,p.MoveSpeedPercent);
     Equal(8,p.UpdateMovement(true));
-    Equal(true,p.FrameEffects(true));
+    Equal((int)BunnyAccessoryVisualMode.RunningTrail, (int)acc.VisualMode);
+    Equal("Content/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png", acc.VisualTexture);
+    Equal(false,p.FrameEffects(true));
     p.ResetEffects();
     p.UpdateEquips(false);
     Equal(0,p.MoveSpeedPercent);
