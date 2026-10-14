@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/ValueLayout.h"
 #include "core/Log.h"
 #if BL_HAVE_QUICKJS
 #include "script/bridge/ScriptEngine.h"
@@ -17,7 +18,6 @@
 #include <map>
 #include <mutex>
 
-namespace bl::script { size_t structFieldOffset(Il2CppClass*,size_t); }
 namespace bl::csharp {
 namespace {
 std::mutex mutex;
@@ -83,14 +83,35 @@ std::vector<size_t> soundReferences;
 std::map<std::string,std::vector<unsigned char>> soundCache;
 bool prepared=false;
 
+bool instanceBounds(Il2CppClass* item,int offset,size_t width,const char* field,std::string* error) {
+    auto& api=il2cpp::api();const auto size=api.class_instance_size?api.class_instance_size(item):0;
+    if(offset>=static_cast<int>(sizeof(Il2CppObject))&&width<=size&&static_cast<size_t>(offset)<=size-width)return true;
+    *error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+field+
+        " Expected=FieldWithinInstance Actual=Offset:"+std::to_string(offset)+",Width:"+std::to_string(width)+
+        ",InstanceSize:"+std::to_string(size)+" Result=Rejected Reason=InvalidFieldBounds";return false;
+}
+
 bool prepare(std::string* error) {
     if(prepared)return true;
     auto& api=il2cpp::api();
     auto* item=il2cpp::findClass({"Terraria","Item",{}});
     if(!item||!api.field_get_type||!api.class_from_il2cpp_type||!api.class_get_name||
        !api.class_get_namespace||!api.class_get_fields||!api.field_get_flags||!api.field_get_offset||
-       !api.class_value_size||!api.class_is_valuetype||
-       !api.runtime_class_init||!api.field_static_get_value) {*error="BunnyItem: contrato de campos IL2CPP indisponivel";return false;}
+       !api.class_value_size||!api.class_is_valuetype||!api.class_instance_size||
+       !api.runtime_class_init||!api.field_static_get_value) {
+        std::string missing=item?"":"Terraria.Item ";
+        for(const auto& entry:std::initializer_list<std::pair<const char*,bool>>{
+            {"field_get_type",!!api.field_get_type},{"class_from_il2cpp_type",!!api.class_from_il2cpp_type},
+            {"class_get_name",!!api.class_get_name},{"class_get_namespace",!!api.class_get_namespace},
+            {"class_get_fields",!!api.class_get_fields},{"field_get_flags",!!api.field_get_flags},
+            {"field_get_offset",!!api.field_get_offset},{"class_value_size",!!api.class_value_size},
+            {"class_is_valuetype",!!api.class_is_valuetype},{"class_instance_size",!!api.class_instance_size},
+            {"runtime_class_init",!!api.runtime_class_init},{"field_static_get_value",!!api.field_static_get_value}})
+            if(!entry.second)missing+=std::string(entry.first)+" ";
+        *error="[CSharp][ERROR][NativeBridge] API=BunnyItem Stage=ResolveContract Expected=Terraria.ItemAndRequiredIL2CPPExports Actual=Missing:"+
+            missing+" Result=Rejected Reason=NativeContractUnavailable";return false;
+    }
+    soundSize=0;soundValueOffset=0;soundHasValueOffset=-1;soundClass=nullptr;soundReferences.clear();
     for(size_t i=0;i<integerFields.size();++i) {
         auto* field=il2cpp::findField(item,integerNames[i]);
         auto* cls=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
@@ -101,7 +122,7 @@ bool prepare(std::string* error) {
                 " Expected=Integral8/16/32 Actual="+(actual?actual:"Missing")+" Result=Rejected Reason=NativeTypeMismatch";return false;
         }
         binding.offset=il2cpp::fieldOffset(item,integerNames[i]);
-        if(binding.offset<static_cast<int>(sizeof(Il2CppObject))) {*error=std::string("BunnyItem: offset invalido: ")+integerNames[i];return false;}
+        if(!instanceBounds(item,binding.offset,static_cast<size_t>(binding.bytes),integerNames[i],error))return false;
         BL_DEBUG("csharp item field: %s tipo=%s bytes=%d offset=%d",integerNames[i],
             api.class_get_name(cls),binding.bytes,binding.offset);
     }
@@ -115,6 +136,7 @@ bool prepare(std::string* error) {
         if(flagOffsets[i]<static_cast<int>(sizeof(Il2CppObject))||api.class_value_size(cls,&alignment)!=1) {
             *error=std::string("[CSharp][ERROR][NativeItem] Stage=BindFields Field=")+flags[i]+" Expected=Boolean/1Byte Result=Rejected Reason=InvalidLayout";return false;
         }
+        if(!instanceBounds(item,flagOffsets[i],1,flags[i],error))return false;
     }
     auto* knockField=il2cpp::findField(item,"knockBack");
     auto* knockClass=knockField?api.class_from_il2cpp_type(api.field_get_type(knockField)):nullptr;
@@ -123,42 +145,46 @@ bool prepare(std::string* error) {
         *error="[CSharp][ERROR][NativeItem] Stage=BindFields Field=knockBack Expected=Single/4Bytes Result=Rejected Reason=NativeTypeMismatch";return false;
     }
     knockBackOffset=il2cpp::fieldOffset(item,"knockBack");
+    if(!instanceBounds(item,knockBackOffset,4,"knockBack",error))return false;
     auto* field=il2cpp::findField(item,"UseSound");
     auto* nullable=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
-    if(knockBackOffset<0||!nullable) {*error="BunnyItem: knockBack/UseSound indisponivel";return false;}
+    if(!nullable||!field||(api.field_get_flags(field)&0x10u)) {
+        *error="[CSharp][ERROR][NativeItem] Stage=BindFields Field=UseSound Expected=InstanceSoundField Actual="+
+            std::string(!field?"Missing":api.field_get_flags(field)&0x10u?"Static":"UnknownType")+
+            " Result=Rejected Reason=NativeTypeMismatch";return false;
+    }
     soundOffset=il2cpp::fieldOffset(item,"UseSound");
     if(soundOffset<0) {*error="BunnyItem: offset UseSound indisponivel";return false;}
     if(!api.class_is_valuetype(nullable)) {
         // Terraria Mobile usa LegacySoundStyle como referencia. O caminho
         // de Nullable abaixo cobre hosts que usam SoundStyle como struct.
         soundClass=nullable;soundSize=sizeof(void*);soundReferences={0};
+        if(!instanceBounds(item,soundOffset,sizeof(void*),"UseSound",error))return false;
         prepared=true;return true;
     }
     uint32_t align=0;soundSize=api.class_value_size(nullable,&align);
     if(soundSize<1||soundSize>512||soundOffset<0) {*error="BunnyItem: layout UseSound invalido";return false;}
+    if(!instanceBounds(item,soundOffset,static_cast<size_t>(soundSize),"UseSound",error))return false;
+    il2cpp::ValueLayout nullableLayout;if(!il2cpp::resolveValueLayout(nullable,&nullableLayout,error))return false;
     // SoundStyle? tem hasValue e value; resolver pelo TIPO evita offsets fixos
     // dependentes da build Unity/IL2CPP ou do nome privado do campo.
     void* iter=nullptr;
     while(auto* f=api.class_get_fields(nullable,&iter)) {
         if(api.field_get_flags(f)&0x10u)continue;
         auto* cls=api.class_from_il2cpp_type(api.field_get_type(f));
-        const auto offset=bl::script::structFieldOffset(nullable,api.field_get_offset(f));
+        uint32_t fieldAlign=0;size_t offset=0;
+        const auto width=cls&&api.class_is_valuetype(cls)?api.class_value_size(cls,&fieldAlign):static_cast<int>(sizeof(void*));
+        if(width<=0||!nullableLayout.offset(api.field_get_offset(f),static_cast<size_t>(width),&offset)) {
+            *error="[CSharp][ERROR][NativeItem] Field=UseSound Stage=BindNullable Expected=FieldWithinValue Actual=Offset:"+
+                std::to_string(api.field_get_offset(f))+",Width:"+std::to_string(width)+" Result=Rejected Reason=InvalidValueFieldBounds";return false;
+        }
         if(cls&&std::strcmp(api.class_get_name(cls),"Boolean")==0) soundHasValueOffset=static_cast<int>(offset);
         else if(cls&&api.class_is_valuetype(cls)) {soundClass=cls;soundValueOffset=static_cast<int>(offset);}
     }
     if(!soundClass||soundHasValueOffset<0||soundHasValueOffset>=soundSize) {*error="BunnyItem: Nullable<SoundStyle> nao reconhecido";return false;}
     const int valueSize=api.class_value_size(soundClass,&align);
     if(valueSize<1||soundValueOffset<0||soundValueOffset+valueSize>soundSize) {*error="BunnyItem: tamanho SoundStyle incompativel";return false;}
-    iter=nullptr;
-    while(auto* f=api.class_get_fields(soundClass,&iter)) {
-        if(api.field_get_flags(f)&0x10u)continue;
-        auto* cls=api.class_from_il2cpp_type(api.field_get_type(f));
-        if(cls&&!api.class_is_valuetype(cls)) {
-            auto offset=static_cast<size_t>(soundValueOffset)+bl::script::structFieldOffset(soundClass,api.field_get_offset(f));
-            if(offset+sizeof(void*)>static_cast<size_t>(soundSize)) {*error="BunnyItem: referencia SoundStyle fora do layout";return false;}
-            soundReferences.push_back(offset);
-        }
-    }
+    if(!il2cpp::valueReferenceOffsets(soundClass,static_cast<size_t>(soundValueOffset),&soundReferences,error))return false;
     prepared=true;return true;
 }
 
@@ -312,6 +338,9 @@ bool setBasicItemDefense(int type,int value,std::string* error) {
         return reject("NativeTypeMismatch",actual?actual:"Missing");
     const auto offset=api.field_get_offset(field);
     if(offset<sizeof(Il2CppObject)||offset>static_cast<size_t>(INT32_MAX))return reject("InvalidFieldOffset",std::to_string(offset));
+    if(!instanceBounds(item,static_cast<int>(offset),static_cast<size_t>(binding.bytes),"defense",error)) {
+        const auto detail=*error;return reject("InvalidFieldBounds",detail);
+    }
     binding.offset=static_cast<int>(offset);
     if(value>binding.max)return reject("ValueOutOfNativeRange",actual?actual:"Unknown");
     defenseDefaults[type]={binding,value};
@@ -349,6 +378,9 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
     const auto offset=api.field_get_offset(field);
     if(offset<sizeof(Il2CppObject)||offset>static_cast<size_t>(INT32_MAX))
         return reject("InvalidFieldOffset",std::to_string(offset));
+    if(!instanceBounds(item,static_cast<int>(offset),static_cast<size_t>(binding.bytes),named->second,error)) {
+        const auto detail=*error;return reject("InvalidFieldBounds",detail);
+    }
     binding.offset=static_cast<int>(offset);
     if(slot>binding.max)return reject("SlotOutOfRange",actual?actual:"Unknown");
     equipSlots[type][kind]={binding,slot};

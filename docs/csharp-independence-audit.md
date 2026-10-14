@@ -91,3 +91,30 @@ oito threads disputando 192 chaves por categoria. Confere duplicatas, nomes
 iguais em mods/categorias diferentes, lookup reverso e reserva dos 64 itens
 nao carregados, que nao pode satisfazer dependencia de ingrediente. Nao e
 teste de salvar/abrir um mundo no Terraria.
+
+## .90.29.2 — dependencia indireta removida e bounds de itens
+
+NativeBasicItems chamava `script::structFieldOffset`, cujo corpo em Value.cpp
+so e compilado com BL_HAVE_QUICKJS. O antigo teste de binding fornecia esse
+helper como stub; isso nao demonstrava o contrato real dos offsets nullable.
+O stub foi removido. O C# agora utiliza `il2cpp/ValueLayout.h`, independente de
+JS, que valida todos os campos do valor e aceita somente uma convencao de
+layout inequivoca (boxed ou unboxed). Layout ambiguo, misto, fora do valor ou
+sem metadata e recusado com causa especifica; nao existe fallback heuristico.
+References aninhadas sao enumeradas para as barreiras de GC do som.
+O helper JS original nao foi alterado, preservando seu caminho existente.
+
+Todos os defaults escalares/flags/knockBack/UseSound de BunnyItem e os bindings
+de defense/equip slots agora validam a largura e os offsets contra
+class_instance_size antes de escrever. UseSound estatico e rejeitado; ausencia
+de exports indica nomes reais no diagnostico. O contrato Byte de useStyle e
+Item.active opcional permanecem preservados.
+
+Os testes sem QuickJS executam LegacySoundStyle e Nullable<SoundStyle> com
+metadata boxed/unboxed, sentinels e rejeicao de offset fora da instancia.
+value_layout_test exercita ambiguidade, layout misto, overflow, campos estaticos,
+referencias aninhadas e recursao invalida. Nao ha mock de structFieldOffset nem
+link com a bridge Value.cpp. Cache do host/compilador teve nova geracao.
+Native equipment policies continuam pendentes de desacoplamento; a bancada e
+os testes reais Android continuam pendentes. Isto nao prova boot integral do
+loader sem JS, nem adiciona qualquer exemplo artificialmente concluido.

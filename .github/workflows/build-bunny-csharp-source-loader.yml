@@ -888,8 +888,13 @@ jobs:
           python3 tests/native_recipes/delivery_gate_test.py
           g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
           /tmp/shared-registry-test
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/value_layout_test.cpp -o /tmp/value-layout-test
+          /tmp/value-layout-test
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/native-items-no-js"
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --recipes-only
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable-unboxed
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --bounds
       - name: Execute combat batch and actionable diagnostic regressions
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/combat_batch/CombatBatch.csproj -c Release
@@ -1128,7 +1133,7 @@ jobs:
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
           assert "modId=" in count_contract and "executedTypes=" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_1_native_recipe_keys" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_2_native_value_layout" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -1140,7 +1145,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_1_native_recipe_keys" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_2_native_value_layout" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
@@ -1516,7 +1521,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='166' versionName='0.1.10.16.90.29.1-native-recipe-service'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='167' versionName='0.1.10.16.90.29.2-native-value-layout'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

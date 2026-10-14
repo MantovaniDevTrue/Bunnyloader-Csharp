@@ -169,3 +169,13 @@ e documentacao; devem manter o mesmo runtime e nenhum novo port e declarado.
 Atualizacao posterior: original e608114efb15a3a021887a6132d9e2a487ba6b62,
 matriz 201 e escopo A 33. ExampleMod 0.1.36 atualiza documentacao das recipes,
 matriz embutida e catalogo; mesmos 51 fontes e 26 PNG, nenhum port novo.
+
+### Continuidade .90.29.2
+
+Removida dependencia indireta de NativeBasicItems para o helper de structs da
+bridge JS. ValueLayout nativo valida a convencao de offsets e referencias
+aninhadas; defaults de Item, defense e slots conferem limites da instancia.
+Testes sem QuickJS agora ligam essa implementacao real em vez de um stub do
+helper JS. Nova versao .90.29.2/code167 e nova geracao de cache; ExampleMod
+permanece 0.1.36, pois seus exemplos/documentacao de receitas nao mudaram.
+Retomar bancada pelo contrato acima; nenhum dos 33 exemplos foi promovido.

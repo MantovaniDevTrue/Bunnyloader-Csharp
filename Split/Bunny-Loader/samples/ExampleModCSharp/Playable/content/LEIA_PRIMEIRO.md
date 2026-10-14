@@ -1,4 +1,4 @@
-# ExampleMod 0.1.36 / Bunny .90.29.1 — experimental
+# ExampleMod 0.1.36 / Bunny .90.29.2 — experimental
 
 Esta atualizacao documenta receitas sem intermediacao da VM JavaScript e
 atualiza a matriz para 201 arquivos. Os 51 fontes e IDs anteriores permanecem.

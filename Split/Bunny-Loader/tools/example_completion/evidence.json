@@ -923,6 +923,23 @@
         "samples/ExampleMod/content/Common/Systems/TouchButtonSystem.js"
       ],
       "lotAScopeUnchanged": 33
+    },
+    "nativeValueLayout": {
+      "version": "0.1.10.16.90.29.2-native-value-layout",
+      "source": "app/src/main/cpp/il2cpp/ValueLayout.h",
+      "tests": [
+        "tests/native_recipes/value_layout_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --nullable --nullable-unboxed --bounds"
+      ],
+      "status": "Host tests passed; CI/Android build pending",
+      "preserved": [
+        "useStyle native width",
+        "optional Item.active",
+        "LegacySoundStyle reference ABI",
+        "existing QuickJS struct helper unchanged"
+      ],
+      "correctedDependency": "NativeBasicItems no longer calls QuickJS-compiled script::structFieldOffset",
+      "scope": "No new examples; CSharp station placement and policies still pending"
     }
   }
 }

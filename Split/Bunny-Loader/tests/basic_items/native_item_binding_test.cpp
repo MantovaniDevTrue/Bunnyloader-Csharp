@@ -18,7 +18,7 @@ struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
     soundClass{"SoundStyle",true,static_cast<int>(sizeof(SoundValue)),{}},
-    nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,0,{}},idClass{"SoundID",false,0,{}};
+    nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,sizeof(FakeItem),{}},idClass{"SoundID",false,0,{}};
 Il2CppType intType{&intClass},boolType{&boolClass},floatType{&floatClass},legacyType{&legacyClass},
     stringType{&stringClass},soundType{&soundClass},nullableType{&nullableClass};
 Il2CppClass styleClass{"Byte",true,1,{}};
@@ -28,6 +28,7 @@ Il2CppClass shortClass{"Int16",true,2,{}};Il2CppType shortType{&shortClass};
 std::vector<FieldInfo> storage;std::map<int,std::string> identities;
 std::map<int,std::string> tooltips;bl::il2cpp::Api apiInstance;
 bool nullable=false,initialized=false;int barriers=0;
+bool unboxed=false,badBounds=false;
 Il2CppObject soundObject{},pathObject{};
 SoundValue soundValue{7,&pathObject};
 
@@ -37,7 +38,6 @@ Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 }
-namespace bl::script {size_t structFieldOffset(Il2CppClass*,size_t offset){return offset-sizeof(Il2CppObject);}}
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
 std::string modItemKey(int type){return identities[type];}
@@ -62,9 +62,10 @@ void configure(){
  storage.push_back({"UseSound",nullable?&nullableType:&legacyType,offsetof(FakeItem,sound),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"Item1",nullable?&soundType:&legacyType,0,0x10});idClass.fields.push_back(&storage.back());
  if(nullable){
-  storage.push_back({"hasValue",&boolType,sizeof(Il2CppObject),0});nullableClass.fields.push_back(&storage.back());
-  storage.push_back({"value",&soundType,sizeof(Il2CppObject)+8,0});nullableClass.fields.push_back(&storage.back());
-  storage.push_back({"path",&stringType,sizeof(Il2CppObject)+offsetof(SoundValue,path),0});soundClass.fields.push_back(&storage.back());
+  const auto header=unboxed?0:sizeof(Il2CppObject);
+  storage.push_back({"hasValue",&boolType,header,0});nullableClass.fields.push_back(&storage.back());
+  storage.push_back({"value",&soundType,header+8,0});nullableClass.fields.push_back(&storage.back());
+  storage.push_back({"path",&stringType,header+offsetof(SoundValue,path),0});soundClass.fields.push_back(&storage.back());
  }
  apiInstance.field_get_type=[](FieldInfo* f){return static_cast<const Il2CppType*>(f->type);};
  apiInstance.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};
@@ -77,6 +78,7 @@ void configure(){
  apiInstance.field_get_offset=[](FieldInfo* f){return f->offset;};
  apiInstance.class_is_valuetype=[](const Il2CppClass* c){return c->value;};
  apiInstance.class_value_size=[](Il2CppClass* c,uint32_t* align){*align=8;return c->size;};
+ apiInstance.class_instance_size=[](Il2CppClass* c){return static_cast<uint32_t>(c->size);};
  apiInstance.runtime_class_init=[](Il2CppClass* c){assert(c==&idClass);initialized=true;};
  apiInstance.field_static_get_value=[](FieldInfo*,void* out){assert(initialized);if(nullable)std::memcpy(out,&soundValue,sizeof(soundValue));else {void* ptr=&soundObject;std::memcpy(out,&ptr,sizeof(ptr));}};
  apiInstance.gc_wbarrier_set_field=[](Il2CppObject*,void** field,void* value){*field=value;barriers++;};
@@ -91,11 +93,12 @@ int main(int argc,char** argv){
  assert(!bl::csharp::validSourceExecutedTypeCount(1025));
  assert(argc>=2);
  const std::string mode=argc>=3?argv[2]:"--byte";
- narrowValue=mode=="--range";nullable=mode=="--nullable";enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";
+ narrowValue=mode=="--range";unboxed=mode=="--nullable-unboxed";nullable=mode=="--nullable"||unboxed;enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";badBounds=mode=="--bounds";
  if(mode=="--int16") {styleClass.name="Int16";styleClass.size=2;}
  if(mode=="--int32"||enumStyle) {styleClass.name=enumStyle?"ItemUseStyle":"Int32";styleClass.size=4;}
  if(rejectStyle) {styleClass.name="Single";styleClass.size=4;}
  configure();
+ if(badBounds)bl::il2cpp::findField(&itemClass,"useStyle")->offset=sizeof(FakeItem);
  std::ifstream file(argv[1]);std::string line,error;std::getline(file,line);
  std::vector<bl::csharp::BasicItemEntry> entries;int next=6196;
  while(std::getline(file,line)){if(line.empty())continue;bl::csharp::BasicItemEntry entry;
@@ -106,6 +109,7 @@ int main(int argc,char** argv){
    assert(error.find("Field=useStyle Expected=Integral8/16/32 Actual=Single")!=std::string::npos);
    std::cout<<"NATIVE_BASIC_ITEM_REJECT_INCOMPATIBLE_TYPE_PASS\n";return 0;
   }
+  if(badBounds){assert(!bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));assert(error.find("Field=useStyle")!=std::string::npos&&error.find("Reason=InvalidFieldBounds")!=std::string::npos);std::cout<<"NATIVE_BASIC_ITEM_REJECT_OFFSET_OUTSIDE_INSTANCE_PASS\n";return 0;}
   assert(bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));entries.push_back(entry);
  }
  if(mode=="--capacity") {
@@ -207,9 +211,18 @@ int main(int argc,char** argv){
   item.behavior="{\"v\":1}";identities[item.type]="mod/"+item.name;
   assert(bl::csharp::registerBasicItemPlaceholder(item.type,item.name,&error,"/mod","content/"+item.name+".cs"));retryItems.push_back(item);
  }
+#if !BL_HAVE_QUICKJS
+ assert(!bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
+ assert(error.find("Reason=BehaviorDecouplingPending")!=std::string::npos);
+ for(auto& item:retryItems)item.behavior.clear();
+#endif
  assert(bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
+#if BL_HAVE_QUICKJS
  const auto first=bl::csharp::pendingBasicItemBehaviors(),second=bl::csharp::pendingBasicItemBehaviors();assert(first.size()==8&&second.size()==8);
  bool ninth=false;for(const auto& item:second)if(item.type==7308)ninth=true;assert(ninth);
+#else
+ assert(bl::csharp::pendingBasicItemBehaviors().empty());
+#endif
  const auto recipesFirst=bl::csharp::pendingBasicRecipes(),recipesSecond=bl::csharp::pendingBasicRecipes();assert(recipesFirst.size()==8&&recipesSecond.size()==8);
  bool lastRecipe=false;for(const auto& recipe:recipesSecond)if(recipe.result==7308)lastRecipe=true;assert(lastRecipe);
  assert(bl::csharp::reportBasicRecipeError(recipesSecond[0].id,"missing station"));

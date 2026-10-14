@@ -46,3 +46,7 @@ fabricar Pickaxe/Hamaxe. Conferir menu/Guia, pilhas, Save/Exit e reabertura.
 Testar dependencias intermod e ordem inversa, observando os logs por receita.
 O teste sem QuickJS foi executado no host IL2CPP controlado, nao no celular.
 Esta build nao recebe garantia nova de 60 FPS sem medicao real no Android.
+
+Na .90.29.2, os itens tambem validam os offsets contra o tamanho real da
+instancia, e structs de som usam metadata nativa independente da bridge JS.
+O teste de offsets nao equivale a colocar uma bancada nem a validar gameplay.

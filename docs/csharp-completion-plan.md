@@ -170,3 +170,8 @@ nesse lote. Nenhuma alteracao do core original foi transplantada nesta etapa.
 ExampleMod 0.1.36: matriz embutida 201 e guia editavel RECEITAS_NATIVAS.md,
 mesmos 51 fontes/26 texturas; nenhuma classe nova anunciada. Catalogo marca
 receitas nativas como experimentais ate validacao no Android.
+
+Checkpoint de codigo seguinte: .90.29.2/code167 remove o helper QuickJS de
+ValueLayout dos itens, valida bounds reais de Item e amplia regressao boxed/
+unboxed/nullable sem mocks da bridge JS. Ver csharp-independence-audit.md.
+A entrega permanece experimental; bancada e demais exemplos continuam pendentes.
