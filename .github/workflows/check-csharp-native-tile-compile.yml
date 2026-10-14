@@ -11,6 +11,7 @@ on:
       - 'Split/Bunny-Loader/tools/check_lot_a_delivery.py'
       - 'Split/Bunny-Loader/tests/basic_items/check_lot_a_scope.py'
       - '.github/workflows/build-bunny-csharp-source-loader.yml'
+      - '.github/workflows/check-example-completion.yml'
       - '.github/workflows/check-csharp-native-tile-compile.yml'
 permissions:
   contents: read
