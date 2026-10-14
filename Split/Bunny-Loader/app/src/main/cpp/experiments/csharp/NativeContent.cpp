@@ -1472,6 +1472,7 @@ bool applyManagedNativeBuffDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedBuffEntry>& buffs,
     const std::vector<ManagedPotionEntry>& potions) {
+    if (buffs.empty() && potions.empty()) return true;
     if (!g_effectsReady) return false;
     for (const auto& buff : buffs) {
         const auto it = g_buffs.find(buff.type);
@@ -1501,6 +1502,7 @@ bool applyManagedNativePlayerDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedAccessoryEntry>& accessories,
     const std::vector<ManagedPlayerEntry>& players) {
+    if (accessories.empty() && players.empty()) return true;
     if (!g_effectsReady || accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory)
         return false;
     std::map<int, NativeAccessoryDefaults> values;

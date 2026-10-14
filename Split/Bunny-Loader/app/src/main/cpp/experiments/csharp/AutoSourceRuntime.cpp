@@ -741,6 +741,7 @@ void run() {
                 }).detach();
             }
         }
+        if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
         note(&status, "applying");
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
         if (!defaultsApplied && status.cached &&
@@ -777,7 +778,6 @@ void run() {
         }
         pending.insert(pending.end(), entries.begin(), entries.end());
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
-        if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
     if (pending.empty() && pendingCombat.empty()) {

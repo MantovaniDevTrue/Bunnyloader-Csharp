@@ -55,3 +55,8 @@ jobs:
             "Split/Bunny-Loader/tests/native_tile_policy.cpp" \
             -o "$RUNNER_TEMP/native-tile-policy"
           "$RUNNER_TEMP/native-tile-policy"
+          g++ "${CFLAGS[@]}" -Wall -Wextra -Werror \
+            "Split/Bunny-Loader/tests/native_empty_source_effects.cpp" \
+            -o "$RUNNER_TEMP/native-empty-effects"
+          "$RUNNER_TEMP/native-empty-effects" \
+            "$SRC/experiments/csharp/NativeContent.cpp"
