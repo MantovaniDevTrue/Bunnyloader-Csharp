@@ -57,6 +57,9 @@ struct NativeRefs {
     int projWidth = -1;
     int projHeight = -1;
     int itemAccessory = -1;
+    int itemShieldSlot = -1;
+    int itemShoeSlot = -1;
+    int playerHellfireTreads = -1;
     int itemBuffType = -1;
     int itemBuffTime = -1;
     int itemConsumable = -1;
@@ -122,6 +125,7 @@ struct NativeAccessoryDefaults {
     float visualScale = 1.f;
     float visualOpacity = 1.f;
     uint32_t visualColor = 0xffffffffu;
+    int nativeEquipSlot = -1;
 };
 
 struct NativeBuffDefaults {
@@ -297,6 +301,14 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
         bl::runtime::field<int32_t>(self, r.itemRare) = 2;
         bl::runtime::field<uint8_t>(self, r.itemAccessory) = 1;
+        const int slot = accessory->second.nativeEquipSlot;
+        if (slot >= 0 && slot < 128) {
+            const int offset = accessory->second.visualMode == 1
+                ? r.itemShieldSlot : accessory->second.visualMode == 3
+                ? r.itemShoeSlot : -1;
+            if (offset >= 0)
+                bl::runtime::field<int8_t>(self, offset) = static_cast<int8_t>(slot);
+        }
         enableManagedPrefixEligibility(type);
         bl::runtime::finishModItem(self, type);
         return;
@@ -372,6 +384,8 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
     defense += it->second.defenseBonus;
+    if (it->second.visualMode == 3 && g_refs.playerHellfireTreads >= 0)
+        bl::runtime::field<uint8_t>(self, g_refs.playerHellfireTreads) = 1;
 }
 
 void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
@@ -478,6 +492,7 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
         if (found == g_accessories.end() || found->second.visualMode == 0)
             continue;
         const auto& visual = found->second;
+        if (visual.visualMode != 2) continue;
         ManagedVisualCommand command;
         command.kind = visual.visualMode == 2
             ? ManagedVisualKind::PlayerOverlay
@@ -1051,6 +1066,9 @@ bool prepareNativeContent() {
     r.projWidth = fieldOffset(projectile, "width");
     r.projHeight = fieldOffset(projectile, "height");
     r.itemAccessory = fieldOffset(item, "accessory");
+    r.itemShieldSlot = fieldOffset(item, "shieldSlot");
+    r.itemShoeSlot = fieldOffset(item, "shoeSlot");
+    r.playerHellfireTreads = fieldOffset(player, "hellfireTreads");
     r.itemBuffType = fieldOffset(item, "buffType");
     r.itemBuffTime = fieldOffset(item, "buffTime");
     r.itemConsumable = fieldOffset(item, "consumable");
@@ -1561,6 +1579,34 @@ bool showManagedPlayerWorldJoinMessages() {
         if (!error) ++shown;
     }
     BL_INFO("csharp BunnyPlayer OnEnterWorld: %d mensagem(ns) enviada(s) ao entrar", shown);
+    return true;
+}
+
+std::vector<ManagedNativeEquipTexture> managedNativeEquipTextures() {
+    std::vector<ManagedNativeEquipTexture> entries;
+    for (const auto& [type, accessory] : g_accessories) {
+        if ((accessory.visualMode == 1 || accessory.visualMode == 3) &&
+            accessory.nativeEquipSlot < 0 && !accessory.visualTexture.empty()) {
+            entries.push_back({type, accessory.visualMode, accessory.visualTexture});
+        }
+    }
+    return entries;
+}
+
+bool setManagedNativeEquipSlot(int itemType, int visualMode, int equipSlot) {
+    auto it = g_accessories.find(itemType);
+    if (it == g_accessories.end() ||
+        it->second.visualMode != visualMode ||
+        (visualMode != 1 && visualMode != 3) ||
+        equipSlot <= 0 || equipSlot >= 128)
+        return false;
+    if (it->second.nativeEquipSlot >= 0)
+        return it->second.nativeEquipSlot == equipSlot;
+    const int offset = visualMode == 1 ? g_refs.itemShieldSlot : g_refs.itemShoeSlot;
+    if (offset < 0) return false;
+    it->second.nativeEquipSlot = equipSlot;
+    BL_INFO("csharp equip: item=%d tipo=%s slot=%d", itemType,
+            visualMode == 1 ? "Shield" : "Shoes", equipSlot);
     return true;
 }
 
