@@ -12,8 +12,8 @@ start=workflow.index('- name: Deliver signed APK to private Builds repository')
 end=workflow.index('\n        shell:',start)
 assert 'codex/lot-a-complete-v90-29' in workflow[start:end]
 assert 'TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"' in workflow
-assert 'EXPERIMENTAL — Lote A incomplete' in workflow
+assert 'EXPERIMENTAL — Lote A1 bancada C#' in workflow
 assert 'check_lot_a_delivery.py' in workflow
 assert '--prerelease' in workflow
-assert 'the CSharp workbench and remaining examples are still pending' in workflow
+assert 'Nine regression suites required' in workflow
 print('COMPLETE_LOT_A_SCOPE_AND_EXPERIMENTAL_DELIVERY_GUARD_PASS=33')
