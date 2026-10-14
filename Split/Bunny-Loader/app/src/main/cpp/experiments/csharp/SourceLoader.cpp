@@ -134,7 +134,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
         if (basic) {
-            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
+            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
                 *error=type.name+": propriedade BunnyItem nao suportada: "+key;return false;
             }

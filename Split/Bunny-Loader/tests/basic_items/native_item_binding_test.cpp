@@ -13,7 +13,7 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t beardSlot; unsigned char sentinel[3]; };
+struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t beardSlot; unsigned char sentinel[3]; };
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
@@ -47,6 +47,7 @@ void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> 
 
 void configure(){
  storage.reserve(40);
+ storage.push_back({"defense",&shortType,offsetof(FakeItem,defense),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"headSlot",&intType,offsetof(FakeItem,headSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"bodySlot",&shortType,offsetof(FakeItem,bodySlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"legSlot",&shortType,offsetof(FakeItem,legSlot),0});itemClass.fields.push_back(&storage.back());
@@ -143,6 +144,13 @@ int main(int argc,char** argv){
  }
  assert(barriers==2);
  const int equippedType=entries[0].type;
+ assert(bl::csharp::setBasicItemDefense(equippedType,6,&error));
+ assert(!bl::csharp::setBasicItemDefense(equippedType,-1,&error));
+ assert(!bl::csharp::setBasicItemDefense(equippedType,1001,&error));
+ assert(!bl::csharp::setBasicItemDefense(-1,6,&error));
+ auto* defenseField=bl::il2cpp::findField(&itemClass,"defense");
+ defenseField->type=&floatType;assert(!bl::csharp::setBasicItemDefense(equippedType,7,&error));assert(error.find("Actual=Single")!=std::string::npos);defenseField->type=&shortType;
+
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Head",350,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Body",260,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Legs",220,&error));
@@ -155,10 +163,11 @@ int main(int argc,char** argv){
  headField->flags=0x10;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));headField->flags=0;
  headField->type=&floatType;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("Actual=Single")!=std::string::npos);headField->type=&intType;
  const auto savedOffset=headField->offset;headField->offset=0;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("InvalidFieldOffset")!=std::string::npos);headField->offset=savedOffset;
- FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));
+ FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));std::memset(recreated.defenseSentinel,0x6b,sizeof(recreated.defenseSentinel));
  assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
  assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
  for(auto value:recreated.sentinel)assert(value==0x5a);
+ assert(recreated.defense==6);for(auto value:recreated.defenseSentinel)assert(value==0x6b);
  auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);
  for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.type>0);
   assert(bl::csharp::acknowledgeBasicRecipe(recipe.id,17));assert(!bl::csharp::acknowledgeBasicRecipe(recipe.id,17));}

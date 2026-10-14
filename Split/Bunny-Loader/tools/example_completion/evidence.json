@@ -465,8 +465,14 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
-      "deviceEvidence": [],
+      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
@@ -478,7 +484,7 @@
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
       ],
-      "androidRegistration": ".90.28.6 loads according to user; native armor slots require .90.28.7 correction; device retest pending"
+      "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
     },
     "Content/Items/Armor/Vanity/ExampleRobe.js": {
       "status": "Validado por testes automatizados",
@@ -508,8 +514,14 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
-      "deviceEvidence": [],
+      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
@@ -522,7 +534,7 @@
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
         }
       ],
-      "androidRegistration": ".90.28.6 loads according to user; native armor slots require .90.28.7 correction; device retest pending"
+      "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
     },
     "Content/Items/Materials/ExampleSoul.js": {
       "status": "Validado por testes automatizados",
@@ -689,6 +701,23 @@
       "visualRun": 38566058875,
       "nativeVisualRun": 38566058926,
       "result": "All eight regression suites and signed Android APK pipeline passed; no Android validation of mask/robe correction"
+    },
+    {
+      "loader": "0.1.10.16.90.28.7-csharp-native-armor-slots",
+      "exampleMod": "0.1.35",
+      "kind": "User Android feedback",
+      "report": "Funcionou perfeitamente",
+      "scope": [
+        "automatic CSharp loading",
+        "ExampleBossMask equipment",
+        "ExampleRobe equipment"
+      ],
+      "doesNotProve": [
+        "entire Lot A",
+        "all examples",
+        "sustained FPS",
+        "all lifecycle tests"
+      ]
     }
   ],
   "deviceBaselines": [
@@ -702,5 +731,23 @@
       "benchmarkMeasured": false,
       "scope": "Carga automatica, MonoVM, registros, callbacks, persistencia e sessao sem erros/avisos. Nao prova equivalencia de todos os arquivos JS."
     }
-  ]
+  ],
+  "implementationWork": {
+    "branch": "codex/lot-a-complete-v90-29",
+    "baseCommit": "28a9d71dac28a4ce14bff16fb492707c55227d05",
+    "lot": "A",
+    "delivery": "internal-only until complete",
+    "apis": [
+      "BunnyItem.Defense",
+      "BunnyArmorEffects",
+      "BunnyArmorSet"
+    ],
+    "status": "Implementacao de infraestrutura; nao significa port dos exemplos",
+    "pending": [
+      "all 33 Lot A counterparts and applicable behavior",
+      "mod workbench and recipe dependencies",
+      "other Lot A APIs",
+      "Android lifecycle validation"
+    ]
+  }
 }

@@ -1,3 +1,4 @@
+#include "content/items/ModItems.h"
 #include "script/api/CSharpPrototypeApi.h"
 
 #include "experiments/csharp/CSharpPrototype.h"
@@ -135,6 +136,21 @@ JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueC
     const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
     const std::string id(raw);JS_FreeCString(ctx,raw);
     return JS_NewBool(ctx,bl::csharp::acknowledgeBasicRecipe(id,index));
+}
+
+JSValue jsSetNativeItemDefense(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=2)return JS_ThrowTypeError(ctx,"setNativeItemDefense(type,value)");
+    int32_t type=-1,value=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0||JS_ToInt32(ctx,&value,argv[1])<0)return JS_EXCEPTION;
+    std::string error;
+    if(!bl::csharp::setBasicItemDefense(type,value,&error))return JS_ThrowInternalError(ctx,"%s",error.c_str());
+    return JS_TRUE;
+}
+JSValue jsResolveNativeItemKey(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=1||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"resolveNativeItemKey('uid/name')");
+    const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
+    const std::string key(raw);JS_FreeCString(ctx,raw);
+    return JS_NewInt32(ctx,key.size()<=160?bl::runtime::modItemTypeByKey(key):-1);
 }
 
 JSValue jsSetNativeItemEquipSlot(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
@@ -2826,6 +2842,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "setNativeItemDefense", JS_NewCFunction(ctx, jsSetNativeItemDefense, "setNativeItemDefense", 2));
+    JS_SetPropertyStr(ctx, api, "resolveNativeItemKey", JS_NewCFunction(ctx, jsResolveNativeItemKey, "resolveNativeItemKey", 1));
     JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
     JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));

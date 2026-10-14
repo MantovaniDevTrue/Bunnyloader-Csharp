@@ -125,3 +125,12 @@ Correcao .90.28.7: pipeline `38566058511` aprovado, runtime commit
 APK assinado e ExampleMod 0.1.35 gerados. Evidencia de CI final registrada apos
 o build; o pacote inclui a matriz/roteiro do commit de runtime. Validacao
 Android da mascara e do robe pendente. Lote A permanece incompleto.
+
+## Continuacao integral do Lote A
+
+Usuario confirmou .90.28.7 funcional. Desenvolvimento em
+`codex/lot-a-complete-v90-29`, derivada da branch validada sem alterar a release.
+Escopo completo: 33 arquivos, em lot-a-scope.json. Ver
+[codigo, contratos e continuidade](csharp-lot-a-development.md).
+Infraestrutura de armadura testada por mod de contrato independente; exemplos
+ainda nao portados nao recebem promocao na matriz. Nao publicar entrega parcial.

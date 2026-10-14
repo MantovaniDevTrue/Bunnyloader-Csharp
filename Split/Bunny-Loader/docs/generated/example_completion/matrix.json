@@ -4029,8 +4029,14 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
-      "deviceEvidence": [],
+      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -4119,8 +4125,14 @@
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "User could not equip mask/robe on Android .90.28.6. .90.28.7 persists native equipment slots and tests new-instance typed writes; Android correction validation pending.",
-      "deviceEvidence": [],
+      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {

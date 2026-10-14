@@ -38,6 +38,8 @@ class CSharpItemBehaviorLoader {
         if (b.alpha!==null && (!Array.isArray(b.alpha) || b.alpha.length!==4 || b.alpha.some(v=>!Number.isInteger(v)||v<0||v>255)))
             throw new Error('cor invalida');
         if (b.clone && !Number.isInteger(Terraria.ID.ItemID[b.clone])) throw new Error('ItemID ausente: '+b.clone);
+        if(b.defense!==undefined && (!Number.isInteger(b.defense)||b.defense<0||b.defense>1000))throw new Error('Defense fora do contrato');
+        b.__armor=CSharpArmorPolicy.Validate(b.armor);
         return b;
     }
     static Sync() {
@@ -50,6 +52,14 @@ class CSharpItemBehaviorLoader {
                 if (!inst) {
                     const b=CSharpItemBehaviorLoader.Validate(entry);
                     const Class=class extends ModItem {};
+                    const armor=b.__armor;
+                    const armorSet=CSharpArmorPolicy.BindSet(entry,b.armorSet);
+                    if(armor.effects.length||armor.immune.length)Class.prototype.UpdateEquip=function(item,player) {
+                        CSharpArmorPolicy.Apply(armor,player);
+                    };
+                    if(armorSet)Class.prototype.UpdateArmorSet=function(item,player) {
+                        if(CSharpArmorPolicy.Matches(armorSet,player))CSharpArmorPolicy.Apply(armorSet.policy,player);
+                    };
                     Object.defineProperty(Class,'name',{value:entry.name});
                     if (b.effects.length) Class.prototype.UpdateAccessory=function(item,player,vanity) {
                         if(vanity)return;
@@ -74,11 +84,11 @@ class CSharpItemBehaviorLoader {
                     if (b.robe) Class.prototype.SetMatch=function(male,equipSlot,robes) {
                         robes.value=true;equipSlot.value=EquipLoader.CSharpItemSlot(entry.type,'Legs');
                     };
-                    for(const method of ['UpdateAccessory','PostUpdate','GetAlpha','SetMatch']) {
+                    for(const method of ['UpdateEquip','UpdateArmorSet','UpdateAccessory','PostUpdate','GetAlpha','SetMatch']) {
                         if(Class.prototype[method]!==ModItem.prototype[method])
                             Class.prototype[method]=CSharpItemBehaviorLoader.Guard(entry,b.class||entry.name,method,Class.prototype[method]);
                     }
-                    inst=new Class();inst.Type=entry.type;inst.__behavior=b;inst.__descriptor=entry;
+                    inst=new Class();inst.Type=entry.type;inst.__behavior=b;inst.__descriptor=entry;inst.__armorSet=armorSet;
                     if (b.clone) {
                         const source=Terraria.Item.new();source['void .ctor()']();
                         source['void SetDefaults(int Type, ItemVariant variant)'](Terraria.ID.ItemID[b.clone],null);
@@ -93,6 +103,7 @@ class CSharpItemBehaviorLoader {
                     CSharpItemBehaviorLoader.#staged.set(entry.type,inst);
                 }
                 const b=inst.__behavior;
+                if(b.defense!==undefined && !api.setNativeItemDefense(entry.type,b.defense))throw new Error('Defense recusada pelo host');
                 for(const [kind,path,flags] of b.equips) {
                     EquipLoader.RegisterCSharpItemTexture(inst,kind,entry.root+path+'.png');
                     const slot=EquipLoader.CSharpItemSlot(entry.type,kind);
@@ -115,6 +126,10 @@ class CSharpItemBehaviorLoader {
                 CSharpItemBehaviorLoader.#HookDefaults();
                 CSharpItemBehaviorLoader.#installed.set(entry.type,inst);
                 CSharpItemBehaviorLoader.#Refresh(inst);
+                if(inst.__armorSet && !inst.__armorSetInstalled) {
+                    CSharpArmorPolicy.InstallSet(inst.__armorSet);
+                    inst.__armorSetInstalled=true;
+                }
                 if(!api.acknowledgeItemBehavior(entry.type,''))throw new Error('ACK nativo recusado');
                 CSharpItemBehaviorLoader.#staged.delete(entry.type);
                 bl.log('csharp item behavior: '+entry.name+' type='+entry.type+' instalado');
@@ -159,6 +174,7 @@ class CSharpItemBehaviorLoader {
             const flags=['melee','noMelee','autoReuse','useTurn','consumable','accessory','vanity'];
             for(let i=0;i<flags.length;i++)item[flags[i]]=!!(d.defaults[13]&(1<<i));
         }
+        if(b.defense!==undefined)item.defense=b.defense;
         EquipLoader.Apply(item,inst.Type);
         if(b.hair) {
             const player=Terraria.Main.LocalPlayer;

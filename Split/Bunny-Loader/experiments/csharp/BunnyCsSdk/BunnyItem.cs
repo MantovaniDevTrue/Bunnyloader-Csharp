@@ -17,6 +17,7 @@ public abstract class BunnyItem
     public int MaxStack { get; set; } = 1;
     public int Value { get; set; }
     public int Rare { get; set; }
+    public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
     public int Crit { get; set; }
     public float KnockBack { get; set; }

@@ -51,6 +51,29 @@ try {
   Reject(()=>owner.Behavior.WorldLight(float.NaN,0,0));
   Reject(()=>owner.Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage,-1));
  });
+ Check("armor.public-sdk-contract",()=>{
+  var item=new ExampleItem();item.SetDefaults();item.Defense=6;
+  item.Behavior.Armor.Add(BunnyArmorInteger.StatManaMax2,20);
+  item.Behavior.Armor.ImmuneTo("OnFire");
+  var set=new BunnyArmorSet("Head","Plate","Legs","quote: \"armor\"");set.Effects.Add(BunnyArmorStat.MeleeDamage,0.2f);
+  item.Behavior.DefineArmorSet(set);
+  using var json=JsonDocument.Parse(item.BehaviorDefinition);
+  Equal(6,json.RootElement.GetProperty("defense").GetInt32());
+  Equal("quote: \"armor\"",json.RootElement.GetProperty("armorSet").GetProperty("text").GetString());
+  Reject(()=>item.Defense=-1);Reject(()=>item.Defense=1001);
+  Reject(()=>item.Behavior.Armor.Add((BunnyArmorStat)999,0.1f));
+  Reject(()=>item.Behavior.Armor.Add(BunnyArmorStat.MoveSpeed,float.NaN));
+  Reject(()=>item.Behavior.Armor.ImmuneTo("not a buff"));
+  Reject(()=>item.Behavior.DefineArmorSet(set));
+  Reject(()=>new BunnyArmorSet("Head","Body","Legs","invalid\ntext"));
+ });
+ Check("armor.real-source-wire",()=>{
+  string root="tests/basic_items/armor_fixture",output=Path.Combine(scratch,"armor.dll"),diag=Path.Combine(scratch,"armor.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/armor-source-runtime-values.txt",true);
+  var lines=File.ReadAllLines("build/basic-items/armor-source-runtime-values.txt");Equal(4,lines.Length);
+  foreach(var line in lines.Skip(1))Equal(21,line.Split('\t').Length);
+ });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));
   for(int i=0;i<192;i++)File.WriteAllText(Path.Combine(root,"content",$"Item{i:D3}.cs"),

@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [codex/example-completion-v90-28]
+    branches: [codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +17,9 @@ jobs:
           path: .audit-upstream
       - name: Check all canonical JS examples and evidence gates
         working-directory: Split/Bunny-Loader
-        run: python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+        run: |
+          python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+          python3 tests/basic_items/check_lot_a_scope.py
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -31,7 +33,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_5"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_0"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -77,6 +79,7 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
+          node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
           node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
       - uses: actions/upload-artifact@v4
@@ -87,3 +90,4 @@ jobs:
             docs/csharp-completion-plan.md
             Split/Bunny-Loader/build/basic-items-results.json
             Split/Bunny-Loader/build/basic-items/source-runtime-values.txt
+            Split/Bunny-Loader/build/basic-items/armor-source-runtime-values.txt

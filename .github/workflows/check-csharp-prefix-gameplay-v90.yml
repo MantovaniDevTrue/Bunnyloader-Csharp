@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28
       - csharp-composite-accessories-v90-26
       - codex/combat-batch-v90-25

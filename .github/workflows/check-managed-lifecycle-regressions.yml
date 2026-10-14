@@ -1,7 +1,7 @@
 name: Check managed callback lifecycle
 on:
   push:
-    branches: [csharp-managed-lifecycle-v79-1-experiment]
+    branches: [codex/lot-a-complete-v90-29, csharp-managed-lifecycle-v79-1-experiment]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
@@ -17,3 +17,4 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run callback lifecycle and failure isolation tests
         run: python3 Split/Bunny-Loader/tests/run_managed_lifecycle_regressions.py
+
