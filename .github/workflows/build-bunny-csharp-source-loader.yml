@@ -1501,7 +1501,7 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='158' versionName='0.1.10.16.90.28.1-csharp-basic-item-byte-fix'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='159' versionName='0.1.10.16.90.28.2-csharp-v2-cache-recovery'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys

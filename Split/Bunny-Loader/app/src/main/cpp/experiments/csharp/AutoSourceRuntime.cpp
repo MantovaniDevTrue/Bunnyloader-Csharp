@@ -42,7 +42,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_2";
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
@@ -649,7 +649,19 @@ void run() {
             }
         }
         note(&status, "applying");
-        if (!applyManagedSourceDefaults(mod.id, defaults, &error)) {
+        bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
+        if (!defaultsApplied && status.cached &&
+            error.rfind("Linha V2 inesperada", 0) == 0) {
+            BL_WARN("csharp auto %s: cache V2 incompativel (%s); recompilando",
+                    mod.id.c_str(), error.c_str());
+            status.cached = false;
+            note(&status, "compiling");
+            if (compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error)) {
+                note(&status, "applying");
+                defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
+            }
+        }
+        if (!defaultsApplied) {
             note(&status, "failed", error);
             continue;
         }
