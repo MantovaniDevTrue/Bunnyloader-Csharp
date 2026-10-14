@@ -8,6 +8,7 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
@@ -77,6 +78,75 @@ JSValue jsManagedNativeEquipTextures(JSContext* ctx, JSValueConst, int argc, JSV
         JS_SetPropertyUint32(ctx, array, index++, record);
     }
     return array;
+}
+
+JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if(argc) return JS_ThrowTypeError(ctx,"pendingItemRecipes()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& recipe:bl::csharp::pendingBasicRecipes()) {
+        JSValue entry=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,entry,"id",JS_NewString(ctx,recipe.id.c_str()));
+        JS_SetPropertyStr(ctx,entry,"result",JS_NewInt32(ctx,recipe.result));
+        JS_SetPropertyStr(ctx,entry,"stack",JS_NewInt32(ctx,recipe.values.stack));
+        JS_SetPropertyStr(ctx,entry,"station",JS_NewInt32(ctx,recipe.values.station));
+        JSValue ingredients=JS_NewArray(ctx);uint32_t j=0;
+        for(const auto& ingredient:recipe.values.ingredients) {
+            JSValue value=JS_NewObject(ctx);
+            JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,ingredient.type));
+            JS_SetPropertyStr(ctx,value,"count",JS_NewInt32(ctx,ingredient.count));
+            JS_SetPropertyUint32(ctx,ingredients,j++,value);
+        }
+        JS_SetPropertyStr(ctx,entry,"ingredients",ingredients);
+        JS_SetPropertyUint32(ctx,array,i++,entry);
+    }
+    return array;
+}
+JSValue jsPendingItemBehaviors(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
+    if(argc)return JS_ThrowTypeError(ctx,"pendingItemBehaviors()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& item:bl::csharp::pendingBasicItemBehaviors()) {
+        JSValue value=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,item.type));
+        JS_SetPropertyStr(ctx,value,"name",JS_NewString(ctx,item.name.c_str()));
+        JS_SetPropertyStr(ctx,value,"mod",JS_NewString(ctx,item.modId.c_str()));
+        JS_SetPropertyStr(ctx,value,"source",JS_NewString(ctx,item.sourceFile.c_str()));
+        JS_SetPropertyStr(ctx,value,"root",JS_NewString(ctx,(item.modDir+"/content/").c_str()));
+        JS_SetPropertyStr(ctx,value,"definition",JS_NewString(ctx,item.behavior.c_str()));
+        JS_SetPropertyStr(ctx,value,"error",JS_NewString(ctx,item.behaviorError.c_str()));
+        JSValue defaults=JS_NewArray(ctx);
+        for(uint32_t j=0;j<item.values.size();++j)JS_SetPropertyUint32(ctx,defaults,j,JS_NewInt32(ctx,item.values[j]));
+        JS_SetPropertyStr(ctx,value,"defaults",defaults);
+        JS_SetPropertyStr(ctx,value,"knockBack",JS_NewFloat64(ctx,item.knockBack));
+        JS_SetPropertyUint32(ctx,array,i++,value);
+    }
+    return array;
+}
+JSValue jsAcknowledgeItemBehavior(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=2||!JS_IsString(argv[1]))return JS_ThrowTypeError(ctx,"acknowledgeItemBehavior(type,error)");
+    int32_t type=-1;if(JS_ToInt32(ctx,&type,argv[0])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[1]);if(!raw)return JS_EXCEPTION;
+    const std::string error(raw);JS_FreeCString(ctx,raw);
+    return JS_NewBool(ctx,bl::csharp::acknowledgeBasicItemBehavior(type,error));
+}
+
+JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if(argc!=2||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"acknowledgeItemRecipe(id,index)");
+    int32_t index=-1;if(JS_ToInt32(ctx,&index,argv[1])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
+    const std::string id(raw);JS_FreeCString(ctx,raw);
+    return JS_NewBool(ctx,bl::csharp::acknowledgeBasicRecipe(id,index));
+}
+
+JSValue jsSetNativeItemEquipSlot(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=3||!JS_IsString(argv[1]))return JS_ThrowTypeError(ctx,"setNativeItemEquipSlot(type,kind,slot)");
+    int32_t type=-1,slot=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0||JS_ToInt32(ctx,&slot,argv[2])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[1]);if(!raw)return JS_EXCEPTION;
+    const std::string kind(raw);JS_FreeCString(ctx,raw);
+    std::string error;
+    if(!bl::csharp::setBasicItemEquipSlot(type,kind,slot,&error))
+        return JS_ThrowInternalError(ctx,"%s",error.c_str());
+    return JS_TRUE;
 }
 
 JSValue jsManagedSetNativeEquipSlot(JSContext* ctx, JSValueConst, int argc,
@@ -2756,6 +2826,11 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
+    JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
+    JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
+    JS_SetPropertyStr(ctx, api, "pendingItemRecipes", JS_NewCFunction(ctx, jsPendingItemRecipes, "pendingItemRecipes", 0));
+    JS_SetPropertyStr(ctx, api, "acknowledgeItemRecipe", JS_NewCFunction(ctx, jsAcknowledgeItemRecipe, "acknowledgeItemRecipe", 2));
     JS_SetPropertyStr(ctx, api, "nativeEquipTextures",
                       JS_NewCFunction(ctx, jsManagedNativeEquipTextures, "nativeEquipTextures", 0));
     JS_SetPropertyStr(ctx, api, "setNativeEquipSlot",
@@ -2900,3 +2975,4 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
 }
 
 #endif
+

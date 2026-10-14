@@ -16,6 +16,7 @@ struct SourceModStatus {
     int projectiles = 0;
     int buffs = 0;
     int potions = 0;
+    int basicItems = 0;
     int accessories = 0;
     int players = 0;
     int npcs = 0;
@@ -32,3 +33,4 @@ bool applyManagedSourceDefaults(const std::string& modId,
 std::vector<SourceModStatus> sourceModStatuses();
 
 }
+

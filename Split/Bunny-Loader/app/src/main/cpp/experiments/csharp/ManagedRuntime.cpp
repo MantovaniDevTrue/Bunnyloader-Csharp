@@ -1,3 +1,4 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -2540,9 +2541,19 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
     std::memcpy(&out.executedTypes, g_api.unbox(verifiedBoxed), sizeof(out.executedTypes));
-    if (out.executedTypes < 2 || out.executedTypes > 32) {
+    if (!validSourceExecutedTypeCount(out.executedTypes)) {
         out.phase = "compiled-assembly-execution-failed";
-        out.error = "CompiledAssemblyProbe.Verify retornou quantidade de classes invalida";
+        out.error = "[CSharp][ERROR][CompileVerify] Method=CompiledAssemblyProbe.Verify Stage=ManagedVerify Expected=1..1024 Actual="+
+            std::to_string(out.executedTypes)+" Result=ModRejected DiagnosticsPath="+diagnosticsPath;
+        if(FILE* diagnostics=std::fopen(diagnosticsPath.c_str(),"rb")) {
+            std::fseek(diagnostics,0,SEEK_END);const long size=std::ftell(diagnostics);
+            if(size>0) {
+                const long start=size>8192?size-8192:0;std::fseek(diagnostics,start,SEEK_SET);
+                char detail[8193]{};const size_t read=std::fread(detail,1,8192,diagnostics);
+                out.error+=" Detail="+std::string(detail,read);
+            }
+            std::fclose(diagnostics);
+        }
         trace(out.phase.c_str(), out.error.c_str());
         return out;
     }
@@ -2994,6 +3005,7 @@ void clearManagedVisualCommands() {
 
 
 }
+
 
 
 

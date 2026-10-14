@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - codex/example-completion-v90-28
       - csharp-composite-accessories-v90-26
       - codex/combat-batch-v90-25
       - csharp-hurt-spatial-context-v90-24
@@ -283,7 +284,8 @@ jobs:
           assert 'bl::hook::install(armorVisuals, hkSetArmorEffectVisuals' in native
           assert 'fieldOffset(player, "armorEffectDrawShadow")' in native
           assert 'fieldOffset(player, "armorEffectDrawOutlines")' in native
-          assert 'if (!self || !managedShadowEquipped(drawPlayer ? drawPlayer : self))' in native
+          assert 'Il2CppObject* actor = drawPlayer ? drawPlayer : self;' in native
+          assert 'if (managedShadowEquipped(actor))' in native
           assert 'armorEffectDrawShadowEOCShield' not in native
           assert 'g_originalHorizontalMovement(self, method);' in native
           assert 'maxSpeed *= factor;' in native
@@ -542,4 +544,5 @@ jobs:
           python3 tools/csharp_api_negative_compile.py --prepare
           python3 tools/csharp_api_negative_compile.py --build
           python3 tools/csharp_api_negative_compile.py --check
+
 

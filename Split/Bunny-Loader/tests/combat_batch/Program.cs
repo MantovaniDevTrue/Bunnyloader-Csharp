@@ -198,15 +198,15 @@ try
         File.Copy(Path.Combine(runtimeSource,name+".dll"),Path.Combine(runtime,name+".dll"));
     File.Copy(typeof(BunnyPlayer).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
     string output=Path.Combine(scratch,"mod.dll"), diag=Path.Combine(scratch,"diagnostics.txt");
-    Check("compiler.64-files-and-cache", () => {
-        for(int i=0;i<64;i++) File.WriteAllText(Path.Combine(root,"content",$"Part{i:D2}.cs"),$"public static class Part{i} {{ public const int Value={i}; }}");
+    Check("compiler.512-files-and-cache", () => {
+        for(int i=0;i<512;i++) File.WriteAllText(Path.Combine(root,"content",$"Part{i:D2}.cs"),$"public static class Part{i} {{ public const int Value={i}; }}");
         Equal(1,Compiler.Compile(root,output,runtime,diag));
         Equal(2,Compiler.Compile(root,output,runtime,diag));
     });
-    Check("compiler.65-files-rejected", () => {
+    Check("compiler.513-files-rejected", () => {
         File.WriteAllText(Path.Combine(root,"content","Extra.cs"),"public class Extra {}");
         Equal(-3,Compiler.Compile(root,output,runtime,diag));
-        Contains("atual=65 permitido=1..64",File.ReadAllText(diag));
+        Contains("atual=513 permitido=1..512",File.ReadAllText(diag));
         File.Delete(Path.Combine(root,"content","Extra.cs"));
     });
     Check("compiler.actual-error-path-line-code-hint", () => {
@@ -216,9 +216,9 @@ try
         Contains("content/Part00.cs:3:",error); Contains("[CS0115]",error);
         Contains("Como corrigir:",error); Contains("^",error);
     });
-    Check("compiler.full-example-42-files", () => {
+    Check("compiler.full-example-51-files", () => {
         string example=Path.GetFullPath("samples/ExampleModCSharp/Playable");
-        Equal(42,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
+        Equal(51,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
         int result=Compiler.Compile(example,Path.Combine(scratch,"example.dll"),runtime,diag);
         if(result!=1) throw new Exception(File.ReadAllText(diag));
     });
@@ -245,3 +245,4 @@ public sealed class FaultyPlayer : BunnyPlayer
     public override void OnHitByNPC(bool equipped,int index,BunnyHurtInfo hit) => Hit("OnHitByNPC");
     public override void OnHitByProjectile(bool equipped,int index,BunnyHurtInfo hit) => Hit("OnHitByProjectile");
 }
+

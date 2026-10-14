@@ -8,10 +8,10 @@ example = root / 'samples/ExampleModCSharp'
 playable = example / 'Playable'
 manifest = json.loads((playable / 'manifest.json').read_text())
 compat = json.loads((example / 'compatibility.json').read_text())
-assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.33'
+assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.35'
 sources = sorted((playable / 'content').rglob('*.cs'))
-assert len(sources) == 42, f'Expected 42 examples; found {len(sources)}'
-assert sum(p.stat().st_size for p in sources) <= 2 * 1024 * 1024
+assert len(sources) == 51, f'Expected 51 sources; found {len(sources)}'
+assert sum(p.stat().st_size for p in sources) <= 16 * 1024 * 1024
 for path in sources:
     assert path.stat().st_size <= 256 * 1024, str(path)
 recipes = list((playable / 'content/Common/Recipes').glob('*.cs'))
@@ -24,10 +24,16 @@ sdk = ET.parse(root / 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj')
 assert any('BunnyCombatUtilities.cs' in node.get('Include', '') for node in sdk.iter('Compile'))
 compiler = (root / 'experiments/csharp/BunnySourceCompiler/Compiler.cs').read_text()
 native = root / 'app/src/main/cpp/experiments/csharp'
-assert 'MaxFiles = 64;' in compiler
+assert 'MaxFiles = 512;' in compiler
 loader = (native / 'SourceLoader.cpp').read_text()
-assert 'paths->size() >= 64' in loader and 'paths.size() > 64' in loader
+assert 'paths->size() >= kSourceMaxFiles' in loader and 'paths.size() > kSourceMaxFiles' in loader
 cache = (native / 'AutoSourceRuntime.cpp').read_text()
-assert '++*count > 64' in cache and '*count > 64' in cache
-print('PACKAGE_OK version=0.1.33 sources=42 recipes=8 limit=64 guide=included')
+assert 'static_cast<size_t>(++*count) > kSourceMaxFiles' in cache and 'static_cast<size_t>(*count) > kSourceMaxFiles' in cache
+assert 'MaxTotalBytes = 16 * 1024 * 1024;' in compiler
+limits=(native / 'SourceLimits.h').read_text()
+assert 'kSourceMaxFiles=512;' in limits and 'kSourceMaxTotalBytes=16*1024*1024;' in limits
+assert 'kSourceMaxCategory=256;' in limits and 'kSourceDefaultsBytes=2*1024*1024;' in limits
+assert 'validSourceExecutedTypeCount(out.executedTypes)' in (native / 'ManagedRuntime.cpp').read_text()
+print('PACKAGE_OK version=0.1.35 sources=51 recipes=8 limit=512 guide=included')
+
 

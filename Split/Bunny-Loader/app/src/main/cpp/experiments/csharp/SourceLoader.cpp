@@ -1,6 +1,8 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
@@ -56,9 +58,9 @@ bool collect(const std::string& folder, const std::string& rel,
         if (S_ISDIR(st.st_mode)) {
             if (!collect(folder, child, paths, error, depth + 1)) return false;
         } else if (S_ISREG(st.st_mode) && isSourceName(name)) {
-            if (st.st_size > 256 * 1024 || st.st_size < 0 || paths->size() >= 64) {
+            if (st.st_size < 0 || static_cast<uint64_t>(st.st_size) > kSourceMaxFileBytes || paths->size() >= kSourceMaxFiles) {
                 *error = "content/" + child +
-                    ": limite C# excedido (64 arquivos; 256 KiB por arquivo)";
+                    ": limite C# excedido (512 arquivos; 256 KiB por arquivo)";
                 return false;
             }
             paths->push_back(child);
@@ -71,7 +73,7 @@ bool read(const std::string& path, std::string* out) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return false;
     out->assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
-    return out->size() <= 256 * 1024;
+    return out->size() <= kSourceMaxFileBytes;
 }
 
 bool integer(const std::string& value, int* out) {
@@ -99,12 +101,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             std::string* shoot, std::string* display, std::string* texture,
             std::string* error) {
     const bool projectile = type.base == "BunnyProjectile";
+    const bool basic = type.base == "BunnyItem";
     const bool weapon = type.base == "BunnyWeapon";
     const bool buff = type.base == "BunnyBuff";
     const bool potion = type.base == "BunnyBuffPotion";
     const bool accessory = type.base == "BunnyAccessory";
     const bool npc = type.base == "BunnyNPC";
-    if (!projectile && !weapon && !buff && !potion && !accessory && !npc) {
+    if (!basic && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
@@ -117,10 +120,10 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     spec->useTime = npc ? 2 : weapon ? 18 : 0;
     spec->shootType = npc ? 25 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
-    spec->kind = projectile ? NativeProjectile :
+    spec->kind = basic ? NativeBasicItem : projectile ? NativeProjectile :
                  weapon ? NativeWeapon : buff ? NativeBuff :
                  accessory ? NativeAccessory : npc ? NativeNpc : NativeBuffPotion;
-    *texture = npc ? "Content/NPCs/" + type.name + ".png" :
+    *texture = basic ? "Content/Items/" + type.name + ".png" : npc ? "Content/NPCs/" + type.name + ".png" :
                projectile ? "Content/Projectiles/" + type.name + ".png" :
                weapon ? "Content/Items/Weapons/" + type.name + ".png" :
                buff ? "Content/Buffs/" + type.name + ".png" :
@@ -130,6 +133,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     for (const auto& [key, value] : type.properties) {
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
+        if (basic) {
+            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
+            if (allowed.find("|"+key+"|")==std::string::npos) {
+                *error=type.name+": propriedade BunnyItem nao suportada: "+key;return false;
+            }
+            continue; // valores efetivos vem do SetDefaults executado pelo Mono
+        }
         if (accessory && key == "Tooltip") continue;
         if (accessory && key == "VisualMode") {
             if (value != "None" && value != "EquippedSprite" &&
@@ -232,28 +242,34 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
-    if (paths.empty() || paths.size() > 64) {
+    if (paths.empty() || paths.size() > kSourceMaxFiles) {
         status->error = "pacote C# sem fontes .cs";
         return false;
     }
     std::vector<ParsedSourceType> defs;
+    std::map<std::string,std::string> sourcePaths;
+    size_t totalSourceBytes=0;
     for (const auto& path : paths) {
         std::string contents;
         if (!read(folder + "/" + path, &contents)) {
             status->error = "nao foi possivel ler " + path;
             return false;
         }
+        totalSourceBytes+=contents.size();
+        if(totalSourceBytes>kSourceMaxTotalBytes) {status->error="Fontes excedem 16 MiB";return false;}
+        const size_t previousTypes=defs.size();
         if (!parseCSharpSource(contents, &defs, &status->error, false)) {
             status->error = path + ": " + status->error;
             return false;
         }
+        for(size_t i=previousTypes;i<defs.size();++i)sourcePaths[defs[i].name]=path;
         ++status->sourceFiles;
     }
     if (defs.empty()) {
         status->error = "mod C# sem nenhuma classe BunnyWeapon ou BunnyProjectile";
         return false;
     }
-    if (defs.size() > 128) { status->error = "tipos C# demais"; return false; }
+    if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> types;
     for (const auto& def : defs) {
         if (!types.emplace(def.name, -1).second) {
@@ -266,7 +282,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 7> order = {
+    const std::array<std::string, 8> order = {
+        "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
         "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
     };
@@ -310,9 +327,13 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             spec.name = def.name.c_str();
             spec.texture = texture.c_str();
             spec.displayName = display.c_str();
+            ctx.sourceFile="content/"+sourcePaths[def.name];
             const int type = registerNativeContent(&ctx, &spec);
             if (type < 0) {
-                status->error = def.name + ": registro nativo falhou; confira PNG e propriedades";
+                status->error="[CSharp][ERROR][Register] Mod="+mod.id+" Class="+def.name+
+                    " File=content/"+sourcePaths[def.name]+" Category="+base+" Stage=NativeRegister Expected=NonNegativeContentId Actual="+
+                    std::to_string(type)+" Result=LoadInterrupted Detail="+
+                    (ctx.lastError.empty()?"NativeRegistrationRejected; confira diagnostico anterior do registrador":ctx.lastError);
                 return false;
             }
             types[def.name] = type;
@@ -362,8 +383,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->buffs = ctx.buffs;
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
-    if ((status->items < 1 || status->projectiles < 1) && status->prefixes == 0) {
-        status->error = "mod C# precisa registrar um BunnyWeapon e BunnyProjectile";
+    status->basicItems = ctx.basicItems;
+    if (status->items+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
+        status->error = "mod C# sem conteudo registrado";
         return false;
     }
     return true;
@@ -390,7 +412,7 @@ bool applyManagedSourceDefaults(
     const std::string& modId, const std::string& runtimeValues, std::string* error) {
     if (!error) return false;
     error->clear();
-    if (runtimeValues.empty() || runtimeValues.size() > 8192) {
+    if (runtimeValues.empty() || runtimeValues.size() > kSourceDefaultsBytes) {
         *error = "Resultado gerenciado inexistente ou grande demais";
         return false;
     }
@@ -417,6 +439,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, bool> seen;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
+    std::vector<BasicItemEntry> basicItems;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
     std::vector<ManagedAccessoryEntry> accessories;
@@ -437,7 +460,20 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9 || fields.size() == 14)) {
+        if (fields[0] == "ITEM") {
+            BasicItemEntry record;
+            const auto type=mod->registeredTypes.find(fields[1]);
+            if (type==mod->registeredTypes.end() || !isBasicItem(type->second)) {
+                *error=fields[1]+": BunnyItem nao registrado";return false;
+            }
+            if(!parseBasicItemWire(fields,&record,error))return false;
+            record.type=type->second;basicItems.push_back(std::move(record));
+            if (basicItems.size() > kSourceMaxCategory) {
+                *error = "Quantidade de BunnyItem C# excede 256";
+                return false;
+            }
+            continue;
+        } else if (fields[0] == "PLAYER" && (fields.size() == 4 || fields.size() == 5 || fields.size() == 8 || fields.size() == 9 || fields.size() == 14)) {
             if (std::find(mod->playerClasses.begin(), mod->playerClasses.end(),
                           fields[1]) == mod->playerClasses.end()) {
                 *error = "BunnyPlayer C# nao registrado: " + fields[1];
@@ -655,22 +691,25 @@ bool applyManagedSourceDefaults(
             record.buffType = target->second;
             potions.push_back(std::move(record));
         } else {
-            *error = "Linha V2 inesperada no resultado do C#";
+            *error = "Linha V2 inesperada: tipo=" + fields[0] +
+                     " classe=" + fields[1] +
+                     " campos=" + std::to_string(fields.size());
             return false;
         }
-        if (projectiles.size() > 16 || weapons.size() > 16 ||
-            buffs.size() > 16 || potions.size() > 16 ||
-            accessories.size() > 16 || players.size() > 16 ||
-            npcs.size() > 16 || prefixes.size() > 16) {
-            *error = "Quantidade de conteudo C# excede 16 por categoria";
+        if (basicItems.size() > kSourceMaxCategory || projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory ||
+            buffs.size() > kSourceMaxCategory || potions.size() > kSourceMaxCategory ||
+            accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory ||
+            npcs.size() > kSourceMaxCategory || prefixes.size() > kSourceMaxCategory) {
+            *error = "Quantidade de conteudo C# excede 256 por categoria";
             return false;
         }
     }
     if (projectiles.size() != static_cast<size_t>(mod->projectiles) ||
-        weapons.size() + potions.size() + accessories.size() !=
+        weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
             static_cast<size_t>(mod->items) ||
         buffs.size() != static_cast<size_t>(mod->buffs) ||
         potions.size() != static_cast<size_t>(mod->potions) ||
+        basicItems.size() != static_cast<size_t>(mod->basicItems) ||
         accessories.size() != static_cast<size_t>(mod->accessories) ||
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
@@ -708,6 +747,7 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao validar descritores de prefixo C#";
         return false;
     }
+    if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     mod->runtimeApplied = true;
     return true;
 }
@@ -715,4 +755,5 @@ bool applyManagedSourceDefaults(
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
 
 }
+
 

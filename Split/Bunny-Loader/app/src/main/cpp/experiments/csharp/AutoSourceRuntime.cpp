@@ -1,5 +1,7 @@
+#include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItemSave.h"
 
@@ -41,7 +43,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_49";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_5";
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
@@ -154,8 +156,8 @@ void hashString(uint64_t* hash, const std::string& value) {
 }
 
 bool hashSources(const std::string& dir, const std::string& relative,
-                 uint64_t* hash, int* count, int depth) {
-    if (depth > 7 || *count > 64) return false;
+                 uint64_t* hash, int* count, size_t* totalBytes, int depth) {
+    if (depth > 7 || static_cast<size_t>(*count) > kSourceMaxFiles) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
     if (!listing) return false;
@@ -172,12 +174,14 @@ bool hashSources(const std::string& dir, const std::string& relative,
         struct stat metadata{};
         if (lstat(full.c_str(), &metadata) != 0) return false;
         if (S_ISDIR(metadata.st_mode)) {
-            if (!hashSources(dir, rel, hash, count, depth + 1)) return false;
+            if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
                    name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
-            if (metadata.st_size < 1 || metadata.st_size > 256 * 1024 || ++*count > 64)
+            if (metadata.st_size < 1 || metadata.st_size > 256 * 1024 || static_cast<size_t>(++*count) > kSourceMaxFiles)
                 return false;
-            std::string source = readText(full, 256 * 1024);
+            *totalBytes+=static_cast<size_t>(metadata.st_size);
+            if(*totalBytes>kSourceMaxTotalBytes)return false;
+            std::string source = readText(full, kSourceMaxFileBytes);
             if (source.empty()) return false;
             hashString(hash, rel);
             hashString(hash, source);
@@ -191,7 +195,8 @@ std::string fingerprint(const std::string& id, const std::string& root) {
     hashString(&hash, kCacheVersion);
     hashString(&hash, id);
     int count = 0;
-    if (!hashSources(root + "/content", "", &hash, &count, 0) || count < 1)
+    size_t totalBytes=0;
+    if (!hashSources(root + "/content", "", &hash, &count, &totalBytes, 0) || count < 1)
         return {};
     std::ostringstream out;
     out << std::hex << std::setfill('0') << std::setw(16) << hash;
@@ -201,7 +206,7 @@ std::string fingerprint(const std::string& id, const std::string& root) {
 bool readCache(const std::string& path, const std::string& id,
                const std::string& key, std::string* defaults,
                std::string* curves, std::string* combat) {
-    const std::string value = readText(path, 65536);
+    const std::string value = readText(path, kSourceDefaultsBytes+kSourceMotionBytes+1024*1024+1024);
     if (value.empty()) return false;
     std::istringstream input(value);
     std::string first, second, third, counts;
@@ -214,8 +219,8 @@ bool readCache(const std::string& path, const std::string& id,
     std::string trailing;
     if (!(lengths >> defaultsSize >> curvesSize >> combatSize) ||
         (lengths >> trailing) ||
-        defaultsSize < 10 || defaultsSize > 8192 ||
-        curvesSize > 22000 || combatSize < 25 || combatSize > 30000)
+        defaultsSize < 10 || defaultsSize > kSourceDefaultsBytes ||
+        curvesSize > kSourceMotionBytes || combatSize < 25 || combatSize > kSourceMotionBytes)
         return false;
     const size_t header = value.find('\n',
         value.find('\n', value.find('\n', value.find('\n') + 1) + 1) + 1);
@@ -234,8 +239,8 @@ bool readCache(const std::string& path, const std::string& id,
 void saveCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& defaults,
                const std::string& curves, const std::string& combat) {
-    if (defaults.empty() || defaults.size() > 8192 || curves.size() > 22000 ||
-        combat.size() < 25 || combat.size() > 30000) return;
+    if (defaults.empty() || defaults.size() > kSourceDefaultsBytes || curves.size() > kSourceMotionBytes ||
+        combat.size() < 25 || combat.size() > kSourceMotionBytes) return;
     const std::string value = std::string(kCacheVersion) + "\n" + id + "\n" +
         key + "\n" + std::to_string(defaults.size()) + " " +
         std::to_string(curves.size()) + " " + std::to_string(combat.size()) +
@@ -276,9 +281,9 @@ bool compile(const std::string& root, const std::string& id,
             return false;
         }
         if (!validCompileStatus(status, id, mod)) continue;
-        *defaults = readText(workDir + "source-runtime-values.txt", 8192);
-        *curves = readText(workDir + "source-projectile-turns.txt", 22000);
-        *combat = readText(workDir + "source-combat-policies.txt", 30000);
+        *defaults = readText(workDir + "source-runtime-values.txt", kSourceDefaultsBytes);
+        *curves = readText(workDir + "source-projectile-turns.txt", kSourceMotionBytes);
+        *combat = readText(workDir + "source-combat-policies.txt", kSourceMotionBytes);
         if (defaults->rfind("BUNNY_MANAGED_DEFAULTS_V2\n", 0) != 0 ||
             combat->rfind("BUNNY_COMBAT_POLICIES_V1\n", 0) != 0) {
             *error = "Resultado C# sem tabela valida de SetDefaults";
@@ -300,7 +305,7 @@ bool parseCurves(const std::string& id, const std::string& input,
     int count = 0;
     while (std::getline(lines, line)) {
         if (line.empty()) continue;
-        if (++count > 16 || line.size() > 1300) return false;
+        if (static_cast<size_t>(++count) > kSourceMaxCategory || line.size() > 1300) return false;
         std::istringstream fields(line);
         std::string name;
         if (!std::getline(fields, name, '\t') ||
@@ -334,7 +339,7 @@ bool parseCombat(const std::string& id, const std::string& input,
     int total = 0;
     while (std::getline(stream, line)) {
         if (line.empty()) continue;
-        if (++total > 16 || line.size() > 3200) return false;
+        if (static_cast<size_t>(++total) > kSourceMaxCategory || line.size() > 3200) return false;
         std::istringstream row(line);
         std::vector<std::string> parts;
         std::string part;
@@ -648,7 +653,17 @@ void run() {
             }
         }
         note(&status, "applying");
-        if (!applyManagedSourceDefaults(mod.id, defaults, &error)) {
+        bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
+        if (!defaultsApplied && status.cached &&
+            error.rfind("Linha V2 inesperada", 0) == 0) {
+            BL_WARN("csharp auto %s: cache V2 incompativel (%s); recompilando",mod.id.c_str(),error.c_str());
+            status.cached=false;note(&status,"compiling");
+            if (compile(root,mod.id,mod,work,&defaults,&curves,&combat,&error)) {
+                note(&status,"applying");
+                defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
+            }
+        }
+        if (!defaultsApplied) {
             note(&status, "failed", error);
             continue;
         }
@@ -808,6 +823,7 @@ void noteAutoWorldTilesLoaded() {
 }
 
 void noteAutoGameUpdate() {
+    pumpBasicRecipesOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -890,4 +906,5 @@ AutoWorldLifecycleStatus autoWorldLifecycleStatus() {
 }
 
 }
+
 

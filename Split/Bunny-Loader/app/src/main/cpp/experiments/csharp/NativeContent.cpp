@@ -1,5 +1,8 @@
+#include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -125,7 +128,7 @@ struct NativeAccessoryDefaults {
     int lifeRegenBonus = 0;
     int manaRegenBonus = 0;
     int visualMode = 0;
-    std::string visualTexture;
+    std::string visualTexture = {};
     float visualScale = 1.f;
     float visualOpacity = 1.f;
     uint32_t visualColor = 0xffffffffu;
@@ -245,15 +248,6 @@ bool fileExists(const std::string& path) {
     return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0;
 }
 
-bool validTexture(const char* path) {
-    if (!path || !*path || path[0] == '/' || path[0] == '\\') return false;
-    std::string p(path);
-    return p.size() <= 160 && p.find("..") == std::string::npos &&
-           p.find('\\') == std::string::npos &&
-           p.compare(0, 8, "Content/") == 0 &&
-           p.size() > 12 && p.substr(p.size() - 4) == ".png";
-}
-
 bool enableManagedPrefixEligibility(int type) {
     using namespace bl::il2cpp;
     static FieldInfo* prefixSet = nullptr;
@@ -295,6 +289,16 @@ bool enableManagedPrefixEligibility(int type) {
 }
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
+    if (self && isBasicItem(type)) {
+        bl::runtime::prepareModItem(self,type);
+        if (!applyBasicItemToObject(self,type)) {
+            BL_ERROR("csharp item: defaults indisponiveis para type=%d",type);
+            return;
+        }
+        if (basicItemHasDamage(type)||basicItemIsAccessory(type)) enableManagedPrefixEligibility(type);
+        bl::runtime::finishModItem(self,type);
+        return;
+    }
     auto it = g_weapons.find(type);
     auto accessory = g_accessories.find(type);
     auto potion = g_potions.find(type);
@@ -326,7 +330,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::field<int32_t>(self, r.itemRare) = 2;
         bl::runtime::field<int32_t>(self, r.itemUseTime) = 15;
         bl::runtime::field<int32_t>(self, r.itemUseAnimation) = 15;
-        bl::runtime::field<int32_t>(self, r.itemUseStyle) = 2;
+        bl::runtime::field<uint8_t>(self, r.itemUseStyle) = 2;
         bl::runtime::field<uint8_t>(self, r.itemConsumable) = 1;
         bl::runtime::field<int32_t>(self, r.itemBuffType) = potion->second.buffType;
         bl::runtime::field<int32_t>(self, r.itemBuffTime) = potion->second.duration;
@@ -337,7 +341,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemDamage) = d.damage;
     bl::runtime::field<int32_t>(self, r.itemUseTime) = d.useTime;
     bl::runtime::field<int32_t>(self, r.itemUseAnimation) = d.useTime;
-    bl::runtime::field<int32_t>(self, r.itemUseStyle) = 5;
+    bl::runtime::field<uint8_t>(self, r.itemUseStyle) = 5;
     bl::runtime::field<int32_t>(self, r.itemShoot) = d.shootType;
     bl::runtime::field<float>(self, r.itemShootSpeed) = d.shootSpeed;
     bl::runtime::field<float>(self, r.itemKnockBack) = 2.0f;
@@ -1415,7 +1419,7 @@ bool applyManagedNativeDefaultsBatch(
     const std::vector<ManagedProjectileEntry>& projectiles,
     const std::vector<ManagedWeaponEntry>& weapons) {
     if (!g_ready || projectiles.empty() || weapons.empty() ||
-        projectiles.size() > 16 || weapons.size() > 16) return false;
+        projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory) return false;
 
     std::map<int, NativeProjectileDefaults> stagedProjectiles;
     std::map<int, NativeWeaponDefaults> stagedWeapons;
@@ -1493,7 +1497,7 @@ bool applyManagedNativePlayerDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedAccessoryEntry>& accessories,
     const std::vector<ManagedPlayerEntry>& players) {
-    if (!g_effectsReady || accessories.size() > 16 || players.size() > 16)
+    if (!g_effectsReady || accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory)
         return false;
     std::map<int, NativeAccessoryDefaults> values;
     for (const auto& accessory : accessories) {
@@ -1598,7 +1602,7 @@ bool applyManagedNativeNpcDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedNpcEntry>& npcs) {
     if (npcs.empty()) return true;
-    if (!g_npcReady || npcs.size() > 16) return false;
+    if (!g_npcReady || npcs.size() > kSourceMaxCategory) return false;
     std::map<int, NativeNpcDefaults> staged;
     for (const auto& npc : npcs) {
         if (npc.type < 0 ||
@@ -1714,6 +1718,8 @@ int managedNativeAccessoryMoveSpeedPercent(int type) {
 }
 
 int managedNativePrefixItemKind(int type) {
+    if (basicItemIsAccessory(type)) return 2;
+    if (basicItemHasDamage(type)) return 1;
     if (g_weapons.contains(type)) return 1;
     if (g_accessories.contains(type)) return 2;
     return 0;
@@ -1721,6 +1727,8 @@ int managedNativePrefixItemKind(int type) {
 
 void refreshManagedPrefixEligibilityOnWorldReady() {
     int corrected = 0;
+    for (int type : basicItemTypes())
+        if (basicItemHasDamage(type) && enableManagedPrefixEligibility(type)) ++corrected;
     for (const auto& weapon : g_weapons)
         if (enableManagedPrefixEligibility(weapon.first)) ++corrected;
     for (const auto& accessory : g_accessories)
@@ -1730,17 +1738,58 @@ void refreshManagedPrefixEligibilityOnWorldReady() {
 }
 
 int registerNativeContent(void* context, const NativeContentSpec* spec) {
-    if (!g_ready || !context || !spec || !validName(spec->name) ||
-        !validTexture(spec->texture)) return -1;
-    auto& ctx = *static_cast<NativeRegisterContext*>(context);
-    const std::string path = ctx.modDir + "/content/" + spec->texture;
+    auto* ctxPtr = static_cast<NativeRegisterContext*>(context);
+    if (ctxPtr) ctxPtr->lastError.clear();
+    auto reject = [&](const std::string& reason, const std::string& expected,
+                      const std::string& actual) {
+        const std::string detail = "[CSharp][ERROR][Register] Mod=" +
+            (ctxPtr ? ctxPtr->modId : "<unavailable>") + " Class=" +
+            (spec && spec->name ? spec->name : "<unavailable>") + " File=" +
+            (ctxPtr ? ctxPtr->sourceFile : "<unavailable>") +
+            " Stage=NativePreflight Expected=" + expected + " Actual=" + actual +
+            " Result=Rejected Reason=" + reason;
+        if (ctxPtr) ctxPtr->lastError = detail;
+        BL_ERROR("%s", detail.c_str());
+        return -1;
+    };
+    if (!ctxPtr) return reject("RegistrationContextMissing", "Context", "Null");
+    if (!spec) return reject("ContentSpecMissing", "ContentSpec", "Null");
+    if (!g_ready) return reject("NativeRuntimeNotReady", "Ready", "NotReady");
+    if (!validName(spec->name))
+        return reject("ContentNameInvalid", "ValidContentName", spec->name ? spec->name : "Null");
+    std::string texture, textureError;
+    if (!normalizeContentTexture(spec->texture, &texture, &textureError))
+        return reject(textureError, "RelativeContentPngOrStem", spec->texture ? spec->texture : "Null");
+    auto& ctx = *ctxPtr;
+    const std::string path = ctx.modDir + "/content/" + texture;
     if (!fileExists(path)) {
-        BL_ERROR("csharp native: textura inexistente %s", path.c_str());
+        ctx.lastError="[CSharp][ERROR][Asset] Mod="+ctx.modId+" Class="+spec->name+
+            " Path="+path+" Stage=TextureLoad Expected=ExistingFile Actual=Missing Result=Rejected Reason=AssetMissing";
+        BL_ERROR("%s",ctx.lastError.c_str());
         return -1;
     }
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
+    if (spec->kind == NativeBasicItem) {
+        std::string contractError;
+        if(!checkBasicItemContract(&contractError)) {
+            ctx.lastError="[CSharp][ERROR][NativeItem] Mod="+ctx.modId+" Class="+spec->name+
+                " Stage=Register Result=Rejected Detail="+contractError;
+            BL_ERROR("%s",ctx.lastError.c_str());return -1;
+        }
+        bl::runtime::ModItemDef def{};
+        def.mod=ctx.modId;def.name=spec->name;def.texture=path;
+        def.names.push_back({"",display});
+        const int type=bl::runtime::registerModItem(std::move(def));
+        std::string error;
+        if (type < 0 || !registerBasicItemPlaceholder(type,spec->name,&error,ctx.modDir,ctx.sourceFile)) {
+            ctx.lastError="[CSharp][ERROR][NativeItem] Mod="+ctx.modId+" Class="+spec->name+
+                " Stage=Register Actual="+std::to_string(type)+" Result=Rejected Detail="+error;
+            BL_ERROR("%s",ctx.lastError.c_str());return -1;
+        }
+        ++ctx.items;++ctx.basicItems;return type;
+    }
     if (spec->kind == NativeProjectile) {
         if (spec->width < 1 || spec->width > 512 ||
             spec->height < 1 || spec->height > 512 ||
@@ -1858,4 +1907,5 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
 }
 
 }
+
 

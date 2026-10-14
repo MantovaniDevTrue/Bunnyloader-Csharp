@@ -3,6 +3,7 @@ name: Check Bunny CSharp Visual Queue
 on:
   push:
     branches:
+      - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
   workflow_dispatch:
@@ -29,4 +30,5 @@ jobs:
         run: node Split/Bunny-Loader/tests/csharp_native_equips_test.js Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js
       - name: Verify native EquipLoader syntax
         run: node --check Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js
+
 

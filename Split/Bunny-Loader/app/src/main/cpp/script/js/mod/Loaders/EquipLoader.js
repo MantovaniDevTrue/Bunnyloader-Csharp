@@ -161,6 +161,28 @@ class EquipLoader {
         }
     }
 
+    // C# usa o mesmo instalador, tabelas e formatos do ModItem JS.
+    static RegisterCSharpItemTexture(item, kind, file) {
+        if (!EquipLoader.KINDS[kind] || !bl.file.exists(file))
+            throw new Error('csharp equip: textura/tipo invalido: ' + kind + ' ' + file);
+        const key = 'ManagedItem:' + item.Type + ':' + kind;
+        if (EquipLoader.#byName.has(kind + ':' + key)) return;
+        const tex = new EquipTexture();
+        tex.Texture=file; tex.Name=key; tex.Type=kind; tex.Item=item;
+        if (EquipLoader.#installed) EquipLoader.#InstallKind(kind,[tex]);
+        else {
+            if (!EquipLoader.#pending.some(t=>t.Name===key)) EquipLoader.#pending.push(tex);
+            EquipLoader.Install();
+        }
+        if (!EquipLoader.#slots.get(item.Type)?.[EquipLoader.KINDS[kind].slot])
+            throw new Error('csharp equip: slot nao instalado: ' + key);
+    }
+    static CSharpItemSlot(type,kind) {
+        const slot=EquipLoader.#slots.get(type)?.[EquipLoader.KINDS[kind]?.slot];
+        if (!(slot>0)) throw new Error('csharp equip: slot ausente item='+type+' tipo='+kind);
+        return slot;
+    }
+
     static #IsMod(x) {
         return x instanceof Mod || (!!x && typeof x === 'object' && 'uuid' in x && 'path' in x);
     }
@@ -283,4 +305,5 @@ class EquipLoader {
 // Nesta fase as texturas vanilla ja existem; os descritores tardios sao
 // instalados pelo poll do desenho, usando o mesmo caminho idempotente.
 Ready.Add(() => EquipLoader.Install(), 'content');
+
 
