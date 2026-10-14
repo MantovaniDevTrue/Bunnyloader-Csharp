@@ -160,6 +160,7 @@ android {
         )
     }
 
+    val bunnySigningStore = System.getenv("BUNNY_SIGNING_STORE")
     signingConfigs {
         if (releaseKeys != null) {
             create("release") {
@@ -169,10 +170,21 @@ android {
                 keyPassword = releaseKeys.getValue("keyPassword")
             }
         }
+        if (!bunnySigningStore.isNullOrBlank()) {
+            create("bunnyStable") {
+                storeFile = file(bunnySigningStore)
+                storePassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+                keyAlias = System.getenv("BUNNY_SIGNING_ALIAS")
+                keyPassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("bunnyStable")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
