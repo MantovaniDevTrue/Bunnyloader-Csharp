@@ -114,6 +114,20 @@ try {
   foreach(var line in lines.Skip(1))Equal(21,line.Split('\t').Length);
   var helmet=lines.Single(line=>line.StartsWith("ITEM\tContractHelmet\t")).Split('\t');Equal("1,mContractBench,v2:1",helmet[19]);
  });
+ Check("identity.same-name-distinct-native-domains",()=>{
+  string root=Path.Combine(scratch,"dual-identity");Directory.CreateDirectory(Path.Combine(root,"content"));
+  File.WriteAllText(Path.Combine(root,"content","Item.cs"),
+    "using BunnyLoader.Source; namespace Example.Items; public sealed class ExampleWorkbench:BunnyItem { public override void SetDefaults(){DisplayName=\"Example Workbench Item\";Texture=\"Content/Items/ExampleWorkbench.png\";MaxStack=9999;} }");
+  File.WriteAllText(Path.Combine(root,"content","Projectile.cs"),
+    "using BunnyLoader.Source; namespace Example.Projectiles; public sealed class ExampleWorkbench:BunnyProjectile { public override void SetDefaults(){DisplayName=\"Example Workbench Projectile\";Texture=\"Content/Projectiles/ExampleWorkbench.png\";Width=12;Height=12;AiStyle=1;Friendly=true;Penetrate=1;TimeLeft=240;} }");
+  string output=Path.Combine(scratch,"dual-identity.dll"),diag=Path.Combine(scratch,"dual-identity.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(2,CompiledAssemblyProbe.Verify(output,diag));
+  var records=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(3,records.Length);
+  if(!records.Any(line=>line.StartsWith("ITEM\tExampleWorkbench\t")) ||
+     !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))
+      throw new Exception("native domain identity dropped a class");
+ });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));
   for(int i=0;i<192;i++)File.WriteAllText(Path.Combine(root,"content",$"Item{i:D3}.cs"),

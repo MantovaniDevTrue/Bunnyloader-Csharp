@@ -153,6 +153,7 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
 
 bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& name, const std::string& base,
+                const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error) {
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
@@ -161,6 +162,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     ParsedSourceType def;
     def.name = name;
     def.base = base;
+    def.namespaceName = namespaceName;
     bool foundDefaults = false;
     size_t member = begin + 1;
     while (member < end) {
@@ -285,7 +287,48 @@ bool parseCSharpSource(const std::string& source,
     std::vector<Token> tokens;
     if (!tokenize(source, &tokens, error)) return false;
     size_t found = 0;
+    struct NamespaceBlock { size_t end; std::string name; };
+    std::vector<NamespaceBlock> namespaces;
+    std::string fileNamespace;
     for (size_t i = 0; i < tokens.size(); ++i) {
+        while (!namespaces.empty() && i >= namespaces.back().end)
+            namespaces.pop_back();
+        if (tokens[i].value == "namespace") {
+            size_t next = i + 1;
+            std::string name;
+            if (next < tokens.size() && !tokens[next].literal) {
+                name = tokens[next++].value;
+                while (next + 1 < tokens.size() && tokens[next].value == ".") {
+                    name += "." + tokens[next + 1].value;
+                    next += 2;
+                }
+            }
+            if (name.empty() || next >= tokens.size()) {
+                *error = "namespace C# incompleto";
+                return false;
+            }
+            if (tokens[next].value == ";") {
+                if (!namespaces.empty() || !fileNamespace.empty()) {
+                    *error = "namespace C# de arquivo duplicado ou aninhado";
+                    return false;
+                }
+                fileNamespace = name;
+                i = next;
+                continue;
+            }
+            if (tokens[next].value == "{") {
+                const size_t end = closing(tokens, next, "{", "}");
+                if (end == tokens.size()) {
+                    *error = "namespace C# sem fechamento";
+                    return false;
+                }
+                namespaces.push_back({end, name});
+                i = next;
+                continue;
+            }
+            *error = "declaracao de namespace C# invalida";
+            return false;
+        }
         if (tokens[i].value != "class" || i + 1 >= tokens.size()) continue;
         const std::string name = tokens[i + 1].value;
         size_t brace = i + 2;
@@ -314,7 +357,13 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix") {
-            if (!parseClass(tokens, brace, end, name, base, definitions, error)) return false;
+            std::string qualifiedNamespace = fileNamespace;
+            for (const auto& scope : namespaces) {
+                if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
+                qualifiedNamespace += scope.name;
+            }
+            if (!parseClass(tokens, brace, end, name, base,
+                            qualifiedNamespace, definitions, error)) return false;
             ++found;
         }
         i = end;

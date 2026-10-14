@@ -446,14 +446,14 @@ public static class CompiledAssemblyProbe
         {
             string name=item.GetType().Name;
             CheckName(name);
-            if(!names.Add(name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
+            if(!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
             lines.Add(BasicItemWriter.Write(item));
         }
         foreach (object projectile in projectiles)
         {
             string name = projectile.GetType().Name;
             CheckName(name);
-            if (!names.Add(name))
+            if (!names.Add("PROJECTILE:" + name))
                 throw new InvalidOperationException("Duplicate content class: " + name);
             projectileNames.Add(name);
             lines.Add(string.Join("\t", "PROJECTILE", name,
@@ -470,7 +470,7 @@ public static class CompiledAssemblyProbe
             string shootName = Value<string>(weapon, "Shoot");
             CheckName(name);
             CheckName(shootName);
-            if (!names.Add(name))
+            if (!names.Add("ITEM:" + name))
                 throw new InvalidOperationException("Duplicate content class: " + name);
             if (!projectileNames.Contains(shootName))
                 throw new InvalidOperationException("Weapon target projectile not found: " + shootName);
@@ -484,7 +484,7 @@ public static class CompiledAssemblyProbe
         {
             string name = buff.GetType().Name;
             CheckName(name);
-            if (!names.Add(name))
+            if (!names.Add("BUFF:" + name))
                 throw new InvalidOperationException("Duplicate content class: " + name);
             buffNames.Add(name);
             int defense = Value<int>(buff, "DefenseBonus");
@@ -499,7 +499,7 @@ public static class CompiledAssemblyProbe
             string buffName = Value<string>(potion, "Buff");
             CheckName(name);
             CheckName(buffName);
-            if (!names.Add(name) || !buffNames.Contains(buffName))
+            if (!names.Add("ITEM:" + name) || !buffNames.Contains(buffName))
                 throw new InvalidOperationException("C# buff potion target missing or duplicated");
             int duration = Value<int>(potion, "Duration");
             if (duration < 1 || duration > 216000)
@@ -512,7 +512,7 @@ public static class CompiledAssemblyProbe
         {
             string name = accessory.GetType().Name;
             CheckName(name);
-            if (!names.Add(name)) throw new InvalidOperationException("Duplicated C# accessory");
+            if (!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicated C# accessory");
             accessoryNames.Add(name);
             int defense = Value<int>(accessory, "DefenseBonus");
             string tooltip = Value<string>(accessory, "Tooltip");
@@ -552,7 +552,7 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             bool globalPlayer = accessoryName.Length == 0;
             if (!globalPlayer) CheckName(accessoryName);
-            if (!names.Add(name) || (!globalPlayer && !accessoryNames.Contains(accessoryName)))
+            if (!names.Add("PLAYER:" + name) || (!globalPlayer && !accessoryNames.Contains(accessoryName)))
                 throw new InvalidOperationException("BunnyPlayer linked accessory not found");
             var reset = player.GetType().GetMethod("ResetEffects")
                 ?? throw new InvalidOperationException("BunnyPlayer.ResetEffects missing");
@@ -668,7 +668,7 @@ public static class CompiledAssemblyProbe
         {
             string name = npc.GetType().Name;
             CheckName(name);
-            if (!names.Add(name))
+            if (!names.Add("NPC:" + name))
                 throw new InvalidOperationException("Duplicate NPC C# class: " + name);
             int width = Value<int>(npc, "Width");
             int height = Value<int>(npc, "Height");
@@ -698,7 +698,7 @@ public static class CompiledAssemblyProbe
             Type type = prefix.GetType();
             string name = type.Name;
             CheckName(name);
-            if (!names.Add(name))
+            if (!names.Add("PREFIX:" + name))
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");

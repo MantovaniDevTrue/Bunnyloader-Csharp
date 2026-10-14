@@ -9,6 +9,7 @@
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
+#include "experiments/csharp/SourceContentIdentity.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
 
@@ -262,7 +263,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->error = path + ": " + status->error;
             return false;
         }
-        for(size_t i=previousTypes;i<defs.size();++i)sourcePaths[defs[i].name]=path;
+        for(size_t i=previousTypes;i<defs.size();++i)
+            sourcePaths[sourceIdentityForBase(defs[i].base, defs[i].name)]=path;
         ++status->sourceFiles;
     }
     if (defs.empty()) {
@@ -270,10 +272,13 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
-    std::map<std::string, int> types;
+    std::map<std::string, int> typed;
     for (const auto& def : defs) {
-        if (!types.emplace(def.name, -1).second) {
-            status->error = "tipo C# duplicado: " + def.name;
+        const std::string key = sourceIdentityForBase(def.base, def.name);
+        if (key.empty() || !typed.emplace(key, -1).second) {
+            status->error = "identidade nativa C# duplicada/invalida: " + key +
+                " namespace=" + def.namespaceName +
+                " fonte=content/" + sourcePaths[key];
             return false;
         }
     }
@@ -302,7 +307,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     status->error = def.name + ": registro nativo de prefixo falhou";
                     return false;
                 }
-                types[def.name] = type;
+                typed[sourceIdentityForBase(def.base, def.name)] = type;
                 bl::csharp::reserveManagedPrefixDescriptor(type);
                 ++status->prefixes;
                 continue;
@@ -318,8 +323,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     if (other.base == (base == "BunnyWeapon" ? "BunnyProjectile" : "BunnyBuff"))
                         targetRegistered = true;
                 }
-                const auto it = types.find(target);
-                if (!targetRegistered || it == types.end() || it->second < 0) {
+                const std::string targetBase =
+                    base == "BunnyWeapon" ? "BunnyProjectile" : "BunnyBuff";
+                const auto it = typed.find(sourceIdentityForBase(targetBase, target));
+                if (!targetRegistered || it == typed.end() || it->second < 0) {
                     status->error = def.name + ": alvo nao encontrado: " + target;
                     return false;
                 }
@@ -328,16 +335,17 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             spec.name = def.name.c_str();
             spec.texture = texture.c_str();
             spec.displayName = display.c_str();
-            ctx.sourceFile="content/"+sourcePaths[def.name];
+            const std::string sourceKey = sourceIdentityForBase(def.base, def.name);
+            ctx.sourceFile="content/"+sourcePaths[sourceKey];
             const int type = registerNativeContent(&ctx, &spec);
             if (type < 0) {
                 status->error="[CSharp][ERROR][Register] Mod="+mod.id+" Class="+def.name+
-                    " File=content/"+sourcePaths[def.name]+" Category="+base+" Stage=NativeRegister Expected=NonNegativeContentId Actual="+
+                    " File=content/"+sourcePaths[sourceKey]+" Category="+base+" Stage=NativeRegister Expected=NonNegativeContentId Actual="+
                     std::to_string(type)+" Result=LoadInterrupted Detail="+
                     (ctx.lastError.empty()?"NativeRegistrationRejected; confira diagnostico anterior do registrador":ctx.lastError);
                 return false;
             }
-            types[def.name] = type;
+            typed[sourceKey] = type;
             if (base == "BunnyAccessory") {
                 const auto tooltip = def.properties.find("Tooltip");
                 if (tooltip != def.properties.end() && !tooltip->second.empty()) {
@@ -366,7 +374,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             bool valid = false;
             for (const auto& other : defs)
                 if (other.base == "BunnyAccessory" && other.name == link->second &&
-                    types.contains(link->second) && types[link->second] >= 0)
+                    typed.contains(sourceIdentityForBase("BunnyAccessory", link->second)) &&
+                    typed[sourceIdentityForBase("BunnyAccessory", link->second)] >= 0)
                     valid = true;
             if (!valid || def.properties.size() != 1) {
                 status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
@@ -375,10 +384,16 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         }
         status->playerClasses.push_back(def.name);
     }
-    for (const auto& name : status->playerClasses) types.erase(name);
+    for (const auto& name : status->playerClasses)
+        typed.erase(sourceIdentityForBase("BunnyPlayer", name));
     status->players = static_cast<int>(status->playerClasses.size());
     status->accessories = ctx.accessories;
-    status->registeredTypes = types;
+    status->registeredKindTypes = typed;
+    for (const auto& [key, type] : typed) {
+        const auto colon = key.find(':');
+        if (colon != std::string::npos && type >= 0)
+            status->registeredTypes.try_emplace(key.substr(colon + 1), type);
+    }
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
     status->buffs = ctx.buffs;
@@ -456,15 +471,16 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
-        if (fields.size() < 2 || fields[1].empty() ||
-            !seen.emplace(fields[1], true).second) {
+        const std::string identity = fields.size() >= 2
+            ? sourceIdentityForWire(fields[0], fields[1]) : "";
+        if (identity.empty() || !seen.emplace(identity, true).second) {
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
         if (fields[0] == "ITEM") {
             BasicItemEntry record;
-            const auto type=mod->registeredTypes.find(fields[1]);
-            if (type==mod->registeredTypes.end() || !isBasicItem(type->second)) {
+            const auto type=mod->registeredKindTypes.find(identity);
+            if (type==mod->registeredKindTypes.end() || !isBasicItem(type->second)) {
                 *error=fields[1]+": BunnyItem nao registrado";return false;
             }
             if(!parseBasicItemWire(fields,&record,error))return false;
@@ -538,8 +554,8 @@ bool applyManagedSourceDefaults(
             players.push_back(std::move(record));
             continue;
         }
-        const auto registered = mod->registeredTypes.find(fields[1]);
-        if (registered == mod->registeredTypes.end() || registered->second < 0) {
+        const auto registered = mod->registeredKindTypes.find(identity);
+        if (registered == mod->registeredKindTypes.end() || registered->second < 0) {
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
@@ -715,7 +731,7 @@ bool applyManagedSourceDefaults(
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
-        seen.size() != mod->registeredTypes.size() + mod->playerClasses.size()) {
+        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
