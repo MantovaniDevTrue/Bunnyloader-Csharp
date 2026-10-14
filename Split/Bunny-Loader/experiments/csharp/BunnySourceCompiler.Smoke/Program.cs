@@ -238,8 +238,8 @@ try
         !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleGuardianShieldAccessory\t0\t+5 defesa, +4 regeneracao de vida; reduz dano de NPCs e projeteis\t1\tContent/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png\t", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleTrailblazerBootsAccessory\t0\t+12% velocidade, +8% aceleracao\t3\tContent/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png\t", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleMysticWardAccessory\t0\t+3 defesa, +8 regeneracao de mana; protecao com pouca vida e contra projeteis proximos\t2\tContent/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png\t", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleTrailblazerBootsAccessory\t0\t+12% velocidade, +8% aceleracao\t3\tContent/Effects/TrailblazerSpark.png\t", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("ACCESSORY\tExampleMysticWardAccessory\t0\t+3 defesa, +8 regeneracao de mana; protecao com pouca vida e contra projeteis proximos\t2\tContent/Effects/MysticWardBarrier.png\t", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleGuardianShieldPlayer\tExampleGuardianShieldAccessory\t5\t0\t0\t0\t-\t-\t0\t0\t-\t4\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleTrailblazerBootsPlayer\tExampleTrailblazerBootsAccessory\t0\t12\t8\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleMysticWardPlayer\tExampleMysticWardAccessory\t3\t0\t0\t0\t-\t-\t0\t0\t-\t0\t8\n", StringComparison.Ordinal) ||
