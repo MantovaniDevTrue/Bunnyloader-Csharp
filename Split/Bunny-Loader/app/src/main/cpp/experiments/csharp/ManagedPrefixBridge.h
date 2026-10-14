@@ -21,6 +21,9 @@ struct ManagedPrefixEntry {
 
 bool applyManagedPrefixDescriptors(const std::string& modId,
                                    const std::vector<ManagedPrefixEntry>& prefixes);
+void reserveManagedPrefixDescriptor(int type);
+bool managedPrefixDescriptorPending(int type);
+bool managedPrefixDescriptorReady(int type);
 int registeredManagedPrefixCount();
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes();
 }

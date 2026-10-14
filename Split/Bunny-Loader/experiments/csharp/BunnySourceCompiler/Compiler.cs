@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 512;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 16 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v19-native-placeable-items";
+    private const string CacheVersion = "roslyn-net8-source-v20-startup-prefix";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",

@@ -303,6 +303,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 types[def.name] = type;
+                bl::csharp::reserveManagedPrefixDescriptor(type);
                 ++status->prefixes;
                 continue;
             }

@@ -19,6 +19,14 @@ FILE* g_file = nullptr;
 std::mutex g_mutex;
 std::atomic<bool> g_verbose{false};
 
+// Routine C# startup messages stay in logcat; editor shows one consolidated
+// status line and keeps every warning/error visible.
+bool routineCSharpInfo(int level, const char* line) {
+    if (level != ANDROID_LOG_INFO || !line) return false;
+    return std::strncmp(line, "csharp ", 7) == 0 ||
+           std::strncmp(line, "[CSharp][INFO]", 14) == 0;
+}
+
 std::string g_errors;
 int g_errorCount = 0;
 void (*g_onError)(const char*) = nullptr;
@@ -84,11 +92,13 @@ void write(int level, const char* fmt, ...) {
     va_end(again);
 
     toLogcat(level, buffer, length);
+    const bool compact = routineCSharpInfo(level, buffer) &&
+        !g_verbose.load(std::memory_order_relaxed);
 
     void (*notify)(const char*) = nullptr;
     {
         std::lock_guard<std::mutex> guard(g_mutex);
-        if (g_file && (level >= ANDROID_LOG_INFO || g_verbose.load(std::memory_order_relaxed))) {
+        if (g_file && !compact && (level >= ANDROID_LOG_INFO || g_verbose.load(std::memory_order_relaxed))) {
             // No arquivo, com hora e nivel: e ele que o modder abre, sem logcat.
             timespec ts{};
             clock_gettime(CLOCK_REALTIME, &ts);
@@ -111,7 +121,7 @@ void write(int level, const char* fmt, ...) {
     }
     // Fora do lock: quem escuta vai mexer em UI e pode logar de volta.
     if (notify) notify(buffer);
-    if (level >= ANDROID_LOG_INFO) {
+    if (level >= ANDROID_LOG_INFO && !compact) {
         if (auto line = g_onLine.load(std::memory_order_acquire)) line(level, buffer);
     }
 }

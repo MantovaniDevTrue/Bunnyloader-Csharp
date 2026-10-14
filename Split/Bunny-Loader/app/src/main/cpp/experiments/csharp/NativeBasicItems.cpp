@@ -1,5 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItems.h"
 #include "content/tiles/ModTiles.h"
 #include "content/recipes/NativeRecipes.h"
@@ -29,6 +31,7 @@ int lastBehaviorType=-1;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
 std::atomic<bool> behaviorsPending{false};
+std::atomic<unsigned> contentGeneration{0};
 struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
 std::array<IntegerField,BasicFieldCount-1> integerFields{};
 struct EquipSlot { IntegerField field; int value=-1; };
@@ -284,11 +287,21 @@ void refreshLiveBasicItems() {
             Il2CppObject* exception=nullptr;bool topTier=false;int pre=savedPrefix;
             void* args[]={&pre,&topTier};
             auto* result=prefix&&api.runtime_invoke?api.runtime_invoke(prefix,object,args,&exception):nullptr;
-            const bool applied=result&&!exception&&*reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(result)+sizeof(Il2CppObject));
-            if(!applied) {
-                runtime::field<uint8_t>(object,prefixOffset)=static_cast<uint8_t>(savedPrefix);
+            bool applied=result&&!exception&&*reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(result)+sizeof(Il2CppObject));
+            if(!applied && managedPrefixDescriptorReady(savedPrefix)) {
+                runtime::field<uint8_t>(object,prefixOffset)=0;
+                if(applyBasicItemToObject(object,type)) {
+                    runtime::finishModItem(object,type);
+                    std::string why;
+                    applied=applyManagedPrefixStatFallback(object,savedPrefix,&why);
+                    if(!applied)
+                        BL_WARN("csharp item: prefixo=%d tipo=%d nao reaplicado motivo=%s",
+                                savedPrefix,type,why.c_str());
+                }
+            } else if(!applied && !managedPrefixDescriptorPending(savedPrefix))
                 BL_WARN("csharp item: reidratacao type=%d prefix=%d nao reaplicado",type,savedPrefix);
-            }
+            if(!applied)
+                runtime::field<uint8_t>(object,prefixOffset)=static_cast<uint8_t>(savedPrefix);
         }
         ++count;
     };
@@ -383,6 +396,7 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         }
         definitions[entry.type]=std::move(entry);
     }
+    contentGeneration.fetch_add(1,std::memory_order_release);
     BL_INFO("csharp items: %zu defaults nativos aplicados para %s",entries.size(),modId.c_str());
     instancesPending.store(true,std::memory_order_release);
     return true;
@@ -539,6 +553,23 @@ bool basicItemPolicyReady(int type) {
     std::lock_guard lock(mutex);const auto it=definitions.find(type);
     return it==definitions.end()||it->second.behavior.empty()||it->second.behaviorInstalled;
 }
+BasicItemLoadStatus basicItemLoadStatus() {
+    std::lock_guard lock(mutex);
+    BasicItemLoadStatus state;
+    state.items=static_cast<int>(definitions.size());
+    for(const auto& [type,entry]:definitions) {
+        if(!entry.behavior.empty()) {
+            if(entry.behaviorInstalled)++state.readyBehaviors;
+            else ++state.pendingBehaviors;
+        }
+        if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0)
+            ++state.pendingPlacements;
+    }
+    for(const auto& [key,entry]:recipes)
+        if(entry.index>=0)++state.installedRecipes;
+        else ++state.pendingRecipes;
+    return state;
+}
 std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> out;for(const auto& p:definitions)out.push_back(p.first);return out;}
 std::vector<PendingBasicRecipe> pendingBasicRecipes() {
     std::lock_guard lock(mutex);std::vector<PendingBasicRecipe> out;
@@ -563,12 +594,19 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
     recipesPending.store(pending,std::memory_order_release);return true;
 }
 void pumpBasicRecipesOnGameThread() {
-    static unsigned placementTicks=0;
-    if((placementTicks++%120u)==0)resolvePlacements();
+    static unsigned ticks=0, knownGeneration=0, fastPasses=0;
+    const unsigned generation=contentGeneration.load(std::memory_order_acquire);
+    if(generation!=knownGeneration) {
+        knownGeneration=generation;
+        fastPasses=16;
+    }
+    const bool fast=fastPasses>0;
+    if(fast)--fastPasses;
+    ++ticks;
+    if(fast||ticks%120u==0)resolvePlacements();
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
 #if BL_HAVE_QUICKJS
-    static unsigned behaviorTicks=0;
-    if(behaviorsPending.load(std::memory_order_acquire)&&(behaviorTicks++%120u)==0) {
+    if(behaviorsPending.load(std::memory_order_acquire)&&(fast||ticks%120u==0)) {
         const auto sync=[] {
         script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
         auto* ctx=static_cast<JSContext*>(script::engine().context());
@@ -589,8 +627,7 @@ void pumpBasicRecipesOnGameThread() {
     }
 #endif
     if(recipesPending.load(std::memory_order_acquire)) {
-        static unsigned ticks=0;
-        if((ticks++%120u)==0)for(const auto& pending:pendingBasicRecipes()) {
+        if(fast||ticks%120u==0)for(const auto& pending:pendingBasicRecipes()) {
             runtime::NativeRecipeRequest request;
             request.key=pending.id;request.mod=pending.modId;request.source=pending.source;
             const auto slash=pending.id.find('/'), hash=pending.id.rfind('#');

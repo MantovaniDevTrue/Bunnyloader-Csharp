@@ -7,12 +7,14 @@
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <set>
 
 namespace bl::csharp {
 namespace {
 
 std::mutex g_prefixMutex;
 std::map<int, ManagedPrefixEntry> g_descriptors;
+std::set<int> g_reservedManagedPrefixTypes;
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 5 ||
@@ -31,6 +33,21 @@ bool valid(const ManagedPrefixEntry& p) {
     return true;
 }
 
+}
+
+void reserveManagedPrefixDescriptor(int type) {
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    if (type > 0 && type <= 255) g_reservedManagedPrefixTypes.insert(type);
+}
+
+bool managedPrefixDescriptorPending(int type) {
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    return g_reservedManagedPrefixTypes.contains(type) && !g_descriptors.contains(type);
+}
+
+bool managedPrefixDescriptorReady(int type) {
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    return g_descriptors.contains(type);
 }
 
 bool applyManagedPrefixDescriptors(

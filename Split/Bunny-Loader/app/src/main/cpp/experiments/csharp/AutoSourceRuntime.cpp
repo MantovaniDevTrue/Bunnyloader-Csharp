@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
+#include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/items/ModItemSave.h"
 
 #include "content/common/GameRefs.h"
@@ -43,11 +44,14 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_5_native_placeable_items";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_6_startup_prefix";
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
+std::atomic<bool> g_initialCSharpRegistrationFinished{false};
+std::atomic<bool> g_worldCSharpSummaryShown{false};
+std::atomic<int> g_worldCSharpSummaryWait{0};
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
 std::atomic<int> g_worldReadyFrames{0};
@@ -668,6 +672,7 @@ void run() {
             continue;
         }
         status.applied = true;
+        g_worldPrefixesRestored.store(false, std::memory_order_release);
         std::vector<Curve> entries;
         if (!parseCurves(mod.id, curves, mod, &entries)) {
             note(&status, "failed", "Curvas de projeteis C# invalidas");
@@ -688,7 +693,10 @@ void run() {
         if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
-    if (pending.empty() && pendingCombat.empty()) return;
+    if (pending.empty() && pendingCombat.empty()) {
+        g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
+        return;
+    }
     const ActivationContext context = readActivationContext();
     BL_INFO("csharp auto: preparando curvas C#, netMode=%d gameMenu=%d (opcional)",
             context.netMode, context.gameMenu);
@@ -784,8 +792,44 @@ void run() {
         }
         scheduleAutoLiveBindings();
     }
+    g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
 }
 
+}
+
+void reportCSharpLoadSummary() {
+    if (!g_worldSessionReady.load(std::memory_order_acquire) ||
+        !g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
+        g_worldCSharpSummaryShown.load(std::memory_order_acquire)) return;
+
+    const auto statuses = autoSourceStatuses();
+    if (statuses.empty()) return;
+    const auto basic = basicItemLoadStatus();
+    int successful = 0, failed = 0, pendingCallbacks = 0;
+    for (const auto& status : statuses) {
+        if (status.phase == "failed" || !status.error.empty()) ++failed;
+        else if (!status.applied) ++pendingCallbacks;
+        else {
+            ++successful;
+            if (status.enabledCurves < status.curves ||
+                status.enabledHits < status.hitPolicies ||
+                status.enabledKills < status.killPolicies) ++pendingCallbacks;
+        }
+    }
+    const int pending = basic.pendingBehaviors + basic.pendingRecipes +
+        basic.pendingPlacements + pendingCallbacks;
+    if (pending && g_worldCSharpSummaryWait.fetch_add(1, std::memory_order_relaxed) < 300)
+        return;
+    if (g_worldCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
+        return;
+    if (pending || failed)
+        BL_WARN("C# carregamento parcial: mods=%d falhas=%d pendentes=%d (comportamentos=%d receitas=%d tiles=%d callbacks=%d); confira os erros do mod",
+                successful, failed, pending, basic.pendingBehaviors, basic.pendingRecipes,
+                basic.pendingPlacements, pendingCallbacks);
+    else
+        BL_INFO("C# carregou sem problemas: %d mod(s), %d item(ns), %d prefixo(s), %d receita(s)",
+                successful, basic.items, registeredManagedPrefixCount(),
+                basic.installedRecipes);
 }
 
 void showWorldPlayerMessagesWhenReady() {
@@ -815,6 +859,8 @@ void noteAutoWorldTilesLoaded() {
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
     g_worldPrefixesRestored.store(false, std::memory_order_release);
+    g_worldCSharpSummaryShown.store(false, std::memory_order_release);
+    g_worldCSharpSummaryWait.store(0, std::memory_order_release);
     g_worldPlayerMessagesShown.store(false, std::memory_order_release);
     if (managedLiveHitStatus().enabled)
         pauseManagedLiveHit();
@@ -834,6 +880,7 @@ void noteAutoGameUpdate() {
         advanceManagedVisualState(tick, 32);
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        reportCSharpLoadSummary();
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
@@ -875,6 +922,7 @@ void noteAutoGameUpdate() {
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
         retryWorldManagedPrefixesWhenReady();
+        reportCSharpLoadSummary();
         showWorldPlayerMessagesWhenReady();
         scheduleAutoLiveBindings();
     }

@@ -548,6 +548,50 @@ bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
            bl::runtime::field<uint8_t>(item, g_refs.prefix) == prefix;
 }
 
+bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string* reason) {
+    const auto reject = [reason](const char* why) {
+        if (reason) *reason = why;
+        return false;
+    };
+    if (!item || !g_hooksReady.load(std::memory_order_acquire))
+        return reject("NativePrefixHooksNotReady");
+    const auto descriptors = snapshotManagedPrefixes();
+    const auto* policy = byType(descriptors, prefix);
+    if (!policy) return reject("PrefixDescriptorMissing");
+    if (!eligible(item, *policy, true)) return reject("ItemNotEligible");
+    if (g_refs.prefix < 0 || g_refs.damage < 0) return reject("ItemFieldMissing");
+    if (bl::runtime::field<uint8_t>(item, g_refs.prefix) != 0)
+        return reject("ItemPrefixMustBeReset");
+    for (size_t i = 1; i < policy->multipliers.size(); ++i)
+        if (policy->multipliers[i] != 1.f)
+            return reject("UnsupportedFallbackMultiplier");
+    if (policy->crit || policy->tagDamage || policy->armorPenetration)
+        return reject("UnsupportedFallbackStat");
+    if (policy->category == 5 && policy->multipliers[0] != 1.f)
+        return reject("UnsupportedAccessoryDamageMultiplier");
+
+    auto* itemClass = bl::il2cpp::findClass({"Terraria", "Item", {}});
+    const int valueOffset = itemClass ? bl::il2cpp::fieldOffset(itemClass, "value") : -1;
+    if (valueOffset < 0) return reject("ItemValueFieldMissing");
+    const int oldDamage = bl::runtime::field<int32_t>(item, g_refs.damage);
+    const int oldValue = bl::runtime::field<int32_t>(item, valueOffset);
+    const double scaledDamage = static_cast<double>(oldDamage) * policy->multipliers[0];
+    const double scaledValue = static_cast<double>(oldValue) * policy->valueMultiplier;
+    if (oldDamage < 0 || oldValue < 0 || !std::isfinite(scaledDamage) ||
+        !std::isfinite(scaledValue) || scaledDamage > INT32_MAX ||
+        scaledValue > INT32_MAX || scaledDamage < 0 || scaledValue < 0)
+        return reject("NativeStatOverflow");
+    if (policy->category != 5 && oldDamage <= 0)
+        return reject("WeaponDamageMissing");
+
+    bl::runtime::field<int32_t>(item, g_refs.damage) =
+        static_cast<int32_t>(std::round(scaledDamage));
+    bl::runtime::field<int32_t>(item, valueOffset) =
+        static_cast<int32_t>(std::round(scaledValue));
+    bl::runtime::field<uint8_t>(item, g_refs.prefix) = static_cast<uint8_t>(prefix);
+    return true;
+}
+
 bool managedPrefixGameplayReady() {
     return g_hooksReady.load(std::memory_order_acquire) &&
            !snapshotManagedPrefixes().empty();

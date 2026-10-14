@@ -8,6 +8,15 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
 bool applyBasicItemToObject(Il2CppObject* item,int type);
 bool isBasicItem(int type);
 bool basicItemPolicyReady(int type);
+struct BasicItemLoadStatus {
+    int items=0;
+    int pendingBehaviors=0;
+    int readyBehaviors=0;
+    int pendingRecipes=0;
+    int installedRecipes=0;
+    int pendingPlacements=0;
+};
+BasicItemLoadStatus basicItemLoadStatus();
 bool basicItemHasDamage(int type);
 bool basicItemIsAccessory(int type);
 bool setBasicItemDefense(int type,int value,std::string* error);
