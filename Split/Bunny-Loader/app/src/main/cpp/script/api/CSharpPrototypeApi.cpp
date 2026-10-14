@@ -8,6 +8,7 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
@@ -77,6 +78,35 @@ JSValue jsManagedNativeEquipTextures(JSContext* ctx, JSValueConst, int argc, JSV
         JS_SetPropertyUint32(ctx, array, index++, record);
     }
     return array;
+}
+
+JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if(argc) return JS_ThrowTypeError(ctx,"pendingItemRecipes()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& recipe:bl::csharp::pendingBasicRecipes()) {
+        JSValue entry=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,entry,"id",JS_NewString(ctx,recipe.id.c_str()));
+        JS_SetPropertyStr(ctx,entry,"result",JS_NewInt32(ctx,recipe.result));
+        JS_SetPropertyStr(ctx,entry,"stack",JS_NewInt32(ctx,recipe.values.stack));
+        JS_SetPropertyStr(ctx,entry,"station",JS_NewInt32(ctx,recipe.values.station));
+        JSValue ingredients=JS_NewArray(ctx);uint32_t j=0;
+        for(const auto& ingredient:recipe.values.ingredients) {
+            JSValue value=JS_NewObject(ctx);
+            JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,ingredient.type));
+            JS_SetPropertyStr(ctx,value,"count",JS_NewInt32(ctx,ingredient.count));
+            JS_SetPropertyUint32(ctx,ingredients,j++,value);
+        }
+        JS_SetPropertyStr(ctx,entry,"ingredients",ingredients);
+        JS_SetPropertyUint32(ctx,array,i++,entry);
+    }
+    return array;
+}
+JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if(argc!=2||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"acknowledgeItemRecipe(id,index)");
+    int32_t index=-1;if(JS_ToInt32(ctx,&index,argv[1])<0)return JS_EXCEPTION;
+    const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
+    const std::string id(raw);JS_FreeCString(ctx,raw);
+    return JS_NewBool(ctx,bl::csharp::acknowledgeBasicRecipe(id,index));
 }
 
 JSValue jsManagedSetNativeEquipSlot(JSContext* ctx, JSValueConst, int argc,
@@ -2756,6 +2786,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "pendingItemRecipes", JS_NewCFunction(ctx, jsPendingItemRecipes, "pendingItemRecipes", 0));
+    JS_SetPropertyStr(ctx, api, "acknowledgeItemRecipe", JS_NewCFunction(ctx, jsAcknowledgeItemRecipe, "acknowledgeItemRecipe", 2));
     JS_SetPropertyStr(ctx, api, "nativeEquipTextures",
                       JS_NewCFunction(ctx, jsManagedNativeEquipTextures, "nativeEquipTextures", 0));
     JS_SetPropertyStr(ctx, api, "setNativeEquipSlot",
@@ -2900,3 +2932,4 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
 }
 
 #endif
+

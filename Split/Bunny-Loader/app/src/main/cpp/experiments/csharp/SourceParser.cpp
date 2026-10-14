@@ -154,7 +154,7 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
 bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& name, const std::string& base,
                 std::vector<ParsedSourceType>* definitions, std::string* error) {
-    if (base != "BunnyProjectile" && base != "BunnyWeapon" &&
+    if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix") return true;
@@ -185,7 +185,24 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         *error = name + ": corpo SetDefaults sem fechamento";
                         return false;
                     }
-                    if (!statements(tokens, parametersEnd + 2, bodyEnd, &def, error))
+                    if (base == "BunnyItem") {
+                        // So recursos/nomes sao necessarios ANTES do Mono. Todos
+                        // os defaults numericos e receitas sao executados em C#;
+                        // nao adivinhar expressoes nem descartar a sua funcionalidade.
+                        for (size_t j=parametersEnd+2;j<bodyEnd;++j) {
+                            const auto& key=tokens[j].value;
+                            if (key!="Texture" && key!="DisplayName") continue;
+                            if (j+3>=bodyEnd || tokens[j+1].value!="=" ||
+                                !tokens[j+2].literal || tokens[j+3].value!=";") {
+                                *error=name+": "+key+" precisa de string literal para registro antecipado (linha "+std::to_string(tokens[j].line)+")";
+                                return false;
+                            }
+                            if(!def.properties.emplace(key,tokens[j+2].value).second) {
+                                *error=name+": recurso/nome repetido: "+key;return false;
+                            }
+                            j+=3;
+                        }
+                    } else if (!statements(tokens, parametersEnd + 2, bodyEnd, &def, error))
                         return false;
                     foundDefaults = true;
                     member = bodyEnd + 1;
@@ -293,7 +310,7 @@ bool parseCSharpSource(const std::string& source,
             *error = name + ": chave de fechamento ausente";
             return false;
         }
-        if (base == "BunnyProjectile" || base == "BunnyWeapon" ||
+        if (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix") {
@@ -310,4 +327,5 @@ bool parseCSharpSource(const std::string& source,
 }
 
 }
+
 

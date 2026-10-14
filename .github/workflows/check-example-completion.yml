@@ -18,9 +18,29 @@ jobs:
       - name: Check all canonical JS examples and evidence gates
         working-directory: Split/Bunny-Loader
         run: python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run real CSharp items-only and full-package compiler tests
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Test actual CSharp wire and native field/sound binding
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_wire_test.cpp -o /tmp/basic-wire-test
+          /tmp/basic-wire-test build/basic-items/source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_source_parser_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/basic-parser-test
+          /tmp/basic-parser-test
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-basic-test
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --nullable
+          node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit
           path: |
             Split/Bunny-Loader/docs/generated/example_completion/
             docs/csharp-completion-plan.md
+            Split/Bunny-Loader/build/basic-items-results.json
+            Split/Bunny-Loader/build/basic-items/source-runtime-values.txt

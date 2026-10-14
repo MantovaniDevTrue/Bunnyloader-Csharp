@@ -20,7 +20,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | DamageClasses | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | EmoteBubbles | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Hairs | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Items | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Items | 4 | 0 (0.0%) | 0 (0.0%) | 1 (25.0%) | 0 |
 | Materials | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Mounts | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
@@ -34,7 +34,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Systems | 5 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tiles | 37 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Tools | 5 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Weapons | 16 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 
@@ -95,7 +95,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Consumables/ExampleBossSummonItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Consumables/ExampleBuffPotion.js | samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs | Parcial | DrinkParticleColors, som Item3, pilha/valor/raridade/duracao original e defaults de uso completos. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Items/ExampleGolfBall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/ExampleItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/ExampleItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs | Parcial | Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado. | tests/basic_items/Program.cs; tests/basic_items/basic_wire_test.cpp; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/recipe_bridge_test.js; tests/basic_items/basic_source_parser_test.cpp |
 | Content/Items/ExamplePickup.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/ExampleTooltipItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Materials/ExampleSoul.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -140,9 +140,9 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Quests/ExampleQuestFish.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Tools/ExampleDrill.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Tools/ExampleFishingRod.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Tools/ExampleHamaxe.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Tools/ExampleHamaxe.js | samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs | Implementado, aguardando teste | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/basic_wire_test.cpp; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/recipe_bridge_test.js; tests/basic_items/basic_source_parser_test.cpp |
 | Content/Items/Tools/ExampleHookItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Tools/ExamplePickaxe.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Tools/ExamplePickaxe.js | samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs | Implementado, aguardando teste | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/basic_wire_test.cpp; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/recipe_bridge_test.js; tests/basic_items/basic_source_parser_test.cpp |
 | Content/Items/Weapons/ExampleCustomDamageWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Magic/ExampleLaserWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -239,5 +239,5 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 
 A confirmacao Android da .90.27.6 cobre Shield/Shoes/chamas e a barreira existente; nao prova todas as mecanicas dos arquivos JS ExampleShield/ExampleBoots.
 Nenhuma ausencia de bridge C# e classificada como limitacao tecnica do Terraria sem prova.
-Plano global: ../../../csharp-completion-plan.md. Evidencias editaveis: tools/example_completion/evidence.json.
+Plano global: ../../../../../docs/csharp-completion-plan.md. Evidencias editaveis: tools/example_completion/evidence.json.
 Gerar/conferir: python3 tools/example_completion_audit.py --upstream-root <checkout-original> --write/--check.

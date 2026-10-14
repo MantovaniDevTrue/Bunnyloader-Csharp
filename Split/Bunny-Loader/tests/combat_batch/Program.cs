@@ -216,9 +216,9 @@ try
         Contains("content/Part00.cs:3:",error); Contains("[CS0115]",error);
         Contains("Como corrigir:",error); Contains("^",error);
     });
-    Check("compiler.full-example-42-files", () => {
+    Check("compiler.full-example-45-files", () => {
         string example=Path.GetFullPath("samples/ExampleModCSharp/Playable");
-        Equal(42,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
+        Equal(45,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
         int result=Compiler.Compile(example,Path.Combine(scratch,"example.dll"),runtime,diag);
         if(result!=1) throw new Exception(File.ReadAllText(diag));
     });
@@ -245,3 +245,4 @@ public sealed class FaultyPlayer : BunnyPlayer
     public override void OnHitByNPC(bool equipped,int index,BunnyHurtInfo hit) => Hit("OnHitByNPC");
     public override void OnHitByProjectile(bool equipped,int index,BunnyHurtInfo hit) => Hit("OnHitByProjectile");
 }
+

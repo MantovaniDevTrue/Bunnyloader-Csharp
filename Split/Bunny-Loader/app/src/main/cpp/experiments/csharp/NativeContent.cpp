@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -125,7 +126,7 @@ struct NativeAccessoryDefaults {
     int lifeRegenBonus = 0;
     int manaRegenBonus = 0;
     int visualMode = 0;
-    std::string visualTexture;
+    std::string visualTexture = {};
     float visualScale = 1.f;
     float visualOpacity = 1.f;
     uint32_t visualColor = 0xffffffffu;
@@ -295,6 +296,16 @@ bool enableManagedPrefixEligibility(int type) {
 }
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
+    if (self && isBasicItem(type)) {
+        bl::runtime::prepareModItem(self,type);
+        if (!applyBasicItemToObject(self,type)) {
+            BL_ERROR("csharp item: defaults indisponiveis para type=%d",type);
+            return;
+        }
+        if (basicItemHasDamage(type)) enableManagedPrefixEligibility(type);
+        bl::runtime::finishModItem(self,type);
+        return;
+    }
     auto it = g_weapons.find(type);
     auto accessory = g_accessories.find(type);
     auto potion = g_potions.find(type);
@@ -1714,6 +1725,7 @@ int managedNativeAccessoryMoveSpeedPercent(int type) {
 }
 
 int managedNativePrefixItemKind(int type) {
+    if (basicItemHasDamage(type)) return 1;
     if (g_weapons.contains(type)) return 1;
     if (g_accessories.contains(type)) return 2;
     return 0;
@@ -1721,6 +1733,8 @@ int managedNativePrefixItemKind(int type) {
 
 void refreshManagedPrefixEligibilityOnWorldReady() {
     int corrected = 0;
+    for (int type : basicItemTypes())
+        if (basicItemHasDamage(type) && enableManagedPrefixEligibility(type)) ++corrected;
     for (const auto& weapon : g_weapons)
         if (enableManagedPrefixEligibility(weapon.first)) ++corrected;
     for (const auto& accessory : g_accessories)
@@ -1741,6 +1755,17 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
+    if (spec->kind == NativeBasicItem) {
+        bl::runtime::ModItemDef def{};
+        def.mod=ctx.modId;def.name=spec->name;def.texture=path;
+        def.names.push_back({"",display});
+        const int type=bl::runtime::registerModItem(std::move(def));
+        std::string error;
+        if (type < 0 || !registerBasicItemPlaceholder(type,spec->name,&error)) {
+            BL_ERROR("csharp item: %s",error.c_str());return -1;
+        }
+        ++ctx.items;++ctx.basicItems;return type;
+    }
     if (spec->kind == NativeProjectile) {
         if (spec->width < 1 || spec->width > 512 ||
             spec->height < 1 || spec->height > 512 ||
@@ -1858,4 +1883,5 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
 }
 
 }
+
 

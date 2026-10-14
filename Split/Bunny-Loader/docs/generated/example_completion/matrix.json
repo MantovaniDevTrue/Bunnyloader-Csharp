@@ -15,7 +15,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 192,
     "newUpstreamFiles": 14,
-    "cSharpSourceFiles": 42
+    "cSharpSourceFiles": 45
   },
   "statePolicy": "Validado exige evidencia de jogo para o exemplo inteiro; efeitos isolados nao promovem uma porta parcial.",
   "coverageByCategory": {
@@ -221,14 +221,15 @@
     "Items": {
       "total": 4,
       "states": {
-        "Não implementado": 4
+        "Não implementado": 3,
+        "Parcial": 1
       },
       "implemented": 0,
       "validated": 0,
-      "partial": 0,
+      "partial": 1,
       "implementedPercent": 0.0,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 25.0,
       "limitations": 0,
       "missingExamples": 4
     },
@@ -420,16 +421,17 @@
     "Tools": {
       "total": 5,
       "states": {
-        "Não implementado": 5
+        "Não implementado": 3,
+        "Implementado, aguardando teste": 2
       },
-      "implemented": 0,
+      "implemented": 2,
       "validated": 0,
       "partial": 0,
-      "implementedPercent": 0.0,
+      "implementedPercent": 40.0,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 5
+      "missingExamples": 3
     },
     "Walls": {
       "total": 2,
@@ -1174,7 +1176,7 @@
         "Sem contrato C# reutilizavel equivalente para PlayerDrawLayer"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/PlayerDrawLayer.js"
+        "Requer resolver classe JS herdada: PlayerDrawLayer"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1344,7 +1346,7 @@
         "Sem contrato C# reutilizavel equivalente para ModAchievement"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModAchievement.js"
+        "app/src/main/cpp/script/js/mod/ModAchievement.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1406,7 +1408,7 @@
         "Sem contrato C# reutilizavel equivalente para ModAchievement"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModAchievement.js"
+        "app/src/main/cpp/script/js/mod/ModAchievement.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1466,7 +1468,7 @@
         "Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModSurfaceBackgroundStyle.js"
+        "app/src/main/cpp/script/js/mod/ModSurfaceBackgroundStyle.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1590,7 +1592,7 @@
         "Sem contrato C# reutilizavel equivalente para ModUndergroundBackgroundStyle"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModUndergroundBackgroundStyle.js"
+        "app/src/main/cpp/script/js/mod/ModUndergroundBackgroundStyle.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1721,7 +1723,7 @@
         "Sem contrato C# reutilizavel equivalente para ModWaterStyle"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModWaterStyle.js"
+        "app/src/main/cpp/script/js/mod/ModWaterStyle.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -1778,7 +1780,7 @@
         "Sem contrato C# reutilizavel equivalente para ModWaterfallStyle"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModWaterfallStyle.js"
+        "app/src/main/cpp/script/js/mod/ModWaterfallStyle.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2281,7 +2283,7 @@
         "Sem contrato C# reutilizavel equivalente para ModCloud"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModCloud.js"
+        "app/src/main/cpp/script/js/mod/ModCloud.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2346,7 +2348,7 @@
         "Sem contrato C# reutilizavel equivalente para DamageClass"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/DamageClass.js"
+        "app/src/main/cpp/script/js/mod/DamageClass.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2406,7 +2408,7 @@
         "Sem contrato C# reutilizavel equivalente para ModEmoteBubble"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModEmoteBubble.js"
+        "app/src/main/cpp/script/js/mod/ModEmoteBubble.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2460,7 +2462,7 @@
         "Sem contrato C# reutilizavel equivalente para ModEmoteBubble"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModEmoteBubble.js"
+        "app/src/main/cpp/script/js/mod/ModEmoteBubble.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2530,7 +2532,7 @@
         "Sem contrato C# reutilizavel equivalente para ModMenu"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModMenu.js"
+        "app/src/main/cpp/script/js/mod/ModMenu.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -2644,7 +2646,7 @@
         "Sem contrato C# reutilizavel equivalente para ModHair"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModHair.js"
+        "app/src/main/cpp/script/js/mod/ModHair.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -3390,7 +3392,7 @@
         "Sem contrato C# reutilizavel equivalente para EquipTexture, ModItem"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/EquipTexture.js",
+        "app/src/main/cpp/script/js/mod/EquipTexture.js",
         "app/src/main/cpp/script/js/mod/ModItem.js"
       ],
       "automatedTests": [],
@@ -3986,7 +3988,9 @@
         ],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "CurrencyId",
@@ -3994,21 +3998,29 @@
         "SetDefaults",
         "void .ctor(int coinItemID, long currencyCap)"
       ],
-      "status": "Não implementado",
-      "preservedFeatures": [],
+      "status": "Parcial",
+      "preservedFeatures": [
+        "MaxStack 9999, value buyPrice(0,0,1,0), receita de 999 itens com dez DirtBlocks na Work Bench."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Item/receita ligados ao runtime; arquivo JS inteiro permanece Parcial por conter moeda customizada.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -5535,7 +5547,6 @@
         "Sem contrato C# reutilizavel equivalente para ModItem, ExampleTrapBase, ExampleTrapBase"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ExampleTrapBase.js",
         "app/src/main/cpp/script/js/mod/ModItem.js"
       ],
       "automatedTests": [],
@@ -6737,27 +6748,36 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "status": "Implementado, aguardando teste",
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -6856,27 +6876,36 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "status": "Implementado, aguardando teste",
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -8120,6 +8149,7 @@
           }
         ],
         "hooksAndMethods": [
+          "Draw",
           "SetMount",
           "SetStaticDefaults",
           "UpdateEffects"
@@ -8139,6 +8169,7 @@
       },
       "cSharp": [],
       "requiredApis": [
+        "Draw",
         "Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)",
         "ModMount",
         "SetMount",
@@ -9008,7 +9039,7 @@
         "Sem contrato C# reutilizavel equivalente para ExamplePrefix"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ExamplePrefix.js"
+        "Requer resolver classe JS herdada: ExamplePrefix"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -10447,7 +10478,7 @@
         "Sem contrato C# reutilizavel equivalente para ModRarity"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModRarity.js"
+        "app/src/main/cpp/script/js/mod/ModRarity.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -10505,7 +10536,7 @@
         "Sem contrato C# reutilizavel equivalente para ModRarity"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModRarity.js"
+        "app/src/main/cpp/script/js/mod/ModRarity.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -10615,9 +10646,9 @@
         "Sem contrato C# reutilizavel equivalente para ModTileEntity, ModTile, ModItem"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModTileEntity.js",
         "app/src/main/cpp/script/js/mod/ModItem.js",
-        "app/src/main/cpp/script/js/mod/ModTile.js"
+        "app/src/main/cpp/script/js/mod/ModTile.js",
+        "app/src/main/cpp/script/js/mod/ModTileEntity.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -10668,7 +10699,7 @@
         "Sem contrato C# reutilizavel equivalente para TEModdedPylon"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/TEModdedPylon.js"
+        "app/src/main/cpp/script/js/mod/TEModdedPylon.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -10719,7 +10750,7 @@
         "Sem contrato C# reutilizavel equivalente para ModBannerTile"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModBannerTile.js"
+        "app/src/main/cpp/script/js/mod/ModBannerTile.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -11139,7 +11170,6 @@
         "Sem contrato C# reutilizavel equivalente para ModTile, ExampleGemsparkBlockBase, ExampleGemsparkBlockBase"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ExampleGemsparkBlockBase.js",
         "app/src/main/cpp/script/js/mod/ModTile.js"
       ],
       "automatedTests": [],
@@ -11543,7 +11573,7 @@
         "Sem contrato C# reutilizavel equivalente para ModPylon"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModPylon.js"
+        "app/src/main/cpp/script/js/mod/ModPylon.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -13145,7 +13175,7 @@
         "Sem contrato C# reutilizavel equivalente para ModTree"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/ModTree.js"
+        "app/src/main/cpp/script/js/mod/ModTree.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -13326,7 +13356,7 @@
         "Sem contrato C# reutilizavel equivalente para Mod"
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/Loaders/Mod.js"
+        "app/src/main/cpp/script/js/mod/Mod.js"
       ],
       "automatedTests": [],
       "terrariaTests": [
@@ -13708,6 +13738,39 @@
       ],
       "mappedToJs": [
         "Content/Items/Consumables/ExampleBuffPotion.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs",
+      "classes": [
+        "ExampleItem"
+      ],
+      "mappedToJs": [
+        "Content/Items/ExampleItem.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
+      "classes": [
+        "ExampleHamaxe"
+      ],
+      "mappedToJs": [
+        "Content/Items/Tools/ExampleHamaxe.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs",
+      "classes": [
+        "ExamplePickaxe"
+      ],
+      "mappedToJs": [
+        "Content/Items/Tools/ExamplePickaxe.js"
       ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."

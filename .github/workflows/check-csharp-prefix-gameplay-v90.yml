@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - codex/example-completion-v90-28
       - csharp-composite-accessories-v90-26
       - codex/combat-batch-v90-25
       - csharp-hurt-spatial-context-v90-24
@@ -542,4 +543,5 @@ jobs:
           python3 tools/csharp_api_negative_compile.py --prepare
           python3 tools/csharp_api_negative_compile.py --build
           python3 tools/csharp_api_negative_compile.py --check
+
 

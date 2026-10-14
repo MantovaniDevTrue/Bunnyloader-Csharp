@@ -1,3 +1,32 @@
+# ExampleMod 0.1.34 — itens e receitas / Bunny .90.28.0
+
+Comece por Content/Items/ExampleItem.cs e Content/Items/Tools/ExamplePickaxe.cs /
+ExampleHamaxe.cs. Os comentarios explicam cada atributo e a receita original.
+BunnyItem fornece defaults reais; o host aplica atributos no Item nativo, usa o
+LegacySoundStyle de SoundID e deixa o Terraria executar mineracao/melee/animacao.
+SetDefaults pode calcular os atributos em C#. DisplayName e Texture precisam
+ser strings literais em SetDefaults para o registro antecipado dos recursos.
+Esta API nao promete OnUse/AI/callbacks de item ainda nao expostos no SDK.
+
+AddRecipes declara receitas com CreateRecipe/AddIngredient/AddTile/Register.
+A bridge instala ate oito receitas por passagem na thread do Terraria, atualiza
+os lookups de crafting/materiais e so depois confirma o indice. Falhas nao viram
+sucesso: veja csharp recipe + UID/classe/indice no relatorio. Mods somente de
+itens nao precisam de uma arma/projetil nem de recompilacao externa.
+
+Poderes: Pick=220; Axe=30 interno equivale a 150%; Hammer=100. UseSound="Item1"
+e um som builtin. Value=50000 corresponde ao sellPrice de uma moeda de ouro.
+Recipes: 10 DirtBlocks + WorkBench -> 999 ExampleItems; 10 ExampleItems +
+WorkBench -> uma picareta ou um hamaxe. Confira consumo, som, mineracao/melee,
+Save/Exit/reentrada, bau, loadouts, morte/respawn e convivencia com itens JS.
+
+Documentation/COMPATIBILIDADE.json/.md contabiliza os 192 JS; Documentation/
+TESTAR_ANDROID.md orienta o lote. O item ExampleItem e sua receita existem; a
+moeda customizada do JS continua pendente. Host/compilacao nao provam gameplay
+ou FPS no aparelho. O alvo e 60 FPS e a medicao continua no roteiro Android.
+
+---
+
 # Equipamentos nativos — ExampleMod 0.1.33 / Bunny .90.27.6
 
 Guardian Shield: equipe em um slot funcional (ou de vaidade) e deixe o visual
@@ -98,4 +127,5 @@ Os testes de host executam todas as oito receitas, casos de fronteira, erros
 reais do Roslyn e excecoes intencionais de callbacks. O relatorio JSON associa
 cada caso ao resultado/erro. Isso nao substitui validacao de gameplay no Android.
 Os fontes comentados deste diretorio sao os mesmos empacotados no .bmod.
+
 

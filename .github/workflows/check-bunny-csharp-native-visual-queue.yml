@@ -3,6 +3,7 @@ name: Check Bunny CSharp Native Visual Queue
 on:
   push:
     branches:
+      - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
   workflow_dispatch:
@@ -42,4 +43,5 @@ jobs:
             Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs \
             Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs \
             Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleMysticWardAccessory.cs
+
 

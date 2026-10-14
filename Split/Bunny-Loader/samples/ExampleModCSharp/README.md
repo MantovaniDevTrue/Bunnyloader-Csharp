@@ -1,3 +1,22 @@
+# Lote de conclusao .90.28.0 / ExampleMod 0.1.34
+
+O [plano global](../../../..//docs/csharp-completion-plan.md) contabiliza TODOS os
+192 arquivos JS do upstream atualizado, sem excluir categorias. Consulte a
+[matriz completa](../../docs/generated/example_completion/matrix.md) e seu JSON.
+Os estados distinguem porta parcial, implementacao ligada ao runtime e validacao
+real no Terraria. Os equipamentos nativos da .90.27.6 continuam preservados.
+
+Este lote acrescenta BunnyItem e receitas publicas reutilizaveis, com os fontes
+originais de ExamplePickaxe/ExampleHamaxe e do material ExampleItem. Os atributos,
+animacao de uso/melee/mineracao, som Item1 e receitas sao processados pelo host.
+A moeda customizada do arquivo ExampleItem.js ainda esta pendente e registrada
+como lacuna. Nao ha shaders personalizados neste lote.
+
+Testar: [roteiro Android](../../tests/basic_items/ANDROID.md). O guia e a matriz
+acompanham o .bmod em content/Documentation. Fontes .cs continuam no pacote.
+
+---
+
 # ExampleModCSharp — guia e testes da API C# do Bunny Loader
 
 **Pacote atual: 0.1.33 / Bunny .90.27.6.** O Guardian Shield e as Trailblazer
@@ -58,5 +77,6 @@ Consulte as implementações reais de ExampleWand e ExampleWaveWand. O movimento
 A restauração dos três prefixos da .90.11 foi confirmada pelo usuário no Android. Os utilitários e diagnósticos novos da .90.25 têm validação automatizada de host; gameplay desta nova build ainda requer confirmação no aparelho.
 
 Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou multiplayer. Para um novo método, usar o SDK fonte deste repositório, não uma assinatura do PC.
+
 
 

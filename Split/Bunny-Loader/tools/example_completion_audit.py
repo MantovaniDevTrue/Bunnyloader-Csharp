@@ -13,7 +13,7 @@ OUT = ROOT / 'docs/generated/example_completion'
 STATES = ('Não implementado', 'Parcial', 'Implementado, aguardando teste',
           'Validado', 'Bloqueado por limitação técnica documentada')
 CLASSES = re.compile(r'\bclass\s+(\w+)(?:\s+extends\s+(\w+))?')
-METHODS = re.compile(r'^\s*(?:static\s+)?(?:get\s+|set\s+)?([A-Za-z_]\w*)\s*\([^;\n]*\)\s*\{', re.M)
+METHODS = re.compile(r'^\s*(?:static\s+)?(?:get\s+|set\s+)?([A-Za-z_]\w*)\s*\([^;{}]*\)\s*\{', re.M)
 LOADER = {'ModItem':'ModItem.js', 'ModProjectile':'ModProjectile.js', 'ModNPC':'ModNPC.js',
           'ModTile':'ModTile.js', 'ModWall':'ModWall.js', 'ModPlayer':'ModPlayer.js',
           'ModBuff':'ModBuff.js', 'ModMount':'ModMount.js', 'ModBiome':'ModBiome.js',
@@ -75,7 +75,15 @@ def build(upstream):
         if status in STATES[2:4] and (not cs or state.get('missingFeatures')):
             raise ValueError('Complete implementation still missing features: '+rel)
         bases=[c['base'] for c in detail['classes'] if c['base']]
-        dependencies=sorted(set('app/src/main/cpp/script/js/mod/'+LOADER.get(b,'Loaders/'+b+'.js') for b in bases))
+        corePaths={x['path'] for x in refs['upstreamCoreFiles']} | {x['path'] for x in refs['forkCoreFiles']}
+        dependencies=[]
+        for b in bases:
+            if b in {c['name'] for c in detail['classes']}: continue
+            pathCandidate='app/src/main/cpp/script/js/mod/'+b+'.js'
+            if pathCandidate not in corePaths:
+                pathCandidate='app/src/main/cpp/script/js/mod/Loaders/'+b.removeprefix('Mod')+'Loader.js'
+            dependencies.append(pathCandidate if pathCandidate in corePaths else 'Requer resolver classe JS herdada: '+b)
+        dependencies=sorted(set(dependencies))
         imports=[]
         for imp in detail['imports']:
             imported=(Path(path).parent/imp).as_posix()
@@ -145,7 +153,7 @@ def markdown(report):
     lines+=['','## Evidencia e continuidade','',
         'A confirmacao Android da .90.27.6 cobre Shield/Shoes/chamas e a barreira existente; nao prova todas as mecanicas dos arquivos JS ExampleShield/ExampleBoots.',
         'Nenhuma ausencia de bridge C# e classificada como limitacao tecnica do Terraria sem prova.',
-        'Plano global: ../../../csharp-completion-plan.md. Evidencias editaveis: tools/example_completion/evidence.json.',
+        'Plano global: ../../../../../docs/csharp-completion-plan.md. Evidencias editaveis: tools/example_completion/evidence.json.',
         'Gerar/conferir: python3 tools/example_completion_audit.py --upstream-root <checkout-original> --write/--check.','']
     return '\n'.join(lines)
 

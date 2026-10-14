@@ -1,5 +1,6 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItemSave.h"
 
@@ -808,6 +809,7 @@ void noteAutoWorldTilesLoaded() {
 }
 
 void noteAutoGameUpdate() {
+    pumpBasicRecipesOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) return;
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -890,4 +892,5 @@ AutoWorldLifecycleStatus autoWorldLifecycleStatus() {
 }
 
 }
+
 

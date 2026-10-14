@@ -11,6 +11,46 @@ class RecipeLoader {
     static #beyond = 0;
     static #groups = new Map();
     static #stations = new Set();   // os tiles de mod pedidos como estação
+    static #nativeStaged = new Map(); // registrado; aguarda lookups antes do ACK
+
+    static SyncCSharp() {
+        const api=bl.csharp;
+        if (!api || typeof api.pendingItemRecipes !== 'function') return;
+        const pending=api.pendingItemRecipes(); // no maximo oito por lote
+        if (!Array.isArray(pending) || !pending.length) return;
+        for (const entry of pending) {
+            if (RecipeLoader.#nativeStaged.has(entry.id)) continue;
+            if (!Number.isInteger(entry.result) || entry.result<=0 ||
+                !Number.isInteger(entry.stack) || entry.stack<1 ||
+                !Array.isArray(entry.ingredients) || !entry.ingredients.length || entry.ingredients.length>15)
+                throw new Error('csharp recipe: '+entry.id+' descritor invalido');
+            const recipe=new ModRecipe();
+            recipe.SetResult(entry.result,entry.stack);
+            if (recipe.recipe.createItem.stack!==entry.stack)
+                throw new Error('csharp recipe: '+entry.id+' resultado excede pilha real');
+            for (const ingredient of entry.ingredients) {
+                recipe.AddIngredient(ingredient.type,ingredient.count);
+                if (recipe.recipe.requiredItem[recipe.ingredients-1].stack!==ingredient.count)
+                    throw new Error('csharp recipe: '+entry.id+' ingrediente '+ingredient.type+' excede pilha real');
+            }
+            if (entry.station>=0) recipe.AddTile(entry.station);
+            const index=Terraria.Recipe.numRecipes;
+            recipe.Register();
+            if (Terraria.Recipe.numRecipes!==index+1)
+                throw new Error('csharp recipe: '+entry.id+' registro nativo nao incrementou numRecipes');
+            RecipeLoader.#nativeStaged.set(entry.id,index);
+        }
+        // Se um lookup falhar, a proxima tentativa refaz os lookups sem
+        // duplicar as receitas ja registradas. Nenhum ACK antes desta etapa.
+        RecipeLoader.Finish(true);
+        for (const entry of pending) {
+            const index=RecipeLoader.#nativeStaged.get(entry.id);
+            if (!api.acknowledgeItemRecipe(entry.id,index))
+                throw new Error('csharp recipe: '+entry.id+' confirmacao nativa recusada');
+            RecipeLoader.#nativeStaged.delete(entry.id);
+            bl.log('csharp recipe: '+entry.id+' indice='+index+' instalada');
+        }
+    }
 
     static Added(index, station = -1) {
         RecipeLoader.#added++;
@@ -26,7 +66,7 @@ class RecipeLoader {
     static SetGroup(name, group) { RecipeLoader.#groups.set(name, group); }
 
     // As tabelas que o jogo monta a partir das receitas, depois de todas.
-    static Finish() {
+    static Finish(strict = false) {
         if (!RecipeLoader.#added) return;
 
         const steps = [
@@ -38,7 +78,10 @@ class RecipeLoader {
             () => Terraria.ID.ContentSamples.FixItemsAfterRecipesAreAdded(),
             () => TileLoader.SetCraftingStations(RecipeLoader.#stations),
         ];
-        for (const step of steps) Safe.Run('receitas', step);
+        for (const step of steps) {
+            if (strict) step();
+            else Safe.Run('receitas', step);
+        }
 
         bl.log('receitas de mod: ' + RecipeLoader.#added + ' (total ' + Terraria.Recipe.numRecipes + ')');
         if (RecipeLoader.#beyond) {
@@ -166,3 +209,9 @@ class RecipeLoader {
         }
     }
 }
+
+// Chamado pelo host somente na thread de update e quando ha um lote pendente.
+// Modders C# usam CreateRecipe/AddRecipes; nao precisam escrever esta bridge.
+globalThis.__blSyncCSharpRecipes = () => RecipeLoader.SyncCSharp();
+Ready.Add(() => RecipeLoader.SyncCSharp(), 'recipes');
+

@@ -252,6 +252,91 @@
       ],
       "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
       "deviceEvidence": []
+    },
+    "Content/Items/Tools/ExamplePickaxe.js": {
+      "status": "Implementado, aguardando teste",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
+      ],
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Tools/ExampleHamaxe.js": {
+      "status": "Implementado, aguardando teste",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
+      ],
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Implementacao conectada; host/wire/binder/receitas e build Android em validacao. Mineracao, som, combate e persistencia aguardam aparelho.",
+      "deviceEvidence": []
+    },
+    "Content/Items/ExampleItem.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
+      "preservedFeatures": [
+        "MaxStack 9999, value buyPrice(0,0,1,0), receita de 999 itens com dez DirtBlocks na Work Bench."
+      ],
+      "missingFeatures": [
+        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Item/receita ligados ao runtime; arquivo JS inteiro permanece Parcial por conter moeda customizada.",
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {
