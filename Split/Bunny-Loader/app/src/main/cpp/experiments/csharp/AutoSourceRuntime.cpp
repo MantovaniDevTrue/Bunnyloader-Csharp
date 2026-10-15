@@ -1187,9 +1187,14 @@ void flushDeferredWorldEntry() {
                 static_cast<long long>(elapsed),pendingCore,pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,content.pendingPlacements,
                 pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
                 bl::runtime::modItemsSettled()?1:0);
-        if(pendingNativePolicies)for(const auto& policy:nativeItemPolicyStatus())if(!policy.ready)
+        static std::map<int,std::string> reportedNativePolicies;
+        if(pendingNativePolicies)for(const auto& policy:nativeItemPolicyStatus())if(!policy.ready){
+            const std::string reason=policy.error.empty()?policy.phase:policy.error.substr(0,180);
+            if(reportedNativePolicies[policy.type]==reason)continue;
+            reportedNativePolicies[policy.type]=reason;
             BL_WARN("[CSharp][WorldLoading] Stage=PendingNativePolicy Type=%d Mod=%s Class=%s Reason=%s",
-                    policy.type,policy.mod.c_str(),policy.name.c_str(),policy.error.empty()?policy.phase.c_str():policy.error.substr(0,180).c_str());
+                    policy.type,policy.mod.c_str(),policy.name.c_str(),reason.c_str());
+        }
     }
     if (elapsed>=6&&(pendingCore==0||deferredNativePolicies)&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
