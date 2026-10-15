@@ -31,19 +31,18 @@ try
         Directory.CreateDirectory(content);
         for (int i = 0; i < count; i++)
         {
-            File.WriteAllText(Path.Combine(content, $"ScaleItem{i:D4}.cs"),
-                $"""
-                using BunnyLoader.Source;
-                namespace BunnyScaleFixture;
-                public sealed class ScaleItem{i:D4} : BunnyItem {{
-                    public override void SetDefaults() {{
-                        DisplayName = "Scale Item {i:D4}";
-                        Texture = "Content/Items/Scale.png";
-                        MaxStack = 9999;
-                        Value = 100;
-                    }}
-                }}
-                """);
+            string typeName = $"ScaleItem{i:D4}";
+            File.WriteAllText(Path.Combine(content, typeName + ".cs"),
+                "using BunnyLoader.Source;\n" +
+                "namespace BunnyScaleFixture;\n" +
+                "public sealed class " + typeName + " : BunnyItem {\n" +
+                "    public override void SetDefaults() {\n" +
+                "        DisplayName = \"Scale Item\";\n" +
+                "        Texture = \"Content/Items/Scale.png\";\n" +
+                "        MaxStack = 9999;\n" +
+                "        Value = 100;\n" +
+                "    }\n" +
+                "}\n");
         }
         string output = Path.Combine(temporary, $"scale-{count}.dll");
         string diagnostic = Path.Combine(temporary, $"scale-{count}.txt");
