@@ -12,6 +12,7 @@ public static class BunnyPlayerHurtDispatcher
         public string Id = "";
         public string Path = "";
         public BunnyPlayer[] Players = Array.Empty<BunnyPlayer>();
+        public BunnyHookRegistry[] Hooks = Array.Empty<BunnyHookRegistry>();
         public string LastError = "";
     }
 
@@ -57,6 +58,7 @@ public static class BunnyPlayerHurtDispatcher
             if (types.Length == 0 || types.Length > 16)
                 return -1;
             var players = new BunnyPlayer[types.Length];
+            var hookRegistries = new BunnyHookRegistry[types.Length];
             for (int i = 0; i < types.Length; i++)
             {
                 currentType = types[i].FullName ?? types[i].Name;
@@ -65,8 +67,14 @@ public static class BunnyPlayerHurtDispatcher
                     ?? throw new InvalidOperationException("BunnyPlayer instance unavailable"));
                 currentHook = "SetDefaults";
                 players[i].SetDefaults();
+                currentHook = "RegisterHooks";
+                hookRegistries[i] = new BunnyHookRegistry();
+                players[i].RegisterHooks(hookRegistries[i]);
             }
-            Contexts.Add(new Context { Id = modId, Path = assemblyPath, Players = players });
+            Contexts.Add(new Context {
+                Id = modId, Path = assemblyPath,
+                Players = players, Hooks = hookRegistries
+            });
             return Contexts.Count - 1;
         }
         catch (Exception error)
@@ -120,6 +128,7 @@ public static class BunnyPlayerHurtDispatcher
                 AttackerDistance = attackerDistance
             };
             var players = Contexts[slot].Players;
+            var hooks = Contexts[slot].Hooks;
             for (int i = 0; i < players.Length; i++)
             {
                 var player = players[i];
@@ -142,6 +151,17 @@ public static class BunnyPlayerHurtDispatcher
                     currentHook = "ModifyHitByProjectile";
                     player.ModifyHitByProjectile(equipped, projectileIndex, modifiers);
                 }
+                if (equipped && hooks[i].Count > 0)
+                {
+                    currentHook = "HookBeforeHurt";
+                    int currentDamage = modifiers.Damage;
+                    int currentDirection = modifiers.HitDirection;
+                    bool cancelled = modifiers.Cancelled;
+                    hooks[i].InvokeBefore(ref currentDamage, ref currentDirection, ref cancelled);
+                    modifiers.Damage = currentDamage;
+                    modifiers.HitDirection = currentDirection;
+                    if (cancelled) modifiers.Cancel();
+                }
             }
             bool dodged = false;
             if (!modifiers.Cancelled && modifiers.Dodgeable)
@@ -153,8 +173,13 @@ public static class BunnyPlayerHurtDispatcher
                     bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                         (equippedMask & (1 << i)) != 0;
                     currentHook = "FreeDodge";
-                    if (!player.FreeDodge(equipped, modifiers))
-                        continue;
+                    bool freeDodge = player.FreeDodge(equipped, modifiers);
+                    if (!freeDodge && equipped && hooks[i].Count > 0)
+                    {
+                        currentHook = "HookDodge";
+                        freeDodge = hooks[i].InvokeDodge(modifiers.Damage);
+                    }
+                    if (!freeDodge) continue;
                     modifiers.Cancel();
                     dodged = true;
                     break;
@@ -220,6 +245,11 @@ public static class BunnyPlayerHurtDispatcher
                 {
                     currentHook = "OnHitByProjectile";
                     player.OnHitByProjectile(equipped, projectileIndex, info);
+                }
+                if (equipped && hooks[i].Count > 0)
+                {
+                    currentHook = "HookAfterHurt";
+                    hooks[i].InvokeAfter(info);
                 }
             }
             return players.Length;
