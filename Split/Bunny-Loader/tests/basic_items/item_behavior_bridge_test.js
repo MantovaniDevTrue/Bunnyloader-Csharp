@@ -14,7 +14,8 @@ const entries=fs.readFileSync(wire,'utf8').trim().split('\n').slice(1).map(l=>l.
   b.nativeAccessory=false; // Explicitly exercise the legacy adapter, not the new native route.
   return {type:6300+i,name:p[1],root:'/mod/content/',definition:JSON.stringify(b),defaults:p.slice(2,16).map(Number),knockBack:+p[16]};
  });
-assert.equal(entries.length,9,'actual C# compiler must emit all nine behavior descriptors');
+assert.equal(entries.length,10,'complete C# package must emit ten behavior descriptors');
+assert(entries.some(e=>e.name==='ExampleWings'),'the original wings example must remain in the package');
 const hooks=new Map(),marks=new Map(),samples=new Map(),slots=new Map(),animations=[],lights=[],logs=[],callbackErrors=[];
 const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn);}});
 const cls=(name,extra={})=>new Proxy(extra,{get(t,k){if(k in t)return t[k];return t[k]=callable(name+':'+String(k));}});
