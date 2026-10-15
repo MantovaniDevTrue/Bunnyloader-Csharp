@@ -74,6 +74,18 @@ public static class CompiledAssemblyProbe
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
             Type[] contentTypes = assembly.GetTypes();
+            Type? console = assembly.GetType("BunnyLoader.Interactive.ConsoleEntry", false);
+            if (console != null)
+            {
+                if (contentTypes.Length != 1 || !console.IsClass ||
+                    !console.IsAbstract || !console.IsSealed ||
+                    console.GetMethod("Run", BindingFlags.Public | BindingFlags.Static,
+                        null, Type.EmptyTypes, null) is not { ReturnType: var returnType } ||
+                    returnType != typeof(string))
+                    throw new InvalidOperationException("CSharp console assembly contract invalid");
+                File.AppendAllText(diagnosticsPath, "\nINTERACTIVE_CONSOLE_VERIFIED classes=1");
+                return 1;
+            }
             var projectileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyProjectile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
