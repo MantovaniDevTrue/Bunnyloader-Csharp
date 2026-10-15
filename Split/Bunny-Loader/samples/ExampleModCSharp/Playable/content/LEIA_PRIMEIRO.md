@@ -1,4 +1,23 @@
-# ExampleMod 0.1.37 / Bunny .90.29.11 — experimental
+# Correcao de empacotamento 0.1.39
+
+As seis texturas antes copiadas apenas na build do APK agora acompanham o pacote.
+Importe a 0.1.39, feche o jogo por completo e abra novamente. Confira registro do
+ExampleDefenseBuff e dos prefixos, alem dos itens salvos. O APK atual pode ser
+mantido. Nao apague saves ou arquivos auxiliares para reparar assets do mod.
+
+# Continuacao 0.1.38 — ExampleWings e referencia 1.9.0
+
+Fonte editavel integrado ao ExampleMod: `Content/Items/Accessories/ExampleWings.cs`.
+Crie a **ExampleWorkbench C#**, leve um **ExampleItem** e fabrique **ExampleWings**.
+As asas usam a folha original, slot Wings e 180 ticks de voo; teste decolagem,
+subida/queda, gravidade invertida, troca de loadout, morte/respawn e save/reload.
+Teste junto das tres armaduras feitas na mesma ExampleWorkbench. Os testes
+Android deste grupo continuam pendentes; um teste de bancada vanilla nao os substitui.
+A implementacao atual de equipamentos ainda passa por policies JS do host;
+a amostra nao exige que o autor escreva JS, mas essa dependencia interna continua
+registrada como trabalho pendente. Nao chamar o Lote A de concluido.
+
+# ExampleMod 0.1.38 / Bunny .90.29.11 — experimental
 
 A bancada ExampleWorkbench e suas tres armaduras agora integram este
 ExampleMod CSharp, sem mod separado. Consulte Content/Tiles/Furniture,
@@ -146,7 +165,7 @@ Nao inventamos linha de runtime: sem PDB ela pode nao estar disponivel.
 Essa instrumentacao cobre Register/Modify/After do dispatcher Hurt; nao todos
 os sistemas de callbacks do loader.
 
-Limites: 64 arquivos .cs, 256 KiB por arquivo, 2 MiB no total no compilador;
+Limites: 512 arquivos .cs, 256 KiB por arquivo, 16 MiB no total no compilador;
 os limites de conteudo por categoria continuam os existentes. Nao acrescente
 arquivos de teste com erros em content/: eles impedem o mod inteiro de compilar.
 

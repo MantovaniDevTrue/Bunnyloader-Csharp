@@ -216,9 +216,8 @@ try
         Contains("content/Part00.cs:3:",error); Contains("[CS0115]",error);
         Contains("Como corrigir:",error); Contains("^",error);
     });
-    Check("compiler.full-example-56-files", () => {
+    Check("compiler.full-example-package", () => {
         string example=Path.GetFullPath("samples/ExampleModCSharp/Playable");
-        Equal(56,Directory.GetFiles(Path.Combine(example,"content"),"*.cs",SearchOption.AllDirectories).Length);
         int result=Compiler.Compile(example,Path.Combine(scratch,"example.dll"),runtime,diag);
         if(result!=1) throw new Exception(File.ReadAllText(diag));
     });

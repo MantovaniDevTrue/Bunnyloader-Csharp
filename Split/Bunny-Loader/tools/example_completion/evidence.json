@@ -66,7 +66,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Accessories/ExampleStatAccessory.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
       ],
@@ -74,7 +74,9 @@
         "Defaults e tooltip de 10%",
         "Multiplicador de melee/ranged/magic; nao altera minion; vaidade sem bonus"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -101,7 +103,8 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
@@ -355,7 +358,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Accessories/WaspNest.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
       ],
@@ -364,7 +367,9 @@
         "Back nativo com asset original",
         "strongBees apenas no slot funcional; reset pelo ciclo nativo"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -392,12 +397,13 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Accessories/ExampleBeard.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
       ],
@@ -406,7 +412,9 @@
         "Beard nativo e tintura pela cor de cabelo",
         "Cor de inventario a partir do jogador local"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -434,12 +442,13 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Armor/Vanity/ExampleBossMask.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs"
       ],
@@ -447,7 +456,9 @@
         "Defaults, valor, raridade e pilha originais",
         "Head nativo com sprite original"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -482,12 +493,13 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
     },
     "Content/Items/Armor/Vanity/ExampleRobe.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs"
       ],
@@ -496,7 +508,9 @@
         "Body e Legs originais; HidesHands=false",
         "SetMatch: robes=true e slot Legs associado ao mesmo item"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -532,12 +546,13 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
     },
     "Content/Items/Materials/ExampleSoul.js": {
-      "status": "Validado por testes automatizados",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs"
       ],
@@ -546,7 +561,9 @@
         "4 frames/6 ticks, AnimatesAsSoul, ItemIconPulse e ItemNoGravity",
         "PostUpdate luz escalada por essScale; GetAlpha 255/255/255/50"
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
@@ -573,17 +590,18 @@
           "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
           "runId": 38559202417,
           "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
-        }
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
       ],
       "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
     },
     "Content/Items/Armor/ExampleHelmet.js": {
-      "status": "Não implementado",
-      "cSharp": [],
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs"
+      ],
       "missingFeatures": [
-        "Fonte C# equivalente, assets e port integral ainda pendentes.",
-        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
-        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
       ],
       "nativeDependencies": [
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
@@ -593,19 +611,22 @@
         "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
       "automatedTests": [
-        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/Program.cs",
         "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/item_behavior_bridge_test.js"
       ],
-      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+      ]
     },
     "Content/Items/Armor/ExampleBreastplate.js": {
-      "status": "Não implementado",
-      "cSharp": [],
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs"
+      ],
       "missingFeatures": [
-        "Fonte C# equivalente, assets e port integral ainda pendentes.",
-        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
-        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
       ],
       "nativeDependencies": [
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
@@ -615,19 +636,22 @@
         "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
       "automatedTests": [
-        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/Program.cs",
         "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/item_behavior_bridge_test.js"
       ],
-      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+      ]
     },
     "Content/Items/Armor/ExampleLeggings.js": {
-      "status": "Não implementado",
-      "cSharp": [],
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs"
+      ],
       "missingFeatures": [
-        "Fonte C# equivalente, assets e port integral ainda pendentes.",
-        "Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.",
-        "Validacao Android do exemplo e roteiro completo ainda nao executados."
+        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
       ],
       "nativeDependencies": [
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
@@ -637,19 +661,22 @@
         "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
       ],
       "automatedTests": [
-        "tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod",
+        "tests/basic_items/Program.cs",
         "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/item_behavior_bridge_test.js"
       ],
-      "validation": "Infraestrutura compartilhada implementada e testada em mod de contrato independente; este exemplo original ainda nao foi portado."
+      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+      ]
     },
     "Content/Items/Accessories/ExampleWings.js": {
-      "status": "Não implementado",
-      "cSharp": [],
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
       "missingFeatures": [
-        "Fonte C# equivalente e assets originais ainda pendentes.",
-        "Receita depende de ExampleWorkbench C# ainda nao implementado.",
-        "Equipamento, voo, animacoes e ciclos de vida no Android ainda nao registrados."
+        "Remover a dependencia de CSharpWingPolicy/WingLoader/CSharpItemBehaviorLoader no caminho C#."
       ],
       "nativeDependencies": [
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
@@ -658,11 +685,19 @@
         "app/src/main/cpp/script/js/mod/Loaders/WingLoader.js"
       ],
       "automatedTests": [
-        "tests/basic_items/wing_fixture: contrato independente, nao port do ExampleMod",
-        "tests/basic_items/wing_behavior_bridge_test.js",
-        "tests/basic_items/native_item_binding_test.cpp"
+        "tests/basic_items/Program.cs: wire do ExampleWings real",
+        "tests/basic_items/wing_behavior_bridge_test.js: executado tambem sobre wire do ExampleWings real",
+        "tests/basic_items/item_behavior_bridge_test.js"
       ],
-      "validation": "WingStats, slot e VerticalWingSpeeds conectados ao host em contrato independente; port do exemplo original pendente."
+      "validation": "Implementado nesta continuacao; compilacao Roslyn e testes no CI pendentes. Voo/animacao/FPS ainda sem validacao Android.",
+      "preservedFeatures": [
+        "Item e sprites originais 22x20, valor 10000, raridade Green e accessory.",
+        "Slot Wings, FlyTime=180, velocidade=9, aceleracao=2.5; movimento vertical 0.85/0.15/1/3/0.135.",
+        "Receita de 1 ExampleItem na ExampleWorkbench C# sem IDs dinamicos fixos."
+      ],
+      "terrariaTests": [
+        "Fabricar ExampleWings na ExampleWorkbench, equipar/desquipar, verificar animacao e voo de 180 ticks, gravidade invertida, loadout, morte/respawn e save/reload."
+      ]
     },
     "Common/Players/ExampleTouchButtonPlayer.js": {
       "status": "Não implementado",
@@ -687,6 +722,54 @@
       "terrariaTests": [
         "Registrar dois botoes em mod C# independente; editor de controles; salvar e reabrir layout."
       ]
+    },
+    "Content/Items/Placeable/Furniture/ExampleWorkbench.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Tile e item com identidades separadas, shape 2x1, frames, mapa, housing, adjacencia, receita, dust/drop e sprites originais."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp",
+        "app/src/main/cpp/content/recipes/NativeRecipes.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/native_tile_policy.cpp",
+        "tests/native_recipes/native_recipes_test.cpp"
+      ],
+      "terrariaTests": [
+        "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
+      ],
+      "validation": "Implementacao nativa existente preservada; colocacao de tiles vanilla testada anteriormente nao valida a ExampleWorkbench C#."
+    },
+    "Content/Tiles/Furniture/ExampleWorkbench.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Furniture/ExampleWorkbench.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Tile e item com identidades separadas, shape 2x1, frames, mapa, housing, adjacencia, receita, dust/drop e sprites originais."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp",
+        "app/src/main/cpp/content/recipes/NativeRecipes.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/native_tile_policy.cpp",
+        "tests/native_recipes/native_recipes_test.cpp"
+      ],
+      "terrariaTests": [
+        "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
+      ],
+      "validation": "Implementacao nativa existente preservada; colocacao de tiles vanilla testada anteriormente nao valida a ExampleWorkbench C#."
     }
   },
   "additionalCSharpDeviceEvidence": {

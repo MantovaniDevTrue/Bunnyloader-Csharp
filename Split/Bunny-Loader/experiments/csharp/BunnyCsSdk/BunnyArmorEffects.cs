@@ -53,8 +53,7 @@ public sealed class BunnyArmorSet
     public BunnyArmorSet(string head,string body,string legs,string text)
     {
         foreach(var key in new[]{head,body,legs}) {
-            if(string.IsNullOrWhiteSpace(key)||key.Length>160||key.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'||c=='/')))
-                throw new ArgumentException("Parte do conjunto deve ser nome ou UID/Nome");
+            BunnyContentKey.Validate(key,nameof(key),"BunnyArmorSet");
         }
         if(string.IsNullOrWhiteSpace(text)||text.Length>512||text.Any(char.IsControl))throw new ArgumentException("Texto do conjunto invalido",nameof(text));
         Head=head;Body=body;Legs=legs;Text=text;
