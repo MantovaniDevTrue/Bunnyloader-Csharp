@@ -1103,7 +1103,7 @@ void noteAutoGameUpdate() {
         const ActivationContext context = readActivationContext();
         if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
-        requestBasicItemInstanceRefresh();
+        requestBasicItemInstanceRefresh("WorldLoaded");
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
         retryWorldManagedPrefixesWhenReady();
@@ -1136,7 +1136,7 @@ bool preWorldCSharpContentReady() {
 }
 
 bool finishPreWorldCSharpPlayer() {
-    requestBasicItemInstanceRefresh();
+    requestBasicItemInstanceRefresh("BeforeWorld");
     if (managedPrefixGameplayReady()) {
         refreshManagedPrefixEligibilityOnWorldReady();
         bl::runtime::retryPendingManagedPrefixesOnWorldReady();
