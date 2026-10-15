@@ -31,4 +31,5 @@ bool acknowledgeBasicRecipe(const std::string& id,int index);
 bool reportBasicRecipeError(const std::string& id,const std::string& error);
 // Native game-update calls only if a batch is pending; no Mono or JS per frame.
 void pumpBasicRecipesOnGameThread();
+void requestBasicItemInstanceRefresh();
 }

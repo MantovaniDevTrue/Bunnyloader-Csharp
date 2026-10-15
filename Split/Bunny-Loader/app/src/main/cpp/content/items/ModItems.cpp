@@ -12,7 +12,9 @@
 #include "content/items/ModItemSorting.h"
 #include "content/items/UnloadedIcon.h"
 #include "content/items/EmptyTexture.h"
+#include "experiments/csharp/NativeBasicItems.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +32,7 @@ using item_registry::g_total;
 using item_registry::g_installed;
 using item_registry::g_poolFirst;
 bool g_failed = false;
+std::vector<int> g_pendingTooltipTypes;
 
 struct Refs {
     bool tried = false, ok = false;
@@ -234,8 +237,24 @@ void applyTooltip(int type, const Entry& reg) {
     Il2CppObject* exc = nullptr;
     Il2CppObject* tip = a.runtime_invoke(r.tooltipFromKey, nullptr, args, &exc);
     if (exc || !tip) { BL_ERROR("itens de mod: FromLanguageKey lancou (%s)", reg.def.name.c_str()); return; }
-    if (!content::setTableElement(r.tooltipCache, type, tip))
+    if (!content::setTableElement(r.tooltipCache, type, tip)) {
         BL_WARN("itens de mod: tooltip nativo nao registrado (%s, type=%d)", reg.def.name.c_str(), type);
+        return;
+    }
+    if (!text.empty()) {
+        static const MethodInfo* getLines = nullptr;
+        if (!getLines) {
+            Il2CppClass* cls = il2cpp::findClassQuiet("Terraria.UI", "ItemTooltip");
+            getLines = cls ? il2cpp::api().class_get_method_from_name(cls, "get_Lines", 0) : nullptr;
+        }
+        if (getLines) {
+            Il2CppObject* result = nullptr;
+            if (invoke(getLines, tip, nullptr, "ItemTooltip.Lines", &result) && result) {
+                if (unboxInt(result) <= 0)
+                    BL_WARN("itens de mod: tooltip %s (type=%d) tem texto mas 0 linhas", reg.def.name.c_str(), type);
+            }
+        }
+    }
 }
 
 void applyName(int type, const Entry& reg) {
@@ -526,6 +545,27 @@ bool gameReady(int size) {
 }
 
 /** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
+bool syncPendingTooltipsOnGameThread(int size) {
+    const Refs& r = refs();
+    if (!r.tooltipCache || !r.tooltipFromKey) return false;
+    Il2CppArray* cache = readStatic(r.tooltipCache);
+    if (!cache || cache->length < static_cast<uintptr_t>(size)) return false;
+    std::lock_guard<std::mutex> lock(g_mx);
+    if (g_pendingTooltipTypes.empty()) return false;
+    int applied = 0;
+    for (int type : g_pendingTooltipTypes) {
+        if (type < kVanillaItemCount || type >= size) continue;
+        const size_t index = static_cast<size_t>(type - kVanillaItemCount);
+        if (index >= g_regs.size()) continue;
+        applyTooltip(type, g_regs[index]);
+        ++applied;
+    }
+    g_pendingTooltipTypes.clear();
+    if (applied)
+        BL_DEBUG("itens de mod: %d tooltip(s) sincronizados na thread do jogo", applied);
+    return applied != 0;
+}
+
 void repairMissingModTooltips(int size) {
     Refs& r = refs();
     if (!r.tooltipCache || !r.tooltipFromKey) return;
@@ -734,6 +774,8 @@ void tickModItems() {
         // Um quadro a cada ~2 s basta para tabela refeita — menos o cache de
         // nomes, que a troca de idioma refaz na hora e o inventario le logo.
         g_tables.checkPending(from, onTableRegrown);
+        if (syncPendingTooltipsOnGameThread(from))
+            bl::csharp::requestBasicItemInstanceRefresh();
         static int frame = 0;
         if (++frame % 120 == 0) {
             g_tables.watch(from, onTableRegrown);
@@ -803,7 +845,9 @@ void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>
     const size_t i = static_cast<size_t>(type - kVanillaItemCount);
     if (type < kVanillaItemCount || i >= g_regs.size()) return;
     g_regs[i].def.tooltips = std::move(tooltips);
-    if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyTooltip(type, g_regs[i]);
+    if (static_cast<int>(i) < g_installed.load(std::memory_order_acquire) &&
+        std::find(g_pendingTooltipTypes.begin(), g_pendingTooltipTypes.end(), type) == g_pendingTooltipTypes.end())
+        g_pendingTooltipTypes.push_back(type);
 }
 
 bool modItemsSettled() {

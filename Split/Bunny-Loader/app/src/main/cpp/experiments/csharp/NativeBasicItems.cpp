@@ -635,6 +635,10 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
     bool pending=false;for(const auto& p:recipes)if(p.second.index<0){pending=true;break;}
     recipesPending.store(pending,std::memory_order_release);return true;
 }
+void requestBasicItemInstanceRefresh() {
+    instancesPending.store(true, std::memory_order_release);
+}
+
 void pumpBasicRecipesOnGameThread() {
     static unsigned ticks=0, knownGeneration=0, fastPasses=0;
     const unsigned generation=contentGeneration.load(std::memory_order_acquire);
