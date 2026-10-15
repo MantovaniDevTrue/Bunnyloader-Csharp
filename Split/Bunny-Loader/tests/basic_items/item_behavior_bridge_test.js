@@ -23,6 +23,7 @@ const Item=cls('Item',{new(){return {'void .ctor()':()=>{},'void SetDefaults(int
 const Player=cls('Player'),WorldItem=cls('WorldItem'),Main=cls('Main',{player:[],mouseItem:null,LocalPlayer:{hairColor:{R:50,G:60,B:70,A:255}},essScale:2});
 const sets={AnimatesAsSoul:[],ItemIconPulse:[],ItemNoGravity:[]};
 const ArmorIDs=Object.fromEntries(['Head','Body','Legs','Beard','Back'].map(k=>[k,{Sets:{UseHairColor:[],HidesHands:[]}}]));
+ArmorIDs.Wing={Sets:{Stats:new Proxy([], {get(target,key){if(typeof key==='string'&&/^\d+$/.test(key))return target[key]??={};return target[key];}})}};
 const Terraria={Item,Player,WorldItem,Main,Lighting:cls('Lighting',{'void AddLight(Vector2 position, float r, float g, float b)':(...a)=>lights.push(a)}),ID:{ItemID:{SoulofSight:548,PumpkinHelmet:900,Sets:sets},BuffID:{OnFire:24},ArmorIDs,ContentSamples:{ItemsByType:{ContainsKey:t=>samples.has(t),get_Item:t=>samples.get(t)}}},DataStructures:{ArmorSetBonuses:{SetsContaining:new Proxy({length:6197},{get(target,key){return key==='length'?target.length:true;}}),All:{ToArray:()=>[{Head:900,Effect:{native:'pumpkin'}}]}}}};
 const pending=new Map(entries.map(e=>[e.type,e]));let acknowledgements=0;const nativeSlots=new Map();
 const bl={error:x=>callbackErrors.push(x),csharp:{resolveNativeItemKey(key){return entries.find(e=>key.endsWith('/'+e.name))?.type??-1;},setNativeItemDefense(type,value){samples.get(type).defense=value;return true;},setNativeItemEquipSlot(type,kind,slot){nativeSlots.set(type+":"+kind,slot);return true;},pendingItemBehaviors:()=>[...pending.values()],acknowledgeItemBehavior(type,error){if(error){logs.push(error);return true;}if(!pending.has(type))return false;pending.delete(type);acknowledgements++;return true;}},file:{exists:()=>true},log:x=>logs.push(x),hookMarks:{set:(k,v)=>marks.set(k+':'+v,true)}};
@@ -39,6 +40,8 @@ ctx.__blSyncCSharpItemBehaviors();assert.equal(acknowledgements,entries.length);
 ctx.__blSyncCSharpItemBehaviors();assert.equal(acknowledgements,entries.length,'idempotent registration');
 const template=name=>ctx.__items.ByType.get(entries.find(e=>e.name===name).type);
 const stat=template('ExampleStatAccessory'),wasp=template('WaspNest');
+const wing=template('ExampleWings'),wingSlot=slots.get(wing.Type+':Wings');
+assert(wingSlot>0&&ArmorIDs.Wing.Sets.Stats[wingSlot].FlyTime===180,'wing slot and original flight time');
 assert(hooks.has('Player:void ApplyEquipFunctional(int itemSlot, Item currentItem)'),'functional hook actually installed');
 const functional=hooks.get('Player:void ApplyEquipFunctional(int itemSlot, Item currentItem)');
 let player={meleeDamage:2,rangedDamage:3,magicDamage:4,minionDamage:5,hideVisibleAccessory:[]};
