@@ -443,11 +443,14 @@ final class DevTools {
         final View body;
         final TextView output;
         final ScrollView outputScroll;
+        final TextView hookCounters;
         final EditText editor;
         final TextView fullButton;
         final TextView title;
         final TextView languageButton;
         boolean csharpMode;
+        long lastHookCountersPoll;
+        String lastHookCountersText = "";
         String jsDraft = "";
         String csharpDraft = "";
         final Handler handler = new Handler(Looper.getMainLooper());
@@ -464,6 +467,7 @@ final class DevTools {
         private final Runnable poll = new Runnable() {
             @Override public void run() {
                 pullOutput();
+                pullHookCounters();
                 if (showing) handler.postDelayed(this, POLL_MS);
             }
         };
@@ -542,6 +546,19 @@ final class DevTools {
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
             ol.topMargin = px(a, 5);
             inner.addView(outputScroll, ol);
+
+            hookCounters = new TextView(a);
+            hookCounters.setTypeface(Typeface.MONOSPACE);
+            applyTextSize(a, hookCounters, 7.5f);
+            hookCounters.setTextColor(INK);
+            hookCounters.setText("Hooks C#: aguardando evento de dano...");
+            hookCounters.setBackground(panel(a, PANEL_DARK, OUTLINE));
+            hookCounters.setPadding(px(a, 6), px(a, 4), px(a, 6), px(a, 4));
+            hookCounters.setVisibility(View.GONE);
+            LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            hl.topMargin = px(a, 4);
+            inner.addView(hookCounters, hl);
 
             // ---- editor + rodar ----
             LinearLayout editRow = new LinearLayout(a);
@@ -780,6 +797,9 @@ final class DevTools {
                 title.setText("Editor JS");
             }
             editor.setSelection(editor.getText().length());
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            lastHookCountersPoll = 0;
+            if (csharpMode) pullHookCounters();
             appendEntry('i', csharpMode
                 ? "C#: escreva Print(1 + 2); e toque no botao verde. Roslyn compila e MonoVM executa sem QuickJS."
                 : "JS: o botao verde executa o codigo no motor QuickJS.");
@@ -859,6 +879,28 @@ final class DevTools {
                 editor.setText(active.get(historyIndex));
             }
             editor.setSelection(editor.getText().length());
+        }
+
+        void pullHookCounters() {
+            if (!showing || !csharpMode) return;
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - lastHookCountersPoll < 850) return;
+            lastHookCountersPoll = now;
+            try {
+                String current = CheatBridge.nCSharpHookCounters();
+                if (current == null || current.isEmpty())
+                    current = "Hooks C#: aguardando MonoVM...";
+                if (!current.equals(lastHookCountersText)) {
+                    lastHookCountersText = current;
+                    hookCounters.setText(current);
+                }
+            } catch (Throwable error) {
+                String current = "Hooks C#: diagnostico indisponivel";
+                if (!current.equals(lastHookCountersText)) {
+                    lastHookCountersText = current;
+                    hookCounters.setText(current);
+                }
+            }
         }
 
         void pullOutput() {
