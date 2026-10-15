@@ -16,6 +16,7 @@
 #include "menu/DevTools.h"
 #include "script/api/Console.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/ManagedRuntime.h"
 
 #include <atomic>
 #include <mutex>
@@ -179,6 +180,10 @@ jstring JNICALL jni_csharpConsoleRun(JNIEnv* env, jclass, jstring id, jstring ro
                                                     fromJava(env,workDir),&error))
         return toJava(env,error.empty()?"Console CSharp nao iniciou":error);
     return toJava(env,"");
+}
+
+jstring JNICALL jni_csharpHookCounters(JNIEnv* env, jclass) {
+    return toJava(env, bl::csharp::managedHurtHookSnapshot());
 }
 
 jobjectArray JNICALL jni_csharpConsoleTake(JNIEnv* env, jclass) {
@@ -522,6 +527,7 @@ void installCheatButton() {
         {"nConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_consoleTake)},
         {"nCSharpConsoleRun", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleRun)},
         {"nCSharpConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleTake)},
+        {"nCSharpHookCounters", "()Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpHookCounters)},
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
