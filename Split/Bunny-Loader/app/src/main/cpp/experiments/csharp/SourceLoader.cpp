@@ -74,8 +74,15 @@ bool collect(const std::string& folder, const std::string& rel,
 bool read(const std::string& path, std::string* out) {
     std::ifstream f(path, std::ios::binary);
     if (!f) return false;
-    out->assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
-    return out->size() <= kSourceMaxFileBytes;
+    out->clear();
+    char buffer[16384];
+    while (f) {
+        f.read(buffer, sizeof(buffer));
+        const auto count = static_cast<size_t>(f.gcount());
+        if (count > kSourceMaxFileBytes - out->size()) return false;
+        out->append(buffer, count);
+    }
+    return !f.bad();
 }
 
 bool integer(const std::string& value, int* out) {
@@ -273,6 +280,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         for(size_t i=previousTypes;i<defs.size();++i)
             sourcePaths[sourceIdentityForBase(defs[i].base, defs[i].name)]=path;
         ++status->sourceFiles;
+        if (defs.size() > kSourceMaxTypes) {
+            status->error = "mod C# excede 8192 tipos registrados";
+            return false;
+        }
     }
     if (defs.empty()) {
         status->error = "mod C# sem conteudo concreto registrado; use uma base publica Bunny ou [BunnyContent] com override de defaults para heranca propria";
