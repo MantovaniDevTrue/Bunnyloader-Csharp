@@ -271,13 +271,16 @@ class ManagedProbeService : Service() {
         require(expected.size == names.size && expected.keys.containsAll(names)) {
             "Manifesto do MonoVM inconsistente com os assemblies no APK"
         }
-        val fingerprint = dev.bunnyloader.BuildConfig.VERSION_NAME + ":" +
-            sha256(manifest.toByteArray(Charsets.UTF_8))
-        val cached = marker.isFile && marker.readText() == fingerprint &&
-            names.all { name ->
-                val file = File(dir, name)
-                file.isFile && file.length() > 0L && sha256(file) == expected[name]
-            }
+        val fingerprint = sha256(manifest.toByteArray(Charsets.UTF_8))
+        val previousFingerprint = runCatching {
+            if (marker.isFile) marker.readText().trim() else ""
+        }.getOrDefault("")
+        val markerMatches = previousFingerprint == fingerprint ||
+            previousFingerprint.endsWith(":" + fingerprint)
+        val cached = markerMatches && names.all { name ->
+            val file = File(dir, name)
+            file.isFile && file.length() > 0L && sha256(file) == expected[name]
+        }
         fun verifySourceSdk() {
             val sdk = File(dir, "BunnySourceSdk.dll")
             require(sdk.isFile && sdk.readBytes().toString(Charsets.ISO_8859_1)
@@ -288,6 +291,7 @@ class ManagedProbeService : Service() {
         }
         if (cached) {
             verifySourceSdk()
+            if (previousFingerprint != fingerprint) marker.writeText(fingerprint)
             Log.i("BunnyCSharp", "framework cache validado por SHA-256: ${names.size} assemblies")
             return File(dir, "BunnyManagedProbe.dll").absolutePath
         }
