@@ -102,7 +102,7 @@ int main(int argc,char** argv) {
     fs::remove(dll);fs::create_symlink(source,dll);assert(!read());fs::remove(dll);
     assert(writeText(dll,assembly));
     // Bad sizes, markers and checksums must not publish partially decoded sections.
-    const auto dllHash=auto_cache::fileHash(dll,8*1024*1024);
+    const auto dllHash=auto_cache::fileHash(dll,kSourceMaxAssemblyBytes);
     assert(auto_cache::encode(kCacheVersion,"mod",key,dllHash,"invalid",curves,combat).empty());
     assert(auto_cache::encode(kCacheVersion,"mod",key,"",defaults,curves,combat).empty());
     auto invalid=original;const auto sizeStart=invalid.find('\n',invalid.find(key))+1;
@@ -111,5 +111,22 @@ int main(int argc,char** argv) {
     invalid=original;invalid.replace(sizeStart,sizeEnd-sizeStart,"1 2 3 extra");assert(writeText(cache,invalid));assert(!read());
     assert(writeText(cache,original));assert(read());
     saveCache(cache,"mod",key,dll,defaults,"",combat);assert(read()&&t.empty());
+    // Exercise the real outer cache writer and reader at the expanded assembly
+    // budget. These are byte/hash fixtures; assembly validity is checked by Mono.
+    for(const auto bytes:{size_t{8*1024*1024+1},kSourceMaxAssemblyBytes}) {
+        fs::resize_file(dll,bytes);
+        assert(saveCache(cache,"mod",key,dll,defaults,curves,combat));
+        assert(read()&&d==defaults&&t==curves&&p==combat);
+        std::fstream changed(dll,std::ios::in|std::ios::out|std::ios::binary);
+        changed.seekp(static_cast<std::streamoff>(bytes-1));changed.put('x');changed.close();
+        assert(!read());
+    }
+    const auto lastValidCache=readText(cache,8192);
+    fs::resize_file(dll,kSourceMaxAssemblyBytes+1);
+    assert(!saveCache(cache,"mod",key,dll,defaults,curves,combat));
+    assert(readText(cache,8192)==lastValidCache);
+    assert(!read());
+    assert(writeText(dll,assembly));
+    assert(saveCache(cache,"mod",key,dll,defaults,curves,combat)&&read());
     std::cout<<"AUTO_SOURCE_VERIFIED_CACHE_SHA256_RUNTIME_SOURCES_DLL_CORRUPTION_AND_MIGRATION_PASS\n";
 }

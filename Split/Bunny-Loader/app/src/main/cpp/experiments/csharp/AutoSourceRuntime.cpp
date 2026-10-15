@@ -233,7 +233,7 @@ bool saveCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& assembly,
                const std::string& defaults, const std::string& curves,
                const std::string& combat) {
-    const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
+    const auto dllHash=auto_cache::fileHash(assembly,kSourceMaxAssemblyBytes);
     const auto value=auto_cache::encode(kCacheVersion,id,key,dllHash,defaults,curves,combat);
     if (value.empty()) return false;
     return writeText(path,value);
