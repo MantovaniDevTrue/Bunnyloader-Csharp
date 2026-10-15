@@ -703,14 +703,14 @@ void run() {
             if(runtimeIdentity.empty())BL_WARN("csharp auto: framework incompleto; cache externo desativado neste carregamento");
         }
         const auto scanStarted = std::chrono::steady_clock::now();
-        const std::string key = fingerprint(mod.id, root, runtimeIdentity);
+        std::string key = fingerprint(mod.id, root, runtimeIdentity);
         if (key.empty()) {
             note(&status, "failed", "Arquivos C# nao encontrados");
             continue;
         }
         const auto fingerprintMs = elapsedMilliseconds(scanStarted);
         std::string defaults, curves, combat, error;
-        const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
+        std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
         const auto readStarted = std::chrono::steady_clock::now();
         const std::string assembly=work+"compiled/"+mod.id+".dll";
         status.cached = !runtimeIdentity.empty() &&
@@ -757,6 +757,18 @@ void run() {
                                  state.phase.c_str());
                     g_runtimeWarming.store(false, std::memory_order_release);
                 }).detach();
+            }
+        }
+        if (!status.cached && runtimeIdentity.empty()) {
+            const std::string initializedIdentity = auto_cache::runtimeIdentity(work);
+            if (!initializedIdentity.empty()) {
+                const std::string initializedKey = fingerprint(mod.id, root, initializedIdentity);
+                if (!initializedKey.empty()) {
+                    runtimeIdentity = initializedIdentity;
+                    key = initializedKey;
+                    cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
+                    BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=RecoveredAfterCompile");
+                }
             }
         }
         if (!status.cached && !runtimeIdentity.empty())
