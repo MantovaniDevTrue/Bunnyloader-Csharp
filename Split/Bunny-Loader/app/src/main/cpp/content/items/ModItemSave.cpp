@@ -13,6 +13,7 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/NativeBasicItems.h"
 #include "script/api/Items.h"
 
 #include <atomic>
