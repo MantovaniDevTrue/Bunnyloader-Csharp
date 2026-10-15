@@ -632,6 +632,37 @@ void setupUnloadedItem(Il2CppObject* item, int type) {
 
 namespace {
 std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
+void ensureArmorSetLookups(int size) {
+    auto* cls = il2cpp::findClassQuiet("Terraria.DataStructures", "ArmorSetBonuses");
+    auto* field = cls ? il2cpp::findField(cls, "SetsContaining") : nullptr;
+    if (!field) return;
+    Il2CppArray* outer = readStatic(field);
+    if (!outer || outer->length < static_cast<uintptr_t>(size)) return;
+    static Il2CppArray* last = nullptr;
+    static int checked = kVanillaItemCount;
+    if (last == outer && checked >= size) return;
+    auto& a = il2cpp::api();
+    auto* rowsClass = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(outer)));
+    auto* entryClass = rowsClass ? a.class_get_element_class(rowsClass) : nullptr;
+    if (!entryClass) return;
+    auto** rows = reinterpret_cast<Il2CppObject**>(arrayData(outer));
+    Il2CppObject* empty = nullptr;
+    int initialized = 0;
+    for (int type = kVanillaItemCount; type < size; ++type) {
+        if (rows[type]) continue;
+        if (!empty) empty = reinterpret_cast<Il2CppObject*>(a.array_new(entryClass, 0));
+        if (!empty || !content::setTableElement(field, type, empty)) {
+            BL_WARN("itens de mod: falha ao inicializar ArmorSetBonuses.SetsContaining[%d]", type);
+            return;
+        }
+        ++initialized;
+    }
+    last = outer;
+    checked = size;
+    if (initialized)
+        BL_INFO("itens de mod: %d entradas vazias de ArmorSetBonuses inicializadas para tooltip", initialized);
+}
+
 } // namespace
 
 void tickModItems() {
@@ -652,6 +683,7 @@ void tickModItems() {
             Il2CppArray* names = readStatic(refs().nameCache);
             if (names && names->length < static_cast<uintptr_t>(from)) g_tables.watch(from, onTableRegrown);
         }
+        ensureArmorSetLookups(from);
         return;
     }
     if (!gameReady(from)) return;
@@ -674,6 +706,7 @@ void tickModItems() {
     patchTouchTagLimits(to);
     patchItemTagLimits(to);
     growInstanceTables(to);
+    ensureArmorSetLookups(to);
 
     struct PendingSample { int type; std::string mod, name; };
     std::vector<PendingSample> pending;
