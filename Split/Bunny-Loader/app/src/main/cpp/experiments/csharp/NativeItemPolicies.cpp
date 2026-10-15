@@ -448,11 +448,12 @@ void pumpNativeItemPoliciesOnGameThread() {
             auto& [type,entry]=*it++;
             if(entry->status.ready||tick<entry->nextRetryTick)continue;
             ++attempted;cursor=type;std::string error;
+            const std::string previousError=entry->status.error;
             entry->status.ready=install(*entry,&error);
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
-            if(!entry->status.ready&&(entry->failedAttempts==0||entry->status.error!=error))
+            if(!entry->status.ready&&(entry->failedAttempts==0||previousError!=error))
                 BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Reason=%s",
                         type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
