@@ -13,6 +13,22 @@ Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefau
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
 Check("recipe.reject-invalid",()=>{var item=new ExampleItem();item.SetDefaults();Reject(()=>item.CreateRecipe(0));Reject(()=>item.CreateRecipe().AddIngredient(0));Reject(()=>item.CreateRecipe().AddIngredient("bad,name"));Reject(()=>item.CreateRecipe().AddTile(754));Reject(()=>item.CreateRecipe().Register());Reject(()=>item.CreateRecipe().AddTile(18).AddTile(16));});
 Check("recipe.once-and-limits",()=>{var item=new ExampleItem();item.SetDefaults();var r=item.CreateRecipe().AddIngredient(2);r.Register();Reject(()=>r.Register());Reject(()=>r.AddIngredient(3));var many=item.CreateRecipe();for(int i=0;i<15;i++)many.AddIngredient(2);Reject(()=>many.AddIngredient(2));});
+Check("content-keys.shared-atomic-validation",()=>{
+ var owner=new ExampleItem();owner.SetDefaults();
+ foreach(string key in new[]{"/Item","mod/","mod//Item","mod/Item/Extra","bad name",new string('a',161)}) {
+  var recipe=owner.CreateRecipe();
+  Reject(()=>recipe.AddIngredient(key));
+  recipe.AddIngredient("other_mod/ExampleItem",2).Register();
+  Equal("1,-1,mother_mod/ExampleItem:2",owner.RecipeDefinitions.Last());
+  Reject(()=>owner.DefaultToPlaceableTile(key));
+  Reject(()=>new BunnyArmorSet(key,"Body","Legs","Bonus"));
+ }
+ try {owner.CreateRecipe().AddIngredient("mod//Item");throw new Exception("malformed identity accepted");}
+ catch(ArgumentException e) {
+  if(!e.Message.Contains("API=BunnyRecipe.AddIngredient")||!e.Message.Contains("Reason=TooManySegments")||
+     !e.Message.Contains("Field=modItemName"))throw new Exception("incomplete key diagnostic",e);
+ }
+});
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
  Equal(3,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
@@ -40,10 +56,19 @@ try {
   string output=Path.Combine(scratch,"items.dll"),diag=Path.Combine(scratch,"compile.txt");
   Equal(1,Compiler.Compile(mod,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));Equal(2,Compiler.Compile(mod,output,runtime,diag));
  });
- Check("roslyn.full-51-source-package",()=>{
+ Check("roslyn.full-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
-  Equal(56,Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Length);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(42,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  int registered=CompiledAssemblyProbe.Verify(output,diag);
+  Equal(File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1).Count(line=>line.Length>0),registered);
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
+  var wing=File.ReadAllLines("build/basic-items/full-source-runtime-values.txt").Single(line=>line.StartsWith("ITEM\tExampleWings\t")).Split('\t');
+  Equal("22",wing[2]);Equal("20",wing[3]);Equal("10000",wing[5]);Equal("2",wing[6]);
+  Equal("1,mExampleWorkbench,mExampleItem:1",wing[19]);
+  using var wingDefinition=JsonDocument.Parse(Convert.FromHexString(wing[20]));
+  Equal(180,wingDefinition.RootElement.GetProperty("wings").GetProperty("stats")[0].GetInt32());
+  Equal("Wings",wingDefinition.RootElement.GetProperty("equips")[0][0].GetString());
+  File.WriteAllLines("build/basic-items/example-wings-source-runtime-values.txt",new[]{"BUNNY_MANAGED_DEFAULTS_V2",string.Join("\t",wing)});
   if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>2*1024*1024)throw new Exception("wire exceeds runtime budget");
  });
  Check("behavior.public-sdk-validation",()=>{

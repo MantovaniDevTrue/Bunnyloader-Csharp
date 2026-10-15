@@ -4,12 +4,24 @@
 
 Base estavel atual: Bunny .90.28.4 / ExampleMod 0.1.34, relatada pelo usuario
 como funcional no Android. A referencia historica .90.27.6 / 0.1.33 dos
-equipamentos nativos tambem foi preservada. Original atualizado: JonataOliveiraa/
-Bunny-Loader, commit e608114efb15a3a021887a6132d9e2a487ba6b62. O inventario e de
-201 arquivos JS (178 no fork; 23 adicionados pelo upstream). A referencia antiga
-de 169 arquivos nao limita o trabalho. Cada arquivo, inclusive helpers, main,
-configs e interfaces, tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
+equipamentos nativos tambem foi preservada. Referencia atual: `examplemod.bl` 1.9.0 fornecido pelo usuario, com **206 scripts JS**.
+O snapshot upstream e608114efb15a3a021887a6132d9e2a487ba6b62 conserva os
+201 arquivos anteriores; nenhum desapareceu. Os cinco novos globais e a alteracao
+de `Content/ExampleRecipes.js` estao identificados no inventario reproduzivel.
+O fork historico tem 178 scripts. Contagens historicas de 169/192 nao limitam o escopo.
+Cada arquivo tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
 e dados completos em [JSON](../Split/Bunny-Loader/docs/generated/example_completion/matrix.json).
+O pacote e seus assets sao identificados por SHA-256 em
+`tools/example_completion/package-reference.json`; scripts novos/alterados tambem
+preservam o fonte como referencia, sem serem executados pelo mod C#.
+
+Estado de continuidade em 2026-10-15: HEAD preservado `94c8c1c7161e0d7dfbe1dbc7f02d444021006fa3`,
+Bunny `.90.29.17-csharp-armor-tooltip-lookup`. Bancada e tres armaduras ja integradas;
+nao reimplementar esses sistemas. ExampleWings integrado no ExampleMod 0.1.38,
+com pendencia explicita de independencia do caminho de equipamentos em QuickJS.
+Desenvolver os grupos A2/A3 e executar CI antes do proximo checkpoint de APK.
+Shaders personalizados continuam fora desta etapa; a mencao no inventario global
+nao antecipa sua implementacao.
 
 Estado implementado exige comportamento original, assets e bridge reutilizavel.
 Estado Validado no Android exige evidencia de jogo do exemplo inteiro;

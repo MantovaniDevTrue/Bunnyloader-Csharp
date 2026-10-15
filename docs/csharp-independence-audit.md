@@ -72,10 +72,14 @@ verifica que nativeRecipes=true impede a passagem de receitas C# pelo JS.
 5. Preservar equipamentos, prefixos, asas e armaduras da infraestrutura anterior.
 6. Registrar FPS, estabilidade e ciclo de vida. Nenhuma medicao Android nova feita.
 
-A bancada C# propria ainda NAO foi portada; seu teste de colocacao/destruicao e
-persistencia nao pode ser substituido por teste de registro do TileRegistry.
-Proximo passo continua sendo a bancada completa e as receitas originais das
-armaduras. Nao trocar por estacoes vanilla para aparentar conclusao.
+A bancada C# e as tres armaduras foram integradas posteriormente no ExampleMod 0.1.37.
+O caminho de tiles/receitas usa NativeTileGameplay/NativeRecipes e registros
+nativos compartilhados. O teste do TileRegistry ou de colocacao vanilla nao
+comprova colocacao/destruicao/persistencia da ExampleWorkbench no Android.
+Na continuacao 0.1.38, ExampleWings usa a infraestrutura existente, mas ainda
+depende de CSharpWingPolicy/WingLoader e do instalador JS de equipamentos.
+O port e parcial frente ao requisito de independencia; esses componentes
+precisam migrar para um servico nativo antes de declarar esse requisito cumprido.
 
 ## Entrega experimental autorizada
 

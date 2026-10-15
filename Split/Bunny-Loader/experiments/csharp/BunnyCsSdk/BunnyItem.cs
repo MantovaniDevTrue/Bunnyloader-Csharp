@@ -51,9 +51,7 @@ public abstract class BunnyItem
     /// <summary>Nome local ou UID/Nome de tile C# ou JS no registro nativo compartilhado.</summary>
     public void DefaultToPlaceableTile(string modTileName, int style = 0)
     {
-        if(string.IsNullOrWhiteSpace(modTileName)||modTileName.Length>160||modTileName.Count(c=>c=='/')>1||
-           modTileName.Split('/').Any(p=>p.Length==0||p.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'))))
-            throw new ArgumentException("Tile deve ser nome local ou UID/Nome",nameof(modTileName));
+        BunnyContentKey.Validate(modTileName,nameof(modTileName),"BunnyItem.DefaultToPlaceableTile");
         Placeable("m"+modTileName,style);
     }
     private void Placeable(string token,int style)
@@ -93,9 +91,7 @@ public sealed class BunnyRecipe
     /// <summary>Nome de classe local ou chave UID/Nome de um item de outro mod carregado.</summary>
     public BunnyRecipe AddIngredient(string modItemName, int count = 1)
     {
-        if (string.IsNullOrWhiteSpace(modItemName) || modItemName.Length>160 ||
-            modItemName.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'||c=='/')))
-            throw new ArgumentException("Nome/chave de ingrediente invalido",nameof(modItemName));
+        BunnyContentKey.Validate(modItemName,nameof(modItemName),"BunnyRecipe.AddIngredient");
         return Ingredient("m"+modItemName,count);
     }
     private BunnyRecipe Ingredient(string key,int count)
@@ -117,10 +113,7 @@ public sealed class BunnyRecipe
     {
         Mutable();
         if(station!="-1")throw new InvalidOperationException("Receita ja possui estacao");
-        if(string.IsNullOrWhiteSpace(modTileName)||modTileName.Length>160||
-            modTileName.Split('/').Any(part=>part.Length==0||part.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-')))||
-            modTileName.Count(c=>c=='/')>1)
-            throw new ArgumentException("Estacao deve ser nome local ou UID/Nome",nameof(modTileName));
+        BunnyContentKey.Validate(modTileName,nameof(modTileName),"BunnyRecipe.AddTile");
         station="m"+modTileName;return this;
     }
     public void Register()
@@ -140,3 +133,16 @@ public sealed class BunnyRecipe
 
 public static class BunnyVanillaItems { public const int DirtBlock=2; }
 public static class BunnyVanillaTiles { public const int WorkBenches=18; }
+
+internal static class BunnyContentKey
+{
+    internal static void Validate(string key,string parameter,string api)
+    {
+        string reason=string.IsNullOrWhiteSpace(key)?"EmptyIdentity":key.Length>160?"IdentityTooLong":
+            key.Count(c=>c=='/')>1?"TooManySegments":key.Split('/').Any(part=>part.Length==0)?"EmptySegment":
+            key.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'||c=='/'))?"InvalidCharacter":"";
+        if(reason.Length!=0)throw new ArgumentException("[CSharp][ERROR][ContentKey] API="+api+
+            " Field="+parameter+" Stage=ValidateKey Expected=LocalNameOrModId/Name ActualLength="+(key?.Length??0)+
+            " Reason="+reason+" Result=Rejected",parameter);
+    }
+}

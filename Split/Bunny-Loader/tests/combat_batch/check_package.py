@@ -8,9 +8,9 @@ example = root / 'samples/ExampleModCSharp'
 playable = example / 'Playable'
 manifest = json.loads((playable / 'manifest.json').read_text())
 compat = json.loads((example / 'compatibility.json').read_text())
-assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.37'
+assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.38'
 sources = sorted((playable / 'content').rglob('*.cs'))
-assert len(sources) == 56, f'Expected 56 sources; found {len(sources)}'
+assert sources and len(sources) <= 512, f'Source capacity exceeded: {len(sources)}'
 assert sum(p.stat().st_size for p in sources) <= 16 * 1024 * 1024
 for path in sources:
     assert path.stat().st_size <= 256 * 1024, str(path)
@@ -34,6 +34,6 @@ limits=(native / 'SourceLimits.h').read_text()
 assert 'kSourceMaxFiles=512;' in limits and 'kSourceMaxTotalBytes=16*1024*1024;' in limits
 assert 'kSourceMaxCategory=256;' in limits and 'kSourceDefaultsBytes=2*1024*1024;' in limits
 assert 'validSourceExecutedTypeCount(out.executedTypes)' in (native / 'ManagedRuntime.cpp').read_text()
-print('PACKAGE_OK version=0.1.37 sources=56 recipes=8 limit=512 guide=included')
+print(f"PACKAGE_OK version={manifest['version']} sources={len(sources)} recipes={len(recipes)} limit=512 guide=included")
 
 

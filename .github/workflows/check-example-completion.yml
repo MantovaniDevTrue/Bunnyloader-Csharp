@@ -20,6 +20,7 @@ jobs:
         run: |
           python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
           python3 tests/basic_items/check_lot_a_scope.py
+          python3 tests/example_reference_package_test.py
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -106,6 +107,7 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
           node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
+          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/example-wings-source-runtime-values.txt
           python3 tests/basic_items/check_csharp_tooltip_refresh.py
           node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
           node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
@@ -134,12 +136,22 @@ jobs:
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+      - name: Package source ExampleMod for the next Android checkpoint
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tests/combat_batch/check_package.py
+          python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
+          cp build/mods-packs/examplemodcsharp-0.1.38.bl build/ExampleModCSharp-v0.1.38.bmod
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit
           path: |
             Split/Bunny-Loader/docs/generated/example_completion/
             docs/csharp-completion-plan.md
+            Split/Bunny-Loader/build/ExampleModCSharp-v0.1.38.bmod
+            Split/Bunny-Loader/tools/example_completion/package-reference.json
+            Split/Bunny-Loader/build/basic-items/full-source-runtime-values.txt
+            Split/Bunny-Loader/build/basic-items/example-wings-source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items-results.json
             Split/Bunny-Loader/build/basic-items/source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items/armor-source-runtime-values.txt
