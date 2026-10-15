@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/lot-a-complete-v90-29
+      - codex/sync-jonata-20261015
       - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip

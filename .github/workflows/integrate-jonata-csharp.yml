@@ -1,9 +1,6 @@
 name: Merge Jonata Source With CSharp Preservation
 
 on:
-  push:
-    branches: [codex/sync-jonata-20261015]
-    paths: [.github/workflows/integrate-jonata-csharp.yml]
   workflow_dispatch:
 
 permissions:
@@ -76,7 +73,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git commit -m "merge: Jonata Bunny Loader 2026-10-14 with CSharp MonoVM preserved"
-          git push origin HEAD:codex/sync-jonata-20261015
-          echo "Merged CSharp upstream branch: $(git rev-parse HEAD)"
-          gh workflow run build-bunny-csharp-source-loader.yml --ref codex/sync-jonata-20261015
+          if git diff --cached --quiet; then
+            echo "Jonata upstream already synchronized with this CSharp branch."
+          else
+            git commit -m "merge: Jonata Bunny Loader into CSharp with MonoVM preserved"
+            git push origin HEAD:codex/sync-jonata-20261015
+          fi
