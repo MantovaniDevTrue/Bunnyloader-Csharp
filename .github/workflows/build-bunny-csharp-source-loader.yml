@@ -1596,7 +1596,7 @@ jobs:
           import zipfile
           apk = Path("Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk")
           with zipfile.ZipFile(apk) as package:
-              dexes = [name for name in package.namelist() if re.fullmatch(r"classes[0-9]*\\.dex", name)]
+              dexes = [name for name in package.namelist() if re.fullmatch(r"classes[0-9]*\.dex", name)]
               if not dexes:
                   raise SystemExit("APK has no classes.dex")
               blobs = [package.read(name) for name in dexes]
