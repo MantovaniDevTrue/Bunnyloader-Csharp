@@ -9,6 +9,10 @@ class ModProjectile {
     get Projectile() { return Entities.Of(this); }
 
     Clone(newProjectile) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
 
     // Como o do tModLoader: roda antes do SetStaticDefaults, com this.Projectile
     // já montado pelo SetDefaults. Sem o projHook, o botão de gancho do
@@ -42,8 +46,16 @@ class ModProjectile {
     // false mantém o projétil vivo depois de bater num bloco. Lacaio
     // (Main.projPet) recebe em todo quadro com choque, sem morrer.
     OnTileCollide(proj, oldVelocity) { return true; }
-    OnHitNPC(proj, npc) {}
-    OnHitPlayer(proj, player) {}
+    // Golpes: null deixa o jogo decidir (CanHitNPC vale para os projéteis do
+    // jogador); modifiers é um HitModifiers (no NPC) ou HurtModifiers (no
+    // jogador); hit, um HitInfo; info, um HurtInfo.
+    CanHitNPC(proj, target) { return null; }
+    ModifyHitNPC(proj, target, modifiers) {}
+    OnHitNPC(proj, target, hit, damageDone) {}
+    CanHitPvp(proj, target) { return true; }
+    CanHitPlayer(proj, target) { return true; }
+    ModifyHitPlayer(proj, target, modifiers) {}
+    OnHitPlayer(proj, target, info) {}
     Colliding(proj, projHitbox, targetHitbox) { return undefined; }
     CanDamage(proj) { return true; }
     MinionContactDamage(proj) { return false; }
@@ -59,6 +71,18 @@ class ModProjectile {
     CanUseGrapple(player, type) { return true; }
     UseGrapple(player, type) { return type; }
     GrappleCanLatchOnTo(proj, player, tile) { return undefined; }
+    // O gancho (aiStyle 7). GrappleRange: em pixels; longe assim, volta (com o
+    // AIType de um gancho do jogo, vale o dele). numHooks, speed, grappleX e
+    // grappleY são Ref: quantos ficam presos (o mais velho solta), a volta, o
+    // puxão no jogador e o ponto para onde ele puxa (a soma dos centros dos
+    // ganchos presos, até este).
+    GrappleRange(proj) { return 300; }
+    NumGrappleHooks(proj, player, numHooks) {}
+    GrappleRetreatSpeed(proj, player, speed) {}
+    GrapplePullSpeed(proj, player, speed) {}
+    GrappleTargetPoint(proj, player, grappleX, grappleY) {}
+    // false: o jogo não soma a velocidade à posição (o mod põe a posição).
+    ShouldUpdatePosition(proj) { return true; }
 
     CloneDefaults(type) {
         const source = Terraria.Projectile.new();
@@ -90,6 +114,7 @@ class ModProjectile {
         Entities.Define(Terraria.Projectile, 'ModProjectile');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
@@ -99,7 +124,7 @@ class ModProjectile {
             texture: ModFiles.Texture(inst.Texture),
             displayName: inst.DisplayName || Lang.Localized('ProjectileName', name) || name,
             setDefaults(proj) {
-                const m = Entities.Bind(inst.Clone(proj), proj, 'ModProjectile');
+                const m = Entities.Bind(inst.NewInstance(proj), proj, 'ModProjectile');
                 DamageClassLoader.Defaulting(proj, () => {
                     m.SetDefaults(proj);
                     m.PostSetDefaults(proj);

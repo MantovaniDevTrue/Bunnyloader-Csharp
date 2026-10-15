@@ -13,6 +13,18 @@ class ModItem {
     get Item() { return Entities.Of(this); }
 
     Clone(newItem) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
+
+    SaveData(tag) {}
+
+    LoadData(tag) {}
+
+    NetSend(writer) {}
+
+    NetReceive(reader) {}
 
     // No registro, com o tipo já dado (o Load do tModLoader: AddEquipTexture...).
     Load() {}
@@ -84,7 +96,8 @@ class ModItem {
     CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
     MeleeEffects(item, player, hitbox) {}
     UseItemHitbox(item, player, hitbox, noHitbox) {}
-    OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
+    // hit: HitInfo (Damage, SourceDamage, Crit, Knockback, HitDirection...).
+    OnHitNPC(item, player, target, hit, damageDone) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
     // false recusa o par (arrastar para o slot e a troca pelo toque, que vai
@@ -163,12 +176,27 @@ class ModItem {
     ApplyPrefix(item, pre) {}
 
     GetAlpha(item, lightColor) { return undefined; }
+    // No mundo, item é WorldItem; rotation e scale são Ref.
+    PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) { return true; }
+    PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) {}
+    PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) { return true; }
+    PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) {}
     PostUpdate(item) {}
     // O item no chão, todo quadro: item é o Item, worldItem a WorldItem que o
     // leva (position, velocity, Center). false no Pre pula a atualização do
     // jogo naquele quadro (o Post roda igual).
     PreUpdateInWorld(item, worldItem) { return true; }
     PostUpdateInWorld(item, worldItem) {}
+    // A coleta do chão (worldItem: a WorldItem; player: quem pega).
+    // CanPickup false: não pega nem puxa. OnPickup false: o item some sem
+    // entrar no inventário (coração, orbe de experiência). ItemSpace true: pega
+    // com o inventário cheio (junto do OnPickup). GrabRange: grabRange é Ref,
+    // em pixels. GrabStyle true: o mod move o item (velocity) no lugar do jogo.
+    CanPickup(worldItem, player) { return true; }
+    OnPickup(worldItem, player) { return true; }
+    ItemSpace(item, player) { return false; }
+    GrabRange(worldItem, player, grabRange) {}
+    GrabStyle(worldItem, player) { return false; }
     // ModifyFishingLine(item, bobber, line) também vale (line.lineOriginOffset, line.lineColor).
     ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {}
 
@@ -305,6 +333,7 @@ class ModItem {
         Entities.Define(Terraria.Item, 'ModItem');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
@@ -315,20 +344,36 @@ class ModItem {
             // A chama na mão (flame = true, as tochas), como o `_Flame` do tModLoader.
             flame: ModFiles.Texture(inst.Texture + '_Flame'),
             displayName: inst.DisplayName || Lang.Localized('ItemName', name) || name,
+            saveData(item) {
+                return ItemDataLoader.Save(item);
+            },
+
+            loadData(item, data) {
+                ItemDataLoader.Load(item, data);
+            },
+
             setDefaults(item) {
+                item.__blItemData = undefined;
+                item.__blItemDataLoadFailed = false;
+
                 EquipLoader.Install();
                 EquipLoader.Apply(item, inst.Type);
                 // O jogo faz isso no SetDefaults dele, que o item de mod não
                 // chama; sem o material, o Guia não o aceita.
                 item.material = Terraria.ID.ItemID.Sets.IsAMaterial[inst.Type];
 
-                const m = Entities.Bind(inst.Clone(item), item, 'ModItem');
+                const m = Entities.Bind(inst.NewInstance(item), item, 'ModItem');
                 DamageClassLoader.Defaulting(item, () => {
                     m.SetDefaults(item);
                     m.PostSetDefaults(item);
                 });
+                ItemDataLoader.CopyPlacement(item);
             },
             setStaticDefaults() {
+                const bannerEffect = Terraria.ID.ItemID.BannerEffect.new();
+                bannerEffect['void .ctor(float strength)'](1);
+                Terraria.ID.ItemID.Sets.BannerStrength[inst.Type] = bannerEffect;
+                Terraria.ID.ItemID.Sets.KillsToBanner[inst.Type] = 50;
                 EquipLoader.Install();
 
                 // O this.Item do tModLoader no SetStaticDefaults (Item.wingSlot...): a amostra do jogo.
@@ -357,6 +402,7 @@ class ModItem {
         });
 
         ItemLoader.Hook(cls, type);
+        ItemDataLoader.Install(cls);
         Hooks.Once('item.Clone', ItemLoader.HookClone);
         Hooks.Once('item.anglerQuest', () => AnglerQuestLoader.Watch());
         PrefixLoader.WantRollable();

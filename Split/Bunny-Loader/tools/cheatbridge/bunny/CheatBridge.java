@@ -78,6 +78,8 @@ import android.widget.Toast;
  */
 public class CheatBridge {
 
+    static String tr(String source, Object... args) { return MenuLocalization.text(source, args); }
+
     // Implementados em C++ -> bl::runtime::requestGive / requestSpawn.
     public static native void nOnGive(int type, int stack);
     public static native void nOnSpawn(int type, int count);
@@ -539,7 +541,7 @@ public class CheatBridge {
         /** A entrada "Mods": um por linha. Icone do primeiro mod. */
         static Section mods(Section[] mods) {
             Section first = mods[0];
-            Section s = new Section("Mods", FOLDERS, ALL_CLASSES, null, null, null, first.iconItem, 0);
+            Section s = new Section(tr("Mods"), FOLDERS, ALL_CLASSES, null, null, null, first.iconItem, 0);
             s.iconFile = first.iconFile;
             s.iconKind = first.iconKind;
             s.children = mods;
@@ -552,8 +554,13 @@ public class CheatBridge {
             return new Section(title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
         }
 
-        static Section powers(String title, int iconItem) {
-            return new Section(title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+        /** POWER: os grupos de POWER_GROUPS que a pagina mostra. */
+        int[] powerGroups;
+
+        static Section powers(String title, int iconItem, int... groups) {
+            Section s = new Section(title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+            s.powerGroups = groups;
+            return s;
         }
 
         /** Uma pasta de mod: os itens (NPCs, buffs) que estao nela. */
@@ -684,7 +691,7 @@ public class CheatBridge {
     }
 
     /**
-     * O aside: Superpoderes, Itens, NPCs, Buffs e Mods. Cada um abre as
+     * O aside: Superpoderes, Eventos, Itens, NPCs, Buffs e Mods. Cada um abre as
      * categorias dele, e uma categoria pode abrir subcategorias (Itens ->
      * Corpo a corpo -> Espadas; Mods -> o mod -> as pastas dele). "Todos"
      * fica NA categoria, em cima: e a mesma lista das de baixo, sem filtro.
@@ -693,36 +700,38 @@ public class CheatBridge {
         ArrayList<Section> l = new ArrayList<Section>();
         // Sigilo Celestial. A Estrela Cadente era a primeira ideia, mas o PNG
         // dela e uma tira de 8 quadros e saia como um risco.
-        l.add(Section.powers("Superpoderes", 3601));
+        l.add(Section.powers(tr("Superpoderes"), 3601, G_PLAYER, G_WORLD));
+        // Medalhao da Lua de Abobora. Os eventos sao acoes: nada fica ligado.
+        l.add(Section.powers(tr("Eventos"), 1844, G_EVENTS));
 
         Section[] items = {
-            Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 9999),
-            classGroup("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1),
-            classGroup("À distância", CL_RANGED, "ic_sec_ranged", 0, 1),
-            classGroup("Magia", CL_MAGIC, "ic_sec_magia", 0, 1),
-            classGroup("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1),
-            classGroup("Munição", CL_AMMO, null, 40, 9999),          // Flecha de Madeira
-            classGroup("Ferramentas", CL_TOOL, null, 3521, 1),       // Picareta de Ouro
-            classGroup("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1),
-            classGroup("Armaduras", CL_ARMOR, null, 231, 1),         // Elmo Derretido
-            classGroup("Poções e comida", CL_POTION, "ic_sec_util", 0, 9999),
-            classGroup("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 9999),
-            classGroup("Outros", CL_OTHER, null, 29, 9999),          // Cristal de Vida
+            Section.items(tr("Todos os itens"), ALL_CLASSES, "ic_sec_tudo_item", 0, 9999),
+            classGroup(tr("Corpo a corpo"), CL_MELEE, "ic_sec_melee", 0, 1),
+            classGroup(tr("À distância"), CL_RANGED, "ic_sec_ranged", 0, 1),
+            classGroup(tr("Magia"), CL_MAGIC, "ic_sec_magia", 0, 1),
+            classGroup(tr("Invocação"), CL_SUMMON, "ic_sec_invoc", 0, 1),
+            classGroup(tr("Munição"), CL_AMMO, null, 40, 9999),          // Flecha de Madeira
+            classGroup(tr("Ferramentas"), CL_TOOL, null, 3521, 1),       // Picareta de Ouro
+            classGroup(tr("Acessórios"), CL_ACCESSORY, "ic_sec_acess", 0, 1),
+            classGroup(tr("Armaduras"), CL_ARMOR, null, 231, 1),         // Elmo Derretido
+            classGroup(tr("Poções e comida"), CL_POTION, "ic_sec_util", 0, 9999),
+            classGroup(tr("Blocos e móveis"), CL_BLOCK, "ic_sec_blocos", 0, 9999),
+            classGroup(tr("Outros"), CL_OTHER, null, 29, 9999),          // Cristal de Vida
         };
-        l.add(Section.group("Itens", "ic_sec_tudo_item", 0, SPR_ITEM, items));
+        l.add(Section.group(tr("Itens"), "ic_sec_tudo_item", 0, SPR_ITEM, items));
 
         Section[] npcs = {
-            Section.npcClass("Todos", -1), Section.npcClass("Chefes", NPC_BOSS),
-            Section.npcClass("Monstros", NPC_MONSTER), Section.npcClass("Moradores", NPC_TOWN),
-            Section.npcClass("Criaturas", NPC_CRITTER), Section.npcClass("Outros", NPC_OTHER),
+            Section.npcClass(tr("Todos"), -1), Section.npcClass(tr("Chefes"), NPC_BOSS),
+            Section.npcClass(tr("Monstros"), NPC_MONSTER), Section.npcClass(tr("Moradores"), NPC_TOWN),
+            Section.npcClass(tr("Criaturas"), NPC_CRITTER), Section.npcClass(tr("Outros"), NPC_OTHER),
         };
-        l.add(Section.group("NPCs", "ic_sec_tudo_npc", 0, SPR_NPC, npcs));
+        l.add(Section.group(tr("NPCs"), "ic_sec_tudo_npc", 0, SPR_NPC, npcs));
 
         Section[] buffs = new Section[BUFF_CLASS_NAMES.length + 1];
-        buffs[0] = Section.buffClass("Todos", -1);
-        for (int c = 1; c < BUFF_CLASS_NAMES.length; c++) buffs[c] = Section.buffClass(BUFF_CLASS_NAMES[c], c);
-        buffs[BUFF_CLASS_NAMES.length] = Section.buffClass(BUFF_CLASS_NAMES[0], 0);
-        l.add(Section.group("Buffs", null, 3, SPR_BUFF, buffs));   // Regeneracao
+        buffs[0] = Section.buffClass(tr("Todos"), -1);
+        for (int c = 1; c < BUFF_CLASS_NAMES.length; c++) buffs[c] = Section.buffClass(tr(BUFF_CLASS_NAMES[c]), c);
+        buffs[BUFF_CLASS_NAMES.length] = Section.buffClass(tr(BUFF_CLASS_NAMES[0]), 0);
+        l.add(Section.group(tr("Buffs"), null, 3, SPR_BUFF, buffs));   // Regeneracao
 
         // O que os mods trouxeram: um por linha, cada um com as pastas dele.
         ArrayList<Section> mods = new ArrayList<Section>();
@@ -735,9 +744,9 @@ public class CheatBridge {
     private static Section classGroup(String title, int cls, String icon, int iconItem, int qty) {
         String[] names = SUB_NAMES[cls];
         Section[] children = new Section[names.length + 1];
-        children[0] = Section.itemSub("Todos", cls, -1, qty);
-        for (int k = 1; k < names.length; k++) children[k] = Section.itemSub(names[k], cls, k, qty);
-        children[names.length] = Section.itemSub(names[0], cls, 0, qty);
+        children[0] = Section.itemSub(tr("Todos"), cls, -1, qty);
+        for (int k = 1; k < names.length; k++) children[k] = Section.itemSub(tr(names[k]), cls, k, qty);
+        children[names.length] = Section.itemSub(tr(names[0]), cls, 0, qty);
         return Section.group(title, icon, iconItem, SPR_ITEM, children);
     }
 
@@ -751,6 +760,10 @@ public class CheatBridge {
         "Voar", "Raio-X", "Lacaios infinitos", "Chuva", "Vento", "Bestiário",
         "Inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
         "Hardmode", "Dificuldade", "Reviver rápido", "Sumir com inimigos",
+        "Parar infecção", "Parar eventos",
+        "Lua de Sangue", "Eclipse", "Chuva de slime", "Exército goblin", "Legião gélida",
+        "Piratas", "Invasão marciana", "Lua de abóbora", "Lua gélida", "Festa",
+        "Tempestade de areia",
     };
     private static final String[] POWER_DESC = {
         "Toda arma bate mais forte",
@@ -776,6 +789,19 @@ public class CheatBridge {
         "Clássico, Expert, Mestre, Jornada",
         "Morreu, volta na hora",
         "Os que já existem somem",
+        "Corrupção, carmim e sagrado param",
+        "Acaba com o que está acontecendo",
+        "Vira a noite se for dia",
+        "Vira o dia se for noite",
+        "Slimes caindo do céu",
+        "A invasão dos goblins",
+        "Bonecos de neve armados",
+        "A invasão pirata",
+        "Os marcianos chegam",
+        "Ondas até o amanhecer",
+        "Ondas até o amanhecer",
+        "Os moradores comemoram",
+        "No deserto",
     };
     /** Rotulo de cada nivel. Um so = liga/desliga; nenhum = acao (ver isAction). */
     private static final String[][] POWER_LEVELS = {
@@ -788,6 +814,8 @@ public class CheatBridge {
         {"Ligado"}, {"Clássico", "Expert", "Mestre", "Jornada"},
         {"Ligado"},
         {},
+        {"Ligado"}, {},                  // infeccao: estado do mundo; parar eventos: acao
+        {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},   // eventos: acoes
     };
     /** Sprite de item que representa cada poder. */
     private static final int[] POWER_ICON = {
@@ -814,6 +842,19 @@ public class CheatBridge {
         3335,   // (trocado pelo icone do modo: GAME_MODE_ICON)
         1291,   // Fruta da Vida
         0,      // (acao da barra de inimigos, sem cartao)
+        66,     // Po de Purificacao
+        3117,   // Vela da Paz
+        4271,   // Lagrima Sangrenta
+        2767,   // Tabua Solar
+        23,     // Gel
+        361,    // Estandarte de Batalha Goblin
+        602,    // Globo de Neve
+        672,    // Cutelo
+        2749,   // Cajado Xeno
+        1844,   // Medalhao da Lua de Abobora
+        1958,   // Presente Travesso
+        3749,   // Presente de Festa
+        857,    // Tempestade de Areia na Garrafa
     };
 
     // Ids que o Java precisa conhecer, na ordem de bl::runtime::Power.
@@ -824,6 +865,7 @@ public class CheatBridge {
     private static final int P_RAIN = 12;
     private static final int P_WIND = 13;
     private static final int P_CLEAR_ENEMIES = 22;
+    private static final int P_STOP_INFECTION = 23;
 
     /**
      * Poder que e uma BARRA da coluna do X (chuva, vento, inimigos): o nivel e
@@ -843,13 +885,22 @@ public class CheatBridge {
      * A grade em duas partes, na ordem mostrada. Chuva, vento, inimigos e tempo
      * parado nao estao aqui: ficam na coluna do X, junto da hora do dia.
      */
-    private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo"};
+    /**
+     * Os grupos, cada um com o seu titulo. Superpoderes mostra Jogador e
+     * Mundo; Eventos e outra entrada da coluna (sections()).
+     */
+    private static final int G_PLAYER = 0, G_WORLD = 1, G_EVENTS = 2;
+    private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo", "Eventos"};
     private static final int[][] POWER_GROUPS = {
         // Imortal, Reviver rapido, Dano, Velocidade, Super pulo, Pulo infinito,
         // Voar, Mana, Lacaios, Mineracao, Visao total, Raio-X, Teleporte, Limpar
         {4, 21, 0, 1, 2, 6, 9, 5, 11, 7, 8, 10, 16, 17},
-        // Revelar mapa, Bestiario, Hardmode, Dificuldade
-        {18, 14, 19, 20},
+        // Revelar mapa, Bestiario, Hardmode, Dificuldade, Parar infeccao
+        {18, 14, 19, 20, 23},
+        // Parar eventos; Lua de Sangue, Eclipse, Chuva de slime, Goblins,
+        // Legiao gelida, Piratas, Marcianos, Lua de abobora, Lua gelida,
+        // Festa, Tempestade de areia
+        {24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35},
     };
 
     /** Poder com icone de interface do jogo em vez de sprite de item. */
@@ -858,12 +909,18 @@ public class CheatBridge {
     }
 
     /**
-     * Poder que e o ESTADO do mundo (hardmode, dificuldade): o cartao mostra o
-     * que o mundo esta agora, e tocar manda mudar. Nao conta como ligado, e o
-     * "Desligar tudo" nao mexe — desligar o hardmode e decisao, nao faxina.
+     * Poder que e o ESTADO do mundo (hardmode, dificuldade, infeccao parada):
+     * o cartao mostra o que o mundo esta agora, e tocar manda mudar. Nao conta
+     * como ligado, e o "Desligar tudo" nao mexe — desligar o hardmode e
+     * decisao, nao faxina. A infeccao parada e salva no mundo pelo jogo.
      */
     private static boolean isWorldState(int id) {
-        return id == P_HARDMODE || id == P_DIFFICULTY;
+        return id == P_HARDMODE || id == P_DIFFICULTY || id == P_STOP_INFECTION;
+    }
+
+    /** A posicao de cada estado do mundo em sWorld (e em nWorldState: 0, 1 e 5). */
+    private static int worldSlot(int id) {
+        return id == P_HARDMODE ? 0 : id == P_DIFFICULTY ? 1 : 2;
     }
 
     private static final String[] GAME_MODE = {"Clássico", "Expert", "Mestre", "Jornada"};
@@ -871,8 +928,13 @@ public class CheatBridge {
     private static final String[] GAME_MODE_ICON = {
         "ic_dif_normal", "ic_dif_expert", "ic_dif_master", "ic_dif_creative",
     };
-    /** A ultima leitura de nWorldState, corrigida na hora pelo toque. */
-    private static int[] sWorld = {-1, -1};
+    /** A ultima leitura de nWorldState (hardmode, modo, infeccao), corrigida na hora pelo toque. */
+    private static int[] sWorld = {-1, -1, -1};
+
+    private static void readWorldState() {
+        int[] w = nWorldState();
+        if (w != null && w.length >= 2) sWorld = new int[] {w[0], w[1], w.length > 5 ? w[5] : -1};
+    }
 
     /**
      * Poder que e uma ACAO: roda uma vez no jogo e acabou, nao fica ligado. O
@@ -885,14 +947,15 @@ public class CheatBridge {
 
     /** Toque num cartao de estado do mundo: pede a mudanca e ja mostra o resultado. */
     private static void toggleWorldState(Activity act, int id) {
-        if (id == P_HARDMODE) {
-            int hm = sWorld[0];
-            if (hm < 0) { toast(act, "Entre num mundo primeiro"); return; }
-            nSetPower(id, hm == 1 ? 2 : 1);
-            sWorld[0] = hm == 1 ? 0 : 1;
+        if (id == P_HARDMODE || id == P_STOP_INFECTION) {
+            int slot = worldSlot(id);
+            int on = sWorld[slot];
+            if (on < 0) { toast(act, tr("Entre num mundo primeiro")); return; }
+            nSetPower(id, on == 1 ? 2 : 1);
+            sWorld[slot] = on == 1 ? 0 : 1;
         } else {
             int mode = sWorld[1];
-            if (mode < 0) { toast(act, "Entre num mundo primeiro"); return; }
+            if (mode < 0) { toast(act, tr("Entre num mundo primeiro")); return; }
             int next = (mode + 1) % GAME_MODE.length;
             nSetPower(id, next + 1);
             sWorld[1] = next;
@@ -1093,13 +1156,15 @@ public class CheatBridge {
         }
 
         @Override public void setText(CharSequence text, BufferType type) {
-            // Andy tem os acentos, mas nao as setas. O Layout preserva a fonte
-            // de apoio destes glifos inclusive quando o valor da barra muda.
+            // Andy tem os acentos, mas nao as setas, o cirilico nem o chines.
+            // O Layout preserva a fonte de apoio destes glifos inclusive
+            // quando o valor da barra muda.
             SpannableStringBuilder styled = null;
             if (text != null) {
                 for (int i = 0; i < text.length(); i++) {
                     char ch = text.charAt(i);
-                    if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212') {
+                    if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212' || (ch >= '\u0400' && ch <= '\u052F')
+                            || (ch >= '\u3000' && ch <= '\u9FFF') || (ch >= '\uFF00' && ch <= '\uFFEF')) {
                         if (styled == null) styled = new SpannableStringBuilder(text);
                         styled.setSpan(new TypefaceSpan("sans-serif"), i, i + 1,
                                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -1429,8 +1494,8 @@ public class CheatBridge {
     // ------------------------------ menu ------------------------------
 
     // Config > Desenvolvedor do launcher (ui/Prefs.kt), lidas quando o jogo
-    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. Sem o Mod
-    // Menu e com o Editor, o botao flutuante vira o de JS e abre o Editor.
+    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. O Editor
+    // tem seu proprio icone, disponivel tambem na tela de titulo.
     static boolean sMenuOn = true, sEditorOn = true, sRestartOn = true;
 
     private static void readDevSettings(Activity act) {
@@ -1444,6 +1509,7 @@ public class CheatBridge {
 
     public static void install(final Activity act) {
         sActivity = act;
+        MenuLocalization.initialize(act);
         readDevSettings(act);
         // Sem o Mod Menu nao ha como desligar um poder: nenhum volta ligado.
         if (sMenuOn) {
@@ -1452,6 +1518,7 @@ public class CheatBridge {
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
+                try { DevTools.showFloatIcon(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
             }
         });
     }
@@ -1470,11 +1537,11 @@ public class CheatBridge {
      * ficava por cima do menu do jogo. Aparece quando o jogador entra num mundo.
      */
     private static void buildToggle(final Activity act) {
-        if (!sMenuOn && !sEditorOn) return;
-        ImageView b = icon(act, sprite(act, sMenuOn ? "ic_bunny_menu" : "ic_js"), BUTTON_SIZE);
+        if (!sMenuOn) return;
+        ImageView b = icon(act, sprite(act, "ic_bunny_menu"), BUTTON_SIZE);
         b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
-        b.setContentDescription(sMenuOn ? "Mod Menu" : "Editor");
+        b.setContentDescription(tr("Mod Menu"));
         b.setOnTouchListener(new DragHandler(act));
         b.setVisibility(View.GONE);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
@@ -1556,8 +1623,7 @@ public class CheatBridge {
                     return true;
                 case MotionEvent.ACTION_UP:
                     if (dragging) savePosition(act, lp);
-                    else if (sMenuOn) toggleMenu(act);
-                    else DevTools.openConsole(act);
+                    else toggleMenu(act);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
                     if (dragging) savePosition(act, lp);
@@ -1701,7 +1767,7 @@ public class CheatBridge {
         LinearLayout titles = new LinearLayout(act);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setPadding(px(act, 8), 0, 0, 0);
-        titles.addView(text(act, "Mod Menu", 17, INK));
+        titles.addView(text(act, tr("Mod Menu"), 17, INK));
         titles.addView(text(act, "BUNNY LOADER", 9, INK_DIM));
         head.addView(titles);
         aside.addView(head);
@@ -1816,7 +1882,7 @@ public class CheatBridge {
         col.setGravity(Gravity.CENTER_HORIZONTAL);
 
         ImageView close = icon(act, sprite(act, "ic_fechar"), 40);
-        close.setContentDescription("Fechar");
+        close.setContentDescription(tr("Fechar"));
         close.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         close.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -1831,10 +1897,10 @@ public class CheatBridge {
         // A hora: a barra do dia inteiro. O icone mostra o pedaco do dia que
         // ficou; fora do mundo, avisa.
         final ImageView time = railButton(act, col,
-            sprite(act, TIME_ICON[sTimeIndex < 0 ? 0 : sTimeIndex]), "Hora do dia");
+            sprite(act, TIME_ICON[sTimeIndex < 0 ? 0 : sTimeIndex]), tr("Hora do dia"));
         time.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
+                if (!nInWorld()) { toast(act, tr("Entre num mundo primeiro")); return; }
                 showSlider(act, time, timeSlider(act, time));
             }
         });
@@ -1845,12 +1911,12 @@ public class CheatBridge {
         final ImageView[] views = new ImageView[ids.length];
         for (int k = 0; k < ids.length; k++) {
             final int id = ids[k];
-            final ImageView b = railButton(act, col, powerIcon(act, id), POWER_NAME[id]);
+            final ImageView b = railButton(act, col, powerIcon(act, id), tr(POWER_NAME[id]));
             views[k] = b;
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
                     if (isSlider(id)) {
-                        if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
+                        if (!nInWorld()) { toast(act, tr("Entre num mundo primeiro")); return; }
                         showSlider(act, b, powerSlider(act, id));
                         return;
                     }
@@ -2184,13 +2250,13 @@ public class CheatBridge {
     }
 
     private static String periodOf(int minute) {
-        if (minute < 270) return "Madrugada";
-        if (minute < 360) return "Amanhecer";
-        if (minute < 690) return "Manhã";
-        if (minute < 750) return "Meio-dia";
-        if (minute < 1110) return "Tarde";
-        if (minute < 1230) return "Anoitecer";
-        return "Noite";
+        if (minute < 270) return tr("Madrugada");
+        if (minute < 360) return tr("Amanhecer");
+        if (minute < 690) return tr("Manhã");
+        if (minute < 750) return tr("Meio-dia");
+        if (minute < 1110) return tr("Tarde");
+        if (minute < 1230) return tr("Anoitecer");
+        return tr("Noite");
     }
 
     private static SliderSpec timeSlider(final Activity act, final ImageView button) {
@@ -2215,7 +2281,7 @@ public class CheatBridge {
                 for (int i = 0; i < TIME_PRESET.length; i++) {
                     final int minute = TIME_PRESET[i];
                     ImageView b = icon(a, sprite(a, TIME_ICON[i]), 30);
-                    b.setContentDescription(TIME_NAME[i]);
+                    b.setContentDescription(tr(TIME_NAME[i]));
                     b.setPadding(px(a, 4), px(a, 4), px(a, 4), px(a, 4));
                     b.setBackground(actionBackground(a, false));
                     b.setOnClickListener(new View.OnClickListener() {
@@ -2225,7 +2291,7 @@ public class CheatBridge {
                 }
             }
         };
-        spec.title = "Hora do dia";
+        spec.title = tr("Hora do dia");
         spec.icon = sun;
         spec.max = 1439;
         int[] w = nWorldState();
@@ -2261,19 +2327,19 @@ public class CheatBridge {
 
     private static String sliderLabel(int id, int v) {
         if (id == P_RAIN) {
-            if (v == 0) return "Sem chuva";
-            String name = v < 25 ? "Garoa" : v < 50 ? "Chuva" : v < 75 ? "Chuva forte" : "Tempestade";
+            if (v == 0) return tr("Sem chuva");
+            String name = v < 25 ? tr("Garoa") : v < 50 ? tr("Chuva") : v < 75 ? tr("Chuva forte") : tr("Tempestade");
             return name + "  " + v + "%";
         }
         if (id == P_WIND) {
             int d = v - 50;
             int mph = Math.round(Math.abs(d) * 0.8f);
-            if (Math.abs(d) <= 2) return "Calmo";
-            String name = Math.abs(d) < 25 ? "Brisa" : "Ventania";
+            if (Math.abs(d) <= 2) return tr("Calmo");
+            String name = Math.abs(d) < 25 ? tr("Brisa") : tr("Ventania");
             return (d < 0 ? "←  " : "→  ") + name + "  " + mph + " mph";
         }
-        if (v == 0) return "Nenhum inimigo";
-        return "x" + decimal(spawnMultiplier(v)) + (v == 50 ? "  normal" : "");
+        if (v == 0) return tr("Nenhum inimigo");
+        return "x" + decimal(spawnMultiplier(v)) + (v == 50 ? "  " + tr("normal") : "");
     }
 
     private static SliderSpec powerSlider(final Activity act, final int id) {
@@ -2287,7 +2353,7 @@ public class CheatBridge {
             }
             @Override void addButtons(final Activity a, LinearLayout row, final GradientRange bar) {
                 // Verde enquanto o jogo decide; mexer na barra apaga.
-                final TextView b = sliderButton(a, id == P_NO_SPAWNS ? "Normal" : "Automático",
+                final TextView b = sliderButton(a, id == P_NO_SPAWNS ? tr("Normal") : tr("Automático"),
                                                 sPowerLevels[id] == 0);
                 auto[0] = b;
                 b.setOnClickListener(new View.OnClickListener() {
@@ -2301,10 +2367,10 @@ public class CheatBridge {
                 if (id != P_NO_SPAWNS) return;
 
                 // Acao: some com os que ja existem. Pisca de verde, como o cartao.
-                final TextView clear = sliderButton(a, POWER_NAME[P_CLEAR_ENEMIES], false);
+                final TextView clear = sliderButton(a, tr(POWER_NAME[P_CLEAR_ENEMIES]), false);
                 clear.setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) {
-                        if (!nInWorld()) { toast(a, "Entre num mundo primeiro"); return; }
+                        if (!nInWorld()) { toast(a, tr("Entre num mundo primeiro")); return; }
                         nSetPower(P_CLEAR_ENEMIES, 1);
                         clear.setBackground(actionBackground(a, true));
                         clear.postDelayed(new Runnable() {
@@ -2315,7 +2381,7 @@ public class CheatBridge {
                 addToRow(a, row, clear);
             }
         };
-        spec.title = POWER_NAME[id];
+        spec.title = tr(POWER_NAME[id]);
         spec.icon = powerIcon(act, id);
         int[] w = nWorldState();
         boolean on = sPowerLevels[id] > 0;
@@ -2324,21 +2390,21 @@ public class CheatBridge {
             spec.colors = new int[] {0xFFA8DDFF, 0xFF8DB6E0, 0xFF6F84B5, 0xFF4C5583, 0xFF262A45};
             spec.stops = new float[] {0f, 0.25f, 0.5f, 0.75f, 1f};
             spec.ticks = new int[] {25, 50, 75};
-            spec.captions = new String[] {"Limpo", "Chuva", "Tempestade"};
+            spec.captions = new String[] {tr("Limpo"), tr("Chuva"), tr("Tempestade")};
             spec.initial = on ? sPowerLevels[id] - 1 : (w != null && w.length > 3 && w[3] >= 0 ? w[3] : 0);
         } else if (id == P_WIND) {
             // Calmo no meio, ventania nas pontas; cada lado e uma direcao.
             spec.colors = new int[] {0xFF1FA59A, 0xFF8FD9CF, 0xFFEEF4FF, 0xFF8FD9CF, 0xFF1FA59A};
             spec.stops = new float[] {0f, 0.25f, 0.5f, 0.75f, 1f};
             spec.ticks = new int[] {50};
-            spec.captions = new String[] {"← 40 mph", "Calmo", "40 mph →"};
+            spec.captions = new String[] {"← 40 mph", tr("Calmo"), "40 mph →"};
             spec.initial = on ? sPowerLevels[id] - 1 : (w != null && w.length > 4 && w[4] >= 0 ? w[4] : 50);
         } else {
             // Paz, o normal e o perigo.
             spec.colors = new int[] {0xFF22A851, 0xFFF2D04B, 0xFFD9342B};
             spec.stops = new float[] {0f, 0.5f, 1f};
             spec.ticks = new int[] {50};
-            spec.captions = new String[] {"Nenhum", "x1", "x10"};
+            spec.captions = new String[] {tr("Nenhum"), "x1", "x10"};
             spec.initial = on ? sPowerLevels[id] - 1 : 50;
         }
         return spec;
@@ -2487,7 +2553,7 @@ public class CheatBridge {
         if (back != null) {
             // A seta do jogo (UI/TexturePackButtons), a mesma do pacote de texturas.
             ImageView arrow = icon(act, sprite(act, "ic_seta_esq"), 34);
-            arrow.setContentDescription("Voltar");
+            arrow.setContentDescription(tr("Voltar"));
             // Area de toque maior que o desenho: a seta fica no canto.
             arrow.setPadding(px(act, 6), px(act, 6), px(act, 10), px(act, 6));
             arrow.setOnClickListener(new View.OnClickListener() {
@@ -2550,12 +2616,17 @@ public class CheatBridge {
     private static String contents(Section f) {
         if (f.kind == Section.FOLDERS) {
             int n = f.children.length;
-            return n + " " + (n == 1 ? f.childOne : f.childMany);
+            return childCount(f, n);
         }
         int n = f.total();
-        return n + (f.npc() ? (n == 1 ? " NPC" : " NPCs")
-                  : f.buff() ? (n == 1 ? " buff" : " buffs")
-                  : (n == 1 ? " item" : " itens"));
+        return tr(f.npc() ? (n == 1 ? "%1$s NPC" : "%1$s NPCs")
+                  : f.buff() ? (n == 1 ? "%1$s buff" : "%1$s buffs")
+                  : (n == 1 ? "%1$s item" : "%1$s itens"), n);
+    }
+
+    private static String childCount(Section section, int n) {
+        String unit = n == 1 ? section.childOne : section.childMany;
+        return tr("%1$s " + unit, n);
     }
 
     /**
@@ -2569,7 +2640,7 @@ public class CheatBridge {
         if (mod.fromCatalog && sCatalog == null) {
             // As subcategorias vem do catalogo: o girassol ate ele ficar pronto.
             content.addView(buildHeader(act, mod, null, up));
-            content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
+            content.addView(loadingView(act, tr("Lendo o catálogo do jogo, no seu idioma...")),
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
             withCatalog(act, new Runnable() {
                 @Override public void run() {
@@ -2588,7 +2659,7 @@ public class CheatBridge {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = px(act, 6);
         int n = shown.size();
-        content.addView(buildHeader(act, mod, text(act, n + " " + (n == 1 ? mod.childOne : mod.childMany),
+        content.addView(buildHeader(act, mod, text(act, childCount(mod, n),
             10, INK_DIM), up), lp);
 
         final Runnable back = new Runnable() {
@@ -2643,7 +2714,7 @@ public class CheatBridge {
             // ele fica pronto, a secao se redesenha sozinha — se a pessoa ainda
             // estiver nela.
             content.addView(buildHeader(act, s, null, back));
-            content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
+            content.addView(loadingView(act, tr("Lendo o catálogo do jogo, no seu idioma...")),
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
             withCatalog(act, redraw);
             return;
@@ -2665,7 +2736,7 @@ public class CheatBridge {
         searchField.setBackground(null);
         searchField.setTextColor(INK);
         searchField.setHintTextColor(INK_DIM);
-        searchField.setHint("Nome ou id");
+        searchField.setHint(tr("Nome ou id"));
         searchField.setInputType(android.text.InputType.TYPE_CLASS_TEXT
             | android.text.InputType.TYPE_TEXT_VARIATION_FILTER
             | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
@@ -2719,9 +2790,8 @@ public class CheatBridge {
         content.addView(headerRow, lp);
 
         if (s.total() == 0) {
-            content.addView(text(act, s.npc() ? "Nenhum NPC aqui." : s.buff() ? "Nenhum buff aqui."
-                : "O jogo não entregou a classe dos itens. \"Todos os itens\" "
-                + "continua com a lista inteira.", 12, INK_DIM));
+            content.addView(text(act, s.npc() ? tr("Nenhum NPC aqui.") : s.buff() ? tr("Nenhum buff aqui.")
+                : tr("O jogo não entregou a classe dos itens. \"Todos os itens\" continua com a lista inteira."), 12, INK_DIM));
             return;
         }
 
@@ -2757,7 +2827,7 @@ public class CheatBridge {
                     @Override public void run() {
                         s.applyFilter(term);
                         countLabel.setText(s.filtered == null ? String.valueOf(s.total())
-                                                          : s.count() + " de " + s.total());
+                                                          : tr("%1$s de %2$s", s.count(), s.total()));
                         adapter.notifyDataSetChanged();
                         list.setSelection(0);
                     }
@@ -2834,7 +2904,7 @@ public class CheatBridge {
         requestSprite(act, L.sprite, s.spriteKind(), id);
         L.name.setText(name);
         L.detail.setText(s.npc() ? ("NPC " + id) : s.buff() ? ("buff " + id) : ("id " + id));
-        L.action.setContentDescription(s.npc() ? "Invocar" : s.buff() ? "Aplicar" : "Pegar");
+        L.action.setContentDescription(s.npc() ? tr("Invocar") : s.buff() ? tr("Aplicar") : tr("Pegar"));
         setBitmap(act, L.action, sprite(act, s.npc() ? "ic_invocar" : "ic_pegar"));
         L.action.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -2862,16 +2932,21 @@ public class CheatBridge {
      * grade inteira tem de caber sem rolar.
      */
     private static void showPowers(final Activity act, LinearLayout content, Section s) {
-        int[] w = nWorldState();
-        if (w != null && w.length >= 2) sWorld = new int[] {w[0], w[1]};
+        readWorldState();
+        // So acao (a pagina Eventos): sem "Desligar tudo" e sem a contagem de
+        // ligados, que e dos interruptores da outra pagina.
+        boolean toggles = false;
+        for (int g : s.powerGroups) {
+            for (int id : POWER_GROUPS[g]) if (!isAction(id)) toggles = true;
+        }
         final TextView activeLabel = text(act, "", 10, INK_DIM);
-        sActiveLabel = activeLabel;
+        sActiveLabel = toggles ? activeLabel : null;
         LinearLayout headerRow = buildHeader(act, s, activeLabel);
 
         final View[] cards = new View[POWER_NAME.length];
         View spacer = new View(act);
         headerRow.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
-        TextView offButton = text(act, "Desligar tudo", 11, INK);
+        TextView offButton = text(act, tr("Desligar tudo"), 11, INK);
         offButton.setBackground(actionBackground(act, false));
         offButton.setPadding(px(act, 10), px(act, 5), px(act, 10), px(act, 5));
         offButton.setOnClickListener(new View.OnClickListener() {
@@ -2887,7 +2962,7 @@ public class CheatBridge {
                 updateActiveCount(activeLabel);
             }
         });
-        headerRow.addView(offButton);
+        if (toggles) headerRow.addView(offButton);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -2897,10 +2972,14 @@ public class CheatBridge {
         final int columns = powerColumns(act);
         LinearLayout grid = new LinearLayout(act);
         grid.setOrientation(LinearLayout.VERTICAL);
-        for (int g = 0; g < POWER_GROUPS.length; g++) {
-            TextView groupTitle = text(act, POWER_GROUP_NAME[g], 13, INK_DIM);
-            groupTitle.setPadding(px(act, 4), px(act, g == 0 ? 0 : 10), 0, px(act, 2));
-            grid.addView(groupTitle);
+        for (int n = 0; n < s.powerGroups.length; n++) {
+            final int g = s.powerGroups[n];
+            // Um grupo so (Eventos): o titulo da pagina ja diz.
+            if (s.powerGroups.length > 1) {
+                TextView groupTitle = text(act, tr(POWER_GROUP_NAME[g]), 13, INK_DIM);
+                groupTitle.setPadding(px(act, 4), px(act, n == 0 ? 0 : 10), 0, px(act, 2));
+                grid.addView(groupTitle);
+            }
             final int[] group = POWER_GROUPS[g];
             LinearLayout queue = null;
             for (int k = 0; k < group.length; k++) {
@@ -2959,7 +3038,7 @@ public class CheatBridge {
         scroll.addView(grid);
         content.addView(scroll, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-        updateActiveCount(activeLabel);
+        if (toggles) updateActiveCount(activeLabel);
     }
 
     /** As partes de um cartao de poder, para repintar sem remontar. */
@@ -2984,14 +3063,14 @@ public class CheatBridge {
         LinearLayout topRow = new LinearLayout(act);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
         topRow.setGravity(Gravity.BOTTOM);
-        k.nameLabel = text(act, POWER_NAME[id], 13, INK);
+        k.nameLabel = text(act, tr(POWER_NAME[id]), 13, INK);
         k.nameLabel.setSingleLine(true);
         k.levelLabel = text(act, "", 11, GRASS_LIT);
         k.levelLabel.setPadding(px(act, 6), 0, 0, 0);
         topRow.addView(k.nameLabel);
         topRow.addView(k.levelLabel);
         texts.addView(topRow);
-        k.desc = text(act, POWER_DESC[id], 9, INK_DIM);
+        k.desc = text(act, tr(POWER_DESC[id]), 9, INK_DIM);
         texts.addView(k.desc);
         c.addView(texts, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
@@ -3008,28 +3087,28 @@ public class CheatBridge {
         int n = sPowerLevels[id];
         boolean on = n > 0;
         c.setBackground(actionBackground(act, on));
-        k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? POWER_LEVELS[id][n - 1] : "");
+        k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? tr(POWER_LEVELS[id][n - 1]) : "");
         k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
         k.desc.setTextColor(on ? INK : INK_DIM);
     }
 
     /**
-     * Hardmode verde quando ligado; dificuldade verde acima do Classico, com o
-     * icone do modo em que o mundo esta.
+     * Hardmode e infeccao parada verdes quando ligados; dificuldade verde acima
+     * do Classico, com o icone do modo em que o mundo esta.
      */
     private static void paintWorldCard(Activity act, View c, PowerCardViews k, int id) {
-        int v = sWorld[id == P_HARDMODE ? 0 : 1];
+        int v = sWorld[worldSlot(id)];
         boolean on = v > 0;
         if (id == P_DIFFICULTY) {
             int m = v < 0 ? 0 : Math.min(v, GAME_MODE_ICON.length - 1);
             setBitmap(act, k.icon, sprite(act, GAME_MODE_ICON[m]));
         }
         c.setBackground(actionBackground(act, on));
-        String label = v < 0 ? "" : id == P_HARDMODE ? (v == 1 ? "Ligado" : "")
-                                                     : GAME_MODE[Math.min(v, GAME_MODE.length - 1)];
+        String label = v < 0 ? "" : id != P_DIFFICULTY ? (v == 1 ? tr("Ligado") : "")
+                                                       : tr(GAME_MODE[Math.min(v, GAME_MODE.length - 1)]);
         k.levelLabel.setText(label);
         k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
-        k.desc.setText(v < 0 ? "Entre num mundo" : POWER_DESC[id]);
+        k.desc.setText(v < 0 ? tr("Entre num mundo") : tr(POWER_DESC[id]));
         k.desc.setTextColor(on ? INK : INK_DIM);
     }
 
@@ -3040,7 +3119,7 @@ public class CheatBridge {
     private static void flashActionCard(final Activity act, final View c, final int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
         c.setBackground(actionBackground(act, true));
-        k.levelLabel.setText("Feito!");
+        k.levelLabel.setText(tr("Feito!"));
         k.levelLabel.setTextColor(0xFFFFF36B);
         k.desc.setTextColor(INK);
         c.postDelayed(new Runnable() {
@@ -3053,7 +3132,7 @@ public class CheatBridge {
     private static void updateActiveCount(TextView t) {
         int n = 0;
         for (int v : sPowerLevels) if (v > 0) n++;
-        t.setText(n == 0 ? "" : n == 1 ? "1 ligado" : n + " ligados");
+        t.setText(n == 0 ? "" : tr(n == 1 ? "%1$s ligado" : "%1$s ligados", n));
     }
 
     // --- painel de erro ------------------------------------------------------

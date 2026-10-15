@@ -25,7 +25,7 @@ class ModMusic {
     }
 
     static TrackNpc(npc, m) {
-        if ((m.Music | 0) >= 0) ModMusic.Install();
+        if ((m.Music | 0) >= 0 || ModMusic.Tracks.length > 0) ModMusic.Install();
         else if (!ModMusic.#hooked) return;
         ModMusic.#npcs.add(npc);
     }
@@ -46,7 +46,7 @@ class ModMusic {
 
     static #Choose(tow) {
         const Main = Terraria.Main;
-        if (Main.gameMenu) return -1;
+        if (Main.gameMenu) return MenuLoader.MenuMusic();
 
         const box = ModMusic.#MusicBox();
         if (box > 0) return box;
@@ -153,6 +153,7 @@ class ModMusic {
         }
 
         const wanted = ModMusic.#wanted;
+        ModMusic.#TitleCrossFade(Main.gameMenu && wanted >= 0);
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         const nativeTarget = track ? track.id : 0;
 

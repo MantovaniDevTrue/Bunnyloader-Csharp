@@ -1,7 +1,42 @@
+import java.util.Properties
+
 // Fase 1 nao precisa da libbunny.so. Desligue o build nativo com
 //   -Pbl.nativeBuild=false   (ou a mesma linha em gradle.properties)
 // para compilar e rodar o launcher sem instalar NDK/CMake.
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
+
+// A fonte do launcher e do menu de cheats é a Andy Bold (Monotype), a mesma do
+// Terraria. Não vai para o Git: fica em src/main/res/font/bunny.ttf, integrada
+// à mão como os binários do jogo. Sem ela, entra a Comic Neue (OFL) de
+// src/fontFallback, com o mesmo nome de recurso.
+val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
+val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
+
+// A chave do APK de release fica fora do Git: keystore.properties na raiz
+// (storeFile, storePassword, keyAlias, keyPassword; modelo em
+// keystore.properties.example) ou as variáveis BL_RELEASE_STORE_FILE,
+// BL_RELEASE_STORE_PASSWORD, BL_RELEASE_KEY_ALIAS e BL_RELEASE_KEY_PASSWORD.
+// Sem nenhuma, o assembleRelease sai sem assinatura, como antes; com só parte
+// delas, o build para em vez de soltar um APK que não instala.
+val releaseKeys: Map<String, String>? = run {
+    val props = Properties()
+    val file = rootProject.file("keystore.properties")
+    if (file.isFile) file.inputStream().use { props.load(it) }
+    val keys = mapOf(
+        "storeFile" to "BL_RELEASE_STORE_FILE",
+        "storePassword" to "BL_RELEASE_STORE_PASSWORD",
+        "keyAlias" to "BL_RELEASE_KEY_ALIAS",
+        "keyPassword" to "BL_RELEASE_KEY_PASSWORD",
+    ).mapValues { (name, env) -> props.getProperty(name) ?: System.getenv(env) }
+    val missing = keys.filterValues { it.isNullOrBlank() }.keys
+    when {
+        missing.size == keys.size -> null
+        missing.isNotEmpty() -> throw GradleException(
+            "assinatura de release incompleta: falta ${missing.joinToString()} " +
+                "(keystore.properties ou BL_RELEASE_*)")
+        else -> keys.mapValues { it.value!! }
+    }
+}
 
 plugins {
     id("com.android.application")
@@ -64,6 +99,7 @@ android {
     }
 
     sourceSets["main"].java.srcDir("src/main/kotlin")
+    if (!hasGameFont) sourceSets["main"].res.srcDir("src/fontFallback/res")
 
     // Os assets do jogo vão no APK, sempre.
     //
@@ -143,6 +179,7 @@ android {
             isMinifyEnabled = false
             if (stableSigning != null) signingConfig = stableSigning
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
@@ -181,11 +218,20 @@ val syncSprites by tasks.registering(Sync::class) {
  * enquanto o app vai ate a 24. Pelos assets funciona em todas.
  */
 val syncFonte by tasks.registering(Sync::class) {
-    from(file("src/main/res/font"))
+    from(fontDir)
     into(layout.buildDirectory.dir("generated/blAssets/fonte"))
 }
+/**
+ * LICENSE.md e THIRD_PARTY_NOTICES.md -> assets/legal/, para a tela de licenças
+ * (Config > Sobre). As licenças MIT e BSD das bibliotecas pedem que o aviso vá
+ * junto com o binário; a raiz continua sendo o único lugar de editar.
+ */
+val syncLegal by tasks.registering(Sync::class) {
+    from(rootProject.file("LICENSE.md"), rootProject.file("THIRD_PARTY_NOTICES.md"))
+    into(layout.buildDirectory.dir("generated/blAssets/legal"))
+}
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
-    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte) }
+    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte, syncLegal) }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))
@@ -200,7 +246,10 @@ dependencies {
     // Unity Android Player 2021.3.56f2 (il2cpp/Release) — hospedamos o jogo no
     // nosso processo e precisamos de uma UnityPlayer LIMPA; a do APK do Terraria
     // vem com as strings cifradas pelo PairIP. Ver app/libs/README.md.
-    implementation(files("libs/unity-classes.jar"))
+    // O jar é da Unity e fica fora do Git. Sem ele o app compila (a UnityPlayer
+    // é carregada por reflection), mas o jogo não sobe, como sem os .so do jogo.
+    val unityClasses = file("libs/unity-classes.jar")
+    if (unityClasses.isFile) implementation(files(unityClasses))
 
     // Hooking nativo (ARM32/ARM64). Consumido via prefab.
     // Confirme a versão mais recente em Maven Central.

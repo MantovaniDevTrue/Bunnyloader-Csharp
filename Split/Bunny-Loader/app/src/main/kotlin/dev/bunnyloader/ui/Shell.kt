@@ -73,11 +73,10 @@ class Shell(context: Context) {
     private val installLock = Mutex()
     private val downloadSlots = Semaphore(3)
     /** Arquivos da vitrine online (ícone, capa, ficha): poucos de cada vez. */
-    private val fileSlots = Semaphore(4)
+    private val fileSlots = Semaphore(2)
     private val filesInFlight = mutableSetOf<String>()
-    /** Sobe a cada arquivo da vitrine que chega: a ficha relê as páginas por ele. */
-    var remoteFilesVersion by mutableStateOf(0)
-        private set
+    private val filesLoaded = mutableSetOf<String>()
+    private val remoteMedia = StoreMedia()
     private val noticePrefs = context.getSharedPreferences("mod_update_notices", Context.MODE_PRIVATE)
     private var announcedVersions = noticePrefs.all.mapNotNull { (uid, value) ->
         (value as? String)?.let { uid to it }
@@ -119,7 +118,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui preparar os pacotes."
+                packageError = e.message ?: tr("Não consegui preparar os pacotes.")
             }
             rescan()
         }
@@ -138,7 +137,10 @@ class Shell(context: Context) {
     val catalogEntries: List<Catalog.Entry> get() = mergedCatalog.value
     fun entry(uid: String) = entries.firstOrNull { it.uid == uid }
         ?: imported.firstOrNull { it.uid == uid }
-        ?: remote.firstOrNull { it.uid == uid }
+        ?: remote.firstOrNull { it.uid == uid }?.let(::mediaEntry)
+
+    /** File arrival updates only consumers of this uid, not the search/catalog index. */
+    fun mediaEntry(entry: Catalog.Entry): Catalog.Entry = remoteMedia.entryFor(entry)
 
     /** A versão online, se ela for mais nova que a instalada. */
     fun updateFor(uid: String): Catalog.Entry? {
@@ -260,18 +262,28 @@ class Shell(context: Context) {
     fun requestRemoteFiles(uid: String, rels: List<String>) {
         val entry = remote.firstOrNull { it.uid == uid } ?: return
         val mod = entry.remote ?: return
-        val missing = rels.filter { it in mod.files && !java.io.File(entry.assetDir, it).isFile }
+        val prefix = "$uid|${mod.download.sha256}|"
+        val missing = rels.distinct().filter {
+            it in mod.files && prefix + it !in filesLoaded && prefix + it !in filesInFlight
+        }
         if (missing.isEmpty()) return
-        val key = uid + "|" + missing.sorted().joinToString(",")
-        if (!filesInFlight.add(key)) return
+        val keys = missing.map { prefix + it }
+        filesInFlight.addAll(keys)
         scope.launch {
-            val fresh = withContext(Dispatchers.IO) {
-                runCatching { fileSlots.withPermit { remoteCatalog.ensureFiles(mod, missing) } }.getOrNull()
-            }
-            filesInFlight.remove(key)
-            if (fresh != null) {
-                remote = remote.map { if (it.uid == uid) fresh else it }
-                remoteFilesVersion++
+            try {
+                val fresh = withContext(Dispatchers.IO) {
+                    fileSlots.withPermit { remoteCatalog.ensureFiles(mod, missing) }
+                }
+                if (fresh != null) {
+                    remoteMedia.publish(fresh)
+                    filesLoaded.addAll(keys)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // A later visit can retry a failed storefront request.
+            } finally {
+                filesInFlight.removeAll(keys.toSet())
             }
         }
     }
@@ -280,10 +292,72 @@ class Shell(context: Context) {
         mutatePackages { catalog.install(entry) }
     }
 
-    /** Instala fora da UI e entrega o nome do mod ou a mensagem de erro. */
+    /** O import do seletor em andamento: de 0 a 1; null fora dele (a janela de progresso). */
+    var importProgress by mutableStateOf<Float?>(null)
+        private set
+
+    /** Um pacote de um mod já instalado, esperando a resposta "atualizar?". */
+    var pendingUpdate by mutableStateOf<ModRepository.StagedPackage?>(null)
+        private set
+    private var pendingResult: ((Result<ModManifest>) -> Unit)? = null
+
+    /**
+     * Instala fora da UI e entrega o nome do mod ou a mensagem de erro. Se o
+     * mod já está instalado, para em pendingUpdate até answerUpdate.
+     */
     fun importPackage(uri: Uri, onResult: (Result<ModManifest>) -> Unit) {
+        if (importProgress != null || pendingUpdate != null) return
+        importProgress = 0f
         scope.launch {
-            val result = installLock.withLock { withContext(Dispatchers.IO) { repo.import(uri) } }
+            var shown = -1
+            val staged = installLock.withLock {
+                withContext(Dispatchers.IO) {
+                    repo.stage(uri) { p ->
+                        val pct = (p * 100).toInt()
+                        if (pct != shown) {
+                            shown = pct
+                            scope.launch { if (importProgress != null) importProgress = p }
+                        }
+                    }
+                }
+            }
+            staged.fold(
+                onSuccess = { pkg ->
+                    if (pkg.installed != null) {
+                        importProgress = null
+                        pendingResult = onResult
+                        pendingUpdate = pkg
+                    } else {
+                        finishImport(pkg, onResult)
+                    }
+                },
+                onFailure = {
+                    importProgress = null
+                    onResult(Result.failure(it))
+                },
+            )
+        }
+    }
+
+    /** A resposta da pergunta "atualizar?": instala por cima, ou joga o pacote fora. */
+    fun answerUpdate(update: Boolean) {
+        val pkg = pendingUpdate ?: return
+        val onResult = pendingResult
+        pendingUpdate = null
+        pendingResult = null
+        if (update) {
+            importProgress = 0.95f
+            finishImport(pkg, onResult ?: {})
+        } else {
+            scope.launch(Dispatchers.IO) { repo.discard(pkg) }
+            onResult?.invoke(Result.failure(ImportCancelled()))
+        }
+    }
+
+    private fun finishImport(pkg: ModRepository.StagedPackage, onResult: (Result<ModManifest>) -> Unit) {
+        scope.launch {
+            val result = installLock.withLock { withContext(Dispatchers.IO) { repo.commit(pkg) } }
+            importProgress = null
             onResult(result)
             rescan()
         }
@@ -328,7 +402,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui alterar os pacotes."
+                packageError = e.message ?: tr("Não consegui alterar os pacotes.")
             }
             rescan()
         }
@@ -372,7 +446,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui ler os pacotes."
+                packageError = e.message ?: tr("Não consegui ler os pacotes.")
             } finally {
                 refreshingPackages = false
                 refreshRunning = false
@@ -380,6 +454,9 @@ class Shell(context: Context) {
         }
     }
 }
+
+/** O usuário respondeu "não" ao "atualizar?": não é erro. */
+class ImportCancelled : Exception("import cancelled")
 
 sealed interface RemoteStatus {
     data object Idle : RemoteStatus

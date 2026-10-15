@@ -22,8 +22,14 @@ class SoundEngine {
         return nativeStyle >= 0 ? SoundLoader.FindActive(nativeStyle) : 0;
     }
 
-    static StopSound(stream) {
-        if (stream > 0) bl.sounds.stop(stream);
+    // -1 falhou; 0 terminou/desconhecido; 1 pendente; 2 tocando; 3 pausado;
+    // 4 cancelado; 5 descartado por atraso. Histórico limitado aos últimos pedidos.
+    static GetSoundState(handle) {
+        return handle > 0 ? bl.sounds.playbackState(handle) : 0;
+    }
+
+    static StopSound(handle) {
+        if (handle > 0) bl.sounds.cancel(handle);
     }
 }
 

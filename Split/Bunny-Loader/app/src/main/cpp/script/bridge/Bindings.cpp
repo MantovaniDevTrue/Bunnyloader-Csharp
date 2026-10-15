@@ -17,6 +17,7 @@
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
 #include "script/api/Sounds.h"
+#include "script/api/Screen.h"
 #include "script/api/Console.h"
 #include "script/api/CSharpPrototypeApi.h"
 #include "script/bridge/Marshal.h"
@@ -57,6 +58,9 @@
 namespace bl::script {
 
 #if BL_HAVE_QUICKJS
+
+// Definida com o cache da arvore de namespaces, mais abaixo.
+JSValue nestedClassObject(JSContext* ctx, Il2CppClass* nested);
 
 namespace {
 
@@ -297,11 +301,7 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return readStaticField(ctx, m.field, *m.type);
     }
     if (m.getter) return invokeGetter(ctx, m.getter, nullptr);
-    if (m.nested) {
-        JSValue r = JS_NewObjectClass(ctx, g_nativeClassId);
-        if (!JS_IsException(r)) JS_SetOpaque(r, m.nested);
-        return r;
-    }
+    if (m.nested) return nestedClassObject(ctx, m.nested);
 
     // Daqui para baixo é só erro: pode ser lento, recalcula o que precisar.
     if (m.signature) return missingSignature(ctx, cls, atom);
@@ -539,7 +539,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (!o) return -1;
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
-    if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
+    if (m.field) return writeField(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, propertyThis(o, cls), value);
     if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
     if (const int r = extraAccessorSet(ctx, cls, obj, atom, value)) return r;
@@ -906,7 +906,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, marks, flag, whileIn, ifBusy }])
+// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, firstByte, marks, flag, whileIn, ifBusy }])
 //
 // Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
 // ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
@@ -968,14 +968,17 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
         filter.wallMode = JS_ToBool(ctx, wall) == 1;
         JS_FreeValue(ctx, wall);
         JSValue arg = JS_GetPropertyStr(ctx, argv[1], "arg");
+        JSValue firstByte = JS_GetPropertyStr(ctx, argv[1], "firstByte");
         int32_t n = 0;
         const bool ok = JS_ToInt32(ctx, &n, min) == 0;
         filter.minType = n;
         // `tile: indice` ou `tileAt: [i, j]`: o tipo vem do mundo, nao de um
         // campo de objeto.
-        const bool byTile = JS_IsNumber(tile) || JS_IsArray(tileAt) || JS_IsNumber(arg);
+        const bool byTile = JS_IsNumber(tile) || JS_IsArray(tileAt) || JS_IsNumber(arg) || JS_IsNumber(firstByte);
         if (JS_IsNumber(arg)) JS_ToInt32(ctx, &filter.argParam, arg);
+        if (JS_IsNumber(firstByte)) JS_ToInt32(ctx, &filter.firstByteParam, firstByte);
         JS_FreeValue(ctx, arg);
+        JS_FreeValue(ctx, firstByte);
         if (JS_IsNumber(tile)) JS_ToInt32(ctx, &filter.tileParam, tile);
         if (JS_IsArray(tileAt)) {
             JSValue i = JS_GetPropertyUint32(ctx, tileAt, 0), j = JS_GetPropertyUint32(ctx, tileAt, 1);
@@ -1005,7 +1008,7 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
                        filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0 &&
-                               filter.argParam < 0 && filter.marks.empty() && filter.flag.empty() &&
+                               filter.argParam < 0 && filter.firstByteParam < 0 && filter.marks.empty() && filter.flag.empty() &&
                                filter.ifBusy == IfBusy::Wait
                            ? nullptr : &filter))
         return JS_EXCEPTION;
@@ -1092,8 +1095,31 @@ JSValue js_hookFlagsGet(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return JS_NewBool(ctx, flag->load(std::memory_order_relaxed) != 0);
 }
 
+// NativeMethod.scope() — sem callback: marca, sem entrar no JS, que a thread
+// esta dentro do metodo e guarda o self. Serve de `whileIn` a outros hooks e
+// ao scopeSelf(). Num metodo que ja tem hook JS, nao instala nada (ele ja marca).
+JSValue nm_scope(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
+    if (!r) return JS_EXCEPTION;
+    HookFilter filter;
+    filter.scopeOnly = true;
+    if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, JS_UNDEFINED, &filter)) return JS_EXCEPTION;
+    return JS_UNDEFINED;
+}
+
+// NativeMethod.scopeSelf() — o objeto da chamada mais interna deste metodo
+// nesta thread (precisa de hook ou scope() nele), ou null fora dela.
+JSValue nm_scopeSelf(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
+    if (!r) return JS_EXCEPTION;
+    Il2CppObject* obj = hookScopeSelf(r->method);
+    return obj ? makeNativeObject(ctx, obj) : JS_NULL;
+}
+
 const JSCFunctionListEntry nm_proto[] = {
     JS_CFUNC_DEF("hook", 2, nm_hook),
+    JS_CFUNC_DEF("scope", 0, nm_scope),
+    JS_CFUNC_DEF("scopeSelf", 0, nm_scopeSelf),
 };
 
 
@@ -1229,9 +1255,9 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     }
     const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return -1;
-    return writeAt(ctx, reinterpret_cast<char*>(arrayData(arr)) +
-                            static_cast<size_t>(idx) * strideOf(d),
-                   d, value);
+    return writeField(ctx, reinterpret_cast<char*>(arrayData(arr)) +
+                               static_cast<size_t>(idx) * strideOf(d),
+                      d, value);
 }
 
 void ga_finalizer(JSRuntime*, JSValue val) {
@@ -1541,6 +1567,48 @@ bool extraClass(JSContext* ctx, const std::string& ns, JSAtom atom, JSValue* out
     return found;
 }
 
+/**
+ * O que cada `prefixo.nome` deu, para a proxima vez: a busca da classe (com as
+ * tentativas de generico) e o objeto novo custavam ~5 us por
+ * `Terraria.ID.ItemID` (medido no MuMu, tools/tests/opcost), e os hooks de
+ * todo quadro fazem isso. Classe e namespace nao mudam; o Namespace sem classe
+ * so entra depois do ModHelpers.js (antes, o `__blExtraClasses` ainda pode
+ * trazer uma classe com esse nome).
+ */
+std::unordered_map<std::string, JSValue> g_nsCache;
+JSContext* g_nsCacheContext = nullptr;
+
+JSValue rememberNamespace(JSContext* ctx, std::string key, JSValue v) {
+    if (JS_IsException(v)) return v;
+    if (g_nsCacheContext != ctx) {
+        g_nsCache.clear();
+        g_nsCacheContext = ctx;
+    }
+    g_nsCache.emplace(std::move(key), JS_DupValue(ctx, v));
+    return v;
+}
+
+// `ItemID.Sets`: a classe aninhada, um objeto so por classe.
+JSValue nestedClassObject(JSContext* ctx, Il2CppClass* nested) {
+    std::string key = "+" + std::to_string(reinterpret_cast<uintptr_t>(nested));
+    if (g_nsCacheContext == ctx) {
+        const auto hit = g_nsCache.find(key);
+        if (hit != g_nsCache.end()) return JS_DupValue(ctx, hit->second);
+    }
+    JSValue r = JS_NewObjectClass(ctx, g_nativeClassId);
+    if (!JS_IsException(r)) JS_SetOpaque(r, nested);
+    return rememberNamespace(ctx, std::move(key), r);
+}
+
+bool extraClassesReady(JSContext* ctx) {
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue extras = JS_GetPropertyStr(ctx, global, "__blExtraClasses");
+    const bool ready = JS_IsObject(extras);
+    JS_FreeValue(ctx, extras);
+    JS_FreeValue(ctx, global);
+    return ready;
+}
+
 void ns_finalizer(JSRuntime*, JSValue val) {
     delete static_cast<std::string*>(JS_GetOpaque(val, g_namespaceId));
 }
@@ -1559,6 +1627,12 @@ JSValue ns_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return JS_UNDEFINED;
     }
 
+    std::string cacheKey = *prefix + '\n' + name;
+    if (g_nsCacheContext == ctx) {
+        const auto hit = g_nsCache.find(cacheKey);
+        if (hit != g_nsCache.end()) return JS_DupValue(ctx, hit->second);
+    }
+
     Il2CppClass* cls = il2cpp::findClassQuiet(*prefix, name);
     // Generico aberto: no metadado, `List` e ``List`1``. So nas duas imagens
     // principais, que e busca por hash; varrer todas a cada `Terraria.ID`
@@ -1573,11 +1647,12 @@ JSValue ns_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (cls) {
         JSValue v = JS_NewObjectClass(ctx, g_nativeClassId);
         if (!JS_IsException(v)) JS_SetOpaque(v, cls);
-        return v;
+        return rememberNamespace(ctx, std::move(cacheKey), v);
     }
     JSValue extra;
-    if (extraClass(ctx, *prefix, atom, &extra)) return extra;
-    return makeNamespace(ctx, prefix->empty() ? name : *prefix + "." + name);
+    if (extraClass(ctx, *prefix, atom, &extra)) return rememberNamespace(ctx, std::move(cacheKey), extra);
+    JSValue ns = makeNamespace(ctx, prefix->empty() ? name : *prefix + "." + name);
+    return extraClassesReady(ctx) ? rememberNamespace(ctx, std::move(cacheKey), ns) : ns;
 }
 
 const JSClassExoticMethods ns_exotic = {
@@ -1797,6 +1872,7 @@ void installBindings(void* context) {
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);
+    installScreenApi(ctx, bl);
     installConsoleApi(ctx, global, bl);
     installCSharpPrototypeApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
@@ -1885,9 +1961,19 @@ void installBindings(void* context) {
     BL_DEBUG("bindings instalados (bl.log/classOf, arvore de namespaces)");
 }
 
+void releaseNamespaceCache(void* context) {
+    auto* ctx = static_cast<JSContext*>(context);
+    if (g_nsCacheContext == ctx) {
+        for (auto& entry : g_nsCache) JS_FreeValue(ctx, entry.second);
+    }
+    g_nsCache.clear();
+    g_nsCacheContext = nullptr;
+}
+
 #else
 
 void installBindings(void*) {}
+void releaseNamespaceCache(void*) {}
 
 #endif
 

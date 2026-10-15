@@ -5,9 +5,9 @@ class SystemLoader {
     static #methods = new Map();
     static #unloaded = false;
 
-    static Add(inst) {
+    static Add(inst, key) {
         SystemLoader.List.push(inst);
-        SystemLoader.#keys.set(inst, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
+        SystemLoader.#keys.set(inst, key || (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
         SystemLoader.#methods.clear();
     }
 
@@ -79,7 +79,7 @@ class SystemLoader {
             });
         });
 
-        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
+        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity(7);
 
         // No cliente de multijogador o mundo chega pela rede, sem LoadWorld: o
         // clearWorld marca a entrada.

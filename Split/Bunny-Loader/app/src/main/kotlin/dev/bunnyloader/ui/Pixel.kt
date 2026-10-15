@@ -285,6 +285,7 @@ fun PixelButton(
     icon: Int? = null,
     fontSize: Int = Ts.Item,
     shadow: Boolean = true,
+    pressedFill: Color = Bl.ButtonPressed,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -294,7 +295,7 @@ fun PixelButton(
                   else if (pressed) Modifier.padding(start = 3.dp, top = 4.dp)
                   else Modifier.pixelShadow(3.dp, 4.dp))
             .pixelPanel(
-                fill = if (pressed) Bl.ButtonPressed else fill,
+                fill = if (pressed) pressedFill else fill,
                 raised = !pressed,
                 outline = if (pressed) Bl.PressedBorder else Bl.Outline,
             )
@@ -409,13 +410,13 @@ fun PixelSelect(value: String, onPrev: () -> Unit, onNext: () -> Unit,
         modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = "Anterior: $label" } else Modifier)
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("Anterior: %1\$s", label) } else Modifier)
             .pixelClickable(onPrev).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_esq, 22.dp)
         }
         PixelText(value, size = Ts.Item, align = TextAlign.Center,
             modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally))
-        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = "Próximo: $label" } else Modifier)
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("Próximo: %1\$s", label) } else Modifier)
             .pixelClickable(onNext).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_dir, 22.dp)
         }

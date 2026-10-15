@@ -6,21 +6,22 @@
     python tools/mods/publish.py --remove <uid>          # tira do catálogo (a Release fica)
     python tools/mods/publish.py --reindex               # põe o manifesto de cada mod no índice
 
-O catálogo mora no próprio repositório, em dois lugares:
+O catálogo mora no repositório JonataOliveiraa/Bunny-Loader-Mods, separado do
+código do app (um pedido de remoção contra um mod não derruba o app):
 
-    branch mods-index   index.json + mods/<uid>/ (a vitrine: manifest, ícone,
-                        capa, description.md, autores...). Branch órfão: não
-                        divide histórico com o main nem dispara o workflow da wiki.
+    main                index.json + mods/<uid>/ (a vitrine: manifest, ícone,
+                        capa, description.md, autores...) e ports/ (as fontes
+                        dos pacotes de textura portados).
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
-                        Nunca marcada como "Latest": essa fica para o APK.
 
 Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
 monta a lista da aba Explorar só com o índice, numa requisição, e baixa ícone,
 capa e descrição de cada mod só quando eles aparecem na tela.
 
 O app lê tudo anonimamente (app/.../mods/RemoteCatalog.kt). Só publicar pede
-token: um fine-grained token com "Contents: Read and write" neste repositório,
-em BL_GITHUB_TOKEN (ou GITHUB_TOKEN). Ele fica no PC; nunca vai para o app.
+token: um fine-grained token com "Contents: Read and write" só no Bunny-Loader-Mods,
+em BL_GITHUB_TOKEN (ou GITHUB_TOKEN) ou no arquivo bunnyloadermodstoken.txt da
+raiz (fora do Git). Ele fica no PC; nunca vai para o app.
 
 A ordem é Release primeiro, índice depois: se o push do índice falhar, rodar
 de novo reaproveita a Release (o sha256 confere) e só refaz o índice.
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -39,13 +41,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import zlib
 from pathlib import Path
 
 OWNER = "JonataOliveiraa"
-REPO = "Bunny-Loader"
-BRANCH = "mods-index"
+REPO = "Bunny-Loader-Mods"
+BRANCH = "main"
 ROOT = Path(__file__).resolve().parents[2]
-WORKTREE = ROOT / "build" / "mods-index"
+WORKTREE = ROOT / "build" / "mods-repo"
 API = f"https://api.github.com/repos/{OWNER}/{REPO}"
 UPLOADS = f"https://uploads.github.com/repos/{OWNER}/{REPO}"
 DOWNLOAD = f"https://github.com/{OWNER}/{REPO}/releases/download"
@@ -57,8 +60,11 @@ UID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 SAFE_PATH = re.compile(r"^[A-Za-z0-9._ -]+(/[A-Za-z0-9._ -]+)*$")
 PACKAGE_PATH = re.compile(r"^[A-Za-z0-9._ ()-]+(/[A-Za-z0-9._ ()-]+)*$")
 VERSION = re.compile(r"^\d+(\.\d+)*([-+][0-9A-Za-z.]+)?$")
-STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif", "banner.png",
+# As capas na ordem do Catalog.BANNERS: o app usa a primeira que existir.
+STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif",
+                    "banner.gif", "banner.png", "banner.webp", "banner.jpg", "banner.jpeg",
                     "description.md", "changelog.md", "license.md"]
+HEX_COLOR = re.compile(r"^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$")
 STORE_DIRS = ["authors/", "thumbnails/"]
 MD_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
 MAX_STORE_FILE = 4 << 20
@@ -66,6 +72,36 @@ MAX_STORE_FILE = 4 << 20
 
 class Fail(Exception):
     pass
+
+
+def _opens_as_zip(data: bytes) -> bool:
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            return z.testzip() is None
+    except (zipfile.BadZipFile, ValueError, OSError, EOFError, zlib.error):
+        return False
+
+
+def not_zip_reason(data: bytes) -> str:
+    """Por que estes bytes não abrem como zip, do jeito que quem publica entende.
+
+    O .bl costuma chegar estragado no caminho (mandado por app de mensagem,
+    copiado como texto, baixado pela página e não pelo arquivo), e "não é zip"
+    sozinho não diz o que fazer.
+    """
+    if not data:
+        return "o arquivo está vazio (0 bytes); exporte de novo"
+    head = data[:512].lstrip().lower()
+    if head.startswith((b"<!doctype", b"<html")) or (head.startswith(b"<") and b"<html" in head):
+        return "é uma página da web, não o pacote: o link baixou a página. Baixe o arquivo em si"
+    if not data.startswith(b"PK"):
+        return f"não começa como zip (os primeiros bytes são {data[:4].hex(' ')}, um .bl começa com 50 4b)"
+    if b"\r\n" in data and _opens_as_zip(data.replace(b"\r\n", b"\n")):
+        return ("o arquivo foi tratado como texto no caminho (cada \\n virou \\r\\n). "
+                "Mande-o como arquivo, ou renomeie para .zip antes de enviar")
+    if b"PK\x05\x06" not in data[-65_557:]:
+        return f"o zip está cortado: o fim dele não chegou ({len(data)} bytes). Copie ou baixe de novo"
+    return "o zip está corrompido; exporte de novo pelo Bunny Loader"
 
 
 # ------------------------------------------------------------------ pacote
@@ -78,10 +114,15 @@ class Package:
         self.data = path.read_bytes()
         self.sha256 = hashlib.sha256(self.data).hexdigest()
         self.size = len(self.data)
+        # Abrir não basta: estragado no caminho, o zip às vezes abre e só falha
+        # ao ler uma entrada, e o pacote quebrado iria para a Release.
         try:
             self.zip = zipfile.ZipFile(path)
-        except zipfile.BadZipFile:
-            raise Fail(f"{path.name}: não é zip")
+            bad = self.zip.testzip()
+            if bad is not None:
+                raise zipfile.BadZipFile(f"CRC errado em {bad}")
+        except (zipfile.BadZipFile, zlib.error, EOFError, ValueError, OSError):
+            raise Fail(f"{path.name}: não é zip: {not_zip_reason(self.data)}")
         self.names = {n for n in self.zip.namelist() if not n.endswith("/")}
         for n in self.names:
             if not PACKAGE_PATH.fullmatch(n) or any(s in (".", "..") for s in n.split("/")):
@@ -143,6 +184,14 @@ class Package:
             f = page.get("file", "")
             if f in self.names:
                 files.append(f)
+        # O fundo da ficha (theme.background), quando é imagem e não cor.
+        theme = self.manifest.get("theme") or {}
+        background = str(theme.get("background", "")).strip() if isinstance(theme, dict) else ""
+        if background and not HEX_COLOR.match(background):
+            if background in self.names:
+                files.append(background)
+            else:
+                print(f"  aviso: {self.path.name}: theme.background {background!r} não está no pacote")
         # Imagens que o Markdown da ficha usa (o ExampleMod mostra sprites do
         # próprio content/ na descrição).
         for md in [f for f in files if f.endswith(".md")]:
@@ -186,17 +235,31 @@ def set_token(value: str | None) -> None:
     _token = (value or "").strip() or None
 
 
+# Os arquivos de token na raiz, fora do Git: o do catálogo primeiro, o antigo de reserva.
+TOKEN_FILES = ("bunnyloadermodstoken.txt", "_token.txt")
+
+
+def file_token() -> str:
+    for name in TOKEN_FILES:
+        f = ROOT / name
+        if f.is_file() and f.read_text(encoding="utf-8").strip():
+            return f.read_text(encoding="utf-8").strip()
+    return ""
+
+
 def has_token() -> bool:
-    return bool(_token or os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+    return bool(_token or os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+                or file_token())
 
 
 def token() -> str:
-    """Da variável de ambiente ou, sem ela, perguntado uma vez. O getpass não
-    mostra o que se cola nem deixa o token no histórico do terminal."""
+    """Da variável de ambiente, de bunnyloadermodstoken.txt ou, sem os dois,
+    perguntado uma vez. O getpass não mostra o que se cola nem deixa o token no
+    histórico do terminal."""
     global _token
     if _token:
         return _token
-    t = os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    t = os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN") or file_token()
     if not t and INTERACTIVE and sys.stdin.isatty():
         import getpass
         t = getpass.getpass("Token do GitHub (cole e Enter; não aparece na tela): ")
@@ -250,8 +313,7 @@ def release_for(pkg: Package, dry: bool) -> None:
     else:
         release = gh("POST", f"{API}/releases", {
             "tag_name": pkg.tag,
-            # main e não mods-index: na primeira publicação o branch do
-            # catálogo ainda não existe no GitHub (a Release vem antes do push).
+            # O main do repositório de mods: o índice e a vitrine.
             "target_commitish": "main",
             "name": f"{pkg.name} v{pkg.version}",
             "body": f"Mod para o Bunny Loader.\n\n- uid: `{pkg.uid}`\n- sha256: `{pkg.sha256}`",
@@ -271,19 +333,15 @@ def git(*args: str, cwd: Path = ROOT, check: bool = True) -> subprocess.Complete
 
 
 def worktree() -> Path:
-    """build/mods-index: o branch do catálogo, ao lado do código, sem misturar."""
+    """build/mods-repo: um clone do repositório de mods, ao lado do código."""
     if not (WORKTREE / ".git").exists():
         WORKTREE.parent.mkdir(parents=True, exist_ok=True)
-        git("worktree", "prune")
-        git("fetch", "origin", BRANCH, check=False)
-        has_remote = git("rev-parse", "--verify", "--quiet", f"origin/{BRANCH}", check=False).returncode == 0
-        has_local = git("rev-parse", "--verify", "--quiet", BRANCH, check=False).returncode == 0
-        if has_local:
-            git("worktree", "add", str(WORKTREE), BRANCH)
-        elif has_remote:
-            git("worktree", "add", "-b", BRANCH, str(WORKTREE), f"origin/{BRANCH}")
-        else:
-            git("worktree", "add", "--orphan", "-b", BRANCH, str(WORKTREE))
+        # Os nomes dos ports passam do limite de 260 caracteres do Windows.
+        r = git("-c", "core.longpaths=true", "clone", "--branch", BRANCH,
+                f"https://github.com/{OWNER}/{REPO}.git", str(WORKTREE), check=False)
+        if r.returncode != 0:
+            raise Fail(f"clone de {OWNER}/{REPO} falhou:\n{r.stderr}")
+        git("config", "core.longpaths", "true", cwd=WORKTREE)
     discard_pending(WORKTREE)
     git("pull", "--ff-only", "origin", BRANCH, cwd=WORKTREE, check=False)
     return WORKTREE
@@ -314,12 +372,20 @@ def save_index(wt: Path, index: dict) -> None:
 
 
 def readme(wt: Path) -> None:
+    # O mesmo texto do Publisher.README do app de catálogo: os dois publicam.
     (wt / "README.md").write_text(
-        "# Catálogo de mods do Bunny Loader\n\n"
-        "Este branch é gerado por `tools/mods/publish.py` (no `main`). Não edite à mão.\n\n"
-        "- `index.json`: a lista que o app lê.\n"
-        "- `mods/<uid>/`: a vitrine de cada mod (manifesto, ícone, capa, descrição).\n"
-        "- Os pacotes `.bl` estão nas Releases `mod-<id>-v<versão>`.\n",
+        "# Bunny Loader mod catalog\n"
+        "\n"
+        "The online catalog of [Bunny Loader](https://github.com/JonataOliveiraa/Bunny-Loader), generated by `tools/mods/publish.py` and by the catalog app. Do not edit `index.json` or `mods/` by hand.\n"
+        "\n"
+        "- `index.json`: the list the app reads.\n"
+        "- `mods/<uid>/`: each mod's page (manifest, icon, banner, description, authors).\n"
+        "- Releases `mod-<id>-v<version>`: the `.bl` packages.\n"
+        "- `ports/`: the sources of the ported texture packs.\n"
+        "\n"
+        "Each mod and texture pack belongs to its authors and keeps its own license (`license.md` and `authors/` inside the package). Bunny Loader's license does not apply to them.\n"
+        "\n"
+        "If you made something listed here and want it removed or credited differently, open an issue.\n",
         encoding="utf-8", newline="\n")
 
 

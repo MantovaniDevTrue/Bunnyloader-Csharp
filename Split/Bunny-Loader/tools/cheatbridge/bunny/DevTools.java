@@ -58,6 +58,7 @@ import static bunny.CheatBridge.panelBig;
 import static bunny.CheatBridge.px;
 import static bunny.CheatBridge.sprite;
 import static bunny.CheatBridge.text;
+import static bunny.CheatBridge.tr;
 
 /**
  * As ferramentas de quem faz mod, dentro do jogo: reiniciar (os mods sao lidos
@@ -65,9 +66,9 @@ import static bunny.CheatBridge.text;
  *
  * O Editor e um painel no pe da tela, e nao uma janela por cima: o jogo segue
  * visivel e tocavel acima dele. Em tela cheia ele cobre o jogo e o congela
- * (o jogo so volta a andar quando o Editor minimiza ou fecha). Minimizado,
- * vira um icone flutuante de JS, que reabre como estava (janela ou tela
- * cheia). Com o teclado
+ * (o jogo so volta a andar quando o Editor minimiza ou fecha). O icone
+ * flutuante de JS fica disponivel desde a tela de titulo e reabre o Editor
+ * como estava (janela ou tela cheia). Com o teclado
  * aberto, o painel sobe junto e
  * fica logo acima dele — sem a tela cheia de edicao que o Android poe no lugar
  * do jogo quando o aparelho esta deitado (IME_FLAG_NO_EXTRACT_UI), e sem
@@ -106,14 +107,13 @@ final class DevTools {
             row.setVisibility(View.GONE);
             return row;
         }
-        View restart = pill(act, icon(act, bloom(act), 18), "Reiniciar", BUTTON, 9f);
+        View restart = pill(act, icon(act, bloom(act), 18), tr("Reiniciar"), BUTTON, 9f);
         restart.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { confirmRestart(act); }
         });
-        View console = pill(act, consoleBadge(act, 10), "Editor", BUTTON, 9f);
+        View console = pill(act, consoleBadge(act, 10), tr("Editor"), BUTTON, 9f);
         console.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
                 openConsole(act);
             }
         });
@@ -194,33 +194,32 @@ final class DevTools {
         LinearLayout head = new LinearLayout(act);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(icon(act, bloom(act), 30));
-        TextView title = text(act, "Reiniciar o jogo", 16, INK);
+        TextView title = text(act, tr("Reiniciar o jogo"), 16, INK);
         title.setPadding(px(act, 8), 0, 0, 0);
         head.addView(title);
         card.addView(head);
 
         TextView msg = text(act, inWorld
-            ? "O jogo fecha e abre de novo, lendo os mods da pasta outra vez. "
-              + "O que não foi salvo neste mundo se perde se você não salvar agora."
-            : "O jogo fecha e abre de novo, lendo os mods da pasta outra vez.", 11, INK_DIM);
+            ? tr("O jogo fecha e abre de novo, lendo os mods da pasta outra vez. O que não foi salvo neste mundo se perde se você não salvar agora.")
+            : tr("O jogo fecha e abre de novo, lendo os mods da pasta outra vez."), 11, INK_DIM);
         msg.setPadding(0, px(act, 10), 0, px(act, 12));
         card.addView(msg);
 
         LinearLayout buttons = new LinearLayout(act);
         buttons.setGravity(Gravity.END);
         if (inWorld) {
-            View save = pill(act, null, "Salvar e reiniciar", GRASS);
+            View save = pill(act, null, tr("Salvar e reiniciar"), GRASS);
             save.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { startRestart(act, card, true); }
             });
             buttons.addView(save, buttonParams(act));
         }
-        View plain = pill(act, null, inWorld ? "Só reiniciar" : "Reiniciar", PANEL_LIT);
+        View plain = pill(act, null, inWorld ? tr("Só reiniciar") : tr("Reiniciar"), PANEL_LIT);
         plain.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { startRestart(act, card, false); }
         });
         buttons.addView(plain, buttonParams(act));
-        View cancel = pill(act, null, "Cancelar", BUTTON);
+        View cancel = pill(act, null, tr("Cancelar"), BUTTON);
         cancel.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { closeRestartDialog(); }
         });
@@ -255,7 +254,7 @@ final class DevTools {
         card.removeAllViews();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.addView(new CheatBridge.Sunflower(act));
-        final TextView status = text(act, save ? "Salvando o jogador e o mundo..." : "Reiniciando...", 12, INK);
+        final TextView status = text(act, save ? tr("Salvando o jogador e o mundo...") : tr("Reiniciando..."), 12, INK);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, px(act, 8), 0, 0);
         card.addView(status);
@@ -268,13 +267,13 @@ final class DevTools {
             @Override public void run() {
                 boolean ready;
                 try { ready = CheatBridge.nRestartReady(); } catch (Throwable t) { ready = true; }
-                if (ready) { status.setText("Reiniciando..."); h.postDelayed(new Runnable() {
+                if (ready) { status.setText(tr("Reiniciando...")); h.postDelayed(new Runnable() {
                     @Override public void run() { relaunch(act); }
                 }, 60); return; }
                 if (SystemClock.uptimeMillis() - start > RESTART_TIMEOUT_MS) {
                     // O quadro do jogo nao andou (travou, ou esta pausado no
                     // fundo): reinicia sem o save, que e o que ainda da.
-                    status.setText("O jogo não respondeu. Reiniciando sem salvar...");
+                    status.setText(tr("O jogo não respondeu. Reiniciando sem salvar..."));
                     h.postDelayed(new Runnable() {
                         @Override public void run() { relaunch(act); }
                     }, 1200);
@@ -299,7 +298,7 @@ final class DevTools {
             act.startActivity(i);
             act.overridePendingTransition(0, 0);
         } catch (Throwable t) {
-            CheatBridge.toast(act, "Não consegui reiniciar: " + t);
+            CheatBridge.toast(act, tr("Não consegui reiniciar: %1$s", t));
             closeRestartDialog();
             return;
         }
@@ -327,8 +326,11 @@ final class DevTools {
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
     private static Console sConsole;
+    private static View sFloatIcon;
 
     static void openConsole(Activity act) {
+        if (!CheatBridge.sEditorOn) return;
+        if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
         if (sConsole != null) {
             sConsole.show();
             return;
@@ -425,7 +427,6 @@ final class DevTools {
         int savedSoftInput = -1;
         boolean fullscreen;
         boolean showing;
-        View floatIcon;
         int historyIndex = -1;
         String scratch = "";
         ValueAnimator slide;
@@ -457,33 +458,33 @@ final class DevTools {
             badge.setPadding(px(a, 6), 0, px(a, 6), 0);
             head.addView(badge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, px(a, 26)));
-            TextView title = text(a, "Editor", 13, INK);
+            TextView title = text(a, tr("Editor"), 13, INK);
             title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            head.addView(iconButton(a, arrow(a, -90), "Anterior", new Runnable() {
+            head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
             }));
-            head.addView(iconButton(a, arrow(a, 90), "Próximo", new Runnable() {
+            head.addView(iconButton(a, arrow(a, 90), tr("Próximo"), new Runnable() {
                 @Override public void run() { history(+1); }
             }));
-            head.addView(textButton(a, "Limpar", BUTTON, new Runnable() {
+            head.addView(textButton(a, tr("Limpar"), BUTTON, new Runnable() {
                 @Override public void run() { clearOutput(); }
             }));
             if (CheatBridge.sRestartOn) {
-                head.addView(iconButton(a, icon(a, bloom(a), 20), "Reiniciar", new Runnable() {
+                head.addView(iconButton(a, icon(a, bloom(a), 20), tr("Reiniciar"), new Runnable() {
                     @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
                 }));
             }
-            fullButton = textButton(a, "Tela cheia", BUTTON, new Runnable() {
+            fullButton = textButton(a, tr("Tela cheia"), BUTTON, new Runnable() {
                 @Override public void run() { setFullscreen(!fullscreen); }
             });
             head.addView(fullButton);
             head.addView(textButton(a, "_", BUTTON, new Runnable() {
                 @Override public void run() { minimize(); }
             }));
-            head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), "Fechar", new Runnable() {
+            head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), tr("Fechar"), new Runnable() {
                 @Override public void run() { hide(); }
             }));
             panel.addView(head, new LinearLayout.LayoutParams(
@@ -551,7 +552,7 @@ final class DevTools {
             editRow.addView(editor, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             // O play do launcher (ic_start): o mesmo desenho do botao Jogar.
             LinearLayout runButton = pill(a, icon(a, sprite(a, "ic_start"), 26), null, BUTTON);
-            runButton.setContentDescription("Rodar");
+            runButton.setContentDescription(tr("Rodar"));
             runButton.setMinimumWidth(px(a, 44));
             runButton.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { run(); }
@@ -576,10 +577,7 @@ final class DevTools {
             a.addContentView(panel, layout);
 
             if (sOutput.length() == 0) {
-                appendEntry('h', "O código roda na thread do jogo, como num hook. Main, ID e player (o "
-                    + "seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log "
-                    + "(que aparece aqui também). let/const valem só na execução; para guardar entre "
-                    + "uma e outra, var ou globalThis.x.");
+                appendEntry('h', tr("O código roda na thread do jogo, como num hook. Main, ID e player (o seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log (que aparece aqui também). let/const valem só na execução; para guardar entre uma e outra, var ou globalThis.x."));
             }
             output.setText(sOutput);
         }
@@ -605,17 +603,15 @@ final class DevTools {
             updateFreeze();
         }
 
-        /** O X: some o painel e o icone flutuante, e o jogo volta a andar. */
+        /** O X recolhe o painel; o atalho de JS continua disponivel. */
         void hide() {
-            removeFloatIcon();
-            dismiss();
+            minimize();
         }
 
         /** O "_": o painel sai da tela e fica o icone de JS no lugar. */
         void minimize() {
             dismiss();
-            // Sem o Mod Menu, o botao flutuante do jogo ja e o de JS.
-            if (CheatBridge.sMenuOn) showFloatIcon();
+            showFloatIcon(act);
         }
 
         private void dismiss() {
@@ -639,7 +635,7 @@ final class DevTools {
         /** Tela cheia cobre o jogo e o congela; a janela deixa ele andar. */
         void setFullscreen(boolean on) {
             fullscreen = on;
-            fullButton.setText(on ? "Janela" : "Tela cheia");
+            fullButton.setText(on ? tr("Janela") : tr("Tela cheia"));
             place(keyboardHeight, false);
             updateFreeze();
         }
@@ -647,40 +643,6 @@ final class DevTools {
         /** Congelado so enquanto o Editor esta na tela, em tela cheia. */
         void updateFreeze() {
             try { CheatBridge.nSetGameFrozen(showing && fullscreen); } catch (Throwable t) { }
-        }
-
-        // ---- o icone flutuante (minimizado) ----
-
-        void showFloatIcon() {
-            if (floatIcon != null) return;
-            ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
-            b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-            b.setBackground(panel(act, PANEL, OUTLINE));
-            b.setContentDescription("Editor");
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
-            lp.gravity = Gravity.TOP | Gravity.START;
-            DisplayMetrics m = act.getResources().getDisplayMetrics();
-            // Na primeira vez, ao lado do coelho do Mod Menu (no alto e no meio).
-            int x = m.widthPixels / 2 + px(act, 30), y = px(act, 6);
-            try {
-                x = prefs(act).getInt("iconX", x);
-                y = prefs(act).getInt("iconY", y);
-            } catch (Throwable t) { }
-            lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
-            lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
-            // Volta como estava ao minimizar: janela ou tela cheia.
-            b.setOnTouchListener(new FloatDrag(act, new Runnable() {
-                @Override public void run() { show(); }
-            }));
-            act.addContentView(b, lp);
-            floatIcon = b;
-        }
-
-        void removeFloatIcon() {
-            if (floatIcon == null) return;
-            ViewGroup parent = (ViewGroup) floatIcon.getParent();
-            if (parent != null) parent.removeView(floatIcon);
-            floatIcon = null;
         }
 
         void hideKeyboard() {
@@ -759,7 +721,7 @@ final class DevTools {
             editor.setText("");
             saveDraft();
             try { CheatBridge.nConsoleRun(code); } catch (Throwable t) {
-                appendEntry('x', "o núcleo nativo não respondeu: " + t);
+                appendEntry('x', tr("o núcleo nativo não respondeu: %1$s", t));
                 refreshOutput();
             }
         }
@@ -854,6 +816,39 @@ final class DevTools {
 
     /** Lado do icone flutuante do Editor, o mesmo do coelho do Mod Menu. */
     private static final float FLOAT_SIZE = 40;
+
+    /** Atalho independente do Mod Menu e do painel, criado sem montar o Editor. */
+    static void showFloatIcon(final Activity act) {
+        if (!CheatBridge.sEditorOn || sFloatIcon != null || (sConsole != null && sConsole.showing)) return;
+        ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
+        b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+        b.setBackground(panel(act, PANEL, OUTLINE));
+        b.setContentDescription(tr("Editor"));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
+        lp.gravity = Gravity.TOP | Gravity.START;
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        // Ao lado do coelho, ou no centro se o Mod Menu estiver desligado.
+        int x = CheatBridge.sMenuOn ? m.widthPixels / 2 + px(act, 30) : (m.widthPixels - lp.width) / 2;
+        int y = px(act, 6);
+        try {
+            x = prefs(act).getInt("iconX", x);
+            y = prefs(act).getInt("iconY", y);
+        } catch (Throwable t) { }
+        lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
+        lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
+        b.setOnTouchListener(new FloatDrag(act, new Runnable() {
+            @Override public void run() { openConsole(act); }
+        }));
+        act.addContentView(b, lp);
+        sFloatIcon = b;
+    }
+
+    private static void removeFloatIcon() {
+        if (sFloatIcon == null) return;
+        ViewGroup parent = (ViewGroup) sFloatIcon.getParent();
+        if (parent != null) parent.removeView(sFloatIcon);
+        sFloatIcon = null;
+    }
 
     private static int clamp(float v, int min, int max) {
         if (max < min) max = min;

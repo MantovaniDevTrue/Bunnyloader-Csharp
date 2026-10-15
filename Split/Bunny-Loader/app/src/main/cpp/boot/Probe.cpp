@@ -1,5 +1,6 @@
 #include "boot/Probe.h"
 #include "boot/FramePacing.h"
+#include "graphics/RenderHook.h"
 #include "boot/QuickStart.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -103,6 +104,7 @@ void probeThread() {
             installCheats();
             installDevTools();
             installFramePacing();
+            graphics::installRenderHook();
             installModItemSave();
             csharp::installCSharpWorldEntryGate();
             installModTileSave();

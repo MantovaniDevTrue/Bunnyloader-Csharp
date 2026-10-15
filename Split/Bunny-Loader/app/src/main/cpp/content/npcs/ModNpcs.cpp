@@ -247,14 +247,18 @@ struct LimitPatch {
 };
 
 // NPCID.Count - 1 (`type > 696` sai) em quase todos; GetNPCName compara
-// `netID - 1 > 695`. Os que ficam de fora (mapa, rede, tiles) so deixam o NPC
-// de mod sem aquele detalhe.
+// `netID - 1 > 695`. Na rede: o pedido de invocar chefe (mensagem 61, o
+// servidor e o anfitriao recusam o de mod) e o dono do bicho capturavel na 23
+// (quem manda e quem le trocam juntos). Os que ficam de fora (mapa, tiles) so
+// deixam o NPC de mod sem aquele detalhe.
 constexpr LimitPatch kLimitPatches[] = {
     {"Main", "DrawNPCs", 1, kVanillaNpcCount - 1, -1},
     {"NPC", "NPCLoot", 0, kVanillaNpcCount - 1, -1},
     {"NPC", "SetDefaults", -1, kVanillaNpcCount - 1, -1},
     {"NPC", "UpdateFoundActiveNPCs", 0, kVanillaNpcCount - 1, -1},
     {"Lang", "GetNPCName", 1, kVanillaNpcCount - 2, -2},
+    {"MessageBuffer", "ProcessData", 3, kVanillaNpcCount - 1, -1},
+    {"NetMessage", "SendData", 11, kVanillaNpcCount - 1, -1},
 };
 
 bool g_limitsPatched = false;
@@ -424,7 +428,16 @@ void setNpcsInstalledHook(NpcsInstalledHook hook) {
 
 void tickModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
-    if (total == 0 || g_failed) return;
+    if (total == 0 || g_failed) {
+        // Sem NPC de mod, um GlobalNPC ainda pode dar icone de chefe a um
+        // chefe do jogo (Mod.AddBossHeadTexture).
+        static int frame = 0;
+        if (++frame % 120 == 0 && gameReady(kVanillaNpcCount)) {
+            installBossHeads();
+            watchBossHeads();
+        }
+        return;
+    }
     const int installed = g_installed.load(std::memory_order_relaxed);
     const int from = kVanillaNpcCount + installed;
 

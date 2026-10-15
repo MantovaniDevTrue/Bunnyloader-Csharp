@@ -262,6 +262,7 @@ class ItemLoader {
     }
 
     static Hook(cls, type) {
+        ItemDrawLoader.Want(cls, type);
         ItemCombatHooks.Install(cls, type);
         const P = Terraria.Player;
         const has = (name) => Hooks.Overrides(cls, ModItem, name);
@@ -319,19 +320,6 @@ class ItemLoader {
         }
 
         if (has('CanShoot') || has('ModifyShootStats') || has('Shoot')) Hooks.Once('item.Shoot', ItemLoader.#HookShoot);
-
-        if (has('OnHitNPC')) Hooks.Once('item.OnHitNPC', () => {
-            P['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, NPC npc, int dmgRandomized, int dmgDone)'].hook(
-                (original, self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone) => {
-                    original(self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone);
-
-                    const m = of(item);
-                    if (!m) return;
-
-                    const crit = dmgDone >= dmgRandomized * 2;
-                    Safe.Run(m.constructor.name + '.OnHitNPC', () => m.OnHitNPC(item, self, npc, dmgDone, knockBack, crit));
-                }, onItem(0));
-        });
 
         if (has('UpdateEquip') || has('UpdateAccessory') || has('UpdateVanity')) {
             Hooks.Once('item.Accessory', () => {
@@ -429,6 +417,9 @@ class ItemLoader {
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal');
         if (has('WingUpdate')) WingLoader.Want('Update');
 
+        // A coleta do chão: no ItemPickupLoader.
+        for (const name of ItemPickupLoader.METHODS) if (has(name)) ItemPickupLoader.Want(name, type);
+
         const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
         if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);
 
@@ -468,6 +459,10 @@ class ItemLoader {
             if (m && m.Type === self.type) {
                 Safe.Run(m.constructor.name + '.Clone', () => Entities.Bind(m.Clone(copy), copy, 'ModItem'));
             }
+
+            if (copy) copy.__blItemData = self.__blItemData;
+            if (copy) copy.__blItemDataLoadFailed = self.__blItemDataLoadFailed;
+
             return copy;
         }, { minType: FIRST_ITEM, on: -1 });
     }

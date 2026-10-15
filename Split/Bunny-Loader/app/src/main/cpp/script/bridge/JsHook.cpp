@@ -139,12 +139,16 @@ struct HookCtx {
     bool wallMode = false;
     // HookFilter::argParam: o x do parametro que ja e o tipo.
     int argReg = -1, argBytes = 4;
+    // HookFilter::firstByteParam: o x do byte[] cujo primeiro byte e o tipo.
+    int firstByteReg = -1;
     // HookFilter::marks: o tipo lido tambem tem de estar marcado aqui.
     const std::atomic<uint8_t>* marks = nullptr;
     // HookFilter::flag: desligada, o metodo roda sem o JS.
     const std::atomic<uint8_t>* flag = nullptr;
     // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
     IfBusy ifBusy = IfBusy::Wait;
+    // HookFilter::scopeOnly: so a marca de escopo e o self; nunca entra no JS.
+    bool scopeOnly = false;
 };
 
 /** O campo do filtro na largura dele: Item.prefix e byte, e os 3 seguintes sao outros campos. */
@@ -188,6 +192,9 @@ static thread_local std::vector<Frame> g_frames;
 // dispare o callback JS repetidamente ate estourar a pilha do QuickJS.
 static thread_local int g_depth[kMaxHooks];
 static thread_local int g_scopeDepth[kMaxHooks];
+// O self da chamada mais interna de cada escopo (o de fora fica na pilha C de
+// quem entrou e volta na saida).
+static thread_local intptr_t g_scopeSelf[kMaxHooks];
 
 // Quanto um hook espera pelo motor JS antes de desistir do mod naquela
 // chamada. Ver JsLock: esperar para sempre transformaria um impasse entre
@@ -269,14 +276,14 @@ std::string describeHookForLog(const void* method) {
  */
 static Outcome callOriginal(HookCtx* c, const intptr_t a[kIntSlots], const uint64_t d[8]) {
     void* fn = __atomic_load_n(&c->original, __ATOMIC_ACQUIRE);
-    bool threw = false;
-    Outcome o = callRaw(fn, c->abi, a, d, &threw, /*suspend=*/true);
-    if (threw) {
+    il2cpp::Caught caught;
+    Outcome o = callRaw(fn, c->abi, a, d, &caught, /*suspend=*/true);
+    if (caught.threw) {
         // Nao ha para quem devolver a excecao: quem chamou foi o JOGO, nao o
         // JS. Engolir e ruim, mas melhor que derrubar o processo — e o log
         // aparece no painel de erro dentro do jogo.
-        BL_ERROR("hook %s: o metodo original lancou excecao no jogo",
-                 il2cpp::api().method_get_name(c->method));
+        BL_ERROR("hook %s: o metodo original lancou excecao no jogo: %s",
+                 il2cpp::api().method_get_name(c->method), il2cpp::describeCaught(caught).c_str());
     }
     return o;
 }
@@ -333,7 +340,16 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     }
     ArgScratch scratch;   // vive ate o original voltar
     for (size_t i = 0; i < c->abi.params.size() && at < argc; ++i, ++at) {
-        if (jsToParam(ctx, argv[at], c->abi.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
+        const ParamPlan& param = c->abi.params[i];
+        // As with self above, IL2CPP may leave an unused reference argument
+        // uninitialized (e.g. IEntitySource in Item.NewItem). Passing the exact
+        // incoming pointer back must not dereference it for assignability.
+        // A replacement object still goes through the normal type checks.
+        if (!param.opaque && !param.floatQueue && param.d.prim == Prim::Object) {
+            Il2CppObject* incoming = objectFromJS(argv[at]);
+            if (incoming && reinterpret_cast<intptr_t>(incoming) == a[param.reg]) continue;
+        }
+        if (jsToParam(ctx, argv[at], param, a, d, &scratch) < 0) return JS_EXCEPTION;
     }
 
     g_frames[frame].ranOriginal = true;
@@ -357,6 +373,16 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     uint64_t rawD[8];
     std::memcpy(rawD, rawF, sizeof(rawD));
 
+    if (c->scopeOnly) {
+        const intptr_t outerSelf = g_scopeSelf[c->scopeSlot];
+        g_scopeSelf[c->scopeSlot] = c->isInstance && !c->selfStruct ? rawA[0] : 0;
+        ++g_scopeDepth[c->scopeSlot];
+        result = callOriginal(c, rawA, rawD);
+        --g_scopeDepth[c->scopeSlot];
+        g_scopeSelf[c->scopeSlot] = outerSelf;
+        return result;
+    }
+
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
     if (c->flag && !c->flag->load(std::memory_order_relaxed)) return callOriginal(c, rawA, rawD);
     if (c->gateSlot >= 0 && g_scopeDepth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
@@ -378,6 +404,13 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         const int32_t t = c->argBytes == 2 ? static_cast<int32_t>(static_cast<uint16_t>(raw))
                         : c->argBytes == 1 ? static_cast<int32_t>(static_cast<uint8_t>(raw))
                                            : static_cast<int32_t>(raw);
+        if (t < c->filterMin) return callOriginal(c, rawA, rawD);
+        seen = t;
+    }
+    if (c->firstByteReg >= 0) {
+        const auto* array = reinterpret_cast<const Il2CppArray*>(rawA[c->firstByteReg]);
+        const int32_t t = array && array->length > 0
+            ? *(reinterpret_cast<const uint8_t*>(array) + sizeof(Il2CppArray)) : -1;
         if (t < c->filterMin) return callOriginal(c, rawA, rawD);
         seen = t;
     }
@@ -427,6 +460,8 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     const void* outerHook = setJsOwnerHook(c->method);
     ++g_depth[slot];
     ++g_scopeDepth[c->scopeSlot];
+    const intptr_t outerSelf = g_scopeSelf[c->scopeSlot];
+    g_scopeSelf[c->scopeSlot] = c->isInstance && !c->selfStruct ? rawA[0] : 0;
     bump(g_jsCalls[slot]);
     const int64_t jsStart = nowNs();
 
@@ -511,6 +546,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     g_frames.pop_back();
     --g_depth[slot];
     --g_scopeDepth[c->scopeSlot];
+    g_scopeSelf[c->scopeSlot] = outerSelf;
     setJsOwnerHook(outerHook);
     return result;
 }
@@ -711,15 +747,32 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             probe.filterMin = filter->minType;
         }
     }
+    if (err.empty() && filter && filter->firstByteParam >= 0) {
+        const size_t i = static_cast<size_t>(filter->firstByteParam);
+        const ParamPlan* p = i < probe.abi.params.size() ? &probe.abi.params[i] : nullptr;
+        if (!p || p->d.prim != Prim::Array || p->floatQueue || p->opaque || p->structByRef) {
+            err = "filtro 'firstByte': o parametro tem de ser um byte[]";
+        } else {
+            probe.firstByteReg = p->reg;
+            probe.filterMin = filter->minType;
+        }
+    }
     if (err.empty() && filter && !filter->marks.empty()) {
-        if (probe.tileReg < 0 && probe.tileAtIReg < 0 && probe.argReg < 0 && probe.filterReg < 0) {
-            err = "filtro 'marks' precisa de outro que leia o tipo (tile, tileAt, arg ou minType)";
+        if (probe.tileReg < 0 && probe.tileAtIReg < 0 && probe.argReg < 0 && probe.firstByteReg < 0 && probe.filterReg < 0) {
+            err = "filtro 'marks' precisa de outro que leia o tipo (tile, tileAt, arg, firstByte ou minType)";
         } else {
             probe.marks = hookMarks(filter->marks);
         }
     }
     if (filter && !filter->flag.empty()) probe.flag = hookFlag(filter->flag);
     if (filter) probe.ifBusy = filter->ifBusy;
+    if (filter && filter->scopeOnly) {
+        // Um hook JS no metodo ja marca o escopo: o de escopo seria um elo a mais.
+        for (int i = 0; i < kMaxHooks; ++i) {
+            if (g_hooks[i].used && g_hooks[i].method == method) return true;
+        }
+        probe.scopeOnly = true;
+    }
     if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {
         err = "ifBusy 'skip' so vale em metodo void (sem o JS, nao ha o que devolver)";
     }
@@ -778,6 +831,15 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     return false;
 }
 
+Il2CppObject* hookScopeSelf(const MethodInfo* method) {
+    for (int i = 0; i < kMaxHooks; ++i) {
+        if (!g_hooks[i].used || g_hooks[i].method != method) continue;
+        const int scope = g_hooks[i].scopeSlot;
+        return g_scopeDepth[scope] > 0 ? reinterpret_cast<Il2CppObject*>(g_scopeSelf[scope]) : nullptr;
+    }
+    return nullptr;
+}
+
 std::vector<HookStat> hookStats() {
     std::vector<HookStat> out;
     for (int i = 0; i < kMaxHooks; ++i) {
@@ -801,6 +863,8 @@ std::vector<HookStat> hookStats() {
 #else // arquitetura != arm64: hook JS indisponivel (stub)
 
 std::vector<HookStat> hookStats() { return {}; }
+
+Il2CppObject* hookScopeSelf(const MethodInfo*) { return nullptr; }
 
 bool installJsHook(JSContext* ctx, const MethodInfo*, int, bool, JSValueConst, const HookFilter*) {
     JS_ThrowInternalError(ctx, "hook JS: so implementado em arm64");

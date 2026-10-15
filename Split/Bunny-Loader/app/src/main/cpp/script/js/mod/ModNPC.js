@@ -2,11 +2,22 @@
 class ModNPC {
     Type = undefined;
     HideFromModMenu = false;
+    // Usa este tipo só durante a IA do jogo; configure o npc.aiStyle à parte.
+    AIType = 0;
     // Anima como este NPC do jogo (0 = não anima). Pode vir do SetDefaults.
     AnimationType = 0;
+    Banner = 0;
+    BannerItem = 0;
     DisplayName = '';
     Texture = this.constructor.name;
     HideFromBestiary = false;
+    // As estrelas de raridade no Bestiário (1 a 5); 0 = a conta do jogo (pela
+    // rarity, boss, dano, defesa e vida). No tModLoader:
+    // ContentSamples.NpcBestiaryRarityStars[Type] = n.
+    BestiaryRarityStars = 0;
+    // Padrão: a Texture + '_BestiaryIcon'. A imagem da entrada no Bestiário
+    // (lista e retrato) no lugar do NPC animado; sem o arquivo, o NPC.
+    BestiaryIcon = '';
     // Padrão: a Texture + '_Head' / '_Shimmer_Head'. Morador sem cabeça nunca se muda.
     HeadTexture = '';
     ShimmerHeadTexture = '';
@@ -16,11 +27,20 @@ class ModNPC {
     // MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = a do jogo.
     Music = -1;
     SceneEffectPriority = SceneEffectPriority.BossLow;
+    // A barra grande própria: ModContent.GetInstance(MinhaBarra), de uma ModBossBar.
+    BossBar = null;
 
     get NPC() { return Entities.Of(this); }
     get Happiness() { return new NPCHappiness(this.Type); }
 
     Clone(newNPC) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
+
+    // Defaults clássicos; o SetDefaults externo aplica a dificuldade uma vez.
+    CloneDefaults(type) { NPCLoader.CloneDefaults(this, type); }
 
     SetStaticDefaults() {}
     SetDefaults(npc) {}
@@ -39,6 +59,14 @@ class ModNPC {
     ModifyHitPlayer(npc, player, modifiers) {}
     OnHitPlayer(npc, player, hurtInfo) {}
     CanBeHitByItem(npc, player, item) { return null; }
+    ModifyHitByItem(npc, player, item, modifiers) {}
+    CanBeHitByProjectile(npc, projectile) { return null; }
+    ModifyHitByProjectile(npc, projectile, modifiers) {}
+    // NPC contra NPC (o inimigo que encosta no morador): false impede.
+    CanHitNPC(npc, target) { return true; }
+    CanBeHitByNPC(npc, attacker) { return true; }
+    ModifyHitNPC(npc, target, modifiers) {}
+    OnHitNPC(npc, target, hit) {}
     ModifyIncomingHit(npc, modifiers) {}
     CheckDead(npc) { return true; }
     ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment) {}
@@ -102,14 +130,17 @@ class ModNPC {
         }
 
         GoreLoader.Autoload();
+        BannerLoader.Install();
         Entities.Define(Terraria.NPC, 'ModNPC');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
 
-        let animation = inst.AnimationType | 0;
+        let animation = Math.max(inst.AnimationType | 0, 0);
+        if (animation >= bl.npcs.vanillaCount) animation = 0;
         let type = -1;
         let townNpc = false;
 
@@ -122,14 +153,19 @@ class ModNPC {
             animationType: animation,
             displayName: inst.DisplayName || Lang.Localized('NPCName', name) || name,
             setDefaults(npc) {
-                const m = Entities.Bind(inst.Clone(npc), npc, 'ModNPC');
-                m.SetDefaults(npc);
-                m.ApplyBuffImmunity(npc);
-                m.PostSetDefaults(npc);
+                const m = Entities.Bind(inst.NewInstance(npc), npc, 'ModNPC');
+                NPCLoader.Defaults(m, npc);
+                BannerLoader.Track(m);
                 ModMusic.TrackNpc(npc, m);
                 townNpc = !!npc.townNPC;
 
-                const now = m.AnimationType | 0;
+                // Como no tModLoader, só um NPC do jogo anima: -1, 0 ou um NPC
+                // de mod ficam sem (o FindFrame do mod decide).
+                let now = m.AnimationType | 0;
+                if (now < 0 || now >= bl.npcs.vanillaCount) {
+                    if (now >= bl.npcs.vanillaCount) Safe.Once('npc.animation.' + name, name + ': AnimationType ' + now + ' is not a vanilla NPC; ignored (animate a mod NPC in FindFrame)');
+                    now = 0;
+                }
                 if (now !== animation && type >= 0) {
                     animation = now;
                     inst.AnimationType = now;
@@ -181,7 +217,7 @@ class ModNPC {
                 ModLocalization.Register('TownNPCMood_' + searchName + 'Transformed.' + key, texts);
             }
 
-            if (!inst.HideFromBestiary) Safe.Run(name + '.SetBestiary', () => BestiaryLoader.Register(inst, townNpc));
+            Safe.Run(name + '.SetBestiary', () => BestiaryLoader.Register(inst, townNpc));
             if (Hooks.Overrides(cls, ModNPC, 'AddShops')) Safe.Run(name + '.AddShops', () => inst.AddShops());
             if (townNpc) Safe.Run(name + ' (perfil de morador)', () => TownNPCLoader.SetupLooks(inst, looks));
             if (Hooks.Overrides(cls, ModNPC, 'TownNPCProfile')) {

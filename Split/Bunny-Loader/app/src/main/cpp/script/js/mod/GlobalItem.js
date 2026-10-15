@@ -7,17 +7,62 @@ class GlobalItem extends GlobalType {
     HoldStyle(item, player, mountOffset, heldItemFrame) {}
     HoldItem(item, player) {}
     ModifyWeaponDamage(item, player, damage) { return damage; }
+    // crit e scale são Ref (.value); knockback, StatModifier.
+    ModifyWeaponCrit(item, player, crit) {}
+    ModifyWeaponKnockback(item, player, knockback) {}
+    ModifyItemScale(item, player, scale) {}
+    // hitbox é o Rectangle do golpe; noHitbox, Ref (true: sem golpe).
+    UseItemHitbox(item, player, hitbox, noHitbox) {}
+    MeleeEffects(item, player, hitbox) {}
+    UseAnimation(item, player) {}
+    UseItemFrame(item, player) {}
+    HoldItemFrame(item, player) {}
+
+    // Munição (como no ModItem): null deixa o jogo decidir.
+    NeedsAmmo(item, player) { return true; }
+    CanChooseAmmo(weapon, ammo, player) { return null; }
+    CanBeChosenAsAmmo(ammo, weapon, player) { return null; }
+    CanConsumeAmmo(weapon, ammo, player) { return true; }
+    CanBeConsumedAsAmmo(ammo, weapon, player) { return true; }
+    OnConsumeAmmo(weapon, ammo, player) {}
+    OnConsumedAsAmmo(ammo, weapon, player) {}
+    // type, speed, damage e knockback são Ref.
+    PickAmmo(weapon, ammo, player, type, speed, damage, knockback) {}
+
+    // Cura: healValue e baseDelay são Ref.
+    GetHealLife(item, player, quickHeal, healValue) {}
+    GetHealMana(item, player, quickHeal, healValue) {}
+    ModifyPotionDelay(item, player, baseDelay) {}
+    ApplyPotionDelay(item, player, potionDelay) { return true; }
     CanShoot(item, player) { return true; }
     ModifyShootStats(item, player, stats) {}
     Shoot(item, player, position, velocity, type, damage, knockBack, source) { return true; }
-    OnHitNPC(item, player, target, damageDone, knockBack, crit) {}
+    // Golpes (como no ModItem): null deixa o jogo decidir; modifiers é um
+    // HitModifiers (NPC) ou HurtModifiers (PvP); hit, um HitInfo.
+    CanHitNPC(item, player, target) { return null; }
+    CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
+    ModifyHitNPC(item, player, target, modifiers) {}
+    OnHitNPC(item, player, target, hit, damageDone) {}
+    CanHitPvp(item, player, target) { return true; }
+    ModifyHitPvp(item, player, target, modifiers) {}
+    OnHitPvp(item, player, target, hurtInfo) {}
     UpdateInventory(item, player) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
     // O item no chão, todo quadro (ver ModItem.PreUpdateInWorld).
     PreUpdateInWorld(item, worldItem) { return true; }
     PostUpdateInWorld(item, worldItem) {}
+    // A coleta do chão, de qualquer item (ver ModItem.CanPickup).
+    CanPickup(worldItem, player) { return true; }
+    OnPickup(worldItem, player) { return true; }
+    ItemSpace(item, player) { return false; }
+    GrabRange(worldItem, player, grabRange) {}
+    GrabStyle(worldItem, player) { return false; }
     OnCraft(item, player, recipe) {}
+    PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) { return true; }
+    PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) {}
+    PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) { return true; }
+    PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) {}
     ModifyTooltips(item, tooltips) {}
     // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
     // x, y e yOffset são Ref; false no Pre não desenha.
