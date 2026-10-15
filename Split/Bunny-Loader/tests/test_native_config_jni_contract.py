@@ -14,8 +14,8 @@ sig = {
     "Array<String>": "[Ljava/lang/String;",
     "android.content.Context": "Landroid/content/Context;",
 }
-fields = dict(re.findall(r'@JvmField\\s+val\\s+(\\w+)\\s*:\\s*([\\w.<>]+)', kotlin))
-required = dict(re.findall(r'\\{\\s*"([A-Za-z]+)"\\s*,\\s*"([^"]+)"\\s*\\}', cpp))
+fields = dict(re.findall(r'@JvmField\s+val\s+(\w+)\s*:\s*([\w.<>]+)', kotlin))
+required = dict(re.findall(r'\{\s*"([A-Za-z]+)"\s*,\s*"([^"]+)"\s*\}', cpp))
 assert len(required) == 18, f"Expected 18 JNI fields, got {len(required)}"
 assert len(fields) == len(required), (fields, required)
 for name, descriptor in required.items():
@@ -28,6 +28,6 @@ for name, source in (
     ("joinPassword", "session?.password.orEmpty()"),
     ("joinPlayer", "session?.player.orEmpty()"),
 ):
-    assert re.search(r'\\b' + name + r'\\s*=\\s*' + re.escape(source), activity), f"Server session JNI binding missing: {name}"
+    assert re.search(r'\b' + name + r'\s*=\s*' + re.escape(source), activity), f"Server session JNI binding missing: {name}"
 assert "env->ExceptionClear()" in cpp and "return JNI_FALSE" in cpp
 print("BUNNY_NATIVE_JNI_CONFIG_CONTRACT=PASS")
