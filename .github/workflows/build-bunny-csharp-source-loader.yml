@@ -1464,6 +1464,26 @@ jobs:
           rm -rf "$ASSETS/bin/Data"
           cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
 
+      - name: Restore validated Unity Player Java classes from last working CSharp build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIN="94c8c1c7161e0d7dfbe1dbc7f02d444021006fa3"
+          JAR="Split/Bunny-Loader/app/libs/unity-classes.jar"
+          git fetch --no-tags --depth=1 origin "$PIN"
+          mkdir -p "$(dirname "$JAR")"
+          git show "$PIN:$JAR" > "$JAR"
+          test -s "$JAR"
+          jar tf "$JAR" > "$RUNNER_TEMP/unity-classes-list.txt"
+          for required in com/unity3d/player/NativeLoader.class com/unity3d/player/UnityPlayer.class; do
+            grep -Fx "$required" "$RUNNER_TEMP/unity-classes-list.txt" >/dev/null || {
+              echo "::error::Required Unity class missing from pinned JAR: $required"
+              exit 1
+            }
+          done
+          echo "UNITY_PLAYER_PINNED_CLASS_BUNDLE=PASS"
+          sha256sum "$JAR"
+
       - name: Restore stable sprite pack
         shell: bash
         env:
@@ -1565,6 +1585,27 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/System.Private.CoreLib.dll"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
           unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
+
+      - name: Verify Unity NativeLoader and UnityPlayer packaged in APK dex
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import zipfile
+          apk = Path("Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk")
+          with zipfile.ZipFile(apk) as package:
+              dexes = [name for name in package.namelist() if re.fullmatch(r"classes[0-9]*\\.dex", name)]
+              if not dexes:
+                  raise SystemExit("APK has no classes.dex")
+              blobs = [package.read(name) for name in dexes]
+              for class_name in ("NativeLoader", "UnityPlayer"):
+                  descriptor = f"Lcom/unity3d/player/{class_name};".encode()
+                  if not any(descriptor in blob for blob in blobs):
+                      raise SystemExit(f"Unity {class_name} missing from APK dex")
+          print("UNITY_BOOT_JNI_CLASSES_PACKAGED=PASS")
+          PY
 
       - name: Guard world-lifecycle boot and preserve legacy external loader
         run: |
