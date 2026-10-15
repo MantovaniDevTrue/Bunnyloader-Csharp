@@ -378,7 +378,7 @@ jobs:
           api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
           assert "struct ManagedLivePerfProjectileStatus" in header
           assert "std::vector<ManagedLivePerfProjectileStatus> projectiles;" in header
-          assert "std::array<PerfProjectileCounters, 8> g_perfProjectileCounters{};" in runtime
+          assert "std::array<PerfProjectileCounters, ManagedLiveIngressQueue::kBindingCount> g_perfProjectileCounters{};" in runtime
           assert "const size_t perfSlot = binding ?" in runtime
           assert "event.bindingSlot + 1" in runtime
           assert "auto& projectilePerf = g_perfProjectileCounters[perfSlot];" in runtime
