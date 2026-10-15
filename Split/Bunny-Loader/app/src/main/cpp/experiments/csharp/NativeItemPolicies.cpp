@@ -204,13 +204,14 @@ bool registerAnimation(Entry& entry,std::string* error) {
 }
 void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated){std::string error;registerAnimation(*entry,&error);}}}
 bool writeWingStats(const Entry& entry,std::string* error) {
-    auto found=entry.slots.find("Wings");if(found==entry.slots.end())return false;
+    auto found=entry.slots.find("Wings");if(found==entry.slots.end()){*error="Reason=WingEquipSlotNotRegistered";return false;}
     auto* ids=nested("Wing");auto* sets=ids?findNested(ids,"Sets"):nullptr;
     auto* f=staticArray(sets,"Stats");auto* array=table(f);auto& a=api();
     if(!array||!grow(f,found->second+1)){*error="Reason=WingStatsUnavailable";return false;}array=table(f);
     auto* type=a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array)));
     ValueLayout layout;if(!resolveValueLayout(type,&layout,error))return false;
-    std::vector<size_t> references;if(!valueReferenceOffsets(type,0,&references,error)||!references.empty())return false;
+    std::vector<size_t> references;if(!valueReferenceOffsets(type,0,&references,error))return false;
+    if(!references.empty()){*error="Reason=WingStatsUnexpectedReferences";return false;}
     auto* bytes=static_cast<char*>(arrayData(array))+layout.size*static_cast<size_t>(found->second);
     struct Value { const char* name;const char* type;size_t bytes;float number; };
     const auto& w=entry.policy.wings;
@@ -220,7 +221,10 @@ bool writeWingStats(const Entry& entry,std::string* error) {
     for(size_t i=0;i<6;++i) {
         auto* field=findField(type,values[i].name);
         if(!field||(a.field_get_flags(field)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(field)),values[i].type,values[i].bytes)||
-            !layout.offset(a.field_get_offset(field),values[i].bytes,&offsets[i]))return false;
+            !layout.offset(a.field_get_offset(field),values[i].bytes,&offsets[i])){
+            *error=std::string("Reason=WingStatsFieldMismatch Field=")+values[i].name;
+            return false;
+        }
     }
     // Initialize the entire new struct from WingStats.Default, preserving all
     // other fields in this Terraria version (not just the fields we override).
@@ -283,13 +287,23 @@ bool prepareWings(std::string* error) {
         if(!f||!primitive(a.class_from_il2cpp_type(a.field_get_type(f)),"Single",4)||!layout.offset(a.field_get_offset(f),4,&actual)||actual!=offset)return false;
     }
     wingRefs.velocity=velocity.offset;wingRefs.jump=findField(player,"jumpSpeed");
-    if(!wingRefs.jump||!(a.field_get_flags(wingRefs.jump)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(wingRefs.jump)),"Single",4))return false;
+    if(!wingRefs.jump||!(a.field_get_flags(wingRefs.jump)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(wingRefs.jump)),"Single",4)){
+        *error="Reason=WingJumpSpeedContractUnavailable";return false;
+    }
     const auto* movement=method(player,"void WingMovement()",true);
-    if(!movementHooked&&(!movement||!hook::install(movement,hkMovement,&originalMovement)))return false;
-    movementHooked=true;
+    if(!movementHooked){
+        if(!movement){*error="Reason=WingMovementMethodUnavailable";return false;}
+        if(!hook::install(movement,hkMovement,&originalMovement)){
+            *error="Reason=WingMovementHookRejected";return false;
+        }
+        movementHooked=true;
+    }
     const auto* init=method(findClass({"Terraria.Initializers","WingStatsInitializer",{}}),"void Load()",false);
-    if(!wingStatsHooked&&(!init||!hook::install(init,hkWingStats,&originalWingStats)))return false;
-    wingStatsHooked=true;return true;
+    if(!wingStatsHooked&&init){
+        if(hook::install(init,hkWingStats,&originalWingStats))wingStatsHooked=true;
+        else BL_WARN("[CSharp][Wing] WingStatsInitializer hook indisponivel; tabela nativa ja registrada e sera preservada sem o hook");
+    }
+    return true;
 }
 using AlphaFn=uint32_t (*)(Il2CppObject*,uint32_t,const MethodInfo*);
 AlphaFn originalAlpha=nullptr;bool alphaHooked=false;
@@ -385,7 +399,10 @@ bool install(Entry& entry,std::string* error) {
         entry.slots[source.kind]=equip.slot;
     }
     if(entry.policy.animated&&!registerAnimation(entry,error))return false;
-    if(entry.policy.wing&&(!prepareWings(error)||!writeWingStats(entry,error)))return false;
+    if(entry.policy.wing){
+        if(!prepareWings(error))return false;
+        if(!writeWingStats(entry,error))return false;
+    }
     if(entry.policy.colored&&!prepareAlpha(error))return false;
     if(entry.policy.lit&&!prepareLight(error))return false;
     if(entry.policy.robe&&!prepareRobe(error))return false;
