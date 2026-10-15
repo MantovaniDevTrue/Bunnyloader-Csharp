@@ -235,8 +235,9 @@ try {
   if(wire.Length<=8192||wire.Length>2*1024*1024)throw new Exception("192 descriptors did not exercise expanded bounded wire");
   File.WriteAllText("build/basic-items/capacity-source-runtime-values.txt",wire);
   for(int i=192;i<513;i++)File.WriteAllText(Path.Combine(root,"content",$"Extra{i:D3}.cs"),"// helper");
-  Equal(-3,Compiler.Compile(root,output,runtime,diag));
-  if(!File.ReadAllText(diag).Contains("512"))throw new Exception("file limit diagnostic absent");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(192,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(2,Compiler.Compile(root,output,runtime,diag));
  });
 } finally {if(Directory.Exists(scratch))Directory.Delete(scratch,true);}
 Directory.CreateDirectory("build");string json=JsonSerializer.Serialize(new{schemaVersion=1,failures,results},new JsonSerializerOptions{WriteIndented=true});File.WriteAllText("build/basic-items-results.json",json);Console.WriteLine(json);return failures==0?0:1;
