@@ -209,6 +209,29 @@ try
         throw new InvalidOperationException("Source update did not change compiled DLL");
     Console.WriteLine("BUNNY_ROSLYN_COMPILE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_SOURCE_UPDATE=PASS");
+    string consoleRoot = Path.Combine(scratch, "interactive");
+    string consoleContent = Path.Combine(consoleRoot, "content");
+    Directory.CreateDirectory(consoleContent);
+    File.WriteAllText(Path.Combine(consoleContent, "ConsoleEntry.cs"),
+        "using System;\nusing System.Text;\n" +
+        "namespace BunnyLoader.Interactive {\n" +
+        "public static class ConsoleEntry {\n" +
+        "private static readonly StringBuilder Buffer = new StringBuilder();\n" +
+        "public static void Print(object value) { Buffer.AppendLine(value == null ? \"null\" : value.ToString()); }\n" +
+        "public static string Run() { Buffer.Clear(); Print(1 + 2); return Buffer.ToString(); }\n" +
+        "}\n}\n");
+    string consoleDll = Path.Combine(scratch, "InteractiveConsole.dll");
+    string consoleDiag = Path.Combine(scratch, "console-diagnostics.txt");
+    if (Compiler.Compile(consoleRoot, consoleDll, framework, consoleDiag) != 1 ||
+        CompiledAssemblyProbe.Verify(consoleDll, consoleDiag) != 1)
+        throw new InvalidOperationException("Interactive CSharp emit or verification failed: " +
+            File.ReadAllText(consoleDiag));
+    Assembly consoleAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(consoleDll);
+    Type consoleType = consoleAssembly.GetType("BunnyLoader.Interactive.ConsoleEntry", true)!;
+    string consoleResult = (string)consoleType.GetMethod("Run")!.Invoke(null, null)!;
+    if (consoleResult.Trim() != "3")
+        throw new InvalidOperationException("Interactive CSharp returned unexpected result: " + consoleResult);
+    Console.WriteLine("BUNNY_INTERACTIVE_CSHARP_ROSLYN_EXEC=PASS");
     string independentRoot = Path.GetFullPath(Path.Combine(sourceRoot, "..", "ExampleModCSharp", "Playable"));
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
