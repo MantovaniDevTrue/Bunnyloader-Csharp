@@ -479,6 +479,12 @@ final class DevTools {
                 @Override public void run() { switchEditorLanguage(); }
             });
             head.addView(languageButton);
+            head.addView(textButton(a, "Fontes", BUTTON, new Runnable() {
+                @Override public void run() {
+                    if (!csharpMode) switchEditorLanguage();
+                    else chooseCSharpSource();
+                }
+            }));
 
             head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
@@ -765,10 +771,27 @@ final class DevTools {
                 title.setText("Editor JS");
             }
             editor.setSelection(editor.getText().length());
+            if (csharpMode) showCSharpCompileStatus();
             appendEntry('i', csharpMode
                 ? "C#: edite uma fonte .cs e toque no botao verde para salvar. Reinicie para recompilar. Nao executa JavaScript."
                 : "JS: o botao verde executa o codigo no motor QuickJS.");
             refreshOutput();
+        }
+
+        void showCSharpCompileStatus() {
+            File status = new File(new File(act.getFilesDir(), "bunny-csharp"), "source-compile-status.txt");
+            if (!status.isFile() || status.length() > 128 * 1024) return;
+            try {
+                String contents = new String(Files.readAllBytes(status.toPath()), StandardCharsets.UTF_8);
+                String state = "", error = "", mod = "";
+                for (String line : contents.split("\\n")) {
+                    if (line.startsWith("state=")) state = line.substring(6);
+                    else if (line.startsWith("modId=")) mod = line.substring(6);
+                    else if (line.startsWith("error=")) error = line.substring(6);
+                }
+                appendEntry("finished".equals(state) ? 'i' : 'x',
+                    "C# Roslyn: " + state + " mod=" + mod + (error.isEmpty() ? "" : " " + error));
+            } catch (Exception ignored) { }
         }
 
         File csharpRoot() {
