@@ -108,9 +108,41 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
     return tokens.size();
 }
 
+bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
+                        std::string* base, std::map<std::string, std::string>* properties,
+                        std::string* error) {
+    const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
+    for (size_t i = first; i < last; ++i) {
+        if (tokens[i].literal || (tokens[i].value != "BunnyContent" &&
+            tokens[i].value != "BunnyContentAttribute")) continue;
+        if (i + 10 >= last || tokens[i + 1].value != "(" ||
+            tokens[i + 2].value != "BunnyContentKind" || tokens[i + 3].value != "." ||
+            kinds.find("|" + tokens[i + 4].value + "|") == std::string::npos ||
+            tokens[i + 5].value != "," || !tokens[i + 6].literal ||
+            tokens[i + 7].value != "," || !tokens[i + 8].literal ||
+            tokens[i + 9].value != ")" || tokens[i + 10].value != "]" || !base->empty()) {
+            *error = "BunnyContent exige categoria, nome e textura literais e uma unica declaracao";
+            return false;
+        }
+        *base = "Bunny" + tokens[i + 4].value;
+        if (*base != "BunnyPlayer") {
+            properties->emplace("DisplayName", tokens[i + 6].value);
+            if (*base != "BunnyPrefix") properties->emplace("Texture", tokens[i + 8].value);
+        }
+        i += 10;
+    }
+    return true;
+}
+
 bool statements(const std::vector<Token>& ts, size_t first, size_t last,
                 ParsedSourceType* def, std::string* error) {
     for (size_t i = first; i < last;) {
+        if (i + 5 < last && ts[i].value == "base" && ts[i + 1].value == "." &&
+            ts[i + 2].value == "SetDefaults" && ts[i + 3].value == "(" &&
+            ts[i + 4].value == ")" && ts[i + 5].value == ";") {
+            *error = "base.SetDefaults exige BunnyItem/BunnyTile; outras categorias usam defaults literais completos";
+            return false;
+        }
         const std::string key = ts[i++].value;
         if (i >= last || ts[i++].value != "=") {
             *error = "somente atribuicoes em SetDefaults sao suportadas (linha " +
@@ -143,6 +175,9 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
             *error = "expressao C# nao suportada em " + key;
             return false;
         }
+        auto existing = def->properties.find(key);
+        if (existing != def->properties.end() && existing->second == value &&
+            (key == "DisplayName" || key == "Texture")) continue;
         if (!def->properties.emplace(key, value).second) {
             *error = "propriedade repetida: " + key;
             return false;
@@ -154,7 +189,8 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
 bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& name, const std::string& base,
                 const std::string& namespaceName,
-                std::vector<ParsedSourceType>* definitions, std::string* error) {
+                std::vector<ParsedSourceType>* definitions, std::string* error,
+                const std::map<std::string, std::string>& declaredProperties = {}) {
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
@@ -163,6 +199,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
+    def.properties = declaredProperties;
     bool foundDefaults = false;
     size_t member = begin + 1;
     while (member < end) {
@@ -200,6 +237,9 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                                 *error=name+": "+key+" precisa de string literal para registro antecipado (linha "+std::to_string(tokens[j].line)+")";
                                 return false;
                             }
+                            auto existing = def.properties.find(key);
+                            if (existing != def.properties.end() &&
+                                existing->second == tokens[j + 2].value) { j += 3; continue; }
                             if(!def.properties.emplace(key,tokens[j+2].value).second) {
                                 *error=name+": recurso/nome repetido: "+key;return false;
                             }
@@ -288,6 +328,7 @@ bool parseCSharpSource(const std::string& source,
     std::vector<Token> tokens;
     if (!tokenize(source, &tokens, error)) return false;
     size_t found = 0;
+    size_t declarationStart = 0;
     struct NamespaceBlock { size_t end; std::string name; };
     std::vector<NamespaceBlock> namespaces;
     std::string fileNamespace;
@@ -315,6 +356,7 @@ bool parseCSharpSource(const std::string& source,
                 }
                 fileNamespace = name;
                 i = next;
+                declarationStart = next + 1;
                 continue;
             }
             if (tokens[next].value == "{") {
@@ -325,12 +367,16 @@ bool parseCSharpSource(const std::string& source,
                 }
                 namespaces.push_back({end, name});
                 i = next;
+                declarationStart = next + 1;
                 continue;
             }
             *error = "declaracao de namespace C# invalida";
             return false;
         }
-        if (tokens[i].value != "class" || i + 1 >= tokens.size()) continue;
+        if (tokens[i].literal || tokens[i].value != "class" || i + 1 >= tokens.size()) continue;
+        bool abstract = false;
+        for (size_t j = declarationStart; j < i; ++j)
+            if (!tokens[j].literal && tokens[j].value == "abstract") abstract = true;
         const std::string name = tokens[i + 1].value;
         size_t brace = i + 2;
         std::string base;
@@ -354,21 +400,34 @@ bool parseCSharpSource(const std::string& source,
             *error = name + ": chave de fechamento ausente";
             return false;
         }
-        if (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
+        std::string declaredBase;
+        std::map<std::string, std::string> declaredProperties;
+        if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
+                                &declaredProperties, error)) return false;
+        if (!declaredBase.empty()) {
+            const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
+            if (roots.find("|" + base + "|") != std::string::npos && base != declaredBase) {
+                *error = name + ": categoria BunnyContent difere da classe base";
+                return false;
+            }
+            base = declaredBase;
+        }
+        if (!abstract && (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile") {
+            base == "BunnyTile")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
                 qualifiedNamespace += scope.name;
             }
             if (!parseClass(tokens, brace, end, name, base,
-                            qualifiedNamespace, definitions, error)) return false;
+                            qualifiedNamespace, definitions, error, declaredProperties)) return false;
             ++found;
         }
         i = end;
+        declarationStart = end + 1;
     }
     if (found == 0 && requireContent) {
         *error = "nenhuma classe BunnyItem, BunnyTile ou outro conteudo Bunny encontrada";

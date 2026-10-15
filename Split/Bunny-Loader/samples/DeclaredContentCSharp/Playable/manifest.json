@@ -1,0 +1,14 @@
+{
+  "uid": "06cf52c9-7a3f-4e24-89dd-bcead1ec66aa",
+  "id": "declaredcontentcsharp",
+  "name": "Declared Content CSharp",
+  "version": "0.1.0",
+  "authors": [{"name": "Bunny Loader", "role": "CSharp API examples"}],
+  "category": "Example",
+  "summary": "Explicit content metadata and a reusable generic CSharp material base.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.cs",
+  "dependencies": []
+}

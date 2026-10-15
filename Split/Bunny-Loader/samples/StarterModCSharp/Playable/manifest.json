@@ -1,0 +1,14 @@
+{
+  "uid": "a426d03c-98b6-414f-b8eb-d60d40e82779",
+  "id": "startercsharp",
+  "name": "Starter Mod CSharp",
+  "version": "0.1.0",
+  "authors": [{"name": "Your Name", "role": "Mod author"}],
+  "category": "Example",
+  "summary": "Minimal editable CSharp material and native recipe.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.cs",
+  "dependencies": []
+}

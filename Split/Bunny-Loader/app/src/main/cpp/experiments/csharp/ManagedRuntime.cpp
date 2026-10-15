@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <sys/syscall.h>
 #include <map>
+#include <memory>
 #include <set>
 #include <limits>
 #include <thread>
@@ -265,6 +266,13 @@ struct ManagedHurtBinding {
     bool active = false;
     bool failed = false;
 };
+struct ManagedHurtCompletion {
+    bool done = false;
+    bool cancelled = false;
+    bool expired = false;
+    int64_t value = -1;
+    std::chrono::steady_clock::time_point deadline{};
+};
 struct ManagedHurtJob {
     uint64_t ticket = 0;
     int modIndex = -1;
@@ -290,13 +298,15 @@ struct ManagedHurtJob {
     float attackerVelocityY = -1.f;
     float attackerAngle = -1.f;
     float attackerDistance = -1.f;
+    std::shared_ptr<ManagedHurtCompletion> completion{};
+    uint64_t generation = 0;
 };
 std::vector<ManagedHurtBinding> g_managedHurtBindings;
 std::deque<ManagedHurtJob> g_managedHurtQueue;
 std::condition_variable g_managedHurtResultWake;
 uint64_t g_managedHurtTicket = 0;
-uint64_t g_managedHurtCompletedTicket = 0;
-int64_t g_managedHurtCompletedValue = -1;
+uint64_t g_managedHurtGeneration = 0;
+ManagedHurtSchedulerStatus g_hurtScheduler;
 void* g_managedHurtRegisterMethod = nullptr;
 void* g_managedHurtModifyMethod = nullptr;
 void* g_managedHurtAfterMethod = nullptr;
@@ -355,7 +365,7 @@ struct AdditionalLiveBinding {
     std::string error;
 };
 
-std::array<AdditionalLiveBinding, 7> g_additionalLiveBindings{};
+std::array<AdditionalLiveBinding, ManagedLiveIngressQueue::kBindingCount - 1> g_additionalLiveBindings{};
 std::array<std::atomic<int16_t>, 32768> g_additionalLiveByType{};
 std::atomic<int> g_additionalLiveCount{0};
 
@@ -416,7 +426,7 @@ struct PerfProjectileCounters {
     std::atomic<int> cpuMaxUs{0};
     PerfUsBuckets callbackBins{};
 };
-std::array<PerfProjectileCounters, 8> g_perfProjectileCounters{};
+std::array<PerfProjectileCounters, ManagedLiveIngressQueue::kBindingCount> g_perfProjectileCounters{};
 constexpr int64_t kPerfDurationNs = 15000000000LL;
 
 int64_t perfNowNs() {
@@ -521,7 +531,7 @@ void finishBenchmarkErrorLocked(const char* phase, const char* reason) {
     g_liveHitType.store(-1, std::memory_order_release);
     disarmAdditionalLiveBindings();
     ++g_liveHitGeneration;
-    g_liveHitStatus.dropped += g_liveHitQueue.size();
+    addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
     g_liveHitQueue.clear();
     g_liveHitStatus.enabled = false;
     g_liveHitStatus.phase = phase;
@@ -733,7 +743,9 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
             static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size())
             return -1;
         const auto& binding = g_managedHurtBindings[static_cast<size_t>(job.modIndex)];
-        if (!binding.active || binding.failed) return -1;
+        if (!binding.active || binding.failed || job.generation != g_managedHurtGeneration ||
+            (job.completion && (job.completion->cancelled ||
+             std::chrono::steady_clock::now() >= job.completion->deadline))) return -1;
         modId = binding.modId;
         dll = binding.assemblyPath;
         slot = binding.managedSlot;
@@ -815,6 +827,12 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
                          &attackerX, &attackerY, &attackerVelocityX, &attackerVelocityY,
                          &attackerAngle, &attackerDistance};
     void* exception = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (job.generation != g_managedHurtGeneration ||
+            (job.completion && (job.completion->cancelled ||
+             std::chrono::steady_clock::now() >= job.completion->deadline))) return -1;
+    }
     void* boxed = g_api.invoke(job.after ? g_managedHurtAfterMethod :
         g_managedHurtModifyMethod, nullptr,
         job.after ? argsAfter : argsModify, &exception);
@@ -850,6 +868,17 @@ void* pinnedMonoWorker(void*) {
                 if (!g_managedHurtQueue.empty()) {
                     ManagedHurtJob job = std::move(g_managedHurtQueue.front());
                     g_managedHurtQueue.pop_front();
+                    if (job.generation != g_managedHurtGeneration ||
+                        (job.completion && (job.completion->cancelled ||
+                         std::chrono::steady_clock::now() >= job.completion->deadline))) {
+                        ++g_hurtScheduler.cancelledBeforeRun;
+                        if (job.completion) {
+                            job.completion->expired = std::chrono::steady_clock::now() >= job.completion->deadline;
+                            job.completion->done = true;
+                            g_managedHurtResultWake.notify_all();
+                        }
+                        continue;
+                    }
                     lock.unlock();
                     const int64_t outcome = executeManagedHurtOnWorker(job);
                     if (job.after && job.damage > 0) {
@@ -880,9 +909,16 @@ void* pinnedMonoWorker(void*) {
                         }
                     }
                     lock.lock();
-                    if (!job.after) {
-                        g_managedHurtCompletedTicket = job.ticket;
-                        g_managedHurtCompletedValue = outcome;
+                    if (job.completion) {
+                        job.completion->expired = std::chrono::steady_clock::now() >= job.completion->deadline;
+                        if (job.completion->cancelled || job.generation != g_managedHurtGeneration ||
+                            job.completion->expired)
+                            ++g_hurtScheduler.lateResults;
+                        else {
+                            job.completion->value = outcome;
+                            ++g_hurtScheduler.completed;
+                        }
+                        job.completion->done = true;
                         g_managedHurtResultWake.notify_all();
                     }
                     continue;
@@ -915,10 +951,11 @@ void* pinnedMonoWorker(void*) {
                 bool hasEvent = g_liveHitQueue.pop(&event);
                 if (!hasEvent && g_liveIngress.pop(&event)) {
                     hasEvent = true;
-                    event.tick = ++g_liveHitStatus.queued;
+                    event.tick = addManagedCounter(g_liveHitStatus.queued);
                     g_liveHitStatus.maxQueueDepth = std::max(
                         g_liveHitStatus.maxQueueDepth, g_liveIngress.maxDepth());
-                    if (g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit)
+                    if (g_liveHitStatus.eventLimit > 0 &&
+                        g_liveHitStatus.queued >= g_liveHitStatus.eventLimit)
                         g_liveHitStatus.phase = "draining";
                 }
                 if (hasEvent) {
@@ -932,8 +969,8 @@ void* pinnedMonoWorker(void*) {
                         &g_additionalLiveBindings[static_cast<size_t>(event.bindingSlot)] : nullptr;
                     if (binding && binding->armedType.load(
                             std::memory_order_acquire) != binding->type) {
-                        ++binding->dropped;
-                        ++g_liveHitStatus.dropped;
+                        addManagedCounter(binding->dropped);
+                        addManagedCounter(g_liveHitStatus.dropped);
                         g_liveHitInFlight = false;
                         g_liveHitActiveBindingSlot = -2;
                         continue;
@@ -1070,13 +1107,13 @@ void* pinnedMonoWorker(void*) {
                             }
                         }
                         if (callback.ready && callback.phase == "ready") {
-                            ++g_liveHitStatus.processed;
-                            if (event.isKill) ++g_liveHitStatus.killProcessed;
-                            else ++g_liveHitStatus.hitProcessed;
+                            addManagedCounter(g_liveHitStatus.processed);
+                            if (event.isKill) addManagedCounter(g_liveHitStatus.killProcessed);
+                            else addManagedCounter(g_liveHitStatus.hitProcessed);
                             if (binding) {
-                                ++binding->processed;
-                                if (event.isKill) ++binding->kills;
-                                else ++binding->hits;
+                                addManagedCounter(binding->processed);
+                                if (event.isKill) addManagedCounter(binding->kills);
+                                else addManagedCounter(binding->hits);
                                 binding->lastResult = callback.value;
                             }
                             g_liveHitStatus.lastDamage = event.damage;
@@ -1087,28 +1124,36 @@ void* pinnedMonoWorker(void*) {
                                 g_liveHitStatus.error.clear();
                             }
                         } else {
-                            ++g_liveHitStatus.failures;
+                            addManagedCounter(g_liveHitStatus.failures);
                             g_liveHitStatus.phase = callback.phase;
                             g_liveHitStatus.error = callback.error;
                             if (binding) {
-                                ++binding->failures;
+                                addManagedCounter(binding->failures);
                                 binding->error = callback.error;
                                 if (binding->failures >= 3)
                                     binding->armedType.store(-1, std::memory_order_release);
                             }
                             if (!binding) ++g_primaryLiveFailures;
                             if (!binding && g_primaryLiveFailures >= 3) {
-                                g_liveHitType.store(-1, std::memory_order_release);
-                                disarmAdditionalLiveBindings();
-                                g_liveHitStatus.enabled = false;
-                                g_liveHitStatus.dropped += g_liveHitQueue.size();
-                                g_liveHitQueue.clear();
-                                g_liveHitStatus.dropped += g_liveIngress.clear();
-                                g_liveHitStatus.phase = "disabled";
+                                addManagedCounter(g_liveHitStatus.dropped,
+                                    g_liveIngress.pauseBinding(-1, g_liveHitType));
+                                bool hasActiveBinding = false;
+                                for (int i = 0; i < g_additionalLiveCount.load(std::memory_order_acquire); ++i) {
+                                    const auto& other = g_additionalLiveBindings[static_cast<size_t>(i)];
+                                    hasActiveBinding |= other.armedType.load(std::memory_order_acquire) == other.type;
+                                }
+                                if (!hasActiveBinding) {
+                                    g_liveHitStatus.enabled = false;
+                                    addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
+                                    g_liveHitQueue.clear();
+                                    addManagedCounter(g_liveHitStatus.dropped, g_liveIngress.clear());
+                                    g_liveHitStatus.phase = "disabled";
+                                } else g_liveHitStatus.phase = "primary-disabled";
                             }
                         }
                         if (g_liveHitStatus.enabled &&
-                            g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit &&
+                            g_liveHitStatus.eventLimit > 0 &&
+                            g_liveHitStatus.queued >= g_liveHitStatus.eventLimit &&
                             g_liveHitQueue.empty() && g_liveIngress.depth() == 0) {
                             g_liveHitType.store(-1, std::memory_order_release);
                             disarmAdditionalLiveBindings();
@@ -1188,13 +1233,13 @@ bool registerManagedPlayerHurtMod(const std::string& modId,
         entry.active = true;
         return true;
     }
-    if (g_managedHurtBindings.size() >= 16) return false;
+    if (g_managedHurtBindings.size() >= 16 || g_managedHurtQueue.size() >= 32) return false;
     const int index = static_cast<int>(g_managedHurtBindings.size());
     g_managedHurtBindings.push_back({modId, assemblyPath, -1, true, false});
-    if (g_managedHurtQueue.size() < 32)
-        g_managedHurtQueue.push_back(ManagedHurtJob{
-            0, index, true, 0, 0, 0, 0, 0, 0, 0
-        });
+    g_managedHurtQueue.push_back(ManagedHurtJob{
+        0, index, true, 0, 0, 0, 0, 0, 0, 0
+    });
+    g_managedHurtQueue.back().generation = g_managedHurtGeneration;
     g_pinnedWake.notify_one();
     return true;
 }
@@ -1205,8 +1250,22 @@ void setManagedHurtDiagnosticLogger(ManagedHurtDiagnosticLogFn logger) {
 
 void pauseManagedPlayerHurtMods() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ++g_managedHurtGeneration;
     for (auto& entry : g_managedHurtBindings) entry.active = false;
+    for (auto& job : g_managedHurtQueue) {
+        if (!job.completion) continue;
+        job.completion->cancelled = job.completion->done = true;
+        ++g_hurtScheduler.cancelledBeforeRun;
+    }
     g_managedHurtQueue.clear();
+    g_managedHurtResultWake.notify_all();
+}
+
+ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    auto status = g_hurtScheduler;
+    status.pending = static_cast<int>(g_managedHurtQueue.size());
+    return status;
 }
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
@@ -1234,6 +1293,9 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
         }
     }
     if (index < 0) return false;
+    const auto started = std::chrono::steady_clock::now();
+    auto completion = std::make_shared<ManagedHurtCompletion>();
+    completion->deadline = started + std::chrono::milliseconds(5);
     const uint64_t ticket = ++g_managedHurtTicket;
     g_managedHurtQueue.push_back({ticket, index, false, damage, 0,
                                   hitDirection, flags, life, lifeMax, equipmentMask,
@@ -1242,15 +1304,32 @@ bool modifyManagedPlayerHurt(const std::string& modId, int damage,
                                   projectileType, projectileDamage, projectileOwner,
                                   attackerX, attackerY, attackerVelocityX, attackerVelocityY,
                                   attackerAngle, attackerDistance});
+    g_managedHurtQueue.back().completion = completion;
+    g_managedHurtQueue.back().generation = g_managedHurtGeneration;
+    ++g_hurtScheduler.submitted;
     g_pinnedWake.notify_one();
-    const bool completed = g_managedHurtResultWake.wait_for(
-        lock, std::chrono::milliseconds(5), [ticket] {
-            return g_managedHurtCompletedTicket >= ticket;
+    const bool completed = g_managedHurtResultWake.wait_until(
+        lock, completion->deadline, [&completion] {
+            return completion->done;
         });
-    if (!completed || g_managedHurtCompletedTicket != ticket ||
-        g_managedHurtCompletedValue < 0)
+    const auto elapsed = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - started).count());
+    g_hurtScheduler.waitTotalUs += elapsed;
+    g_hurtScheduler.waitMaxUs = std::max(g_hurtScheduler.waitMaxUs, elapsed);
+    if (!completed || completion->expired) {
+        completion->cancelled = true;
+        ++g_hurtScheduler.timedOut;
+        auto pending = std::find_if(g_managedHurtQueue.begin(), g_managedHurtQueue.end(),
+            [ticket](const auto& job) { return job.ticket == ticket; });
+        if (pending != g_managedHurtQueue.end()) {
+            g_managedHurtQueue.erase(pending);
+            ++g_hurtScheduler.cancelledBeforeRun;
+        }
         return false;
-    const uint64_t packed = static_cast<uint64_t>(g_managedHurtCompletedValue);
+    }
+    if (completion->cancelled || completion->value < 0)
+        return false;
+    const uint64_t packed = static_cast<uint64_t>(completion->value);
     const int newDamage = static_cast<int>(packed & 0xfffff);
     const int newDirection = static_cast<int>((packed >> 20) & 3) - 1;
     const int newFlags = static_cast<int>((packed >> 22) & 63);
@@ -1288,6 +1367,7 @@ bool notifyManagedPlayerHurt(const std::string& modId, int sourceDamage,
             attackerX, attackerY, attackerVelocityX, attackerVelocityY,
             attackerAngle, attackerDistance
         });
+        g_managedHurtQueue.back().generation = g_managedHurtGeneration;
         g_pinnedWake.notify_one();
         return true;
     }
@@ -1539,11 +1619,13 @@ bool enableManagedLiveHit(const std::string& modId,
     g_lastImpulseDirection.store(0, std::memory_order_relaxed);
     g_lastImpulseTenths.store(0, std::memory_order_relaxed);
     g_liveHitQueue.clear();
-    g_liveIngress.reset();
+    g_liveIngress.reset(automatic);
     g_liveHitLockDrops.store(0, std::memory_order_relaxed);
     g_liveHitStatus = {};
     g_primaryLiveFailures = 0;
     g_liveHitStatus.automatic = automatic;
+    g_liveHitStatus.eventLimit = automatic ? 0 : ManagedLiveEventQueue::kEventLimit;
+    g_liveHitStatus.perBindingQueueCapacity = automatic ? ManagedFairEventQueue::kPerBindingCapacity : ManagedLiveEventQueue::kCapacity;
     g_liveHitStatus.modId = modId;
     g_liveHitStatus.projectileType = projectileType;
     g_liveHitStatus.enabled = true;
@@ -1620,13 +1702,17 @@ ManagedMemoryStatus managedMemoryStatus(bool resetBaseline) {
 ManagedLiveHitStatus managedLiveHitStatus() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     ManagedLiveHitStatus status = g_liveHitStatus;
+    status.primaryEnabled = status.enabled &&
+        g_liveHitType.load(std::memory_order_acquire) == status.projectileType;
+    status.primaryQueueDrops = g_liveIngress.bindingDrops(-1);
     status.queued = std::max(status.queued, g_liveIngress.accepted());
     status.queueDepth = g_liveHitQueue.size() + g_liveIngress.depth();
     status.maxQueueDepth = std::max(status.maxQueueDepth, g_liveIngress.maxDepth());
     status.inFlight = g_liveHitInFlight;
     status.lockDrops = g_liveHitLockDrops.load(std::memory_order_relaxed);
     status.effects = managedNpcBuffEffectStatus();
-    status.dropped += status.lockDrops + g_liveIngress.dropped();
+    addManagedCounter(status.dropped, status.lockDrops);
+    addManagedCounter(status.dropped, g_liveIngress.dropped());
     return status;
 }
 
@@ -1643,9 +1729,9 @@ ManagedLiveHitStatus pauseManagedLiveHit() {
     g_buffEffectGeneration.fetch_add(1, std::memory_order_acq_rel);
     g_liveHitStatus.queued = std::max(
         g_liveHitStatus.queued, g_liveIngress.accepted());
-    g_liveHitStatus.dropped += g_liveHitQueue.size();
+    addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
     g_liveHitQueue.clear();
-    g_liveHitStatus.dropped += g_liveIngress.clear();
+    addManagedCounter(g_liveHitStatus.dropped, g_liveIngress.clear());
     g_liveHitStatus.enabled = false;
     g_liveHitStatus.phase = "paused";
     return g_liveHitStatus;
@@ -1682,7 +1768,7 @@ void queueManagedLiveEvent(int projectileType, int damage, bool isKill, int npcI
             {0, damage, isKill, profiledAtNs, bindingSlot, npcIndex, npc, player},
             projectileType, binding.armedType);
         if (result.accepted)
-            binding.queued.fetch_add(1, std::memory_order_relaxed);
+            addManagedCounter(binding.queued);
     }
     if (result.queueDropped) {
         if (profiledAtNs)
@@ -1814,7 +1900,7 @@ bool bindManagedLiveAdditional(const std::string& modId,
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
-        g_liveHitStatus.queued >= ManagedLiveEventQueue::kEventLimit) {
+        (g_liveHitStatus.eventLimit > 0 && g_liveHitStatus.queued >= g_liveHitStatus.eventLimit)) {
         *error = "Managed live event session unavailable";
         return false;
     }
@@ -1854,7 +1940,7 @@ bool bindManagedLiveAdditional(const std::string& modId,
     }
     const int count = g_additionalLiveCount.load(std::memory_order_relaxed);
     if (count >= static_cast<int>(g_additionalLiveBindings.size())) {
-        *error = "Maximum of seven additional bindings per session reached";
+        *error = "Maximum of 31 additional bindings per session reached";
         return false;
     }
     auto& entry = g_additionalLiveBindings[static_cast<size_t>(count)];
@@ -1918,8 +2004,8 @@ bool pauseManagedLiveMod(const std::string& modId, std::string* error) {
             continue;
         changed = true;
         const int discarded = g_liveIngress.pauseBinding(i, entry.armedType);
-        entry.dropped += discarded;
-        g_liveHitStatus.dropped += discarded;
+        addManagedCounter(entry.dropped, discarded);
+        addManagedCounter(g_liveHitStatus.dropped, discarded);
     }
     if (!changed) *error = "Mod not armed or already paused";
     return changed;
@@ -1935,10 +2021,9 @@ bool resumeManagedLiveMod(const std::string& modId, std::string* error) {
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
-        g_liveHitType.load(std::memory_order_acquire) != g_liveHitStatus.projectileType ||
         g_liveHitStatus.phase == "draining" ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
-        g_liveIngress.accepted() >= ManagedLiveEventQueue::kEventLimit) {
+        (g_liveHitStatus.eventLimit > 0 && g_liveIngress.accepted() >= g_liveHitStatus.eventLimit)) {
         *error = "Live C# session unavailable; re-enter the world";
         return false;
     }
@@ -1996,6 +2081,7 @@ std::vector<ManagedLiveProjectileStatus> managedLiveProjectileStatuses() {
         status.kills = entry.kills;
         status.failures = entry.failures;
         status.dropped = entry.dropped;
+        addManagedCounter(status.dropped, g_liveIngress.bindingDrops(i));
         status.lastResult = entry.lastResult;
         status.hitContext = entry.hitContext;
         status.error = entry.error;
@@ -2679,7 +2765,7 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
     result.phase = "rejected";
     if (modId.empty() || modId.size() > 128 ||
         modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
-        tick < 0 || tick > ManagedLiveEventQueue::kEventLimit || damage < 0 || damage > 100000 ||
+        tick < 0 || damage < 0 || damage > 100000 ||
         npcIndex < -1 || npcIndex >= 200 || (isKill && npcIndex != -1) ||
         !validAssembly(assemblyPath) || callbackClass.empty() || callbackClass.size() > 72 ||
         callbackClass.find_first_not_of(

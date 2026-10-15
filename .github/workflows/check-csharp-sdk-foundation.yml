@@ -1,0 +1,61 @@
+name: Check CSharp SDK and continuous runtime foundation
+on:
+  push:
+    branches: [codex/csharp-sdk-runtime-foundation]
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/samples/StarterModCSharp/**'
+      - 'Split/Bunny-Loader/samples/DeclaredContentCSharp/**'
+      - 'Split/Bunny-Loader/tests/**'
+      - 'Split/Bunny-Loader/tools/create_csharp_mod.py'
+      - 'Split/Bunny-Loader/tools/sdk_reference/**'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.*'
+      - '.github/workflows/check-csharp-sdk-foundation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  managed-sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile inherited content, cache corruption and reference invalidation
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/sdk_foundation/SdkFoundation.csproj -c Release
+      - name: Recheck existing complete item package and native wire
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Build optional desktop starter project
+        working-directory: Split/Bunny-Loader
+        run: dotnet build samples/StarterModCSharp/StarterMod.csproj -c Release
+      - name: Check generated public SDK reference
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+      - name: Verify independent source package and generator
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tests/test_create_csharp_mod.py
+          python3 tests/test_csharp_independent_mod_loading.py
+          python3 samples/ExampleModCSharp/Tests/check_examples.py
+  native-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run continuous million-event queue, live dispatch and hurt deadlines
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/run_csharp_foundation.py
+      - name: Recheck callback lifecycle and fault isolation
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/run_managed_lifecycle_regressions.py
+      - name: Recheck Mono GC transitions and signal ownership
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tests/run_managed_pinned_gc.py
+          python3 tests/run_managed_signal_ownership.py

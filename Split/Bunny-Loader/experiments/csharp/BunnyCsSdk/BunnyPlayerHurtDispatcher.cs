@@ -51,7 +51,7 @@ public static class BunnyPlayerHurtDispatcher
             var assembly = Assembly.LoadFrom(assemblyPath);
             var types = assembly.GetTypes()
                 .Where(type => type.IsClass && !type.IsAbstract &&
-                    type.BaseType?.FullName == "BunnyLoader.Source.BunnyPlayer")
+                    !type.ContainsGenericParameters && typeof(BunnyPlayer).IsAssignableFrom(type))
                 .OrderBy(type => type.Name, StringComparer.Ordinal)
                 .ToArray();
             if (types.Length == 0 || types.Length > 16)

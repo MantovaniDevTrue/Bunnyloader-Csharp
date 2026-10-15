@@ -18,6 +18,20 @@ struct ManagedHurtResult {
     bool dodged = false;
 };
 
+struct ManagedHurtSchedulerStatus {
+    uint64_t submitted = 0;
+    uint64_t completed = 0;
+    uint64_t timedOut = 0;
+    uint64_t cancelledBeforeRun = 0;
+    uint64_t lateResults = 0;
+    uint64_t waitTotalUs = 0;
+    uint64_t waitMaxUs = 0;
+    int pending = 0;
+    int timeoutMs = 5;
+};
+
+ManagedHurtSchedulerStatus managedHurtSchedulerStatus();
+
 bool registerManagedPlayerHurtMod(const std::string& modId,
                                   const std::string& assemblyPath);
 void pauseManagedPlayerHurtMods();
@@ -128,6 +142,10 @@ struct ManagedLiveHitStatus {
     ManagedHitContextStats hitContext;
     bool enabled = false;
     bool automatic = false;
+    bool primaryEnabled = false;
+    int bindingCapacity = 32;
+    int perBindingQueueCapacity = 64;
+    int primaryQueueDrops = 0;
     int projectileType = -1;
     int queued = 0;
     int processed = 0;

@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 512;
     private const int MaxFileBytes = 256 * 1024;
     private const int MaxTotalBytes = 16 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v22-native-tile";
+    private const string CacheVersion = "roslyn-net8-source-v23-verified-cache";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -74,11 +74,15 @@ public static class Compiler
         }
 
         Stage(diagnosticsFile, "sources-found-" + files.Length);
-        var trees = new List<SyntaxTree>(files.Length);
+        var sources = new List<(string Path, byte[] Bytes)>(files.Length);
         Stage(diagnosticsFile, "initializing-portable-sha256");
         var fingerprint = new PortableSha256();
         Stage(diagnosticsFile, "portable-sha256-ready");
-        fingerprint.AppendData(Encoding.UTF8.GetBytes(CacheVersion));
+        AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(CacheVersion));
+        AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(
+            typeof(Compiler).Module.ModuleVersionId.ToString("D")));
+        AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(
+            typeof(CSharpCompilation).Module.ModuleVersionId.ToString("D")));
         int totalBytes = 0;
         foreach (string path in files)
         {
@@ -90,6 +94,11 @@ public static class Compiler
                 WriteDiagnostic(diagnosticsFile, "SOURCE_PATH_REJECTED " + path);
                 return -4;
             }
+            if (new FileInfo(absolute).Length > MaxFileBytes)
+            {
+                WriteDiagnostic(diagnosticsFile, "SOURCE_TOO_LARGE " + path);
+                return -5;
+            }
             byte[] bytes = File.ReadAllBytes(absolute);
             totalBytes += bytes.Length;
             if (bytes.Length > MaxFileBytes || totalBytes > MaxTotalBytes)
@@ -98,33 +107,17 @@ public static class Compiler
                 return -5;
             }
             string relative = Path.GetRelativePath(content, absolute);
-            fingerprint.AppendData(Encoding.UTF8.GetBytes(relative));
-            fingerprint.AppendData(bytes);
-            Stage(diagnosticsFile, "parsing-source-" + trees.Count);
-            trees.Add(CSharpSyntaxTree.ParseText(
-                Encoding.UTF8.GetString(bytes),
-                CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12),
-                relative));
+            AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(relative));
+            AppendFingerprint(fingerprint, bytes);
+            sources.Add((relative, bytes));
         }
 
-        Stage(diagnosticsFile, "source-trees-created");
         string sdkFile = Path.Combine(runtimeDir, "BunnySourceSdk.dll");
         if (!File.Exists(sdkFile))
         {
             WriteDiagnostic(diagnosticsFile, "SOURCE_SDK_MISSING");
             return -6;
         }
-        fingerprint.AppendData(File.ReadAllBytes(sdkFile));
-        Stage(diagnosticsFile, "calculating-fingerprint");
-        string hash = Convert.ToHexString(fingerprint.GetHashAndReset());
-        string cache = outputFile + ".sha256";
-        if (File.Exists(outputFile) && new FileInfo(outputFile).Length > 0 &&
-            File.Exists(cache) && File.ReadAllText(cache) == hash)
-        {
-            WriteDiagnostic(diagnosticsFile, "CACHE_HIT " + hash);
-            return 2;
-        }
-
         Stage(diagnosticsFile, "listing-framework-assemblies");
         string[] framework = ReferenceNames.Select(name => Path.Combine(runtimeDir, name))
             .Where(File.Exists).ToArray();
@@ -136,6 +129,38 @@ public static class Compiler
                 framework.Length);
             return -7;
         }
+        foreach (string reference in framework)
+        {
+            AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(Path.GetFileName(reference)));
+            using var referenceFile = File.OpenRead(reference);
+            using var pe = new PEReader(referenceFile);
+            var metadata = pe.GetMetadataReader();
+            var module = metadata.GetModuleDefinition();
+            AppendFingerprint(fingerprint, metadata.GetGuid(module.Mvid).ToByteArray());
+        }
+        AppendFingerprint(fingerprint, File.ReadAllBytes(sdkFile));
+        Stage(diagnosticsFile, "calculating-fingerprint");
+        string hash = Convert.ToHexString(fingerprint.GetHashAndReset());
+        string cache = outputFile + ".sha256";
+        if (ValidCachedAssembly(outputFile, cache, hash))
+        {
+            WriteDiagnostic(diagnosticsFile, "CACHE_HIT " + hash + " parsed=0 integrity=verified");
+            return 2;
+        }
+
+        var trees = new List<SyntaxTree>(files.Length);
+        for (int i = 0; i < sources.Count; ++i)
+        {
+            var source = sources[i];
+            Stage(diagnosticsFile, "parsing-source-" + trees.Count);
+            trees.Add(CSharpSyntaxTree.ParseText(
+                Encoding.UTF8.GetString(source.Bytes),
+                CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12),
+                source.Path));
+            sources[i] = default;
+        }
+        sources.Clear();
+        Stage(diagnosticsFile, "source-trees-created");
 
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
         var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
@@ -217,11 +242,47 @@ public static class Compiler
 
         Stage(diagnosticsFile, "before-assembly-install");
         File.Move(temporary, outputFile, true);
-        File.WriteAllText(cache, hash);
+        string cacheTemporary = cache + ".tmp";
+        File.WriteAllText(cacheTemporary, "BUNNY_ASSEMBLY_CACHE_V1\n" + hash + "\n" +
+            AssemblyHash(outputFile) + "\n");
+        File.Move(cacheTemporary, cache, true);
         WriteDiagnostic(diagnosticsFile, "COMPILE_OK files=" + files.Length +
             " references=" + references.Length + " hash=" + hash +
-            " bytes=" + new FileInfo(outputFile).Length);
+            " bytes=" + new FileInfo(outputFile).Length + " parsed=" + trees.Count);
         return 1;
+    }
+
+    private static void AppendFingerprint(PortableSha256 fingerprint, byte[] bytes)
+    {
+        int length = bytes.Length;
+        fingerprint.AppendData(new[] { (byte)length, (byte)(length >> 8),
+            (byte)(length >> 16), (byte)(length >> 24) });
+        fingerprint.AppendData(bytes);
+    }
+
+    private static string AssemblyHash(string path)
+    {
+        var hash = new PortableSha256();
+        using var file = File.OpenRead(path);
+        byte[] buffer = new byte[64 * 1024];
+        int count;
+        while ((count = file.Read(buffer, 0, buffer.Length)) != 0)
+            hash.AppendData(buffer, 0, count);
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
+    private static bool ValidCachedAssembly(string output, string cache, string fingerprint)
+    {
+        if (!File.Exists(output) || !File.Exists(cache)) return false;
+        if (new FileInfo(output).Length is <= 0 or > 8 * 1024 * 1024 ||
+            new FileInfo(cache).Length > 256) return false;
+        try
+        {
+            string[] lines = File.ReadAllLines(cache);
+            return lines.Length == 3 && lines[0] == "BUNNY_ASSEMBLY_CACHE_V1" &&
+                lines[1] == fingerprint && lines[2] == AssemblyHash(output);
+        }
+        catch (IOException) { return false; }
     }
 
 

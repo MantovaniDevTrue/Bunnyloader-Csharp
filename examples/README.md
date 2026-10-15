@@ -1,13 +1,17 @@
-# Exemplos C# — ExampleModCSharp
+# Exemplos para modders C#
 
-**Exemplo atual de teste:** `ExampleModCSharp 0.1.7`, distribuído na [release .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60).
+| Exemplo | Uso | Evidencia desta etapa |
+| --- | --- | --- |
+| [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, projeto de editor e gerador de UID | Compilacao e pacote em host; Android pendente |
+| [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base abstrata generica e identidade declarada por atributo | Parser nativo e Roslyn; exige o novo SDK; Android pendente |
+| [ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/) | Conjunto existente de armas, equipamentos, jogador, NPC e bancada | Validacao varia por recurso; consultar as evidencias |
 
-- [Código-fonte canônico do ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/)
-- [Manifest do pacote](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/manifest.json)
-- [Arma ExampleWand](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWand.cs)
-- [Callbacks automáticos OnHitNPC e OnKill](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs)
-- [Guia de começo](../Split/Bunny-Loader/samples/ExampleModCSharp/Docs/GettingStarted.md)
-- [Compatibilidade documentada](../Split/Bunny-Loader/samples/ExampleModCSharp/compatibility.json)
-- [Validador dos exemplos](../Split/Bunny-Loader/samples/ExampleModCSharp/Tests/check_examples.py)
+O manifest do ExampleMod deste checkout identifica a versao 0.1.37. Nao
+confundir quantidade de fontes C# com quantidade de ports integrais concluidos.
+A [matriz dos 201 arquivos de referencia](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
+e o backlog existente continuam preservados; o historico de cada entrada pode
+precisar ser conciliado com os commits recentes antes de promover seu estado.
 
-**Não copie APIs do tModLoader diretamente.** Os exemplos devem refletir exclusivamente o que o compilador, host e APIs do Bunny realmente suportam. `BunnyLiveEvents` é uma convenção **experimental** com escopo restrito, não a API completa de mods C#.
+Use os [contratos do SDK](../docs/SDK-CSharp.md). Os callbacks estaticos legados
+sao diferentes das policies de instancia avaliadas na compilacao. Os exemplos
+seguem o ExampleModBunny e os fontes do loader; nao importam APIs de outros loaders.

@@ -275,7 +275,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         ++status->sourceFiles;
     }
     if (defs.empty()) {
-        status->error = "mod C# sem nenhuma classe BunnyWeapon ou BunnyProjectile";
+        status->error = "mod C# sem conteudo concreto registrado; use uma base publica Bunny ou [BunnyContent] com override de defaults para heranca propria";
         return false;
     }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }

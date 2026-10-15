@@ -9,6 +9,62 @@ namespace BunnyLoader.SourceCompiler;
 
 public static class CompiledAssemblyProbe
 {
+    private static bool IsContentType(Type type, string baseName)
+    {
+        if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
+            !Ancestors(type).Any(ancestor => ancestor.FullName == "BunnyLoader.Source." + baseName))
+            return false;
+        var declaration = Declaration(type);
+        if (declaration != null)
+        {
+            string kind = declaration.GetType().GetProperty("Kind")!.GetValue(declaration)!.ToString()!;
+            if ("Bunny" + kind != baseName)
+                throw new InvalidOperationException(type.FullName + ": BunnyContent kind does not match " + baseName);
+        }
+        else if (type.BaseType?.FullName != "BunnyLoader.Source." + baseName)
+            throw new InvalidOperationException(type.FullName +
+                ": inherited content requires [BunnyContent(BunnyContentKind." +
+                baseName.Substring(5) + ", displayName, texture)] for native registration");
+        return true;
+    }
+
+    private static object? Declaration(Type type) => type.GetCustomAttributes(false)
+        .SingleOrDefault(attribute => attribute.GetType().FullName ==
+            "BunnyLoader.Source.BunnyContentAttribute");
+
+    private static void ApplyDeclaration(object instance)
+    {
+        Type type = instance.GetType();
+        object? declaration = Declaration(type);
+        if (declaration == null) return;
+        foreach (string property in new[] { "DisplayName", "Texture" })
+        {
+            PropertyInfo? target = type.GetProperty(property);
+            if (target == null) continue;
+            target.SetValue(instance, declaration.GetType().GetProperty(property)!.GetValue(declaration));
+        }
+    }
+
+    private static void ValidateDeclaration(object instance)
+    {
+        Type type = instance.GetType();
+        object? declaration = Declaration(type);
+        if (declaration == null) return;
+        foreach (string property in new[] { "DisplayName", "Texture" })
+        {
+            PropertyInfo? target = type.GetProperty(property);
+            if (target != null && !Equals(target.GetValue(instance),
+                declaration.GetType().GetProperty(property)!.GetValue(declaration)))
+                throw new InvalidOperationException(type.FullName + ": SetDefaults changed declared " + property);
+        }
+    }
+
+    private static IEnumerable<Type> Ancestors(Type type)
+    {
+        for (Type? ancestor = type.BaseType; ancestor != null; ancestor = ancestor.BaseType)
+            yield return ancestor;
+    }
+
     public static int Verify(string assemblyPath, string diagnosticsPath)
     {
         try
@@ -17,39 +73,36 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Compiled assembly missing or too large");
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
-            var projectileTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyProjectile")
+            Type[] contentTypes = assembly.GetTypes();
+            var projectileTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyProjectile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var tileTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyTile")
+            var tileTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyTile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var basicItemTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyItem")
+            var basicItemTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyItem"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var weaponTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyWeapon")
+            var weaponTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyWeapon"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var buffTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyBuff")
+            var buffTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyBuff"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var potionTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyBuffPotion")
+            var potionTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyBuffPotion"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var accessoryTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyAccessory")
+            var accessoryTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyAccessory"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var playerTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyPlayer")
+            var playerTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyPlayer"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var npcTypes = assembly.GetTypes()
-                .Where(type => type.BaseType?.FullName == "BunnyLoader.Source.BunnyNPC")
+            var npcTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyNPC"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            var prefixTypes = assembly.GetTypes()
-                .Where(type => {
-                    for (Type? ancestor = type.BaseType; ancestor != null; ancestor = ancestor.BaseType)
-                        if (ancestor.FullName == "BunnyLoader.Source.BunnyPrefix") return true;
-                    return false;
-                })
+            var prefixTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (tileTypes.Length > 256 || prefixTypes.Length > 256 || npcTypes.Length > 256 || accessoryTypes.Length > 256 || playerTypes.Length > 256 ||
                 projectileTypes.Length > 256 ||
@@ -112,9 +165,11 @@ public static class CompiledAssemblyProbe
     {
         object instance = Activator.CreateInstance(type)
             ?? throw new InvalidOperationException("Failed to instantiate " + type.Name);
+        ApplyDeclaration(instance);
         MethodInfo method = type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
         method.Invoke(instance, null);
+        ValidateDeclaration(instance);
         return instance;
     }
 
@@ -122,9 +177,11 @@ public static class CompiledAssemblyProbe
     {
         object instance = Activator.CreateInstance(type)
             ?? throw new InvalidOperationException("Failed to instantiate tile " + type.FullName);
+        ApplyDeclaration(instance);
         MethodInfo method = type.GetMethod("SetStaticDefaults", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException("Missing tile SetStaticDefaults in " + type.FullName);
         method.Invoke(instance, null);
+        ValidateDeclaration(instance);
         return instance;
     }
 

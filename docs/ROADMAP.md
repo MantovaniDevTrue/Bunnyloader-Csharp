@@ -1,3 +1,11 @@
+# Roadmap atual
+
+O plano aprovado em 15/10/2026 esta em [SDK-ROADMAP.md](SDK-ROADMAP.md).
+A etapa implementada e seus testes estao em [SDK-VALIDACAO.md](SDK-VALIDACAO.md).
+O restante deste arquivo preserva o planejamento historico de 11/10/2026.
+
+---
+
 # Roadmap C# — etapas propostas
 
 Este é um plano de desenvolvimento, **não uma lista de funcionalidades já entregues**.

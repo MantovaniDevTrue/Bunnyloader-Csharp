@@ -40,9 +40,25 @@ try {
   string output=Path.Combine(scratch,"items.dll"),diag=Path.Combine(scratch,"compile.txt");
   Equal(1,Compiler.Compile(mod,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));Equal(2,Compiler.Compile(mod,output,runtime,diag));
  });
- Check("roslyn.full-51-source-package",()=>{
+ Check("roslyn.full-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
-  Equal(56,Directory.GetFiles(root,"*.cs",SearchOption.AllDirectories).Length);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(42,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  var domains=new Dictionary<Type,string>{
+   [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
+   [typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
+  };
+  var compiled=Assembly.Load(File.ReadAllBytes(output));
+  var identities=compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters)
+   .Select(t=>new{type=t,domain=domains.FirstOrDefault(p=>p.Key.IsAssignableFrom(t)).Value})
+   .Where(x=>x.domain is not null).Select(x=>x.domain+":"+x.type.Name).ToHashSet(StringComparer.Ordinal);
+  if(identities.Count==0)throw new Exception("full package has no content");
+  Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
+  var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
+   .Where(l=>l.Length>0).Select(l=>l.Split('\t')).Select(f=>
+    (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
+  Equal(identities.Count,actual.Length);
+  if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>2*1024*1024)throw new Exception("wire exceeds runtime budget");
  });

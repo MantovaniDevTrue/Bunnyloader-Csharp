@@ -1,0 +1,96 @@
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using BunnyLoader.Source;
+
+if (args.Length != 1 || args[0] is not ("--write" or "--check"))
+    throw new ArgumentException("Run from Split/Bunny-Loader with --write or --check");
+
+string Name(Type type)
+{
+    if (type.IsByRef) return "ref " + Name(type.GetElementType()!);
+    if (type.IsArray) return Name(type.GetElementType()!) + "[]";
+    if (type.IsGenericType)
+        return type.Name.Split('`')[0] + "<" + string.Join(", ", type.GetGenericArguments().Select(Name)) + ">";
+    return type == typeof(void) ? "void" : type == typeof(int) ? "int" :
+        type == typeof(string) ? "string" : type == typeof(bool) ? "bool" :
+        type == typeof(float) ? "float" : type.Name;
+}
+
+string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
+    .Select(parameter => Name(parameter.ParameterType) + " " + parameter.Name));
+
+string Mode(Type type, MethodInfo method)
+{
+    if (type == typeof(BunnyPlayer))
+        return method.Name switch {
+            "ModifyHurt" or "ModifyHitByNPC" or "ModifyHitByProjectile" or "FreeDodge" => "worker_sync_pre_hit",
+            "OnHurt" or "OnHitByNPC" or "OnHitByProjectile" => "worker_async_post_hit",
+            "ResetEffects" or "UpdateEquips" => "compile_policy_and_worker_hurt",
+            _ => "compile_policy"
+        };
+    if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
+    if (type == typeof(BunnyPrefix)) return "compile_policy";
+    if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes" or "NumDust") return "compile_policy";
+    if (type == typeof(BunnyVisual)) return "managed_command_queue";
+    return "managed_helper";
+}
+
+const BindingFlags declared = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+var sdk = typeof(BunnyItem).Assembly;
+var types = sdk.GetExportedTypes().OrderBy(type => type.FullName, StringComparer.Ordinal).Select(type => new {
+    name = type.FullName!,
+    kind = type.IsEnum ? "enum" : type.IsValueType ? "struct" : type.IsAbstract ? "abstract class" : "class",
+    baseType = type.BaseType?.FullName,
+    constructors = type.GetConstructors(declared).Select(method => type.Name + "(" + Parameters(method) + ")")
+        .OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+    properties = type.GetProperties(declared).Select(property => Name(property.PropertyType) + " " + property.Name +
+        " { get;" + (property.SetMethod?.IsPublic == true ? " set;" : "") + " }")
+        .OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+    values = type.IsEnum ? Enum.GetNames(type) : Array.Empty<string>(),
+    methods = type.GetMethods(declared).Where(method => !method.IsSpecialName).Select(method => new {
+        signature = (method.IsStatic ? "static " : "") + Name(method.ReturnType) + " " + method.Name + "(" + Parameters(method) + ")",
+        execution = Mode(type, method)
+    }).OrderBy(value => value.signature, StringComparer.Ordinal).ToArray()
+}).ToArray();
+var report = new {
+    schemaVersion = 1,
+    sourceProject = "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
+    warning = "Public SDK surface and execution contracts. Compilation is not Android validation. No general per-frame AI or multiplayer implied.",
+    types
+};
+var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }) + "\n";
+var markdown = new StringBuilder("# Public C# SDK reference\n\n");
+markdown.AppendLine("Generated from the compiled BunnySourceSdk. Update with `dotnet run --project tools/sdk_reference -c Release -- --write`.\n");
+markdown.AppendLine("Execution terms are defined in [the SDK guide](../../../../docs/SDK-CSharp.md). Public methods do not imply Android validation, arbitrary per-frame AI, or multiplayer support. Only members declared on each type are listed; inherited members follow its base type.\n");
+foreach (var type in types)
+{
+    markdown.AppendLine("## " + type.name + "\n");
+    markdown.AppendLine(type.kind + (type.baseType == null ? "" : "; base: `" + type.baseType + "`") + ".\n");
+    if (type.values.Length != 0) markdown.AppendLine("Values: " + string.Join(", ", type.values) + ".\n");
+    if (type.constructors.Length + type.properties.Length != 0)
+    {
+        markdown.AppendLine("```csharp");
+        foreach (string member in type.constructors.Concat(type.properties)) markdown.AppendLine(member);
+        markdown.AppendLine("```\n");
+    }
+    if (type.methods.Length == 0) continue;
+    markdown.AppendLine("| Method | Execution |\n| --- | --- |");
+    foreach (var method in type.methods)
+        markdown.AppendLine("| `" + method.signature + "` | " + method.execution + " |");
+    markdown.AppendLine();
+}
+var outputs = new Dictionary<string, string> {
+    ["docs/generated/sdk_public_reference.json"] = json,
+    ["docs/generated/sdk_public_reference.md"] = markdown.ToString().Replace("\r\n", "\n")
+};
+foreach (var output in outputs)
+{
+    if (args[0] == "--check")
+    {
+        if (!File.Exists(output.Key) || File.ReadAllText(output.Key) != output.Value)
+            throw new InvalidOperationException("Stale public SDK reference: " + output.Key);
+    }
+    else File.WriteAllText(output.Key, output.Value);
+}
+Console.WriteLine("BUNNY_PUBLIC_SDK_REFERENCE=PASS types=" + types.Length);

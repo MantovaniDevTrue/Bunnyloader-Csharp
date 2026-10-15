@@ -1,3 +1,17 @@
+# Documentacao atual do SDK C#
+
+- [Comecar e entender a execucao](SDK-CSharp.md)
+- [Plano completo e criterios de conclusao](SDK-ROADMAP.md)
+- [Testes desta etapa e roteiro Android](SDK-VALIDACAO.md)
+- [Referencia publica gerada do SDK compilado](../Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
+
+Os documentos abaixo preservam o historico por versao. Menus, limites e
+catalogos antigos podem descrever estados anteriores; para esta branch, consulte
+primeiro os contratos atuais acima. Nao promover uma validacao antiga a todas
+as funcionalidades de um SDK mais recente.
+
+---
+
 # Documentação — Bunny Loader C#
 
 Esta pasta reúne a documentação **da extensão experimental C#**, sem substituir os [documentos do Bunny Loader base](../Split/Bunny-Loader/docs/README.md).
