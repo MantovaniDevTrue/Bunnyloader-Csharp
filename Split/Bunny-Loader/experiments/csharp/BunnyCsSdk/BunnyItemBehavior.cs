@@ -23,6 +23,8 @@ public sealed class BunnyItemBehavior
     public bool Robe { get; set; }
     public BunnyArmorEffects Armor { get; } = new();
     private BunnyArmorSet? armorSet;
+    /// <summary>Efeitos de peca e conjunto instalados pelo host nativo.</summary>
+    public string NativeArmorDefinition => Armor.Empty&&armorSet is null?"":"A1|"+Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
     private int defense;
     private string wings="null";
     public int Defense
@@ -88,9 +90,9 @@ public sealed class BunnyItemBehavior
     public void WorldAlpha(byte red,byte green,byte blue,byte opacity) => alpha="["+red+","+green+","+blue+","+opacity+"]";
     internal string ToJson()
     {
-        if(equips.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&Armor.Empty&&armorSet is null&&wings=="null")return "";
+        if(equips.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&wings=="null")return "";
         return "{\"v\":1,\"clone\":\""+clone+"\",\"equips\":["+string.Join(",",equips)+"],\"effects\":["+string.Join(",",effects)+
-            "],\"nativeAccessory\":"+Bool(effects.Count>0)+",\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
+            "],\"nativeAccessory\":"+Bool(effects.Count>0)+",\"nativeArmor\":"+Bool(!Armor.Empty||armorSet is not null)+",\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
     }
     private static string Number(float n) => n.ToString("R",CultureInfo.InvariantCulture);
     private static string Bool(bool b) => b?"true":"false";

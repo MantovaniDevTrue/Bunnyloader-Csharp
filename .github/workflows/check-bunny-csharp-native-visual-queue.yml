@@ -7,6 +7,13 @@ on:
       - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js'
+      - 'Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js'
+      - 'Split/Bunny-Loader/tests/**'
+      - '.github/workflows/check-bunny-csharp-native-visual-queue.yml'
   workflow_dispatch:
 
 jobs:

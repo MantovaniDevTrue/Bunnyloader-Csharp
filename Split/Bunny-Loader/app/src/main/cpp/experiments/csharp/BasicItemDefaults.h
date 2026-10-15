@@ -1,4 +1,5 @@
 #pragma once
+#include "experiments/csharp/BasicArmorPolicy.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -25,6 +26,7 @@ struct BasicItemEntry {
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
+    BasicArmorPolicy armor;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
     bool behaviorInstalled=false;
     std::string behaviorError;
@@ -130,7 +132,7 @@ inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* i
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>25)||fields[0]!="ITEM") {*error="ITEM requer 20 a 25 campos";return false;}
+    if((fields.size()<20||fields.size()>26)||fields[0]!="ITEM") {*error="ITEM requer 20 a 26 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -210,7 +212,10 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
         *error=out.name+": defesa nativa fora do limite";return false;
     }
-    if(fields.size()==25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
+    if(fields.size()>=25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
+    if(fields.size()==26&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
+        *error=out.name+": politica nativa de armadura invalida";return false;
+    }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;
 }

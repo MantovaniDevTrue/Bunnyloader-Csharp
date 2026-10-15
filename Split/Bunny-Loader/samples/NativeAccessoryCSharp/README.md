@@ -27,5 +27,5 @@ incompativeis.
 
 `MultiplyOnEquip` e `AddOnEquip` aceitam MeleeDamage, RangedDamage, MagicDamage,
 MinionDamage e MoveSpeed. `SetOnEquip` aceita StrongBees. Ha ate 16 operacoes
-por item. Armaduras, sets, asas e texturas de equipamento ainda possuem outros
-caminhos; este sample nao depende deles. Nao e um exemplo de multiplayer.
+por item. Armaduras, sets, asas e texturas de equipamento tambem possuem instaladores
+nativos na branch de independencia; consulte docs/csharp-native-policy-independence.md.

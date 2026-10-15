@@ -111,7 +111,7 @@ try {
   Reject(()=>owner.CreateRecipe().AddTile("Station").AddTile(18));
  });
  Check("armor.public-sdk-contract",()=>{
-  var item=new ExampleItem();item.SetDefaults();item.Defense=6;
+  var item=new ExampleItem();item.SetDefaults();item.Defense=6;item.Behavior.EquipTexture(BunnyEquipKind.Head,"Contract/Head");
   item.Behavior.Armor.Add(BunnyArmorInteger.StatManaMax2,20);
   item.Behavior.Armor.ImmuneTo("OnFire");
   var set=new BunnyArmorSet("Head","Plate","Legs","quote: \"armor\"");set.Effects.Add(BunnyArmorStat.MeleeDamage,0.2f);
@@ -154,7 +154,7 @@ try {
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/armor-source-runtime-values.txt",true);
   var lines=File.ReadAllLines("build/basic-items/armor-source-runtime-values.txt");Equal(4,lines.Length);
-  foreach(var line in lines.Skip(1))Equal(24,line.Split('\t').Length);
+  foreach(var line in lines.Skip(1))Equal(26,line.Split('\t').Length);
   var helmet=lines.Single(line=>line.StartsWith("ITEM\tContractHelmet\t")).Split('\t');Equal("1,mContractBench,v2:1",helmet[19]);
  });
  Check("identity.same-name-distinct-native-domains",()=>{
@@ -189,7 +189,7 @@ try {
   Equal("1,-1,v36:1,mExampleItem:10",item[19]);
   foreach (string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
    var values=rows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t")).Split('\t');
-   Equal(24,values.Length);Equal("-",values[22]);Equal((armorName=="ExampleBreastplate"?6:5).ToString(),values[23]);
+   Equal(26,values.Length);Equal("-",values[22]);Equal((armorName=="ExampleBreastplate"?6:5).ToString(),values[23]);
    Equal("1,mExampleWorkbench,mExampleItem:1",values[19]);
    using var behavior=JsonDocument.Parse(Convert.FromHexString(values[20]));
    var rootBehavior=behavior.RootElement;

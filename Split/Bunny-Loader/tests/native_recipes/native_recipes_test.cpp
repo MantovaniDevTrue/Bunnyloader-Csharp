@@ -48,6 +48,9 @@ Item* makeItem(){auto* p=new Item;p->obj.klass=&itemClass;allocated.push_back(p)
 Recipe* makeRecipe(){auto* p=new Recipe;p->obj.klass=&recipeClass;allocated.push_back(p);return p;}
 namespace bl::hook { bool install(const MethodInfo*,void*,void**) { return false; } }
 namespace bl::il2cpp {
+Il2CppClass* findNested(Il2CppClass*,std::string_view){return nullptr;}
+Il2CppClass* findClassQuiet(const std::string&,const std::string&){return nullptr;}
+
 Api& api(){return apiInstance;}
 Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){const auto key=cls->name+"."+std::string(name);for(auto& f:fields)if(f.name==key)return &f;return nullptr;}

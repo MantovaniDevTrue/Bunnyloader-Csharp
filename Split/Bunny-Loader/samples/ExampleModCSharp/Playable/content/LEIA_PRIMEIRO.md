@@ -13,9 +13,9 @@ As asas usam a folha original, slot Wings e 180 ticks de voo; teste decolagem,
 subida/queda, gravidade invertida, troca de loadout, morte/respawn e save/reload.
 Teste junto das tres armaduras feitas na mesma ExampleWorkbench. Os testes
 Android deste grupo continuam pendentes; um teste de bancada vanilla nao os substitui.
-A implementacao atual de equipamentos ainda passa por policies JS do host;
-a amostra nao exige que o autor escreva JS, mas essa dependencia interna continua
-registrada como trabalho pendente. Nao chamar o Lote A de concluido.
+Os equipamentos, conjuntos, asas e overlays usam servicos nativos do host,
+sem adaptadores JS no caminho C#. O checkpoint precisa validar desenho e ABI
+no Android antes de considerar o Lote A concluido.
 
 # ExampleMod 0.1.38 / Bunny .90.29.11 — experimental
 

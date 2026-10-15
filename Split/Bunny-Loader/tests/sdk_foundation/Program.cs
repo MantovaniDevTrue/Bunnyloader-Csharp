@@ -124,6 +124,12 @@ try
         """);
     Check(Compile() == 1 && CompiledAssemblyProbe.Verify(output, diag) == -1 &&
         File.ReadAllText(diag).Contains("Accessory=true"), "native equip effects require Accessory=true");
+    string armorSample=Path.GetFullPath("samples/ArmorPoliciesCSharp/Playable");
+    Check(Compiler.Compile(armorSample,output,runtime,diag)==1 &&
+        CompiledAssemblyProbe.Verify(output,diag)==3,"independent armor sample compiles and exports");
+    var armorRows=File.ReadAllLines(Path.Combine(temporary,"source-runtime-values.txt")).Skip(1).Select(x=>x.Split('\t')).ToArray();
+    Check(armorRows.Length==3&&armorRows.All(x=>x.Length==26&&x[25].StartsWith("A1|")),"armor sample exports native policies");
+    File.Copy(Path.Combine(temporary,"source-runtime-values.txt"),"build/sdk-foundation/armor-sample-wire.txt",true);
     Console.WriteLine("BUNNY_SDK_FOUNDATION=PASS checks=" + checks);
 }
 finally

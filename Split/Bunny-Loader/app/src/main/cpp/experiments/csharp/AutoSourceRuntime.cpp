@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
@@ -46,7 +47,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015";
 std::chrono::steady_clock::time_point g_sourceStart{};
 std::atomic<int> g_cachedMods{0};
 std::atomic<int> g_compiledMods{0};
@@ -233,7 +234,7 @@ bool saveCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& assembly,
                const std::string& defaults, const std::string& curves,
                const std::string& combat) {
-    const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
+    const auto dllHash=auto_cache::fileHash(assembly,kSourceMaxAssemblyBytes);
     const auto value=auto_cache::encode(kCacheVersion,id,key,dllHash,defaults,curves,combat);
     if (value.empty()) return false;
     return writeText(path,value);
@@ -972,7 +973,7 @@ void reportCSharpLoadSummary() {
             !managedNpcBuffEffectStatus().gameHookInstalled) ++pendingCallbacks;
     }
     const int pending = basic.pendingBehaviors + basic.pendingRecipes +
-        basic.pendingPlacements + pendingCallbacks;
+        basic.pendingPlacements + pendingCallbacks + static_cast<int>(pendingNativeVisualRenderer());
     if (pending) return;
     if (g_initialCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
         return;
@@ -1009,6 +1010,7 @@ void retryWorldManagedPrefixesWhenReady() {
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
+    resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
@@ -1032,6 +1034,7 @@ void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
     pumpBasicRecipesOnGameThread();
+    pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire) &&
@@ -1070,6 +1073,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
+        resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
@@ -1127,7 +1131,7 @@ bool preWorldCSharpContentReady() {
         needsNpcDispatcher = !g_pendingLiveSpecs.empty();
     }
     return content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
-           content.pendingPlacements == 0 &&
+           content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
            (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
 }
 
@@ -1172,7 +1176,7 @@ void flushDeferredWorldEntry() {
     const auto content = basicItemLoadStatus();
     BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=BeforeWorld Reason=ContentNotReady Timeout=240s Result=WorldEntryCancelled "
              "PendingItems=%d PendingRecipes=%d PendingPlacements=%d PendingPrefixes=%d MonoBindingsReady=%d",
-             content.pendingBehaviors, content.pendingRecipes, content.pendingPlacements,
+             content.pendingBehaviors+static_cast<int>(pendingNativeVisualRenderer()), content.pendingRecipes, content.pendingPlacements,
              bl::runtime::pendingManagedPrefixCountForActivePlayer(),
              g_preWorldBindingsArmed.load(std::memory_order_acquire) ? 1 : 0);
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});

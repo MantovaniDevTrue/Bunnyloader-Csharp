@@ -10,6 +10,8 @@ Os mods-fonte usam `.cs`, Roslyn e MonoVM, com integracao nativa C++/IL2CPP.
 - [StarterMod minimo e gerador de mods](Split/Bunny-Loader/samples/StarterModCSharp/README.md)
 - [Exemplo de heranca e identidade declarada](Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md)
 - [Exemplo de acessorio com efeitos nativos](Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md)
+- [Independencia C# de JavaScript](docs/csharp-native-policy-independence.md)
+- [Armaduras, imunidades e conjunto com receitas vanilla](Split/Bunny-Loader/samples/ArmorPoliciesCSharp/README.md)
 - [Referencia publica gerada do SDK](Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
 - [Plano completo de evolucao e pendencias](docs/SDK-ROADMAP.md)
 - [Testes e roteiro Android desta etapa](docs/SDK-VALIDACAO.md)
@@ -36,7 +38,7 @@ Os links acima abrem os diretorios canonicos diretamente, sem depender de espelh
 ## Estado desta etapa
 
 Implementados para verificacao: caches de assembly e descritores com integridade,
-parsing adiado, efeitos simples de acessorio em C++ e sample independente, declaracao explicita de conteudo para heranca, StarterMod com projeto de
+parsing adiado, efeitos, armaduras/conjuntos e instalacao de equipamentos/animacao/luz em C++ sem adaptadores JS e samples, declaracao explicita de conteudo para heranca, StarterMod com projeto de
 editor, referencia publica gerada e callbacks automaticos continuos com filas
 limitadas e 32 vinculos. Benchmarks manuais mantem o teto de 25 mil eventos.
 Essas mudancas ainda precisam de build Android e validacao em aparelho.

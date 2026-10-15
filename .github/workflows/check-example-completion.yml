@@ -43,7 +43,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -58,7 +58,7 @@ jobs:
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           app = Path("app/build.gradle.kts").read_text()
           assert any(line.strip().startswith('versionName = "0.1.10.16.90.29.') and line.strip().endswith('"') for line in app.splitlines())
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015"' in auto
           assert 'status.cached = !runtimeIdentity.empty() &&' in auto
           assert 'readCache(cacheFile, mod.id, key, assembly,' in auto
           assert 'g_cachedMods.fetch_add(1' in auto
@@ -107,7 +107,7 @@ jobs:
           /tmp/basic-parser-test
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/content_texture_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/content-texture-test
           /tmp/content-texture-test samples/ExampleModCSharp/Playable/content --assets
-          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-basic-test
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o /tmp/native-basic-test
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --int16
@@ -116,16 +116,13 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
-          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
           python3 tests/basic_items/check_csharp_tooltip_refresh.py
-          node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
-          node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
       - name: Execute native recipes and shared registries without QuickJS
         working-directory: Split/Bunny-Loader
         run: |
           set -euo pipefail
-          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -o /tmp/native-recipes-test
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o /tmp/native-recipes-test
           /tmp/native-recipes-test
           /tmp/native-recipes-test --pump
           /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
@@ -140,7 +137,7 @@ jobs:
           /tmp/shared-registry-test
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/value_layout_test.cpp -o /tmp/value-layout-test
           /tmp/value-layout-test
-          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-items-no-js
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o /tmp/native-items-no-js
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --recipes-only
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed

@@ -77,6 +77,12 @@ internal static class BasicItemWriter
             while(parts.Count<24)parts.Add("-");
             parts.Add(accessoryEffects);
         }
+        string armor=Get<string>("NativeArmorDefinition");
+        if(armor.Length!=0) {
+            if(Encoding.UTF8.GetByteCount(armor)>8192)throw new InvalidOperationException(name+": politica de armadura excede 8 KiB");
+            while(parts.Count<25)parts.Add("-");
+            parts.Add(armor);
+        }
         return string.Join("\t",parts);
     }
 }

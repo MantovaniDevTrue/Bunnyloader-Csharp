@@ -1,6 +1,19 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const root=process.argv[2];
-const entries=fs.readFileSync(process.argv[3],'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).map((p,i)=>({type:6200+i,name:p[1],mod:'armor-fixture',source:'content/'+p[1]+'.cs',root:'/fixture/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
+// Compatibility regression: reconstruct the former JSON descriptor from the
+// real new wire only in this test. Production executes field 26 natively.
+const entries=fs.readFileSync(process.argv[3],'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).map((p,i)=>{
+ const b=p[20]!=='-'?JSON.parse(Buffer.from(p[20],'hex').toString('utf8')):
+  {v:1,clone:'',equips:[],effects:[],animation:null,light:null,alpha:null,hair:false,robe:false,defense:+p[23],armor:null,armorSet:null,wings:null};
+ if(p.length===26&&p[25]!=='-') {
+  const a=p[25].split('|');
+  const effects=(wire,immune)=>({effects:wire==='-'?[]:wire.split(';').map(token=>{const [f,o,v]=token.split(':');return [f,o,+v];}),immune:immune==='-'?[]:immune.split(',')});
+  b.armor=effects(a[1],a[2]);
+  b.armorSet=a[3]==='-'?null:{head:a[3],body:a[4],legs:a[5],text:Buffer.from(a[6],'hex').toString('utf8'),effects:effects(a[7],a[8])};
+ }
+ b.nativeArmor=false;
+ return {type:6200+i,name:p[1],mod:'armor-fixture',source:'content/'+p[1]+'.cs',root:'/fixture/content/',definition:JSON.stringify(b),defaults:p.slice(2,16).map(Number),knockBack:+p[16]};
+});
 assert.equal(entries.length,3);
 const hooks=new Map(),samples=new Map(),pending=new Map(entries.map(e=>[e.type,e])),errors=[],sets=[];
 const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn);}});
@@ -38,7 +51,7 @@ bonuses['void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, i
 const Terraria={Item,Player,WorldItem,Main:{player:[],mouseItem:null},ID:{ItemID:{PumpkinHelmet:900},BuffID:{OnFire:24},ContentSamples:{ItemsByType:{ContainsKey:t=>samples.has(t),get_Item:t=>samples.get(t)}}},DataStructures:{ArmorSetBonuses:bonuses,ArmorSetBonus:{newArray:v=>v}}};
 const bl={items:{},hookMarks:{set(){}},file:{exists:()=>true},log(){},error:e=>errors.push(e),csharp:{pendingItemBehaviors:()=>[...pending.values()],acknowledgeItemBehavior(t,e){if(e){errors.push(e);return true;}pending.delete(t);return true;},setNativeItemDefense(t,v){samples.get(t).defense=v;return true;},resolveNativeItemKey(key){return entries.find(e=>key===e.mod+'/'+e.name)?.type??-1;}}};
 const ctx=vm.createContext({console,bl,Terraria,FIRST_ITEM:6196,globalItems:{list:[]},Safe:{Run:(key,f)=>f(),Once:(key,msg)=>errors.push(msg)},Hooks:{done:new Set(),Once(k,f){if(!this.done.has(k)){f();this.done.add(k);}},Overrides:(c,b,n)=>c.prototype[n]!==b.prototype[n]},Entities:{Of:i=>i.__entity,InstanceOf:(i,f,m)=>i?m.get(i.type):null,Clone:i=>i},ItemCombatHooks:{Install(){}},EquipLoader:{Apply(){}},PrefixLoader:{WantItemHooks(){}},WingLoader:{Want(){}},TooltipLoader:{Install(){}}});
-for(const f of ['ModItem.js','Loaders/ItemDrawLoader.js','Loaders/ItemPickupLoader.js','Loaders/ItemLoader.js','Loaders/ArmorSetLoader.js','Loaders/CSharpArmorPolicy.js','Loaders/CSharpWingPolicy.js','Loaders/CSharpItemBehaviorLoader.js'])vm.runInContext(fs.readFileSync(root+'/'+f,'utf8'),ctx);
+for(const f of ['ModItem.js','Loaders/ItemDrawLoader.js','Loaders/ItemPickupLoader.js','Loaders/ItemLoader.js','Loaders/ArmorSetLoader.js','Loaders/CSharpArmorPolicy.js','Loaders/CSharpWingPolicy.js','Loaders/CSharpItemBehaviorLoader.js'])vm.runInContext(fs.readFileSync(f.startsWith('Loaders/CSharp')?__dirname+'/../fixtures/legacy_csharp_policies/'+f.slice(8):root+'/'+f,'utf8'),ctx);
 vm.runInContext('globalThis.items=ItemLoader;',ctx);
 const late=entries.find(e=>e.name==='ContractHelmet').type;
 bonuses.SetsContaining=null;
@@ -65,4 +78,12 @@ p=fresh();p.armor=[{type:900},{type:901},{type:902}];bonus(()=>vanilla++,p);asse
 p=fresh();assert.equal(p.statManaMax2,200);assert.equal(p.maxMinions,1);assert.equal(p.buffImmune[24],false,'reset/remove/loadout does not retain JS state');
 const plate=ctx.items.ByType.get(armor[1].type);p=fresh();p.buffImmune=[];plate.UpdateEquip(armor[1],p);assert.equal(p.statManaMax2,200,'invalid immunity target rejects before applying numeric bonuses');assert(errors.some(e=>e.includes('Method=UpdateEquip')&&e.includes('BuffId=24')));
 const defaults=hooks.get('Item:void SetDefaults(int Type, ItemVariant variant)');const copied={type:armor[1].type};defaults(()=>{},copied,copied.type,null);assert.equal(copied.defense,6);
+const nativePlate={...entries.find(e=>e.name==='ContractPlate'),type:6600};
+const nativePolicy=JSON.parse(nativePlate.definition);nativePolicy.nativeArmor=true;
+nativePlate.definition=JSON.stringify(nativePolicy);samples.set(nativePlate.type,{type:nativePlate.type});pending.set(nativePlate.type,nativePlate);
+const savedBuffId=Terraria.ID.BuffID;Terraria.ID.BuffID=null;
+ctx.__blSyncCSharpItemBehaviors();Terraria.ID.BuffID=savedBuffId;
+const nativePlayer=fresh();grant(()=>{},nativePlayer,{type:nativePlate.type});
+assert.equal(nativePlayer.statManaMax2,200,'native armor stats must not execute again in JS');
+assert.equal(nativePlayer.buffImmune[24],false);
 console.log('CSHARP_ARMOR_REAL_GRANT_BENEFITS_AND_SET_BONUS_HOOKS_PASS');

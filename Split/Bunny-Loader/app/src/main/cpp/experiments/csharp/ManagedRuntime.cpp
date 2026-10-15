@@ -3008,6 +3008,7 @@ namespace {
 ManagedVisualQueue g_visualQueue;
 ManagedVisualState g_visualState;
 std::mutex g_visualStateMutex;
+std::atomic<size_t> g_visualActiveCount{0};
 }
 
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
@@ -3086,23 +3087,28 @@ size_t advanceManagedVisualState(uint64_t tick, size_t budget) {
         g_visualState.apply(command, tick);
         ++consumed;
     }
+    g_visualActiveCount.store(g_visualState.size(),std::memory_order_release);
     return consumed;
 }
 
 size_t activeManagedVisualCount() {
-    std::lock_guard<std::mutex> guard(g_visualStateMutex);
-    return g_visualState.size();
+    return g_visualActiveCount.load(std::memory_order_acquire);
 }
 
 std::vector<ManagedVisualCommand> snapshotManagedVisualCommands(int playerIndex, size_t limit) {
     std::lock_guard<std::mutex> guard(g_visualStateMutex);
     return g_visualState.snapshot(playerIndex, limit);
 }
+void visitManagedVisualCommands(int playerIndex, void (*visitor)(const ManagedVisualCommand&,void*), void* context, size_t limit) {
+    std::lock_guard<std::mutex> guard(g_visualStateMutex);
+    g_visualState.visit(playerIndex,visitor,context,limit);
+}
 
 void clearManagedVisualCommands() {
     std::lock_guard<std::mutex> guard(g_visualStateMutex);
     g_visualQueue.clear();
     g_visualState.clear();
+    g_visualActiveCount.store(0,std::memory_order_release);
 }
 
 

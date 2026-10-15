@@ -39,6 +39,8 @@ public abstract class BunnyItem
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
     public string NativeAccessoryEffectsDefinition => Behavior.NativeAccessoryEffectsDefinition;
+    /// <summary>Descritor nativo de atributos, imunidades e conjunto de armadura.</summary>
+    public string NativeArmorDefinition => Behavior.NativeArmorDefinition;
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
     public string UseSound { get; set; } = "";
     /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>

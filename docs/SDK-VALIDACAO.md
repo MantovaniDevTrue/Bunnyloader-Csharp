@@ -9,11 +9,12 @@ versionCode/versionName e o ExampleMod existente nao foram incrementados.
 
 | Verificacao | O que exercita | Limite da evidencia |
 | --- | --- | --- |
-| `tests/sdk_foundation/SdkFoundation.csproj` | Roslyn real, heranca/atributos, abstratas, wire, fontes alteradas, DLL truncada/corrompida, referencias ausentes/alteradas e os tres samples | Runtime .NET do host, nao Mono ARM64 |
-| `tests/basic_items/ItemBatch.csproj` | Conjunto existente, 56 fontes/42 tipos na base consultada, receitas, asas, armadura, bancada e 192 classes | Contratos e wire; nao mundo renderizado |
+| `tests/sdk_foundation/SdkFoundation.csproj` | Roslyn real, heranca/atributos, abstratas, wire, fontes alteradas, DLL truncada/corrompida, referencias ausentes/alteradas e os quatro samples | Runtime .NET do host, nao Mono ARM64 |
+| `tests/basic_items/ItemBatch.csproj` | Conjunto existente, 57 fontes na base consolidada #24, receitas, asas, armadura, bancada e 192 classes | Contratos e wire; nao mundo renderizado |
 | `tests/run_csharp_foundation.py` | Parser nativo dos fontes declarados; um milhao de entradas; 32 vinculos/64 pendentes; ordem por vinculo, cotas, pausa e geracao | Fila nativa real em host |
 | Mesmo runner: auto-source-cache | Vetores conhecidos SHA-256, fontes renomeados/alterados, todos os assemblies obrigatorios, referencia opcional adicionada/removida, DLL ausente/substituida, truncamento em cada byte e corrupcao de descriptor | I/O e funcoes reais de AutoSourceRuntime no host; sem medicao ARM64 |
-| `run_native_equip_effects.py` | Wire de Roslyn real; efeitos do ExampleStatAccessory e StrongBees isolado do WaspNest; sample independente NativeCharm; 10 mil ciclos; tipo/offset/static/hook rejeitados; fallback misto preservado e marcador JS sem bonus duplicado | QuickJS desativado; IL2CPP e hooks simulados; visual Back do WaspNest continua JS |
+| `run_native_equip_effects.py` | Wire de Roslyn real; efeitos do ExampleStatAccessory e StrongBees isolado do WaspNest; sample independente NativeCharm; 10 mil ciclos; tipo/offset/static/hook rejeitados; metadados invalidos rejeitados tambem em policies mistas, sem fallback JS | QuickJS desativado; IL2CPP e hooks simulados; visual Back coberto pela suite nativa de itens |
+| `run_native_armor_policies.py` | Wire Roslyn real, atributos/inteiros/imunidades, set completo/incompleto, tooltip/lookup vanilla, 10 mil ciclos sem alocacao no hook; arrays de referencia, structs com offsets raw/boxed; retry de Add/resultado/linha e tabela atrasada/substituida | QuickJS desligado, metadados/IL2CPP simulados; nao valida sprites ou ABI Android |
 | Mesmo runner: continuous-runtime | 75 mil chamadas por ManagedRuntime de producao, 32 bindings, falha do principal, continuidade do secundario e reentrada | Biblioteca Mono simulada |
 | Mesmo runner: hurt-deadline | Callback bloqueado, timeout de outro ainda pendente, ausencia da chamada cancelada, descarte do retorno atrasado e retomada | VM simulada; nao interrompe codigo gerenciado ja iniciado |
 | `run_managed_lifecycle_regressions.py` | Suite existente de identidades, ingress, contexto e efeitos, isolamento e memoria | Host/mock |
@@ -50,13 +51,27 @@ caminho de producao e exercitado separadamente com QuickJS desativado.
 8. Importar NativeAccessoryCSharp com apenas mods C#. Craftar NativeCharm,
    equipar/remover, trocar loadout, usar vaidade e repetir apos save/reabertura.
    Confirmar dano melee, velocidade, abelhas e defesa; nao conceder bonus em vaidade.
-   O WaspNest ainda precisa de seu caminho visual JS.
+   Conferir tambem o visual Back nativo do WaspNest.
 9. Comparar cold/warm start e o custo RuntimeCacheIdentity; testar atualizacao de
    SDK/compilador, DLL faltando, cache truncado e bit alterado em descriptor.
    Recompilar e recuperar sem aplicar dados parciais. Preservar cache perante
    dependencia de jogo ainda pendente.
-10. Repetir ciclos de pausa/retomada do app; observar som, estabilidade e memoria.
+10. Importar ArmorPoliciesCSharp sozinho: craftar as tres pecas na bancada vanilla,
+   conferir defesa/mana/lacaios/imunidade/velocidade, tooltip completo e parcial,
+   bonus somente com as tres pecas funcionais. Conferir sprites, vaidade,
+   loadout e save/reabertura. O visual ainda usa o adaptador existente.
+11. Repetir ciclos de pausa/retomada do app; observar som, estabilidade e memoria.
    Multiplayer continua fora do suporte demonstrado desta etapa.
 
 Falhas de Android, ABI, memoria e gameplay continuam exigindo logs e correcao
 proprios, mesmo quando todos os testes acima passam no host.
+
+## Independencia de JavaScript
+
+A base desta entrega e o PR #24 (.41) com a correcao de cache #25.
+O novo runner `tests/run_native_item_policies.py` registra os descritores reais
+dos nove itens com comportamento, escudo e botas, com QuickJS desligado.
+Cobre layouts raw/boxed, erros de tipo/static/bounds, retry, restauracao, luz,
+alpha, clone, cabelo, manto e 10 mil ciclos de voo sem alocacao no hook.
+A guarda `test_csharp_no_javascript_dependency.py` verifica o limite entre os
+motores. Consulte [roteiro e limites](csharp-native-policy-independence.md).

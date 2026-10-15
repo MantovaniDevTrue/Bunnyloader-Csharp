@@ -40,13 +40,10 @@ int main(int argc,char** argv) {
         auto mixed=entries[1];for(const auto& entry:entries)if(entry.name=="WaspNest")mixed=entry;
         mixed.behavior=mixedBehavior;assert(!mixed.behavior.empty());
         bl::il2cpp::findField(&playerClass,"strongBees")->type=&intType;
-        assert(applyNativeBasicItemDefaults("mod",{mixed},&error));
-        const auto pending=pendingBasicItemBehaviors();assert(pending.size()==1);
-        assert(pending[0].behavior.find("\"nativeAccessory\":false")!=std::string::npos);
-        assert(pending[0].behavior.find("strongBees")!=std::string::npos);
-        FakePlayer player;applyBasicItemAccessoryEffects(&player.header,mixed.type);assert(!player.strongBees);
-        assert(!basicItemPolicyReady(mixed.type));
-        std::cout<<"NATIVE_MIXED_ACCESSORY_JS_FALLBACK_PRESERVED_PASS\n";return 0;
+        assert(!applyNativeBasicItemDefaults("mod",{mixed},&error));
+        assert(error.find("NativeTypeMismatch")!=std::string::npos);
+        assert(pendingBasicItemBehaviors().empty());
+        std::cout<<"NATIVE_MIXED_ACCESSORY_REJECTS_INVALID_METADATA_WITHOUT_JS_FALLBACK_PASS\n";return 0;
     }
     if(argc>2) {
         auto* f=bl::il2cpp::findField(&playerClass,"meleeDamage");

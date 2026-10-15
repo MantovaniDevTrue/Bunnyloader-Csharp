@@ -58,7 +58,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/ItemDrawLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader Loaders/ItemPickupLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
-    EquipTexture ItemLoot ModItem Loaders/CSharpArmorPolicy Loaders/CSharpWingPolicy Loaders/CSharpItemBehaviorLoader
+    EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
     Loaders/CombatLoader Loaders/PvpItemNetwork Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks

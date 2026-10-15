@@ -1,5 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeArmorPolicies.h"
+#include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItems.h"
@@ -13,10 +15,7 @@
 #include "il2cpp/ValueLayout.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
-#if BL_HAVE_QUICKJS
-#include "script/bridge/ScriptEngine.h"
-#include <quickjs.h>
-#endif
+
 #include <atomic>
 #include <cstring>
 #include <map>
@@ -476,26 +475,14 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
             if(!entry.placeTileKey.empty()&&entry.placeTileKey.find('/')==std::string::npos)
                 entry.placeTileKey=modId+"/"+entry.placeTileKey;
         }
-#if !BL_HAVE_QUICKJS
-        if(!entry.behavior.empty()) {*error="[CSharp][ERROR][NativeItem] Mod="+modId+" Class="+entry.name+
-            " Stage=ApplyBehavior Expected=EquipmentPolicyBridge Actual=QuickJSDisabled Result=Rejected Reason=BehaviorDecouplingPending";return false;}
-#endif
+
         if(!entry.accessoryEffects.empty()) {
             std::vector<NativeAccessoryWrite> writes;
             std::string policyError;
             if(resolveBasicAccessoryPolicy(entry,&writes,&policyError) && prepareBasicAccessoryHook(&policyError)) {
                 (*nextPolicies)[entry.type]=std::move(writes);
             } else {
-                if(entry.behavior.empty()) {
-                    *error=entry.name+": "+policyError;return false;
-                }
-                nextPolicies->erase(entry.type);
-                const std::string marker="\"nativeAccessory\":true";
-                const auto position=entry.behavior.find(marker);
-                if(position!=std::string::npos)
-                    entry.behavior.replace(position,marker.size(),"\"nativeAccessory\":false");
-                BL_WARN("csharp acessorio %s: usando ponte JS de compatibilidade (%s)",
-                    entry.name.c_str(),policyError.c_str());
+                *error=entry.name+": "+policyError;return false;
             }
         } else nextPolicies->erase(entry.type);
         for(auto& recipe:entry.recipes) {
@@ -512,6 +499,14 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
             }
         }
     }
+    for(auto& entry:resolved) {
+        entry.modDir=definitions.at(entry.type).modDir;
+        entry.sourceFile=definitions.at(entry.type).sourceFile;entry.modId=modId;
+    }
+    std::shared_ptr<NativeItemPolicyBatch> itemPolicies;
+    if(!prepareNativeItemPolicies(resolved,&itemPolicies,error))return false;
+    const auto armorBatch=prepareNativeArmorPolicies(modId,resolved,error);
+    if(!armorBatch)return false;
     for(auto& entry:resolved) {
         entry.modDir=definitions.at(entry.type).modDir;
         entry.sourceFile=definitions.at(entry.type).sourceFile;entry.modId=modId;
@@ -534,6 +529,8 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     std::atomic_store_explicit(&nativeAccessoryTable,
         std::shared_ptr<const NativeAccessoryTable>(std::move(nextPolicies)),std::memory_order_release);
     nativeAccessoryReady.store(true,std::memory_order_release);
+    commitNativeArmorPolicies(armorBatch);
+    commitNativeItemPolicies(itemPolicies);
     contentGeneration.fetch_add(1,std::memory_order_release);
     BL_INFO("csharp items: %zu defaults nativos aplicados para %s",entries.size(),modId.c_str());
     instancesPending.store(true,std::memory_order_release);
@@ -618,11 +615,13 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
+    const bool cloned=applyNativeItemPolicyDefaults(object,type);
     if(entry.placeable) {
         writeIntegral(object,placementFields[0],entry.placeTile);
         writeIntegral(object,placementFields[1],entry.placeStyle);
     }
     for(size_t i=0;i<integerFields.size();++i) {
+        if(cloned&&i<2&&entry.values[i]==0)continue;
         const auto& field=integerFields[i];auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
         // Converter antes de copiar: jamais escrever quatro bytes em Byte/Int16.
         switch(field.bytes) {
@@ -653,7 +652,7 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     }
     runtime::field<float>(object,knockBackOffset)=entry.knockBack;
     auto& api=il2cpp::api();auto* destination=reinterpret_cast<unsigned char*>(object)+soundOffset;
-    std::memset(destination,0,static_cast<size_t>(soundSize));
+    if(!cloned||!entry.useSound.empty())std::memset(destination,0,static_cast<size_t>(soundSize));
     if(!entry.useSound.empty()) {
         const auto& bytes=soundCache.at(entry.useSound);
         std::memcpy(destination,bytes.data(),bytes.size());
@@ -714,12 +713,13 @@ bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitio
 bool isBasicItem(int type) {std::lock_guard lock(mutex);return definitions.contains(type);}
 bool basicItemPolicyReady(int type) {
     std::lock_guard lock(mutex);const auto it=definitions.find(type);
-    return it==definitions.end()||it->second.behavior.empty()||it->second.behaviorInstalled;
+    return (it==definitions.end()||it->second.behavior.empty()||it->second.behaviorInstalled)&&nativeArmorPolicyReady(type)&&nativeItemPolicyReady(type);
 }
 BasicItemLoadStatus basicItemLoadStatus() {
     std::lock_guard lock(mutex);
     BasicItemLoadStatus state;
     state.items=static_cast<int>(definitions.size());
+    state.pendingBehaviors+=static_cast<int>(pendingNativeArmorPolicies()+pendingManagedNativeEquipTextures());
     for(const auto& [type,entry]:definitions) {
         if(!entry.behavior.empty()) {
             if(entry.behaviorInstalled)++state.readyBehaviors;
@@ -769,6 +769,7 @@ void requestBasicItemInstanceRefresh() {
 }
 
 void pumpBasicRecipesOnGameThread() {
+    pumpNativeArmorPoliciesOnGameThread();
     static unsigned ticks=0, knownGeneration=0, fastPasses=0;
     const unsigned generation=contentGeneration.load(std::memory_order_acquire);
     if(generation!=knownGeneration) {
@@ -779,28 +780,9 @@ void pumpBasicRecipesOnGameThread() {
     if(fast)--fastPasses;
     ++ticks;
     if(placementsPending.load(std::memory_order_acquire)&&(fast||ticks%120u==0))resolvePlacements();
+    pumpNativeItemPoliciesOnGameThread();
     if(instancesPending.exchange(false,std::memory_order_acq_rel))refreshLiveBasicItems();
-#if BL_HAVE_QUICKJS
-    if(behaviorsPending.load(std::memory_order_acquire)&&(fast||ticks%120u==0)) {
-        const auto sync=[] {
-        script::JsLock lock(0);if(!lock.held()||!script::engine().ready())return;
-        auto* ctx=static_cast<JSContext*>(script::engine().context());
-        auto global=JS_GetGlobalObject(ctx);auto function=JS_GetPropertyStr(ctx,global,"__blSyncCSharpItemBehaviors");
-        if(JS_IsFunction(ctx,function)) {
-            auto result=JS_Call(ctx,function,global,0,nullptr);
-            if(JS_IsException(result)) {
-                auto exception=JS_GetException(ctx);const char* text=JS_ToCString(ctx,exception);
-                static unsigned failures=0;if(failures++<8)BL_ERROR("csharp item behavior: %s",text?text:"falha sem mensagem");
-                if(text)JS_FreeCString(ctx,text);
-                JS_FreeValue(ctx,exception);
-            }
-            JS_FreeValue(ctx,result);
-        }
-        JS_FreeValue(ctx,function);JS_FreeValue(ctx,global);
-        };
-        sync(); // A missing legacy policy VM must not block native recipes of other items.
-    }
-#endif
+
     if(recipesPending.load(std::memory_order_acquire)) {
         if(fast||ticks%120u==0)for(const auto& pending:pendingBasicRecipes()) {
             runtime::NativeRecipeRequest request;
