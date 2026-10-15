@@ -52,7 +52,13 @@ class CSharpArmorPolicy {
         if(!lookup||!Number.isInteger(lookup.length)||lookup.length===0||
             !bonuses.All||typeof bonuses.All.ToArray!=='function')return false;
         const pumpkin=Terraria.ID.ItemID.PumpkinHelmet;
-        return bonuses.All.ToArray().some(set=>set&&set.Head===pumpkin&&set.Effect);
+        const all=bonuses.All.ToArray();
+        if(!all||!Number.isSafeInteger(all.length)||all.length===0)return false;
+        for(let i=0;i<all.length;i++) {
+            const set=all[i];
+            if(set&&set.Head===pumpkin&&set.Effect)return true;
+        }
+        return false;
     }
     static InstallSet(set) {
         const lookup=Terraria.DataStructures.ArmorSetBonuses.SetsContaining;

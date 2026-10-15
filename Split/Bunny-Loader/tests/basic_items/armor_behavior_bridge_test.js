@@ -8,6 +8,16 @@ const cls=(name,extra={})=>new Proxy(extra,{get(t,k){if(k in t)return t[k];retur
 const Item=cls('Item'),Player=cls('Player'),WorldItem=cls('WorldItem');
 const pumpkin={Head:900,Effect:{native:'pumpkin'}};
 const all=[pumpkin];
+const managed=values=>new Proxy({length:values.length},{
+    get(target,key) {
+        if(key==='length')return values.length;
+        if(typeof key==='string'&&/^[0-9]+$/.test(key))return values[Number(key)];
+        if(key==='some'||key==='map'||key==='filter'||key===Symbol.iterator)
+            throw new TypeError('Terraria managed array does not support JS array methods');
+        return Reflect.get(target,key);
+    }
+});
+assert.throws(()=>managed(all).some(()=>true),/managed array/);
 const bounded=values=>new Proxy(values,{
     get(target,key){
         if(key==='cloneResized')return size=>bounded(Array.from({length:size},(_,i)=>i<target.length?target[i]:null));
@@ -23,7 +33,7 @@ const containing=bounded(Array.from({length:6197},()=>[]));
 const originalVanilla=containing[900];
 originalVanilla.push(pumpkin);
 for(const e of entries)samples.set(e.type,{type:e.type,stack:1});
-const bonuses={All:{ToArray:()=>all},SetsContaining:containing,Benefits:cls('Benefits')};
+const bonuses={All:{ToArray:()=>managed(all)},SetsContaining:containing,Benefits:cls('Benefits')};
 bonuses['void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)']=(Effect,Text,Primary,Head,Body,Legs)=>{const s={Effect,Text,Head,Body,Legs};all.push(s);sets.push(s);};
 const Terraria={Item,Player,WorldItem,Main:{player:[],mouseItem:null},ID:{ItemID:{PumpkinHelmet:900},BuffID:{OnFire:24},ContentSamples:{ItemsByType:{ContainsKey:t=>samples.has(t),get_Item:t=>samples.get(t)}}},DataStructures:{ArmorSetBonuses:bonuses,ArmorSetBonus:{newArray:v=>v}}};
 const bl={items:{},hookMarks:{set(){}},file:{exists:()=>true},log(){},error:e=>errors.push(e),csharp:{pendingItemBehaviors:()=>[...pending.values()],acknowledgeItemBehavior(t,e){if(e){errors.push(e);return true;}pending.delete(t);return true;},setNativeItemDefense(t,v){samples.get(t).defense=v;return true;},resolveNativeItemKey(key){return entries.find(e=>key===e.mod+'/'+e.name)?.type??-1;}}};
