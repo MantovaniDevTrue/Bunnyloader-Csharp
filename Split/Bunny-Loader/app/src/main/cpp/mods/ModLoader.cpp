@@ -164,8 +164,6 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         for (size_t d : sorted.needs[i]) needs[position[i]].push_back(position[d]);
     }
 
-    if (!script::engine().ready()) return;
-
     // 2a passada: cada mod, na mesma ordem. Por indice: o registro nao muda
     // durante a carga, mas uma referencia guardada atravessando o loadMod
     // seria a mesma armadilha do g_frames.back() do JsHook.
@@ -177,6 +175,12 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
                 registry()[i].enabled = false;
             else
                 registry()[i].loaded = true;
+            continue;
+        }
+        if (!script::engine().ready()) {
+            BL_WARN("mod %s: entrada JavaScript indisponivel; QuickJS nao inicializado",
+                    registry()[i].id.c_str());
+            registry()[i].enabled = false;
             continue;
         }
         const std::string id = registry()[i].id;

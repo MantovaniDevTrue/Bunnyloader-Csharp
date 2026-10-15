@@ -74,11 +74,9 @@ void probeThread() {
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
 
-            // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um).
-            if (!script::engine().init()) {
-                BL_ERROR("sonda: QuickJS nao iniciou");
-                return;
-            }
+            const bool jsReady = script::engine().init();
+            if (!jsReady)
+                BL_WARN("sonda: QuickJS indisponivel; continuando carregamento C# independente");
             mods::loadAll(config().modsDir, config().enabledMods);
             csharpmods::loadAll();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
