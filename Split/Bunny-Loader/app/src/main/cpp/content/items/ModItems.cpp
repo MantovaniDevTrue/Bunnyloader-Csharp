@@ -808,8 +808,7 @@ void tickModItems() {
         // Um quadro a cada ~2 s basta para tabela refeita — menos o cache de
         // nomes, que a troca de idioma refaz na hora e o inventario le logo.
         g_tables.checkPending(from, onTableRegrown);
-        if (syncPendingTooltipsOnGameThread(from))
-            bl::csharp::requestBasicItemInstanceRefresh("TooltipSync");
+        syncPendingTooltipsOnGameThread(from);
         static int frame = 0;
         if (++frame % 120 == 0) {
             g_tables.watch(from, onTableRegrown);
@@ -878,6 +877,7 @@ void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>
     std::lock_guard<std::mutex> l(g_mx);
     const size_t i = static_cast<size_t>(type - kVanillaItemCount);
     if (type < kVanillaItemCount || i >= g_regs.size()) return;
+    if (g_regs[i].def.tooltips == tooltips) return;
     g_regs[i].def.tooltips = std::move(tooltips);
     if (static_cast<int>(i) < g_installed.load(std::memory_order_acquire)) {
         if (std::find(g_pendingTooltipTypes.begin(), g_pendingTooltipTypes.end(), type) ==
