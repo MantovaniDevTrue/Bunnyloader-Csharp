@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.39",
+  "exampleModCSharpVersion": "0.1.40",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -178,6 +178,20 @@
       "examples": [
         "ExampleSwiftAccessory",
         "ExampleSwiftPlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_typed_hurt_hooks",
+      "status": "experimental",
+      "examples": [
+        "ExampleSwiftPlayer"
+      ],
+      "validation": "Roslyn/MonoVM and host delegate tests required; Android device not yet verified",
+      "features": [
+        "BeforeHurt(ref int damage, ref int hitDirection, ref bool cancel)",
+        "Dodge(int damage, out bool dodge)",
+        "AfterHurt(BunnyHurtInfo info)",
+        "Unhook(BunnyHookHandle)"
       ]
     },
     {
