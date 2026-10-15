@@ -220,7 +220,11 @@ int main(int argc,char** argv){
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Wings",128,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",127,&error));
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",128,&error));assert(error.find("SlotOutOfRange")!=std::string::npos);
- assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Back",1,&error));assert(error.find("Actual=Missing")!=std::string::npos);
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Back",1,&error));
+ auto* backField=bl::il2cpp::findField(&itemClass,"backSlot");
+ backField->name="missingBackSlot";
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Back",2,&error));assert(error.find("Actual=Missing")!=std::string::npos);
+ backField->name="backSlot";
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Other",1,&error));
  assert(!bl::csharp::setBasicItemEquipSlot(-1,"Head",1,&error));
  auto* headField=bl::il2cpp::findField(&itemClass,"headSlot");
@@ -229,7 +233,7 @@ int main(int argc,char** argv){
  const auto savedOffset=headField->offset;headField->offset=0;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("InvalidFieldOffset")!=std::string::npos);headField->offset=savedOffset;
  FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));std::memset(recreated.defenseSentinel,0x6b,sizeof(recreated.defenseSentinel));
  assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
- assert(recreated.wingSlot==70);
+ assert(recreated.wingSlot==70&&recreated.backSlot==1);
  assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
  FakeItem savedWing{};
  savedWing.type=equippedType;
@@ -262,22 +266,13 @@ int main(int argc,char** argv){
   item.behavior="{\"v\":1}";identities[item.type]="mod/"+item.name;
   assert(bl::csharp::registerBasicItemPlaceholder(item.type,item.name,&error,"/mod","content/"+item.name+".cs"));retryItems.push_back(item);
  }
-#if !BL_HAVE_QUICKJS
+ // Malformed descriptors are rejected by the native parser with or without QuickJS.
  assert(!bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
- assert(error.find("Reason=BehaviorDecouplingPending")!=std::string::npos);
+ assert(error.find("Stage=Decode Reason=InvalidFlag")!=std::string::npos);
  for(auto& item:retryItems)item.behavior.clear();
-#endif
  assert(bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
-#if BL_HAVE_QUICKJS
- const auto first=bl::csharp::pendingBasicItemBehaviors(),second=bl::csharp::pendingBasicItemBehaviors();assert(first.size()==8&&second.size()==8);
- bool ninth=false;for(const auto& item:second)if(item.type==7308)ninth=true;assert(ninth);
- assert(!bl::csharp::basicItemPolicyReady(7300));
- assert(bl::csharp::acknowledgeBasicItemBehavior(7300,"policy failed"));assert(!bl::csharp::basicItemPolicyReady(7300));
- assert(bl::csharp::acknowledgeBasicItemBehavior(7300,""));assert(bl::csharp::basicItemPolicyReady(7300));
-#else
  assert(bl::csharp::pendingBasicItemBehaviors().empty());
  assert(bl::csharp::basicItemPolicyReady(7300));
-#endif
  assert(bl::csharp::basicItemPolicyReady(entries[0].type)&&bl::csharp::basicItemPolicyReady(2));
  const auto recipesFirst=bl::csharp::pendingBasicRecipes(),recipesSecond=bl::csharp::pendingBasicRecipes();assert(recipesFirst.size()==8&&recipesSecond.size()==8);
  bool lastRecipe=false;for(const auto& recipe:recipesSecond)if(recipe.result==7308)lastRecipe=true;assert(lastRecipe);

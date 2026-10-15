@@ -21,7 +21,9 @@ std::map<FieldInfo*,std::vector<unsigned char>> statics;
 std::map<std::string,MethodInfo> methods;
 std::map<const MethodInfo*,std::pair<std::string,bool>> methodNames;
 std::map<const MethodInfo*,void*> hooks;
-std::map<unsigned,Il2CppObject*> roots;
+// Fake VM handles must outlive native policy/renderer globals during process teardown.
+// Real IL2CPP owns this registry for the process lifetime too.
+auto& roots=*new std::map<unsigned,Il2CppObject*>;
 std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
