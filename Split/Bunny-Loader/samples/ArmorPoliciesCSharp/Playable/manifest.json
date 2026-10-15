@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Independent armor example with native stats, immunity and set bonus; current visual bridge.",
+  "summary": "Independent C# armor example with native stats, immunity, set bonus and equipment textures.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
