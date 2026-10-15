@@ -441,7 +441,7 @@ void pumpNativeItemPoliciesOnGameThread() {
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
-            if(entry->status.ready){acknowledgeBasicItemBehavior(type,"");requestBasicItemInstanceRefresh();}changed=true;
+            if(entry->status.ready){acknowledgeBasicItemBehavior(type,"");requestBasicItemInstanceRefresh("NativePolicyReady");}changed=true;
         }
     }
     // Legacy BunnyAccessory Shield/Shoes use exactly the same native installer.
