@@ -625,6 +625,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     if (buffCount) {
         BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
     }
+    if (restored > 0)
+        bl::csharp::requestBasicItemInstanceRefresh();
     if (!saved.empty() || stray) {
         BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %d prefixo(s) "
                 "de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) limpo(s); "
