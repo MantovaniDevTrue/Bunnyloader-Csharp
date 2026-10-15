@@ -5,6 +5,7 @@
 #include "content/common/TypeTables.h"
 #include "mods/ModLoader.h"
 #include "hook/HookManager.h"
+#include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -233,7 +234,7 @@ bool writeWingStats(const Entry& entry,std::string* error) {
         if(invoke(method(type,"WingStats get_Default()",false),nullptr,nullptr,&boxed)&&boxed&&a.object_get_class(boxed)==type)
             std::memcpy(initialized.data(),reinterpret_cast<const char*>(boxed)+sizeof(Il2CppObject),layout.size);
         else if(array->length>1)
-            std::memcpy(initialized.data(),arrayData(array)+layout.size,layout.size);
+            std::memcpy(initialized.data(),static_cast<char*>(arrayData(array))+layout.size,layout.size);
         else { *error="Reason=WingStatsDefaultUnavailable";return false; }
     }
     for(size_t i=0;i<6;++i) {
