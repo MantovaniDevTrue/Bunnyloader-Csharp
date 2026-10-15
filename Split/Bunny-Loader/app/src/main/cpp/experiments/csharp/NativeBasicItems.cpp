@@ -20,6 +20,7 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <memory>
 
 namespace bl::csharp {
 namespace {
@@ -119,6 +120,37 @@ bool preparePlacement(std::string* error) {
     }
     placementFields=resolved;placementPrepared=true;return true;
 }
+
+struct NativeAccessoryWrite { int offset=-1; float value=0; uint8_t kind=0; };
+using NativeAccessoryTable=std::map<int,std::vector<NativeAccessoryWrite>>;
+std::shared_ptr<const NativeAccessoryTable> nativeAccessoryTable;
+std::atomic<bool> nativeAccessoryReady{false};
+bool resolveBasicAccessoryPolicy(const BasicItemEntry& item,std::vector<NativeAccessoryWrite>* writes,std::string* error) {
+    if(item.accessoryEffects.empty())return true;
+    auto& a=il2cpp::api();auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    if(!player||!a.field_get_type||!a.class_from_il2cpp_type||!a.class_value_size||!a.class_instance_size) {
+        *error="Terraria.Player ou metadados IL2CPP indisponiveis";return false;
+    }
+    for(const auto& effect:item.accessoryEffects) {
+        auto* field=il2cpp::findField(player,effect.field);
+        auto* type=field?a.class_from_il2cpp_type(a.field_get_type(field)):nullptr;
+        const bool flag=effect.field=="strongBees";
+        const char* expected=flag?"Boolean":"Single";
+        uint32_t align=0;
+        if(!field||!type||(a.field_get_flags(field)&0x10u)||!a.class_is_valuetype(type)||
+            std::strcmp(a.class_get_name(type),expected)!=0||
+            a.class_value_size(type,&align)!=(flag?1:4)) {
+            *error=effect.field+": esperado "+expected+", campo indisponivel ou tipo nao correspondente";return false;
+        }
+        const size_t offset=a.field_get_offset(field);
+        if(offset>INT32_MAX||!instanceBounds(player,static_cast<int>(offset),flag?1u:4u,
+                effect.field.c_str(),error))return false;
+        writes->push_back({static_cast<int>(offset),effect.value,
+            static_cast<uint8_t>(flag?2:effect.operation=="mul"?1:0)});
+    }
+    return true;
+}
+
 void writeIntegral(Il2CppObject* object,const IntegerField& field,int value) {
     auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
     if(field.bytes==1){const auto v=static_cast<uint8_t>(value);std::memcpy(destination,&v,1);}
@@ -377,6 +409,8 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     }
     if(!prepare(error))return false;
     std::vector<BasicItemEntry> resolved=entries;
+    const auto existing=std::atomic_load_explicit(&nativeAccessoryTable,std::memory_order_acquire);
+    auto nextPolicies=std::make_shared<NativeAccessoryTable>(existing?*existing:NativeAccessoryTable{});
     for(auto& entry:resolved) {
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
@@ -397,6 +431,21 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!entry.behavior.empty()) {*error="[CSharp][ERROR][NativeItem] Mod="+modId+" Class="+entry.name+
             " Stage=ApplyBehavior Expected=EquipmentPolicyBridge Actual=QuickJSDisabled Result=Rejected Reason=BehaviorDecouplingPending";return false;}
 #endif
+        if(!entry.accessoryEffects.empty()) {
+            std::vector<NativeAccessoryWrite> writes;
+            std::string policyError;
+            if(resolveBasicAccessoryPolicy(entry,&writes,&policyError)) {
+                (*nextPolicies)[entry.type]=std::move(writes);
+            } else {
+                nextPolicies->erase(entry.type);
+                const std::string marker="\"nativeAccessory\":true";
+                const auto position=entry.behavior.find(marker);
+                if(position!=std::string::npos)
+                    entry.behavior.replace(position,marker.size(),"\"nativeAccessory\":false");
+                BL_WARN("csharp acessorio %s: usando ponte JS de compatibilidade (%s)",
+                    entry.name.c_str(),policyError.c_str());
+            }
+        } else nextPolicies->erase(entry.type);
         for(auto& recipe:entry.recipes) {
             if(!recipe.stationKey.empty()&&recipe.stationKey.find('/')==std::string::npos)
                 recipe.stationKey=modId+"/"+recipe.stationKey;
@@ -430,6 +479,9 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         }
         definitions[entry.type]=std::move(entry);
     }
+    std::atomic_store_explicit(&nativeAccessoryTable,
+        std::shared_ptr<const NativeAccessoryTable>(std::move(nextPolicies)),std::memory_order_release);
+    nativeAccessoryReady.store(true,std::memory_order_release);
     contentGeneration.fetch_add(1,std::memory_order_release);
     BL_INFO("csharp items: %zu defaults nativos aplicados para %s",entries.size(),modId.c_str());
     instancesPending.store(true,std::memory_order_release);
@@ -559,6 +611,23 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
         }
     }
     return true;
+}
+void applyBasicItemAccessoryEffects(Il2CppObject* player,int itemType) {
+    if(!player||!nativeAccessoryReady.load(std::memory_order_acquire))return;
+    const auto snapshot=std::atomic_load_explicit(&nativeAccessoryTable,std::memory_order_acquire);
+    if(!snapshot)return;
+    const auto found=snapshot->find(itemType);
+    if(found==snapshot->end())return;
+    for(const auto& effect:found->second) {
+        if(effect.kind==2) {
+            runtime::field<uint8_t>(player,effect.offset)=1;
+            continue;
+        }
+        auto& value=runtime::field<float>(player,effect.offset);
+        if(!std::isfinite(value))continue;
+        const float updated=effect.kind==1?value*effect.value:value+effect.value;
+        if(std::isfinite(updated))value=updated;
+    }
 }
 bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
 std::vector<BasicItemEntry> pendingBasicItemBehaviors() {

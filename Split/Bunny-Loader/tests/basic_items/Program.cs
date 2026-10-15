@@ -52,6 +52,8 @@ try {
   owner.Behavior.SetOnEquip(BunnyEquipFlag.StrongBees);
   using var json=JsonDocument.Parse(owner.BehaviorDefinition);
   Equal(2,json.RootElement.GetProperty("effects").GetArrayLength());
+  Equal(true,json.RootElement.GetProperty("nativeAccessory").GetBoolean());
+  Equal("meleeDamage:mul:1.1;strongBees:set:1",owner.Behavior.NativeAccessoryEffectsDefinition);
   Reject(()=>owner.Behavior.EquipTexture(BunnyEquipKind.Head,"../escape"));
   Reject(()=>owner.Behavior.Animate(0,6));
   Reject(()=>owner.Behavior.WorldLight(float.NaN,0,0));

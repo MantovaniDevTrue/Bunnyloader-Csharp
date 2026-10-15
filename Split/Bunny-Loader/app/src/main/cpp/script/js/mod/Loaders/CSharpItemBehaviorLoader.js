@@ -21,6 +21,7 @@ class CSharpItemBehaviorLoader {
             seen.add(e[0]);
         }
         if (b.robe && (!seen.has('Body') || !seen.has('Legs'))) throw new Error('manto exige Body e Legs');
+        if(b.nativeAccessory!==undefined && typeof b.nativeAccessory!=='boolean')throw new Error("marcador nativo de acessorio invalido");
         if(b.effects.length && !(entry.defaults[13]&32))throw new Error("efeitos de acessorio exigem Accessory=true");
         for (const e of b.effects) {
             if (!Array.isArray(e) || e.length!==3) throw new Error('efeito invalido');
@@ -67,7 +68,7 @@ class CSharpItemBehaviorLoader {
                         if(CSharpArmorPolicy.Matches(armorSet,player))CSharpArmorPolicy.Apply(armorSet.policy,player);
                     };
                     Object.defineProperty(Class,'name',{value:entry.name});
-                    if (b.effects.length) Class.prototype.UpdateAccessory=function(item,player,vanity) {
+                    if (b.effects.length && !b.nativeAccessory) Class.prototype.UpdateAccessory=function(item,player,vanity) {
                         if(vanity)return;
                         for(const [field,op,value] of b.effects) {
                             if(op==='set')player[field]=value;

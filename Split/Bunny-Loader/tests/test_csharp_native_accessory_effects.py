@@ -1,0 +1,20 @@
+from pathlib import Path
+root=Path(__file__).resolve().parents[1]
+sdk=(root/"experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs").read_text()
+writer=(root/"experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs").read_text()
+parser=(root/"app/src/main/cpp/experiments/csharp/BasicItemDefaults.h").read_text()
+native=(root/"app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp").read_text()
+content=(root/"app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
+bridge=(root/"app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js").read_text()
+auto=(root/"app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+assert "NativeAccessoryEffectsDefinition" in sdk
+assert 'nativeAccessory' in sdk
+assert 'while(parts.Count<24)parts.Add("-");' in writer
+assert "fields.size()>25" in parser
+assert "parseBasicAccessoryEffects(fields[24]" in parser
+assert "applyBasicItemAccessoryEffects(self,type);" in content
+assert "!b.nativeAccessory" in bridge
+assert "resolveBasicAccessoryPolicy" in native
+assert "atomic_load_explicit" in native
+assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects" in auto
+print("BUNNY_CSHARP_NATIVE_ACCESSORY_POLICY=PASS")

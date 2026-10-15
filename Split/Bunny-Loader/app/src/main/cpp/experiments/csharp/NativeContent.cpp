@@ -449,6 +449,7 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (g_originalEquip) g_originalEquip(self, slot, item, method);
     if (!self || !item) return;
     const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+    applyBasicItemAccessoryEffects(self,type);
     const auto it = g_accessories.find(type);
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);

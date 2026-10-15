@@ -17,12 +17,14 @@ inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
     "UseAnimation","UseStyle","Pick","Axe","Hammer","Flags"};
 struct BasicRecipeIngredient { std::string key; int count=1; int type=-1; };
 struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; };
+struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
     std::string name; int type=-1; int defense=0;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
     std::map<std::string,std::string> localizedTooltips;
+    std::vector<BasicAccessoryEffect> accessoryEffects;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
     bool behaviorInstalled=false;
     std::string behaviorError;
@@ -86,8 +88,34 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     }
     return true;
 }
+inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* item,std::string* error) {
+    if(wire=="-")return true;
+    if(wire.empty()||wire.size()>2048){*error=item->name+": descricao de efeitos nativos invalida";return false;}
+    const auto operations=basicSplit(wire,';');
+    if(operations.size()>16){*error=item->name+": efeitos nativos excedem 16";return false;}
+    for(const auto& token:operations) {
+        auto parts=basicSplit(token,':');
+        if(parts.size()!=3){*error=item->name+": efeito nativo incompleto";return false;}
+        const auto& field=parts[0];const auto& operation=parts[1];
+        if(field=="strongBees") {
+            if(operation!="set"||parts[2]!="1"){*error=item->name+": flag nativa invalida";return false;}
+            item->accessoryEffects.push_back({field,operation,1.f});
+            continue;
+        }
+        if(field!="meleeDamage"&&field!="rangedDamage"&&field!="magicDamage"&&field!="minionDamage"&&field!="moveSpeed") {
+            *error=item->name+": atributo nativo invalido";return false;
+        }
+        if(operation!="add"&&operation!="mul"){*error=item->name+": operacao nativa invalida";return false;}
+        char* end=nullptr;errno=0;const float value=std::strtof(parts[2].c_str(),&end);
+        if(errno||parts[2].empty()||!end||*end||!std::isfinite(value)||value<-10.f||value>10.f||
+            (operation=="mul"&&value<0.f)){*error=item->name+": valor de efeito nativo invalido";return false;}
+        item->accessoryEffects.push_back({field,operation,value});
+    }
+    if(!(item->values[BasicFlags]&32)){*error=item->name+": efeitos nativos exigem Accessory=true";return false;}
+    return true;
+}
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>24)||fields[0]!="ITEM") {*error="ITEM requer 20 a 24 campos";return false;}
+    if((fields.size()<20||fields.size()>25)||fields[0]!="ITEM") {*error="ITEM requer 20 a 25 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -167,6 +195,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
         *error=out.name+": defesa nativa fora do limite";return false;
     }
+    if(fields.size()==25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;
 }

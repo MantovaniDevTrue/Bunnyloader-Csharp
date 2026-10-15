@@ -15,6 +15,8 @@ public sealed class BunnyItemBehavior
 {
     private readonly List<string> equips = new();
     private readonly List<string> effects = new();
+    private readonly List<string> nativeEffects = new();
+    public string NativeAccessoryEffectsDefinition => string.Join(";",nativeEffects);
     private string clone = "";
     private string animation = "null", light = "null", alpha = "null";
     public bool ColorFromPlayerHair { get; set; }
@@ -60,16 +62,19 @@ public sealed class BunnyItemBehavior
     public void SetOnEquip(BunnyEquipFlag flag)
     {
         if(!Enum.IsDefined(typeof(BunnyEquipFlag),flag))throw new ArgumentOutOfRangeException(nameof(flag));
-        Record("[\"strongBees\",\"set\",true]");
+        Record("[\"strongBees\",\"set\",true]","strongBees:set:1");
     }
     private void Effect(BunnyEquipFloat field,string op,float value,float min,float max)
     {
         if(!Enum.IsDefined(typeof(BunnyEquipFloat),field)||!float.IsFinite(value)||value<min||value>max)
             throw new ArgumentOutOfRangeException(nameof(value));
         string name=field.ToString();name=char.ToLowerInvariant(name[0])+name.Substring(1);
-        Record("[\""+name+"\",\""+op+"\","+Number(value)+"]");
+        Record("[\""+name+"\",\""+op+"\","+Number(value)+"]",name+":"+op+":"+Number(value));
     }
-    private void Record(string effect) { if(effects.Count>=16)throw new InvalidOperationException("Mais de 16 efeitos por item");effects.Add(effect); }
+    private void Record(string effect,string nativeEffect) {
+        if(effects.Count>=16)throw new InvalidOperationException("Mais de 16 efeitos por item");
+        effects.Add(effect);nativeEffects.Add(nativeEffect);
+    }
     public void Animate(int frames,int ticksPerFrame,bool animatesAsSoul=false,bool pulse=false,bool noGravity=false)
     {
         if(frames<1||frames>128||ticksPerFrame<1||ticksPerFrame>600)throw new ArgumentOutOfRangeException(nameof(frames));
@@ -85,7 +90,7 @@ public sealed class BunnyItemBehavior
     {
         if(equips.Count==0&&effects.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&Armor.Empty&&armorSet is null&&wings=="null")return "";
         return "{\"v\":1,\"clone\":\""+clone+"\",\"equips\":["+string.Join(",",equips)+"],\"effects\":["+string.Join(",",effects)+
-            "],\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
+            "],\"nativeAccessory\":"+Bool(effects.Count>0)+",\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
     }
     private static string Number(float n) => n.ToString("R",CultureInfo.InvariantCulture);
     private static string Bool(bool b) => b?"true":"false";

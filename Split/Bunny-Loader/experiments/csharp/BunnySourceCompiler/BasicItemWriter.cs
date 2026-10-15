@@ -71,6 +71,12 @@ internal static class BasicItemWriter
             while(parts.Count<23)parts.Add("-");
             parts.Add(defense.ToString(CultureInfo.InvariantCulture));
         }
+        string accessoryEffects=Get<string>("NativeAccessoryEffectsDefinition");
+        if(accessoryEffects.Length!=0) {
+            if(!Get<bool>("Accessory"))throw new InvalidOperationException(name+": politica nativa requer Accessory=true");
+            while(parts.Count<24)parts.Add("-");
+            parts.Add(accessoryEffects);
+        }
         return string.Join("\t",parts);
     }
 }
