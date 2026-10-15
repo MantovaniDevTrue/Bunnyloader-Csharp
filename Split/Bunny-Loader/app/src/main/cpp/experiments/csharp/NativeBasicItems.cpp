@@ -437,7 +437,7 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     if(entries.empty())return true; // mods anteriores nao dependem deste contrato novo
     std::lock_guard lock(mutex);
     if(entries.size()>kSourceMaxCategory) {
-        *error="[CSharp][ERROR][NativeItem] Mod="+modId+" Stage=ApplyDefaults Expected=256 Actual="+
+        *error="[CSharp][ERROR][NativeItem] Mod="+modId+" Stage=ApplyDefaults Expected=4096 Actual="+
             std::to_string(entries.size())+" Result=Rejected Reason=ContentCountExceeded";return false;
     }
     if(!prepare(error))return false;
