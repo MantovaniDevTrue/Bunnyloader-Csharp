@@ -1,4 +1,4 @@
-name: Audit Jonata Update into CSharp
+name: Merge Jonata Source With CSharp Preservation
 
 on:
   push:
@@ -7,48 +7,76 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  audit-merge:
+  merge-and-validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Three-way merge with CSharp conflict priority (audit only)
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Merge Jonata mirror; keep CSharp aliases and changes
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Bunny CSharp Merge Bot"
           git config user.email "actions@users.noreply.github.com"
           git fetch --no-tags origin main
-          echo "CSHARP_HEAD=$(git rev-parse --short HEAD)"
-          echo "JONATA_MIRROR=$(git rev-parse --short origin/main)"
+          old=$(git rev-parse HEAD)
+          upstream=$(git rev-parse origin/main)
+          echo "CSharp base=$old"
+          echo "Jonata mirror=$upstream"
           merge_result=0
-          git merge --no-commit --no-ff -X ours origin/main > /tmp/bunny-merge.log 2>&1 || merge_result=$?
+          git merge --no-commit --no-ff -X ours "$upstream" > /tmp/merge.log 2>&1 || merge_result=$?
           echo "MERGE_RESULT=$merge_result"
-          tail -n 30 /tmp/bunny-merge.log || true
-          mapfile -d '' -t conflicts < <(git diff --name-only --diff-filter=U -z)
-          echo "CONFLICT_COUNT=${#conflicts[@]}"
-          printf '%s\n' "${conflicts[@]}" | head -100
-          for file in "${conflicts[@]}"; do
-            if git cat-file -e "HEAD:$file" 2>/dev/null; then
-              git checkout --ours -- "$file"
-              git add -- "$file"
-            elif git cat-file -e "origin/main:$file" 2>/dev/null; then
-              git checkout --theirs -- "$file"
-              git add -- "$file"
-            else
-              git rm -f -- "$file"
+          tail -n 20 /tmp/merge.log
+          for item in android-app csharp-api csharp-host examplemod-csharp roslyn-compiler; do
+            path="src/$item"
+            if ! git cat-file -e "$old:$path"; then
+              echo "::error::Required CSharp alias $path is absent in baseline"
+              exit 1
             fi
+            git rm -qr -f --ignore-unmatch -- "$path" || true
+            git rm -qf --ignore-unmatch -- "$path~HEAD" || true
+            git checkout "$old" -- "$path"
+            if ! test -L "$path"; then
+              echo "::error::CSharp source symlink lost: $path"
+              exit 1
+            fi
+            echo "Preserved CSharp alias $path -> $(readlink "$path")"
           done
-          echo "UNMERGED_AFTER=$(git ls-files -u | wc -l)"
-          echo "MERGE_DIFF_SUMMARY:"
-          git diff --cached --shortstat || true
-          echo "C_SHARP_PROTECTED_PATHS_CHANGED:"
-          git diff --cached --name-only -- Split/Bunny-Loader/app/src/main/cpp/experiments/csharp Split/Bunny-Loader/experiments/csharp Split/Bunny-Loader/samples/ExampleModCSharp Split/Bunny-Loader/tests/basic_items | head -90
-          echo "CORE_FILES_CHANGED:"
-          git diff --cached --name-only -- Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/app/src/main/java Split/Bunny-Loader/app/build.gradle.kts | head -120
-          echo "AUDIT_ONLY_NO_COMMIT"
+          if test -n "$(git ls-files -u)"; then
+            echo "::error::Unresolved merge conflicts:"
+            git diff --name-only --diff-filter=U
+            exit 1
+          fi
+          if test -n "$(git diff --cached --name-only "$old" -- Split/Bunny-Loader/app/src/main/cpp/experiments/csharp Split/Bunny-Loader/experiments/csharp Split/Bunny-Loader/samples/ExampleModCSharp Split/Bunny-Loader/tests/basic_items)"; then
+            echo "::error::Protected CSharp sources changed unexpectedly"
+            git diff --cached --name-only "$old" -- Split/Bunny-Loader/app/src/main/cpp/experiments/csharp Split/Bunny-Loader/experiments/csharp Split/Bunny-Loader/samples/ExampleModCSharp Split/Bunny-Loader/tests/basic_items
+            exit 1
+          fi
+          grep -q '0.1.10.16.90.29.17' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'ensureArmorSetLookups' Split/Bunny-Loader/app/src/main/cpp/content/items/ModItems.cpp
+          grep -q 'BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate' Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          python3 Split/Bunny-Loader/tests/basic_items/check_csharp_tooltip_refresh.py
+          echo "Total staged changes:"
+          git -c diff.renameLimit=5000 diff --cached --shortstat
+          echo "UPSTREAM_MERGE_SAFETY_CHECK=PASS"
+      - name: Validate existing CSharp item source contracts
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Commit and publish updated source integration
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git commit -m "merge: Jonata Bunny Loader 2026-10-14 with CSharp MonoVM preserved"
+          git push origin HEAD:codex/sync-jonata-20261015
+          echo "Merged CSharp upstream branch: $(git rev-parse HEAD)"
+          gh workflow run build-bunny-csharp-source-loader.yml --ref codex/sync-jonata-20261015
