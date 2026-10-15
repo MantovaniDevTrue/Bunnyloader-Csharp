@@ -165,7 +165,7 @@ bool safeId(const std::string& id) {
 
 bool hashSources(const std::string& dir, const std::string& relative,
                  PortableSha256* hash, int* count, size_t* totalBytes, int depth) {
-    if (depth > 7 || static_cast<size_t>(*count) > kSourceMaxFiles) return false;
+    if (depth > kSourceMaxDepth || static_cast<size_t>(*count) > kSourceMaxFiles) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
     if (!listing) return false;
@@ -185,7 +185,7 @@ bool hashSources(const std::string& dir, const std::string& relative,
             if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
                    name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
-            if (metadata.st_size < 1 || metadata.st_size > 256 * 1024 || static_cast<size_t>(++*count) > kSourceMaxFiles)
+            if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes) || static_cast<size_t>(++*count) > kSourceMaxFiles)
                 return false;
             *totalBytes+=static_cast<size_t>(metadata.st_size);
             if(*totalBytes>kSourceMaxTotalBytes)return false;
@@ -221,7 +221,7 @@ bool readCache(const std::string& path, const std::string& id,
         if(reason)*reason="CacheFileMissingOrUnreadable";
         return false;
     }
-    const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
+    const auto dllHash=auto_cache::fileHash(assembly,kSourceMaxAssemblyBytes);
     if(dllHash.empty()) {
         if(reason)*reason="CompiledAssemblyMissing";
         return false;
