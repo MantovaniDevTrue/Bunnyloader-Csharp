@@ -88,6 +88,14 @@ class GameActivity : Activity() {
         BootLog.add(this, "runtime integrado: " + BundledRuntime.describe(this))
         BundledRuntime.pairipCheck(this)?.let { fail(it, null); return }
 
+        val unityClasses = try {
+            com.unity3d.player.UnityJniClasses.required()
+        } catch (error: Throwable) {
+            fail("Classes JNI do Unity indisponiveis: ${error.javaClass.simpleName}: ${error.message}", error)
+            return
+        }
+        BootLog.add(this, "Unity JNI prontas: " + unityClasses.joinToString { it.name })
+
         // Carrega a pilha nativa POR NOME: as .so estão no nosso próprio
         // nativeLibraryDir, já no caminho de busca do ClassLoader. Toda a
         // ginástica de cópia e de caminho absoluto existia só porque os
