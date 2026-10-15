@@ -93,6 +93,7 @@ class ManagedProbeService : Service() {
     }
 
     private val running = AtomicBoolean(false)
+    @Volatile private var frameworkInstallState = "Unknown"
 
     private external fun signalHandlerSnapshot(): String
     private external fun runNative(assemblyPath: String, checkpointPath: String): String
@@ -203,6 +204,7 @@ class ManagedProbeService : Service() {
                             "modId=$compileModId\n" +
                             "pid=${Process.myPid()}\n$result\n" +
                             "assemblyReady=${if (passed && output.isFile) 1 else 0}\n" +
+                            "frameworkCache=$frameworkInstallState\n" +
                             "frameworkSetupMs=$frameworkSetupMs\n" +
                             "managedCompileMs=$managedCompileMs\n" +
                             "workerTotalMs=$workerTotalMs\n" +
@@ -292,6 +294,7 @@ class ManagedProbeService : Service() {
         if (cached) {
             verifySourceSdk()
             if (previousFingerprint != fingerprint) marker.writeText(fingerprint)
+            frameworkInstallState = "HitVerified"
             Log.i("BunnyCSharp", "framework cache validado por SHA-256: ${names.size} assemblies")
             return File(dir, "BunnyManagedProbe.dll").absolutePath
         }
@@ -319,6 +322,7 @@ class ManagedProbeService : Service() {
         }
         verifySourceSdk()
         marker.writeText(fingerprint)
+        frameworkInstallState = "InstalledVerified"
         Log.i("BunnyCSharp", "framework atualizado e verificado: ${names.size} assemblies")
         return File(dir, "BunnyManagedProbe.dll").absolutePath
     }
