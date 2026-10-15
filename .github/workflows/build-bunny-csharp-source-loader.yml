@@ -1464,6 +1464,11 @@ jobs:
           rm -rf "$ASSETS/bin/Data"
           cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
 
+      - name: Validate bundled ModClasses JavaScript syntax before APK
+        shell: bash
+        run: |
+          python3 Split/Bunny-Loader/tests/check_mod_classes_js_syntax.py
+
       - name: Verify Kotlin and C++ JNI config contract
         shell: bash
         run: |

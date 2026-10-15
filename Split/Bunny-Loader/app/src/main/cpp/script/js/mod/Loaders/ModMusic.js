@@ -153,7 +153,6 @@ class ModMusic {
         }
 
         const wanted = ModMusic.#wanted;
-        ModMusic.#TitleCrossFade(Main.gameMenu && wanted >= 0);
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         const nativeTarget = track ? track.id : 0;
 
