@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const root=process.argv[2],wire=process.argv[3];
-const entries=fs.readFileSync(wire,'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).filter(p=>p[0]==='ITEM'&&(p.length===21||p.length===23)).map((p,i)=>({type:6300+i,name:p[1],root:'/mod/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
+const entries=fs.readFileSync(wire,'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).filter(p=>p[0]==='ITEM'&&(p.length===21||p.length===23)&&p[20]!=='-').map((p,i)=>({type:6300+i,name:p[1],root:'/mod/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
 assert.equal(entries.length,9,'actual C# compiler must emit all nine behavior descriptors');
 const hooks=new Map(),marks=new Map(),samples=new Map(),slots=new Map(),animations=[],lights=[],logs=[],callbackErrors=[];
 const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn);}});
