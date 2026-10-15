@@ -12,9 +12,9 @@ namespace BunnyLoader.SourceCompiler;
 
 public static class Compiler
 {
-    private const int MaxFiles = 512;
-    private const int MaxFileBytes = 256 * 1024;
-    private const int MaxTotalBytes = 16 * 1024 * 1024;
+    private const int MaxFiles = 4096;
+    private const int MaxFileBytes = 1024 * 1024;
+    private const int MaxTotalBytes = 32 * 1024 * 1024;
     private const string CacheVersion = "roslyn-net8-source-v23-verified-cache";
     private static readonly string[] ReferenceNames =
     {
