@@ -148,10 +148,11 @@ int main(int argc,char** argv){
   assert(entries.size()==192);assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
   FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries.back().type));
   assert(object.values[bl::csharp::BasicMaxStack]==9999);
-  auto over=entries;while(over.size()<257)over.push_back(entries[0]);
+  auto over=entries;while(over.size()<4097)over.push_back(entries[0]);
   assert(!bl::csharp::applyNativeBasicItemDefaults("mod",over,&error));
+  assert(error.find("Expected=4096 Actual=4097")!=std::string::npos);
   assert(error.find("ContentCountExceeded")!=std::string::npos);
-  std::cout<<"NATIVE_BASIC_ITEM_192_AND_CATEGORY_LIMIT_PASS\n";return 0;
+  std::cout<<"NATIVE_BASIC_ITEM_192_AND_CATEGORY_4096_LIMIT_PASS\n";return 0;
  }
  assert(entries.size()==3);
  if(mode=="--recipes-only") {
