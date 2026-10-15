@@ -17,6 +17,7 @@
 #include "hook/HookManager.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -434,8 +435,23 @@ void refreshLiveBasicItems() {
         } else ++missing;
     }
     else missing=static_cast<int>(types.size());
-    if(missing)BL_WARN("csharp tooltips: ContentSamples incompleto (%d/%zu amostras ausentes)",missing,types.size());
-    BL_INFO("csharp items: %d instancia(s) atualizadas, %d amostra(s) de tooltip nativo sincronizadas",count,samples);
+    static int lastCount=-1,lastSamples=-1,lastMissing=-1;
+    static auto intervalStart=std::chrono::steady_clock::now();
+    static unsigned intervalCalls=0;
+    static bool repeatedWarning=false;
+    ++intervalCalls;
+    if(missing&&missing!=lastMissing)BL_WARN("csharp tooltips: ContentSamples incompleto (%d/%zu amostras ausentes)",missing,types.size());
+    if(count!=lastCount||samples!=lastSamples||missing!=lastMissing)
+        BL_INFO("csharp items: %d instancia(s) atualizadas, %d amostra(s) de tooltip nativo sincronizadas",count,samples);
+    lastCount=count;lastSamples=samples;lastMissing=missing;
+    const auto now=std::chrono::steady_clock::now();
+    if(now-intervalStart>=std::chrono::seconds(2)) {
+        if(intervalCalls>30&&!repeatedWarning) {
+            BL_WARN("[CSharp][Refresh] Stage=WorldItems Calls=%u WindowMs=2000 Result=RepeatedNativeRehydration",intervalCalls);
+            repeatedWarning=true;
+        }
+        intervalCalls=0;intervalStart=now;
+    }
 }
 }
 
