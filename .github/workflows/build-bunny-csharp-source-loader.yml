@@ -1490,7 +1490,7 @@ jobs:
           D8="$ANDROID_HOME/build-tools/34.0.0/d8"
           rm -rf "$OUT"
           mkdir -p "$OUT/classes"
-          javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes"             tools/cheatbridge/bunny/CheatBridge.java             tools/cheatbridge/bunny/CheatData.java             tools/cheatbridge/bunny/DevTools.java
+          javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes"             tools/cheatbridge/bunny/CheatBridge.java             tools/cheatbridge/bunny/CheatData.java             tools/cheatbridge/bunny/DevTools.java             app/src/main/java/bunny/MenuLocalization.java             app/src/main/java/bunny/TranslationCatalog.java
           mapfile -t CLASSES < <(find "$OUT/classes" -name "*.class" -type f)
           "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
           python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex > app/src/main/cpp/menu/CheatBridgeDex.h
