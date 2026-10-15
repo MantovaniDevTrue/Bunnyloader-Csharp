@@ -159,6 +159,7 @@ class ManagedProbeService : Service() {
         else startCompileHealthMonitor(health)
 
         thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
+            val workerStartMs = android.os.SystemClock.elapsedRealtime()
             try {
                 System.loadLibrary("bunnymonoprobe")
                 if (compileRoot != null) {
@@ -172,6 +173,7 @@ class ManagedProbeService : Service() {
                 if (compileRoot == null)
                     status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
                 val assembly = installManagedFramework(dir)
+                val frameworkSetupMs = android.os.SystemClock.elapsedRealtime() - workerStartMs
                 if (compileRoot == null)
                     status.writeText("state=calling-mono\npid=${Process.myPid()}\n")
                 if (compileRoot != null) {
@@ -182,17 +184,23 @@ class ManagedProbeService : Service() {
                     compileStatus.writeText(
                         "state=compiling\npid=${Process.myPid()}\nwatchers=memory-monitor\n"
                     )
+                    val compilerStartMs = android.os.SystemClock.elapsedRealtime()
                     val result = compileNative(
                         assembly, compiler.absolutePath, compileRoot,
                         output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
                     )
+                    val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStartMs
+                    val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartMs
                     val passed = result.contains("phase=compile-verified") &&
                         (result.contains("result=1\n") || result.contains("result=2\n"))
                     compileStatus.writeText(
                         "state=${if (passed) "finished" else "failed"}\n" +
                             "modId=$compileModId\n" +
                             "pid=${Process.myPid()}\n$result\n" +
-                            "assemblyReady=${if (passed && output.isFile) 1 else 0}\n"
+                            "assemblyReady=${if (passed && output.isFile) 1 else 0}\n" +
+                            "frameworkSetupMs=$frameworkSetupMs\n" +
+                            "managedCompileMs=$managedCompileMs\n" +
+                            "workerTotalMs=$workerTotalMs\n"
                     )
                 } else {
                     val result = runNative(assembly, checkpoint.absolutePath)
