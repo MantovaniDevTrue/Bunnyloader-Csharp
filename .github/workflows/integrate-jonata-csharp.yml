@@ -21,11 +21,11 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          git fetch origin main
+          git fetch --no-tags origin main
           echo "CSHARP_HEAD=$(git rev-parse --short HEAD)"
           echo "JONATA_MIRROR=$(git rev-parse --short origin/main)"
-          git merge --no-commit --no-ff -X ours origin/main > /tmp/bunny-merge.log 2>&1
-          merge_result=$?
+          merge_result=0
+          git merge --no-commit --no-ff -X ours origin/main > /tmp/bunny-merge.log 2>&1 || merge_result=$?
           echo "MERGE_RESULT=$merge_result"
           tail -n 30 /tmp/bunny-merge.log || true
           mapfile -d '' -t conflicts < <(git diff --name-only --diff-filter=U -z)
