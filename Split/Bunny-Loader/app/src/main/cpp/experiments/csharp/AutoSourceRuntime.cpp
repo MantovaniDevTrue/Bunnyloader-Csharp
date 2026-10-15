@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/items/ModItemSave.h"
@@ -1173,19 +1174,22 @@ void flushDeferredWorldEntry() {
     const auto now=std::chrono::steady_clock::now();
     const auto elapsed=std::chrono::duration_cast<std::chrono::seconds>(now-g_delayedWorldSince).count();
     const auto content=basicItemLoadStatus();
+    const int pendingArmor=pendingNativeArmorPolicies();
+    const int pendingEquipment=static_cast<int>(pendingManagedNativeEquipTextures());
+    const int pendingCore=std::max(0,content.pendingBehaviors-pendingArmor-pendingEquipment);
     static auto lastPendingReport=std::chrono::steady_clock::time_point{};
     if (now-lastPendingReport>=std::chrono::seconds(3)) {
         lastPendingReport=now;
-        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingPolicies=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
-                static_cast<long long>(elapsed),content.pendingBehaviors,content.pendingRecipes,content.pendingPlacements,
+        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
+                static_cast<long long>(elapsed),pendingCore,pendingArmor,pendingEquipment,content.pendingRecipes,content.pendingPlacements,
                 pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
                 bl::runtime::modItemsSettled()?1:0);
     }
-    if (elapsed>=12&&content.pendingBehaviors==0&&content.pendingPlacements==0&&
+    if (elapsed>=6&&pendingCore==0&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
         g_preWorldBindingsArmed.load(std::memory_order_acquire)&&bl::runtime::modItemsSettled()) {
-        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredOptionalAssets PendingRecipes=%d PendingVisuals=%zu",
-                content.pendingRecipes,pendingNativeVisualRenderer());
+        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredNativeAssets PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingVisuals=%zu",
+                pendingArmor,pendingEquipment,content.pendingRecipes,pendingNativeVisualRenderer());
         if (finishPreWorldCSharpPlayer()) {
             const MethodInfo* method=g_delayedPlayWorldMethod;
             g_delayedWorldEntry.store(false,std::memory_order_release);
