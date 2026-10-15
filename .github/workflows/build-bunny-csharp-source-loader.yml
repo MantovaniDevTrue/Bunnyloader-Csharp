@@ -1464,6 +1464,12 @@ jobs:
           rm -rf "$ASSETS/bin/Data"
           cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
 
+      - name: Execute startup metadata cache and summary lifecycle regressions
+        working-directory: Split/Bunny-Loader
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -pthread -I tests/startup/include -I tests/basic_items/include -I app/src/main/cpp tests/auto_source_startup.cpp -Wl,--gc-sections -o /tmp/auto-source-startup
+          /tmp/auto-source-startup
+          /tmp/auto-source-startup --field
       - name: Verify native mod tooltip lookup contract
         shell: bash
         run: |
