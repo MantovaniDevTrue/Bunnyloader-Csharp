@@ -25,6 +25,43 @@ std::string readString(JNIEnv* env, jobject obj, jclass cls, const char* name) {
 extern "C" JNIEXPORT jboolean JNICALL
 Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobject cfg) {
     jclass cls = env->GetObjectClass(cfg);
+    if (!cls) {
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        g_lastError = "NativeConfig JNI: classe indisponivel";
+        return JNI_FALSE;
+    }
+    struct Field { const char* name; const char* signature; };
+    constexpr Field fields[] = {
+        {"gameLibDir", "Ljava/lang/String;"},
+        {"modsDir", "Ljava/lang/String;"},
+        {"enabledMods", "[Ljava/lang/String;"},
+        {"logPath", "Ljava/lang/String;"},
+        {"cmdPath", "Ljava/lang/String;"},
+        {"showErrors", "Z"},
+        {"verboseLog", "Z"},
+        {"gameVersion", "J"},
+        {"fastBoot", "Z"},
+        {"quickPlayer", "Ljava/lang/String;"},
+        {"quickWorld", "Ljava/lang/String;"},
+        {"managedProbePath", "Ljava/lang/String;"},
+        {"managedCheckpointPath", "Ljava/lang/String;"},
+        {"appContext", "Landroid/content/Context;"},
+        {"joinAddress", "Ljava/lang/String;"},
+        {"joinPort", "I"},
+        {"joinPassword", "Ljava/lang/String;"},
+        {"joinPlayer", "Ljava/lang/String;"},
+    };
+    for (const Field& field : fields) {
+        jfieldID id = env->GetFieldID(cls, field.name, field.signature);
+        if (!id || env->ExceptionCheck()) {
+            if (env->ExceptionCheck()) env->ExceptionClear();
+            g_lastError = std::string("NativeConfig JNI: campo ausente ou incompatível: ") + field.name;
+            BL_ERROR("%s", g_lastError.c_str());
+            env->DeleteLocalRef(cls);
+            return JNI_FALSE;
+        }
+    }
+    g_lastError.clear();
     auto& c = bl::config();
 
     c.gameLibDir = readString(env, cfg, cls, "gameLibDir");

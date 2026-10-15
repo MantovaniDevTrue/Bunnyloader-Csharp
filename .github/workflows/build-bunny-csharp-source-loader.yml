@@ -1464,6 +1464,11 @@ jobs:
           rm -rf "$ASSETS/bin/Data"
           cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
 
+      - name: Verify Kotlin and C++ JNI config contract
+        shell: bash
+        run: |
+          python3 Split/Bunny-Loader/tests/test_native_config_jni_contract.py
+
       - name: Restore validated Unity Player Java classes from last working CSharp build
         shell: bash
         run: |
