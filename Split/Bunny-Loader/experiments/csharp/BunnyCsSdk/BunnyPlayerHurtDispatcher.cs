@@ -24,6 +24,45 @@ public static class BunnyPlayerHurtDispatcher
     public static string GetLastError(int slot) =>
         slot >= 0 && slot < Contexts.Count ? Contexts[slot].LastError : RegistrationError;
 
+    public static string GetHookSnapshot()
+    {
+        long before = 0, checks = 0, dodges = 0, after = 0, unhooks = 0, cancels = 0;
+        int registered = 0, equipped = 0;
+        int incoming = 0, outgoing = 0;
+        string lastPlayer = "";
+        bool hasDamage = false;
+        foreach (var context in Contexts)
+        {
+            for (int i = 0; i < context.Hooks.Length; i++)
+            {
+                BunnyHookRegistry hook = context.Hooks[i];
+                registered += hook.Count;
+                if (hook.LastEquipped) equipped += hook.Count;
+                before += hook.BeforeCalls;
+                checks += hook.DodgeChecks;
+                dodges += hook.SuccessfulDodges;
+                after += hook.AfterCalls;
+                unhooks += hook.UnhookCalls;
+                cancels += hook.CancelledByHook;
+                if (hook.HasLastDamage)
+                {
+                    incoming = hook.LastDamageBefore;
+                    outgoing = hook.LastDamageAfter;
+                    lastPlayer = context.Players[i].GetType().Name;
+                    hasDamage = true;
+                }
+            }
+        }
+        string last = hasDamage
+            ? incoming + " -> " + outgoing + " (" + lastPlayer + ")"
+            : "aguardando golpe";
+        return "Hooks C#  ativos " + equipped + "/" + registered +
+               "  |  Before " + before + "  |  Dodge " + checks +
+               " (esquivas " + dodges + ")" +
+               "\nAfter " + after + "  |  Unhook " + unhooks +
+               "  |  Cancel " + cancels + "  |  dano ref " + last;
+    }
+
     private static string Describe(string mod, string type, string hook, Exception error)
     {
         if (error is TargetInvocationException wrapped && wrapped.InnerException is not null)
@@ -135,6 +174,7 @@ public static class BunnyPlayerHurtDispatcher
                 currentType = player.GetType().FullName ?? player.GetType().Name;
                 bool equipped = string.IsNullOrEmpty(player.Accessory) ||
                     (equippedMask & (1 << i)) != 0;
+                hooks[i].LastEquipped = equipped;
                 currentHook = "ResetEffects";
                 player.ResetEffects();
                 currentHook = "UpdateEquips";
