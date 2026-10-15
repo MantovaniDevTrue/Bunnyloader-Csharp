@@ -1611,15 +1611,15 @@ jobs:
               while data[offset] & 0x80:
                   offset += 1
               offset += 1
-              return data[offset:data.index(b"\\0", offset)].decode("utf-8")
+              return data[offset:data.index(b"\0", offset)].decode("utf-8")
 
           with zipfile.ZipFile(apk) as package:
-              dex_names = sorted(name for name in package.namelist() if re.fullmatch(r"classes[0-9]*\\.dex", name))
+              dex_names = sorted(name for name in package.namelist() if re.fullmatch(r"classes[0-9]*\.dex", name))
               if not dex_names:
                   raise SystemExit("APK has no classes.dex")
               for dex_name in dex_names:
                   data = package.read(dex_name)
-                  if not data.startswith(b"dex\\n"):
+                  if not data.startswith(b"dex\n"):
                       raise SystemExit(f"Invalid DEX header in {dex_name}")
                   strings_size, strings_off = struct.unpack_from("<II", data, 0x38)
                   types_size, types_off = struct.unpack_from("<II", data, 0x40)
