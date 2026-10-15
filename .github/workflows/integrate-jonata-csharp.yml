@@ -21,6 +21,8 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
+          git config user.name "Bunny CSharp Merge Bot"
+          git config user.email "actions@users.noreply.github.com"
           git fetch --no-tags origin main
           echo "CSHARP_HEAD=$(git rev-parse --short HEAD)"
           echo "JONATA_MIRROR=$(git rev-parse --short origin/main)"
