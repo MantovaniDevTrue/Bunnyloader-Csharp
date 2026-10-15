@@ -60,6 +60,27 @@ try {
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
+  var assets=new List<object>();
+  foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
+      domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {
+    var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
+    var defaults=type.GetMethod(typeof(BunnyTile).IsAssignableFrom(type)?"SetStaticDefaults":"SetDefaults");
+    defaults?.Invoke(instance,null);
+    void RequireAsset(string? name) {
+      if(!string.IsNullOrWhiteSpace(name))
+        assets.Add(new {path=name,className=type.Name,file="ExecutedCSharpDefaults"});
+    }
+    foreach(var propertyName in new[]{"Texture","VisualTexture"})
+      RequireAsset(type.GetProperty(propertyName)?.GetValue(instance) as string);
+    if(type.GetProperty("BehaviorDefinition")?.GetValue(instance) is string policy&&policy.Length>0) {
+      using var descriptor=JsonDocument.Parse(policy);
+      if(descriptor.RootElement.TryGetProperty("equips",out var equips))
+        foreach(var equip in equips.EnumerateArray())
+          if(equip.GetArrayLength()>1)RequireAsset(equip[1].GetString());
+    }
+  }
+  if(assets.Count==0)throw new Exception("Executed C# defaults yielded no asset references");
+  File.WriteAllText("build/basic-items/full-source-assets.json",JsonSerializer.Serialize(assets));
   if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>2*1024*1024)throw new Exception("wire exceeds runtime budget");
  });
  Check("behavior.public-sdk-validation",()=>{
