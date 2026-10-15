@@ -7,6 +7,7 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "content/items/ModItemSave.h"
+#include "content/items/ModItems.h"
 #include "hook/HookManager.h"
 
 #include "content/common/GameRefs.h"
@@ -1169,16 +1170,36 @@ void flushDeferredWorldEntry() {
         if (g_originalPlayWorld) g_originalPlayWorld(method);
         return;
     }
-    if (std::chrono::steady_clock::now() - g_delayedWorldSince < std::chrono::minutes(4))
-        return;
-    if (!g_delayedWorldEntry.exchange(false, std::memory_order_acq_rel))
-        return;
-    const auto content = basicItemLoadStatus();
-    BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=BeforeWorld Reason=ContentNotReady Timeout=240s Result=WorldEntryCancelled "
-             "PendingItems=%d PendingRecipes=%d PendingPlacements=%d PendingPrefixes=%d MonoBindingsReady=%d",
-             content.pendingBehaviors+static_cast<int>(pendingNativeVisualRenderer()), content.pendingRecipes, content.pendingPlacements,
+    const auto now=std::chrono::steady_clock::now();
+    const auto elapsed=std::chrono::duration_cast<std::chrono::seconds>(now-g_delayedWorldSince).count();
+    const auto content=basicItemLoadStatus();
+    static auto lastPendingReport=std::chrono::steady_clock::time_point{};
+    if (now-lastPendingReport>=std::chrono::seconds(3)) {
+        lastPendingReport=now;
+        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingPolicies=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
+                static_cast<long long>(elapsed),content.pendingBehaviors,content.pendingRecipes,content.pendingPlacements,
+                pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
+                bl::runtime::modItemsSettled()?1:0);
+    }
+    if (elapsed>=12&&content.pendingBehaviors==0&&content.pendingPlacements==0&&
+        g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
+        g_preWorldBindingsArmed.load(std::memory_order_acquire)&&bl::runtime::modItemsSettled()) {
+        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredOptionalAssets PendingRecipes=%d PendingVisuals=%zu",
+                content.pendingRecipes,pendingNativeVisualRenderer());
+        if (finishPreWorldCSharpPlayer()) {
+            const MethodInfo* method=g_delayedPlayWorldMethod;
+            g_delayedWorldEntry.store(false,std::memory_order_release);
+            if (g_originalPlayWorld)g_originalPlayWorld(method);
+            return;
+        }
+    }
+    if (elapsed<30)return;
+    if (!g_delayedWorldEntry.exchange(false,std::memory_order_acq_rel))return;
+    BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=BeforeWorld Reason=ContentNotReady Timeout=30s Result=WorldEntryCancelled "
+             "PendingItems=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu PendingPrefixes=%d MonoBindingsReady=%d",
+             content.pendingBehaviors,content.pendingRecipes,content.pendingPlacements,pendingNativeVisualRenderer(),
              bl::runtime::pendingManagedPrefixCountForActivePlayer(),
-             g_preWorldBindingsArmed.load(std::memory_order_acquire) ? 1 : 0);
+             g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0);
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     const MethodInfo* setMenu = main
         ? il2cpp::api().class_get_method_from_name(main, "set_menuMode", 1)
