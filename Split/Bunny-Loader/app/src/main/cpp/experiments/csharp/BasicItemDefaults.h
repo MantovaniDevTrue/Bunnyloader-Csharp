@@ -191,7 +191,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
         }
     }
-    if(fields.size()==24 &&
+    if(fields.size()>=24 && fields[23]!="-" &&
         (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
         *error=out.name+": defesa nativa fora do limite";return false;
     }
