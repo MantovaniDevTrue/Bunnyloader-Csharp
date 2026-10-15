@@ -1470,10 +1470,10 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -pthread -I tests/startup/include -I tests/basic_items/include -I app/src/main/cpp tests/auto_source_startup.cpp -Wl,--gc-sections -o /tmp/auto-source-startup
           /tmp/auto-source-startup
           /tmp/auto-source-startup --field
-      - name: Verify native tooltip source diagnostics
+      - name: Verify native armor table resize and tooltip hot path
         shell: bash
         run: |
-          python3 Split/Bunny-Loader/tests/test_native_tooltip_probe.py
+          python3 Split/Bunny-Loader/tests/test_native_armor_table_repair.py
 
       - name: Verify native tooltip game-thread synchronization
         shell: bash

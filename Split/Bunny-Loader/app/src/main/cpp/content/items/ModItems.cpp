@@ -730,16 +730,45 @@ void setupUnloadedItem(Il2CppObject* item, int type) {
 namespace {
 std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
 void ensureArmorSetLookups(int size) {
-    auto* cls = il2cpp::findClassQuiet("Terraria.DataStructures", "ArmorSetBonuses");
-    auto* field = cls ? il2cpp::findField(cls, "SetsContaining") : nullptr;
-    if (!field) return;
-    Il2CppArray* outer = readStatic(field);
-    if (!outer || outer->length < static_cast<uintptr_t>(size)) return;
+    static FieldInfo* table = nullptr;
+    if (!table) {
+        auto* cls = il2cpp::findClassQuiet("Terraria.DataStructures", "ArmorSetBonuses");
+        table = cls ? il2cpp::findField(cls, "SetsContaining") : nullptr;
+        if (!table) return;
+    }
+    Il2CppArray* outer = readStatic(table);
+    if (!outer) return;
     static Il2CppArray* last = nullptr;
     static int checked = kVanillaItemCount;
-    if (last == outer && checked >= size) return;
+    if (last == outer && checked >= size && outer->length >= static_cast<uintptr_t>(size))
+        return;
+
     auto& a = il2cpp::api();
-    auto* rowsClass = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(outer)));
+    if (outer->length < static_cast<uintptr_t>(size)) {
+        const uintptr_t originalLength = outer->length;
+        if (originalLength < static_cast<uintptr_t>(kVanillaItemCount)) {
+            BL_WARN("itens de mod: ArmorSetBonuses menor que o vanilla (%zu); mantida para seguranca",
+                    static_cast<size_t>(originalLength));
+            return;
+        }
+        Il2CppArray* grown = TypeTables::resizedCopy(outer, static_cast<uintptr_t>(size));
+        if (!grown) {
+            BL_WARN("itens de mod: ArmorSetBonuses nao ampliada de %zu para %d",
+                    static_cast<size_t>(originalLength), size);
+            return;
+        }
+        a.field_static_set_value(table, grown);
+        outer = readStatic(table);
+        if (outer != grown || outer->length < static_cast<uintptr_t>(size)) {
+            BL_ERROR("itens de mod: ArmorSetBonuses alterada antes da verificacao da ampliacao");
+            return;
+        }
+        BL_INFO("itens de mod: ArmorSetBonuses.SetsContaining ampliada de %zu para %d sem perder os conjuntos existentes",
+                static_cast<size_t>(originalLength), size);
+    }
+
+    auto* rowsClass = a.class_get_element_class(
+        a.object_get_class(reinterpret_cast<Il2CppObject*>(outer)));
     auto* entryClass = rowsClass ? a.class_get_element_class(rowsClass) : nullptr;
     if (!entryClass) return;
     auto** rows = reinterpret_cast<Il2CppObject**>(arrayData(outer));
@@ -748,7 +777,7 @@ void ensureArmorSetLookups(int size) {
     for (int type = kVanillaItemCount; type < size; ++type) {
         if (rows[type]) continue;
         if (!empty) empty = reinterpret_cast<Il2CppObject*>(a.array_new(entryClass, 0));
-        if (!empty || !content::setTableElement(field, type, empty)) {
+        if (!empty || !content::setTableElement(table, type, empty)) {
             BL_WARN("itens de mod: falha ao inicializar ArmorSetBonuses.SetsContaining[%d]", type);
             return;
         }
@@ -757,121 +786,8 @@ void ensureArmorSetLookups(int size) {
     last = outer;
     checked = size;
     if (initialized)
-        BL_INFO("itens de mod: %d entradas vazias de ArmorSetBonuses inicializadas para tooltip", initialized);
+        BL_INFO("itens de mod: %d entradas de ArmorSetBonuses inicializadas uma unica vez", initialized);
 }
-
-
-using DrawModTooltipFn = void (*)(Il2CppObject*, int32_t*, int32_t*, int32_t*,
-                                  float, int32_t*, Il2CppArray*, Il2CppArray*,
-                                  Il2CppArray*, int32_t*, void*, int32_t*,
-                                  const MethodInfo*);
-DrawModTooltipFn g_origDrawModTooltip = nullptr;
-
-void hkDrawModTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
-                      int32_t* materials, float oldKB, int32_t* count,
-                      Il2CppArray* lines, Il2CppArray* prefixes,
-                      Il2CppArray* badPrefixes, int32_t* setBonus,
-                      void* setColour, int32_t* shared, const MethodInfo* m) {
-    const Refs& r = refs();
-    if (item && r.offType >= 0) {
-        const int type = field<int32_t>(item, r.offType);
-        const int index = type - kVanillaItemCount;
-        if (index >= 0 && index < 384 && isModItem(type)) {
-            static bool observed[384] = {};
-            if (!observed[index]) {
-                observed[index] = true;
-                auto& a = il2cpp::api();
-                size_t configured = 0;
-                bool configuredText = false;
-                {
-                    std::lock_guard<std::mutex> guard(g_mx);
-                    if (static_cast<size_t>(index) < g_regs.size()) {
-                        for (const auto& entry : g_regs[static_cast<size_t>(index)].def.tooltips) {
-                            if (!entry.second.empty()) configuredText = true;
-                            configured += entry.second.size();
-                        }
-                    }
-                }
-                Il2CppArray* cache = r.tooltipCache ? readStatic(r.tooltipCache) : nullptr;
-                Il2CppObject* cached = nullptr;
-                if (cache && static_cast<uintptr_t>(type) < cache->length)
-                    cached = reinterpret_cast<Il2CppObject**>(arrayData(cache))[type];
-                auto* itemClass = r.itemCls;
-                const MethodInfo* getTooltip = itemClass
-                    ? a.class_get_method_from_name(itemClass, "get_ToolTip", 0) : nullptr;
-                Il2CppObject* current = nullptr;
-                Il2CppObject* getterException = nullptr;
-                if (getTooltip)
-                    current = a.runtime_invoke(getTooltip, item, nullptr, &getterException);
-                int rebuilt = 0;
-                if (getTooltip && !getterException && !current && cached && r.rebuildTooltip) {
-                    Il2CppObject* exception = nullptr;
-                    a.runtime_invoke(r.rebuildTooltip, item, nullptr, &exception);
-                    if (!exception) {
-                        current = a.runtime_invoke(getTooltip, item, nullptr, &getterException);
-                        rebuilt = current && !getterException ? 1 : 0;
-                    }
-                }
-                int tooltipLines = -1;
-                if (current && !getterException) {
-                    auto* tipClass = a.object_get_class(current);
-                    const MethodInfo* getLines = tipClass
-                        ? a.class_get_method_from_name(tipClass, "get_Lines", 0) : nullptr;
-                    if (getLines) {
-                        Il2CppObject* exception = nullptr;
-                        Il2CppObject* result = a.runtime_invoke(getLines, current, nullptr, &exception);
-                        if (!exception && result) tooltipLines = unboxInt(result);
-                    }
-                }
-                auto* armorClass = il2cpp::findClassQuiet("Terraria.DataStructures", "ArmorSetBonuses");
-                auto* armorField = armorClass ? il2cpp::findField(armorClass, "SetsContaining") : nullptr;
-                Il2CppArray* armor = armorField ? readStatic(armorField) : nullptr;
-                int armorEntry = -1;
-                if (armor && static_cast<uintptr_t>(type) < armor->length) {
-                    auto** rows = reinterpret_cast<Il2CppObject**>(arrayData(armor));
-                    armorEntry = rows[type] ? 1 : 0;
-                    if (!rows[type]) {
-                        auto* rowsClass = a.class_get_element_class(
-                            a.object_get_class(reinterpret_cast<Il2CppObject*>(armor)));
-                        auto* element = rowsClass ? a.class_get_element_class(rowsClass) : nullptr;
-                        Il2CppObject* empty = element
-                            ? reinterpret_cast<Il2CppObject*>(a.array_new(element, 0)) : nullptr;
-                        if (empty && content::setTableElement(armorField, type, empty))
-                            armorEntry = 2;
-                    }
-                }
-                BL_INFO("tooltip native probe: type=%d configured=%d textBytes=%zu cacheLength=%zu cached=%d itemGetter=%d itemTooltip=%d lines=%d rebuild=%d armorLength=%zu armorEntry=%d getterException=%d",
-                        type, configuredText ? 1 : 0, configured,
-                        cache ? static_cast<size_t>(cache->length) : 0, cached ? 1 : 0,
-                        getTooltip ? 1 : 0, current ? 1 : 0, tooltipLines, rebuilt,
-                        armor ? static_cast<size_t>(armor->length) : 0, armorEntry,
-                        getterException ? 1 : 0);
-            }
-        }
-    }
-    g_origDrawModTooltip(item, yoyo, research, materials, oldKB, count,
-                         lines, prefixes, badPrefixes, setBonus, setColour, shared, m);
-}
-
-void installModTooltipProbe() {
-    static bool attempted = false;
-    if (attempted) return;
-    attempted = true;
-    auto* mainClass = il2cpp::findClassQuiet("Terraria", "Main");
-    auto& a = il2cpp::api();
-    const MethodInfo* target = mainClass
-        ? a.class_get_method_from_name(mainClass, "MouseText_DrawItemTooltip_GetLinesInfo", 12)
-        : nullptr;
-    if (!target || (a.method_is_instance && a.method_is_instance(target))) {
-        BL_WARN("tooltip native probe: metodo estatico de 12 argumentos indisponivel");
-        return;
-    }
-    if (!hook::install(target, hkDrawModTooltip, &g_origDrawModTooltip))
-        BL_WARN("tooltip native probe: nao foi possivel instalar a inspecao");
-    else
-        BL_INFO("tooltip native probe: inspecao instalada sem modificar tooltips vanilla");
-}
-
 } // namespace
 
 void tickModItems() {
@@ -917,7 +833,6 @@ void tickModItems() {
     g_installed.store(total, std::memory_order_release);
     hookItemNames();
     hookItemTooltips();
-    installModTooltipProbe();
     patchDropLimits(to);
     patchTouchTagLimits(to);
     patchItemTagLimits(to);
