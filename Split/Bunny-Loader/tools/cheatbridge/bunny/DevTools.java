@@ -746,7 +746,123 @@ final class DevTools {
             }
         }
 
-        void history(int step) {
+        void switchEditorLanguage() {
+            saveDraft();
+            if (!csharpMode) {
+                jsDraft = editor.getText().toString();
+                csharpMode = true;
+                languageButton.setText("C#");
+                editor.setHint("Selecione um arquivo .cs para editar");
+                editor.setText(csharpDraft);
+                title.setText("Editor C#");
+                if (selectedCSharpSource == null) chooseCSharpSource();
+            } else {
+                csharpDraft = editor.getText().toString();
+                csharpMode = false;
+                languageButton.setText("JS");
+                editor.setHint("player.statLife = 500");
+                editor.setText(jsDraft);
+                title.setText("Editor JS");
+            }
+            editor.setSelection(editor.getText().length());
+            appendEntry('i', csharpMode
+                ? "C#: edite uma fonte .cs e toque no botao verde para salvar. Reinicie para recompilar. Nao executa JavaScript."
+                : "JS: o botao verde executa o codigo no motor QuickJS.");
+            refreshOutput();
+        }
+
+        File csharpRoot() {
+            File directory = act.getExternalFilesDir(null);
+            return directory == null || directory.getParentFile() == null
+                ? null : new File(directory.getParentFile(), "bunny_packs");
+        }
+
+        void collectCSharpSources(File dir, ArrayList<File> found, int depth) {
+            if (dir == null || depth > 10 || found.size() >= 192 || !dir.isDirectory()) return;
+            File[] entries = dir.listFiles();
+            if (entries == null) return;
+            for (File candidate : entries) {
+                if (found.size() >= 192) return;
+                if (candidate.isDirectory()) collectCSharpSources(candidate, found, depth + 1);
+                else if (candidate.getName().endsWith(".cs") && candidate.length() > 0
+                         && candidate.length() <= 512 * 1024)
+                    found.add(candidate);
+            }
+        }
+
+        void chooseCSharpSource() {
+            final File root = csharpRoot();
+            final ArrayList<File> sources = new ArrayList<File>();
+            collectCSharpSources(root, sources, 0);
+            if (sources.isEmpty()) {
+                appendEntry('x', "Nenhuma fonte .cs encontrada nos mods C#. Importe um .bmod com arquivos-fonte.");
+                refreshOutput();
+                return;
+            }
+            Collections.sort(sources, new Comparator<File>() {
+                @Override public int compare(File a, File b) {
+                    return a.getAbsolutePath().compareToIgnoreCase(b.getAbsolutePath());
+                }
+            });
+            String[] choices = new String[sources.size()];
+            for (int i = 0; i < choices.length; i++) {
+                String absolute = sources.get(i).getAbsolutePath();
+                choices[i] = absolute.substring(root.getAbsolutePath().length() + 1);
+            }
+            new AlertDialog.Builder(act).setTitle("Selecionar arquivo C#")
+                .setItems(choices, (dialog, index) -> {
+                    File source = sources.get(index);
+                    try {
+                        byte[] contents = Files.readAllBytes(source.toPath());
+                        selectedCSharpSource = source;
+                        csharpDraft = new String(contents, StandardCharsets.UTF_8);
+                        editor.setText(csharpDraft);
+                        editor.setSelection(editor.length());
+                        title.setText("C# · " + source.getName());
+                        appendEntry('i', "C# fonte aberta: " + choices[index]);
+                    } catch (Exception error) {
+                        appendEntry('x', "Falha ao abrir C#: " + error.getMessage());
+                    }
+                    refreshOutput();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+        }
+
+        void saveCSharpSource() {
+            if (selectedCSharpSource == null) { chooseCSharpSource(); return; }
+            File root = csharpRoot();
+            File temp = null;
+            try {
+                if (root == null || !selectedCSharpSource.getCanonicalPath().startsWith(
+                    root.getCanonicalPath() + File.separator))
+                    throw new IllegalArgumentException("Arquivo fora dos mods instalados");
+                String content = editor.getText().toString();
+                byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+                if (bytes.length == 0 || bytes.length > 512 * 1024)
+                    throw new IllegalArgumentException("Fonte vazia ou maior que 512 KiB");
+                temp = new File(selectedCSharpSource.getParentFile(), selectedCSharpSource.getName() + ".tmp-csharp");
+                Files.write(temp.toPath(), bytes);
+                File backup = new File(selectedCSharpSource.getParentFile(), selectedCSharpSource.getName() + ".bak");
+                Files.copy(selectedCSharpSource.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                try {
+                    Files.move(temp.toPath(), selectedCSharpSource.toPath(),
+                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                    Files.move(temp.toPath(), selectedCSharpSource.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+                csharpDraft = content;
+                saveDraft();
+                appendEntry('i', "Fonte C# salva. Reinicie o Bunny Loader para recompilar o mod com Roslyn/MonoVM.");
+            } catch (Exception error) {
+                appendEntry('x', "Nao foi possivel salvar fonte C#: " + error.getMessage());
+            } finally {
+                if (temp != null && temp.exists()) temp.delete();
+            }
+            refreshOutput();
+        }
+
+                void history(int step) {
             if (sHistory.isEmpty()) return;
             if (historyIndex < 0) {
                 if (step > 0) return;
