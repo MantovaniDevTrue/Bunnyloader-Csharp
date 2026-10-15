@@ -11,11 +11,11 @@ const all=[pumpkin];
 const bounded=values=>new Proxy(values,{
     get(target,key){
         if(key==='cloneResized')return size=>bounded(Array.from({length:size},(_,i)=>i<target.length?target[i]:null));
-        if(typeof key==='string'&&/^\\d+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
+        if(typeof key==='string'&&/^[0-9]+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
         return Reflect.get(target,key);
     },
     set(target,key,value){
-        if(typeof key==='string'&&/^\\d+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
+        if(typeof key==='string'&&/^[0-9]+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
         return Reflect.set(target,key,value);
     }
 });
