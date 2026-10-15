@@ -77,11 +77,11 @@ public static class CompiledAssemblyProbe
             Type? console = assembly.GetType("BunnyLoader.Interactive.ConsoleEntry", false);
             if (console != null)
             {
+                MethodInfo? run = console.GetMethod("Run", BindingFlags.Public | BindingFlags.Static,
+                    null, Type.EmptyTypes, null);
                 if (contentTypes.Length != 1 || !console.IsClass ||
                     !console.IsAbstract || !console.IsSealed ||
-                    console.GetMethod("Run", BindingFlags.Public | BindingFlags.Static,
-                        null, Type.EmptyTypes, null) is not { ReturnType: var returnType } ||
-                    returnType != typeof(string))
+                    run == null || run.ReturnType != typeof(string))
                     throw new InvalidOperationException("CSharp console assembly contract invalid");
                 File.AppendAllText(diagnosticsPath, "\nINTERACTIVE_CONSOLE_VERIFIED classes=1");
                 return 1;
