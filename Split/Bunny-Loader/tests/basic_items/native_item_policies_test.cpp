@@ -28,7 +28,7 @@ std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
 int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0;
-bool failAsset=false,failSet=false,rawOffsets=true;
+bool failAsset=false,failSet=false,rawOffsets=true,screenPropertyOnly=false;
 float lastLight[3]{},lastPosition[2]{};
 Il2CppObject exception{};
 Il2CppClass* cls(const std::string& name,bool value=false,int size=0){auto [it,added]=classes.try_emplace(name,Il2CppClass{});if(added){it->second.name=it->first.c_str();it->second.value=value;it->second.size=size;}return &it->second;}
@@ -52,6 +52,7 @@ bool originalMounted(Il2CppObject*,const MethodInfo*){return true;}
 uint32_t originalColor(Il2CppObject*,uint32_t color,const MethodInfo*){return color;}
 int32_t originalMatch(const void*,uint8_t*,const MethodInfo*){return 42;}
 struct Vec2 {float x,y;};
+Vec2 screenProperty(const MethodInfo*){return {1000.f,1000.f};}
 void addLight(Vec2 position,float r,float g,float b,const MethodInfo*){++lightCalls;lastPosition[0]=position.x;lastPosition[1]=position.y;lastLight[0]=r;lastLight[1]=g;lastLight[2]=b;}
 size_t width(Il2CppClass* c){return c->value?static_cast<size_t>(c->size):sizeof(void*);}
 void configurePolicies() {
@@ -154,7 +155,13 @@ void configureRenderer() {
  field(data,"effect",&intClass,box+offsetof(DrawData,effect));field(data,"shader",&intClass,box+offsetof(DrawData,shader));
  auto* info=cls("PlayerDrawSet",false,sizeof(DrawInfo));field(info,"drawPlayer",&playerClass,offsetof(DrawInfo,player));field(info,"DrawDataCache",arrayClass(data),offsetof(DrawInfo,cache));
  field(info,"DrawDataCacheCount",&intClass,offsetof(DrawInfo,count));field(info,"shadow",&floatClass,offsetof(DrawInfo,shadow));field(info,"Position",cls("Vector2"),offsetof(DrawInfo,position));field(info,"playerEffect",&intClass,offsetof(DrawInfo,effect));
- std::array<float,2> screen{1000,1000};constant(field(cls("Main"),"screenPosition",cls("Vector2"),0,true),screen);
+ if(screenPropertyOnly){
+   auto* getter=addMethod(cls("Main"),"Vector2 get_screenPosition()",false);
+   const_cast<MethodInfo*>(getter)->pointer=reinterpret_cast<void*>(screenProperty);
+  }else{
+   std::array<float,2> screen{1000,1000};
+   constant(field(cls("Main"),"screenPosition",cls("Vector2"),0,true),screen);
+  }
  auto* layers=cls("PlayerDrawLayers");for(const char* signature:{"void DrawPlayer_10_BackAcc(PlayerDrawSet drawinfo)","void DrawPlayer_25_Shield(PlayerDrawSet drawinfo)","void DrawPlayer_35_IceBarrier(PlayerDrawSet drawinfo)"})addMethod(layers,signature,false);
 }
 void testRenderer(const std::string& root) {
@@ -197,7 +204,7 @@ int slot(int type,const std::string& kind) {
 }
 }
 int main(int argc,char** argv) {
- using namespace bl::csharp;assert(argc>=3);rawOffsets=argc<4||std::string(argv[3])!="--boxed";configurePolicies();
+ using namespace bl::csharp;assert(argc>=3);rawOffsets=argc<4||std::string(argv[3])!="--boxed";screenPropertyOnly=argc>=4&&std::string(argv[3])=="--screen-property";configurePolicies();
  std::ifstream input(argv[1]);assert(input);std::string line,error;std::getline(input,line);std::vector<BasicItemEntry> all;int next=6400;
  while(std::getline(input,line)) {
   auto parts=basicSplit(line,'\t');if(parts[0]!="ITEM")continue;BasicItemEntry entry;assert(parseBasicItemWire(parts,&entry,&error));
