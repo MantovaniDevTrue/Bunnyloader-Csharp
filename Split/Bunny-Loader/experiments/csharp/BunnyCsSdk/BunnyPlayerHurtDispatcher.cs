@@ -228,6 +228,7 @@ public static class BunnyPlayerHurtDispatcher
                 attackerX, attackerY, attackerVelocityX, attackerVelocityY,
                 attackerAngle, attackerDistance);
             var players = Contexts[slot].Players;
+            var hooks = Contexts[slot].Hooks;
             for (int i = 0; i < players.Length; i++)
             {
                 var player = players[i];
