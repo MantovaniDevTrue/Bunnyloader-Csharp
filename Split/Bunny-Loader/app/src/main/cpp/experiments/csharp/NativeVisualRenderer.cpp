@@ -63,6 +63,7 @@ struct Refs {
     bool nullableSource=false;
     Il2CppClass* cacheClass=nullptr;FieldInfo* screen=nullptr;
     const MethodInfo* mounted=nullptr;
+    const MethodInfo* screenGetter=nullptr;
     std::vector<size_t> references;
 };
 Refs refs;
@@ -98,7 +99,12 @@ bool context(void* info,int mode,Context* out) {
     if(!cache||api().object_get_class(reinterpret_cast<Il2CppObject*>(cache))!=refs.cacheClass||cache->length>65536)return false;
     out->info=info;out->player=player;out->cache=cache;out->id=id;out->mode=mode;
     out->width=get<int32_t>(player,refs.width);out->height=get<int32_t>(player,refs.height);out->direction=get<int32_t>(player,refs.direction);
-    out->position=get<Vec>(info,refs.position);out->world=get<Vec>(player,refs.world);out->velocity=get<Vec>(player,refs.velocity);api().field_static_get_value(refs.screen,&out->screen);
+    out->position=get<Vec>(info,refs.position);out->world=get<Vec>(player,refs.world);out->velocity=get<Vec>(player,refs.velocity);
+    if(refs.screen)api().field_static_get_value(refs.screen,&out->screen);
+    else if(refs.screenGetter){
+        using ScreenFn=Vec (*)(const MethodInfo*);
+        out->screen=reinterpret_cast<ScreenFn>(methodPointer(refs.screenGetter))(refs.screenGetter);
+    }else return false;
     out->rotation=get<float>(player,refs.rotation);out->frameHeight=get<int32_t>(player,refs.frame+refs.frameHeight);out->effect=get<int32_t>(info,refs.effect);
     auto* mount=get<Il2CppObject*>(player,refs.mount);
     if(mount){using Fn=bool (*)(Il2CppObject*,const MethodInfo*);out->mounted=reinterpret_cast<Fn>(methodPointer(refs.mounted))(mount,refs.mounted);}
@@ -192,10 +198,18 @@ bool bind(std::string* error) {
     if(!refs.player.field("bodyFrame",16,&refs.frame,&frame)||!refs.rectangle.init(frame,error)||!scalar(refs.rectangle,"Height","Int32",4,&refs.frameHeight)||
        !refs.player.field("mount",sizeof(void*),&refs.mount,&mount))return unavailable("BodyFrameOrMount");
     refs.mounted=findMethodBySignature(mount,parseSignature("bool get_Active()"));if(!refs.mounted||!a.method_is_instance(refs.mounted)||!methodPointer(refs.mounted))return unavailable("MountedActiveMethod");
-    auto* main=findClass({"Terraria","Main",{}});refs.screen=main?findField(main,"screenPosition"):nullptr;
-    if(!refs.screen||!(a.field_get_flags(refs.screen)&0x10u))return unavailable("ScreenPositionField");
+    auto* main=findClass({"Terraria","Main",{}});
+    refs.screen=main?findField(main,"screenPosition"):nullptr;
+    refs.screenGetter=nullptr;
+    if(!refs.screen||!(a.field_get_flags(refs.screen)&0x10u)){
+        refs.screen=nullptr;
+        const auto* getter=main?findMethodBySignature(main,parseSignature("Vector2 get_screenPosition()")):nullptr;
+        if(!getter||a.method_is_instance(getter)||!methodPointer(getter))return unavailable("ScreenPositionFieldOrStaticGetter");
+        refs.screenGetter=getter;
+    }
     Layout screen;size_t sx=0,sy=0;
-    if(!screen.init(a.class_from_il2cpp_type(a.field_get_type(refs.screen)),error)||!screen.value||screen.bytes!=8||!scalar(screen,"X","Single",4,&sx)||!scalar(screen,"Y","Single",4,&sy)||sx!=0||sy!=4)return unavailable("ScreenPositionLayout");
+    auto* screenClass=refs.screen?a.class_from_il2cpp_type(a.field_get_type(refs.screen)):a.class_from_il2cpp_type(a.method_get_return_type(refs.screenGetter));
+    if(!screen.init(screenClass,error)||!screen.value||screen.bytes!=8||!scalar(screen,"X","Single",4,&sx)||!scalar(screen,"Y","Single",4,&sy)||sx!=0||sy!=4)return unavailable("ScreenPositionLayout");
     Il2CppClass* texture=nullptr,*source=nullptr;
     if(!refs.data.field("texture",sizeof(void*),&refs.texture,&texture)||a.class_is_valuetype(texture)||!vec(refs.data,"position",&refs.drawPosition)||
        !vec(refs.data,"origin",&refs.origin)||!vec(refs.data,"scale",&refs.scale)||!scalar(refs.data,"rotation","Single",4,&refs.drawRotation)||!scalar(refs.data,"shader","Int32",4,&refs.shader))return unavailable("DrawDataFieldLayout");
