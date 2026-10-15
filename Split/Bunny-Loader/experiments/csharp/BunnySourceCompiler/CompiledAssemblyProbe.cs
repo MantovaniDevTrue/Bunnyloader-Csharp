@@ -69,7 +69,7 @@ public static class CompiledAssemblyProbe
     {
         try
         {
-            if (!File.Exists(assemblyPath) || new FileInfo(assemblyPath).Length > 8 * 1024 * 1024)
+            if (!File.Exists(assemblyPath) || new FileInfo(assemblyPath).Length > 32 * 1024 * 1024)
                 throw new InvalidOperationException("Compiled assembly missing or too large");
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
@@ -104,10 +104,10 @@ public static class CompiledAssemblyProbe
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (tileTypes.Length > 256 || prefixTypes.Length > 256 || npcTypes.Length > 256 || accessoryTypes.Length > 256 || playerTypes.Length > 256 ||
-                projectileTypes.Length > 256 ||
-                weaponTypes.Length > 256 || basicItemTypes.Length > 256 ||
-                buffTypes.Length > 256 || potionTypes.Length > 256)
+            if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+                projectileTypes.Length > 4096 ||
+                weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
+                buffTypes.Length > 4096 || potionTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
             if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
@@ -373,8 +373,8 @@ public static class CompiledAssemblyProbe
             }
             policies.Add(projectile.Name + "\t" + string.Join("\t", samples));
         }
-        if (policies.Count > 256)
-            throw new InvalidOperationException("More than 16 independent projectile motion curves");
+        if (policies.Count > 4096)
+            throw new InvalidOperationException("More than 4096 independent projectile motion curves");
         string dir = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing diagnostics directory");
         string destination = Path.Combine(dir, "source-projectile-turns.txt");
