@@ -1380,6 +1380,61 @@ void setManagedCheckpointPath(const std::string& path) {
         g_checkpointPath = path;
 }
 
+bool invokeInteractiveCSharp(const std::string& assemblyPath, std::string* output, std::string* error) {
+    if (!output || !error) return false;
+    output->clear();
+    error->clear();
+    if (!validAssembly(assemblyPath)) {
+        *error="Console assembly missing or invalid";
+        return false;
+    }
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_domain || !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke) {
+        *error="MonoVM domain not ready";
+        return false;
+    }
+    if (!g_api.attach(g_domain)) {
+        *error="MonoVM game thread attach failed";
+        return false;
+    }
+    void* assembly=g_api.openAssembly(g_domain,assemblyPath.c_str());
+    void* image=assembly?g_api.image(assembly):nullptr;
+    void* klass=image?g_api.findClass(image,"BunnyLoader.Interactive","ConsoleEntry"):nullptr;
+    void* method=klass?g_api.findMethod(klass,"Run",0):nullptr;
+    if (!method) {
+        *error="BunnyLoader.Interactive.ConsoleEntry.Run() not found";
+        return false;
+    }
+    void* exception=nullptr;
+    void* result=g_api.invoke(method,nullptr,nullptr,&exception);
+    auto toUtf8=resolve<char* (*)(void*)>("mono_string_to_utf8");
+    auto release=resolve<void (*)(void*)>("mono_free");
+    if (exception) {
+        auto toString=resolve<void* (*)(void*,void**)>("mono_object_to_string");
+        void* renderError=nullptr;
+        void* message=toString?toString(exception,&renderError):nullptr;
+        if (message && !renderError && toUtf8 && release) {
+            char* text=toUtf8(message);
+            if (text){*error=std::string(text).substr(0,4096);release(text);}
+        }
+        if (error->empty())*error="Managed CSharp code threw an exception";
+        return false;
+    }
+    if (!result || !toUtf8 || !release) {
+        *error="MonoVM console result unavailable";
+        return false;
+    }
+    char* text=toUtf8(result);
+    if (!text) {
+        *error="MonoVM console UTF8 conversion failed";
+        return false;
+    }
+    *output=std::string(text).substr(0,8192);
+    release(text);
+    return true;
+}
+
 ManagedRuntimeStatus managedRuntimeStatus() {
     std::lock_guard<std::mutex> guard(g_mutex);
     return g_status;
