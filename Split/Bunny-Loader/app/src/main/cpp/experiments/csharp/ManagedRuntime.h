@@ -70,6 +70,7 @@ struct ManagedRuntimeStatus {
 
 bool invokeInteractiveCSharp(const std::string& assemblyPath, std::string* output, std::string* error);
 void setManagedCheckpointPath(const std::string& path);
+std::string managedHurtHookSnapshot();
 ManagedRuntimeStatus managedRuntimeStatus();
 ManagedRuntimeStatus inspectManagedRuntime();
 ManagedRuntimeStatus probeManagedRuntime(const std::string& assemblyPath);
