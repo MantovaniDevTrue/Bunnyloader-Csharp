@@ -72,19 +72,38 @@ inline std::string encode(const std::string& contract,const std::string& id,cons
 }
 inline bool decode(const std::string& value,const std::string& contract,const std::string& id,
                    const std::string& key,const std::string& assembly,std::string* defaults,
-                   std::string* curves,std::string* combat) {
-    if(!digest(key)||!digest(assembly))return false;
+                   std::string* curves,std::string* combat,std::string* reason=nullptr) {
+    const auto fail=[&](const char* description) {
+        if(reason)*reason=description;
+        return false;
+    };
+    if(!digest(key))return fail("InvalidSourceKey");
+    if(!digest(assembly))return fail("AssemblyUnavailable");
     std::istringstream input(value);std::string line,counts,checksum;
-    for(const auto& expected:{std::string(envelope),contract,id,key})
-        if(!std::getline(input,line)||line!=expected)return false;
-    if(!std::getline(input,counts)||!std::getline(input,line)||line!=assembly||!std::getline(input,checksum)||!digest(checksum))return false;
+    for(const auto& expected:{std::string(envelope),contract,id,key}) {
+        if(!std::getline(input,line))return fail("HeaderTruncated");
+        if(line!=expected) {
+            if(expected==std::string(envelope))return fail("EnvelopeChanged");
+            if(expected==contract)return fail("ContractChanged");
+            if(expected==id)return fail("ModIdentityChanged");
+            return fail("SourceFingerprintChanged");
+        }
+    }
+    if(!std::getline(input,counts))return fail("CountsMissing");
+    if(!std::getline(input,line))return fail("AssemblyMissing");
+    if(line!=assembly)return fail("AssemblyChanged");
+    if(!std::getline(input,checksum)||!digest(checksum))return fail("ChecksumMissing");
     size_t a=0,b=0,c=0;std::string extra;std::istringstream sizes(counts);
-    if(!(sizes>>a>>b>>c)||(sizes>>extra)||a>kSourceDefaultsBytes||b>kSourceMotionBytes||c>kSourceMotionBytes)return false;
-    const auto position=input.tellg();if(position<0)return false;
+    if(!(sizes>>a>>b>>c)||(sizes>>extra)||a>kSourceDefaultsBytes||b>kSourceMotionBytes||c>kSourceMotionBytes)
+        return fail("SectionSizesInvalid");
+    const auto position=input.tellg();if(position<0)return fail("PayloadMissing");
     const size_t offset=static_cast<size_t>(position);
-    if(value.size()!=offset+a+b+c)return false;
+    if(value.size()!=offset+a+b+c)return fail("PayloadSizeChanged");
     const auto d=value.substr(offset,a),t=value.substr(offset+a,b),p=value.substr(offset+a+b,c);
-    if(!validSections(d,t,p)||sectionsHash(d,t,p)!=checksum)return false;
-    *defaults=d;*curves=t;*combat=p;return true;
+    if(!validSections(d,t,p))return fail("SectionFormatInvalid");
+    if(sectionsHash(d,t,p)!=checksum)return fail("SectionsChecksumChanged");
+    *defaults=d;*curves=t;*combat=p;
+    if(reason)*reason="Hit";
+    return true;
 }
 }
