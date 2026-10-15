@@ -7,7 +7,22 @@ const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn)
 const cls=(name,extra={})=>new Proxy(extra,{get(t,k){if(k in t)return t[k];return t[k]=callable(name+':'+String(k));}});
 const Item=cls('Item'),Player=cls('Player'),WorldItem=cls('WorldItem');
 const pumpkin={Head:900,Effect:{native:'pumpkin'}};
-const all=[pumpkin];const containing=[];for(const e of entries){samples.set(e.type,{type:e.type,stack:1});containing[e.type]=[];}
+const all=[pumpkin];
+const bounded=values=>new Proxy(values,{
+    get(target,key){
+        if(key==='cloneResized')return size=>bounded(Array.from({length:size},(_,i)=>i<target.length?target[i]:null));
+        if(typeof key==='string'&&/^\\d+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
+        return Reflect.get(target,key);
+    },
+    set(target,key,value){
+        if(typeof key==='string'&&/^\\d+$/.test(key)&&Number(key)>=target.length)throw new RangeError('indice '+key+' fora de 0..'+(target.length-1));
+        return Reflect.set(target,key,value);
+    }
+});
+const containing=bounded(Array.from({length:6197},()=>[]));
+const originalVanilla=containing[900];
+originalVanilla.push(pumpkin);
+for(const e of entries)samples.set(e.type,{type:e.type,stack:1});
 const bonuses={All:{ToArray:()=>all},SetsContaining:containing,Benefits:cls('Benefits')};
 bonuses['void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)']=(Effect,Text,Primary,Head,Body,Legs)=>{const s={Effect,Text,Head,Body,Legs};all.push(s);sets.push(s);};
 const Terraria={Item,Player,WorldItem,Main:{player:[],mouseItem:null},ID:{ItemID:{PumpkinHelmet:900},BuffID:{OnFire:24},ContentSamples:{ItemsByType:{ContainsKey:t=>samples.has(t),get_Item:t=>samples.get(t)}}},DataStructures:{ArmorSetBonuses:bonuses,ArmorSetBonus:{newArray:v=>v}}};
@@ -20,7 +35,9 @@ ctx.__blSyncCSharpItemBehaviors();assert.equal(sets.length,1,'set registration i
 const item=name=>samples.get(entries.find(e=>e.name===name).type);
 const armor=[item('ContractHelmet'),item('ContractPlate'),item('ContractLegs')];
 assert.deepEqual(armor.map(i=>i.defense),[5,6,5]);
-for(const i of armor)assert.equal(containing[i.type].length,1,'native set lookup per part');
+assert.equal(bonuses.SetsContaining.length,6303,'lookup grows to highest native content ID');
+assert.strictEqual(bonuses.SetsContaining[900],originalVanilla,'vanilla armor lookup preserved');
+for(const i of armor)assert.equal(bonuses.SetsContaining[i.type].length,1,'native set lookup per part');
 const grant=hooks.get('Player:void GrantArmorBenefits(Item armorPiece)');assert(grant);
 const fresh=()=>({armor,statDefense:0,statManaMax2:200,maxMinions:1,moveSpeed:1,meleeDamage:1,rangedDamage:1,magicDamage:1,minionDamage:1,buffImmune:Array(100).fill(false)});
 let p=fresh();for(const i of armor)grant((player,item)=>player.statDefense+=item.defense,p,i);

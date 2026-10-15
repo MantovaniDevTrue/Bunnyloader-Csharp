@@ -49,7 +49,6 @@ class CSharpArmorPolicy {
     static InstallSet(set) {
         const lookup=Terraria.DataStructures.ArmorSetBonuses.SetsContaining;
         if(!lookup)throw new Error('ArmorSet Stage=Install Field=SetsContaining Actual=Missing Result=Pending');
-        for(const id of set.ids)if(!lookup[id])throw new Error('ArmorSet Stage=Install ContentId='+id+' Expected=ReadyPartLookup Actual=Missing Result=Pending');
         ArmorSetLoader.CreateArmorSet(...set.ids,set.text);
     }
     static Matches(set,player) {
