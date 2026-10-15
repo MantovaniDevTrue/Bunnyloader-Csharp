@@ -311,6 +311,10 @@ void* g_managedHurtRegisterMethod = nullptr;
 void* g_managedHurtModifyMethod = nullptr;
 void* g_managedHurtAfterMethod = nullptr;
 void* g_managedHurtErrorMethod = nullptr;
+void* g_managedHurtSnapshotMethod = nullptr;
+std::mutex g_hurtSnapshotMutex;
+std::string g_hurtSnapshotText = "Hooks C#: aguardando evento de dano...";
+std::chrono::steady_clock::time_point g_hurtSnapshotNext{};
 std::atomic<ManagedHurtDiagnosticLogFn> g_hurtDiagnosticLogger{nullptr};
 
 bool g_pinnedStarted = false;
@@ -764,6 +768,7 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
         g_managedHurtModifyMethod = g_api.findMethod(cls, "Modify", 21);
         g_managedHurtAfterMethod = g_api.findMethod(cls, "After", 21);
         g_managedHurtErrorMethod = g_api.findMethod(cls, "GetLastError", 1);
+        g_managedHurtSnapshotMethod = g_api.findMethod(cls, "GetHookSnapshot", 0);
         if (!g_managedHurtRegisterMethod || !g_managedHurtModifyMethod ||
             !g_managedHurtAfterMethod) return -1;
     }
@@ -838,6 +843,24 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
         job.after ? argsAfter : argsModify, &exception);
     void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
     if (!raw) return -1;
+    const auto snapshotNow = std::chrono::steady_clock::now();
+    if (g_managedHurtSnapshotMethod && snapshotNow >= g_hurtSnapshotNext) {
+        g_hurtSnapshotNext = snapshotNow + std::chrono::milliseconds(650);
+        void* snapshotError = nullptr;
+        void* snapshot = g_api.invoke(g_managedHurtSnapshotMethod, nullptr, nullptr, &snapshotError);
+        if (!snapshotError && snapshot) {
+            auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+            auto release = resolve<void (*)(void*)>("mono_free");
+            if (utf8 && release) {
+                char* value = utf8(snapshot);
+                if (value) {
+                    std::lock_guard<std::mutex> lock(g_hurtSnapshotMutex);
+                    g_hurtSnapshotText.assign(value, strnlen(value, 768));
+                    release(value);
+                }
+            }
+        }
+    }
     if (job.after) {
         int done = 0;
         std::memcpy(&done, raw, sizeof(done));
@@ -1433,6 +1456,11 @@ bool invokeInteractiveCSharp(const std::string& assemblyPath, std::string* outpu
     *output=std::string(text).substr(0,8192);
     release(text);
     return true;
+}
+
+std::string managedHurtHookSnapshot() {
+    std::lock_guard<std::mutex> guard(g_hurtSnapshotMutex);
+    return g_hurtSnapshotText;
 }
 
 ManagedRuntimeStatus managedRuntimeStatus() {
