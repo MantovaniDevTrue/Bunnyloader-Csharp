@@ -40,7 +40,7 @@ bool isSourceName(const std::string& name) {
 
 bool collect(const std::string& folder, const std::string& rel,
              std::vector<std::string>* paths, std::string* error, int depth) {
-    if (depth > 7) { *error = "pastas C# excedem o limite"; return false; }
+    if (depth > kSourceMaxDepth) { *error = "pastas C# excedem o limite"; return false; }
     DIR* d = opendir((folder + (rel.empty() ? "" : "/" + rel)).c_str());
     if (!d) { *error = "pasta de fontes inacessivel"; return false; }
     std::vector<std::string> names;
@@ -264,7 +264,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
         totalSourceBytes+=contents.size();
-        if(totalSourceBytes>kSourceMaxTotalBytes) {status->error="Fontes excedem 16 MiB";return false;}
+        if(totalSourceBytes>kSourceMaxTotalBytes) {status->error="Fontes excedem 32 MiB";return false;}
         const size_t previousTypes=defs.size();
         if (!parseCSharpSource(contents, &defs, &status->error, false)) {
             status->error = path + ": " + status->error;
@@ -776,7 +776,7 @@ bool applyManagedSourceDefaults(
             buffs.size() > kSourceMaxCategory || potions.size() > kSourceMaxCategory ||
             accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory ||
             npcs.size() > kSourceMaxCategory || prefixes.size() > kSourceMaxCategory) {
-            *error = "Quantidade de conteudo C# excede 256 por categoria";
+            *error = "Quantidade de conteudo C# excede 4096 por categoria";
             return false;
         }
     }
