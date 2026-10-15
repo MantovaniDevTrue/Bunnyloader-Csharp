@@ -45,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -332,6 +333,7 @@ final class DevTools {
     private static final SpannableStringBuilder sOutput = new SpannableStringBuilder();
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
+    private static ArrayList<String> sCSharpHistory;
     private static Console sConsole;
     private static View sFloatIcon;
 
@@ -365,6 +367,13 @@ final class DevTools {
                 for (String s : all.split("\u0001", -1)) if (s.length() > 0) sHistory.add(s);
             }
         } catch (Throwable t) { /* sem historico */ }
+        sCSharpHistory = new ArrayList<String>();
+        try {
+            String all = prefs(act).getString("historyCSharp", "");
+            if (!all.isEmpty())
+                for (String value : all.split("\u0001", -1))
+                    if (!value.isEmpty()) sCSharpHistory.add(value);
+        } catch (Throwable ignored) { }
     }
 
     private static void saveHistory(Activity act) {
@@ -374,7 +383,15 @@ final class DevTools {
             if (i > 0) b.append('\u0001');
             b.append(sHistory.get(i));
         }
-        try { prefs(act).edit().putString("history", b.toString()).apply(); } catch (Throwable t) { }
+        StringBuilder cs = new StringBuilder();
+        if (sCSharpHistory != null)
+            for (String value : sCSharpHistory) {
+                if (cs.length() > 0) cs.append('\u0001');
+                cs.append(value);
+            }
+        try { prefs(act).edit().putString("history", b.toString())
+                    .putString("historyCSharp", cs.toString()).apply(); }
+        catch (Throwable ignored) { }
     }
 
     /** Uma entrada da saida: especie (o 1o caractere, como no nativo) e texto. */
@@ -431,7 +448,6 @@ final class DevTools {
         final TextView title;
         final TextView languageButton;
         boolean csharpMode;
-        File selectedCSharpSource;
         String jsDraft = "";
         String csharpDraft = "";
         final Handler handler = new Handler(Looper.getMainLooper());
@@ -479,12 +495,6 @@ final class DevTools {
                 @Override public void run() { switchEditorLanguage(); }
             });
             head.addView(languageButton);
-            head.addView(textButton(a, "Fontes", BUTTON, new Runnable() {
-                @Override public void run() {
-                    if (!csharpMode) switchEditorLanguage();
-                    else chooseCSharpSource();
-                }
-            }));
 
             head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
@@ -732,7 +742,7 @@ final class DevTools {
         // ---- rodar, historico, saida ----
 
         void run() {
-            if (csharpMode) { saveCSharpSource(); return; }
+            if (csharpMode) { runCSharp(); return; }
             String code = editor.getText().toString();
             if (code.trim().length() == 0) return;
             appendEntry('i', code);
@@ -758,10 +768,9 @@ final class DevTools {
                 jsDraft = editor.getText().toString();
                 csharpMode = true;
                 languageButton.setText("C#");
-                editor.setHint("Selecione um arquivo .cs para editar");
+                editor.setHint("Print(1 + 2);");
                 editor.setText(csharpDraft);
                 title.setText("Editor C#");
-                if (selectedCSharpSource == null) chooseCSharpSource();
             } else {
                 csharpDraft = editor.getText().toString();
                 csharpMode = false;
@@ -771,147 +780,109 @@ final class DevTools {
                 title.setText("Editor JS");
             }
             editor.setSelection(editor.getText().length());
-            if (csharpMode) showCSharpCompileStatus();
             appendEntry('i', csharpMode
-                ? "C#: edite uma fonte .cs e toque no botao verde para salvar. Reinicie para recompilar. Nao executa JavaScript."
+                ? "C#: escreva Print(1 + 2); e toque no botao verde. Roslyn compila e MonoVM executa sem QuickJS."
                 : "JS: o botao verde executa o codigo no motor QuickJS.");
             refreshOutput();
         }
 
-        void showCSharpCompileStatus() {
-            File status = new File(new File(act.getFilesDir(), "bunny-csharp"), "source-compile-status.txt");
-            if (!status.isFile() || status.length() > 128 * 1024) return;
-            try {
-                String contents = new String(Files.readAllBytes(status.toPath()), StandardCharsets.UTF_8);
-                String state = "", error = "", mod = "";
-                for (String line : contents.split("\\n")) {
-                    if (line.startsWith("state=")) state = line.substring(6);
-                    else if (line.startsWith("modId=")) mod = line.substring(6);
-                    else if (line.startsWith("error=")) error = line.substring(6);
-                }
-                appendEntry("finished".equals(state) ? 'i' : 'x',
-                    "C# Roslyn: " + state + " mod=" + mod + (error.isEmpty() ? "" : " " + error));
-            } catch (Exception ignored) { }
-        }
-
-        File csharpRoot() {
-            File directory = act.getExternalFilesDir(null);
-            return directory == null || directory.getParentFile() == null
-                ? null : new File(directory.getParentFile(), "bunny_packs");
-        }
-
-        void collectCSharpSources(File dir, ArrayList<File> found, int depth) {
-            if (dir == null || depth > 10 || found.size() >= 192 || !dir.isDirectory()) return;
-            File[] entries = dir.listFiles();
-            if (entries == null) return;
-            for (File candidate : entries) {
-                if (found.size() >= 192) return;
-                if (candidate.isDirectory()) collectCSharpSources(candidate, found, depth + 1);
-                else if (candidate.getName().endsWith(".cs") && candidate.length() > 0
-                         && candidate.length() <= 512 * 1024)
-                    found.add(candidate);
-            }
-        }
-
-        void chooseCSharpSource() {
-            final File root = csharpRoot();
-            final ArrayList<File> sources = new ArrayList<File>();
-            collectCSharpSources(root, sources, 0);
-            if (sources.isEmpty()) {
-                appendEntry('x', "Nenhuma fonte .cs encontrada nos mods C#. Importe um .bmod com arquivos-fonte.");
+        void runCSharp() {
+            String code = editor.getText().toString().trim();
+            if (code.length() == 0) return;
+            if (code.length() > 8192) {
+                appendEntry('x', "C#: limite de 8192 caracteres por execucao");
                 refreshOutput();
                 return;
             }
-            Collections.sort(sources, new Comparator<File>() {
-                @Override public int compare(File a, File b) {
-                    return a.getAbsolutePath().compareToIgnoreCase(b.getAbsolutePath());
-                }
-            });
-            String[] choices = new String[sources.size()];
-            for (int i = 0; i < choices.length; i++) {
-                String absolute = sources.get(i).getAbsolutePath();
-                choices[i] = absolute.substring(root.getAbsolutePath().length() + 1);
-            }
-            new AlertDialog.Builder(act).setTitle("Selecionar arquivo C#")
-                .setItems(choices, (dialog, index) -> {
-                    File source = sources.get(index);
-                    try {
-                        byte[] contents = Files.readAllBytes(source.toPath());
-                        selectedCSharpSource = source;
-                        csharpDraft = new String(contents, StandardCharsets.UTF_8);
-                        editor.setText(csharpDraft);
-                        editor.setSelection(editor.length());
-                        title.setText("C# · " + source.getName());
-                        appendEntry('i', "C# fonte aberta: " + choices[index]);
-                    } catch (Exception error) {
-                        appendEntry('x', "Falha ao abrir C#: " + error.getMessage());
-                    }
-                    refreshOutput();
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
-        }
-
-        void saveCSharpSource() {
-            if (selectedCSharpSource == null) { chooseCSharpSource(); return; }
-            File root = csharpRoot();
-            File temp = null;
+            String id = UUID.randomUUID().toString();
+            File work = new File(act.getFilesDir(), "bunny-csharp");
+            File root = new File(new File(work, "interactive"), id);
+            File content = new File(root, "content");
             try {
-                if (root == null || !selectedCSharpSource.getCanonicalPath().startsWith(
-                    root.getCanonicalPath() + File.separator))
-                    throw new IllegalArgumentException("Arquivo fora dos mods instalados");
-                String content = editor.getText().toString();
-                byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
-                if (bytes.length == 0 || bytes.length > 512 * 1024)
-                    throw new IllegalArgumentException("Fonte vazia ou maior que 512 KiB");
-                temp = new File(selectedCSharpSource.getParentFile(), selectedCSharpSource.getName() + ".tmp-csharp");
-                Files.write(temp.toPath(), bytes);
-                File backup = new File(selectedCSharpSource.getParentFile(), selectedCSharpSource.getName() + ".bak");
-                Files.copy(selectedCSharpSource.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                try {
-                    Files.move(temp.toPath(), selectedCSharpSource.toPath(),
-                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-                } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
-                    Files.move(temp.toPath(), selectedCSharpSource.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                if (!content.isDirectory() && !content.mkdirs())
+                    throw new java.io.IOException("Pasta temporaria indisponivel");
+                boolean expression = !code.contains(";") && !code.contains("\n")
+                        && !code.contains("{") && !code.contains("}");
+                String statements = expression ? "Print(" + code + ");" : code;
+                String source = "using System;\nusing System.Text;\n" +
+                    "namespace BunnyLoader.Interactive {\n" +
+                    "public static class ConsoleEntry {\n" +
+                    "private static readonly StringBuilder Buffer = new StringBuilder();\n" +
+                    "public static void Print(object value) { Buffer.AppendLine(value == null ? \"null\" : value.ToString()); }\n" +
+                    "public static void Log(object value) { Print(value); }\n" +
+                    "public static string Run() {\n" +
+                    "Buffer.Clear();\n" + statements + "\n" +
+                    "return Buffer.Length == 0 ? \"Executado\" : Buffer.ToString();\n" +
+                    "}\n}\n}\n";
+                Files.write(new File(content, "ConsoleEntry.cs").toPath(),
+                            source.getBytes(StandardCharsets.UTF_8));
+                String error = CheatBridge.nCSharpConsoleRun(id, root.getCanonicalPath(),
+                                                             work.getCanonicalPath());
+                if (error != null && !error.isEmpty()) {
+                    appendEntry('x', "C#: " + error);
+                    refreshOutput();
+                    return;
                 }
-                csharpDraft = content;
+                appendEntry('i', "C# > " + code);
+                if (sCSharpHistory == null) sCSharpHistory = new ArrayList<String>();
+                if (sCSharpHistory.isEmpty() ||
+                    !sCSharpHistory.get(sCSharpHistory.size() - 1).equals(code)) {
+                    sCSharpHistory.add(code);
+                    while (sCSharpHistory.size() > MAX_HISTORY) sCSharpHistory.remove(0);
+                    saveHistory(act);
+                }
+                csharpDraft = "";
+                historyIndex = -1;
+                scratch = "";
+                editor.setText("");
                 saveDraft();
-                appendEntry('i', "Fonte C# salva. Reinicie o Bunny Loader para recompilar o mod com Roslyn/MonoVM.");
-            } catch (Exception error) {
-                appendEntry('x', "Nao foi possivel salvar fonte C#: " + error.getMessage());
-            } finally {
-                if (temp != null && temp.exists()) temp.delete();
+            } catch (Exception exception) {
+                appendEntry('x', "C# nao iniciado: " + exception.getMessage());
             }
             refreshOutput();
         }
 
-                void history(int step) {
-            if (sHistory.isEmpty()) return;
+        void history(int step) {
+            ArrayList<String> active = csharpMode ? sCSharpHistory : sHistory;
+            if (active == null || active.isEmpty()) return;
             if (historyIndex < 0) {
                 if (step > 0) return;
                 scratch = editor.getText().toString();
-                historyIndex = sHistory.size();
+                historyIndex = active.size();
             }
             historyIndex += step;
             if (historyIndex < 0) historyIndex = 0;
-            if (historyIndex >= sHistory.size()) {
+            if (historyIndex >= active.size()) {
                 historyIndex = -1;
                 editor.setText(scratch);
             } else {
-                editor.setText(sHistory.get(historyIndex));
+                editor.setText(active.get(historyIndex));
             }
             editor.setSelection(editor.getText().length());
         }
 
         void pullOutput() {
-            String[] entries;
-            try { entries = CheatBridge.nConsoleTake(); } catch (Throwable t) { return; }
-            if (entries == null || entries.length == 0) return;
-            for (String e : entries) {
-                if (e == null || e.length() == 0) continue;
-                appendEntry(e.charAt(0), e.substring(1));
+            boolean changed = false;
+            try {
+                String[] js = CheatBridge.nConsoleTake();
+                if (js != null) for (String entry : js) {
+                    if (entry != null && !entry.isEmpty()) {
+                        appendEntry(entry.charAt(0), entry.substring(1));
+                        changed = true;
+                    }
+                }
+                String[] cs = CheatBridge.nCSharpConsoleTake();
+                if (cs != null) for (String entry : cs) {
+                    if (entry != null && !entry.isEmpty()) {
+                        appendEntry(entry.charAt(0), "[C#] " + entry.substring(1));
+                        changed = true;
+                    }
+                }
+            } catch (Throwable error) {
+                appendEntry('x', "C# console: " + error);
+                changed = true;
             }
-            refreshOutput();
+            if (changed) refreshOutput();
         }
 
         void refreshOutput() {
