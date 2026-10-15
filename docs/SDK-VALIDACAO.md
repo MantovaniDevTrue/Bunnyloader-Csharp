@@ -1,6 +1,7 @@
 # Validacao da fundacao do SDK/runtime
 
-Base: .90.29.31, commit `7229a61`. Alteracoes em
+Base original: .90.29.31, commit `7229a61`; atualizacao .90.29.32.1
+de defesa nativa (`3dd8c8d`) integrada sem reverter suas mudancas. Alteracoes em
 `codex/csharp-sdk-runtime-foundation`. Nao houve teste Android novo nesta etapa;
 versionCode/versionName e o ExampleMod existente nao foram incrementados.
 

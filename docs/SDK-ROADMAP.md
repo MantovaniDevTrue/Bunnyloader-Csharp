@@ -3,7 +3,8 @@
 Pedido do usuario em 15/10/2026: implementar o conjunto de melhorias da auditoria
 do GitHub. Este arquivo acompanha todo o escopo, sem transformar uma fundacao
 parcial em conclusao do SDK. A base e .90.29.31 (`7229a61`); o Lote A e todos
-os exemplos da matriz existente permanecem no escopo.
+os exemplos da matriz existente permanecem no escopo. A atualizacao
+.90.29.32.1 de defesa nativa foi integrada nesta branch durante a revisao.
 
 | Area | Entrega concreta | Estado nesta etapa | Criterio para concluir |
 | --- | --- | --- | --- |

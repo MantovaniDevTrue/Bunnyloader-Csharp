@@ -33,7 +33,7 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_32_native_defense_wire"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
@@ -48,7 +48,7 @@ jobs:
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           app = Path("app/build.gradle.kts").read_text()
           assert any(line.strip().startswith('versionName = "0.1.10.16.90.29.') and line.strip().endswith('"') for line in app.splitlines())
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_32_native_defense_wire"' in auto
           assert 'status.cached = readCache(cacheFile, mod.id, key' in auto
           assert 'g_cachedMods.fetch_add(1' in auto
           assert 'g_compiledMods.fetch_add(1' in auto

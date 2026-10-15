@@ -30,7 +30,13 @@ jobs:
         run: dotnet run --project tests/sdk_foundation/SdkFoundation.csproj -c Release
       - name: Recheck existing complete item package and native wire
         working-directory: Split/Bunny-Loader
-        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+        run: |
+          dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
+          python3 tests/test_csharp_native_defense_policy.py
+          node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
+          node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
+          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: dotnet build samples/StarterModCSharp/StarterMod.csproj -c Release

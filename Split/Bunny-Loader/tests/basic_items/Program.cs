@@ -133,7 +133,7 @@ try {
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/armor-source-runtime-values.txt",true);
   var lines=File.ReadAllLines("build/basic-items/armor-source-runtime-values.txt");Equal(4,lines.Length);
-  foreach(var line in lines.Skip(1))Equal(21,line.Split('\t').Length);
+  foreach(var line in lines.Skip(1))Equal(24,line.Split('\t').Length);
   var helmet=lines.Single(line=>line.StartsWith("ITEM\tContractHelmet\t")).Split('\t');Equal("1,mContractBench,v2:1",helmet[19]);
  });
  Check("identity.same-name-distinct-native-domains",()=>{
@@ -168,7 +168,7 @@ try {
   Equal("1,-1,v36:1,mExampleItem:10",item[19]);
   foreach (string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
    var values=rows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t")).Split('\t');
-   Equal(21,values.Length);
+   Equal(24,values.Length);Equal("-",values[22]);Equal((armorName=="ExampleBreastplate"?6:5).ToString(),values[23]);
    Equal("1,mExampleWorkbench,mExampleItem:1",values[19]);
    using var behavior=JsonDocument.Parse(Convert.FromHexString(values[20]));
    var rootBehavior=behavior.RootElement;
@@ -191,6 +191,18 @@ try {
    }
   }
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/tiles-source-runtime-values.txt",true);
+ });
+ Check("defense.only-native-wire-without-js-policy",()=>{
+  string root=Path.Combine(scratch,"defense-native");Directory.CreateDirectory(Path.Combine(root,"content"));
+  File.WriteAllText(Path.Combine(root,"content","BareArmor.cs"),
+    "using BunnyLoader.Source; public sealed class BareArmor:BunnyItem { public override void SetDefaults(){DisplayName=\"Bare Armor\";Texture=\"Content/Items/BareArmor.png\";Defense=7;} }");
+  string output=Path.Combine(scratch,"defense-native.dll"),diag=Path.Combine(scratch,"defense-native.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var lines=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(2,lines.Length);
+  var fields=lines[1].Split('\t');
+  Equal("ITEM",fields[0]);Equal("BareArmor",fields[1]);Equal(24,fields.Length);
+  Equal("-",fields[20]);Equal("-",fields[21]);Equal("-",fields[22]);Equal("7",fields[23]);
  });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));

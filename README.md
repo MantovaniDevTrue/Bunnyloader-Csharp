@@ -27,7 +27,8 @@ Os mods-fonte usam `.cs`, Roslyn e MonoVM, com integracao nativa C++/IL2CPP.
 A branch `main` historicamente acompanha sincronizacoes do Bunny original e
 nao representa automaticamente o estado C# mais recente. Este conjunto parte de
 `codex/sync-jonata-20261015`, commit `7229a61` (.90.29.31), e esta sendo revisado
-em `codex/csharp-sdk-runtime-foundation`. Compile o checkout da branch desejada.
+em `codex/csharp-sdk-runtime-foundation`, com a atualizacao .90.29.32.1
+(commit `3dd8c8d`) de defesa nativa integrada. Compile o checkout da branch desejada.
 Os links acima abrem os diretorios canonicos diretamente, sem depender de espelhos.
 
 ## Estado desta etapa

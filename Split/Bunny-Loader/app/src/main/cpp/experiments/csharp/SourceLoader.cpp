@@ -828,6 +828,9 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
+    for (const auto& item : basicItems) {
+        if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
+    }
     mod->runtimeApplied = true;
     return true;
 }

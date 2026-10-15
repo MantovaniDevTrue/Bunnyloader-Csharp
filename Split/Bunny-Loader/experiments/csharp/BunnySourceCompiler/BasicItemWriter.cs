@@ -65,6 +65,12 @@ internal static class BasicItemWriter
             }
             parts.Add(string.Join(";",values));
         }
+        int defense=Get<int>("Defense");
+        if(defense<0||defense>1000)throw new InvalidOperationException(name+": Defense fora do limite");
+        if(defense>0) {
+            while(parts.Count<23)parts.Add("-");
+            parts.Add(defense.ToString(CultureInfo.InvariantCulture));
+        }
         return string.Join("\t",parts);
     }
 }
