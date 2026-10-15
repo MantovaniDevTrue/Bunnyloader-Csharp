@@ -216,7 +216,15 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
  */
 void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
-    if (!r.tooltipCache || !r.tooltipFromKey) return;
+    if (!r.tooltipCache || !r.tooltipFromKey) {
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            BL_WARN("itens de mod: suporte a ItemTooltip indisponivel (cache=%d, FromLanguageKey=%d)",
+                    r.tooltipCache ? 1 : 0, r.tooltipFromKey ? 1 : 0);
+        }
+        return;
+    }
     const std::string key = "BunnyLoader.ItemTooltip." + reg.def.mod + "." + reg.def.name;
     const std::string text = content::textForCulture(reg.def.tooltips, "");
     if (!content::makeLocalizedText(key, text)) return;
@@ -488,6 +496,25 @@ bool gameReady(int size) {
 }
 
 /** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
+void repairMissingModTooltips(int size) {
+    Refs& r = refs();
+    if (!r.tooltipCache || !r.tooltipFromKey) return;
+    Il2CppArray* cache = readStatic(r.tooltipCache);
+    if (!cache || cache->length < static_cast<uintptr_t>(size)) return;
+    std::lock_guard<std::mutex> lock(g_mx);
+    auto** entries = reinterpret_cast<Il2CppObject**>(arrayData(cache));
+    int repaired = 0;
+    for (size_t i = 0; i < g_regs.size() &&
+                       kVanillaItemCount + static_cast<int>(i) < size; ++i) {
+        const int type = kVanillaItemCount + static_cast<int>(i);
+        if (entries[type]) continue;
+        applyTooltip(type, g_regs[i]);
+        if (entries[type]) ++repaired;
+    }
+    if (repaired)
+        BL_INFO("itens de mod: %d tooltip(s) recomposto(s) apos inicializacao tardia", repaired);
+}
+
 void onTableRegrown(FieldInfo* f, int size) {
     Refs& r = refs();
     if (f != r.nameCache && f != r.itemTextures && f != r.tooltipCache && f != r.itemFlames) return;
@@ -676,9 +703,12 @@ void tickModItems() {
     if (installed == total) {
         // Um quadro a cada ~2 s basta para tabela refeita — menos o cache de
         // nomes, que a troca de idioma refaz na hora e o inventario le logo.
-        g_tables.checkPending(from);
+        g_tables.checkPending(from, onTableRegrown);
         static int frame = 0;
-        if (++frame % 120 == 0) g_tables.watch(from, onTableRegrown);
+        if (++frame % 120 == 0) {
+            g_tables.watch(from, onTableRegrown);
+            repairMissingModTooltips(from);
+        }
         else {
             Il2CppArray* names = readStatic(refs().nameCache);
             if (names && names->length < static_cast<uintptr_t>(from)) g_tables.watch(from, onTableRegrown);
