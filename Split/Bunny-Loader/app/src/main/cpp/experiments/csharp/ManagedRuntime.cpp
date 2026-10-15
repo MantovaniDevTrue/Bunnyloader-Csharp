@@ -2925,7 +2925,7 @@ std::mutex g_visualStateMutex;
 }
 
 size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget) {
-    if (!validAssembly(assemblyPath) || budget == 0) return 0;
+    if (budget == 0) return 0;
     std::unique_lock<std::mutex> guard(g_mutex, std::defer_lock);
     if (!guard.try_lock() || !g_domain || !g_status.domainInitialized ||
         !g_api.currentThread || !g_api.attach || !g_api.invoke ||
@@ -2934,11 +2934,20 @@ size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget)
 
     using Utf8Fn = char* (*)(void*);
     using FreeFn = void (*)(void*);
-    Utf8Fn utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
-    FreeFn release = resolve<FreeFn>("mono_free");
-    if (!utf8 || !release) return 0;
-    const bool alreadyAttached = g_api.currentThread() != nullptr;
-    void* attached = alreadyAttached ? g_api.currentThread() : g_api.attach(g_domain);
+    static void* cachedDomain = nullptr;
+    static void* cachedMethod = nullptr;
+    static Utf8Fn cachedUtf8 = nullptr;
+    static FreeFn cachedRelease = nullptr;
+    if (cachedDomain != g_domain) {
+        cachedDomain = g_domain;
+        cachedMethod = nullptr;
+        cachedUtf8 = nullptr;
+        cachedRelease = nullptr;
+    }
+    if (!cachedMethod && !validAssembly(assemblyPath)) return 0;
+    void* current = g_api.currentThread();
+    const bool alreadyAttached = current != nullptr;
+    void* attached = alreadyAttached ? current : g_api.attach(g_domain);
     if (!attached) return 0;
     struct DetachGuard {
         DetachFn fn;
@@ -2946,22 +2955,29 @@ size_t pollManagedVisualCommands(const std::string& assemblyPath, size_t budget)
         ~DetachGuard() { if (fn && thread) fn(thread); }
     } detach{g_api.detachThread, alreadyAttached ? nullptr : attached};
 
-    const size_t separator = g_checkpointPath.find_last_of('/');
-    if (separator == std::string::npos) return 0;
-    const std::string sdkPath =
-        g_checkpointPath.substr(0, separator + 1) + "BunnySourceSdk.dll";
-    if (!validAssembly(sdkPath)) return 0;
-    void* assembly = g_api.openAssembly(g_domain, sdkPath.c_str());
-    void* image = assembly ? g_api.image(assembly) : nullptr;
-    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyVisual") : nullptr;
-    void* method = klass ? g_api.findMethod(klass, "TakeWire", 0) : nullptr;
-    if (!method) return 0;
-
+    if (!cachedMethod) {
+        const size_t separator = g_checkpointPath.find_last_of('/');
+        if (separator == std::string::npos) return 0;
+        const std::string sdkPath =
+            g_checkpointPath.substr(0, separator + 1) + "BunnySourceSdk.dll";
+        if (sdkPath != assemblyPath || !validAssembly(sdkPath)) return 0;
+        Utf8Fn utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        FreeFn release = resolve<FreeFn>("mono_free");
+        if (!utf8 || !release) return 0;
+        void* assembly = g_api.openAssembly(g_domain, sdkPath.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyVisual") : nullptr;
+        void* method = klass ? g_api.findMethod(klass, "TakeWire", 0) : nullptr;
+        if (!method) return 0;
+        cachedUtf8 = utf8;
+        cachedRelease = release;
+        cachedMethod = method;
+    }
     ManagedVisualMonoApi api;
     api.invoke = g_api.invoke;
-    api.utf8 = utf8;
-    api.freeString = release;
-    api.takeWireMethod = method;
+    api.utf8 = cachedUtf8;
+    api.freeString = cachedRelease;
+    api.takeWireMethod = cachedMethod;
     const auto stats = ManagedVisualMonoPump::poll(g_visualQueue, api, budget);
     return stats.accepted;
 }

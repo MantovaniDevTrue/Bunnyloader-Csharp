@@ -717,6 +717,27 @@ void run() {
             note(&status, "failed", "Identidade do mod invalida");
             continue;
         }
+        const auto elapsedMilliseconds=[](auto start) {
+            return static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now()-start).count());
+        };
+        const auto scanStarted = std::chrono::steady_clock::now();
+        const std::string root = mods::rootOf(mod.id);
+        if (root.empty()) {
+            note(&status, "failed", "Arquivos C# nao encontrados");
+            continue;
+        }
+        const std::string key = fingerprint(mod.id, root);
+        if (key.empty()) {
+            note(&status, "failed", "Arquivos C# nao encontrados");
+            continue;
+        }
+        const auto fingerprintMs = elapsedMilliseconds(scanStarted);
+        std::string defaults, curves, combat, error;
+        const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
+        const auto readStarted = std::chrono::steady_clock::now();
+        status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves, &combat);
+        const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         note(&status, "waiting-content");
         bool ready = false;
         const auto tablesStarted = std::chrono::steady_clock::now();
@@ -728,26 +749,11 @@ void run() {
             const auto elapsed = std::chrono::steady_clock::now() - tablesStarted;
             std::this_thread::sleep_for(elapsed < 2s ? 35ms : 150ms);
         }
+        const auto tablesMs = elapsedMilliseconds(tablesStarted);
         if (!ready) {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        const auto elapsedMilliseconds=[](auto start) {
-            return static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now()-start).count());
-        };
-        const auto tablesMs=elapsedMilliseconds(tablesStarted);
-        const auto cacheStarted=std::chrono::steady_clock::now();
-        const std::string root = mods::rootOf(mod.id);
-        const std::string key = fingerprint(mod.id, root);
-        if (root.empty() || key.empty()) {
-            note(&status, "failed", "Arquivos C# nao encontrados");
-            continue;
-        }
-        std::string defaults, curves, combat, error;
-        const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
-        status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves, &combat);
-        const auto cacheMs=elapsedMilliseconds(cacheStarted);
         long long compileMs=0;
         if (!status.cached) {
             note(&status, "compiling");
@@ -1032,7 +1038,7 @@ void noteAutoGameUpdate() {
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
-            const std::string sdk = folderOfCheckpoint() + "BunnySourceSdk.dll";
+            static const std::string sdk = folderOfCheckpoint() + "BunnySourceSdk.dll";
             pollManagedVisualCommands(sdk, 8);
         }
         advanceManagedVisualState(tick, 32);
