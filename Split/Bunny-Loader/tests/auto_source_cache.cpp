@@ -70,10 +70,26 @@ int main(int argc,char** argv) {
     assert(coldDefaults==defaults&&coldCurves==curves&&coldCombat==combat);
     assert(!recoverRuntimeCacheIdentityAfterCompile(
         lazyWork,root.string(),"mod",root.string(),&coldRuntimeIdentity,&coldKey,&coldCacheFile));
+    const auto previousColdKey=coldKey;
+    assert(writeText(lazyWork+"/System.Runtime.dll","runtime:System.Runtime.dll:modified"));
+    assert(recoverRuntimeCacheIdentityAfterCompile(
+        lazyWork,root.string(),"mod",root.string(),&coldRuntimeIdentity,&coldKey,&coldCacheFile));
+    assert(coldKey!=previousColdKey);
+    assert(coldCacheFile==root.string()+"/mod-"+coldKey+".cache");
+    saveCache(coldCacheFile,"mod",coldKey,dll,defaults,curves,combat);
+    assert(readCache(coldCacheFile,"mod",coldKey,dll,&coldDefaults,&coldCurves,&coldCombat));
+    std::string reason;
+    assert(readCache(cache,"mod",key,dll,&d,&t,&p,&reason)&&reason=="Hit");
+    assert(!readCache(cache,"mod",hash("different-key"),dll,&d,&t,&p,&reason));
+    assert(reason=="SourceFingerprintChanged");
+    assert(!readCache(cache+"-not-found","mod",key,dll,&d,&t,&p,&reason));
+    assert(reason=="CacheFileMissingOrUnreadable");
     const auto original=readText(cache,8192);assert(!original.empty());
     // Change a numeric descriptor while keeping its framing and marker valid.
     auto corrupted=original;corrupted[corrupted.find("12\n")]='9';assert(writeText(cache,corrupted));
-    d=t=p="unchanged";assert(!read());assert(d=="unchanged"&&t==d&&p==d);
+    d=t=p="unchanged";assert(!readCache(cache,"mod",key,dll,&d,&t,&p,&reason));
+    assert(reason=="SectionsChecksumChanged");
+    assert(d=="unchanged"&&t==d&&p==d);
     assert(writeText(cache,original));assert(read());
     for(size_t n=0;n<original.size();++n){assert(writeText(cache,original.substr(0,n)));assert(!read());}
     assert(writeText(cache,original+"x"));assert(!read());
