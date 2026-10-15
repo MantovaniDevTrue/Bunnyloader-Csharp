@@ -131,11 +131,51 @@ object BootLog {
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
             "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
+            "\n--- carregamento C# desta sessão ---\n" + lastCSharpStartup(ctx) +
+            "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
             "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    private fun lastCSharpStartup(ctx: Context): String = runCatching {
+        val base = ctx.getExternalFilesDir(null)?.parentFile
+            ?: return@runCatching "(sem pasta de logs)"
+        val latest = File(base, "logs")
+            .listFiles { entry -> entry.name.startsWith("bunny_") && entry.name.endsWith(".txt") }
+            .orEmpty().maxByOrNull { it.name }
+            ?: return@runCatching "(sem log da sessão)"
+        latest.useLines { lines ->
+            lines.filter { line ->
+                line.contains("[CSharp][Startup]") ||
+                    line.contains("C# carregou sem problemas") ||
+                    line.contains("inicio rapido: no mundo em")
+            }.take(24).toList().joinToString("\n")
+        }.ifBlank { "(sem medições de carregamento C# nesta sessão)" }
+    }.getOrElse { "(erro ao ler carregamento C#: ${it.javaClass.simpleName})" }
+
+    private fun lastCSharpCompilation(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        val status = File(dir, "source-compile-status.txt")
+        if (status.isFile) {
+            val ageMs = (System.currentTimeMillis() - status.lastModified()).coerceAtLeast(0L)
+            append("source-compile-status.txt (registrado há ")
+                .append(ageMs / 1000L).append(" s):\n")
+            append(runCatching { status.readText().take(3200) }
+                .getOrElse { "(erro ao ler: ${it.javaClass.simpleName})" })
+            append('\n')
+        } else {
+            append("source-compile-status.txt: (sem compilação registrada)\n")
+        }
+        val profile = File(dir, "source-compile-diagnostics.txt.profile")
+        if (profile.isFile) {
+            append("perfil Roslyn:\n")
+            append(runCatching { profile.readText().take(1400) }
+                .getOrElse { "(erro ao ler: ${it.javaClass.simpleName})" })
+            append('\n')
+        }
+    }
 
     private fun lastMonoCheckpoint(ctx: Context): String = runCatching {
         val checkpoint = File(ctx.filesDir, "bunny-csharp/last-probe.txt")
