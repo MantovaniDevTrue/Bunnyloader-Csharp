@@ -54,14 +54,22 @@ def build(upstream):
     evidence = json.loads((SPEC/'evidence.json').read_text())
     originals = {x['path']:x for x in refs['upstreamExampleFiles'] if x['path'].endswith('.js')}
     fork = {x['path']:x for x in refs['forkExampleFiles'] if x['path'].endswith('.js')}
-    if len(originals)!=199 or len(fork)!=178: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
+    expected=refs.get('expectedJsCounts', {'canonical':199,'fork':178})
+    if len(originals)!=expected['canonical'] or len(fork)!=expected['fork']: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
+    snapshot_path=SPEC/'package-reference.json'
+    package=json.loads(snapshot_path.read_text()) if snapshot_path.is_file() else None
+    packaged={entry['id']:entry for entry in package['examples']} if package else {}
+    if package:
+        for relative, entry in packaged.items():
+            originals['samples/ExampleMod/content/'+relative]={'path':'samples/ExampleMod/content/'+relative,
+                'sha':entry['gitBlob'],'size':entry['size']}
     if set(evidence['examples'])-set(p.removeprefix('samples/ExampleMod/content/') for p in originals):
         raise ValueError('Evidence refers to nonexistent JS example')
     rows=[]
     for path,record in sorted(originals.items()):
         rel=path.removeprefix('samples/ExampleMod/content/')
-        source=(upstream/path).read_text()
-        detail=facts(source)
+        reference=packaged.get(rel)
+        detail=reference['facts'] if reference else facts((upstream/path).read_text())
         state=evidence['examples'].get(rel,{})
         status=state.get('status',STATES[0])
         if status not in STATES: raise ValueError('Invalid state: '+rel)
@@ -92,12 +100,23 @@ def build(upstream):
             imports.append(imported)
         cap='Sem contrato C# reutilizavel equivalente para '+', '.join(bases or ['este modulo/helper'])
         missing=state.get('missingFeatures',[cap])
+        if reference and reference['comparison']=='Changed':
+            missing=list(missing)+['Revisar diferencas de comportamento da referencia fornecida '+package['manifest']['version']+'.']
+            if status in STATES[2:5]: status=STATES[1]
+        source_evidence=([{'package':package['origin'],'version':package['manifest']['version'],
+            'archiveSha256':package['archiveSha256'],'path':reference['path'],
+            'sha256':reference['sha256'],'comparison':reference['comparison']}]
+            if reference else [{'repository':refs['upstream']['repository'],'commit':refs['upstream']['commit'],
+                'path':path,'blob':record['sha']}])
+        related_assets=([entry['path'] for entry in package['files'] if entry['path']==reference['path'].removesuffix('.js')+'.png'
+            or entry['path'].startswith(reference['path'].removesuffix('.js')+'_')] if reference else
+            [entry['path'] for entry in refs['upstreamExampleFiles'] if entry['path'].startswith(path.removesuffix('.js')+'_') or entry['path']==path.removesuffix('.js')+'.png'])
         rows.append(dict(id=rel,category=category(rel),plannedLot=lot(category(rel)),
             javaScript={'path':path, 'forkPath': 'Split/Bunny-Loader/'+path if path in fork else None,
                 'upstreamBlob':record['sha'], 'forkBlob':fork.get(path,{}).get('sha'),
                 'differentFromFork':path in fork and record['sha']!=fork[path]['sha'], **detail},
             cSharp=cs,requiredApis=sorted(set(bases+detail['hooksAndMethods']+detail['nativeSignatures'])),
-            status=status,assets=state.get('assets',[entry['path'] for entry in refs['upstreamExampleFiles'] if entry['path'].startswith(path.removesuffix('.js')+'_') or entry['path']==path.removesuffix('.js')+'.png']),automatedEvidence=state.get('automatedEvidence',[]),preservedFeatures=state.get('preservedFeatures',[]),missingFeatures=missing,
+            status=status,assets=state.get('assets',related_assets),automatedEvidence=state.get('automatedEvidence',[]),preservedFeatures=state.get('preservedFeatures',[]),missingFeatures=missing,
             nativeDependencies=state.get('nativeDependencies',dependencies),
             automatedTests=state.get('automatedTests',[]),
             terrariaTests=state.get('terrariaTests',[
@@ -107,8 +126,7 @@ def build(upstream):
             validation=state.get('validation','Sem validacao funcional C# deste exemplo inteiro.'),
             deviceEvidence=state.get('deviceEvidence',[]),
             technicalBlockEvidence=state.get('technicalBlockEvidence',[]),
-            sourceEvidence=[{'repository':refs['upstream']['repository'],'commit':refs['upstream']['commit'],
-                'path':path,'blob':record['sha']}]))
+            sourceEvidence=source_evidence))
     groups=defaultdict(Counter)
     for row in rows: groups[row['category']][row['status']]+=1
     coverage={}
@@ -132,7 +150,8 @@ def build(upstream):
     core=dict(sharedUnchanged=sum(p in upstreamCore and upstreamCore[p]['sha']==x['sha'] for p,x in forkCore.items()),
         modified=sorted(p for p,x in forkCore.items() if p in upstreamCore and upstreamCore[p]['sha']!=x['sha']),
         forkOnly=sorted(set(forkCore)-set(upstreamCore)),upstreamOnly=sorted(set(upstreamCore)-set(forkCore)))
-    return dict(schemaVersion=1,references={k:refs[k] for k in ('fork','upstream','initialReferenceCount')},
+    return dict(schemaVersion=1,references={**{k:refs[k] for k in ('fork','upstream','initialReferenceCount')},
+                **({'package':{'version':package['manifest']['version'],'sha256':package['archiveSha256']}} if package else {})},
         counts={'forkJsFiles':len(fork),'canonicalJsFiles':len(originals),'newUpstreamFiles':len(set(originals)-set(fork)),
                 'cSharpSourceFiles':len(csharp)},statePolicy='Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.',
         coverageByCategory=coverage,examples=rows,additionalCSharp=csharp,coreComparison=core,
@@ -140,7 +159,7 @@ def build(upstream):
 
 def markdown(report):
     lines=['# Matriz completa ExampleModBunny → C#','',
-        'Referencia canonica: **199 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.',
+        f"Referencia canonica: **{report['counts']['canonicalJsFiles']} JS**, fork: **{report['counts']['forkJsFiles']} JS**, referencia inicial informada: **{report['references']['initialReferenceCount']} JS**.",
         'As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.',
         'O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.','',
         '| Categoria | Total | Implementados | Validados | Parciais | Limitacoes tecnicas |',
@@ -161,8 +180,15 @@ def markdown(report):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--upstream-root',type=Path,required=True)
+    p.add_argument('--reference-package',type=Path,help='Import a .bl inventory; requires --write, never executes JS')
     g=p.add_mutually_exclusive_group(required=True);g.add_argument('--write',action='store_true');g.add_argument('--check',action='store_true')
-    args=p.parse_args();report=build(args.upstream_root)
+    args=p.parse_args()
+    if args.reference_package:
+        if not args.write: p.error('--reference-package requires --write')
+        from example_completion.reference_package import inventory
+        snapshot=inventory(args.reference_package,args.upstream_root,facts)
+        (SPEC/'package-reference.json').write_text(json.dumps(snapshot,ensure_ascii=False,indent=2)+'\n')
+    report=build(args.upstream_root)
     data={'matrix.json':json.dumps(report,ensure_ascii=False,indent=2)+'\n','matrix.md':markdown(report)}
     OUT.mkdir(parents=True,exist_ok=True)
     for name,body in data.items():

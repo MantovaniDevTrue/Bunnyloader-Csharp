@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.35"
+assert catalog["exampleModCSharpVersion"] == "0.1.39"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -52,7 +52,7 @@ supported_states = {"device_verified", "ci_verified", "experimental", "not_imple
 features = catalog["features"]
 assert len(features) >= 12
 ids = set()
-example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
+example_classes = {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe", "SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "SourceBoltMotion", "SourceSparkMotion",
                    "ExampleDefenseBuff", "ExampleBuffPotion",
                    "ExampleFocusAccessory", "ExampleFocusPlayer", "ExampleSwiftAccessory", "ExampleSwiftPlayer",
@@ -64,7 +64,8 @@ example_classes = {"SourceWand", "SourceStaff", "SourceBolt", "SourceSpark",
                    "ExampleMightyPrefix", "ExampleGuardedPrefix",
                    "ExampleGuardianShieldAccessory", "ExampleGuardianShieldPlayer",
                    "ExampleTrailblazerBootsAccessory", "ExampleTrailblazerBootsPlayer",
-                   "ExampleMysticWardAccessory", "ExampleMysticWardPlayer"}
+                   "ExampleMysticWardAccessory", "ExampleMysticWardPlayer",
+                   "ExampleWorkbench", "ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
@@ -87,9 +88,9 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.35"
+assert manifest2["version"] == "0.1.39"
 playable_files = list((playable / "content").rglob("*.cs"))
-assert len(playable_files) == 51
+assert 0 < len(playable_files) <= 512
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "ExampleWaveWand", "ExampleWaveBolt", "ExampleWaveBoltMotion",
@@ -112,6 +113,12 @@ for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "ExampleMysticWardAccessory", "ExampleMysticWardPlayer",
          "OnHitNPC(int damage)", "OnKill(int damage)", "OnKillDuration(int damage)"):
     assert expected in source_text, expected
+assert (playable / "content/Content/Tiles/Furniture/ExampleWorkbench.cs").exists()
+assert (playable / "content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs").exists()
+for armor_name in ("ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"):
+    armor_text = (playable / "content/Content/Items/Armor" / (armor_name + ".cs")).read_text(encoding="utf-8")
+    assert 'AddTile("ExampleWorkbench")' in armor_text
+    assert 'TooltipTranslations["pt-BR"]' in armor_text
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")

@@ -1,3 +1,4 @@
+#include "content/items/ModItems.h"
 #include "script/api/CSharpPrototypeApi.h"
 
 #include "experiments/csharp/CSharpPrototype.h"
@@ -86,9 +87,13 @@ JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueCons
     for(const auto& recipe:bl::csharp::pendingBasicRecipes()) {
         JSValue entry=JS_NewObject(ctx);
         JS_SetPropertyStr(ctx,entry,"id",JS_NewString(ctx,recipe.id.c_str()));
+        JS_SetPropertyStr(ctx,entry,"mod",JS_NewString(ctx,recipe.modId.c_str()));
+        JS_SetPropertyStr(ctx,entry,"source",JS_NewString(ctx,recipe.source.c_str()));
+        JS_SetPropertyStr(ctx,entry,"error",JS_NewString(ctx,recipe.error.c_str()));
         JS_SetPropertyStr(ctx,entry,"result",JS_NewInt32(ctx,recipe.result));
         JS_SetPropertyStr(ctx,entry,"stack",JS_NewInt32(ctx,recipe.values.stack));
         JS_SetPropertyStr(ctx,entry,"station",JS_NewInt32(ctx,recipe.values.station));
+        JS_SetPropertyStr(ctx,entry,"stationKey",JS_NewString(ctx,recipe.values.stationKey.c_str()));
         JSValue ingredients=JS_NewArray(ctx);uint32_t j=0;
         for(const auto& ingredient:recipe.values.ingredients) {
             JSValue value=JS_NewObject(ctx);
@@ -129,12 +134,36 @@ JSValue jsAcknowledgeItemBehavior(JSContext* ctx,JSValueConst,int argc,JSValueCo
     return JS_NewBool(ctx,bl::csharp::acknowledgeBasicItemBehavior(type,error));
 }
 
+JSValue jsReportItemRecipeError(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=2||!JS_IsString(argv[0])||!JS_IsString(argv[1]))return JS_ThrowTypeError(ctx,"reportItemRecipeError(id,error)");
+    const char* rawId=JS_ToCString(ctx,argv[0]);if(!rawId)return JS_EXCEPTION;
+    const std::string id(rawId);JS_FreeCString(ctx,rawId);
+    const char* rawError=JS_ToCString(ctx,argv[1]);if(!rawError)return JS_EXCEPTION;
+    const std::string error(rawError);JS_FreeCString(ctx,rawError);
+    return JS_NewBool(ctx,bl::csharp::reportBasicRecipeError(id,error));
+}
+
 JSValue jsAcknowledgeItemRecipe(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if(argc!=2||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"acknowledgeItemRecipe(id,index)");
     int32_t index=-1;if(JS_ToInt32(ctx,&index,argv[1])<0)return JS_EXCEPTION;
     const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
     const std::string id(raw);JS_FreeCString(ctx,raw);
     return JS_NewBool(ctx,bl::csharp::acknowledgeBasicRecipe(id,index));
+}
+
+JSValue jsSetNativeItemDefense(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=2)return JS_ThrowTypeError(ctx,"setNativeItemDefense(type,value)");
+    int32_t type=-1,value=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0||JS_ToInt32(ctx,&value,argv[1])<0)return JS_EXCEPTION;
+    std::string error;
+    if(!bl::csharp::setBasicItemDefense(type,value,&error))return JS_ThrowInternalError(ctx,"%s",error.c_str());
+    return JS_TRUE;
+}
+JSValue jsResolveNativeItemKey(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=1||!JS_IsString(argv[0]))return JS_ThrowTypeError(ctx,"resolveNativeItemKey('uid/name')");
+    const char* raw=JS_ToCString(ctx,argv[0]);if(!raw)return JS_EXCEPTION;
+    const std::string key(raw);JS_FreeCString(ctx,raw);
+    return JS_NewInt32(ctx,key.size()<=160?bl::runtime::modItemTypeByKey(key):-1);
 }
 
 JSValue jsSetNativeItemEquipSlot(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
@@ -2826,10 +2855,14 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
                       JS_NewCFunction(ctx, jsManagedVisualSnapshot, "visualSnapshot", 1));
     JS_SetPropertyStr(ctx, api, "visualTexturePath",
                       JS_NewCFunction(ctx, jsManagedVisualTexturePath, "visualTexturePath", 1));
+    JS_SetPropertyStr(ctx, api, "setNativeItemDefense", JS_NewCFunction(ctx, jsSetNativeItemDefense, "setNativeItemDefense", 2));
+    JS_SetPropertyStr(ctx, api, "resolveNativeItemKey", JS_NewCFunction(ctx, jsResolveNativeItemKey, "resolveNativeItemKey", 1));
     JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
     JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
+    JS_SetPropertyStr(ctx, api, "reportItemRecipeError", JS_NewCFunction(ctx, jsReportItemRecipeError, "reportItemRecipeError", 2));
     JS_SetPropertyStr(ctx, api, "pendingItemRecipes", JS_NewCFunction(ctx, jsPendingItemRecipes, "pendingItemRecipes", 0));
+    JS_SetPropertyStr(ctx, api, "nativeRecipes", JS_NewBool(ctx, true));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemRecipe", JS_NewCFunction(ctx, jsAcknowledgeItemRecipe, "acknowledgeItemRecipe", 2));
     JS_SetPropertyStr(ctx, api, "nativeEquipTextures",
                       JS_NewCFunction(ctx, jsManagedNativeEquipTextures, "nativeEquipTextures", 0));

@@ -2,9 +2,11 @@
 import collections
 import pathlib
 import sys
+import re
 
 expected = {
-    "ITEM": {20, 21},
+    "ITEM": {20, 21, 22, 23},
+    "TILE": {13},
     "PROJECTILE": {8},
     "WEAPON": {6},
     "BUFF": {3},
@@ -30,7 +32,18 @@ for line_number, row in enumerate(rows[1:], start=2):
         errors.append(f"line={line_number} kind={kind!r} missing class")
 if errors:
     raise SystemExit("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_FAIL\n" + "\n".join(errors))
-assert sum(counts.values()) >= 37, "Expected all ExampleMod CSharp descriptors"
+root = pathlib.Path(__file__).resolve().parents[2]
+base_kinds = {'BunnyItem':'ITEM','BunnyTile':'TILE','BunnyWeapon':'WEAPON',
+              'BunnyProjectile':'PROJECTILE','BunnyNPC':'NPC','BunnyPlayer':'PLAYER',
+              'BunnyAccessory':'ACCESSORY','BunnyBuff':'BUFF','BunnyBuffPotion':'POTION','BunnyPrefix':'PREFIX'}
+declared = set()
+for path in (root/'samples/ExampleModCSharp/Playable/content').rglob('*.cs'):
+    for name, base in re.findall(r'\bclass\s+(\w+)\s*:\s*(\w+)',path.read_text()):
+        if base in base_kinds:
+            declared.add((base_kinds[base],name))
+exported = [(parts[0],parts[1]) for row in rows[1:] if len(parts:=row.split('\t'))>1]
+assert len(exported)==len(set(exported)), 'Duplicate native domain/name identity in compiler output'
+assert set(exported)==declared, f'Missing={declared-set(exported)} Unexpected={set(exported)-declared}'
 item_names = {parts[1] for row in rows[1:] if (parts := row.split("\t"))[0] == "ITEM" and len(parts) > 1}
 assert {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe"} <= item_names, (
     f"ExampleMod general items missing from V2 export: {item_names}"

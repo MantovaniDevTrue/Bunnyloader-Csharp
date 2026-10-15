@@ -9,6 +9,7 @@ namespace bl::csharp {
 struct ParsedSourceType {
     std::string name;
     std::string base;
+    std::string namespaceName;
     std::map<std::string, std::string> properties;
 };
 

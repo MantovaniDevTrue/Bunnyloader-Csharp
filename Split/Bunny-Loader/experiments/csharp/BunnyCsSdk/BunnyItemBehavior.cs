@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace BunnyLoader.Source;
 
-public enum BunnyEquipKind { Head, Body, Legs, Beard, Back }
+public enum BunnyEquipKind { Head, Body, Legs, Beard, Back, Wings }
 public enum BunnyEquipDrawFlags { None=0, UseHairColor=1, ShowHands=2 }
 public enum BunnyEquipFloat { MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed }
 public enum BunnyEquipFlag { StrongBees }
@@ -19,6 +19,30 @@ public sealed class BunnyItemBehavior
     private string animation = "null", light = "null", alpha = "null";
     public bool ColorFromPlayerHair { get; set; }
     public bool Robe { get; set; }
+    public BunnyArmorEffects Armor { get; } = new();
+    private BunnyArmorSet? armorSet;
+    private int defense;
+    private string wings="null";
+    public int Defense
+    {
+        get => defense;
+        set { if(value<0||value>1000)throw new ArgumentOutOfRangeException(nameof(value));defense=value; }
+    }
+    public void DefineArmorSet(BunnyArmorSet set)
+    { if(set is null)throw new ArgumentNullException(nameof(set));if(armorSet is not null)throw new InvalidOperationException("Conjunto ja definido");armorSet=set; }
+
+    /// <summary>WingStats e os cinco refs do WingMovement original, sem callback Mono por quadro.</summary>
+    public void SetWingStats(int flyTime,float flySpeed,float acceleration,
+        float ascentWhenFalling,float ascentWhenRising,float maxCanAscendMultiplier,
+        float maxAscentMultiplier,float constantAscend)
+    {
+        if(flyTime<1||flyTime>6000)throw new ArgumentOutOfRangeException(nameof(flyTime));
+        foreach(var n in new[]{flySpeed,acceleration})if(!float.IsFinite(n)||n<0||n>100)throw new ArgumentOutOfRangeException(nameof(flySpeed));
+        foreach(var n in new[]{ascentWhenFalling,ascentWhenRising,maxCanAscendMultiplier,maxAscentMultiplier,constantAscend})
+            if(!float.IsFinite(n)||n<0||n>10)throw new ArgumentOutOfRangeException(nameof(ascentWhenFalling));
+        wings="{\"stats\":["+flyTime+","+Number(flySpeed)+","+Number(acceleration)+"],\"vertical\":["+
+            string.Join(",",new[]{ascentWhenFalling,ascentWhenRising,maxCanAscendMultiplier,maxAscentMultiplier,constantAscend}.Select(Number))+"]}";
+    }
     public void CloneVanillaDefaults(string itemIdName)
     { Name(itemIdName); clone=itemIdName; }
     public void EquipTexture(BunnyEquipKind kind,string texture,BunnyEquipDrawFlags flags=BunnyEquipDrawFlags.None)
@@ -59,9 +83,9 @@ public sealed class BunnyItemBehavior
     public void WorldAlpha(byte red,byte green,byte blue,byte opacity) => alpha="["+red+","+green+","+blue+","+opacity+"]";
     internal string ToJson()
     {
-        if(equips.Count==0&&effects.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe)return "";
+        if(equips.Count==0&&effects.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&defense==0&&Armor.Empty&&armorSet is null&&wings=="null")return "";
         return "{\"v\":1,\"clone\":\""+clone+"\",\"equips\":["+string.Join(",",equips)+"],\"effects\":["+string.Join(",",effects)+
-            "],\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+"}";
+            "],\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
     }
     private static string Number(float n) => n.ToString("R",CultureInfo.InvariantCulture);
     private static string Bool(bool b) => b?"true":"false";

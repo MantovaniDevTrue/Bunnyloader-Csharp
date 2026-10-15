@@ -13,12 +13,12 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t beardSlot; unsigned char sentinel[3]; };
+struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; unsigned char sentinel[3]; };
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
     soundClass{"SoundStyle",true,static_cast<int>(sizeof(SoundValue)),{}},
-    nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,0,{}},idClass{"SoundID",false,0,{}};
+    nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,sizeof(FakeItem),{}},idClass{"SoundID",false,0,{}};
 Il2CppType intType{&intClass},boolType{&boolClass},floatType{&floatClass},legacyType{&legacyClass},
     stringType{&stringClass},soundType{&soundClass},nullableType{&nullableClass};
 Il2CppClass styleClass{"Byte",true,1,{}};
@@ -28,6 +28,7 @@ Il2CppClass shortClass{"Int16",true,2,{}};Il2CppType shortType{&shortClass};
 std::vector<FieldInfo> storage;std::map<int,std::string> identities;
 std::map<int,std::string> tooltips;bl::il2cpp::Api apiInstance;
 bool nullable=false,initialized=false;int barriers=0;
+bool unboxed=false,badBounds=false;
 Il2CppObject soundObject{},pathObject{};
 SoundValue soundValue{7,&pathObject};
 
@@ -37,20 +38,28 @@ Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 }
-namespace bl::script {size_t structFieldOffset(Il2CppClass*,size_t offset){return offset-sizeof(Il2CppObject);}}
+namespace bl::csharp {
+bool managedPrefixDescriptorReady(int) { return false; }
+bool managedPrefixDescriptorPending(int) { return false; }
+bool applyManagedPrefixStatFallback(Il2CppObject*, int, std::string*) { return false; }
+}
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
 std::string modItemKey(int type){return identities[type];}
+int modTileTypeByKey(const std::string&){return -1;}
+int tileTypeCount(){return 754;}
 int modItemTypeByKey(const std::string& key){for(auto& p:identities)if(p.second==key)return p.first;return -1;}
 void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> values){tooltips[type]=values.at(0).second;}
 }
 
 void configure(){
  storage.reserve(40);
+ storage.push_back({"defense",&shortType,offsetof(FakeItem,defense),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"headSlot",&intType,offsetof(FakeItem,headSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"bodySlot",&shortType,offsetof(FakeItem,bodySlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"legSlot",&shortType,offsetof(FakeItem,legSlot),0});itemClass.fields.push_back(&storage.back());
  static Il2CppClass signedClass{"SByte",true,1,{}};static Il2CppType signedType{&signedClass};
+ storage.push_back({"wingSlot",&signedType,offsetof(FakeItem,wingSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"beardSlot",&signedType,offsetof(FakeItem,beardSlot),0});itemClass.fields.push_back(&storage.back());
  const char* names[]={"width","height","maxStack","value","rare","damage","crit","useTime","useAnimation","useStyle","pick","axe","hammer"};
  for(size_t i=0;i<13;i++){storage.push_back({names[i],i==9?&styleType:i==3&&narrowValue?&shortType:&intType,offsetof(FakeItem,values)+i*sizeof(int),0});itemClass.fields.push_back(&storage.back());}
@@ -60,9 +69,10 @@ void configure(){
  storage.push_back({"UseSound",nullable?&nullableType:&legacyType,offsetof(FakeItem,sound),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"Item1",nullable?&soundType:&legacyType,0,0x10});idClass.fields.push_back(&storage.back());
  if(nullable){
-  storage.push_back({"hasValue",&boolType,sizeof(Il2CppObject),0});nullableClass.fields.push_back(&storage.back());
-  storage.push_back({"value",&soundType,sizeof(Il2CppObject)+8,0});nullableClass.fields.push_back(&storage.back());
-  storage.push_back({"path",&stringType,sizeof(Il2CppObject)+offsetof(SoundValue,path),0});soundClass.fields.push_back(&storage.back());
+  const auto header=unboxed?0:sizeof(Il2CppObject);
+  storage.push_back({"hasValue",&boolType,header,0});nullableClass.fields.push_back(&storage.back());
+  storage.push_back({"value",&soundType,header+8,0});nullableClass.fields.push_back(&storage.back());
+  storage.push_back({"path",&stringType,header+offsetof(SoundValue,path),0});soundClass.fields.push_back(&storage.back());
  }
  apiInstance.field_get_type=[](FieldInfo* f){return static_cast<const Il2CppType*>(f->type);};
  apiInstance.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};
@@ -75,6 +85,7 @@ void configure(){
  apiInstance.field_get_offset=[](FieldInfo* f){return f->offset;};
  apiInstance.class_is_valuetype=[](const Il2CppClass* c){return c->value;};
  apiInstance.class_value_size=[](Il2CppClass* c,uint32_t* align){*align=8;return c->size;};
+ apiInstance.class_instance_size=[](Il2CppClass* c){return static_cast<uint32_t>(c->size);};
  apiInstance.runtime_class_init=[](Il2CppClass* c){assert(c==&idClass);initialized=true;};
  apiInstance.field_static_get_value=[](FieldInfo*,void* out){assert(initialized);if(nullable)std::memcpy(out,&soundValue,sizeof(soundValue));else {void* ptr=&soundObject;std::memcpy(out,&ptr,sizeof(ptr));}};
  apiInstance.gc_wbarrier_set_field=[](Il2CppObject*,void** field,void* value){*field=value;barriers++;};
@@ -89,11 +100,12 @@ int main(int argc,char** argv){
  assert(!bl::csharp::validSourceExecutedTypeCount(1025));
  assert(argc>=2);
  const std::string mode=argc>=3?argv[2]:"--byte";
- narrowValue=mode=="--range";nullable=mode=="--nullable";enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";
+ narrowValue=mode=="--range";unboxed=mode=="--nullable-unboxed";nullable=mode=="--nullable"||unboxed;enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";badBounds=mode=="--bounds";
  if(mode=="--int16") {styleClass.name="Int16";styleClass.size=2;}
  if(mode=="--int32"||enumStyle) {styleClass.name=enumStyle?"ItemUseStyle":"Int32";styleClass.size=4;}
  if(rejectStyle) {styleClass.name="Single";styleClass.size=4;}
  configure();
+ if(badBounds)bl::il2cpp::findField(&itemClass,"useStyle")->offset=sizeof(FakeItem);
  std::ifstream file(argv[1]);std::string line,error;std::getline(file,line);
  std::vector<bl::csharp::BasicItemEntry> entries;int next=6196;
  while(std::getline(file,line)){if(line.empty())continue;bl::csharp::BasicItemEntry entry;
@@ -104,6 +116,7 @@ int main(int argc,char** argv){
    assert(error.find("Field=useStyle Expected=Integral8/16/32 Actual=Single")!=std::string::npos);
    std::cout<<"NATIVE_BASIC_ITEM_REJECT_INCOMPATIBLE_TYPE_PASS\n";return 0;
   }
+  if(badBounds){assert(!bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));assert(error.find("Field=useStyle")!=std::string::npos&&error.find("Reason=InvalidFieldBounds")!=std::string::npos);std::cout<<"NATIVE_BASIC_ITEM_REJECT_OFFSET_OUTSIDE_INSTANCE_PASS\n";return 0;}
   assert(bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));entries.push_back(entry);
  }
  if(mode=="--capacity") {
@@ -116,6 +129,22 @@ int main(int argc,char** argv){
   std::cout<<"NATIVE_BASIC_ITEM_192_AND_CATEGORY_LIMIT_PASS\n";return 0;
  }
  assert(entries.size()==3);
+ if(mode=="--recipes-only") {
+  for(auto& entry:entries)entry.behavior.clear();
+  entries[0].recipes[0].station=-1;entries[0].recipes[0].stationKey="late/Bench";
+  entries[0].recipes[0].ingredients[0].key="mlate/Material";
+  assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
+  const auto queued=bl::csharp::pendingBasicRecipes();assert(queued.size()==3);
+  bool delayed=false;
+  for(const auto& recipe:queued)if(recipe.values.stationKey=="late/Bench") {
+   assert(recipe.values.ingredients[0].key=="mlate/Material");
+   assert(recipe.values.ingredients[0].type==-1);delayed=true;
+  }
+  assert(delayed);
+  FakeItem item{};assert(bl::csharp::applyBasicItemToObject(&item.header,entries[0].type));
+  assert(item.values[bl::csharp::BasicMaxStack]==entries[0].values[bl::csharp::BasicMaxStack]);
+  std::cout<<"CSHARP_ITEM_DEFAULTS_AND_RECIPES_WITHOUT_QUICKJS_PASS\n";return 0;
+ }
  if(narrowValue) {
   assert(!bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
   assert(error.find("value=50000 fora do tipo nativo (16 bits)")!=std::string::npos);
@@ -143,9 +172,18 @@ int main(int argc,char** argv){
  }
  assert(barriers==2);
  const int equippedType=entries[0].type;
+ assert(bl::csharp::setBasicItemDefense(equippedType,6,&error));
+ assert(!bl::csharp::setBasicItemDefense(equippedType,-1,&error));
+ assert(!bl::csharp::setBasicItemDefense(equippedType,1001,&error));
+ assert(!bl::csharp::setBasicItemDefense(-1,6,&error));
+ auto* defenseField=bl::il2cpp::findField(&itemClass,"defense");
+ defenseField->type=&floatType;assert(!bl::csharp::setBasicItemDefense(equippedType,7,&error));assert(error.find("Actual=Single")!=std::string::npos);defenseField->type=&shortType;
+
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Head",350,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Body",260,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Legs",220,&error));
+ assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Wings",70,&error));
+ assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Wings",128,&error));
  assert(bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",127,&error));
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Beard",128,&error));assert(error.find("SlotOutOfRange")!=std::string::npos);
  assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Back",1,&error));assert(error.find("Actual=Missing")!=std::string::npos);
@@ -155,14 +193,55 @@ int main(int argc,char** argv){
  headField->flags=0x10;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));headField->flags=0;
  headField->type=&floatType;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("Actual=Single")!=std::string::npos);headField->type=&intType;
  const auto savedOffset=headField->offset;headField->offset=0;assert(!bl::csharp::setBasicItemEquipSlot(equippedType,"Head",12,&error));assert(error.find("InvalidFieldOffset")!=std::string::npos);headField->offset=savedOffset;
- FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));
+ FakeItem recreated{};std::memset(recreated.sentinel,0x5a,sizeof(recreated.sentinel));std::memset(recreated.defenseSentinel,0x6b,sizeof(recreated.defenseSentinel));
  assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
+ assert(recreated.wingSlot==70);
  assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
  for(auto value:recreated.sentinel)assert(value==0x5a);
+ assert(recreated.defense==6);for(auto value:recreated.defenseSentinel)assert(value==0x6b);
  auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);
- for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.type>0);
+ for(const auto& recipe:pending){for(const auto& ingredient:recipe.values.ingredients)assert(ingredient.key.front()=='m'?ingredient.type==-1:ingredient.type>0);
   assert(bl::csharp::acknowledgeBasicRecipe(recipe.id,17));assert(!bl::csharp::acknowledgeBasicRecipe(recipe.id,17));}
  assert(bl::csharp::pendingBasicRecipes().empty());
+ auto stationItem=entries[0];stationItem.type=7199;stationItem.name="StationFixture";
+ identities[stationItem.type]="mod/StationFixture";
+ assert(bl::csharp::registerBasicItemPlaceholder(stationItem.type,stationItem.name,&error));
+ stationItem.recipes[0].station=-1;stationItem.recipes[0].stationKey="ContractBench";
+ assert(bl::csharp::applyNativeBasicItemDefaults("mod",{stationItem},&error));
+ const auto stationPending=bl::csharp::pendingBasicRecipes();assert(stationPending.size()==1);
+ assert(stationPending[0].values.stationKey=="mod/ContractBench");
+ assert(bl::csharp::acknowledgeBasicRecipe(stationPending[0].id,18));
+
+ std::vector<bl::csharp::BasicItemEntry> retryItems;
+ for(int i=0;i<9;++i) {
+  auto item=entries[0];item.type=7300+i;item.name="RetryFixture"+std::to_string(i);item.recipes[0].station=-1;item.recipes[0].stationKey="MissingStation";
+  item.behavior="{\"v\":1}";identities[item.type]="mod/"+item.name;
+  assert(bl::csharp::registerBasicItemPlaceholder(item.type,item.name,&error,"/mod","content/"+item.name+".cs"));retryItems.push_back(item);
+ }
+#if !BL_HAVE_QUICKJS
+ assert(!bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
+ assert(error.find("Reason=BehaviorDecouplingPending")!=std::string::npos);
+ for(auto& item:retryItems)item.behavior.clear();
+#endif
+ assert(bl::csharp::applyNativeBasicItemDefaults("mod",retryItems,&error));
+#if BL_HAVE_QUICKJS
+ const auto first=bl::csharp::pendingBasicItemBehaviors(),second=bl::csharp::pendingBasicItemBehaviors();assert(first.size()==8&&second.size()==8);
+ bool ninth=false;for(const auto& item:second)if(item.type==7308)ninth=true;assert(ninth);
+ assert(!bl::csharp::basicItemPolicyReady(7300));
+ assert(bl::csharp::acknowledgeBasicItemBehavior(7300,"policy failed"));assert(!bl::csharp::basicItemPolicyReady(7300));
+ assert(bl::csharp::acknowledgeBasicItemBehavior(7300,""));assert(bl::csharp::basicItemPolicyReady(7300));
+#else
+ assert(bl::csharp::pendingBasicItemBehaviors().empty());
+ assert(bl::csharp::basicItemPolicyReady(7300));
+#endif
+ assert(bl::csharp::basicItemPolicyReady(entries[0].type)&&bl::csharp::basicItemPolicyReady(2));
+ const auto recipesFirst=bl::csharp::pendingBasicRecipes(),recipesSecond=bl::csharp::pendingBasicRecipes();assert(recipesFirst.size()==8&&recipesSecond.size()==8);
+ bool lastRecipe=false;for(const auto& recipe:recipesSecond)if(recipe.result==7308)lastRecipe=true;assert(lastRecipe);
+ assert(bl::csharp::reportBasicRecipeError(recipesSecond[0].id,"missing station"));
+ assert(!bl::csharp::reportBasicRecipeError("not-registered","error"));
+ bool persisted=false;for(const auto& recipe:bl::csharp::pendingBasicRecipes())if(recipe.id==recipesSecond[0].id){assert(recipe.error=="missing station");assert(!recipe.source.empty());persisted=true;}
+ if(!persisted)for(const auto& recipe:bl::csharp::pendingBasicRecipes())if(recipe.id==recipesSecond[0].id){assert(recipe.error=="missing station");persisted=true;}
+ assert(persisted);
  auto bad=entries;bad[0].values[bl::csharp::BasicDamage]=999999;
  assert(!bl::csharp::applyNativeBasicItemDefaults("mod",bad,&error));
  FakeItem object{};assert(bl::csharp::applyBasicItemToObject(&object.header,entries[0].type));assert(object.values[bl::csharp::BasicDamage]==entries[0].values[bl::csharp::BasicDamage]);

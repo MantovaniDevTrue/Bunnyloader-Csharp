@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/TileWriter.cs" Link="TileWriter.cs" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs" Link="CompiledAssemblyProbe.cs" />
   </ItemGroup>

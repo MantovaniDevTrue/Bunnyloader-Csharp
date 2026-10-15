@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [codex/example-completion-v90-28]
+    branches: [codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,11 +13,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: JonataOliveiraa/Bunny-Loader
-          ref: bc4f240082a589823536eff74462a11acbdba8ec
+          ref: e608114efb15a3a021887a6132d9e2a487ba6b62
           path: .audit-upstream
       - name: Check all canonical JS examples and evidence gates
         working-directory: Split/Bunny-Loader
-        run: python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+        run: |
+          python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+          python3 tests/basic_items/check_lot_a_scope.py
+          python3 tests/example_reference_package_test.py
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -31,12 +34,38 @@ jobs:
           from pathlib import Path
           auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
           loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
-          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_28_5"' in auto
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
           assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
           assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
           assert 'tipo=" + fields[0]' in loader
           assert '" campos=" + std::to_string(fields.size())' in loader
           print("BUNNY_ANDROID_V2_CACHE_RECOVERY_GUARD=PASS")
+          PY
+      - name: Guard CSharp warm-start and stable compatible cache
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          app = Path("app/build.gradle.kts").read_text()
+          assert any(line.strip().startswith('versionName = "0.1.10.16.90.29.') and line.strip().endswith('"') for line in app.splitlines())
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate"' in auto
+          assert 'status.cached = readCache(cacheFile, mod.id, key' in auto
+          assert 'g_cachedMods.fetch_add(1' in auto
+          assert 'g_compiledMods.fetch_add(1' in auto
+          compile_part = auto[auto.index("bool compile("):auto.index("bool parseCurves(")]
+          assert 'const auto deadline = started + std::chrono::seconds(180)' in compile_part
+          assert 'elapsed < 2500ms ? 35ms' in compile_part
+          assert 'elapsed < 12s ? 100ms : 300ms' in compile_part
+          assert compile_part.index('const std::string status = readText(path, 8192)') < compile_part.index('std::this_thread::sleep_for(elapsed <')
+          assert 'elapsed < 2s ? 35ms : 150ms' in auto
+          assert 'g_runtimeWarming.store(true, std::memory_order_release)' in auto
+          assert 'probeManagedRuntimePinnedThread(probe, "PINNED_MONO")' in auto
+          assert auto.index('g_runtimeWarming.store(true, std::memory_order_release)') < auto.index('note(&status, "applying")')
+          assert 'g_preWorldBindingsArmed.load(std::memory_order_acquire)' in auto
+          assert 'preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()' in auto
+          assert 'C# carregou sem problemas:' in auto
+          print("BUNNY_CSHARP_WARM_START_GUARD=PASS")
           PY
       - name: Guard optional Terraria Item.active lookup
         working-directory: Split/Bunny-Loader
@@ -77,13 +106,61 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
+          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
+          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/example-wings-source-runtime-values.txt
+          python3 tests/basic_items/check_csharp_tooltip_refresh.py
+          node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
           node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
+      - name: Execute native recipes and shared registries without QuickJS
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -o /tmp/native-recipes-test
+          /tmp/native-recipes-test
+          /tmp/native-recipes-test --pump
+          /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
+          /tmp/native-recipes-test --probe-wire build/basic-items/probe-source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
+          /tmp/placement-probe-registration-test samples/NativePlacementProbe/Playable/content
+          /tmp/native-recipes-test --type
+          /tmp/native-recipes-test --bounds
+          /tmp/native-recipes-test --method
+          python3 tests/native_recipes/delivery_gate_test.py
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
+          /tmp/shared-registry-test
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/value_layout_test.cpp -o /tmp/value-layout-test
+          /tmp/value-layout-test
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp -Wl,--gc-sections -o /tmp/native-items-no-js
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --recipes-only
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+      - name: Execute production startup metadata cache and one-shot summary regressions
+        working-directory: Split/Bunny-Loader
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -pthread -I tests/startup/include -I tests/basic_items/include -I app/src/main/cpp tests/auto_source_startup.cpp -Wl,--gc-sections -o /tmp/auto-source-startup
+          /tmp/auto-source-startup
+          /tmp/auto-source-startup --field
+      - name: Package source ExampleMod for the next Android checkpoint
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tests/combat_batch/check_package.py
+          python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
+          python3 tools/mods/check_csharp_assets.py build/mods-packs/examplemodcsharp-0.1.39.bl --compiled-assets build/basic-items/full-source-assets.json
+          python3 tests/basic_items/package_assets_test.py
+          cp build/mods-packs/examplemodcsharp-0.1.39.bl build/ExampleModCSharp-v0.1.39.bmod
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit
           path: |
             Split/Bunny-Loader/docs/generated/example_completion/
             docs/csharp-completion-plan.md
+            Split/Bunny-Loader/build/ExampleModCSharp-v0.1.39.bmod
+            Split/Bunny-Loader/tools/example_completion/package-reference.json
+            Split/Bunny-Loader/build/basic-items/full-source-assets.json
+            Split/Bunny-Loader/build/basic-items/full-source-runtime-values.txt
+            Split/Bunny-Loader/build/basic-items/example-wings-source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items-results.json
             Split/Bunny-Loader/build/basic-items/source-runtime-values.txt
+            Split/Bunny-Loader/build/basic-items/armor-source-runtime-values.txt

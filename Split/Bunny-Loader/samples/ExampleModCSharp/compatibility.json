@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.35",
+  "exampleModCSharpVersion": "0.1.39",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -246,8 +246,38 @@
         "ExampleArcanePlayer",
         "ExampleArcaneAccessory"
       ]
+    },
+    {
+      "id": "native_csharp_recipe_service",
+      "status": "experimental",
+      "examples": [
+        "ExampleItem",
+        "ExamplePickaxe",
+        "ExampleHamaxe"
+      ],
+      "loaderSince": "0.1.10.16.90.29.1",
+      "validation": "Adapter/registries executed in host without QuickJS; Android pending",
+      "limits": [
+        "CSharp station placement pending",
+        "Beyond-max menu bridge pending",
+        "Equipment policies not decoupled"
+      ]
+    },
+    {
+      "id": "native_2x1_workbench",
+      "status": "experimental",
+      "examples": [
+        "ExampleWorkbench"
+      ]
+    },
+    {
+      "id": "native_workbench_armor",
+      "status": "experimental",
+      "examples": [
+        "ExampleHelmet",
+        "ExampleBreastplate",
+        "ExampleLeggings"
+      ]
     }
   ]
 }
-
-

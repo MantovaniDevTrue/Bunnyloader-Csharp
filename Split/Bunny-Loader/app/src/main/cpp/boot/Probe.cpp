@@ -104,6 +104,7 @@ void probeThread() {
             installDevTools();
             installFramePacing();
             installModItemSave();
+            csharp::installCSharpWorldEntryGate();
             installModTileSave();
             installModNpcSave();
             ui::installCheatButton();

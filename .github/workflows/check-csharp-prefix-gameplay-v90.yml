@@ -3,6 +3,7 @@ name: Check CSharp native prefix gameplay v90
 on:
   push:
     branches:
+      - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28
       - csharp-composite-accessories-v90-26
       - codex/combat-batch-v90-25
@@ -375,7 +376,10 @@ jobs:
           assert life.count('g_worldPrefixesRestored.store(false, std::memory_order_release);') >= 2
           assert 'if (context.gameMenu != 1 && context.netMode == 0) {' in life
           assert 'retryWorldManagedPrefixesWhenReady();' in life
-          assert 'csharp prefix: hooks e descritores prontos; iniciando restauracao tardia' in life
+          assert 'csharp prefix: restauracao do personagem pendente' in life
+          assert 'bool finishPreWorldCSharpPlayer()' in life
+          assert 'void hkCSharpPlayWorld(const MethodInfo* method)' in life
+          assert 'preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()' in life
           assert 'bl::runtime::retryPendingManagedPrefixesOnWorldReady();' in life
           assert life.index("g_worldSessionReady.store(true, std::memory_order_release);") < life.rindex("retryWorldManagedPrefixesWhenReady();")
           print("BUNNY_CSHARP_LATE_PREFIX_AND_NATIVE_SPEED_V90_15=PASS")
@@ -507,7 +511,11 @@ jobs:
           assert "original->second.key == current->second.key" in source
           assert "csharp prefix restore: chave=" in source
           assert "bl::runtime::retryPendingManagedPrefixesOnWorldReady();" in lifecycle
-          assert lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();") < lifecycle.index("retryWorldManagedPrefixesWhenReady();", lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();"))
+          pre_world = lifecycle.index("bool finishPreWorldCSharpPlayer()")
+          enter = lifecycle.index("void hkCSharpPlayWorld(")
+          assert pre_world < enter
+          assert lifecycle.index("refreshManagedPrefixEligibilityOnWorldReady();", pre_world) < enter
+          assert lifecycle.index("bl::runtime::retryPendingManagedPrefixesOnWorldReady();", pre_world) < enter
           assert "managedPrefixGameplayReady()" in lifecycle
           print("BUNNY_CSHARP_PREFIX_RESTORE_V90_7=PASS")
           PY
@@ -524,7 +532,10 @@ jobs:
           assert "for (const auto& accessory : g_accessories)" in native
           assert "if (!entries || static_cast<uintptr_t>(type) >= entries->length)" in native
           assert "refreshManagedPrefixEligibilityOnWorldReady();" in lifecycle
-          assert lifecycle.index('g_worldSessionReady.store(true, std::memory_order_release)') < lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();')
+          pre_world = lifecycle.index("bool finishPreWorldCSharpPlayer()")
+          enter = lifecycle.index("void hkCSharpPlayWorld(")
+          assert lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();', pre_world) < enter
+          assert lifecycle.index('g_worldSessionReady.store(true, std::memory_order_release)') < lifecycle.rindex('refreshManagedPrefixEligibilityOnWorldReady();')
           assert lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();') < lifecycle.index('scheduleAutoLiveBindings();', lifecycle.index('refreshManagedPrefixEligibilityOnWorldReady();'))
           print("BUNNY_CSHARP_PREFIX_FIRST_WORLD_ELIGIBILITY_V90_6=PASS")
           PY

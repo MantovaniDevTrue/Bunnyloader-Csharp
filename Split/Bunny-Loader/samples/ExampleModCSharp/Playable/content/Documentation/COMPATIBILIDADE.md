@@ -1,6 +1,6 @@
 # Matriz completa ExampleModBunny → C#
 
-Referencia canonica: **199 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
+Referencia canonica: **201 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
 As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.
 O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.
 
@@ -27,12 +27,12 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Placeable | 36 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Players | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
+| Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Quests | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Systems | 5 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Systems | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tiles | 37 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -54,9 +54,11 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Common/Players/ExampleFishingPlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleLowLifePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExamplePlayer.js | samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Todos os hooks/estado persistente do ModPlayer original; exemplos atuais nao sao portas integrais. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
+| Common/Players/ExampleTouchButtonPlayer.js | — | Não implementado | ProcessTriggers C#; JustPressed/Current; estado por jogador; tocar/segurar/double-tap; random buff e texto localizado. | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/WingsGlowmask.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para PlayerDrawLayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/DownedBossSystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/ExampleBiomeTileCount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Systems/TouchButtonSystem.js | — | Não implementado | API C# publica de registro de botoes; labels/icones; registro Load; integracao e persistencia do layout de controles. | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ExampleBossKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ManyWormsKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleSurfaceBackgroundStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle | Sem validacao funcional C# deste exemplo inteiro. |
@@ -85,13 +87,13 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Accessories/ExampleShield.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs | Parcial | Dash e double-tap originais ainda nao portados.; Valores/efeitos originais do ExampleShield diferem dos atributos preservados do Guardian Shield. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Items/Accessories/ExampleStatAccessory.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs | Validado por testes automatizados | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/item_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence |
 | Content/Items/Accessories/ExampleStatBonusAccessory.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
-| Content/Items/Accessories/ExampleWings.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Accessories/ExampleWings.js | — | Não implementado | Fonte C# equivalente e assets originais ainda pendentes.; Receita depende de ExampleWorkbench C# ainda nao implementado.; Equipamento, voo, animacoes e ciclos de vida no Android ainda nao registrados. | tests/basic_items/wing_fixture: contrato independente, nao port do ExampleMod; tests/basic_items/wing_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp |
 | Content/Items/Accessories/WaspNest.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs | Validado por testes automatizados | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/item_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence |
 | Content/Items/Ammo/ExampleBullet.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Armor/ExampleBreastplate.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Armor/ExampleBreastplate.js | — | Não implementado | Fonte C# equivalente, assets e port integral ainda pendentes.; Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.; Validacao Android do exemplo e roteiro completo ainda nao executados. | tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod; tests/basic_items/armor_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp |
 | Content/Items/Armor/ExampleCostume.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para EquipTexture, ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Armor/ExampleHelmet.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Armor/ExampleLeggings.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Armor/ExampleHelmet.js | — | Não implementado | Fonte C# equivalente, assets e port integral ainda pendentes.; Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.; Validacao Android do exemplo e roteiro completo ainda nao executados. | tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod; tests/basic_items/armor_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp |
+| Content/Items/Armor/ExampleLeggings.js | — | Não implementado | Fonte C# equivalente, assets e port integral ainda pendentes.; Receitas originais dependem do contrato C# de ExampleWorkbench; AddTile(string) ja possui bridge real para tiles JS.; Validacao Android do exemplo e roteiro completo ainda nao executados. | tests/basic_items/armor_fixture: contrato independente, nao port do ExampleMod; tests/basic_items/armor_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp |
 | Content/Items/Armor/Vanity/ExampleBossMask.js | samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs | Validado por testes automatizados | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/item_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence; tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts |
 | Content/Items/Armor/Vanity/ExampleRobe.js | samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs | Validado por testes automatizados | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/item_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence; tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts |
 | Content/Items/Consumables/ExampleBossBag.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |

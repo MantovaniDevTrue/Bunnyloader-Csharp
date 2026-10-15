@@ -8,8 +8,10 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
+#include "experiments/csharp/ManagedPrefixBridge.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/SourceLoader.h"
 
 #include <atomic>
 #include <cstdio>
@@ -293,7 +295,19 @@ bool stillWaitingForPrefix(const std::vector<Container>& containers, const Saved
     return false;
 }
 
+bool csharpPrefixSourcePending(const std::string& key) {
+    const auto slash = key.find('/');
+    if (slash == std::string::npos) return false;
+    const std::string modId = key.substr(0, slash);
+    for (const auto& mod : bl::csharp::sourceModStatuses())
+        if (mod.id == modId && mod.loaded && mod.prefixes > 0 && !mod.runtimeApplied)
+            return true;
+    return false;
+}
+
 bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
+    if (!saved.prefixKey.empty() && csharpPrefixSourcePending(saved.prefixKey))
+        return false;
     const Refs& r = g_refs;
     const int wanted = decodePrefix(saved);
     const MethodInfo* method = !saved.prefixKey.empty() && r.applyPrefixDetailed
@@ -307,6 +321,7 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
     }
     const int current = field<uint8_t>(item, r.prefix);
     const bool managed = !saved.prefixKey.empty();
+    if (managed && bl::csharp::managedPrefixDescriptorPending(wanted)) return false;
     if (current == wanted && !managed) return true;
     auto& api = il2cpp::api();
     Il2CppObject* error = nullptr;
@@ -341,12 +356,24 @@ bool restoreSavedPrefix(Il2CppObject* item, const SavedItem& saved) {
             BL_INFO("csharp prefix: restaurado pelo RollAPrefix nativo id=%d tipo=%d",
                     wanted, field<int32_t>(item, r.type));
     }
+    std::string nativeFallbackError;
+    if (!restored && managed && bl::csharp::managedPrefixDescriptorReady(wanted) &&
+        r.resetPrefix && bl::csharp::managedPrefixGameplayReady()) {
+        error = nullptr;
+        if (field<uint8_t>(item, r.prefix) != 0)
+            api.runtime_invoke(r.resetPrefix, item, nullptr, &error);
+        if (!error && field<uint8_t>(item, r.prefix) == 0)
+            restored = bl::csharp::applyManagedPrefixStatFallback(item, wanted, &nativeFallbackError);
+    }
     if (!restored && managed &&
         g_prefixRestoreFailureLogs.fetch_add(1, std::memory_order_relaxed) < 12)
         BL_WARN("csharp prefix restore: chave=%s id=%d tipo=%d antes=%d direto=%d Prefix()=%d excecao=%d overload2=%d topTier=%d rollHook=%d rollDepois=%d",
                 saved.prefixKey.c_str(), wanted, field<int32_t>(item, r.type),
                 current, directAfter, returned ? 1 : 0, directException ? 1 : 0,
                 detailed ? 1 : 0, topTier ? 1 : 0, forcedRollReached ? 1 : 0, retryAfter);
+    if (!restored && managed && !nativeFallbackError.empty())
+        BL_WARN("csharp prefix: restauracao rejeitada chave=%s item=%d motivo=%s",
+                saved.prefixKey.c_str(), field<int32_t>(item, r.type), nativeFallbackError.c_str());
     if (!restored && managed && r.resetPrefix &&
         field<uint8_t>(item, r.prefix) != 0) {
         error = nullptr;
@@ -504,6 +531,12 @@ bool restoreVanillaPrefix(Il2CppObject* item, const SavedItem& saved) {
     auto& a = il2cpp::api();
     const Refs& r = g_refs;
     const int want = decodePrefix(saved);
+    if (!saved.prefixKey.empty() && csharpPrefixSourcePending(saved.prefixKey))
+        return false;
+    if (!saved.prefixKey.empty() && bl::csharp::managedPrefixDescriptorReady(want))
+        return restoreSavedPrefix(item, saved);
+    if (!saved.prefixKey.empty() && bl::csharp::managedPrefixDescriptorPending(want))
+        return false;
     const int now = field<uint8_t>(item, r.prefix);
     if (want == now) return true;
     Il2CppObject* exc = nullptr;
@@ -1055,6 +1088,31 @@ bool resolve() {
 }
 
 } // namespace
+
+int pendingManagedPrefixCountForActivePlayer() {
+    auto& api = il2cpp::api();
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main
+        ? api.class_get_method_from_name(main, "get_ActivePlayerFileData", 0)
+        : nullptr;
+    if (!getter) return 0;
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* data = api.runtime_invoke(getter, nullptr, nullptr, &exception);
+    if (exception || !data) return 0;
+    const std::string path = localPath(data);
+    if (path.empty()) return 0;
+    std::lock_guard<std::mutex> lock(g_mx);
+    auto it = g_pendingPrefix.find(path);
+    if (it == g_pendingPrefix.end()) return 0;
+    int unresolved = 0;
+    for (const auto& [slot, prefix] : it->second) {
+        const int id = modPrefixByKey(prefix.key);
+        if (id > 0 && (bl::csharp::managedPrefixDescriptorReady(id) ||
+                       bl::csharp::managedPrefixDescriptorPending(id)))
+            ++unresolved;
+    }
+    return unresolved;
+}
 
 void retryPendingManagedPrefixesOnWorldReady() {
     retryPendingManagedPrefixesInWorld();

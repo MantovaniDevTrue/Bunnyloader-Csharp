@@ -1,12 +1,12 @@
-# Lote de conclusao .90.28.0 / ExampleMod 0.1.35
+# Infraestrutura .90.29.1 / ExampleMod 0.1.36
 
 O [plano global](../../../..//docs/csharp-completion-plan.md) contabiliza TODOS os
-192 arquivos JS do upstream atualizado, sem excluir categorias. Consulte a
+201 arquivos JS do upstream atualizado, sem excluir categorias. Consulte a
 [matriz completa](../../docs/generated/example_completion/matrix.md) e seu JSON.
 Os estados distinguem porta parcial, implementacao ligada ao runtime e validacao
 real no Terraria. Os equipamentos nativos da .90.27.6 continuam preservados.
 
-Este lote acrescenta BunnyItem e receitas publicas reutilizaveis, com os fontes
+A infraestrutura anterior acrescentou BunnyItem e receitas publicas reutilizaveis, com os fontes
 originais de ExamplePickaxe/ExampleHamaxe e do material ExampleItem. Os atributos,
 animacao de uso/melee/mineracao, som Item1 e receitas sao processados pelo host.
 A moeda customizada do arquivo ExampleItem.js ainda esta pendente e registrada
@@ -83,3 +83,12 @@ Não presumir suporte geral a tModLoader, múltiplos mods C# simultâneos ou mul
 
 Grupo Lote A .90.28.5: 51 fontes, incluindo WaspNest, ExampleStatAccessory, Beard,
 BossMask, Robe e Soul. Leia content/Documentation/LOTE2_ITENS.md dentro do bmod.
+
+## .90.29.1 / 0.1.36 — entrega experimental
+
+Receitas BunnyItem agora passam diretamente pelo servico nativo; identificacao
+de ingredientes/estacoes e compartilhada entre JS/C# e nao chama a API JS.
+Leia Playable/content/Documentation/RECEITAS_NATIVAS.md para os limites e
+roteiro Android. A matriz embutida tem 201 arquivos e inclui dois novos exemplos
+de botoes de toque ainda nao portados. Nao foram adicionadas classes nesta
+etapa: continuam 51 fontes. A bancada C# e o Lote A completo ainda pendem.

@@ -15,41 +15,83 @@ class RecipeLoader {
 
     static SyncCSharp() {
         const api=bl.csharp;
+        if(api?.nativeRecipes===true)return; // Native queue owns C# registration; never register twice.
         if (!api || typeof api.pendingItemRecipes !== 'function') return;
         const pending=api.pendingItemRecipes(); // no maximo oito por lote
         if (!Array.isArray(pending) || !pending.length) return;
+        const failures=[];
         for (const entry of pending) {
-            if (RecipeLoader.#nativeStaged.has(entry.id)) continue;
-            if (!Number.isInteger(entry.result) || entry.result<=0 ||
-                !Number.isInteger(entry.stack) || entry.stack<1 ||
-                !Array.isArray(entry.ingredients) || !entry.ingredients.length || entry.ingredients.length>15)
-                throw new Error('csharp recipe: '+entry.id+' descritor invalido');
-            const recipe=new ModRecipe();
-            recipe.SetResult(entry.result,entry.stack);
-            if (recipe.recipe.createItem.stack!==entry.stack)
-                throw new Error('csharp recipe: '+entry.id+' resultado excede pilha real');
-            for (const ingredient of entry.ingredients) {
-                recipe.AddIngredient(ingredient.type,ingredient.count);
-                if (recipe.recipe.requiredItem[recipe.ingredients-1].stack!==ingredient.count)
-                    throw new Error('csharp recipe: '+entry.id+' ingrediente '+ingredient.type+' excede pilha real');
+            try {
+                if (RecipeLoader.#nativeStaged.has(entry.id)) continue;
+                if (!Number.isInteger(entry.result) || entry.result<=0 ||
+                    !Number.isInteger(entry.stack) || entry.stack<1 ||
+                    !Array.isArray(entry.ingredients) || !entry.ingredients.length || entry.ingredients.length>15)
+                    throw new Error('csharp recipe: '+entry.id+' descritor invalido');
+                let station=entry.station;
+                if(entry.stationKey) {
+                    if(typeof entry.stationKey!=='string'||entry.stationKey.length>160)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Reason=InvalidStationKey');
+                    station=-1;
+                    for(const [type,tile] of TileLoader.ByType) {
+                        const mod=tile.Mod;
+                        if(mod && entry.stationKey===mod.uuid+'/'+tile.constructor.name) {
+                            if(station>=0)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Reason=AmbiguousStation');
+                            station=type;
+                        }
+                    }
+                    if(!Number.isInteger(station)||station<bl.tiles.vanillaCount)throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Key='+entry.stationKey+' Expected=RegisteredModTile Actual=Missing Result=Pending');
+                } else if(!Number.isInteger(station)||station < -1||station>=bl.tiles.vanillaCount)
+                    throw new Error('csharp recipe: '+entry.id+' Stage=ResolveStation Expected=VanillaTile Actual='+station);
+                const recipe=new ModRecipe();
+                recipe.SetResult(entry.result,entry.stack);
+                if (recipe.recipe.createItem.stack!==entry.stack)
+                    throw new Error('csharp recipe: '+entry.id+' resultado excede pilha real');
+                for (const ingredient of entry.ingredients) {
+                    recipe.AddIngredient(ingredient.type,ingredient.count);
+                    if (recipe.recipe.requiredItem[recipe.ingredients-1].stack!==ingredient.count)
+                        throw new Error('csharp recipe: '+entry.id+' ingrediente '+ingredient.type+' excede pilha real');
+                }
+                if (station>=0) recipe.AddTile(station);
+                const index=Terraria.Recipe.numRecipes;
+                recipe.Register();
+                if (Terraria.Recipe.numRecipes!==index+1)
+                    throw new Error('csharp recipe: '+entry.id+' registro nativo nao incrementou numRecipes');
+                RecipeLoader.#nativeStaged.set(entry.id,index);
+            } catch(error) {
+                const detail=RecipeLoader.#Failure(entry,'Register',error);
+                failures.push(detail);
             }
-            if (entry.station>=0) recipe.AddTile(entry.station);
-            const index=Terraria.Recipe.numRecipes;
-            recipe.Register();
-            if (Terraria.Recipe.numRecipes!==index+1)
-                throw new Error('csharp recipe: '+entry.id+' registro nativo nao incrementou numRecipes');
-            RecipeLoader.#nativeStaged.set(entry.id,index);
         }
         // Se um lookup falhar, a proxima tentativa refaz os lookups sem
         // duplicar as receitas ja registradas. Nenhum ACK antes desta etapa.
-        RecipeLoader.Finish(true);
+        if(pending.some(entry=>RecipeLoader.#nativeStaged.has(entry.id))) {
+            try {RecipeLoader.Finish(true);}
+            catch(error) {
+                for(const entry of pending)if(RecipeLoader.#nativeStaged.has(entry.id))RecipeLoader.#Failure(entry,'RebuildLookups',error);
+                throw error;
+            }
+        }
         for (const entry of pending) {
             const index=RecipeLoader.#nativeStaged.get(entry.id);
-            if (!api.acknowledgeItemRecipe(entry.id,index))
-                throw new Error('csharp recipe: '+entry.id+' confirmacao nativa recusada');
+            if(index===undefined)continue;
+            if (!api.acknowledgeItemRecipe(entry.id,index)) {
+                const cause=new Error('csharp recipe: '+entry.id+' confirmacao nativa recusada Expected=True Actual=False Index='+index);
+                failures.push(RecipeLoader.#Failure(entry,'Acknowledge',cause));
+                continue;
+            }
             RecipeLoader.#nativeStaged.delete(entry.id);
             bl.log('csharp recipe: '+entry.id+' indice='+index+' instalada');
         }
+        if(failures.length)throw new Error(failures.join('\n'));
+    }
+
+    static #Failure(entry,stage,error) {
+        const id=String(entry.id||'<unavailable>');
+        const detail='[CSharp][ERROR][Recipe] Mod='+String(entry.mod||id.split('/')[0])+
+            ' Class='+id.split('/').pop().split('#')[0]+' Recipe='+id+' ContentId='+entry.result+
+            ' File='+String(entry.source||'<unavailable>')+' Stage='+stage+' Result=Pending Exception='+String(error)+' Stack='+(error.stack||'');
+        const api=bl.csharp;
+        if(typeof api.reportItemRecipeError==='function')api.reportItemRecipeError(entry.id,detail);
+        return detail;
     }
 
     static Added(index, station = -1) {

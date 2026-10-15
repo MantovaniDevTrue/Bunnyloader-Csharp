@@ -45,7 +45,26 @@ internal static class BasicItemWriter
         string behavior=Get<string>("BehaviorDefinition");
         if(behavior.Length!=0)behavior="{\"class\":\""+item.GetType().FullName+"\","+behavior.Substring(1);
         if(Encoding.UTF8.GetByteCount(behavior)>4096)throw new InvalidOperationException(name+": comportamento excede 4 KiB");
-        if(behavior.Length!=0)parts.Add(Convert.ToHexString(Encoding.UTF8.GetBytes(behavior)));
+        string placement=Get<string>("PlacementDefinition");
+        if(behavior.Length!=0||placement.Length!=0)parts.Add(behavior.Length==0?"-":Convert.ToHexString(Encoding.UTF8.GetBytes(behavior)));
+        if(placement.Length!=0)parts.Add(placement);
+        var localized=Get<Dictionary<string,string>>("TooltipTranslations");
+        if(localized.Count>0) {
+            if(localized.Count>8)throw new InvalidOperationException(name+": mais de 8 traducoes de tooltip");
+            while(parts.Count<22)parts.Add("-");
+            var values=new List<string>();
+            foreach(var pair in localized.OrderBy(p=>p.Key,StringComparer.Ordinal)) {
+                var culture=pair.Key;
+                var text=pair.Value;
+                if(culture.Length<2||culture.Length>20||
+                    culture.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='-'))||
+                    string.IsNullOrWhiteSpace(text)||Encoding.UTF8.GetByteCount(text)>512||
+                    text.Any(c=>c=='\0'||c=='\x7f'))
+                    throw new InvalidOperationException(name+": traducao de tooltip invalida");
+                values.Add(culture+":"+Convert.ToHexString(Encoding.UTF8.GetBytes(text)));
+            }
+            parts.Add(string.Join(";",values));
+        }
         return string.Join("\t",parts);
     }
 }

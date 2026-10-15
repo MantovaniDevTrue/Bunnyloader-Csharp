@@ -1,3 +1,4 @@
+#include "content/items/ItemRegistryInternal.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -22,20 +23,13 @@ namespace bl::runtime {
 
 namespace {
 
-struct Entry {
-    ModItemDef def;
-    int width = 0, height = 0;
-    uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
-    uint32_t flameAsset = 0;   // a chama na mao (TextureAssets.ItemFlame)
-    std::string unloadedKey;   // so da reserva "?": a chave do item ausente que ele representa
-};
-
-std::mutex g_mx;
-std::vector<Entry> g_regs;          // indice = type - kVanillaItemCount
-std::atomic<int> g_total{0};           // registrados
-std::atomic<int> g_installed{0};      // ja nas tabelas do jogo
+using item_registry::Entry;
+using item_registry::g_mx;
+using item_registry::g_regs;
+using item_registry::g_total;
+using item_registry::g_installed;
+using item_registry::g_poolFirst;
 bool g_failed = false;
-int g_poolFirst = -1;   // primeiro tipo da reserva "?", -1 sem reserva
 
 struct Refs {
     bool tried = false, ok = false;
@@ -222,7 +216,7 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
  */
 void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
-    if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromKey) return;
+    if (!r.tooltipCache || !r.tooltipFromKey) return;
     const std::string key = "BunnyLoader.ItemTooltip." + reg.def.mod + "." + reg.def.name;
     const std::string text = content::textForCulture(reg.def.tooltips, "");
     if (!content::makeLocalizedText(key, text)) return;
@@ -232,7 +226,8 @@ void applyTooltip(int type, const Entry& reg) {
     Il2CppObject* exc = nullptr;
     Il2CppObject* tip = a.runtime_invoke(r.tooltipFromKey, nullptr, args, &exc);
     if (exc || !tip) { BL_ERROR("itens de mod: FromLanguageKey lancou (%s)", reg.def.name.c_str()); return; }
-    content::setTableElement(r.tooltipCache, type, tip);
+    if (!content::setTableElement(r.tooltipCache, type, tip))
+        BL_WARN("itens de mod: tooltip nativo nao registrado (%s, type=%d)", reg.def.name.c_str(), type);
 }
 
 void applyName(int type, const Entry& reg) {
@@ -577,47 +572,6 @@ void growInstanceTables(int size) {
 
 } // namespace
 
-int registerModItem(ModItemDef def) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (const Entry& r : g_regs) {
-        if (r.def.mod == def.mod && r.def.name == def.name) return -1;
-    }
-    Entry reg;
-    reg.def = std::move(def);
-    g_regs.push_back(std::move(reg));
-    g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
-    return kVanillaItemCount + static_cast<int>(g_regs.size()) - 1;
-}
-
-bool isModItem(int type) {
-    return type >= kVanillaItemCount &&
-           type < kVanillaItemCount + g_total.load(std::memory_order_acquire);
-}
-
-std::string modItemKey(int type) {
-    if (!isModItem(type)) return {};
-    std::lock_guard<std::mutex> l(g_mx);
-    const Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
-    // O "?" responde pelo item que representa; um "?" livre nao e nada.
-    if (isUnloadedType(type)) return e.unloadedKey;
-    return e.def.mod + "/" + e.def.name;
-}
-
-int modItemTypeByKey(const std::string& key) {
-    const size_t slash = key.find('/');
-    if (slash == std::string::npos) return -1;
-    std::lock_guard<std::mutex> l(g_mx);
-    for (size_t i = 0; i < g_regs.size(); ++i) {
-        const ModItemDef& d = g_regs[i].def;
-        if (isUnloadedType(kVanillaItemCount + static_cast<int>(i))) continue;
-        if (key.compare(0, slash, d.mod) == 0 && slash == d.mod.size() &&
-            key.compare(slash + 1, std::string::npos, d.name) == 0) {
-            return kVanillaItemCount + static_cast<int>(i);
-        }
-    }
-    return -1;
-}
-
 // ------------------------------ o "?" ------------------------------
 
 constexpr const char* kLoaderMod = "bunnyloader";
@@ -635,10 +589,6 @@ void registerUnloadedPool() {
         if (i == 0) g_poolFirst = type;
     }
     BL_DEBUG("itens de mod: reserva de %d item(ns) \"?\" a partir do id %d", kUnloadedPoolSize, g_poolFirst);
-}
-
-bool isUnloadedType(int type) {
-    return g_poolFirst >= 0 && type >= g_poolFirst && type < g_poolFirst + kUnloadedPoolSize;
 }
 
 int unloadedTypeFor(const std::string& key) {
@@ -679,12 +629,40 @@ void setupUnloadedItem(Il2CppObject* item, int type) {
     finishModItem(item, type);
 }
 
-int itemTypeCount() {
-    return kVanillaItemCount + g_installed.load(std::memory_order_acquire);
-}
 
 namespace {
 std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
+void ensureArmorSetLookups(int size) {
+    auto* cls = il2cpp::findClassQuiet("Terraria.DataStructures", "ArmorSetBonuses");
+    auto* field = cls ? il2cpp::findField(cls, "SetsContaining") : nullptr;
+    if (!field) return;
+    Il2CppArray* outer = readStatic(field);
+    if (!outer || outer->length < static_cast<uintptr_t>(size)) return;
+    static Il2CppArray* last = nullptr;
+    static int checked = kVanillaItemCount;
+    if (last == outer && checked >= size) return;
+    auto& a = il2cpp::api();
+    auto* rowsClass = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(outer)));
+    auto* entryClass = rowsClass ? a.class_get_element_class(rowsClass) : nullptr;
+    if (!entryClass) return;
+    auto** rows = reinterpret_cast<Il2CppObject**>(arrayData(outer));
+    Il2CppObject* empty = nullptr;
+    int initialized = 0;
+    for (int type = kVanillaItemCount; type < size; ++type) {
+        if (rows[type]) continue;
+        if (!empty) empty = reinterpret_cast<Il2CppObject*>(a.array_new(entryClass, 0));
+        if (!empty || !content::setTableElement(field, type, empty)) {
+            BL_WARN("itens de mod: falha ao inicializar ArmorSetBonuses.SetsContaining[%d]", type);
+            return;
+        }
+        ++initialized;
+    }
+    last = outer;
+    checked = size;
+    if (initialized)
+        BL_INFO("itens de mod: %d entradas vazias de ArmorSetBonuses inicializadas para tooltip", initialized);
+}
+
 } // namespace
 
 void tickModItems() {
@@ -705,6 +683,7 @@ void tickModItems() {
             Il2CppArray* names = readStatic(refs().nameCache);
             if (names && names->length < static_cast<uintptr_t>(from)) g_tables.watch(from, onTableRegrown);
         }
+        ensureArmorSetLookups(from);
         return;
     }
     if (!gameReady(from)) return;
@@ -727,6 +706,7 @@ void tickModItems() {
     patchTouchTagLimits(to);
     patchItemTagLimits(to);
     growInstanceTables(to);
+    ensureArmorSetLookups(to);
 
     struct PendingSample { int type; std::string mod, name; };
     std::vector<PendingSample> pending;
@@ -811,3 +791,4 @@ std::vector<ModItemInfo> modItems() {
 }
 
 } // namespace bl::runtime
+

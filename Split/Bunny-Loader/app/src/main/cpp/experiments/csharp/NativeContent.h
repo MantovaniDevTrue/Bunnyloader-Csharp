@@ -13,7 +13,8 @@ enum NativeContentKind : int32_t {
     NativeAccessory = 4,
     NativeBuff = 5,
     NativeBuffPotion = 6,
-    NativeBasicItem = 7
+    NativeBasicItem = 7,
+    NativeTile = 8
 };
 
 struct NativeContentSpec {
@@ -43,6 +44,7 @@ struct NativeRegisterContext {
     int buffs = 0;
     int potions = 0;
     int basicItems = 0;
+    int tiles = 0;
     int firstNpcType = -1;
     int firstAccessoryType = -1;
     int firstBuffType = -1;
@@ -51,6 +53,22 @@ struct NativeRegisterContext {
 };
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);
+
+struct ManagedTileEntry {
+    std::string name;
+    int type = -1;
+    int flags = 0;
+    int shape = 0;
+    int coordinateHeight = 18;
+    int adjacentTile = -1;
+    std::string dustName;
+    int mapR = 200, mapG = 200, mapB = 200;
+    std::string mapName;
+    int failDust = 1, normalDust = 3;
+};
+
+bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
+                                         const std::vector<ManagedTileEntry>& tiles);
 
 struct ManagedProjectileDefaults {
     int width = 0;

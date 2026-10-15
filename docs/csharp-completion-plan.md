@@ -4,12 +4,24 @@
 
 Base estavel atual: Bunny .90.28.4 / ExampleMod 0.1.34, relatada pelo usuario
 como funcional no Android. A referencia historica .90.27.6 / 0.1.33 dos
-equipamentos nativos tambem foi preservada. Original atualizado: JonataOliveiraa/
-Bunny-Loader, commit bc4f240082a589823536eff74462a11acbdba8ec. O inventario e de
-199 arquivos JS (178 no fork; 21 adicionados pelo upstream). A referencia antiga
-de 169 arquivos nao limita o trabalho. Cada arquivo, inclusive helpers, main,
-configs e interfaces, tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
+equipamentos nativos tambem foi preservada. Referencia atual: `examplemod.bl` 1.9.0 fornecido pelo usuario, com **206 scripts JS**.
+O snapshot upstream e608114efb15a3a021887a6132d9e2a487ba6b62 conserva os
+201 arquivos anteriores; nenhum desapareceu. Os cinco novos globais e a alteracao
+de `Content/ExampleRecipes.js` estao identificados no inventario reproduzivel.
+O fork historico tem 178 scripts. Contagens historicas de 169/192 nao limitam o escopo.
+Cada arquivo tem uma entrada na [matriz](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
 e dados completos em [JSON](../Split/Bunny-Loader/docs/generated/example_completion/matrix.json).
+O pacote e seus assets sao identificados por SHA-256 em
+`tools/example_completion/package-reference.json`; scripts novos/alterados tambem
+preservam o fonte como referencia, sem serem executados pelo mod C#.
+
+Estado de continuidade em 2026-10-15: HEAD preservado `94c8c1c7161e0d7dfbe1dbc7f02d444021006fa3`,
+Bunny `.90.29.17-csharp-armor-tooltip-lookup`. Bancada e tres armaduras ja integradas;
+nao reimplementar esses sistemas. ExampleWings integrado no ExampleMod 0.1.38,
+com pendencia explicita de independencia do caminho de equipamentos em QuickJS.
+Desenvolver os grupos A2/A3 e executar CI antes do proximo checkpoint de APK.
+Shaders personalizados continuam fora desta etapa; a mencao no inventario global
+nao antecipa sua implementacao.
 
 Estado implementado exige comportamento original, assets e bridge reutilizavel.
 Estado Validado no Android exige evidencia de jogo do exemplo inteiro;
@@ -75,17 +87,32 @@ automatica so porque o build passou. Roteiros Android acompanham cada lote.
 
 ## Ponto atual para retomar
 
-Base estavel Android .90.28.4 preservada. Grupo .90.28.5: ver
-[codigo, contratos e roteiro](csharp-lot2-item-behaviors.md). A matriz registra
-199 arquivos e separa CI de Android. Proximo grupo obrigatorio: ExampleWorkbench,
-receitas com estacao de mod e o conjunto Helmet/Breastplate/Leggings.
-O Lote A/2 continua aberto; nenhum lote posterior foi abandonado.
+Base validada: .90.28.7 / ExampleMod 0.1.35, incluindo mascara e robe confirmados
+pelo usuario. Branch dessa base: codex/example-completion-v90-28; preservar seus
+commits. Branch de trabalho do Lote A completo: codex/lot-a-complete-v90-29.
 
-Entrega .90.28.5 / ExampleMod 0.1.35 gerada pelo pipeline 38560108522,
-commit de build `2d1012b7d067347688ea242827762b4dfe6f51b3`, com assinatura V3.
-Todos os checks obrigatorios passaram. A matriz possui 199 arquivos: seis
-novos ports validados em host, sem validacao Android nova. Nenhuma alteracao
-funcional posterior ao commit de build nesta entrega.
+Escopo fechado e verificavel: 33 arquivos em lot-a-scope.json; inventario global
+199 JS. Nao publicar novo lote por partes nem passar a B antes de concluir A.
+
+Infraestrutura ja implementada na branch de trabalho: defesa nativa, UpdateEquip
+com imunidade/mana/minions/atributos, ArmorSetBonuses com tooltip e bonus real,
+receitas em estacoes de mod por UID/nome (inclusive tiles JS), wingSlot/WingStats/
+VerticalWingSpeeds no WingLoader original, diagnosticos por receita e round-robin
+nas filas de registros pendentes. APIs sao publicas e testes usam fontes C# de
+mods independentes. Isso ainda nao e port dos exemplos finais.
+
+Proxima dependencia concreta: BunnyTile e bridge para ExampleWorkbench original,
+com TileObjectData 2x1, flags de mesa/estacao, drop, mapa, frames e AdjTiles; depois
+port integral Helmet/Breastplate/Leggings com texturas e receitas originais.
+Seguir todos os 33 arquivos e dependencias, inclusive Costume, asas/acessorios,
+consumiveis, fishing/tools/projeteis, prefixos/raridades e tooltips/currency.
+Checkpoint testado: runtime e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b,
+run Android 38573406719, oito suites aprovadas.
+Ver [contratos e continuidade](csharp-lot-a-development.md). CI compila Android,
+mas nao publica APK desta branch de lote incompleto. Nenhuma nova alegacao de
+validacao no Android ou 60 FPS para as APIs em desenvolvimento.
+
+## Historico das correcoes preservadas
 
 ### Regressao Android .90.28.5 / correcao .90.28.6
 
@@ -125,3 +152,66 @@ Correcao .90.28.7: pipeline `38566058511` aprovado, runtime commit
 APK assinado e ExampleMod 0.1.35 gerados. Evidencia de CI final registrada apos
 o build; o pacote inclui a matriz/roteiro do commit de runtime. Validacao
 Android da mascara e do robe pendente. Lote A permanece incompleto.
+
+## Continuacao integral do Lote A
+
+Usuario confirmou .90.28.7 funcional. Desenvolvimento em
+`codex/lot-a-complete-v90-29`, derivada da branch validada sem alterar a release.
+Escopo completo: 33 arquivos, em lot-a-scope.json. Ver
+[codigo, contratos e continuidade](csharp-lot-a-development.md).
+Infraestrutura de armadura testada por mod de contrato independente; exemplos
+ainda nao portados nao recebem promocao na matriz. Nao publicar entrega parcial.
+
+### Retomada .90.29.1: receitas independentes
+
+Servico nativo de recipes implementado e ligado a fila C#, com registradores
+compartilhados separados da instalacao de assets. Mantem .90.28.7 e historico;
+nao conclui o Lote A. [Auditoria de independencia](csharp-independence-audit.md)
+registra testes reais do adapter no host sem QuickJS e dependencias restantes.
+Prioridade seguinte permanece bancada completa, seus dois arquivos originais
+e receitas das armaduras. 33 arquivos do escopo e 199 da matriz preservados.
+
+### Atualizacao da referencia original em 14/10
+
+Original avancou seis commits; dois exemplos de touch buttons foram incluidos
+sem remover os 199 anteriores. Matriz atual tem 201 JS. O escopo A permanece
+33. Novos exemplos estao Nao implementado no Lote F/sistemas especiais; APIs
+de botoes de toque, ProcessTriggers e layout persistente devem ser auditadas
+nesse lote. Nenhuma alteracao do core original foi transplantada nesta etapa.
+
+ExampleMod 0.1.36: matriz embutida 201 e guia editavel RECEITAS_NATIVAS.md,
+mesmos 51 fontes/26 texturas; nenhuma classe nova anunciada. Catalogo marca
+receitas nativas como experimentais ate validacao no Android.
+
+Checkpoint de codigo seguinte: .90.29.2/code167 remove o helper QuickJS de
+ValueLayout dos itens, valida bounds reais de Item e amplia regressao boxed/
+unboxed/nullable sem mocks da bridge JS. Ver csharp-independence-audit.md.
+A entrega permanece experimental; bancada e demais exemplos continuam pendentes.
+
+Checkpoint .90.29.3/code168: teste executavel --pump cobre a fila real, registradores,
+defaults e recipes sem QuickJS, com preview/dependencia tardia. Policies precedem
+recipes e sua ausencia nao bloqueia itens independentes. SDK/examples continuam
+preservados; bancada completa ainda e prioridade de retomada.
+
+## Checkpoint final desta continuidade
+
+Runtime .90.29.3 / code168, ExampleMod 0.1.36. Commit:
+6fac739d8e748ca390d83cc7ebe55ba4e7b9f44a. Oito suites de regressao aprovadas;
+Android build/assinatura e entrega experimental privada aprovados em
+[38609568759](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38609568759).
+PR de acompanhamento em rascunho: [21](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/21).
+Nao e release oficial do Lote A. Nenhuma validacao de gameplay/FPS nova no Android.
+
+Lote A permanece: 33 exemplos; 8 implementados, 6 com evidencias automatizadas,
+7 parciais e 18 nao implementados. Matriz global 201, sem remover os anteriores.
+Os 51 fontes/26 texturas do ExampleMod foram preservados. Nao foram adicionados
+ports neste grupo. A versao 0.1.36 atualiza guia/matriz/catalogo.
+
+Proximo passo concreto continua sendo a bancada C# completa: identidade por
+categoria, SDK publico de tile/estacao/item colocavel; registro e TileObjectData;
+frames/ancoras, destruicao/drop/dust, mapa/housing, adjacencia e icone do Guia.
+Usar os registradores independentes e NativeRecipes existentes; nao criar
+registro paralelo nem voltar a chamar RecipeLoader JS. Portar ambos os arquivos
+ExampleWorkbench e as receitas originais das armaduras depois dos contratos
+funcionais, mantendo os demais 33 exemplos no escopo. Policies de equipamento
+e suporte de recipes alem do limite ainda precisam de desacoplamento.

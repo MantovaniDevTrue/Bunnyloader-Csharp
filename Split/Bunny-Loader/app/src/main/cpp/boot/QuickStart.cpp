@@ -8,6 +8,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "menu/Cheats.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 
 #include <time.h>
 #include <unistd.h>
@@ -427,6 +428,7 @@ void tickQuickStart() {
     if (inWorld()) { g_entryDone = true; return; }
     if (g_intro.showSplash && staticBool(g_intro.showSplash)) return;
     if (!contentSettled()) return;
+    if (!bl::csharp::preWorldCSharpContentReady()) return;
 
     const double now = sinceStart();
     if (g_settledAt < 0) g_settledAt = now;

@@ -1,7 +1,7 @@
 name: Check CSharp combat batch
 on:
   push:
-    branches: [codex/combat-batch-v90-25]
+    branches: [codex/lot-a-complete-v90-29, codex/combat-batch-v90-25]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/**'
@@ -31,3 +31,4 @@ jobs:
           name: Bunny-CSharp-Combat-Batch-Results
           path: Split/Bunny-Loader/build/combat-batch-results.json
           if-no-files-found: warn
+

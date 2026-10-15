@@ -213,7 +213,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 37)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 42)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -246,7 +246,7 @@ try
         !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 38)
+        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 43)
         throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);

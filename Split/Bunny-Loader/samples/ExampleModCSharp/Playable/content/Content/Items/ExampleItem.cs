@@ -10,6 +10,8 @@ public sealed class ExampleItem : BunnyItem
     public override void SetDefaults()
     {
         DisplayName = "Example Item";
+        Tooltip = "Item description";
+        TooltipTranslations["pt-BR"] = "Descrição do item";
         Texture = "Content/Items/ExampleItem.png";
         MaxStack = 9999; // ModItem.CommonMaxStack, como no original JS.
         Value = 100;    // buyPrice(0,0,1,0): valor interno em moedas de cobre.
