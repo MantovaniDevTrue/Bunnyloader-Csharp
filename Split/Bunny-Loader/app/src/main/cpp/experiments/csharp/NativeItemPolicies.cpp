@@ -400,8 +400,12 @@ bool install(Entry& entry,std::string* error) {
     }
     if(entry.policy.animated&&!registerAnimation(entry,error))return false;
     if(entry.policy.wing){
-        if(!prepareWings(error))return false;
         if(!writeWingStats(entry,error))return false;
+        std::string movementError;
+        if(!prepareWings(&movementError)){
+            BL_WARN("[CSharp][Wing] Type=%d Class=%s Stage=CustomVerticalMovement Result=VanillaMovementFallback Reason=%s",
+                    entry.source.type,entry.source.name.c_str(),movementError.empty()?"NativeHookUnavailable":movementError.c_str());
+        }
     }
     if(entry.policy.colored&&!prepareAlpha(error))return false;
     if(entry.policy.lit&&!prepareLight(error))return false;
