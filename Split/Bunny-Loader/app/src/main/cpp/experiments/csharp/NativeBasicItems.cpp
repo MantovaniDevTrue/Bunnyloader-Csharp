@@ -32,6 +32,7 @@ std::string lastRecipeKey;
 int lastBehaviorType=-1;
 std::atomic<bool> recipesPending{false};
 std::atomic<bool> instancesPending{false};
+std::atomic<const char*> refreshReason{"Unspecified"};
 std::atomic<bool> behaviorsPending{false};
 std::atomic<bool> placementsPending{false};
 std::atomic<unsigned> contentGeneration{0};
@@ -447,7 +448,7 @@ void refreshLiveBasicItems() {
     const auto now=std::chrono::steady_clock::now();
     if(now-intervalStart>=std::chrono::seconds(2)) {
         if(intervalCalls>30&&!repeatedWarning) {
-            BL_WARN("[CSharp][Refresh] Stage=WorldItems Calls=%u WindowMs=2000 Result=RepeatedNativeRehydration",intervalCalls);
+            BL_WARN("[CSharp][Refresh] Stage=WorldItems Calls=%u WindowMs=2000 Source=%s Result=RepeatedNativeRehydration",intervalCalls,refreshReason.load(std::memory_order_acquire));
             repeatedWarning=true;
         }
         intervalCalls=0;intervalStart=now;
@@ -780,7 +781,8 @@ bool acknowledgeBasicRecipe(const std::string& id,int index) {
     bool pending=false;for(const auto& p:recipes)if(p.second.index<0){pending=true;break;}
     recipesPending.store(pending,std::memory_order_release);return true;
 }
-void requestBasicItemInstanceRefresh() {
+void requestBasicItemInstanceRefresh(const char* reason) {
+    refreshReason.store(reason ? reason : "Unspecified",std::memory_order_release);
     instancesPending.store(true, std::memory_order_release);
 }
 
