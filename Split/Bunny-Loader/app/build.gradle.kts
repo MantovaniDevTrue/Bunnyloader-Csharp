@@ -22,7 +22,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 176
-        versionName = "0.1.10.16.90.29.14-csharp-managed-armor-array"
+        versionName = "0.1.10.16.90.29.15-csharp-native-tooltip-refresh"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em

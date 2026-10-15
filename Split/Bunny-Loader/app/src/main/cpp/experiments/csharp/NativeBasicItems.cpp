@@ -334,9 +334,28 @@ void refreshLiveBasicItems() {
     }
     array(static_cast<Il2CppArray*>(getStatic("item")),true);
     refresh(static_cast<Il2CppObject*>(getStatic("mouseItem")));
-    // ChestItem no mobile e um struct compacto, NAO Item[]. O bau/banco
-    // cria Item via SetDefaults ao abrir; nunca reinterpretar esses structs.
-    BL_INFO("csharp items: %d instancia(s) existentes reidratadas sem alterar pilha/favorito",count);
+    refresh(static_cast<Il2CppObject*>(getStatic("HoverItem")));
+    refresh(static_cast<Il2CppObject*>(getStatic("tooltipPrefixComparisonItem")));
+    int samples=0, missing=0;
+    const auto types=basicItemTypes();
+    auto* content=il2cpp::findClass({"Terraria.ID","ContentSamples",{}});
+    auto* table=content?il2cpp::findField(content,"ItemsByType"):nullptr;
+    Il2CppObject* dictionary=nullptr;
+    if(table)api.field_static_get_value(table,&dictionary);
+    const auto* getter=dictionary?
+        api.class_get_method_from_name(api.object_get_class(dictionary),"get_Item",1):nullptr;
+    if(getter)for(int type:types) {
+        void* args[]={&type};
+        Il2CppObject* exception=nullptr;
+        Il2CppObject* sample=api.runtime_invoke(getter,dictionary,args,&exception);
+        if(!exception&&sample&&runtime::field<int32_t>(sample,typeOffset)==type) {
+            refresh(sample);
+            ++samples;
+        } else ++missing;
+    }
+    else missing=static_cast<int>(types.size());
+    if(missing)BL_WARN("csharp tooltips: ContentSamples incompleto (%d/%zu amostras ausentes)",missing,types.size());
+    BL_INFO("csharp items: %d instancia(s) atualizadas, %d amostra(s) de tooltip nativo sincronizadas",count,samples);
 }
 }
 
@@ -398,10 +417,12 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!entry.behavior.empty())behaviorsPending.store(true,std::memory_order_release);
         if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0)
             placementsPending.store(true,std::memory_order_release);
-        std::vector<std::pair<std::string,std::string>> tooltipLanguages{{"",entry.tooltip}};
-        for(const auto& [culture,text]:entry.localizedTooltips)
-            tooltipLanguages.emplace_back(culture,text);
-        runtime::setModItemTooltip(entry.type,std::move(tooltipLanguages));
+        if(!entry.tooltip.empty()||!entry.localizedTooltips.empty()) {
+            std::vector<std::pair<std::string,std::string>> tooltipLanguages{{"",entry.tooltip}};
+            for(const auto& [culture,text]:entry.localizedTooltips)
+                tooltipLanguages.emplace_back(culture,text);
+            runtime::setModItemTooltip(entry.type,std::move(tooltipLanguages));
+        }
         for(size_t i=0;i<entry.recipes.size();++i) {
             auto id=modId+"/"+entry.name+"#"+std::to_string(i);
             recipes.emplace(id,PendingBasicRecipe{id,modId,entry.type,-1,entry.recipes[i],entry.sourceFile,""});

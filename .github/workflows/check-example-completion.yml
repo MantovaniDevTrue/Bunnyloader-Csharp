@@ -106,6 +106,7 @@ jobs:
           /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
           /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
           node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
+          python3 tests/basic_items/check_csharp_tooltip_refresh.py
           node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
           node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
           node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
