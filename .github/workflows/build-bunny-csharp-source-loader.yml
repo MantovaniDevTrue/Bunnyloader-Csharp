@@ -1115,8 +1115,8 @@ jobs:
           assert "std::thread(run).detach()" in native
           assert "readActivationContext()" in native
           gate=native.split("ActivationContext readActivationContext()", 1)[1].split("void bindLiveEventsOnWorld(", 1)[0]
-          assert 'api.class_get_method_from_name(' in gate
-          assert 'main, "get_gameMenu", 0' in gate
+          assert 'published.load(std::memory_order_acquire)' in gate
+          assert 'const MethodInfo* getter = metadata->getter;' in gate
           assert "api.runtime_invoke(" in gate
           assert "if (!exception && boxed)" in gate
           assert "result.gameMenu < 0 && menu" in gate
