@@ -52,7 +52,7 @@ bool primitive(Il2CppClass* type,const char* name,size_t bytes) {
     const char* actual=type&&a.class_get_name?a.class_get_name(type):nullptr;
     return ns&&actual&&!std::strcmp(ns,"System")&&!std::strcmp(actual,name)&&a.class_is_valuetype(type)&&a.class_value_size(type,&align)==static_cast<int>(bytes);
 }
-bool bind(Il2CppClass* cls,const char* name,Field* out,std::string* error,bool isStatic=false,const char* primitiveName=nullptr,size_t expected=0) {
+bool bindField(Il2CppClass* cls,const char* name,Field* out,std::string* error,bool isStatic=false,const char* primitiveName=nullptr,size_t expected=0) {
     auto& a=api();auto* f=cls?findField(cls,name):nullptr;auto* type=f?a.class_from_il2cpp_type(a.field_get_type(f)):nullptr;
     auto fail=[&]{*error=std::string("Field=")+name+" Reason=NativeFieldContract";return false;};
     if(!f||!type||bool(a.field_get_flags(f)&0x10u)!=isStatic)return fail();
@@ -68,7 +68,7 @@ bool bind(Il2CppClass* cls,const char* name,Field* out,std::string* error,bool i
     return true;
 }
 bool scalar(Il2CppClass* cls,const char* name,const char* type,size_t bytes,int* offset,std::string* error) {
-    Field f;if(!bind(cls,name,&f,error,false,type,bytes))return false;*offset=f.offset;return true;
+    Field f;if(!bindField(cls,name,&f,error,false,type,bytes))return false;*offset=f.offset;return true;
 }
 bool invoke(const MethodInfo* method,void* self,void** args,Il2CppObject** result=nullptr) {
     if(!method||!api().runtime_invoke)return false;
@@ -264,7 +264,7 @@ void hkMovement(Il2CppObject* player,const MethodInfo* m) {
 bool prepareWings(std::string* error) {
     if(movementHooked&&wingStatsHooked)return true;
     auto& a=api();auto* player=findClass({"Terraria","Player",{}});Field velocity;
-    if(!scalar(player,"wingsLogic","Int32",4,&wingRefs.logic,error)||!bind(player,"velocity",&velocity,error,false,nullptr,8)||!velocity.refs.empty()||
+    if(!scalar(player,"wingsLogic","Int32",4,&wingRefs.logic,error)||!bindField(player,"velocity",&velocity,error,false,nullptr,8)||!velocity.refs.empty()||
         !scalar(player,"gravDir","Single",4,&wingRefs.gravity,error)||!scalar(player,"wingTime","Single",4,&wingRefs.time,error)||
         !scalar(player,"wingTimeMax","Int32",4,&wingRefs.maxTime,error)||!scalar(player,"empressBrooch","Boolean",1,&wingRefs.brooch,error))return false;
     auto* vector=a.class_from_il2cpp_type(a.field_get_type(findField(player,"velocity")));ValueLayout layout;
@@ -317,8 +317,8 @@ void hkWorld(Il2CppObject* world,int32_t index,const MethodInfo* m) {
 bool prepareLight(std::string* error) {
     if(worldHooked)return true;
     auto& a=api();auto* world=findClass({"Terraria","WorldItem",{}});Field inner,position;
-    if(!bind(world,"inner",&inner,error,false,nullptr,sizeof(void*))||inner.refs.size()!=1||
-        !scalar(world,"active","Boolean",1,&lightRefs.active,error)||!bind(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
+    if(!bindField(world,"inner",&inner,error,false,nullptr,sizeof(void*))||inner.refs.size()!=1||
+        !scalar(world,"active","Boolean",1,&lightRefs.active,error)||!bindField(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
         !scalar(world,"width","Int32",4,&lightRefs.width,error)||!scalar(world,"height","Int32",4,&lightRefs.height,error))return false;
     lightRefs.inner=inner.offset;lightRefs.position=position.offset;
     auto* main=findClass({"Terraria","Main",{}});lightRefs.essence=main?findField(main,"essScale"):nullptr;
@@ -361,12 +361,12 @@ bool install(Entry& entry,std::string* error) {
         if(!invoke(method(item,"void .ctor()",true),source,nullptr)||!invoke(method(item,"void SetDefaults(int Type, ItemVariant variant)",true),source,args))return false;
         const char* names[]={"wornArmor","tooltipContext","BestiaryNotes","sentry","DD2Summon","shopSpecialCurrency","expert","expertOnly","questItem","fishingPole","bait","hairDye","makeNPC","dye","paint","paintCoating","tileWand","notAmmo","crit","mech","reuseDelay","melee","magic","ranged","summon","placeStyle","buffTime","buffType","mountType","cartTrack","material","noWet","vanity","mana","channel","manaIncrease","noMelee","noUseGraphic","lifeRegen","shoot","shootSpeed","shootsEveryUse","alpha","ammo","useAmmo","autoReuse","accessory","axe","healMana","potion","color","consumable","createTile","createWall","useSoundPitch","damage","defense","armorPenetration","hammer","healLife","holdStyle","knockBack","maxStack","pick","rare","scale","tileBoost","useStyle","useTime","useAnimation","value","useTurn","buy","uniqueStack","width","height","UseSound"};
         std::vector<Field> cloned;
-        for(const char* name:names){if(!findField(item,name))continue;Field f;if(!bind(item,name,&f,error))return false;cloned.push_back(std::move(f));}
+        for(const char* name:names){if(!findField(item,name))continue;Field f;if(!bindField(item,name,&f,error))return false;cloned.push_back(std::move(f));}
         entry.clone=std::move(cloneRoot);entry.cloned=std::move(cloned);
     }
     if(entry.policy.hair) {
         Field color,hair;auto* player=findClass({"Terraria","Player",{}});
-        if(!bind(item,"color",&color,error,false,nullptr,4)||!color.refs.empty()||!bind(player,"hairColor",&hair,error,false,nullptr,4)||!hair.refs.empty())return false;
+        if(!bindField(item,"color",&color,error,false,nullptr,4)||!color.refs.empty()||!bindField(player,"hairColor",&hair,error,false,nullptr,4)||!hair.refs.empty())return false;
         entry.color=color.offset;entry.hair=hair.offset;entry.localPlayer=method(findClass({"Terraria","Main",{}}),"Player get_LocalPlayer()",false);if(!entry.localPlayer)return false;
     }
     for(const auto& source:entry.policy.equips) {
