@@ -1,3 +1,10 @@
+# Correcao de empacotamento 0.1.39
+
+As seis texturas antes copiadas apenas na build do APK agora acompanham o pacote.
+Importe a 0.1.39, feche o jogo por completo e abra novamente. Confira registro do
+ExampleDefenseBuff e dos prefixos, alem dos itens salvos. O APK atual pode ser
+mantido. Nao apague saves ou arquivos auxiliares para reparar assets do mod.
+
 # Continuacao 0.1.38 — ExampleWings e referencia 1.9.0
 
 Fonte editavel integrado ao ExampleMod: `Content/Items/Accessories/ExampleWings.cs`.

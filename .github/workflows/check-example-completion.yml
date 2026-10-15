@@ -141,15 +141,18 @@ jobs:
         run: |
           python3 tests/combat_batch/check_package.py
           python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
-          cp build/mods-packs/examplemodcsharp-0.1.38.bl build/ExampleModCSharp-v0.1.38.bmod
+          python3 tools/mods/check_csharp_assets.py build/mods-packs/examplemodcsharp-0.1.39.bl --compiled-assets build/basic-items/full-source-assets.json
+          python3 tests/basic_items/package_assets_test.py
+          cp build/mods-packs/examplemodcsharp-0.1.39.bl build/ExampleModCSharp-v0.1.39.bmod
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit
           path: |
             Split/Bunny-Loader/docs/generated/example_completion/
             docs/csharp-completion-plan.md
-            Split/Bunny-Loader/build/ExampleModCSharp-v0.1.38.bmod
+            Split/Bunny-Loader/build/ExampleModCSharp-v0.1.39.bmod
             Split/Bunny-Loader/tools/example_completion/package-reference.json
+            Split/Bunny-Loader/build/basic-items/full-source-assets.json
             Split/Bunny-Loader/build/basic-items/full-source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items/example-wings-source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items-results.json

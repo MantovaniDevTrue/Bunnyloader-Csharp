@@ -62,6 +62,21 @@ try {
   int registered=CompiledAssemblyProbe.Verify(output,diag);
   Equal(File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1).Count(line=>line.Length>0),registered);
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
+  var assets=new List<object>();
+  foreach(var type in Assembly.Load(File.ReadAllBytes(output)).GetTypes().Where(t=>!t.IsAbstract&&t.GetProperty("Texture")?.PropertyType==typeof(string))) {
+   object instance=Activator.CreateInstance(type)!;
+   (type.GetMethod("SetDefaults",Type.EmptyTypes)??type.GetMethod("SetStaticDefaults",Type.EmptyTypes))!.Invoke(instance,null);
+   void Asset(string? path) {if(!string.IsNullOrWhiteSpace(path))assets.Add(new{className=type.FullName,path});}
+   Asset((string?)type.GetProperty("Texture")!.GetValue(instance));
+   Asset((string?)type.GetProperty("VisualTexture")?.GetValue(instance));
+   if(type.GetProperty("BehaviorDefinition")?.GetValue(instance) is string definition&&definition.Length>0) {
+    using var behavior=JsonDocument.Parse(definition);
+    foreach(var equip in behavior.RootElement.GetProperty("equips").EnumerateArray())Asset(equip[1].GetString());
+   }
+   if(type.GetProperty("Flags") is { } flags&&(Convert.ToInt32(flags.GetValue(instance))&64)!=0)
+    Asset(Path.ChangeExtension((string)type.GetProperty("Texture")!.GetValue(instance)!,null)+"_Highlight.png");
+  }
+  File.WriteAllText("build/basic-items/full-source-assets.json",JsonSerializer.Serialize(assets));
   var wing=File.ReadAllLines("build/basic-items/full-source-runtime-values.txt").Single(line=>line.StartsWith("ITEM\tExampleWings\t")).Split('\t');
   Equal("22",wing[2]);Equal("20",wing[3]);Equal("10000",wing[5]);Equal("2",wing[6]);
   Equal("1,mExampleWorkbench,mExampleItem:1",wing[19]);

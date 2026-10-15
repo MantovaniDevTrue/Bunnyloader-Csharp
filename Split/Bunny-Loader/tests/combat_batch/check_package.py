@@ -8,7 +8,7 @@ example = root / 'samples/ExampleModCSharp'
 playable = example / 'Playable'
 manifest = json.loads((playable / 'manifest.json').read_text())
 compat = json.loads((example / 'compatibility.json').read_text())
-assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.38'
+assert manifest['version'] == compat['exampleModCSharpVersion'] == '0.1.39'
 sources = sorted((playable / 'content').rglob('*.cs'))
 assert sources and len(sources) <= 512, f'Source capacity exceeded: {len(sources)}'
 assert sum(p.stat().st_size for p in sources) <= 16 * 1024 * 1024
