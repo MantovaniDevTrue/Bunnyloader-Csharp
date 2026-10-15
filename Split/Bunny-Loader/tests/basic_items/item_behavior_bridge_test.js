@@ -1,6 +1,19 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const root=process.argv[2],wire=process.argv[3];
-const entries=fs.readFileSync(wire,'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).filter(p=>p[0]==='ITEM'&&[21,23,24].includes(p.length)&&p[20]!=='-').map((p,i)=>({type:6300+i,name:p[1],root:'/mod/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
+// Retain the legacy JS compatibility regression even though new accessory-only
+// descriptors now travel through field 25 and are exercised by the native test.
+const entries=fs.readFileSync(wire,'utf8').trim().split('\n').slice(1).map(l=>l.split('\t'))
+ .filter(p=>p[0]==='ITEM'&&((p.length>=21&&p[20]!=='-')||(p.length===25&&p[24]!=='-')))
+ .map((p,i)=>{
+  const native=p.length===25&&p[24]!=='-'?p[24].split(';').map(e=>{
+   const [field,op,value]=e.split(':');return [field,op,field==='strongBees'?true:+value];
+  }):[];
+  const b=p[20]&&p[20]!=='-'?JSON.parse(Buffer.from(p[20],'hex').toString('utf8')):
+   {v:1,clone:'',equips:[],effects:[],animation:null,light:null,alpha:null,hair:false,robe:false,defense:0,armor:null,armorSet:null,wings:null};
+  if(!b.effects.length)b.effects.push(...native);
+  b.nativeAccessory=false; // Explicitly exercise the legacy adapter, not the new native route.
+  return {type:6300+i,name:p[1],root:'/mod/content/',definition:JSON.stringify(b),defaults:p.slice(2,16).map(Number),knockBack:+p[16]};
+ });
 assert.equal(entries.length,9,'actual C# compiler must emit all nine behavior descriptors');
 const hooks=new Map(),marks=new Map(),samples=new Map(),slots=new Map(),animations=[],lights=[],logs=[],callbackErrors=[];
 const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn);}});
@@ -50,5 +63,13 @@ const world=hooks.get('WorldItem:void UpdateItem(int i)');assert(world);
 world(()=>{}, {active:true,inner:{type:soul.Type},Center:{X:1,Y:2}},0);
 assert.equal(lights.length,2,'WorldItem active update invokes PostUpdate');
 world(()=>{}, {active:false,inner:{type:soul.Type}},0);assert.equal(lights.length,2,'inactive world item skipped');
+const nativeOnly={...entries.find(e=>e.name==='ExampleStatAccessory'),type:6600};
+const nativeDefinition=JSON.parse(nativeOnly.definition);nativeDefinition.nativeAccessory=true;
+nativeOnly.definition=JSON.stringify(nativeDefinition);samples.set(nativeOnly.type,{type:nativeOnly.type});pending.set(nativeOnly.type,nativeOnly);
+ctx.__blSyncCSharpItemBehaviors();
+const alreadyNative={meleeDamage:2,rangedDamage:3,magicDamage:4,hideVisibleAccessory:[]};
+functional(()=>{},alreadyNative,3,{type:nativeOnly.type,accessory:true});
+assert.equal(alreadyNative.meleeDamage,2,'native marker prevents duplicate JS bonuses');
+assert.equal(alreadyNative.magicDamage,4);
 const bad={...entries[0],type:6500,definition:JSON.stringify({v:1,clone:'',equips:[['Head','../escape',0]],effects:[],animation:null,light:null,alpha:null,hair:false,robe:false})};pending.set(bad.type,bad);assert.throws(()=>ctx.__blSyncCSharpItemBehaviors(),/textura\/slot invalido/);assert.equal(pending.has(bad.type),true);assert(logs.some(l=>l.includes(bad.name)&&l.includes('textura/slot')));
 console.log('CSHARP_ITEM_BEHAVIOR_REAL_LOADER_HOOKS_PASS');

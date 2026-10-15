@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
         [BunnyContent(BunnyContentKind.Tile, "Item", "Item.png")]
         public sealed class Item : BunnyItem { public override void SetDefaults() {} }
     )", &types, &error));
-    if (argc == 2) {
+    if (argc >= 2) {
         types.clear();
         for (const std::string path : {"main.cs", "Content/Items/DeclaredMaterial.cs"}) {
             std::ifstream file(std::string(argv[1]) + "/content/" + path);
@@ -59,5 +59,14 @@ int main(int argc, char** argv) {
         [BunnyContent(BunnyContentKind.Item, MakeName(), "Item.png")]
         public sealed class Item : SharedBase { public override void SetDefaults() {} }
     )", &types, &error));
+    if(argc==3) {
+        types.clear();error.clear();
+        std::ifstream file(std::string(argv[2])+"/content/main.cs");assert(file);
+        const std::string source{std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
+        assert(parseCSharpSource(source,&types,&error));
+        assert(types.size()==1&&types[0].base=="BunnyItem"&&types[0].name=="NativeCharm");
+        assert(types[0].properties.at("Texture")=="Content/Items/NativeCharm.png");
+        std::ifstream texture(std::string(argv[2])+"/content/"+types[0].properties.at("Texture"));assert(texture);
+    }
     std::cout << "BUNNY_NATIVE_CONTENT_DECLARATIONS=PASS\n";
 }

@@ -12,6 +12,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/ValueLayout.h"
 #include "core/Log.h"
+#include "hook/HookManager.h"
 #if BL_HAVE_QUICKJS
 #include "script/bridge/ScriptEngine.h"
 #include <quickjs.h>
@@ -20,6 +21,7 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <memory>
 
 namespace bl::csharp {
 namespace {
@@ -100,6 +102,39 @@ bool instanceBounds(Il2CppClass* item,int offset,size_t width,const char* field,
         ",InstanceSize:"+std::to_string(size)+" Result=Rejected Reason=InvalidFieldBounds";return false;
 }
 
+using FunctionalEquipFn=void (*)(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*);
+FunctionalEquipFn originalFunctionalEquip=nullptr;
+int equipItemTypeOffset=-1;
+bool equipEffectsHooked=false;
+void hkBasicFunctionalEquip(Il2CppObject* player,int32_t slot,Il2CppObject* item,const MethodInfo* method) {
+    if(originalFunctionalEquip)originalFunctionalEquip(player,slot,item,method);
+    if(!player||!item)return;
+    const auto* bytes=reinterpret_cast<const unsigned char*>(item);
+    if(!bytes[flagOffsets[5]])return;
+    int type=0;std::memcpy(&type,bytes+equipItemTypeOffset,sizeof(type));
+    applyBasicItemAccessoryEffects(player,type);
+}
+bool prepareBasicAccessoryHook(std::string* error) {
+    if(equipEffectsHooked)return true;
+    auto& api=il2cpp::api();auto* item=il2cpp::findClass({"Terraria","Item",{}});
+    auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    auto* field=item?il2cpp::findField(item,"type"):nullptr;
+    auto* type=field?api.class_from_il2cpp_type(api.field_get_type(field)):nullptr;
+    uint32_t align=0;
+    if(!field||(api.field_get_flags(field)&0x10u)||!systemPrimitive(type,"Int32")||api.class_value_size(type,&align)!=4) {
+        *error="Stage=NativeEquip Field=type Reason=NativeTypeMismatch";return false;
+    }
+    const auto offset=api.field_get_offset(field);
+    equipItemTypeOffset=offset<=INT32_MAX?static_cast<int>(offset):-1;
+    if(!instanceBounds(item,equipItemTypeOffset,4,"type",error))return false;
+    const auto* method=player?il2cpp::findMethodBySignature(player,
+        il2cpp::parseSignature("void ApplyEquipFunctional(int itemSlot, Item currentItem)")):nullptr;
+    if(!method||!hook::install(method,hkBasicFunctionalEquip,&originalFunctionalEquip)) {
+        *error="Stage=NativeEquip Reason=FunctionalHookUnavailable";return false;
+    }
+    equipEffectsHooked=true;return true;
+}
+
 bool preparePlacement(std::string* error) {
     if(placementPrepared)return true;
     auto& a=il2cpp::api();auto* cls=il2cpp::findClass({"Terraria","Item",{}});
@@ -119,6 +154,36 @@ bool preparePlacement(std::string* error) {
     }
     placementFields=resolved;placementPrepared=true;return true;
 }
+
+struct NativeAccessoryWrite { int offset=-1; float value=0; uint8_t kind=0; };
+using NativeAccessoryTable=std::map<int,std::vector<NativeAccessoryWrite>>;
+std::shared_ptr<const NativeAccessoryTable> nativeAccessoryTable;
+std::atomic<bool> nativeAccessoryReady{false};
+bool resolveBasicAccessoryPolicy(const BasicItemEntry& item,std::vector<NativeAccessoryWrite>* writes,std::string* error) {
+    if(item.accessoryEffects.empty())return true;
+    auto& a=il2cpp::api();auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    if(!player||!a.field_get_type||!a.class_from_il2cpp_type||!a.class_value_size||!a.class_instance_size) {
+        *error="Terraria.Player ou metadados IL2CPP indisponiveis";return false;
+    }
+    for(const auto& effect:item.accessoryEffects) {
+        auto* field=il2cpp::findField(player,effect.field);
+        auto* type=field?a.class_from_il2cpp_type(a.field_get_type(field)):nullptr;
+        const bool flag=effect.field=="strongBees";
+        const char* expected=flag?"Boolean":"Single";
+        uint32_t align=0;
+        if(!field||!type||(a.field_get_flags(field)&0x10u)||!systemPrimitive(type,expected)||
+            a.class_value_size(type,&align)!=(flag?1:4)) {
+            *error="Stage=NativeEquip Field="+effect.field+" Expected="+expected+" Reason=NativeTypeMismatch";return false;
+        }
+        const size_t offset=a.field_get_offset(field);
+        if(offset>INT32_MAX||!instanceBounds(player,static_cast<int>(offset),flag?1u:4u,
+                effect.field.c_str(),error))return false;
+        writes->push_back({static_cast<int>(offset),effect.value,
+            static_cast<uint8_t>(flag?2:effect.operation=="mul"?1:0)});
+    }
+    return true;
+}
+
 void writeIntegral(Il2CppObject* object,const IntegerField& field,int value) {
     auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
     if(field.bytes==1){const auto v=static_cast<uint8_t>(value);std::memcpy(destination,&v,1);}
@@ -377,6 +442,8 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     }
     if(!prepare(error))return false;
     std::vector<BasicItemEntry> resolved=entries;
+    const auto existing=std::atomic_load_explicit(&nativeAccessoryTable,std::memory_order_acquire);
+    auto nextPolicies=std::make_shared<NativeAccessoryTable>(existing?*existing:NativeAccessoryTable{});
     for(auto& entry:resolved) {
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
@@ -397,6 +464,24 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!entry.behavior.empty()) {*error="[CSharp][ERROR][NativeItem] Mod="+modId+" Class="+entry.name+
             " Stage=ApplyBehavior Expected=EquipmentPolicyBridge Actual=QuickJSDisabled Result=Rejected Reason=BehaviorDecouplingPending";return false;}
 #endif
+        if(!entry.accessoryEffects.empty()) {
+            std::vector<NativeAccessoryWrite> writes;
+            std::string policyError;
+            if(resolveBasicAccessoryPolicy(entry,&writes,&policyError) && prepareBasicAccessoryHook(&policyError)) {
+                (*nextPolicies)[entry.type]=std::move(writes);
+            } else {
+                if(entry.behavior.empty()) {
+                    *error=entry.name+": "+policyError;return false;
+                }
+                nextPolicies->erase(entry.type);
+                const std::string marker="\"nativeAccessory\":true";
+                const auto position=entry.behavior.find(marker);
+                if(position!=std::string::npos)
+                    entry.behavior.replace(position,marker.size(),"\"nativeAccessory\":false");
+                BL_WARN("csharp acessorio %s: usando ponte JS de compatibilidade (%s)",
+                    entry.name.c_str(),policyError.c_str());
+            }
+        } else nextPolicies->erase(entry.type);
         for(auto& recipe:entry.recipes) {
             if(!recipe.stationKey.empty()&&recipe.stationKey.find('/')==std::string::npos)
                 recipe.stationKey=modId+"/"+recipe.stationKey;
@@ -430,6 +515,9 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         }
         definitions[entry.type]=std::move(entry);
     }
+    std::atomic_store_explicit(&nativeAccessoryTable,
+        std::shared_ptr<const NativeAccessoryTable>(std::move(nextPolicies)),std::memory_order_release);
+    nativeAccessoryReady.store(true,std::memory_order_release);
     contentGeneration.fetch_add(1,std::memory_order_release);
     BL_INFO("csharp items: %zu defaults nativos aplicados para %s",entries.size(),modId.c_str());
     instancesPending.store(true,std::memory_order_release);
@@ -559,6 +647,29 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
         }
     }
     return true;
+}
+void applyBasicItemAccessoryEffects(Il2CppObject* player,int itemType) {
+    if(!player||!nativeAccessoryReady.load(std::memory_order_acquire))return;
+    const auto snapshot=std::atomic_load_explicit(&nativeAccessoryTable,std::memory_order_acquire);
+    if(!snapshot)return;
+    const auto found=snapshot->find(itemType);
+    if(found==snapshot->end())return;
+    const auto& effects=found->second;
+    if(effects.size()>16)return;
+    std::array<float,16> results{};
+    // Compute the complete ordered policy before publishing any field writes.
+    for(size_t i=0;i<effects.size();++i) {
+        const auto& effect=effects[i];if(effect.kind==2)continue;
+        float value=0;std::memcpy(&value,reinterpret_cast<unsigned char*>(player)+effect.offset,sizeof(value));
+        for(size_t j=i;j>0;--j)if(effects[j-1].offset==effect.offset&&effects[j-1].kind!=2){value=results[j-1];break;}
+        results[i]=effect.kind==1?value*effect.value:value+effect.value;
+        if(!std::isfinite(value)||!std::isfinite(results[i]))return;
+    }
+    for(size_t i=0;i<effects.size();++i) {
+        auto* target=reinterpret_cast<unsigned char*>(player)+effects[i].offset;
+        if(effects[i].kind==2)*target=1;
+        else std::memcpy(target,&results[i],sizeof(float));
+    }
 }
 bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
 std::vector<BasicItemEntry> pendingBasicItemBehaviors() {

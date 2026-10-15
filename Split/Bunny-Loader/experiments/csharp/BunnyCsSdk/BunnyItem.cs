@@ -38,6 +38,8 @@ public abstract class BunnyItem
     public bool Vanity { get; set; }
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
+    /// <summary>Efeitos tipados instalados no hook funcional nativo.</summary>
+    public string NativeAccessoryEffectsDefinition => Behavior.NativeAccessoryEffectsDefinition;
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
     public string UseSound { get; set; } = "";
     /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>

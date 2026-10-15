@@ -101,6 +101,27 @@ try
     string declared = Path.GetFullPath("samples/DeclaredContentCSharp/Playable");
     Check(Compiler.Compile(declared, output, runtime, diag) == 1 &&
         CompiledAssemblyProbe.Verify(output, diag) == 1, "declared content sample compiles and exports");
+    string accessory = Path.GetFullPath("samples/NativeAccessoryCSharp/Playable");
+    Check(Compiler.Compile(accessory, output, runtime, diag) == 1 &&
+        CompiledAssemblyProbe.Verify(output, diag) == 1, "native accessory sample compiles and exports");
+    var nativeWire = File.ReadAllLines(Path.Combine(temporary, "source-runtime-values.txt"))
+        .Single(line => line.StartsWith("ITEM\tNativeCharm\t")).Split('\t');
+    Check(nativeWire.Length == 25 && nativeWire[20] == "-" && nativeWire[23] == "2" &&
+        nativeWire[24] == "meleeDamage:mul:1.1;moveSpeed:add:0.05;strongBees:set:1", "accessory has native effects and no JS policy");
+    Directory.CreateDirectory("build/sdk-foundation");
+    File.Copy(Path.Combine(temporary, "source-runtime-values.txt"),
+        "build/sdk-foundation/native-accessory-wire.txt", true);
+    File.WriteAllText(source, """
+        using BunnyLoader.Source;
+        public sealed class InvalidAccessory : BunnyItem {
+            public override void SetDefaults() {
+                DisplayName="Invalid"; Texture="Content/Items/Invalid.png";
+                Behavior.SetOnEquip(BunnyEquipFlag.StrongBees);
+            }
+        }
+        """);
+    Check(Compile() == 1 && CompiledAssemblyProbe.Verify(output, diag) == -1 &&
+        File.ReadAllText(diag).Contains("Accessory=true"), "native equip effects require Accessory=true");
     Console.WriteLine("BUNNY_SDK_FOUNDATION=PASS checks=" + checks);
 }
 finally

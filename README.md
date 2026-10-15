@@ -9,6 +9,7 @@ Os mods-fonte usam `.cs`, Roslyn e MonoVM, com integracao nativa C++/IL2CPP.
 - [Guia atual do SDK e contratos de execucao](docs/SDK-CSharp.md)
 - [StarterMod minimo e gerador de mods](Split/Bunny-Loader/samples/StarterModCSharp/README.md)
 - [Exemplo de heranca e identidade declarada](Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md)
+- [Exemplo de acessorio com efeitos nativos](Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md)
 - [Referencia publica gerada do SDK](Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
 - [Plano completo de evolucao e pendencias](docs/SDK-ROADMAP.md)
 - [Testes e roteiro Android desta etapa](docs/SDK-VALIDACAO.md)
@@ -28,13 +29,14 @@ A branch `main` historicamente acompanha sincronizacoes do Bunny original e
 nao representa automaticamente o estado C# mais recente. Este conjunto parte de
 `codex/sync-jonata-20261015`, commit `7229a61` (.90.29.31), e esta sendo revisado
 em `codex/csharp-sdk-runtime-foundation`, com a atualizacao .90.29.32.1
-(commit `3dd8c8d`) de defesa nativa integrada. Compile o checkout da branch desejada.
+(commit `3dd8c8d`) de defesa nativa e a .90.29.33 (`13e53fe`) de efeitos de
+acessorio integradas. Compile o checkout da branch desejada.
 Os links acima abrem os diretorios canonicos diretamente, sem depender de espelhos.
 
 ## Estado desta etapa
 
-Implementados para verificacao: cache de assembly com integridade e parsing
-adiado, declaracao explicita de conteudo para heranca, StarterMod com projeto de
+Implementados para verificacao: caches de assembly e descritores com integridade,
+parsing adiado, efeitos simples de acessorio em C++ e sample independente, declaracao explicita de conteudo para heranca, StarterMod com projeto de
 editor, referencia publica gerada e callbacks automaticos continuos com filas
 limitadas e 32 vinculos. Benchmarks manuais mantem o teto de 25 mil eventos.
 Essas mudancas ainda precisam de build Android e validacao em aparelho.

@@ -33,8 +33,8 @@ assert 'il2cpp::findField(cls, "SetsContaining")' in lookup
 assert 'a.class_get_element_class(rowsClass)' in lookup
 assert 'a.array_new(entryClass, 0)' in lookup
 assert 'if (rows[type]) continue;' in lookup
-assert 'content::setTableElement(field, type, empty)' in lookup
-assert 'if (last == outer && checked >= size) return;' in lookup
+assert 'content::setTableElement(table, type, empty)' in lookup
+assert 'if (last == outer && checked >= size && outer->length >= static_cast<uintptr_t>(size))' in lookup
 assert items.count('ensureArmorSetLookups(from);') == 1
 assert items.index('ensureArmorSetLookups(to);') < items.index('registerSample(n.type, n.mod, n.name);')
 assert 'for (const set of Array.from(ArmorSetBonuses.SetsContaining[item.type]))' in (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Loaders/VanillaTooltips.js").read_text()

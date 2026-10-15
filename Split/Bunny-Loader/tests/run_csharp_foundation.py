@@ -16,8 +16,15 @@ with tempfile.TemporaryDirectory(prefix="bunny-foundation-") as temporary:
         executable = out / test
         subprocess.run(flags + [str(root / "tests" / (test + ".cpp"))] +
                        [str(path) for path in sources] + ["-o", str(executable)], check=True)
-        arguments = [str(root / "samples/DeclaredContentCSharp/Playable")] if test == "managed_content_declarations" else []
+        arguments = [str(root / "samples/DeclaredContentCSharp/Playable"), str(root / "samples/NativeAccessoryCSharp/Playable")] if test == "managed_content_declarations" else []
         subprocess.run([str(executable)] + arguments, check=True, timeout=30)
+    executable = out / "auto-source-cache"
+    subprocess.run(flags + ["-ffunction-sections", "-fdata-sections",
+                           "-I" + str(root / "tests/startup/include"),
+                           "-I" + str(root / "tests/basic_items/include"),
+                           str(root / "tests/auto_source_cache.cpp"),
+                           "-Wl,--gc-sections", "-o", str(executable)], check=True)
+    subprocess.run([str(executable), str(out / "cache-fixture")], check=True, timeout=30)
     subprocess.run(flags + ["-shared", "-fPIC", str(root / "tests/managed_fault_mock.cpp"),
                            "-o", str(out / "libmonosgen-2.0.so")], check=True)
     executable = out / "continuous-runtime"

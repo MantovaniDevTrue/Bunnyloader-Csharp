@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -13,7 +14,14 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; unsigned char sentinel[3]; };
+struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; unsigned char sentinel[3]; };
+struct FakePlayer { Il2CppObject header; float meleeDamage=2,rangedDamage=3,magicDamage=4,minionDamage=5,moveSpeed=1; bool strongBees=false; unsigned char sentinel[3]={0x5a,0x5a,0x5a}; };
+struct MethodInfo {};
+MethodInfo functionalMethod;
+using EquipCallback=void (*)(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*);
+EquipCallback functionalHook=nullptr;int originalEquipCalls=0,hookInstalls=0;
+bool rejectEquipHook=false;
+void originalEquip(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*) {++originalEquipCalls;}
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
     legacyClass{"LegacySoundStyle",false,0,{}},stringClass{"String",false,0,{}},
@@ -21,6 +29,7 @@ Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClas
     nullableClass{"Nullable`1",true,24,{}},itemClass{"Item",false,sizeof(FakeItem),{}},idClass{"SoundID",false,0,{}};
 Il2CppType intType{&intClass},boolType{&boolClass},floatType{&floatClass},legacyType{&legacyClass},
     stringType{&stringClass},soundType{&soundClass},nullableType{&nullableClass};
+Il2CppClass playerClass{"Player",false,sizeof(FakePlayer),{}};
 Il2CppClass styleClass{"Byte",true,1,{}};
 Il2CppType styleType{&styleClass};
 bool enumStyle=false,rejectStyle=false,narrowValue=false;
@@ -34,9 +43,19 @@ SoundValue soundValue{7,&pathObject};
 
 namespace bl::il2cpp {
 Api& api(){return apiInstance;}
-Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:type.name=="SoundID"?&idClass:nullptr;}
+Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:type.name=="SoundID"?&idClass:type.name=="Player"?&playerClass:nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
+Signature parseSignature(std::string_view text){Signature s;s.name=std::string(text);return s;}
+const MethodInfo* findMethodBySignature(Il2CppClass* cls,const Signature& s,bool*,const MethodInfo**) {
+ assert(cls==&playerClass&&s.name=="void ApplyEquipFunctional(int itemSlot, Item currentItem)");return &functionalMethod;
+}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
+}
+namespace bl::hook {
+bool install(const MethodInfo* method,void* replacement,void** original) {
+ assert(method==&functionalMethod);if(rejectEquipHook)return false;
+ *original=reinterpret_cast<void*>(originalEquip);functionalHook=reinterpret_cast<EquipCallback>(replacement);++hookInstalls;return true;
+}
 }
 namespace bl::csharp {
 bool managedPrefixDescriptorReady(int) { return false; }
@@ -53,7 +72,11 @@ void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> 
 }
 
 void configure(){
- storage.reserve(40);
+ storage.reserve(64);
+ storage.push_back({"type",&intType,offsetof(FakeItem,type),0});itemClass.fields.push_back(&storage.back());
+ const char* playerFields[]={"meleeDamage","rangedDamage","magicDamage","minionDamage","moveSpeed","strongBees"};
+ const size_t playerOffsets[]={offsetof(FakePlayer,meleeDamage),offsetof(FakePlayer,rangedDamage),offsetof(FakePlayer,magicDamage),offsetof(FakePlayer,minionDamage),offsetof(FakePlayer,moveSpeed),offsetof(FakePlayer,strongBees)};
+ for(size_t i=0;i<6;++i){storage.push_back({playerFields[i],i==5?&boolType:&floatType,playerOffsets[i],0});playerClass.fields.push_back(&storage.back());}
  storage.push_back({"defense",&shortType,offsetof(FakeItem,defense),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"headSlot",&intType,offsetof(FakeItem,headSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"bodySlot",&shortType,offsetof(FakeItem,bodySlot),0});itemClass.fields.push_back(&storage.back());
@@ -248,4 +271,5 @@ int main(int argc,char** argv){
  bad=entries;bad[0].useSound="DoesNotExist";assert(!bl::csharp::applyNativeBasicItemDefaults("mod",bad,&error));
  assert(error.find("SoundID.DoesNotExist")!=std::string::npos);
  std::cout<<"NATIVE_BASIC_ITEM_BINDING_PASS="<<mode<<"\n";
+ return 0;
 }

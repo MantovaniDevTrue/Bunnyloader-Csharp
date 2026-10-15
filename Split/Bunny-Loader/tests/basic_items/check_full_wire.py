@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 expected = {
-    "ITEM": {20, 21, 22, 23, 24},
+    "ITEM": {20, 21, 22, 23, 24, 25},
     "TILE": {13},
     "PROJECTILE": {8},
     "WEAPON": {6},

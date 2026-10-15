@@ -1,7 +1,7 @@
 # Validacao da fundacao do SDK/runtime
 
 Base original: .90.29.31, commit `7229a61`; atualizacao .90.29.32.1
-de defesa nativa (`3dd8c8d`) integrada sem reverter suas mudancas. Alteracoes em
+de defesa nativa (`3dd8c8d`) e .90.29.33 (`13e53fe`) integradas. Alteracoes em
 `codex/csharp-sdk-runtime-foundation`. Nao houve teste Android novo nesta etapa;
 versionCode/versionName e o ExampleMod existente nao foram incrementados.
 
@@ -9,9 +9,11 @@ versionCode/versionName e o ExampleMod existente nao foram incrementados.
 
 | Verificacao | O que exercita | Limite da evidencia |
 | --- | --- | --- |
-| `tests/sdk_foundation/SdkFoundation.csproj` | Roslyn real, heranca/atributos, abstratas, wire, fontes alteradas, DLL truncada/corrompida, referencias ausentes/alteradas e os dois samples | Runtime .NET do host, nao Mono ARM64 |
+| `tests/sdk_foundation/SdkFoundation.csproj` | Roslyn real, heranca/atributos, abstratas, wire, fontes alteradas, DLL truncada/corrompida, referencias ausentes/alteradas e os tres samples | Runtime .NET do host, nao Mono ARM64 |
 | `tests/basic_items/ItemBatch.csproj` | Conjunto existente, 56 fontes/42 tipos na base consultada, receitas, asas, armadura, bancada e 192 classes | Contratos e wire; nao mundo renderizado |
 | `tests/run_csharp_foundation.py` | Parser nativo dos fontes declarados; um milhao de entradas; 32 vinculos/64 pendentes; ordem por vinculo, cotas, pausa e geracao | Fila nativa real em host |
+| Mesmo runner: auto-source-cache | Vetores conhecidos SHA-256, fontes renomeados/alterados, todos os assemblies obrigatorios, referencia opcional adicionada/removida, DLL ausente/substituida, truncamento em cada byte e corrupcao de descriptor | I/O e funcoes reais de AutoSourceRuntime no host; sem medicao ARM64 |
+| `run_native_equip_effects.py` | Wire de Roslyn real; efeitos do ExampleStatAccessory e StrongBees isolado do WaspNest; sample independente NativeCharm; 10 mil ciclos; tipo/offset/static/hook rejeitados; fallback misto preservado e marcador JS sem bonus duplicado | QuickJS desativado; IL2CPP e hooks simulados; visual Back do WaspNest continua JS |
 | Mesmo runner: continuous-runtime | 75 mil chamadas por ManagedRuntime de producao, 32 bindings, falha do principal, continuidade do secundario e reentrada | Biblioteca Mono simulada |
 | Mesmo runner: hurt-deadline | Callback bloqueado, timeout de outro ainda pendente, ausencia da chamada cancelada, descarte do retorno atrasado e retomada | VM simulada; nao interrompe codigo gerenciado ja iniciado |
 | `run_managed_lifecycle_regressions.py` | Suite existente de identidades, ingress, contexto e efeitos, isolamento e memoria | Host/mock |
@@ -21,8 +23,10 @@ versionCode/versionName e o ExampleMod existente nao foram incrementados.
 
 O novo workflow `check-csharp-sdk-foundation.yml` executa os testes no SHA exato.
 Os testes existentes permanecem; esta bateria nao os transforma em validacao
-universal de todas as APIs. O cache externo do autoloader nao e coberto pelo
-novo manifesto de integridade do compilador.
+universal de todas as APIs. O cache externo tem envelope proprio, distinto do
+manifesto do compilador. A regressao JS de acessorios reconstrui descritores
+legados somente no teste para preservar cobertura do adaptador anterior; o novo
+caminho de producao e exercitado separadamente com QuickJS desativado.
 
 ## Roteiro Android do checkpoint
 
@@ -43,7 +47,15 @@ novo manifesto de integridade do compilador.
 7. Testar dano com varios mods e capturar `hurtScheduler`: timeouts, cancelamentos,
    retornos atrasados e espera. Um timeout nao deve aplicar um retorno antigo a
    outro golpe. Nao usar media de FPS para ocultar travamentos pontuais.
-8. Repetir ciclos de pausa/retomada do app; observar som, estabilidade e memoria.
+8. Importar NativeAccessoryCSharp com apenas mods C#. Craftar NativeCharm,
+   equipar/remover, trocar loadout, usar vaidade e repetir apos save/reabertura.
+   Confirmar dano melee, velocidade, abelhas e defesa; nao conceder bonus em vaidade.
+   O WaspNest ainda precisa de seu caminho visual JS.
+9. Comparar cold/warm start e o custo RuntimeCacheIdentity; testar atualizacao de
+   SDK/compilador, DLL faltando, cache truncado e bit alterado em descriptor.
+   Recompilar e recuperar sem aplicar dados parciais. Preservar cache perante
+   dependencia de jogo ainda pendente.
+10. Repetir ciclos de pausa/retomada do app; observar som, estabilidade e memoria.
    Multiplayer continua fora do suporte demonstrado desta etapa.
 
 Falhas de Android, ABI, memoria e gameplay continuam exigindo logs e correcao

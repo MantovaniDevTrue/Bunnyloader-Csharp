@@ -1,7 +1,7 @@
 # Desenvolver mods C# no Bunny
 
-Esta branch parte da .90.29.31 e acrescenta uma etapa experimental do SDK e do
-runtime. Os fontes do ExampleModBunny e do loader original sao a referencia.
+Esta branch parte da .90.29.31, integra a .90.29.33 e acrescenta uma etapa
+experimental do SDK e do runtime. Os fontes do ExampleModBunny e do loader original sao a referencia.
 Os novos recursos ainda precisam de validacao no Android.
 
 ## Primeiro mod
@@ -72,6 +72,41 @@ nao sao contratos novos desta entrega. Classes diretas existentes continuam
 funcionando sem atributo. Nos itens/tiles diretos, nome e textura em
 `SetDefaults` continuam exigindo literais quando nao ha declaracao explicita.
 
+## Acessorios com efeitos nativos
+
+O [NativeAccessoryCSharp](../Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md)
+mostra um mod independente com receita, defesa e efeitos de equipamento. Com
+`Accessory=true`, `Behavior.MultiplyOnEquip`, `AddOnEquip` e `SetOnEquip`
+produzem uma policy nativa; nao chamam JS nem Mono por quadro. Ha cinco atributos
+float (dano melee/ranged/magic/minion e MoveSpeed) e o booleano StrongBees,
+com ate 16 operacoes por item. As operacoes preservam a ordem declarada.
+
+O hook dedicado, instalado tambem para mods que so possuem BunnyItem, de
+`ApplyEquipFunctional` chama o comportamento anterior e
+aplica a policy apenas a itens marcados como acessorios. A tabela imutavel da
+`.33` e publicada atomicamente; o callback nao usa o mutex de definicoes. A
+chamada antiga em NativeContent foi centralizada nesse hook para impedir bonus
+duplicados e permitir mods independentes sem outro acessorio/jogador registrado. Vaidade tem outro hook
+no jogo e nao recebe estes bonus. O Terraria reinicia os atributos normalmente;
+o host nao armazena estado do Player entre os ciclos. Tipos, larguras e limites
+dos campos IL2CPP sao verificados antes de instalar. Um resultado float nao
+finito descarta as escritas daquela policy naquele ciclo.
+
+O campo opcional 25 do registro ITEM preserva o formato `.33`,
+`campo:operacao:valor;...`. `NativeAccessoryEffectsDefinition` e o descritor gerado pelo SDK; o mod usa as APIs
+tipadas, sem precisar monta-lo manualmente. O JSON `BehaviorDefinition` fica vazio para efeitos simples isolados. Policies
+mistas preservam o JSON legado com `nativeAccessory=true`, para que o adaptador
+JS nao duplique os bonus. Se a resolucao nativa de uma policy mista falhar, o
+marcador e desligado e o adaptador preserva os efeitos anteriores. Policies
+sem comportamento JS nao podem anunciar sucesso sem instalar seu hook nativo.
+Registros antigos de 20 a 24 campos continuam aceitos. Compilador, SDK e host
+precisam vir do mesmo build; APKs anteriores nao entendem o campo novo.
+
+`ExampleStatAccessory` deixa de precisar do adaptador JS. O StrongBees de
+`WaspNest` e nativo, mas sua textura Back ainda usa o carregador JS. Armaduras,
+sets, asas, clones, animacao, luz e outros visuais continuam no escopo do
+desacoplamento. Esta etapa nao anuncia esses itens como totalmente migrados.
+
 ## Eventos continuos e limites
 
 Eventos automaticos de combate usam uma fila global com 64 entradas, ate 32
@@ -114,10 +149,27 @@ DLL e retorna `parsed=0 integrity=verified`. DLL corrompida ou manifesto incompl
 provoca recompilacao. Fontes e bytes usados no hash sao os mesmos usados no
 parsing, evitando compilar uma versao diferente durante uma edicao concorrente.
 
-Essa verificacao cobre o cache de assembly do compilador. O cache externo de
-descritores em AutoSourceRuntime e outro nivel, preservado nesta etapa; sua
-identidade de SDK/host e sua integridade ainda precisam ser reforcadas.
-Nao presumir melhora no tempo Android sem medir os dois niveis separadamente.
+O cache externo de AutoSourceRuntime usa um envelope verificado separado.
+Sua chave SHA-256 inclui nomes e bytes dos fontes, identidade do mod, versao do
+envelope/contrato nativo e hashes de todos os assemblies instalados no diretorio
+do runtime, incluindo SDK, compilador, probe, Roslyn e referencias. Esse scan e
+feito uma vez por carregamento com fontes C# validos, nunca por mod/quadro;
+`Stage=RuntimeCacheIdentity TimeMs=...` mede seu custo separadamente.
+
+Um hit tambem verifica a DLL compilada (ate 8 MiB), os tamanhos, os marcadores
+e o SHA-256 das tres secoes de descritores. Arquivo antigo, truncado, corrompido,
+DLL ausente ou diferente produz miss. Falhas de validacao nao publicam secoes
+parciais. As escritas mantem arquivo temporario e rename; o cache continua salvo
+antes da aplicacao nativa, para que uma dependencia de jogo pendente nao exija
+nova compilacao. O SHA-256 C++ e portavel e nao inicializa bibliotecas crypto.
+
+Framework obrigatorio ausente/invalido desativa o cache externo naquele lote,
+permitindo que o worker siga o caminho normal de instalacao/compilacao. A proxima
+inicializacao volta a avaliar o cache. A identidade e uma fotografia do framework
+instalado no inicio do lote; nao ha suporte a substitui-lo durante o carregamento.
+Mudancas incompativeis no contrato nativo exigem atualizar sua versao. O hash nao
+identifica automaticamente todos os binarios nativos do APK. Nao presumir melhora
+no tempo Android sem medir o custo completo dos dois niveis de cache.
 
 Erros de compilacao incluem fonte/linha/coluna. O caminho de erro Hurt identifica
 mod, classe e hook. Esta etapa nao implementa PDB opcional nem linhas garantidas

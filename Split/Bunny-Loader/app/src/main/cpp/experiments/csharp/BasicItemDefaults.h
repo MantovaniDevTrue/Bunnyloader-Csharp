@@ -17,12 +17,14 @@ inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
     "UseAnimation","UseStyle","Pick","Axe","Hammer","Flags"};
 struct BasicRecipeIngredient { std::string key; int count=1; int type=-1; };
 struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; };
+struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
     std::string name; int type=-1; int defense=0;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
     std::map<std::string,std::string> localizedTooltips;
+    std::vector<BasicAccessoryEffect> accessoryEffects;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
     bool behaviorInstalled=false;
     std::string behaviorError;
@@ -38,6 +40,12 @@ inline std::vector<std::string> basicSplit(const std::string& s,char c) {
     for(size_t i=0;i<=s.size();++i) if(i==s.size()||s[i]==c) {out.push_back(s.substr(start,i-start));start=i+1;}
     return out;
 }
+inline bool validBasicAccessoryEffect(const BasicAccessoryEffect& e) {
+    if(!std::isfinite(e.value))return false;
+    if(e.field=="strongBees")return e.operation=="set"&&e.value==1;
+    if(e.field!="meleeDamage"&&e.field!="rangedDamage"&&e.field!="magicDamage"&&e.field!="minionDamage"&&e.field!="moveSpeed")return false;
+    return (e.operation=="add"||e.operation=="mul")&&e.value>=-10&&e.value<=10&&(e.operation!="mul"||e.value>=0);
+}
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
     const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
     const int max[]={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000,127};
@@ -45,6 +53,12 @@ inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
     }
     if(!std::isfinite(item.knockBack)||item.knockBack<0||item.knockBack>50) { *error=item.name+": KnockBack invalido";return false; }
+    if(item.accessoryEffects.size()>16||(!item.accessoryEffects.empty()&&!(item.values[BasicFlags]&32))) {
+        *error=item.name+": politica nativa de acessorio invalida";return false;
+    }
+    for(const auto& e:item.accessoryEffects)if(!validBasicAccessoryEffect(e)) {
+        *error=item.name+": efeito nativo de acessorio invalido";return false;
+    }
     if(item.useSound.size()>72||item.tooltip.size()>512) { *error=item.name+": som/tooltip grande demais";return false; }
     for(unsigned char c:item.useSound) if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_')) { *error=item.name+": UseSound deve ser campo de SoundID";return false; }
     return true;
@@ -86,8 +100,37 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     }
     return true;
 }
+inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* item,std::string* error) {
+    if(wire=="-")return true;
+    if(wire.empty()||wire.size()>2048){*error=item->name+": descricao de efeitos nativos invalida";return false;}
+    const auto operations=basicSplit(wire,';');
+    if(operations.size()>16){*error=item->name+": efeitos nativos excedem 16";return false;}
+    for(const auto& token:operations) {
+        auto parts=basicSplit(token,':');
+        if(parts.size()!=3){*error=item->name+": efeito nativo incompleto";return false;}
+        const auto& field=parts[0];const auto& operation=parts[1];
+        if(field=="strongBees") {
+            if(operation!="set"||parts[2]!="1"){*error=item->name+": flag nativa invalida";return false;}
+            item->accessoryEffects.push_back({field,operation,1.f});
+            continue;
+        }
+        if(field!="meleeDamage"&&field!="rangedDamage"&&field!="magicDamage"&&field!="minionDamage"&&field!="moveSpeed") {
+            *error=item->name+": atributo nativo invalido";return false;
+        }
+        if(operation!="add"&&operation!="mul"){*error=item->name+": operacao nativa invalida";return false;}
+        if(parts[2].empty()||parts[2].find_first_not_of("0123456789.eE+-")!=std::string::npos) {
+            *error=item->name+": formato de valor nativo invalido";return false;
+        }
+        char* end=nullptr;errno=0;const float value=std::strtof(parts[2].c_str(),&end);
+        if(errno||parts[2].empty()||!end||*end||!std::isfinite(value)||value<-10.f||value>10.f||
+            (operation=="mul"&&value<0.f)){*error=item->name+": valor de efeito nativo invalido";return false;}
+        item->accessoryEffects.push_back({field,operation,value});
+    }
+    if(!(item->values[BasicFlags]&32)){*error=item->name+": efeitos nativos exigem Accessory=true";return false;}
+    return true;
+}
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>24)||fields[0]!="ITEM") {*error="ITEM requer 20 a 24 campos";return false;}
+    if((fields.size()<20||fields.size()>25)||fields[0]!="ITEM") {*error="ITEM requer 20 a 25 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -163,10 +206,11 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
         }
     }
-    if(fields.size()==24 &&
+    if(fields.size()>=24 && fields[23]!="-" &&
         (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
         *error=out.name+": defesa nativa fora do limite";return false;
     }
+    if(fields.size()==25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;
 }

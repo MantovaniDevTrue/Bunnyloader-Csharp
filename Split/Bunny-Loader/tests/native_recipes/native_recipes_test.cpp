@@ -46,6 +46,7 @@ Il2CppArray* makeArray(Il2CppClass* cls,unsigned length){
 }
 Item* makeItem(){auto* p=new Item;p->obj.klass=&itemClass;allocated.push_back(p);return p;}
 Recipe* makeRecipe(){auto* p=new Recipe;p->obj.klass=&recipeClass;allocated.push_back(p);return p;}
+namespace bl::hook { bool install(const MethodInfo*,void*,void**) { return false; } }
 namespace bl::il2cpp {
 Api& api(){return apiInstance;}
 Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}

@@ -255,6 +255,7 @@ int Value { get; set; }
 int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
+string NativeAccessoryEffectsDefinition { get; }
 string PlacementDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -279,6 +280,7 @@ BunnyArmorEffects Armor { get; }
 bool ColorFromPlayerHair { get; set; }
 bool Robe { get; set; }
 int Defense { get; set; }
+string NativeAccessoryEffectsDefinition { get; }
 ```
 
 | Method | Execution |

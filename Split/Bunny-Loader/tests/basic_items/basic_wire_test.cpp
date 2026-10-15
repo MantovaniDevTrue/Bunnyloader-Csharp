@@ -38,6 +38,16 @@ int main(int argc,char** argv){
     auto broken=fields;broken[22]="pt-BR:GG";assert(!parseBasicItemWire(broken,&entry,&error));
     broken[22]=fields[22]+";"+fields[22];assert(!parseBasicItemWire(broken,&entry,&error));
   }
+  auto native=fields;
+  while(native.size()<24)native.push_back("-");
+  native[15]="32";
+  native.push_back("meleeDamage:mul:1.1;strongBees:set:1;moveSpeed:add:0.05");
+  assert(parseBasicItemWire(native,&entry,&error)&&entry.accessoryEffects.size()==3);
+  auto invalid=native;invalid[24]="moveSpeed:mul:-1";
+  assert(!parseBasicItemWire(invalid,&entry,&error));
+  invalid[24]="strongBees:set:0";assert(!parseBasicItemWire(invalid,&entry,&error));
+  invalid[24]="unsafeField:add:1";assert(!parseBasicItemWire(invalid,&entry,&error));
+  invalid=native;invalid[15]="0";assert(!parseBasicItemWire(invalid,&entry,&error));
   ++count;
  }
  assert(count==3);std::cout<<"BASIC_ITEM_CSHARP_WIRE_PASS=YES\n";

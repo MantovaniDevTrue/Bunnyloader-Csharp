@@ -1,3 +1,9 @@
+> Estado desta branch: consulte o [guia atual do SDK](../../../../docs/SDK-CSharp.md).
+> Efeitos de ExampleStatAccessory sao nativos; StrongBees de WaspNest tambem,
+> enquanto a textura Back continua no adaptador JS. Para um exemplo pequeno,
+> veja [NativeAccessoryCSharp](../NativeAccessoryCSharp/README.md).
+> As notas de versoes abaixo preservam o historico.
+
 # Infraestrutura .90.29.1 / ExampleMod 0.1.36
 
 O [plano global](../../../..//docs/csharp-completion-plan.md) contabiliza TODOS os

@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -45,7 +46,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_32_native_defense_wire";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects";
 std::chrono::steady_clock::time_point g_sourceStart{};
 std::atomic<int> g_cachedMods{0};
 std::atomic<int> g_compiledMods{0};
@@ -162,18 +163,8 @@ bool safeId(const std::string& id) {
     return true;
 }
 
-void hashByte(uint64_t* hash, unsigned char byte) {
-    *hash ^= byte;
-    *hash *= 1099511628211ULL;
-}
-
-void hashString(uint64_t* hash, const std::string& value) {
-    for (unsigned char ch : value) hashByte(hash, ch);
-    hashByte(hash, 0);
-}
-
 bool hashSources(const std::string& dir, const std::string& relative,
-                 uint64_t* hash, int* count, size_t* totalBytes, int depth) {
+                 PortableSha256* hash, int* count, size_t* totalBytes, int depth) {
     if (depth > 7 || static_cast<size_t>(*count) > kSourceMaxFiles) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
@@ -200,69 +191,43 @@ bool hashSources(const std::string& dir, const std::string& relative,
             if(*totalBytes>kSourceMaxTotalBytes)return false;
             std::string source = readText(full, kSourceMaxFileBytes);
             if (source.empty()) return false;
-            hashString(hash, rel);
-            hashString(hash, source);
+            hash->field(rel);
+            hash->field(source);
         }
     }
     return true;
 }
 
-std::string fingerprint(const std::string& id, const std::string& root) {
-    uint64_t hash = 14695981039346656037ULL;
-    hashString(&hash, kCacheVersion);
-    hashString(&hash, id);
+std::string fingerprint(const std::string& id, const std::string& root,
+                        const std::string& runtime) {
+    PortableSha256 hash;
+    hash.field(auto_cache::envelope);
+    hash.field(kCacheVersion);
+    hash.field(runtime);
+    hash.field(id);
     int count = 0;
     size_t totalBytes=0;
     if (!hashSources(root + "/content", "", &hash, &count, &totalBytes, 0) || count < 1)
         return {};
-    std::ostringstream out;
-    out << std::hex << std::setfill('0') << std::setw(16) << hash;
-    return out.str();
+    return hash.finish();
 }
 
 bool readCache(const std::string& path, const std::string& id,
-               const std::string& key, std::string* defaults,
-               std::string* curves, std::string* combat) {
-    const std::string value = readText(path, kSourceDefaultsBytes+kSourceMotionBytes+1024*1024+1024);
+               const std::string& key, const std::string& assembly,
+               std::string* defaults, std::string* curves, std::string* combat) {
+    const std::string value = readText(path, kSourceDefaultsBytes+2*kSourceMotionBytes+2048);
     if (value.empty()) return false;
-    std::istringstream input(value);
-    std::string first, second, third, counts;
-    if (!std::getline(input, first) || first != kCacheVersion ||
-        !std::getline(input, second) || second != id ||
-        !std::getline(input, third) || third != key ||
-        !std::getline(input, counts)) return false;
-    std::istringstream lengths(counts);
-    size_t defaultsSize = 0, curvesSize = 0, combatSize = 0;
-    std::string trailing;
-    if (!(lengths >> defaultsSize >> curvesSize >> combatSize) ||
-        (lengths >> trailing) ||
-        defaultsSize < 10 || defaultsSize > kSourceDefaultsBytes ||
-        curvesSize > kSourceMotionBytes || combatSize < 25 || combatSize > kSourceMotionBytes)
-        return false;
-    const size_t header = value.find('\n',
-        value.find('\n', value.find('\n', value.find('\n') + 1) + 1) + 1);
-    if (header == std::string::npos ||
-        value.size() != header + 1 + defaultsSize + curvesSize + combatSize)
-        return false;
-    const size_t data = header + 1;
-    *defaults = value.substr(data, defaultsSize);
-    *curves = value.substr(data + defaultsSize, curvesSize);
-    *combat = value.substr(data + defaultsSize + curvesSize, combatSize);
-    return defaults->rfind("BUNNY_MANAGED_DEFAULTS_V2\n", 0) == 0 &&
-           (curves->empty() || curves->rfind("BUNNY_PROJECTILE_TURNS_V1\n", 0) == 0) &&
-           combat->rfind("BUNNY_COMBAT_POLICIES_V1\n", 0) == 0;
+    const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
+    return auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat);
 }
 
 void saveCache(const std::string& path, const std::string& id,
-               const std::string& key, const std::string& defaults,
-               const std::string& curves, const std::string& combat) {
-    if (defaults.empty() || defaults.size() > kSourceDefaultsBytes || curves.size() > kSourceMotionBytes ||
-        combat.size() < 25 || combat.size() > kSourceMotionBytes) return;
-    const std::string value = std::string(kCacheVersion) + "\n" + id + "\n" +
-        key + "\n" + std::to_string(defaults.size()) + " " +
-        std::to_string(curves.size()) + " " + std::to_string(combat.size()) +
-        "\n" + defaults + curves + combat;
-    writeText(path, value);
+               const std::string& key, const std::string& assembly,
+               const std::string& defaults, const std::string& curves,
+               const std::string& combat) {
+    const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
+    const auto value=auto_cache::encode(kCacheVersion,id,key,dllHash,defaults,curves,combat);
+    if (!value.empty()) writeText(path,value);
 }
 
 bool validCompileStatus(const std::string& status, const std::string& id,
@@ -704,6 +669,8 @@ void run() {
     if (work.empty()) return;
     const std::string cacheDir = work + "auto-source-cache";
     mkdir(cacheDir.c_str(), 0700);
+    std::string runtimeIdentity;
+    bool runtimeChecked=false;
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
     for (const auto& mod : sourceModStatuses()) {
@@ -722,13 +689,21 @@ void run() {
             return static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now()-start).count());
         };
-        const auto scanStarted = std::chrono::steady_clock::now();
         const std::string root = mods::rootOf(mod.id);
         if (root.empty()) {
             note(&status, "failed", "Arquivos C# nao encontrados");
             continue;
         }
-        const std::string key = fingerprint(mod.id, root);
+        if(!runtimeChecked) {
+            const auto runtimeStarted=std::chrono::steady_clock::now();
+            runtimeIdentity=auto_cache::runtimeIdentity(work);
+            runtimeChecked=true;
+            BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity TimeMs=%lld Cache=%s",
+                    elapsedMilliseconds(runtimeStarted),runtimeIdentity.empty()?"Bypassed":"Ready");
+            if(runtimeIdentity.empty())BL_WARN("csharp auto: framework incompleto; cache externo desativado neste carregamento");
+        }
+        const auto scanStarted = std::chrono::steady_clock::now();
+        const std::string key = fingerprint(mod.id, root, runtimeIdentity);
         if (key.empty()) {
             note(&status, "failed", "Arquivos C# nao encontrados");
             continue;
@@ -737,7 +712,9 @@ void run() {
         std::string defaults, curves, combat, error;
         const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
         const auto readStarted = std::chrono::steady_clock::now();
-        status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves, &combat);
+        const std::string assembly=work+"compiled/"+mod.id+".dll";
+        status.cached = !runtimeIdentity.empty() &&
+            readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat);
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         note(&status, "waiting-content");
         bool ready = false;
@@ -782,7 +759,8 @@ void run() {
                 }).detach();
             }
         }
-        if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
+        if (!status.cached && !runtimeIdentity.empty())
+            saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat);
         note(&status, "applying");
         const auto applyStarted=std::chrono::steady_clock::now();
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
@@ -794,6 +772,7 @@ void run() {
             const bool rebuilt=compile(root,mod.id,mod,work,&defaults,&curves,&combat,&error);
             compileMs+=elapsedMilliseconds(recoveryStarted);
             if (rebuilt) {
+                if(!runtimeIdentity.empty())saveCache(cacheFile,mod.id,key,assembly,defaults,curves,combat);
                 note(&status,"applying");
                 defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
             }
