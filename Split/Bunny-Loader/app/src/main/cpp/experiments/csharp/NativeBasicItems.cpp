@@ -214,8 +214,9 @@ void resolvePlacements() {
             continue;
         }
         entry.placeTile=target;placementErrors.erase(entry.type);
+        refreshReason.store("NativePlacementReady",std::memory_order_release);
         instancesPending.store(true,std::memory_order_release);
-        BL_INFO("[CSharp][INFO][Placement] Mod=%s Class=%s Tile=%s ContentId=%d TileId=%d Stage=ResolveTile Result=Ready",
+        BL_INFO("[CSharp][INFO][Placement Mod=%s Class=%s Tile=%s ContentId=%d TileId=%d Stage=ResolveTile Result=Ready",
             entry.modId.c_str(),entry.name.c_str(),entry.placeTileKey.c_str(),entry.type,target);
     }
     bool pending=false;
@@ -387,7 +388,6 @@ void refreshLiveBasicItems() {
     auto getStatic=[&](const char* name)->void* {
         void* value=nullptr;if(auto* field=il2cpp::findField(main,name))api.field_static_get_value(field,&value);return value;
     };
-    refreshManagedPrefixEligibilityOnWorldReady();
     auto* players=static_cast<Il2CppArray*>(getStatic("player"));
     if(players&&players->length<=256) {
         auto** objects=static_cast<Il2CppObject**>(arrayData(players));
@@ -581,7 +581,13 @@ bool setBasicItemDefense(int type,int value,std::string* error) {
     }
     binding.offset=static_cast<int>(offset);
     if(value>binding.max)return reject("ValueOutOfNativeRange",actual?actual:"Unknown");
+    const auto existing=defenseDefaults.find(type);
+    if(existing!=defenseDefaults.end()&&existing->second.value==value&&
+       existing->second.field.offset==binding.offset&&existing->second.field.bytes==binding.bytes) {
+        error->clear();return true;
+    }
     defenseDefaults[type]={binding,value};
+    refreshReason.store("NativeDefenseChanged",std::memory_order_release);
     instancesPending.store(true,std::memory_order_release);
     error->clear();return true;
 }
@@ -622,7 +628,16 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
     }
     binding.offset=static_cast<int>(offset);
     if(slot>binding.max)return reject("SlotOutOfRange",actual?actual:"Unknown");
+    const auto previous=equipSlots.find(type);
+    if(previous!=equipSlots.end()){
+        const auto existing=previous->second.find(kind);
+        if(existing!=previous->second.end()&&existing->second.value==slot&&
+           existing->second.field.offset==binding.offset&&existing->second.field.bytes==binding.bytes){
+            error->clear();return true;
+        }
+    }
     equipSlots[type][kind]={binding,slot};
+    refreshReason.store("NativeEquipSlotChanged",std::memory_order_release);
     instancesPending.store(true,std::memory_order_release);
     error->clear();
     return true;
