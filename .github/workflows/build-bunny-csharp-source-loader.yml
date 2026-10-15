@@ -1542,7 +1542,10 @@ jobs:
           unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
           unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
-          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='176' versionName='0.1.10.16.90.29.11-csharp-a1-content-fix'"
+          VERSION="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          VERSION_CODE="$(sed -nE 's/^[[:space:]]*versionCode = ([0-9]+).*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION" && test -n "$VERSION_CODE"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='${VERSION_CODE}' versionName='${VERSION}'"
           python3 - "$APK" <<'PY'
           import hashlib
           import sys
