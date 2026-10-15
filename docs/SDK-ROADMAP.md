@@ -2,7 +2,7 @@
 
 Pedido do usuario em 15/10/2026: implementar o conjunto de melhorias da auditoria
 do GitHub. Este arquivo acompanha todo o escopo, sem transformar uma fundacao
-parcial em conclusao do SDK. A fundacao partiu da .90.29.31 (`7229a61`); a base atual integra o PR #24 (.40) e #25; o Lote A e todos
+parcial em conclusao do SDK. A fundacao partiu da .90.29.31 (`7229a61`); a base atual integra o PR #24 (.41) e #25; o Lote A e todos
 os exemplos da matriz existente permanecem no escopo. A atualizacao
 .90.29.32.1 de defesa nativa e a .90.29.33 de efeitos de acessorio foram
 integradas nesta branch durante a revisao.

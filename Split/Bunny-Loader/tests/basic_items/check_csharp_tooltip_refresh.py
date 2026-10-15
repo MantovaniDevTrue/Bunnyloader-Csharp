@@ -39,3 +39,27 @@ assert items.count('ensureArmorSetLookups(from);') == 1
 assert items.index('ensureArmorSetLookups(to);') < items.index('registerSample(n.type, n.mod, n.name);')
 assert 'for (const set of Array.from(ArmorSetBonuses.SetsContaining[item.type]))' in (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Loaders/VanillaTooltips.js").read_text()
 print("CSHARP_NATIVE_ARMOR_LOOKUP_EMPTY_ROWS_GUARD=PASS")
+
+native = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp").read_text()
+saved = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/content/items/ModItemSave.cpp").read_text()
+auto = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+install_slot = native[native.index("bool setBasicItemEquipSlot("):native.index("bool applyBasicItemToObject(")]
+assert 'equipSlots[type][kind]={binding,slot};' in install_slot
+assert 'instancesPending.store(true,std::memory_order_release);' in install_slot
+assert install_slot.index('equipSlots[type][kind]={binding,slot};') < install_slot.index('instancesPending.store(true,std::memory_order_release);')
+rehydrate = native[native.index("void refreshLiveBasicItems()"):native.index("bool checkBasicItemContract(")]
+assert 'runtime::field<int32_t>(object,typeOffset)' in rehydrate
+assert 'applyBasicItemToObject(object,type)' in rehydrate
+assert 'const int savedPrefix=runtime::field<uint8_t>(object,prefixOffset);' in rehydrate
+assert 'getStatic("player")' in rehydrate
+assert 'fieldOffset(player,"Loadouts")' in rehydrate
+assert 'findClass({"Terraria","EquipmentLoadout",{}' in rehydrate
+assert 'fieldOffset(loadoutClass,"Armor")' in rehydrate
+assert 'fieldOffset(loadoutClass,"Dye")' in rehydrate
+load = saved[saved.index("Il2CppObject* hkLoadPlayer("):saved.index("bool rehydrateSavedManagedItem(", saved.index("Il2CppObject* hkLoadPlayer("))]
+assert 'if (slotItem && slotType == type)' in load
+assert 'if (restored > 0)' in load and 'bl::csharp::requestBasicItemInstanceRefresh();' in load
+world = auto[auto.index("void noteAutoGameUpdate()"):auto.index("bool preWorldCSharpContentReady()")]
+assert 'g_worldSessionReady.store(true, std::memory_order_release);\n        requestBasicItemInstanceRefresh();' in world
+assert 'bool finishPreWorldCSharpPlayer() {\n    requestBasicItemInstanceRefresh();' in auto
+print("CSHARP_SAVED_WINGS_AND_INACTIVE_LOADOUT_REHYDRATION_GUARD=PASS")

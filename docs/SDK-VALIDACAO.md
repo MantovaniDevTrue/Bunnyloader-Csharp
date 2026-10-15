@@ -68,7 +68,7 @@ proprios, mesmo quando todos os testes acima passam no host.
 
 ## Independencia de JavaScript
 
-A base desta entrega e o PR #24 (.40) com a correcao de cache #25.
+A base desta entrega e o PR #24 (.41) com a correcao de cache #25.
 O novo runner `tests/run_native_item_policies.py` registra os descritores reais
 dos nove itens com comportamento, escudo e botas, com QuickJS desligado.
 Cobre layouts raw/boxed, erros de tipo/static/bounds, retry, restauracao, luz,

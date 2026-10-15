@@ -394,6 +394,22 @@ void refreshLiveBasicItems() {
                 const int offset=il2cpp::fieldOffset(player,fieldName);
                 if(offset>=0)array(runtime::field<Il2CppArray*>(objects[i],offset),false);
             }
+            const int loadoutsOffset=il2cpp::fieldOffset(player,"Loadouts");
+            auto* loadoutClass=il2cpp::findClass({"Terraria","EquipmentLoadout",{}});
+            if(loadoutsOffset>=0&&loadoutClass) {
+                auto* loadouts=runtime::field<Il2CppArray*>(objects[i],loadoutsOffset);
+                const int armorOffset=il2cpp::fieldOffset(loadoutClass,"Armor");
+                const int dyeOffset=il2cpp::fieldOffset(loadoutClass,"Dye");
+                if(loadouts&&loadouts->length<=8) {
+                    auto** sets=static_cast<Il2CppObject**>(arrayData(loadouts));
+                    for(uintptr_t set=0;set<loadouts->length;++set)if(sets[set]) {
+                        if(armorOffset>=0)
+                            array(runtime::field<Il2CppArray*>(sets[set],armorOffset),false);
+                        if(dyeOffset>=0)
+                            array(runtime::field<Il2CppArray*>(sets[set],dyeOffset),false);
+                    }
+                }
+            }
         }
     }
     array(static_cast<Il2CppArray*>(getStatic("item")),true);
@@ -590,6 +606,7 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
     binding.offset=static_cast<int>(offset);
     if(slot>binding.max)return reject("SlotOutOfRange",actual?actual:"Unknown");
     equipSlots[type][kind]={binding,slot};
+    instancesPending.store(true,std::memory_order_release);
     error->clear();
     return true;
 }

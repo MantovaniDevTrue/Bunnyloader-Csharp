@@ -231,6 +231,16 @@ int main(int argc,char** argv){
  assert(bl::csharp::applyBasicItemToObject(&recreated.header,equippedType));
  assert(recreated.wingSlot==70);
  assert(recreated.headSlot==350&&recreated.bodySlot==260&&recreated.legSlot==220&&recreated.beardSlot==127);
+ FakeItem savedWing{};
+ savedWing.type=equippedType;
+ savedWing.wingSlot=-1;
+ savedWing.flags[5]=false;
+ std::memset(savedWing.sentinel,0x5a,sizeof(savedWing.sentinel));
+ assert(savedWing.wingSlot<0&&!savedWing.flags[5]);
+ assert(bl::csharp::applyBasicItemToObject(&savedWing.header,equippedType));
+ assert(savedWing.type==equippedType);
+ assert(savedWing.wingSlot==70&&savedWing.flags[5]==!!(entries[0].values[bl::csharp::BasicFlags]&32));
+ for(auto value:savedWing.sentinel)assert(value==0x5a);
  for(auto value:recreated.sentinel)assert(value==0x5a);
  assert(recreated.defense==6);for(auto value:recreated.defenseSentinel)assert(value==0x6b);
  auto pending=bl::csharp::pendingBasicRecipes();assert(pending.size()==3);

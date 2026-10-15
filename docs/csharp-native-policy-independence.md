@@ -1,6 +1,6 @@
 # Mods C# sem dependencia de JavaScript
 
-Base: PR #24, checkpoint Android `.90.29.40`, com a correcao de cache do #25.
+Base: PR #24, checkpoint Android `.90.29.41`, com a correcao de cache do #25.
 Esta migracao nao altera versionCode/versionName nem publica um APK por commit.
 
 Fontes `.cs` passam por Roslyn, SDK, verificacao de cache e MonoVM. A ponte C++
