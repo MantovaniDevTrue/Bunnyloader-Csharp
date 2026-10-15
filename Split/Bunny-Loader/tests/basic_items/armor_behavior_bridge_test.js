@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const root=process.argv[2];
-const entries=fs.readFileSync(process.argv[3],'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).map((p,i)=>({type:6300+i,name:p[1],mod:'armor-fixture',source:'content/'+p[1]+'.cs',root:'/fixture/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
+const entries=fs.readFileSync(process.argv[3],'utf8').trim().split('\n').slice(1).map(l=>l.split('\t')).map((p,i)=>({type:6200+i,name:p[1],mod:'armor-fixture',source:'content/'+p[1]+'.cs',root:'/fixture/content/',definition:Buffer.from(p[20],'hex').toString('utf8'),defaults:p.slice(2,16).map(Number),knockBack:+p[16]}));
 assert.equal(entries.length,3);
 const hooks=new Map(),samples=new Map(),pending=new Map(entries.map(e=>[e.type,e])),errors=[],sets=[];
 const callable=(key,impl=()=>{})=>Object.assign(impl,{hook(fn){hooks.set(key,fn);}});
@@ -35,7 +35,7 @@ ctx.__blSyncCSharpItemBehaviors();assert.equal(sets.length,1,'set registration i
 const item=name=>samples.get(entries.find(e=>e.name===name).type);
 const armor=[item('ContractHelmet'),item('ContractPlate'),item('ContractLegs')];
 assert.deepEqual(armor.map(i=>i.defense),[5,6,5]);
-assert.equal(bonuses.SetsContaining.length,6303,'lookup grows to highest native content ID');
+assert.equal(bonuses.SetsContaining.length,6203,'lookup grows to highest native content ID');
 assert.strictEqual(bonuses.SetsContaining[900],originalVanilla,'vanilla armor lookup preserved');
 for(const i of armor)assert.equal(bonuses.SetsContaining[i.type].length,1,'native set lookup per part');
 const grant=hooks.get('Player:void GrantArmorBenefits(Item armorPiece)');assert(grant);
