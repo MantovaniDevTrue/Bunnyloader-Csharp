@@ -259,9 +259,17 @@ void pumpNativeVisualRendererOnGameThread() {
     if(!active&&startupReady.load(std::memory_order_acquire)) {if(hadVisuals)for(auto& trail:trails)trail.size=0;hadVisuals=false;return;}
     if(!active&&!requested.load(std::memory_order_acquire))return;
     hadVisuals=active;
+    static uint64_t nextBindAttempt=0;
     std::string error;if(!ready) {
+        if(tick<nextBindAttempt)return;
         ready=bind(&error);
-        if(!ready){if(error.empty())error="NativeDrawMetadataUnavailable";std::lock_guard lock(statusMutex);if(status.error!=error)BL_WARN("[CSharp][Visual] Stage=Bind Result=Pending Reason=%s",error.c_str());status.error=error;return;}
+        if(!ready){
+            nextBindAttempt=tick+30;
+            if(error.empty())error="NativeDrawMetadataUnavailable";
+            std::lock_guard lock(statusMutex);
+            if(status.error!=error)BL_WARN("[CSharp][Visual] Stage=Bind Result=Pending Reason=%s",error.c_str());
+            status.error=error;return;
+        }
     }
     std::vector<std::string> pending;
     {
