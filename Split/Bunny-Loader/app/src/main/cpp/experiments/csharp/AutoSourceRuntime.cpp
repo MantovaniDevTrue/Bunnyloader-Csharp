@@ -30,6 +30,8 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <limits.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -83,6 +85,16 @@ std::atomic<int> g_worldExits{0};
 std::atomic<int> g_worldRebindSchedules{0};
 std::vector<std::pair<std::string, int>> g_pendingLiveSpecs;
 std::string g_pendingLiveWork;
+std::mutex g_consoleLock;
+struct ConsolePending {
+    std::string modId;
+    std::string workDir;
+    std::chrono::steady_clock::time_point started{};
+    bool active = false;
+};
+ConsolePending g_consolePending;
+std::vector<std::string> g_consoleMessages;
+unsigned g_consoleRunCount = 0;
 
 struct Curve {
     std::string modId;
@@ -950,6 +962,105 @@ void run() {
 
 }
 
+bool submitInteractiveConsoleSource(const std::string& id, const std::string& root,
+                                    const std::string& workDir, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (id.size()!=36 || id.find_first_not_of("0123456789abcdef-")!=std::string::npos ||
+        root.size()>2048 || workDir.size()>2048 || root.find("..")!=std::string::npos) {
+        *error="Identidade ou diretorio C# invalido";
+        return false;
+    }
+    char checkedRoot[PATH_MAX]{},checkedWork[PATH_MAX]{},checkedCheckpoint[PATH_MAX]{};
+    if (!realpath(root.c_str(),checkedRoot) ||
+        !realpath(workDir.c_str(),checkedWork) ||
+        !realpath(folderOfCheckpoint().c_str(),checkedCheckpoint) ||
+        std::string(checkedWork)!=std::string(checkedCheckpoint) ||
+        std::string(checkedRoot)!=std::string(checkedWork)+"/interactive/"+id) {
+        *error="Diretorio privado do console C# nao autorizado";
+        return false;
+    }
+    struct stat source{};
+    if(stat((root+"/content/ConsoleEntry.cs").c_str(),&source)!=0 ||
+       !S_ISREG(source.st_mode)||source.st_size<64||source.st_size>65536) {
+       *error="Fonte temporaria C# invalida";return false;
+    }
+    if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
+        !managedRuntimeStatus().domainInitialized) {
+        *error="Aguarde o MonoVM e os mods C# carregarem";
+        return false;
+    }
+    std::lock_guard<std::mutex> guard(g_consoleLock);
+    if (g_consolePending.active) {
+        *error="Aguarde a compilacao C# anterior";
+        return false;
+    }
+    if (g_consoleRunCount>=24) {
+        *error="Limite de 24 execucoes C# atingido; reinicie o Bunny Loader";
+        return false;
+    }
+    const std::string status=readText(workDir+"/source-compile-status.txt",8192);
+    if(status.find("state=compiling\n")!=std::string::npos ||
+       status.find("state=preparing-framework\n")!=std::string::npos) {
+        *error="Roslyn ocupado com outro mod C#";return false;
+    }
+    std::remove((workDir+"/source-compile-status.txt").c_str());
+    if(!requestIsolatedMonoCompile(root,id,*error))return false;
+    g_consolePending={id,workDir,std::chrono::steady_clock::now(),true};
+    g_consoleMessages.push_back("iC# enviado ao Roslyn isolado; aguardando compilacao...");
+    return true;
+}
+
+std::vector<std::string> takeInteractiveConsoleOutput() {
+    std::lock_guard<std::mutex> guard(g_consoleLock);
+    std::vector<std::string> result;
+    result.swap(g_consoleMessages);
+    return result;
+}
+
+void pumpInteractiveConsoleOnGameThread() {
+    static unsigned tick=0;
+    if((++tick%10)!=0)return;
+    std::string id,dir;
+    {
+        std::lock_guard<std::mutex> guard(g_consoleLock);
+        if(!g_consolePending.active)return;
+        id=g_consolePending.modId;
+        dir=g_consolePending.workDir;
+    }
+    const std::string status=readText(dir+"/source-compile-status.txt",8192);
+    if(status.find("state=finished\n")==std::string::npos &&
+       status.find("state=failed\n")==std::string::npos) {
+        std::lock_guard<std::mutex> guard(g_consoleLock);
+        if(g_consolePending.active &&
+           std::chrono::steady_clock::now()-g_consolePending.started>std::chrono::seconds(50)) {
+            g_consolePending.active=false;
+            g_consoleMessages.push_back("xC# timeout na compilacao Roslyn (50s)");
+        }
+        return;
+    }
+    const bool finished=status.find("state=finished\n")!=std::string::npos &&
+        status.find("modId="+id+"\n")!=std::string::npos &&
+        status.find("assemblyReady=1\n")!=std::string::npos;
+    std::string output,error;
+    if(finished){
+        if(!invokeInteractiveCSharp(dir+"/compiled/"+id+".dll",&output,&error))
+            output.clear();
+    }else if(status.find("state=failed\n")!=std::string::npos){
+        error=readText(dir+"/source-compile-diagnostics.txt",8192);
+        if(error.empty())error=status.substr(0,2048);
+    }else return;
+    {
+        std::lock_guard<std::mutex> guard(g_consoleLock);
+        if(!g_consolePending.active || g_consolePending.modId!=id)return;
+        g_consolePending.active=false;
+        ++g_consoleRunCount;
+        if(error.empty())
+            g_consoleMessages.push_back("r"+(output.empty()?"Executado":output));
+        else g_consoleMessages.push_back("x"+error.substr(0,4000));
+    }
+}
+
 void reportCSharpLoadSummary() {
     if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
         g_initialCSharpSummaryShown.load(std::memory_order_acquire)) return;
@@ -1036,6 +1147,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
