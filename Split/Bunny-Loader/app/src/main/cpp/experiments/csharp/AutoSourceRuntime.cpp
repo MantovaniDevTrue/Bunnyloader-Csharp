@@ -214,11 +214,19 @@ std::string fingerprint(const std::string& id, const std::string& root,
 
 bool readCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& assembly,
-               std::string* defaults, std::string* curves, std::string* combat) {
+               std::string* defaults, std::string* curves, std::string* combat,
+               std::string* reason=nullptr) {
     const std::string value = readText(path, kSourceDefaultsBytes+2*kSourceMotionBytes+2048);
-    if (value.empty()) return false;
+    if (value.empty()) {
+        if(reason)*reason="CacheFileMissingOrUnreadable";
+        return false;
+    }
     const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
-    return auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat);
+    if(dllHash.empty()) {
+        if(reason)*reason="CompiledAssemblyMissing";
+        return false;
+    }
+    return auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat,reason);
 }
 
 bool saveCache(const std::string& path, const std::string& id,
@@ -667,9 +675,8 @@ bool recoverRuntimeCacheIdentityAfterCompile(
     const std::string& work, const std::string& root, const std::string& id,
     const std::string& cacheDir, std::string* runtimeIdentity,
     std::string* key, std::string* cacheFile) {
-    if (!runtimeIdentity->empty()) return false;
     const std::string initializedIdentity = auto_cache::runtimeIdentity(work);
-    if (initializedIdentity.empty()) return false;
+    if (initializedIdentity.empty() || initializedIdentity==*runtimeIdentity) return false;
     const std::string initializedKey = fingerprint(id, root, initializedIdentity);
     if (initializedKey.empty()) return false;
     *runtimeIdentity = initializedIdentity;
@@ -729,8 +736,10 @@ void run() {
         std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
         const auto readStarted = std::chrono::steady_clock::now();
         const std::string assembly=work+"compiled/"+mod.id+".dll";
+        std::string cacheReason=runtimeIdentity.empty()?"RuntimeIdentityUnavailable":"NotChecked";
         status.cached = !runtimeIdentity.empty() &&
-            readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat);
+            readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat, &cacheReason);
+        std::string cacheWrite=status.cached?"NotNeeded":"Unavailable";
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         note(&status, "waiting-content");
         bool ready = false;
@@ -777,10 +786,13 @@ void run() {
         }
         if (!status.cached && recoverRuntimeCacheIdentityAfterCompile(
                 work, root, mod.id, cacheDir, &runtimeIdentity, &key, &cacheFile))
-            BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=RecoveredAfterCompile");
-        if (!status.cached && !runtimeIdentity.empty() &&
-            !saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat))
-            BL_WARN("csharp auto %s: cache verificado nao foi gravado", mod.id.c_str());
+            BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=ChangedAfterCompile");
+        if (!status.cached && !runtimeIdentity.empty()) {
+            cacheWrite=saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat)
+                ?"Saved":"Failed";
+            if(cacheWrite=="Failed")
+                BL_WARN("csharp auto %s: cache verificado nao foi gravado", mod.id.c_str());
+        }
         note(&status, "applying");
         const auto applyStarted=std::chrono::steady_clock::now();
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
@@ -803,9 +815,9 @@ void run() {
             note(&status, "failed", error);
             continue;
         }
-        BL_INFO("[CSharp][Startup] Mod=%s Stage=DefaultsRequest Cache=%s WaitTablesMs=%lld CacheReadMs=%lld CompileMs=%lld ApplyAndRecoveryMs=%lld",
-                mod.id.c_str(),status.cached?"Hit":"Miss",tablesMs,cacheMs,compileMs,
-                elapsedMilliseconds(applyStarted));
+        BL_INFO("[CSharp][Startup] Mod=%s Stage=DefaultsRequest Cache=%s CacheReason=%s CacheWrite=%s WaitTablesMs=%lld CacheReadMs=%lld CompileMs=%lld ApplyAndRecoveryMs=%lld",
+                mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
+                tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
         if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
         else g_compiledMods.fetch_add(1, std::memory_order_relaxed);
