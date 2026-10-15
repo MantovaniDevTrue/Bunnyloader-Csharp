@@ -80,3 +80,22 @@ interfaces, worldgen, multiplayer ou callbacks livres para todas as categorias.
 
 SpawnParticle permanece apenas no contrato de fila experimental anterior;
 este lote nao implementa um novo renderer de particulas nem shaders gerais.
+
+## Checkpoint Android .42
+
+`0.1.10.16.90.29.42-csharp-native-no-js` usa o ExampleMod CSharp 0.1.39
+unificado, sem exigir novos pacotes de mod. O workflow verifica as policies
+nativas, o carregador real sem QuickJS e o guard arquitetural antes de montar
+e assinar o APK. O APK continua sendo entregue somente no repositorio privado.
+
+Roteiro no aparelho (ainda pendente de validacao):
+
+1. Instalar a .42 e habilitar somente ExampleMod CSharp 0.1.39, sem mods JS.
+2. Confirmar o carregamento antes do mundo e testar armaduras/conjunto,
+   manto, barba, asas, escudo/barreira e rastro das botas.
+3. Salvar com as asas equipadas, sair e retornar; trocar loadouts e repetir.
+4. Conferir desenho/voo, FPS e relatorio de erros. Depois habilitar um mod JS
+   conhecido para conferir a selecao mista.
+
+Os testes do host nao substituem esta verificacao de ABI, camadas e assets
+no Terraria Android. Nao ha confirmacao de 60 FPS para este checkpoint ainda.
