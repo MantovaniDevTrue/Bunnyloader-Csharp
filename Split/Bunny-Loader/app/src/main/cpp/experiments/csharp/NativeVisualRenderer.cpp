@@ -208,7 +208,8 @@ bool bind(std::string* error) {
         refs.screenGetter=getter;
     }
     Layout screen;size_t sx=0,sy=0;
-    auto* screenClass=refs.screen?a.class_from_il2cpp_type(a.field_get_type(refs.screen)):a.class_from_il2cpp_type(a.method_get_return_type(refs.screenGetter));
+    auto* positionField=findField(info,"Position");
+    auto* screenClass=refs.screen?a.class_from_il2cpp_type(a.field_get_type(refs.screen)):(positionField?a.class_from_il2cpp_type(a.field_get_type(positionField)):nullptr);
     if(!screen.init(screenClass,error)||!screen.value||screen.bytes!=8||!scalar(screen,"X","Single",4,&sx)||!scalar(screen,"Y","Single",4,&sy)||sx!=0||sy!=4)return unavailable("ScreenPositionLayout");
     Il2CppClass* texture=nullptr,*source=nullptr;
     if(!refs.data.field("texture",sizeof(void*),&refs.texture,&texture)||a.class_is_valuetype(texture)||!vec(refs.data,"position",&refs.drawPosition)||
