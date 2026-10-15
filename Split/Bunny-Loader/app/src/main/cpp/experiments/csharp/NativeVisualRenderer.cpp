@@ -172,52 +172,53 @@ void back(void* info,const MethodInfo* m){render(info,3);if(originalBack)origina
 void shield(void* info,const MethodInfo* m){if(originalShield)originalShield(info,m);render(info,1);}
 void barrier(void* info,const MethodInfo* m){if(originalBarrier)originalBarrier(info,m);render(info,2);}
 bool bind(std::string* error) {
-    auto& a=api();if(!a.class_get_rank||!a.object_get_class||!a.gchandle_new||!a.gchandle_free||!a.gchandle_get_target||!a.gc_wbarrier_set_field||!a.method_is_instance)return false;
+    const auto unavailable=[&](const char* stage){if(error){auto previous=*error;*error="NativeDrawMetadataUnavailable:"+std::string(stage);if(!previous.empty())*error+=":"+previous;}return false;};
+    auto& a=api();if(!a.class_get_rank||!a.object_get_class||!a.gchandle_new||!a.gchandle_free||!a.gchandle_get_target||!a.gc_wbarrier_set_field||!a.method_is_instance)return unavailable("Il2CppApi");
     auto* info=findClass({"Terraria.DataStructures","PlayerDrawSet",{}});auto* player=findClass({"Terraria","Player",{}});auto* data=findClass({"Terraria.DataStructures","DrawData",{}});
-    if(!refs.info.init(info,error)||!refs.player.init(player,error)||!refs.data.init(data,error)||!refs.data.value||refs.data.bytes>1024||(refs.info.value&&refs.info.bytes<=16))return false;
+    if(!refs.info.init(info,error)||!refs.player.init(player,error)||!refs.data.init(data,error)||!refs.data.value||refs.data.bytes>1024||(refs.info.value&&refs.info.bytes<=16))return unavailable("DrawSetOrDrawDataLayout");
     Il2CppClass* actor=nullptr;
     if(!refs.info.field("drawPlayer",sizeof(void*),&refs.actor,&actor)||actor!=player||!refs.info.field("DrawDataCache",sizeof(void*),&refs.cache,&refs.cacheClass)||
        a.class_get_rank(refs.cacheClass)!=1||a.class_get_element_class(refs.cacheClass)!=data||!scalar(refs.info,"DrawDataCacheCount","Int32",4,&refs.count)||
-       !scalar(refs.info,"shadow","Single",4,&refs.shadow)||!vec(refs.info,"Position",&refs.position))return false;
+       !scalar(refs.info,"shadow","Single",4,&refs.shadow)||!vec(refs.info,"Position",&refs.position))return unavailable("DrawSetShadowOrPosition");
     Il2CppClass* effect=nullptr;
-    if(!refs.info.field("playerEffect",4,&refs.effect,&effect))return false;
+    if(!refs.info.field("playerEffect",4,&refs.effect,&effect))return unavailable("PlayerEffectField");
     if(a.class_is_enum(effect))effect=a.class_from_il2cpp_type(a.class_enum_basetype(effect));
-    if(!primitive(effect,"Int32",4))return false;
+    if(!primitive(effect,"Int32",4))return unavailable("PlayerEffectEnum");
     for(const auto& [name,out]:std::initializer_list<std::pair<const char*,size_t*>>{{"whoAmI",&refs.index},{"width",&refs.width},{"height",&refs.height},{"direction",&refs.direction}})
-        if(!scalar(refs.player,name,"Int32",4,out))return false;
+        if(!scalar(refs.player,name,"Int32",4,out))return unavailable("PlayerIdentityFields");
     if(!scalar(refs.player,"dead","Boolean",1,&refs.dead)||!scalar(refs.player,"invis","Boolean",1,&refs.invis)||!scalar(refs.player,"bodyRotation","Single",4,&refs.rotation)||
-       !vec(refs.player,"position",&refs.world)||!vec(refs.player,"velocity",&refs.velocity))return false;
+       !vec(refs.player,"position",&refs.world)||!vec(refs.player,"velocity",&refs.velocity))return unavailable("PlayerStateFields");
     Il2CppClass* frame=nullptr,*mount=nullptr;
     if(!refs.player.field("bodyFrame",16,&refs.frame,&frame)||!refs.rectangle.init(frame,error)||!scalar(refs.rectangle,"Height","Int32",4,&refs.frameHeight)||
-       !refs.player.field("mount",sizeof(void*),&refs.mount,&mount))return false;
-    refs.mounted=findMethodBySignature(mount,parseSignature("bool get_Active()"));if(!refs.mounted||!a.method_is_instance(refs.mounted)||!methodPointer(refs.mounted))return false;
+       !refs.player.field("mount",sizeof(void*),&refs.mount,&mount))return unavailable("BodyFrameOrMount");
+    refs.mounted=findMethodBySignature(mount,parseSignature("bool get_Active()"));if(!refs.mounted||!a.method_is_instance(refs.mounted)||!methodPointer(refs.mounted))return unavailable("MountedActiveMethod");
     auto* main=findClass({"Terraria","Main",{}});refs.screen=main?findField(main,"screenPosition"):nullptr;
-    if(!refs.screen||!(a.field_get_flags(refs.screen)&0x10u))return false;
+    if(!refs.screen||!(a.field_get_flags(refs.screen)&0x10u))return unavailable("ScreenPositionField");
     Layout screen;size_t sx=0,sy=0;
-    if(!screen.init(a.class_from_il2cpp_type(a.field_get_type(refs.screen)),error)||!screen.value||screen.bytes!=8||!scalar(screen,"X","Single",4,&sx)||!scalar(screen,"Y","Single",4,&sy)||sx!=0||sy!=4)return false;
+    if(!screen.init(a.class_from_il2cpp_type(a.field_get_type(refs.screen)),error)||!screen.value||screen.bytes!=8||!scalar(screen,"X","Single",4,&sx)||!scalar(screen,"Y","Single",4,&sy)||sx!=0||sy!=4)return unavailable("ScreenPositionLayout");
     Il2CppClass* texture=nullptr,*source=nullptr;
     if(!refs.data.field("texture",sizeof(void*),&refs.texture,&texture)||a.class_is_valuetype(texture)||!vec(refs.data,"position",&refs.drawPosition)||
-       !vec(refs.data,"origin",&refs.origin)||!vec(refs.data,"scale",&refs.scale)||!scalar(refs.data,"rotation","Single",4,&refs.drawRotation)||!scalar(refs.data,"shader","Int32",4,&refs.shader))return false;
-    auto* sourceField=findField(data,"sourceRect");if(!sourceField)return false;source=a.class_from_il2cpp_type(a.field_get_type(sourceField));uint32_t align=0;
-    if(!source||!refs.data.field("sourceRect",static_cast<size_t>(a.class_value_size(source,&align)),&refs.source))return false;
-    Layout src;if(!src.init(source,error)||!src.value)return false;refs.nullableSource=src.bytes!=16;
+       !vec(refs.data,"origin",&refs.origin)||!vec(refs.data,"scale",&refs.scale)||!scalar(refs.data,"rotation","Single",4,&refs.drawRotation)||!scalar(refs.data,"shader","Int32",4,&refs.shader))return unavailable("DrawDataFieldLayout");
+    auto* sourceField=findField(data,"sourceRect");if(!sourceField)return unavailable("SourceRectField");source=a.class_from_il2cpp_type(a.field_get_type(sourceField));uint32_t align=0;
+    if(!source||!refs.data.field("sourceRect",static_cast<size_t>(a.class_value_size(source,&align)),&refs.source))return unavailable("SourceRectLayout");
+    Layout src;if(!src.init(source,error)||!src.value)return unavailable("SourceRectValueLayout");refs.nullableSource=src.bytes!=16;
     if(refs.nullableSource) {
         Il2CppClass* rectangle=nullptr;
-        if(!scalar(src,"hasValue","Boolean",1,&refs.hasSource)||!src.field("value",16,&refs.sourceValue,&rectangle)||!refs.rectangle.init(rectangle,error))return false;
+        if(!scalar(src,"hasValue","Boolean",1,&refs.hasSource)||!src.field("value",16,&refs.sourceValue,&rectangle)||!refs.rectangle.init(rectangle,error))return unavailable("NullableSourceRectLayout");
     } else {refs.sourceValue=0;refs.rectangle=src;}
     for(const auto& [name,expected]:std::initializer_list<std::pair<const char*,size_t>>{{"X",0},{"Y",4},{"Width",8},{"Height",12}}) {
-        size_t offset=0;if(!scalar(refs.rectangle,name,"Int32",4,&offset)||offset!=expected)return false;
+        size_t offset=0;if(!scalar(refs.rectangle,name,"Int32",4,&offset)||offset!=expected)return unavailable("RectangleFieldLayout");
     }
     Il2CppClass* color=nullptr,*drawEffect=nullptr;
-    if(!refs.data.field("color",4,&refs.color,&color)||!a.class_is_valuetype(color)||!refs.data.field("effect",4,&refs.drawEffect,&drawEffect))return false;
+    if(!refs.data.field("color",4,&refs.color,&color)||!a.class_is_valuetype(color)||!refs.data.field("effect",4,&refs.drawEffect,&drawEffect))return unavailable("DrawDataColorOrEffect");
     if(a.class_is_enum(drawEffect))drawEffect=a.class_from_il2cpp_type(a.class_enum_basetype(drawEffect));
     refs.references.clear();
-    if(!primitive(drawEffect,"Int32",4)||!valueReferenceOffsets(data,0,&refs.references,error)||refs.references.size()!=1||refs.references[0]!=refs.texture)return false;
+    if(!primitive(drawEffect,"Int32",4)||!valueReferenceOffsets(data,0,&refs.references,error)||refs.references.size()!=1||refs.references[0]!=refs.texture)return unavailable("DrawDataReferenceLayout");
     auto* layers=findClass({"Terraria.DataStructures","PlayerDrawLayers",{}});
     const auto layer=[&](const char* signature,LayerFn replacement,LayerFn* original,bool* hooked) {
         if(*hooked)return true;
         const auto* m=layers?findMethodBySignature(layers,parseSignature(signature)):nullptr;
-        if(!m||a.method_is_instance(m)||!hook::install(m,replacement,original))return false;
+        if(!m||a.method_is_instance(m)||!hook::install(m,replacement,original))return unavailable("DrawLayerMethodOrHook");
         *hooked=true;return true;
     };
     return layer("void DrawPlayer_10_BackAcc(PlayerDrawSet drawinfo)",back,&originalBack,&backHooked)&&
