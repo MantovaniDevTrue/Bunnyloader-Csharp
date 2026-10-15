@@ -33,6 +33,7 @@ using item_registry::g_installed;
 using item_registry::g_poolFirst;
 bool g_failed = false;
 std::vector<int> g_pendingTooltipTypes;
+std::atomic<bool> g_pendingTooltipSync{false};
 
 struct Refs {
     bool tried = false, ok = false;
@@ -546,12 +547,16 @@ bool gameReady(int size) {
 
 /** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
 bool syncPendingTooltipsOnGameThread(int size) {
+    if (!g_pendingTooltipSync.load(std::memory_order_acquire)) return false;
     const Refs& r = refs();
     if (!r.tooltipCache || !r.tooltipFromKey) return false;
     Il2CppArray* cache = readStatic(r.tooltipCache);
     if (!cache || cache->length < static_cast<uintptr_t>(size)) return false;
     std::lock_guard<std::mutex> lock(g_mx);
-    if (g_pendingTooltipTypes.empty()) return false;
+    if (g_pendingTooltipTypes.empty()) {
+        g_pendingTooltipSync.store(false, std::memory_order_release);
+        return false;
+    }
     int applied = 0;
     for (int type : g_pendingTooltipTypes) {
         if (type < kVanillaItemCount || type >= size) continue;
@@ -561,6 +566,7 @@ bool syncPendingTooltipsOnGameThread(int size) {
         ++applied;
     }
     g_pendingTooltipTypes.clear();
+    g_pendingTooltipSync.store(false, std::memory_order_release);
     if (applied)
         BL_DEBUG("itens de mod: %d tooltip(s) sincronizados na thread do jogo", applied);
     return applied != 0;
@@ -873,9 +879,12 @@ void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>
     const size_t i = static_cast<size_t>(type - kVanillaItemCount);
     if (type < kVanillaItemCount || i >= g_regs.size()) return;
     g_regs[i].def.tooltips = std::move(tooltips);
-    if (static_cast<int>(i) < g_installed.load(std::memory_order_acquire) &&
-        std::find(g_pendingTooltipTypes.begin(), g_pendingTooltipTypes.end(), type) == g_pendingTooltipTypes.end())
-        g_pendingTooltipTypes.push_back(type);
+    if (static_cast<int>(i) < g_installed.load(std::memory_order_acquire)) {
+        if (std::find(g_pendingTooltipTypes.begin(), g_pendingTooltipTypes.end(), type) ==
+            g_pendingTooltipTypes.end())
+            g_pendingTooltipTypes.push_back(type);
+        g_pendingTooltipSync.store(true, std::memory_order_release);
+    }
 }
 
 bool modItemsSettled() {

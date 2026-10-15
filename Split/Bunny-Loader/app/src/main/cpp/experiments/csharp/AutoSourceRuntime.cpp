@@ -103,13 +103,14 @@ std::string folderOfCheckpoint() {
 
 std::string readText(const std::string& path, size_t limit) {
     if (path.empty()) return {};
-    std::ifstream file(path, std::ios::binary);
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file) return {};
-    std::string result(limit + 1, '\0');
-    file.read(result.data(), static_cast<std::streamsize>(result.size()));
-    const size_t count = static_cast<size_t>(file.gcount());
-    if (count > limit) return {};
-    result.resize(count);
+    const std::streamoff length = file.tellg();
+    if (length <= 0 || static_cast<uintmax_t>(length) > limit) return {};
+    std::string result(static_cast<size_t>(length), '\0');
+    file.seekg(0, std::ios::beg);
+    if (!file.read(result.data(), length)) return {};
+    if (file.peek() != std::char_traits<char>::eof()) return {};
     return result;
 }
 
