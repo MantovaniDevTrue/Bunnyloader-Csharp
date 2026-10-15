@@ -51,6 +51,25 @@ int main(int argc,char** argv) {
     std::string d="unchanged",t=d,p=d;
     auto read=[&]{return readCache(cache,"mod",key,dll,&d,&t,&p);};
     assert(read()&&d==defaults&&t==curves&&p==combat);
+    const auto lazyWork=(root/"lazy-worker-framework").string();
+    fs::create_directories(lazyWork);
+    std::string coldRuntimeIdentity;
+    std::string coldKey=fingerprint("mod",root.string(),coldRuntimeIdentity);
+    std::string coldCacheFile=(root/"missing-first-boot.cache").string();
+    assert(!recoverRuntimeCacheIdentityAfterCompile(
+        lazyWork,root.string(),"mod",root.string(),&coldRuntimeIdentity,&coldKey,&coldCacheFile));
+    for(const auto& name:names)assert(writeText(lazyWork+"/"+name,"runtime:"+name));
+    assert(recoverRuntimeCacheIdentityAfterCompile(
+        lazyWork,root.string(),"mod",root.string(),&coldRuntimeIdentity,&coldKey,&coldCacheFile));
+    assert(auto_cache::digest(coldRuntimeIdentity));
+    assert(coldKey==fingerprint("mod",root.string(),coldRuntimeIdentity));
+    assert(coldCacheFile==root.string()+"/mod-"+coldKey+".cache");
+    saveCache(coldCacheFile,"mod",coldKey,dll,defaults,curves,combat);
+    std::string coldDefaults,coldCurves,coldCombat;
+    assert(readCache(coldCacheFile,"mod",coldKey,dll,&coldDefaults,&coldCurves,&coldCombat));
+    assert(coldDefaults==defaults&&coldCurves==curves&&coldCombat==combat);
+    assert(!recoverRuntimeCacheIdentityAfterCompile(
+        lazyWork,root.string(),"mod",root.string(),&coldRuntimeIdentity,&coldKey,&coldCacheFile));
     const auto original=readText(cache,8192);assert(!original.empty());
     // Change a numeric descriptor while keeping its framing and marker valid.
     auto corrupted=original;corrupted[corrupted.find("12\n")]='9';assert(writeText(cache,corrupted));
