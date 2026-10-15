@@ -31,15 +31,22 @@ order = 0;
 d = 10; dir = 1; cancel = false;
 registry.InvokeBefore(ref d, ref dir, ref cancel);
 Check(d == 6 && dir == -1 && !cancel, "unhooked handler must not run");
+Check(registry.BeforeCalls == 3 && registry.HasLastDamage &&
+      registry.LastDamageBefore == 10 && registry.LastDamageAfter == 6 &&
+      registry.CancelledByHook == 1, "BeforeHurt live telemetry and last ref damage");
 Check(registry.Unhook(first) && registry.Count == 0, "unhook first");
 var query = registry.HookDodge((int damage, out bool dodge) => dodge = damage >= 50);
 Check(!registry.InvokeDodge(49) && registry.InvokeDodge(50),
     "out parameter changed in native dispatcher contract");
+Check(registry.DodgeChecks == 2 && registry.SuccessfulDodges == 1,
+    "Dodge checks and successful out result telemetry");
 Check(registry.Unhook(query), "unhook out handler");
 int afterCount = 0;
 var after = registry.HookAfterHurt(info => afterCount += info.Damage);
 registry.InvokeAfter(new BunnyHurtInfo(9, 11, 1, 72, false, false));
 Check(afterCount == 9 && registry.Unhook(after), "after hook registration");
+Check(registry.AfterCalls == 1 && registry.UnhookCalls == 4,
+    "AfterHurt and successful Unhook telemetry");
 registry.Clear();
 Check(registry.Count == 0, "clear registry");
 for (int i = 0; i < 24; i++)
@@ -68,10 +75,16 @@ Check(((cancelled >> 22) & 16) == 16, "ref cancellation must reach native packed
 int delivered = BunnyPlayerHurtDispatcher.After(slot, 8, 13, 1, 0, 92, 0, -1, -1,
     -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0);
 Check(delivered == 1 && HookFixturePlayer.AfterDamage == 8, "after hook from Mono dispatcher");
+string live = BunnyPlayerHurtDispatcher.GetHookSnapshot();
+Check(live.Contains("Before 3") && live.Contains("Dodge 2 (esquivas 1)") &&
+      live.Contains("After 1") && live.Contains("Cancel 1") &&
+      live.Contains("dano ref 6 -> 1") && live.Contains("HookFixturePlayer"),
+    "Live snapshot must reflect actual managed delegate execution");
 Check(string.IsNullOrEmpty(BunnyPlayerHurtDispatcher.GetLastError(slot)),
     "unexpected native hook managed diagnostic");
 Console.WriteLine("BUNNY_CSHARP_HOOKS_REF_OUT_DELEGATE=PASS");
 Console.WriteLine("BUNNY_CSHARP_PLAYER_HURT_NATIVE_BRIDGE=PASS");
+Console.WriteLine("BUNNY_CSHARP_EDITOR_HOOK_COUNTERS=PASS");
 
 public sealed class HookFixturePlayer : BunnyPlayer
 {
