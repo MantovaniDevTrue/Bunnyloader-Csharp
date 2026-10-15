@@ -136,6 +136,12 @@ jobs:
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+      - name: Execute production startup metadata cache and one-shot summary regressions
+        working-directory: Split/Bunny-Loader
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -pthread -I tests/startup/include -I tests/basic_items/include -I app/src/main/cpp tests/auto_source_startup.cpp -Wl,--gc-sections -o /tmp/auto-source-startup
+          /tmp/auto-source-startup
+          /tmp/auto-source-startup --field
       - name: Package source ExampleMod for the next Android checkpoint
         working-directory: Split/Bunny-Loader
         run: |

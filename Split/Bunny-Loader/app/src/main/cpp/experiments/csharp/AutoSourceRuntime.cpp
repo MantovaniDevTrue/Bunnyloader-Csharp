@@ -56,8 +56,7 @@ std::mutex g_worldTransitionMutex;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
 std::atomic<bool> g_initialCSharpRegistrationFinished{false};
-std::atomic<bool> g_worldCSharpSummaryShown{false};
-std::atomic<int> g_worldCSharpSummaryWait{0};
+std::atomic<bool> g_initialCSharpSummaryShown{false};
 std::atomic<bool> g_preWorldBindingsArmed{false};
 std::atomic<bool> g_preWorldBindingsRunning{false};
 std::atomic<bool> g_delayedWorldEntry{false};
@@ -480,15 +479,39 @@ bool worldPlayerReady() {
 
 ActivationContext readActivationContext() {
     ActivationContext result;
-    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-    FieldInfo* netMode = main ? il2cpp::findField(main, "netMode") : nullptr;
-    FieldInfo* menu = main ? il2cpp::findField(main, "gameMenu") : nullptr;
+    struct Metadata {
+        FieldInfo* netMode = nullptr;
+        FieldInfo* menu = nullptr;
+        const MethodInfo* getter = nullptr;
+    };
+    static Metadata storage;
+    static std::atomic<const Metadata*> published{nullptr};
+    static std::mutex metadataMutex;
+    const Metadata* metadata=published.load(std::memory_order_acquire);
+    if(!metadata) {
+        std::lock_guard<std::mutex> guard(metadataMutex);
+        metadata=published.load(std::memory_order_relaxed);
+        if(!metadata) {
+            Il2CppClass* main=il2cpp::findClass({"Terraria", "Main", {}});
+            if(!main)return result;
+            Metadata resolved;
+            resolved.netMode=il2cpp::findField(main,"netMode");
+            resolved.menu=il2cpp::findField(main,"gameMenu");
+            resolved.getter=il2cpp::api().class_get_method_from_name(main,"get_gameMenu",0);
+            if(!resolved.netMode||(!resolved.menu&&!resolved.getter))return result;
+            // Metadata remains valid for the lifetime of the IL2CPP domain.
+            storage=resolved;
+            published.store(&storage,std::memory_order_release);
+            metadata=&storage;
+        }
+    }
+    FieldInfo* netMode=metadata->netMode;
+    FieldInfo* menu=metadata->menu;
     auto& api = il2cpp::api();
     if (netMode)
         api.field_static_get_value(netMode, &result.netMode);
-    if (main) {
-        const MethodInfo* getter = api.class_get_method_from_name(
-            main, "get_gameMenu", 0);
+    {
+        const MethodInfo* getter = metadata->getter;
         if (getter) {
             Il2CppObject* exception = nullptr;
             Il2CppObject* boxed = api.runtime_invoke(
@@ -709,6 +732,12 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
+        const auto elapsedMilliseconds=[](auto start) {
+            return static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now()-start).count());
+        };
+        const auto tablesMs=elapsedMilliseconds(tablesStarted);
+        const auto cacheStarted=std::chrono::steady_clock::now();
         const std::string root = mods::rootOf(mod.id);
         const std::string key = fingerprint(mod.id, root);
         if (root.empty() || key.empty()) {
@@ -718,9 +747,14 @@ void run() {
         std::string defaults, curves, combat, error;
         const std::string cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
         status.cached = readCache(cacheFile, mod.id, key, &defaults, &curves, &combat);
+        const auto cacheMs=elapsedMilliseconds(cacheStarted);
+        long long compileMs=0;
         if (!status.cached) {
             note(&status, "compiling");
-            if (!compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error)) {
+            const auto compileStarted=std::chrono::steady_clock::now();
+            const bool compiled=compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error);
+            compileMs=elapsedMilliseconds(compileStarted);
+            if (!compiled) {
                 note(&status, "failed", error);
                 continue;
             }
@@ -743,12 +777,16 @@ void run() {
         }
         if (!status.cached) saveCache(cacheFile, mod.id, key, defaults, curves, combat);
         note(&status, "applying");
+        const auto applyStarted=std::chrono::steady_clock::now();
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
         if (!defaultsApplied && status.cached &&
             error.rfind("Linha V2 inesperada", 0) == 0) {
             BL_WARN("csharp auto %s: cache V2 incompativel (%s); recompilando",mod.id.c_str(),error.c_str());
             status.cached=false;note(&status,"compiling");
-            if (compile(root,mod.id,mod,work,&defaults,&curves,&combat,&error)) {
+            const auto recoveryStarted=std::chrono::steady_clock::now();
+            const bool rebuilt=compile(root,mod.id,mod,work,&defaults,&curves,&combat,&error);
+            compileMs+=elapsedMilliseconds(recoveryStarted);
+            if (rebuilt) {
                 note(&status,"applying");
                 defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
             }
@@ -757,6 +795,9 @@ void run() {
             note(&status, "failed", error);
             continue;
         }
+        BL_INFO("[CSharp][Startup] Mod=%s Stage=DefaultsRequest Cache=%s WaitTablesMs=%lld CacheReadMs=%lld CompileMs=%lld ApplyAndRecoveryMs=%lld",
+                mod.id.c_str(),status.cached?"Hit":"Miss",tablesMs,cacheMs,compileMs,
+                elapsedMilliseconds(applyStarted));
         status.applied = true;
         if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
         else g_compiledMods.fetch_add(1, std::memory_order_relaxed);
@@ -887,7 +928,7 @@ void run() {
 
 void reportCSharpLoadSummary() {
     if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
-        g_worldCSharpSummaryShown.load(std::memory_order_acquire)) return;
+        g_initialCSharpSummaryShown.load(std::memory_order_acquire)) return;
 
     const auto statuses = autoSourceStatuses();
     if (statuses.empty()) return;
@@ -913,7 +954,7 @@ void reportCSharpLoadSummary() {
     const int pending = basic.pendingBehaviors + basic.pendingRecipes +
         basic.pendingPlacements + pendingCallbacks;
     if (pending) return;
-    if (g_worldCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
+    if (g_initialCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
         return;
     if (pending || failed)
         BL_WARN("C# carregamento parcial: mods=%d falhas=%d pendentes=%d (comportamentos=%d receitas=%d tiles=%d callbacks=%d); confira os erros do mod",
@@ -1016,8 +1057,6 @@ void noteAutoGameUpdate() {
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
-        g_worldCSharpSummaryShown.store(false, std::memory_order_release);
-        g_worldCSharpSummaryWait.store(0, std::memory_order_release);
         g_preWorldBindingsArmed.store(false, std::memory_order_release);
         g_liveBoundEpoch.store(0, std::memory_order_release);
         g_worldPlayerMessagesShown.store(false, std::memory_order_release);
