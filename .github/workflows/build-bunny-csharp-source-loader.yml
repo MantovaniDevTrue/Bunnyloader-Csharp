@@ -1096,8 +1096,10 @@ jobs:
           assert probe.index("prepareModNpcs();") < probe.index("csharp::startAutoSourceRuntime();")
           assert "ch == '_'" in native
           assert "if (depth > 7" in native
-          assert "std::istringstream lengths(counts)" in native
-          assert "combatSize" in native
+          assert "auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat)" in native
+          cache=(root/"experiments/csharp/AutoSourceCache.h").read_text()
+          assert "sectionsHash(defaults,curves,combat)" in cache
+          assert "auto_cache::runtimeIdentity(work)" in native
           assert "std::thread(run).detach()" in native
           assert "readActivationContext()" in native
           gate=native.split("ActivationContext readActivationContext()", 1)[1].split("void bindLiveEventsOnWorld(", 1)[0]
@@ -1141,7 +1143,7 @@ jobs:
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
           assert "modId=" in count_contract and "executedTypes=" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
           assert "applyManagedSourceDefaults(mod.id, defaults" in native
           assert "enableManagedProjectileCurve(" in native
@@ -1153,7 +1155,7 @@ jobs:
           assert "BUNNY_COMBAT_POLICIES_V1" in compiler
           assert "source-combat-policies.txt" in compiler
           assert "source-combat-policies.txt" in native
-          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate" in native
+          assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_33_native_accessory_effects" in native
           assert "enableAutoProjectileOnHit(" in native
           assert "enableAutoProjectileOnKill(" in native
           assert "autoProjectileHitStatus(" in hit
