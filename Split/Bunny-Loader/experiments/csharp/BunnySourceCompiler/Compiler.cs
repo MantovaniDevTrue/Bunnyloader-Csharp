@@ -53,6 +53,7 @@ public static class Compiler
     private static int CompileCore(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
     {
+        long compilationStarted = Environment.TickCount64;
         Stage(diagnosticsFile, "normalizing-paths");
         string content = Path.GetFullPath(Path.Combine(modRoot, "content"));
         string root = Path.GetFullPath(modRoot);
@@ -112,6 +113,7 @@ public static class Compiler
             sources.Add((relative, bytes));
         }
 
+        long sourcesMs = Environment.TickCount64 - compilationStarted;
         string sdkFile = Path.Combine(runtimeDir, "BunnySourceSdk.dll");
         if (!File.Exists(sdkFile))
         {
@@ -142,17 +144,23 @@ public static class Compiler
         Stage(diagnosticsFile, "calculating-fingerprint");
         string hash = Convert.ToHexString(fingerprint.GetHashAndReset());
         string cache = outputFile + ".sha256";
+        long fingerprintMs = Environment.TickCount64 - compilationStarted - sourcesMs;
         if (ValidCachedAssembly(outputFile, cache, hash))
         {
-            WriteDiagnostic(diagnosticsFile, "CACHE_HIT " + hash + " parsed=0 integrity=verified");
+            WriteDiagnostic(diagnosticsFile, "CACHE_HIT " + hash +
+                " parsed=0 integrity=verified sourcesMs=" + sourcesMs +
+                " fingerprintMs=" + fingerprintMs +
+                " totalMs=" + (Environment.TickCount64 - compilationStarted));
             return 2;
         }
 
+        long parsingStarted = Environment.TickCount64;
         var trees = new List<SyntaxTree>(files.Length);
         for (int i = 0; i < sources.Count; ++i)
         {
             var source = sources[i];
-            Stage(diagnosticsFile, "parsing-source-" + trees.Count);
+            if ((trees.Count & 63) == 0)
+                Stage(diagnosticsFile, "parsing-source-" + trees.Count);
             trees.Add(CSharpSyntaxTree.ParseText(
                 Encoding.UTF8.GetString(source.Bytes),
                 CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12),
@@ -162,8 +170,11 @@ public static class Compiler
         sources.Clear();
         Stage(diagnosticsFile, "source-trees-created");
 
+        long parsingMs = Environment.TickCount64 - parsingStarted;
+        long metadataStarted = Environment.TickCount64;
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
         var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
+        long metadataMs = Environment.TickCount64 - metadataStarted;
         Stage(diagnosticsFile, "metadata-references-created-" + references.Length);
         bool extendedDiagnostics =
             Environment.GetEnvironmentVariable("BUNNY_ROSLYN_DIAGNOSTIC_PROBES") == "1";
@@ -224,8 +235,8 @@ public static class Compiler
         long emitStarted = Environment.TickCount64;
         var result = compilation.Emit(stream);
         Stage(diagnosticsFile, "after-emit");
-        Stage(diagnosticsFile, "emit-duration-ms-" +
-            (Environment.TickCount64 - emitStarted));
+        long emitMs = Environment.TickCount64 - emitStarted;
+        Stage(diagnosticsFile, "emit-duration-ms-" + emitMs);
         Stage(diagnosticsFile, "before-flush");
         stream.Flush(true);
         Stage(diagnosticsFile, "after-flush");
@@ -248,7 +259,11 @@ public static class Compiler
         File.Move(cacheTemporary, cache, true);
         WriteDiagnostic(diagnosticsFile, "COMPILE_OK files=" + files.Length +
             " references=" + references.Length + " hash=" + hash +
-            " bytes=" + new FileInfo(outputFile).Length + " parsed=" + trees.Count);
+            " bytes=" + new FileInfo(outputFile).Length + " parsed=" + trees.Count +
+            " sourcesMs=" + sourcesMs + " fingerprintMs=" + fingerprintMs +
+            " parsingMs=" + parsingMs + " referencesMs=" + metadataMs +
+            " emitMs=" + emitMs + " totalMs=" +
+            (Environment.TickCount64 - compilationStarted));
         return 1;
     }
 
