@@ -20,4 +20,14 @@ source=loader.index('bl::csharp::loadCSharpSourceMod(')
 assert source<loader.index('if (!script::engine().ready() && !script::engine().init())',source)
 test=(root/'tests/run_native_item_policies.py').read_text()
 assert '-DBL_HAVE_QUICKJS=0' in test
+gate=(native/'experiments/csharp/AutoSourceRuntime.cpp').read_text()
+assert 'const size_t pendingNativePolicies=pendingNativeItemPolicies();' in gate
+assert 'pendingCore>0&&static_cast<size_t>(pendingCore)<=pendingNativePolicies' in gate
+assert 'elapsed>=6&&(pendingCore==0||deferredNativePolicies)' in gate
+assert 'g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)' in gate
+assert 'g_preWorldBindingsArmed.load(std::memory_order_acquire)' in gate
+assert 'bl::runtime::modItemsSettled()' in gate
+assert 'Stage=PendingNativePolicy' in gate
+assert 'const int pendingCore=std::max(0,content.pendingBehaviors-pendingArmor-pendingEquipment);' in gate
+print('BUNNY_CSHARP_PREWORLD_NATIVE_POLICY_DEFER_GUARDS=PASS')
 print('BUNNY_CSHARP_NO_JAVASCRIPT_LOADING_GAMEPLAY_OR_EQUIPMENT=PASS')
