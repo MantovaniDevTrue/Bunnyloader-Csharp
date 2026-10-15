@@ -80,6 +80,17 @@ try
         result.Add(row);
         Console.WriteLine(JsonSerializer.Serialize(row));
     }
+    string overflowContent = Path.Combine(temporary, "over-limit", "content");
+    Directory.CreateDirectory(overflowContent);
+    for (int i = 0; i < 4097; i++)
+        File.WriteAllText(Path.Combine(overflowContent, $"Source{i:D4}.cs"), "public sealed class EmptySource {}");
+    string overflowRoot = Path.GetDirectoryName(overflowContent)!;
+    string overflowDiagnostics = Path.Combine(temporary, "over-limit.txt");
+    int overLimitResult = Compiler.Compile(overflowRoot,
+        Path.Combine(temporary, "over-limit.dll"), runtime, overflowDiagnostics);
+    if (overLimitResult != -3 || !File.ReadAllText(overflowDiagnostics).Contains("permitido=1..4096"))
+        throw new Exception("The 4096 file safety ceiling was not enforced");
+    Console.WriteLine("BUNNY_CSHARP_4097_FILES_SAFETY_REJECTED=PASS");
     Console.WriteLine("BUNNY_CSHARP_SCALE_ROSLYN_VERIFIED=PASS");
 }
 finally
