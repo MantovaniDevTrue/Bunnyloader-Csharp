@@ -216,7 +216,7 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
  */
 void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
-    if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromKey) return;
+    if (!r.tooltipCache || !r.tooltipFromKey) return;
     const std::string key = "BunnyLoader.ItemTooltip." + reg.def.mod + "." + reg.def.name;
     const std::string text = content::textForCulture(reg.def.tooltips, "");
     if (!content::makeLocalizedText(key, text)) return;
@@ -226,7 +226,8 @@ void applyTooltip(int type, const Entry& reg) {
     Il2CppObject* exc = nullptr;
     Il2CppObject* tip = a.runtime_invoke(r.tooltipFromKey, nullptr, args, &exc);
     if (exc || !tip) { BL_ERROR("itens de mod: FromLanguageKey lancou (%s)", reg.def.name.c_str()); return; }
-    content::setTableElement(r.tooltipCache, type, tip);
+    if (!content::setTableElement(r.tooltipCache, type, tip))
+        BL_WARN("itens de mod: tooltip nativo nao registrado (%s, type=%d)", reg.def.name.c_str(), type);
 }
 
 void applyName(int type, const Entry& reg) {
