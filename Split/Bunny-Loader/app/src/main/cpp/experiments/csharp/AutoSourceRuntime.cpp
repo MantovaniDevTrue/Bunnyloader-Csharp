@@ -662,6 +662,21 @@ void scheduleAutoLiveBindings() {
     }).detach();
 }
 
+bool recoverRuntimeCacheIdentityAfterCompile(
+    const std::string& work, const std::string& root, const std::string& id,
+    const std::string& cacheDir, std::string* runtimeIdentity,
+    std::string* key, std::string* cacheFile) {
+    if (!runtimeIdentity->empty()) return false;
+    const std::string initializedIdentity = auto_cache::runtimeIdentity(work);
+    if (initializedIdentity.empty()) return false;
+    const std::string initializedKey = fingerprint(id, root, initializedIdentity);
+    if (initializedKey.empty()) return false;
+    *runtimeIdentity = initializedIdentity;
+    *key = initializedKey;
+    *cacheFile = cacheDir + "/" + id + "-" + initializedKey + ".cache";
+    return true;
+}
+
 void run() {
     auto& api = il2cpp::api();
     api.thread_attach(api.domain_get());
@@ -759,18 +774,9 @@ void run() {
                 }).detach();
             }
         }
-        if (!status.cached && runtimeIdentity.empty()) {
-            const std::string initializedIdentity = auto_cache::runtimeIdentity(work);
-            if (!initializedIdentity.empty()) {
-                const std::string initializedKey = fingerprint(mod.id, root, initializedIdentity);
-                if (!initializedKey.empty()) {
-                    runtimeIdentity = initializedIdentity;
-                    key = initializedKey;
-                    cacheFile = cacheDir + "/" + mod.id + "-" + key + ".cache";
-                    BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=RecoveredAfterCompile");
-                }
-            }
-        }
+        if (!status.cached && recoverRuntimeCacheIdentityAfterCompile(
+                work, root, mod.id, cacheDir, &runtimeIdentity, &key, &cacheFile))
+            BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=RecoveredAfterCompile");
         if (!status.cached && !runtimeIdentity.empty())
             saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat);
         note(&status, "applying");
