@@ -120,7 +120,9 @@ int main(int argc,char** argv){
  assert(bl::csharp::validSourceExecutedTypeCount(192));
  assert(bl::csharp::validSourceExecutedTypeCount(1024));
  assert(!bl::csharp::validSourceExecutedTypeCount(0));
- assert(!bl::csharp::validSourceExecutedTypeCount(1025));
+ assert(bl::csharp::validSourceExecutedTypeCount(1025));
+ assert(bl::csharp::validSourceExecutedTypeCount(8192));
+ assert(!bl::csharp::validSourceExecutedTypeCount(8193));
  assert(argc>=2);
  const std::string mode=argc>=3?argv[2]:"--byte";
  narrowValue=mode=="--range";unboxed=mode=="--nullable-unboxed";nullable=mode=="--nullable"||unboxed;enumStyle=mode=="--enum";rejectStyle=mode=="--invalid";badBounds=mode=="--bounds";
