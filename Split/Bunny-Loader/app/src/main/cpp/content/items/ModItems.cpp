@@ -809,7 +809,7 @@ void tickModItems() {
         // nomes, que a troca de idioma refaz na hora e o inventario le logo.
         g_tables.checkPending(from, onTableRegrown);
         if (syncPendingTooltipsOnGameThread(from))
-            bl::csharp::requestBasicItemInstanceRefresh();
+            bl::csharp::requestBasicItemInstanceRefresh("TooltipSync");
         static int frame = 0;
         if (++frame % 120 == 0) {
             g_tables.watch(from, onTableRegrown);
