@@ -168,7 +168,7 @@ bool validAssembly(const std::string& path) {
         return false;
     struct stat st{};
     return stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode) &&
-           st.st_size > 0 && st.st_size <= 8 * 1024 * 1024;
+           st.st_size > 0 && st.st_size <= 32 * 1024 * 1024;
 }
 
 bool loadLibrary() {
