@@ -89,7 +89,11 @@ class GameActivity : Activity() {
         BundledRuntime.pairipCheck(this)?.let { fail(it, null); return }
 
         val unityClasses = try {
-            com.unity3d.player.UnityJniClasses.required()
+            val playerClass = classLoader.loadClass("com.unity3d.player.UnityPlayer")
+            val lifecycleClass = runCatching {
+                classLoader.loadClass("com.unity3d.player.IUnityPlayerLifecycleEvents")
+            }.getOrNull()
+            listOfNotNull(playerClass, lifecycleClass)
         } catch (error: Throwable) {
             fail("Classes JNI do Unity indisponiveis: ${error.javaClass.simpleName}: ${error.message}", error)
             return
