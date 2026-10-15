@@ -47,7 +47,9 @@ try
     string diag = Path.Combine(temporary, "diagnostics.txt");
     int Compile() => Compiler.Compile(mod, output, runtime, diag);
     Check(Compile() == 1, "initial compile");
-    Check(CompiledAssemblyProbe.Verify(output, diag) == 1, "closed generic base and abstract helper");
+    int foundationResult = CompiledAssemblyProbe.Verify(output, diag);
+    if (foundationResult != 1) Console.WriteLine(File.ReadAllText(diag));
+    Check(foundationResult == 1, "closed generic base and abstract helper");
     string[] wire = File.ReadAllLines(Path.Combine(temporary, "source-runtime-values.txt"));
     string[] record = wire.Single(line => line.StartsWith("ITEM\tMaterial\t")).Split('\t');
     Check(record[4] == "9999" && record[7] == "15", "base and computed defaults reached real wire");
