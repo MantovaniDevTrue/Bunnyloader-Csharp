@@ -1,0 +1,52 @@
+name: Audit Jonata Update into CSharp
+
+on:
+  push:
+    branches: [codex/sync-jonata-20261015]
+    paths: [.github/workflows/integrate-jonata-csharp.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Three-way merge with CSharp conflict priority (audit only)
+        shell: bash
+        run: |
+          set -uo pipefail
+          git fetch origin main
+          echo "CSHARP_HEAD=$(git rev-parse --short HEAD)"
+          echo "JONATA_MIRROR=$(git rev-parse --short origin/main)"
+          git merge --no-commit --no-ff -X ours origin/main > /tmp/bunny-merge.log 2>&1
+          merge_result=$?
+          echo "MERGE_RESULT=$merge_result"
+          tail -n 30 /tmp/bunny-merge.log || true
+          mapfile -d '' -t conflicts < <(git diff --name-only --diff-filter=U -z)
+          echo "CONFLICT_COUNT=${#conflicts[@]}"
+          printf '%s\n' "${conflicts[@]}" | head -100
+          for file in "${conflicts[@]}"; do
+            if git cat-file -e "HEAD:$file" 2>/dev/null; then
+              git checkout --ours -- "$file"
+              git add -- "$file"
+            elif git cat-file -e "origin/main:$file" 2>/dev/null; then
+              git checkout --theirs -- "$file"
+              git add -- "$file"
+            else
+              git rm -f -- "$file"
+            fi
+          done
+          echo "UNMERGED_AFTER=$(git ls-files -u | wc -l)"
+          echo "MERGE_DIFF_SUMMARY:"
+          git diff --cached --shortstat || true
+          echo "C_SHARP_PROTECTED_PATHS_CHANGED:"
+          git diff --cached --name-only -- Split/Bunny-Loader/app/src/main/cpp/experiments/csharp Split/Bunny-Loader/experiments/csharp Split/Bunny-Loader/samples/ExampleModCSharp Split/Bunny-Loader/tests/basic_items | head -90
+          echo "CORE_FILES_CHANGED:"
+          git diff --cached --name-only -- Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/app/src/main/java Split/Bunny-Loader/app/build.gradle.kts | head -120
+          echo "AUDIT_ONLY_NO_COMMIT"
