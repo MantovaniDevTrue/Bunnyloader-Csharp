@@ -201,6 +201,13 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Stage verified Unity 2021.3.56f2 Android player classes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          bash Split/Bunny-Loader/tools/android/stage_unity_classes.sh
+
       - name: Ensure QuickJS
         shell: bash
         run: |
@@ -1524,6 +1531,19 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.bunnyloader.csharptest'"
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
+          python3 - "$APK" <<'PY'
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as package:
+              dex = [package.read(name) for name in package.namelist()
+                     if name.startswith("classes") and name.endswith(".dex")]
+              assert dex, "No Android DEX found in APK"
+              for item in ("Lcom/unity3d/player/UnityPlayer;",
+                           "Lcom/unity3d/player/NativeLoader;",
+                           "Lcom/unity3d/player/IUnityPlayerLifecycleEvents;"):
+                  assert any(item.encode() in content for content in dex), "Unity class absent from APK: " + item
+              print("BUNNY_CLEAN_UNITY_PLAYER_IN_APK=PASS")
+          PY
           if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
             echo "NativeAOT prototype was unexpectedly bundled in projectile-profiler APK" >&2
             exit 1
