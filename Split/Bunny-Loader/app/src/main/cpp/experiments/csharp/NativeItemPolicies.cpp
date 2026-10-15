@@ -230,8 +230,11 @@ bool writeWingStats(const Entry& entry,std::string* error) {
         a.field_static_get_value(defaultField,initialized.data());
     else {
         Il2CppObject* boxed=nullptr;
-        if(!invoke(method(type,"WingStats get_Default()",false),nullptr,nullptr,&boxed)||!boxed||a.object_get_class(boxed)!=type)return false;
-        std::memcpy(initialized.data(),reinterpret_cast<const char*>(boxed)+sizeof(Il2CppObject),layout.size);
+        if(invoke(method(type,"WingStats get_Default()",false),nullptr,nullptr,&boxed)&&boxed&&a.object_get_class(boxed)==type)
+            std::memcpy(initialized.data(),reinterpret_cast<const char*>(boxed)+sizeof(Il2CppObject),layout.size);
+        else if(array->length>1)
+            std::memcpy(initialized.data(),arrayData(array)+layout.size,layout.size);
+        else { *error="Reason=WingStatsDefaultUnavailable";return false; }
     }
     for(size_t i=0;i<6;++i) {
         if(i==0)write<int32_t>(initialized.data(),offsets[i],static_cast<int32_t>(values[i].number));
@@ -258,7 +261,7 @@ void hkMovement(Il2CppObject* player,const MethodInfo* m) {
     if(gravity==1){if(y>0)y-=w[3];else if(y>-jump*w[5])y-=w[4];y=std::max(y,-jump*w[6]);}
     else {if(y<0)y+=w[3];else if(y<jump*w[5])y+=w[4];y=std::min(y,jump*w[6]);}
     float remaining=time-1;
-    if(read<uint8_t>(player,wingRefs.brooch)&&remaining!=0)remaining=maxTime;
+    if(wingRefs.brooch>=0&&read<uint8_t>(player,wingRefs.brooch)&&remaining!=0)remaining=maxTime;
     if(!std::isfinite(y)||!std::isfinite(remaining))return;
     write<float>(player,static_cast<size_t>(wingRefs.velocity)+4,y);write<float>(player,wingRefs.time,remaining);
 }
@@ -267,7 +270,11 @@ bool prepareWings(std::string* error) {
     auto& a=api();auto* player=findClass({"Terraria","Player",{}});Field velocity;
     if(!scalar(player,"wingsLogic","Int32",4,&wingRefs.logic,error)||!bindField(player,"velocity",&velocity,error,false,nullptr,8)||!velocity.refs.empty()||
         !scalar(player,"gravDir","Single",4,&wingRefs.gravity,error)||!scalar(player,"wingTime","Single",4,&wingRefs.time,error)||
-        !scalar(player,"wingTimeMax","Int32",4,&wingRefs.maxTime,error)||!scalar(player,"empressBrooch","Boolean",1,&wingRefs.brooch,error))return false;
+        !scalar(player,"wingTimeMax","Int32",4,&wingRefs.maxTime,error))return false;
+    wingRefs.brooch=-1;
+    auto* brooch=findField(player,"empressBrooch");
+    if(brooch&&(a.field_get_flags(brooch)&0x10u)==0&&primitive(a.class_from_il2cpp_type(a.field_get_type(brooch)),"Boolean",1))
+        wingRefs.brooch=static_cast<int>(a.field_get_offset(brooch));
     auto* vector=a.class_from_il2cpp_type(a.field_get_type(findField(player,"velocity")));ValueLayout layout;
     if(!resolveValueLayout(vector,&layout,error))return false;
     for(const auto& [name,offset]:std::initializer_list<std::pair<const char*,size_t>>{{"X",0},{"Y",4}}) {
@@ -445,6 +452,9 @@ void pumpNativeItemPoliciesOnGameThread() {
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
+            if(!entry->status.ready&&(entry->failedAttempts==0||entry->status.error!=error))
+                BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Reason=%s",
+                        type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
                 acknowledgeBasicItemBehavior(type,"");
                 requestBasicItemInstanceRefresh("NativePolicyReady");
