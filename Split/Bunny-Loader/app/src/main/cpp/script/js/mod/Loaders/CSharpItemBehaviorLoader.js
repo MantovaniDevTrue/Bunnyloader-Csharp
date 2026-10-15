@@ -52,6 +52,7 @@ class CSharpItemBehaviorLoader {
                 let inst=CSharpItemBehaviorLoader.#staged.get(entry.type);
                 if (!inst) {
                     const b=CSharpItemBehaviorLoader.Validate(entry);
+                    if(b.armorSet&&!CSharpArmorPolicy.LookupReady())continue;
                     const Class=class extends ModItem {};
                     const armor=b.__armor;
                     if(b.wings)Class.prototype.VerticalWingSpeeds=function(item,player,falling,rising,maxCan,maxAscent,constant) {

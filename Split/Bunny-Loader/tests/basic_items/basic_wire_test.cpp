@@ -12,7 +12,8 @@ int main(int argc,char** argv){
   assert(parseBasicItemWire(fields,&entry,&error));assert(entry.recipes.size()==1);
   if(entry.name=="ExamplePickaxe"){assert(entry.values[BasicPick]==220&&entry.values[BasicDamage]==20);assert(entry.values[BasicValue]==50000);assert(entry.useSound=="Item1");}
   else if(entry.name=="ExampleHamaxe"){assert(entry.values[BasicAxe]==30&&entry.values[BasicHammer]==100&&entry.values[BasicDamage]==25);}
-  else if(entry.name=="ExampleItem"){assert(entry.values[BasicMaxStack]==9999&&entry.recipes[0].stack==999&&entry.recipes[0].ingredients[0].type==2);}
+  else if(entry.name=="ExampleItem"){assert(entry.values[BasicMaxStack]==9999&&entry.recipes[0].stack==999&&entry.recipes[0].ingredients[0].type==2);
+    assert(entry.tooltip=="Item description"&&entry.localizedTooltips.at("pt-BR")=="Descrição do item");}
   else assert(false);
   auto bad=fields;bad[2]="99999";assert(!parseBasicItemWire(bad,&entry,&error));
   bad=fields;bad[16]="NaN";assert(!parseBasicItemWire(bad,&entry,&error));
@@ -23,11 +24,19 @@ int main(int argc,char** argv){
   for(const std::string key:{"m../bad","m/bad","mmod//bad","mmod/a/b","754","2195","m"}) {
    station[19]="1,"+key+",v2:1";assert(!parseBasicItemWire(station,&entry,&error));
   }
-  auto placement=fields;if(placement.size()==20)placement.push_back("-");placement.push_back("mmod/Bench:3");
+  auto placement=fields;
+  if(placement.size()==23)placement.resize(22);
+  if(placement.size()==20)placement.push_back("-");
+  if(placement.size()==21)placement.push_back("mmod/Bench:3");
+  else placement[21]="mmod/Bench:3";
   assert(parseBasicItemWire(placement,&entry,&error)&&entry.placeable&&entry.placeTileKey=="mod/Bench"&&entry.placeStyle==3);
   placement[21]="v18:0";assert(parseBasicItemWire(placement,&entry,&error)&&entry.placeTile==18);
   for(const std::string token:{"m../bad:0","mmod//Tile:0","mmod/a/b:0","m:0","v754:0","v18:-1","v18:32768","v18:0:1"}) {
       placement[21]=token;assert(!parseBasicItemWire(placement,&entry,&error));assert(error.find("Stage=ParsePlacement")!=std::string::npos);
+  }
+  if(fields.size()==23) {
+    auto broken=fields;broken[22]="pt-BR:GG";assert(!parseBasicItemWire(broken,&entry,&error));
+    broken[22]=fields[22]+";"+fields[22];assert(!parseBasicItemWire(broken,&entry,&error));
   }
   ++count;
  }

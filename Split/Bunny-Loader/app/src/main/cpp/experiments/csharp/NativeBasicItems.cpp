@@ -398,7 +398,10 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!entry.behavior.empty())behaviorsPending.store(true,std::memory_order_release);
         if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0)
             placementsPending.store(true,std::memory_order_release);
-        runtime::setModItemTooltip(entry.type,{{"",entry.tooltip}});
+        std::vector<std::pair<std::string,std::string>> tooltipLanguages{{"",entry.tooltip}};
+        for(const auto& [culture,text]:entry.localizedTooltips)
+            tooltipLanguages.emplace_back(culture,text);
+        runtime::setModItemTooltip(entry.type,std::move(tooltipLanguages));
         for(size_t i=0;i<entry.recipes.size();++i) {
             auto id=modId+"/"+entry.name+"#"+std::to_string(i);
             recipes.emplace(id,PendingBasicRecipe{id,modId,entry.type,-1,entry.recipes[i],entry.sourceFile,""});

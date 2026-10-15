@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <map>
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
@@ -21,6 +22,7 @@ struct BasicItemEntry {
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
+    std::map<std::string,std::string> localizedTooltips;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
     bool behaviorInstalled=false;
     std::string behaviorError;
@@ -85,7 +87,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()!=20&&fields.size()!=21&&fields.size()!=22)||fields[0]!="ITEM") {*error="ITEM requer 20, 21 ou 22 campos";return false;}
+    if((fields.size()<20||fields.size()>23)||fields[0]!="ITEM") {*error="ITEM requer 20 a 23 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -107,7 +109,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             out.behavior+=static_cast<char>((a<<4)|b);
         }
     }
-    if(fields.size()==22) {
+    if(fields.size()>=22 && fields[21]!="-") {
         auto pair=basicSplit(fields[21],':');
         if(pair.size()!=2||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
             *error=out.name+": Stage=ParsePlacement Field=placeStyle Expected=0..32767 Actual="+fields[21]+" Reason=InvalidPlacement";return false;
@@ -124,6 +126,42 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             if(!valid){*error=out.name+": Stage=ParsePlacement Field=createTile Expected=NameOrUID/Name Actual="+key+" Reason=InvalidContentKey";return false;}
         } else {*error=out.name+": Stage=ParsePlacement Reason=UnknownTileToken Actual="+pair[0];return false;}
         out.placeable=true;
+    }
+    if(fields.size()==23) {
+        if(fields[22].empty()||fields[22]=="-"||fields[22].size()>9000) {
+            *error=out.name+": traducoes de tooltip vazias ou grandes demais";return false;
+        }
+        const auto values=basicSplit(fields[22],';');
+        if(values.empty()||values.size()>8) {
+            *error=out.name+": quantidade de traducoes invalida";return false;
+        }
+        auto digit=[](char c)->int {
+            return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;
+        };
+        for(const auto& value:values) {
+            const size_t colon=value.find(':');
+            if(colon==std::string::npos) {*error=out.name+": traducao sem cultura";return false;}
+            const std::string culture=value.substr(0,colon);
+            const std::string hex=value.substr(colon+1);
+            if(culture.size()<2||culture.size()>20||hex.empty()||hex.size()%2||hex.size()>1024) {
+                *error=out.name+": traducao de tooltip malformada";return false;
+            }
+            for(unsigned char c:culture)if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||
+                (c>='0'&&c<='9')||c=='-')) {
+                *error=out.name+": cultura invalida";return false;
+            }
+            std::string decoded;decoded.reserve(hex.size()/2);
+            for(size_t i=0;i<hex.size();i+=2) {
+                const int a=digit(hex[i]),b=digit(hex[i+1]);
+                if(a<0||b<0||((a<<4)|b)==0||((a<<4)|b)==127) {
+                    *error=out.name+": traducao hex invalida";return false;
+                }
+                decoded.push_back(static_cast<char>((a<<4)|b));
+            }
+            if(!out.localizedTooltips.emplace(culture,std::move(decoded)).second) {
+                *error=out.name+": cultura duplicada";return false;
+            }
+        }
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

@@ -30,6 +30,12 @@ const bl={items:{},hookMarks:{set(){}},file:{exists:()=>true},log(){},error:e=>e
 const ctx=vm.createContext({console,bl,Terraria,FIRST_ITEM:6196,globalItems:{list:[]},Safe:{Run:(key,f)=>f(),Once:(key,msg)=>errors.push(msg)},Hooks:{done:new Set(),Once(k,f){if(!this.done.has(k)){f();this.done.add(k);}},Overrides:(c,b,n)=>c.prototype[n]!==b.prototype[n]},Entities:{Of:i=>i.__entity,InstanceOf:(i,f,m)=>i?m.get(i.type):null,Clone:i=>i},ItemCombatHooks:{Install(){}},EquipLoader:{Apply(){}},PrefixLoader:{WantItemHooks(){}},WingLoader:{Want(){}},TooltipLoader:{Install(){}}});
 for(const f of ['ModItem.js','Loaders/ItemLoader.js','Loaders/ArmorSetLoader.js','Loaders/CSharpArmorPolicy.js','Loaders/CSharpWingPolicy.js','Loaders/CSharpItemBehaviorLoader.js'])vm.runInContext(fs.readFileSync(root+'/'+f,'utf8'),ctx);
 vm.runInContext('globalThis.items=ItemLoader;',ctx);
+const late=entries.find(e=>e.name==='ContractHelmet').type;
+bonuses.SetsContaining=null;
+ctx.__blSyncCSharpItemBehaviors();
+assert(pending.has(late),'set remains pending until native lookup exists');
+assert.equal(errors.length,0,'native initialization must not be logged as mod error');
+bonuses.SetsContaining=containing;
 ctx.__blSyncCSharpItemBehaviors();assert.equal(pending.size,0);assert.equal(errors.length,0);assert.equal(sets.length,1);
 ctx.__blSyncCSharpItemBehaviors();assert.equal(sets.length,1,'set registration idempotent');
 const item=name=>samples.get(entries.find(e=>e.name===name).type);

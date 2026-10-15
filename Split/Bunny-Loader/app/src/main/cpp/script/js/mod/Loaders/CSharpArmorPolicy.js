@@ -46,6 +46,14 @@ class CSharpArmorPolicy {
         });
         return {ids,text:raw.text,policy:CSharpArmorPolicy.Validate(raw.effects)};
     }
+    static LookupReady() {
+        const bonuses=Terraria.DataStructures?.ArmorSetBonuses;
+        const lookup=bonuses?.SetsContaining;
+        if(!lookup||!Number.isInteger(lookup.length)||lookup.length===0||
+            !bonuses.All||typeof bonuses.All.ToArray!=='function')return false;
+        const pumpkin=Terraria.ID.ItemID.PumpkinHelmet;
+        return bonuses.All.ToArray().some(set=>set&&set.Head===pumpkin&&set.Effect);
+    }
     static InstallSet(set) {
         const lookup=Terraria.DataStructures.ArmorSetBonuses.SetsContaining;
         if(!lookup)throw new Error('ArmorSet Stage=Install Field=SetsContaining Actual=Missing Result=Pending');

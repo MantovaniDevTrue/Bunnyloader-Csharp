@@ -11,6 +11,7 @@ public abstract class BunnyItem
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Tooltip { get; set; } = "";
+    public Dictionary<string,string> TooltipTranslations { get; } = new(StringComparer.Ordinal);
     // Zero deixa o host inferir o tamanho pela textura, como o ModItem JS.
     public int Width { get; set; }
     public int Height { get; set; }

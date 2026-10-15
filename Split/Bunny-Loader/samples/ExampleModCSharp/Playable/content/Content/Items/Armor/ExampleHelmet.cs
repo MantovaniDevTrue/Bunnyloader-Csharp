@@ -13,6 +13,8 @@ public sealed class ExampleHelmet : BunnyItem
         Value = 10000;
         Rare = 2;
         Defense = 5;
+        Tooltip = "This is a modded helmet.";
+        TooltipTranslations["pt-BR"] = "Um capacete de mod.";
         var set = new BunnyArmorSet("ExampleHelmet", "ExampleBreastplate",
             "ExampleLeggings", "20% increased damage");
         set.Effects.Add(BunnyArmorStat.MeleeDamage, 0.2f);

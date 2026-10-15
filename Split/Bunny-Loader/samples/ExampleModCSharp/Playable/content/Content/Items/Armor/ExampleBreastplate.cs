@@ -13,6 +13,8 @@ public sealed class ExampleBreastplate : BunnyItem
         Value = 10000;
         Rare = 2;
         Defense = 6;
+        Tooltip = "This is a modded body armor.\nImmunity to 'On Fire!'\n+20 max mana and +1 max minions";
+        TooltipTranslations["pt-BR"] = "Uma armadura de mod para o corpo.\nImunidade a 'Em Chamas!'\n+20 de mana máxima e +1 de lacaio máximo";
         Behavior.Armor.Add(BunnyArmorInteger.StatManaMax2, 20);
         Behavior.Armor.Add(BunnyArmorInteger.MaxMinions, 1);
         Behavior.Armor.ImmuneTo("OnFire");

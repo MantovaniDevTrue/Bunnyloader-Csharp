@@ -17,7 +17,13 @@ Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
  Equal(3,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
  var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(4,lines.Length);
- foreach(var line in lines.Skip(1))Equal(20,line.Split('\t').Length);
+ foreach(var line in lines.Skip(1)) {
+  var fields=line.Split('\t');
+  if(fields[1]=="ExampleItem") {
+   Equal(23,fields.Length);
+   if(!fields[22].StartsWith("pt-BR:"))throw new Exception("Missing native pt-BR item tooltip");
+  } else Equal(20,fields.Length);
+ }
  if(!lines.Any(l=>l.Contains("\tItem1\t")))throw new Exception("native sound missing");
 });
 string scratch=Path.Combine(Path.GetTempPath(),"bunny-item-"+Guid.NewGuid().ToString("N"));
