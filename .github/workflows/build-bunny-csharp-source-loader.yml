@@ -1105,7 +1105,8 @@ jobs:
           assert probe.index("prepareModNpcs();") < probe.index("csharp::startAutoSourceRuntime();")
           assert "ch == '_'" in native
           assert "if (depth > 7" in native
-          assert "auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat)" in native
+          assert "auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat,reason)" in native
+          assert "CacheReason=%s CacheWrite=%s" in native
           cache=(root/"experiments/csharp/AutoSourceCache.h").read_text()
           assert "sectionsHash(defaults,curves,combat)" in cache
           assert "auto_cache::runtimeIdentity(work)" in native
