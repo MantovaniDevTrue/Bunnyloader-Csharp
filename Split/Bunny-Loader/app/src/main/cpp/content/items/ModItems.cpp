@@ -329,6 +329,36 @@ Il2CppObject* hkGetItemName(int32_t id, const MethodInfo* m) {
     return g_origGetItemName(id, m);
 }
 
+using GetTooltipFn = Il2CppObject* (*)(int32_t, const MethodInfo*);
+GetTooltipFn g_origGetItemTooltip = nullptr;
+
+Il2CppObject* hkGetItemTooltip(int32_t id, const MethodInfo* m) {
+    if (isModItem(id)) {
+        const Refs& r = refs();
+        Il2CppArray* cache = r.tooltipCache ? readStatic(r.tooltipCache) : nullptr;
+        if (cache && static_cast<uintptr_t>(id) < cache->length) {
+            auto** entries = reinterpret_cast<Il2CppObject**>(arrayData(cache));
+            if (Il2CppObject* tip = entries[id]) return tip;
+        }
+        static std::atomic<int> missing{0};
+        if (missing.fetch_add(1, std::memory_order_relaxed) < 4)
+            BL_WARN("itens de mod: Lang.GetTooltip sem cache para type=%d; tamanho=%zu",
+                    id, cache ? static_cast<size_t>(cache->length) : 0);
+    }
+    return g_origGetItemTooltip(id, m);
+}
+
+void hookItemTooltips() {
+    static bool installed = false;
+    if (installed) return;
+    installed = true;
+    Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
+    const MethodInfo* m = lang ? il2cpp::findMethodBySignature(
+        lang, il2cpp::parseSignature("ItemTooltip GetTooltip(int itemId)")) : nullptr;
+    if (!m || !hook::install(m, hkGetItemTooltip, &g_origGetItemTooltip))
+        BL_ERROR("itens de mod: sem hook em Lang.GetTooltip; descricoes nativas podem desaparecer");
+}
+
 void hookItemNames() {
     static bool done = false;
     if (done) return;
@@ -732,6 +762,7 @@ void tickModItems() {
     }
     g_installed.store(total, std::memory_order_release);
     hookItemNames();
+    hookItemTooltips();
     patchDropLimits(to);
     patchTouchTagLimits(to);
     patchItemTagLimits(to);

@@ -1464,6 +1464,11 @@ jobs:
           rm -rf "$ASSETS/bin/Data"
           cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
 
+      - name: Verify native mod tooltip lookup contract
+        shell: bash
+        run: |
+          python3 Split/Bunny-Loader/tests/test_native_mod_tooltip_lookup.py
+
       - name: Verify native tooltip cache recovery contract
         shell: bash
         run: |
