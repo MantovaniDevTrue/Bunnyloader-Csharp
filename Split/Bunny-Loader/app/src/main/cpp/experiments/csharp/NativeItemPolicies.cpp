@@ -28,6 +28,7 @@ struct Entry {
     BasicItemEntry source;BasicItemPolicy policy;NativeItemPolicyStatus status;
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
     int color=-1,hair=-1;
+    unsigned nextRetryTick=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
 };
@@ -426,22 +427,29 @@ size_t pendingNativeItemPolicies(){return item_native::pendingCount.load(std::me
 std::vector<NativeItemPolicyStatus> nativeItemPolicyStatus(){std::lock_guard lock(item_native::queueMutex);std::vector<NativeItemPolicyStatus> out;for(const auto& [type,status]:item_native::statuses){(void)type;out.push_back(status);}return out;}
 void pumpNativeItemPoliciesOnGameThread() {
     using namespace item_native;static unsigned tick=0;static int cursor=-1;++tick;
-    {
-        std::lock_guard lock(queueMutex);for(auto& [type,entry]:incoming)entries[type]=std::move(entry);incoming.clear();
-    }
     bool changed=false;
+    {
+        std::lock_guard lock(queueMutex);
+        changed=!incoming.empty();
+        for(auto& [type,entry]:incoming)entries[type]=std::move(entry);
+        incoming.clear();
+    }
     if(pendingCount.load(std::memory_order_acquire)) {
         auto it=entries.upper_bound(cursor);size_t attempted=0;
         for(size_t scanned=0;scanned<entries.size()&&attempted<8;++scanned) {
             if(it==entries.end())it=entries.begin();
             auto& [type,entry]=*it++;
-            if(entry->status.ready)continue;
+            if(entry->status.ready||tick<entry->nextRetryTick)continue;
             ++attempted;cursor=type;std::string error;
             entry->status.ready=install(*entry,&error);
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
-            if(entry->status.ready){acknowledgeBasicItemBehavior(type,"");requestBasicItemInstanceRefresh("NativePolicyReady");}changed=true;
+            if(entry->status.ready){
+                acknowledgeBasicItemBehavior(type,"");
+                requestBasicItemInstanceRefresh("NativePolicyReady");
+                changed=true;
+            } else entry->nextRetryTick=tick+15;
         }
     }
     // Legacy BunnyAccessory Shield/Shoes use exactly the same native installer.
