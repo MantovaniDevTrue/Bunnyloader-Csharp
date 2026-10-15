@@ -221,13 +221,14 @@ bool readCache(const std::string& path, const std::string& id,
     return auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat);
 }
 
-void saveCache(const std::string& path, const std::string& id,
+bool saveCache(const std::string& path, const std::string& id,
                const std::string& key, const std::string& assembly,
                const std::string& defaults, const std::string& curves,
                const std::string& combat) {
     const auto dllHash=auto_cache::fileHash(assembly,8*1024*1024);
     const auto value=auto_cache::encode(kCacheVersion,id,key,dllHash,defaults,curves,combat);
-    if (!value.empty()) writeText(path,value);
+    if (value.empty()) return false;
+    return writeText(path,value);
 }
 
 bool validCompileStatus(const std::string& status, const std::string& id,
@@ -777,8 +778,9 @@ void run() {
         if (!status.cached && recoverRuntimeCacheIdentityAfterCompile(
                 work, root, mod.id, cacheDir, &runtimeIdentity, &key, &cacheFile))
             BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=RecoveredAfterCompile");
-        if (!status.cached && !runtimeIdentity.empty())
-            saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat);
+        if (!status.cached && !runtimeIdentity.empty() &&
+            !saveCache(cacheFile, mod.id, key, assembly, defaults, curves, combat))
+            BL_WARN("csharp auto %s: cache verificado nao foi gravado", mod.id.c_str());
         note(&status, "applying");
         const auto applyStarted=std::chrono::steady_clock::now();
         bool defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error);
@@ -790,7 +792,9 @@ void run() {
             const bool rebuilt=compile(root,mod.id,mod,work,&defaults,&curves,&combat,&error);
             compileMs+=elapsedMilliseconds(recoveryStarted);
             if (rebuilt) {
-                if(!runtimeIdentity.empty())saveCache(cacheFile,mod.id,key,assembly,defaults,curves,combat);
+                if(!runtimeIdentity.empty()&&
+                    !saveCache(cacheFile,mod.id,key,assembly,defaults,curves,combat))
+                    BL_WARN("csharp auto %s: cache recompilado nao foi gravado",mod.id.c_str());
                 note(&status,"applying");
                 defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
             }
