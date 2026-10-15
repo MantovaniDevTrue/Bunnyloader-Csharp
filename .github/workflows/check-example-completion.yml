@@ -3,6 +3,16 @@ on:
   push:
     branches: [codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/samples/ExampleModCSharp/**'
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/tests/basic_items/**'
+      - 'Split/Bunny-Loader/tools/example_completion/**'
+      - 'Split/Bunny-Loader/tools/example_completion_audit.py'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/docs/generated/example_completion/**'
+      - '.github/workflows/check-example-completion.yml'
 permissions:
   contents: read
 jobs:
