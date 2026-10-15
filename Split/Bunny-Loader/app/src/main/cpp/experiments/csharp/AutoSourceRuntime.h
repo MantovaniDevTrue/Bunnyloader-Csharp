@@ -38,6 +38,9 @@ bool preWorldCSharpContentReady();
 bool installCSharpWorldEntryGate();
 void noteAutoWorldTilesLoaded();
 void noteAutoGameUpdate();
+bool submitInteractiveConsoleSource(const std::string& id, const std::string& root,
+                                    const std::string& workDir, std::string* error);
+std::vector<std::string> takeInteractiveConsoleOutput();
 std::vector<AutoSourceStatus> autoSourceStatuses();
 
 }
