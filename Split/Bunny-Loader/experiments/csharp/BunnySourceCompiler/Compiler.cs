@@ -66,7 +66,7 @@ public static class Compiler
 
         Stage(diagnosticsFile, "enumerating-sources");
         var files = Directory.EnumerateFiles(content, "*.cs", SearchOption.AllDirectories)
-            .OrderBy(path => path, StringComparer.Ordinal).ToArray();
+            .Take(MaxFiles + 1).OrderBy(path => path, StringComparer.Ordinal).ToArray();
         if (files.Length == 0 || files.Length > MaxFiles)
         {
             WriteDiagnostic(diagnosticsFile, "SOURCE_FILE_COUNT_INVALID atual=" + files.Length +
