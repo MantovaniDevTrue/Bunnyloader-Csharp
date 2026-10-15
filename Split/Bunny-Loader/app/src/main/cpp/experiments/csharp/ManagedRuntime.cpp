@@ -2629,7 +2629,7 @@ ManagedSourceCompileResult compileManagedSource(
     std::memcpy(&out.executedTypes, g_api.unbox(verifiedBoxed), sizeof(out.executedTypes));
     if (!validSourceExecutedTypeCount(out.executedTypes)) {
         out.phase = "compiled-assembly-execution-failed";
-        out.error = "[CSharp][ERROR][CompileVerify] Method=CompiledAssemblyProbe.Verify Stage=ManagedVerify Expected=1..1024 Actual="+
+        out.error = "[CSharp][ERROR][CompileVerify] Method=CompiledAssemblyProbe.Verify Stage=ManagedVerify Expected=1..8192 Actual="+
             std::to_string(out.executedTypes)+" Result=ModRejected DiagnosticsPath="+diagnosticsPath;
         if(FILE* diagnostics=std::fopen(diagnosticsPath.c_str(),"rb")) {
             std::fseek(diagnostics,0,SEEK_END);const long size=std::ftell(diagnostics);
