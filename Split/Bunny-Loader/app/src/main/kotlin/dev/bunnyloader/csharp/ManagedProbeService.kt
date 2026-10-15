@@ -133,6 +133,7 @@ class ManagedProbeService : Service() {
         } else {
             runCatching {
                 diagnostic.delete()
+                File(dir, "source-compile-diagnostics.txt.profile").delete()
                 File(dir, "source-runtime-values.txt").delete()
                 File(dir, "source-runtime-values.txt.tmp").delete()
                 File(dir, "source-ai-turns.txt").delete()
@@ -193,6 +194,10 @@ class ManagedProbeService : Service() {
                     val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartMs
                     val passed = result.contains("phase=compile-verified") &&
                         (result.contains("result=1\n") || result.contains("result=2\n"))
+                    val roslynProfile = runCatching {
+                        File(dir, "source-compile-diagnostics.txt.profile")
+                            .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
+                    }.getOrNull() ?: "Unavailable"
                     compileStatus.writeText(
                         "state=${if (passed) "finished" else "failed"}\n" +
                             "modId=$compileModId\n" +
@@ -200,7 +205,8 @@ class ManagedProbeService : Service() {
                             "assemblyReady=${if (passed && output.isFile) 1 else 0}\n" +
                             "frameworkSetupMs=$frameworkSetupMs\n" +
                             "managedCompileMs=$managedCompileMs\n" +
-                            "workerTotalMs=$workerTotalMs\n"
+                            "workerTotalMs=$workerTotalMs\n" +
+                            "roslynProfile=$roslynProfile\n"
                     )
                 } else {
                     val result = runNative(assembly, checkpoint.absolutePath)
