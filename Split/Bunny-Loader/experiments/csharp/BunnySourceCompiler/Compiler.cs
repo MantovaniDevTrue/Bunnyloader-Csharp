@@ -40,7 +40,11 @@ public static class Compiler
         try
         {
             Stage(diagnosticsFile, "compiler-entered");
-            return CompileCore(modRoot, outputFile, runtimeDir, diagnosticsFile);
+            int result = CompileCore(modRoot, outputFile, runtimeDir, diagnosticsFile);
+            if (result > 0 && File.Exists(diagnosticsFile))
+                File.WriteAllText(diagnosticsFile + ".profile",
+                    File.ReadAllText(diagnosticsFile).Trim().Replace('\n', ' '));
+            return result;
         }
         catch (Exception exception)
         {
