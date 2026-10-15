@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceParser.h"
+#include "experiments/csharp/SourceLimits.h"
 
 #include <cctype>
 #include <string>
@@ -324,7 +325,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
 bool parseCSharpSource(const std::string& source,
                        std::vector<ParsedSourceType>* definitions,
                        std::string* error, bool requireContent) {
-    if (!definitions || !error || source.size() > 256 * 1024) return false;
+    if (!definitions || !error || source.size() > kSourceMaxFileBytes) return false;
     std::vector<Token> tokens;
     if (!tokenize(source, &tokens, error)) return false;
     size_t found = 0;
