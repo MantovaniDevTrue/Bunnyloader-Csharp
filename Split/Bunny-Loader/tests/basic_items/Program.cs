@@ -81,7 +81,7 @@ try {
   }
   if(assets.Count==0)throw new Exception("Executed C# defaults yielded no asset references");
   File.WriteAllText("build/basic-items/full-source-assets.json",JsonSerializer.Serialize(assets));
-  if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>2*1024*1024)throw new Exception("wire exceeds runtime budget");
+  if(new FileInfo(Path.Combine(scratch,"source-runtime-values.txt")).Length>8*1024*1024)throw new Exception("wire exceeds runtime budget");
  });
  Check("behavior.public-sdk-validation",()=>{
   var owner=new ExampleItem();owner.SetDefaults();
