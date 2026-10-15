@@ -15,6 +15,7 @@
 #include "menu/CheatBridgeDex.h"
 #include "menu/DevTools.h"
 #include "script/api/Console.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 
 #include <atomic>
 #include <mutex>
@@ -169,6 +170,28 @@ jstring toJava(JNIEnv* env, const std::string& s) {
 
 void JNICALL jni_consoleRun(JNIEnv* env, jclass, jstring code) {
     bl::script::consoleSubmit(fromJava(env, code));
+}
+
+jstring JNICALL jni_csharpConsoleRun(JNIEnv* env, jclass, jstring id, jstring root,
+                                   jstring workDir) {
+    std::string error;
+    if (!bl::csharp::submitInteractiveConsoleSource(fromJava(env,id),fromJava(env,root),
+                                                    fromJava(env,workDir),&error))
+        return toJava(env,error.empty()?"Console CSharp nao iniciou":error);
+    return toJava(env,"");
+}
+
+jobjectArray JNICALL jni_csharpConsoleTake(JNIEnv* env, jclass) {
+    const auto messages=bl::csharp::takeInteractiveConsoleOutput();
+    jclass cls=env->FindClass("java/lang/String");
+    jobjectArray out=cls?env->NewObjectArray(static_cast<jsize>(messages.size()),cls,nullptr):nullptr;
+    if(!out)return nullptr;
+    for(size_t i=0;i<messages.size();++i) {
+        jstring value=toJava(env,messages[i]);
+        env->SetObjectArrayElement(out,static_cast<jsize>(i),value);
+        env->DeleteLocalRef(value);
+    }
+    return out;
 }
 
 jobjectArray JNICALL jni_consoleTake(JNIEnv* env, jclass) {
@@ -497,6 +520,8 @@ void installCheatButton() {
         {"nModBuffTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modBuffTextures)},
         {"nConsoleRun", "(Ljava/lang/String;)V", reinterpret_cast<void*>(&jni_consoleRun)},
         {"nConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_consoleTake)},
+        {"nCSharpConsoleRun", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleRun)},
+        {"nCSharpConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleTake)},
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
