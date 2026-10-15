@@ -11,16 +11,19 @@
 #include <map>
 #include <vector>
 
-struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; };
+struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; Il2CppClass* element=nullptr; int rank=0; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; unsigned char sentinel[3]; };
-struct FakePlayer { Il2CppObject header; float meleeDamage=2,rangedDamage=3,magicDamage=4,minionDamage=5,moveSpeed=1; bool strongBees=false; unsigned char sentinel[3]={0x5a,0x5a,0x5a}; };
-struct MethodInfo {};
+struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; int8_t backSlot; unsigned char sentinel[3]; uint32_t color=0; void* clonedReference=nullptr; };
+struct FakePlayer { Il2CppObject header; float meleeDamage=2,rangedDamage=3,magicDamage=4,minionDamage=5,moveSpeed=1; bool strongBees=false; unsigned char sentinel[3]={0x5a,0x5a,0x5a}; int statManaMax2=200,maxMinions=1,statDefense=0,lifeRegen=0; Il2CppArray* buffImmune=nullptr; Il2CppArray* armor=nullptr; uint32_t hairColor=0;int wingsLogic=0;float velocity[2]{},gravDir=1,wingTime=180;int wingTimeMax=180;bool empressBrooch=false; };
+struct MethodInfo {void* pointer=nullptr;};
 MethodInfo functionalMethod;
 using EquipCallback=void (*)(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*);
 EquipCallback functionalHook=nullptr;int originalEquipCalls=0,hookInstalls=0;
 bool rejectEquipHook=false;
+Il2CppClass* (*additionalClass)(const bl::il2cpp::TypeRef&)=nullptr;
+const MethodInfo* (*additionalMethod)(Il2CppClass*,const bl::il2cpp::Signature&)=nullptr;
+bool (*additionalInstall)(const MethodInfo*,void*,void**)=nullptr;
 void originalEquip(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*) {++originalEquipCalls;}
 struct SoundValue { int volume; void* path; };
 Il2CppClass intClass{"Int32",true,4,{}},boolClass{"Boolean",true,1,{}},floatClass{"Single",true,4,{}},
@@ -43,16 +46,20 @@ SoundValue soundValue{7,&pathObject};
 
 namespace bl::il2cpp {
 Api& api(){return apiInstance;}
-Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&itemClass:type.name=="SoundID"?&idClass:type.name=="Player"?&playerClass:nullptr;}
+Il2CppClass* findClass(const TypeRef& type){if(additionalClass)if(auto* cls=additionalClass(type))return cls;return type.name=="Item"?&itemClass:type.name=="SoundID"?&idClass:type.name=="Player"?&playerClass:nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
 Signature parseSignature(std::string_view text){Signature s;s.name=std::string(text);return s;}
 const MethodInfo* findMethodBySignature(Il2CppClass* cls,const Signature& s,bool*,const MethodInfo**) {
+ if(additionalMethod)if(auto* method=additionalMethod(cls,s))return method;
  assert(cls==&playerClass&&s.name=="void ApplyEquipFunctional(int itemSlot, Item currentItem)");return &functionalMethod;
 }
+Il2CppClass* findNested(Il2CppClass* outer,std::string_view name){return additionalClass?additionalClass({"",outer->name,name}):nullptr;}
+Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name){return findClass({ns,name,{}});}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 }
 namespace bl::hook {
 bool install(const MethodInfo* method,void* replacement,void** original) {
+ if(additionalInstall)return additionalInstall(method,replacement,original);
  assert(method==&functionalMethod);if(rejectEquipHook)return false;
  *original=reinterpret_cast<void*>(originalEquip);functionalHook=reinterpret_cast<EquipCallback>(replacement);++hookInstalls;return true;
 }
@@ -84,6 +91,7 @@ void configure(){
  static Il2CppClass signedClass{"SByte",true,1,{}};static Il2CppType signedType{&signedClass};
  storage.push_back({"wingSlot",&signedType,offsetof(FakeItem,wingSlot),0});itemClass.fields.push_back(&storage.back());
  storage.push_back({"beardSlot",&signedType,offsetof(FakeItem,beardSlot),0});itemClass.fields.push_back(&storage.back());
+ storage.push_back({"backSlot",&signedType,offsetof(FakeItem,backSlot),0});itemClass.fields.push_back(&storage.back());
  const char* names[]={"width","height","maxStack","value","rare","damage","crit","useTime","useAnimation","useStyle","pick","axe","hammer"};
  for(size_t i=0;i<13;i++){storage.push_back({names[i],i==9?&styleType:i==3&&narrowValue?&shortType:&intType,offsetof(FakeItem,values)+i*sizeof(int),0});itemClass.fields.push_back(&storage.back());}
  const char* flags[]={"melee","noMelee","autoReuse","useTurn","consumable","accessory","vanity"};

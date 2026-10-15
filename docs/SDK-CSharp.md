@@ -22,7 +22,7 @@ nomes repetidos dentro do mesmo dominio nativo continuam sendo recusados.
 | Caminho | Momento e thread | Dados e efeito |
 | --- | --- | --- |
 | `SetDefaults`, `SetStaticDefaults`, `AddRecipes` | Preparacao gerenciada; host instala os descritores na thread apropriada | Configuram conteudo. Nao sao callbacks livres por frame |
-| `BunnyItem.Behavior`, armaduras e asas | Descritores produzidos no carregamento; policies aplicadas no jogo | Alguns caminhos ainda usam os carregadores JS existentes |
+| `BunnyItem.Behavior`, armaduras e asas | Descritores produzidos no carregamento; policies aplicadas no jogo | Instalacao e execucao nativas, sem os adaptadores JS |
 | `BunnyProjectile.OnHitNPC`, `OnKill`, `OnKillDuration` | Amostrados na preparacao para produzir policies nativas | Nao sao os eventos estaticos gerenciados de mesmo nome |
 | `NomeDoProjetilMotion.TurnAtTick(int)` | 120 amostras no carregamento | Curva aplicada pelo host; nao consulta livremente o mundo em cada tick |
 | `BunnyLiveEvents.OnHitNPC/OnKill` e callbacks adicionais | Eventos reais no worker Mono persistente | Dados capturados no evento; worker separado da thread do jogo |
@@ -94,18 +94,65 @@ finito descarta as escritas daquela policy naquele ciclo.
 
 O campo opcional 25 do registro ITEM preserva o formato `.33`,
 `campo:operacao:valor;...`. `NativeAccessoryEffectsDefinition` e o descritor gerado pelo SDK; o mod usa as APIs
-tipadas, sem precisar monta-lo manualmente. O JSON `BehaviorDefinition` fica vazio para efeitos simples isolados. Policies
-mistas preservam o JSON legado com `nativeAccessory=true`, para que o adaptador
-JS nao duplique os bonus. Se a resolucao nativa de uma policy mista falhar, o
-marcador e desligado e o adaptador preserva os efeitos anteriores. Policies
-sem comportamento JS nao podem anunciar sucesso sem instalar seu hook nativo.
-Registros antigos de 20 a 24 campos continuam aceitos. Compilador, SDK e host
-precisam vir do mesmo build; APKs anteriores nao entendem o campo novo.
+tipadas, sem precisar monta-lo manualmente. Efeitos simples deixam
+`BehaviorDefinition` vazio. Descritores mistos sao dados JSON lidos diretamente
+por NativeItemPolicies, sem avaliacao de script ou fallback JS. Se o contrato
+nativo de um efeito falhar, o lote e recusado com o motivo original.
+Registros antigos de 20 a 24 campos continuam aceitos para seus recursos antigos;
+SDK, compilador e host devem vir do mesmo build.
 
-`ExampleStatAccessory` deixa de precisar do adaptador JS. O StrongBees de
-`WaspNest` e nativo, mas sua textura Back ainda usa o carregador JS. Armaduras,
-sets, asas, clones, animacao, luz e outros visuais continuam no escopo do
-desacoplamento. Esta etapa nao anuncia esses itens como totalmente migrados.
+`ExampleStatAccessory`, StrongBees e a textura Back de `WaspNest` usam o caminho
+nativo. O instalador tambem cobre Head/Body/Legs, Beard, asas, escudos e botas,
+clone vanilla, animacao, cor do cabelo, luz/alpha e manto. Consulte o
+[contrato e roteiro de independencia](csharp-native-policy-independence.md).
+
+## Armaduras: atributos, imunidades e conjuntos
+
+O [ArmorPoliciesCSharp](../Split/Bunny-Loader/samples/ArmorPoliciesCSharp/README.md)
+contem tres pecas com receitas vanilla, sem depender do ExampleMod. Os efeitos
+de `Behavior.Armor` e `BunnyArmorSet.Effects` passam ao modulo nativo
+`NativeArmorPolicies`, separado de NativeBasicItems. Os sprites vestidos desse
+exemplo sao instalados por NativeItemPolicies na thread do jogo, sem EquipLoader JS.
+
+O campo opcional 26 de ITEM transporta `A1|efeitos|imunidades|head|body|legs|textoHex|efeitosDoSet|imunidadesDoSet`.
+`NativeArmorDefinition` e produzido pelo SDK. Nomes de campos/operacoes, limites,
+quantidades, chaves UID/Nome e texto UTF-8 sao verificados. No host, tipos,
+larguras e limites dos campos IL2CPP tambem sao conferidos antes da publicacao.
+A policy confere todos os destinos, overflow de inteiros, resultados float e
+limites do array buffImmune antes de modificar qualquer de seus campos.
+A defesa vanilla anterior ao hook continua sob responsabilidade do Terraria.
+
+Os hooks de `GrantArmorBenefits` e `ApplyEquipFunctional` aplicam atributos da
+peca depois do comportamento original. Vaidade nao passa por esses hooks.
+`UpdateArmorSets` aplica o bonus apenas quando as tres posicoes funcionais
+correspondem ao conjunto. O dono da declaracao precisa ser uma dessas pecas.
+Nao ha estado de Player armazenado nem chamada Mono/JS por ciclo; as tabelas de
+policies sao imutaveis e publicadas atomicamente. Reset/loadout continua sendo
+feito pelo Terraria. Estas APIs sao policies de carregamento, nao callbacks C#
+arbitrarios em cada evento do jogo.
+
+Na thread do jogo, o registro espera os IDs das pecas e os dados de
+`ArmorSetBonuses`. Usa a API nativa Add e preserva seu tooltip e lookup por peca.
+Como o loader original, reaproveita o delegate Pumpkin, interceptando esse efeito
+somente para os conjuntos registrados e deixando o Pumpkin vanilla intacto.
+Mesmo durante falha parcial de registro, esse delegate nao concede o bonus
+vanilla ao conjunto customizado. O bonus customizado espera a instalacao acabar.
+
+A instalacao usa Array.GetValue/SetValue e gchandles para respeitar boxing e GC
+em arrays de referencia ou valor. Isso ocorre na preparacao/reparo, nao no hook
+por ciclo. O registro e retomavel: nao adiciona outra entrada apos Add bem-sucedido
+quando a publicacao de uma linha falha. As linhas vanilla sao conservadas e
+indices novos recebem linhas vazias. A troca de SetsContaining provoca reparo,
+sem Add duplicado; reconstruir todo o registro All/hot-unload nao e um contrato
+novo desta entrega. O processamento pendente alterna conteudos, ate oito por
+passagem. O diagnostico `bl.csharp.nativeArmorPolicies()` informa fase/erro
+(tambem disponivel no host C++); nao e necessario para carregar o mod. Conteudos pendentes
+impedem a mensagem de carregamento completo.
+
+Policies que so possuem efeitos nativos deixam BehaviorDefinition vazio.
+Descritores mistos sao instalados pelo servico nativo, sem ModItem JS,
+CSharpArmorPolicy ou callback no motor de script. SDK, compilador e host precisam
+ser do mesmo build: APKs anteriores nao leem o campo 26 nem instalam este visual.
 
 ## Eventos continuos e limites
 
@@ -179,7 +226,6 @@ original no diagnostico e nao substituir erros por sucesso generico.
 ## Proximas capacidades
 
 IA gerenciada geral por entidade/frame, estado persistente de jogador/mundo,
-hot-unload, registro livre de callbacks, multiplayer e dependencia zero de JS
-em todos os equipamentos continuam no [plano completo](SDK-ROADMAP.md).
+hot-unload, registro livre de callbacks e multiplayer continuam no [plano completo](SDK-ROADMAP.md).
 Nenhum exemplo deve anunciar essas capacidades antes de possuir uma bridge
 funcional, testes e evidencia de comportamento no aparelho.

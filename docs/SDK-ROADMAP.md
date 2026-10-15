@@ -2,7 +2,7 @@
 
 Pedido do usuario em 15/10/2026: implementar o conjunto de melhorias da auditoria
 do GitHub. Este arquivo acompanha todo o escopo, sem transformar uma fundacao
-parcial em conclusao do SDK. A base e .90.29.31 (`7229a61`); o Lote A e todos
+parcial em conclusao do SDK. A fundacao partiu da .90.29.31 (`7229a61`); a base atual integra o PR #24 (.40) e #25; o Lote A e todos
 os exemplos da matriz existente permanecem no escopo. A atualizacao
 .90.29.32.1 de defesa nativa e a .90.29.33 de efeitos de acessorio foram
 integradas nesta branch durante a revisao.
@@ -20,7 +20,7 @@ integradas nesta branch durante a revisao.
 | Ciclo de vida | Contratos publicos de load/world enter/exit/unload e limpeza por mod | Pendente | Hooks realmente despachados e testes de estaticos/saves; nao apenas metodos vazios no SDK |
 | Estado por entidade | Snapshots tipados, geracao de spawn, estado de jogador/NPC/projetil | Pendente | Reuso de slot, morte/despawn, troca de mundo e descarte de comandos antigos |
 | IA C# geral | Decisoes durante o jogo para NPC/projetil/boss e comandos aplicados na thread correta | Pendente | IA real fora de tabelas; custo, fidelidade e seguranca de GC em ARM64 |
-| Independencia de JS | Extrair equipamentos, sets, asas, animacoes/luz e demais policies restantes | Parcial: itens/receitas/tiles e efeitos simples de acessorio possuem caminhos nativos | Exercitar cada comportamento C# com esses carregadores JS desativados |
+| Independencia de JS | Extrair equipamentos, sets, asas, animacoes/luz e demais policies restantes | Caminho atual de carregamento/gameplay/equipamento migrado para servicos nativos; adaptadores JS fora do bundle | Validar visual/ABI e jogo prolongado no Android; ampliar APIs novas mantendo este contrato |
 | API de conteudo | Completar o Lote A e os sistemas reutilizaveis das categorias seguintes | Parcial, manter plano e matriz existentes | Todos os recursos originais aplicaveis, assets, ponte, testes e jogo |
 | Exemplos | Armas/melee/ranged/magic/summon; projeteis, pets, minions, sentries; NPC/boss/loot | Parcial | Exemplos completos, editaveis, usando SDK publico sem patch por exemplo |
 | Mundo e sistemas | Moveis, paredes, biomas, worldgen, save, UI, config, comandos e localizacao | Parcial | Contratos de cada categoria e roteiro real de persistencia/interface |
@@ -29,21 +29,25 @@ integradas nesta branch durante a revisao.
 | Modularizacao | Separar runtime, scheduler, bindings, diagnostico e benchmarks | Parcial: filas/contadores extraidos | Regressao completa sem mudar transicoes GC/sinais |
 | Publicacao | Entrada principal coerente, SDK versionado e releases reproduziveis | Parcial nesta branch | Integrar a branch escolhida, orientar main, build Android e release validada |
 
-## Segundo conjunto desta branch
+## Independencia do caminho C#
 
-Cache externo verificado e efeitos basicos de acessorio foram implementados com
-regressoes de host. A .33 (`13e53fe`) foi integrada preservando seu wire, API
-publica, tabela imutavel e fallback JS para policies mistas; o hook dedicado
-tambem funciona quando so ha BunnyItem. NativeAccessoryCSharp demonstra um mod pequeno sem policy JS.
-ExampleStatAccessory tem efeitos nativos; WaspNest preserva o adaptador visual
-Back enquanto StrongBees passa ao C++. Nao altera a conclusao do Lote A ou a
-matriz inteira por causa dessa migracao parcial.
+NativeItemPolicies e NativeArmorPolicies substituem os adaptadores de
+comportamento, equipamentos, asas e conjuntos. Os descritores do ExampleMod
+real sao exercitados com BL_HAVE_QUICKJS=0, inclusive os nove itens com
+comportamentos e os visuais de escudo/botas. Os arquivos JS antigos ficam apenas
+como fixtures de referencia em tests/fixtures/legacy_csharp_policies, fora do
+bundle de producao. O loader de mods JS continua disponivel para mods JS.
+
+Veja [contrato, limites e roteiro](csharp-native-policy-independence.md).
+Concluir esta migracao nao implementa as categorias ainda ausentes da matriz,
+IA C# geral, hot-unload ou multiplayer. A API nova deve continuar independente
+sem reintroduzir fallbacks no motor JS.
 
 ## Ordem de execucao
 
 1. Validar esta fundacao no CI e no Android; corrigir qualquer regressao da base.
-2. Conciliar matriz e evidencias recentes, concluir o Lote A e retirar as policies
-   de equipamento restantes do caminho de execucao JS. Preservar os assets e a
+2. Conciliar matriz e evidencias recentes, concluir a validacao Android do Lote A e das policies
+   nativas de equipamento. Preservar os assets e a
    fidelidade; nao anunciar efeito isolado como port inteiro.
 3. Formalizar ciclo de vida e identidade/estado por entidade. Usar esses contratos
    para IA real, NPCs, bosses e projeteis complexos.

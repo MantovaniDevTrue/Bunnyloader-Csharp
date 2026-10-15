@@ -35,3 +35,11 @@ O primeiro comando usa wire real de Roslyn e mocks IL2CPP/hooks. O WaspNest tem
 apenas StrongBees isolado nesse teste; o visual Back continua no teste JS legado.
 NativeCharm e ExampleStatAccessory nao precisam de policy JS. A regressao do
 cache usa as funcoes de I/O e fingerprint reais de AutoSourceRuntime.
+
+Armaduras: execute `python3 tests/run_native_armor_policies.py
+build/basic-items/armor-source-runtime-values.txt` depois de ItemBatch. A suite
+usa o modulo de producao com QuickJS desligado, preserva os conjuntos vanilla e
+exercita arrays de referencia e structs, imunidades, limites, falhas/retry e reparo.
+O exemplo ArmorPoliciesCSharp compila em SDKFoundation; seus sprites vestidos
+ainda dependem da ponte visual JS. A regressao JS separada reconstroi apenas no
+teste os descritores antigos e verifica que nativeArmor impede bonus duplicados.

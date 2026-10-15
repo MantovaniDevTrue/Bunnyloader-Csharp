@@ -190,6 +190,7 @@ struct ManagedNativeEquipTexture {
 };
 
 std::vector<ManagedNativeEquipTexture> managedNativeEquipTextures();
+size_t pendingManagedNativeEquipTextures();
 bool setManagedNativeEquipSlot(int itemType, int visualMode, int equipSlot);
 
 int managedNativeAccessoryDefense(int type);

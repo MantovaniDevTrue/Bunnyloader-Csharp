@@ -256,6 +256,7 @@ int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
 string NativeAccessoryEffectsDefinition { get; }
+string NativeArmorDefinition { get; }
 string PlacementDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -281,6 +282,7 @@ bool ColorFromPlayerHair { get; set; }
 bool Robe { get; set; }
 int Defense { get; set; }
 string NativeAccessoryEffectsDefinition { get; }
+string NativeArmorDefinition { get; }
 ```
 
 | Method | Execution |

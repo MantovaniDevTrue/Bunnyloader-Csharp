@@ -69,6 +69,16 @@ public:
 
     void clear() { active_.clear(); }
     size_t size() const { return active_.size(); }
+    using Visitor = void (*)(const ManagedVisualCommand&, void*);
+    void visit(int playerIndex, Visitor visitor, void* context, size_t limit=8) const {
+        if(!visitor)return;
+        size_t count=0;
+        auto it=playerIndex<0?active_.begin():active_.lower_bound(Key{playerIndex,0});
+        for(;it!=active_.end()&&count<limit;++it) {
+            if(playerIndex>=0&&it->first.player!=playerIndex)break;
+            visitor(it->second.command,context);++count;
+        }
+    }
 
     std::vector<ManagedVisualCommand> snapshot(int playerIndex, size_t limit) const {
         std::vector<ManagedVisualCommand> result;

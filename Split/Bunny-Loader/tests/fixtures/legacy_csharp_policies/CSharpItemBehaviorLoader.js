@@ -40,7 +40,8 @@ class CSharpItemBehaviorLoader {
             throw new Error('cor invalida');
         if (b.clone && !Number.isInteger(Terraria.ID.ItemID[b.clone])) throw new Error('ItemID ausente: '+b.clone);
         if(b.defense!==undefined && (!Number.isInteger(b.defense)||b.defense<0||b.defense>1000))throw new Error('Defense fora do contrato');
-        b.__armor=CSharpArmorPolicy.Validate(b.armor);
+        if(b.nativeArmor!==undefined&&typeof b.nativeArmor!=='boolean')throw new Error('marcador nativo de armadura invalido');
+        b.__armor=b.nativeArmor?{effects:[],immune:[]}:CSharpArmorPolicy.Validate(b.armor);
         CSharpWingPolicy.Validate(b,entry.defaults[13],seen);
         return b;
     }
@@ -53,14 +54,14 @@ class CSharpItemBehaviorLoader {
                 let inst=CSharpItemBehaviorLoader.#staged.get(entry.type);
                 if (!inst) {
                     const b=CSharpItemBehaviorLoader.Validate(entry);
-                    if(b.armorSet&&!CSharpArmorPolicy.LookupReady())continue;
+                    if(b.armorSet&&!b.nativeArmor&&!CSharpArmorPolicy.LookupReady())continue;
                     const Class=class extends ModItem {};
                     const armor=b.__armor;
                     if(b.wings)Class.prototype.VerticalWingSpeeds=function(item,player,falling,rising,maxCan,maxAscent,constant) {
                         falling.value=b.wings.vertical[0];rising.value=b.wings.vertical[1];maxCan.value=b.wings.vertical[2];
                         maxAscent.value=b.wings.vertical[3];constant.value=b.wings.vertical[4];
                     };
-                    const armorSet=CSharpArmorPolicy.BindSet(entry,b.armorSet);
+                    const armorSet=b.nativeArmor?null:CSharpArmorPolicy.BindSet(entry,b.armorSet);
                     if(armor.effects.length||armor.immune.length)Class.prototype.UpdateEquip=function(item,player) {
                         CSharpArmorPolicy.Apply(armor,player);
                     };

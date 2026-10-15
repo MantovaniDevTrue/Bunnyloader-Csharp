@@ -9,6 +9,7 @@ on:
       - 'Split/Bunny-Loader/samples/StarterModCSharp/**'
       - 'Split/Bunny-Loader/samples/DeclaredContentCSharp/**'
       - 'Split/Bunny-Loader/samples/NativeAccessoryCSharp/**'
+      - 'Split/Bunny-Loader/samples/ArmorPoliciesCSharp/**'
       - 'Split/Bunny-Loader/tests/**'
       - 'Split/Bunny-Loader/tools/create_csharp_mod.py'
       - 'Split/Bunny-Loader/tools/sdk_reference/**'
@@ -36,14 +37,15 @@ jobs:
           python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
           python3 tests/test_csharp_native_defense_policy.py
           python3 tests/run_native_equip_effects.py build/basic-items/full-source-runtime-values.txt build/sdk-foundation/native-accessory-wire.txt
-          node tests/basic_items/item_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/full-source-runtime-values.txt
-          node tests/basic_items/armor_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/armor-source-runtime-values.txt
-          node tests/basic_items/wing_behavior_bridge_test.js app/src/main/cpp/script/js/mod build/basic-items/wing-source-runtime-values.txt
+          python3 tests/run_native_armor_policies.py build/basic-items/armor-source-runtime-values.txt
+          python3 tests/run_native_item_policies.py build/basic-items/full-source-runtime-values.txt samples/ExampleModCSharp/Playable
+          python3 tests/test_csharp_no_javascript_dependency.py
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: |
           dotnet build samples/StarterModCSharp/StarterMod.csproj -c Release
           dotnet build samples/NativeAccessoryCSharp/NativeAccessory.csproj -c Release
+          dotnet build samples/ArmorPoliciesCSharp/ArmorPolicies.csproj -c Release
       - name: Check generated public SDK reference
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
@@ -62,6 +64,7 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: |
           python3 tests/run_csharp_foundation.py
+          python3 tests/run_csharp_independent_loading.py
           python3 tests/test_csharp_startup_visual_hotpath.py
           python3 tests/test_csharp_idle_tooltip_and_cache_io.py
       - name: Recheck callback lifecycle and fault isolation

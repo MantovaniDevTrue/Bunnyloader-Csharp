@@ -177,8 +177,8 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
                 registry()[i].loaded = true;
             continue;
         }
-        if (!script::engine().ready()) {
-            BL_WARN("mod %s: entrada JavaScript indisponivel; QuickJS nao inicializado",
+        if (!script::engine().ready() && !script::engine().init()) {
+            BL_WARN("mod %s: entrada JavaScript indisponivel; QuickJS nao pode ser inicializado",
                     registry()[i].id.c_str());
             registry()[i].enabled = false;
             continue;
@@ -229,7 +229,7 @@ const std::string& dirOf(const std::string& id) {
 }
 
 void loadBuiltins() {
-    if (!script::engine().ready()) {
+    if (!script::engine().ready() && !script::engine().init()) {
         BL_ERROR("mods embutidos: QuickJS nao esta pronto");
         return;
     }

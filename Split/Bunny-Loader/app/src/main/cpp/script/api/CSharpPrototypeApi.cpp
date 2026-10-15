@@ -10,6 +10,8 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeArmorPolicies.h"
+#include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
@@ -103,6 +105,36 @@ JSValue jsPendingItemRecipes(JSContext* ctx, JSValueConst, int argc, JSValueCons
         }
         JS_SetPropertyStr(ctx,entry,"ingredients",ingredients);
         JS_SetPropertyUint32(ctx,array,i++,entry);
+    }
+    return array;
+}
+JSValue jsNativeArmorPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
+    if(argc)return JS_ThrowTypeError(ctx,"nativeArmorPolicies()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& status:bl::csharp::nativeArmorPolicyStatuses()) {
+        JSValue value=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,status.type));
+        JS_SetPropertyStr(ctx,value,"ready",JS_NewBool(ctx,status.ready));
+        JS_SetPropertyStr(ctx,value,"mod",JS_NewString(ctx,status.mod.c_str()));
+        JS_SetPropertyStr(ctx,value,"name",JS_NewString(ctx,status.name.c_str()));
+        JS_SetPropertyStr(ctx,value,"phase",JS_NewString(ctx,status.phase.c_str()));
+        JS_SetPropertyStr(ctx,value,"error",JS_NewString(ctx,status.error.c_str()));
+        JS_SetPropertyUint32(ctx,array,i++,value);
+    }
+    return array;
+}
+JSValue jsNativeItemPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
+    if(argc)return JS_ThrowTypeError(ctx,"nativeItemPolicies()");
+    JSValue array=JS_NewArray(ctx);uint32_t i=0;
+    for(const auto& status:bl::csharp::nativeItemPolicyStatus()) {
+        JSValue value=JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx,value,"type",JS_NewInt32(ctx,status.type));
+        JS_SetPropertyStr(ctx,value,"ready",JS_NewBool(ctx,status.ready));
+        JS_SetPropertyStr(ctx,value,"mod",JS_NewString(ctx,status.mod.c_str()));
+        JS_SetPropertyStr(ctx,value,"name",JS_NewString(ctx,status.name.c_str()));
+        JS_SetPropertyStr(ctx,value,"phase",JS_NewString(ctx,status.phase.c_str()));
+        JS_SetPropertyStr(ctx,value,"error",JS_NewString(ctx,status.error.c_str()));
+        JS_SetPropertyUint32(ctx,array,i++,value);
     }
     return array;
 }
@@ -2874,6 +2906,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "setNativeItemDefense", JS_NewCFunction(ctx, jsSetNativeItemDefense, "setNativeItemDefense", 2));
     JS_SetPropertyStr(ctx, api, "resolveNativeItemKey", JS_NewCFunction(ctx, jsResolveNativeItemKey, "resolveNativeItemKey", 1));
     JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
+    JS_SetPropertyStr(ctx, api, "nativeArmorPolicies", JS_NewCFunction(ctx, jsNativeArmorPolicies, "nativeArmorPolicies", 0));
+    JS_SetPropertyStr(ctx, api, "nativeItemPolicies", JS_NewCFunction(ctx, jsNativeItemPolicies, "nativeItemPolicies", 0));
     JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
     JS_SetPropertyStr(ctx, api, "reportItemRecipeError", JS_NewCFunction(ctx, jsReportItemRecipeError, "reportItemRecipeError", 2));

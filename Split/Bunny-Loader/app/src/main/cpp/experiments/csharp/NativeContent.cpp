@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
@@ -20,6 +21,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "il2cpp/ValueLayout.h"
 
 #include <algorithm>
 #include <array>
@@ -33,10 +35,6 @@
 #include <cmath>
 #include <string>
 #include <sys/stat.h>
-
-namespace bl::script {
-size_t structFieldOffset(Il2CppClass* cls, size_t fieldOffset);
-}
 
 namespace bl::csharp {
 namespace {
@@ -198,6 +196,8 @@ std::map<int, NativeWeaponDefaults> g_weapons;
 std::map<int, NativeProjectileDefaults> g_projectiles;
 std::map<int, NativeNpcDefaults> g_npcs;
 std::map<int, NativeAccessoryDefaults> g_accessories;
+std::mutex g_nativeEquipDescriptorsMutex;
+std::map<int, ManagedNativeEquipTexture> g_nativeEquipDescriptors;
 std::map<std::string, std::string> g_globalWorldMessages;
 std::map<std::string, std::string> g_respawnMessages;
 std::map<std::string, std::string> g_deadMessages;
@@ -1353,13 +1353,11 @@ bool prepareNativePlayerEffects() {
         if (npc && projectile && bytes >= 16 && bytes <= 128) {
             const size_t rawNpcOffset = api().field_get_offset(npc);
             const size_t rawProjectileOffset = api().field_get_offset(projectile);
-            const size_t npcOffset = valueType
-                ? bl::script::structFieldOffset(reason, rawNpcOffset)
-                : rawNpcOffset;
-            const size_t projectileOffset = valueType
-                ? bl::script::structFieldOffset(reason, rawProjectileOffset)
-                : rawProjectileOffset;
-            if (npcOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
+            size_t npcOffset=rawNpcOffset,projectileOffset=rawProjectileOffset;
+            bl::il2cpp::ValueLayout layout;std::string layoutError;
+            const bool validLayout=!valueType||(bl::il2cpp::resolveValueLayout(reason,&layout,&layoutError)&&
+                layout.offset(rawNpcOffset,sizeof(int32_t),&npcOffset)&&layout.offset(rawProjectileOffset,sizeof(int32_t),&projectileOffset));
+            if (validLayout && npcOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
                 projectileOffset + sizeof(int32_t) <= static_cast<size_t>(bytes) &&
                 npcOffset != projectileOffset) {
                 g_refs.sourceNpcOffset = static_cast<int>(npcOffset);
@@ -1573,7 +1571,16 @@ bool applyManagedNativePlayerDefaultsBatch(
     }
     for (const auto& [type, effects] : values) {
         g_accessories[type] = effects;
+        if(effects.visualMode==2)requestNativeVisualRenderer(effects.visualTexture);
         enableManagedPrefixEligibility(type);
+    }
+    {
+        std::lock_guard lock(g_nativeEquipDescriptorsMutex);
+        for(const auto& [type,effects]:values) {
+            if((effects.visualMode==1||effects.visualMode==3)&&!effects.visualTexture.empty())
+                g_nativeEquipDescriptors[type]={type,effects.visualMode,effects.visualTexture};
+            else g_nativeEquipDescriptors.erase(type);
+        }
     }
     for (const auto& [key, message] : globalMessages)
         g_globalWorldMessages[key] = message;
@@ -1686,14 +1693,18 @@ bool showManagedPlayerWorldJoinMessages() {
 }
 
 std::vector<ManagedNativeEquipTexture> managedNativeEquipTextures() {
+    std::lock_guard lock(g_nativeEquipDescriptorsMutex);
+    static int last=-1;
     std::vector<ManagedNativeEquipTexture> entries;
-    for (const auto& [type, accessory] : g_accessories) {
-        if ((accessory.visualMode == 1 || accessory.visualMode == 3) &&
-            accessory.nativeEquipSlot < 0 && !accessory.visualTexture.empty()) {
-            entries.push_back({type, accessory.visualMode, accessory.visualTexture});
-        }
+    auto it=g_nativeEquipDescriptors.upper_bound(last);
+    for(size_t scanned=0;scanned<g_nativeEquipDescriptors.size()&&entries.size()<8;++scanned) {
+        if(it==g_nativeEquipDescriptors.end())it=g_nativeEquipDescriptors.begin();
+        entries.push_back(it->second);last=it->first;++it;
     }
     return entries;
+}
+size_t pendingManagedNativeEquipTextures() {
+    std::lock_guard lock(g_nativeEquipDescriptorsMutex);return g_nativeEquipDescriptors.size();
 }
 
 bool setManagedNativeEquipSlot(int itemType, int visualMode, int equipSlot) {
@@ -1708,6 +1719,7 @@ bool setManagedNativeEquipSlot(int itemType, int visualMode, int equipSlot) {
     const int offset = visualMode == 1 ? g_refs.itemShieldSlot : g_refs.itemShoeSlot;
     if (offset < 0) return false;
     it->second.nativeEquipSlot = equipSlot;
+    {std::lock_guard lock(g_nativeEquipDescriptorsMutex);g_nativeEquipDescriptors.erase(itemType);}
     BL_INFO("csharp equip: item=%d tipo=%s slot=%d", itemType,
             visualMode == 1 ? "Shield" : "Shoes", equipSlot);
     return true;

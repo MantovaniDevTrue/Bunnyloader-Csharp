@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 
 namespace BunnyLoader.Source;
@@ -35,6 +36,8 @@ public sealed class BunnyArmorEffects
     private void Record(object[] effect)
     { if(effects.Count>=16)throw new InvalidOperationException("Mais de 16 efeitos de armadura");effects.Add(effect); }
     internal bool Empty => effects.Count==0&&immune.Count==0;
+    internal string WireEffects => effects.Count==0?"-":string.Join(";",effects.Select(e=>(string)e[0]+":"+(string)e[1]+":"+Convert.ToString(e[2],CultureInfo.InvariantCulture)));
+    internal string WireImmunity => immune.Count==0?"-":string.Join(",",immune.OrderBy(x=>x,StringComparer.Ordinal));
     internal string ToJson() => "{\"effects\":["+string.Join(",",effects.Select(e=>"["+Quote((string)e[0])+","+Quote((string)e[1])+","+Convert.ToString(e[2],CultureInfo.InvariantCulture)+"]"))+"],\"immune\":["+string.Join(",",immune.OrderBy(x=>x,StringComparer.Ordinal).Select(Quote))+"]}";
     internal static string Quote(string value) => "\""+value.Replace("\\","\\\\").Replace("\"","\\\"")+"\"";
     internal static string Field(string name) => char.ToLowerInvariant(name[0])+name.Substring(1);
@@ -58,5 +61,6 @@ public sealed class BunnyArmorSet
         if(string.IsNullOrWhiteSpace(text)||text.Length>512||text.Any(char.IsControl))throw new ArgumentException("Texto do conjunto invalido",nameof(text));
         Head=head;Body=body;Legs=legs;Text=text;
     }
+    internal string ToWire() => string.Join("|",Head,Body,Legs,Convert.ToHexString(Encoding.UTF8.GetBytes(Text)),Effects.WireEffects,Effects.WireImmunity);
     internal string ToJson() => "{\"head\":"+BunnyArmorEffects.Quote(Head)+",\"body\":"+BunnyArmorEffects.Quote(Body)+",\"legs\":"+BunnyArmorEffects.Quote(Legs)+",\"text\":"+BunnyArmorEffects.Quote(Text)+",\"effects\":"+Effects.ToJson()+"}";
 }

@@ -348,5 +348,6 @@ bool postManagedVisualCommand(ManagedVisualCommand command);
 size_t advanceManagedVisualState(uint64_t tick, size_t budget = 32);
 size_t activeManagedVisualCount();
 std::vector<ManagedVisualCommand> snapshotManagedVisualCommands(int playerIndex, size_t limit = 4);
+void visitManagedVisualCommands(int playerIndex, void (*visitor)(const ManagedVisualCommand&,void*), void* context, size_t limit=8);
 void clearManagedVisualCommands();
 }

@@ -27,18 +27,19 @@
     "Accessories": {
       "total": 7,
       "states": {
-        "Parcial": 7
+        "Implementado, aguardando validação": 3,
+        "Parcial": 4
       },
-      "implemented": 0,
+      "implemented": 3,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 7,
-      "implementedPercent": 0.0,
+      "partial": 4,
+      "implementedPercent": 42.86,
       "validatedPercent": 0.0,
-      "partialPercent": 100.0,
+      "partialPercent": 57.14,
       "limitations": 0,
-      "missingExamples": 7
+      "missingExamples": 4
     },
     "Achievements": {
       "total": 2,
@@ -75,19 +76,19 @@
     "Armor": {
       "total": 6,
       "states": {
-        "Parcial": 5,
+        "Implementado, aguardando validação": 5,
         "Não implementado": 1
       },
-      "implemented": 0,
+      "implemented": 5,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 5,
-      "implementedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 83.33,
       "validatedPercent": 0.0,
-      "partialPercent": 83.33,
+      "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 6
+      "missingExamples": 1
     },
     "Biomes": {
       "total": 6,
@@ -351,18 +352,18 @@
     "Materials": {
       "total": 1,
       "states": {
-        "Parcial": 1
+        "Implementado, aguardando validação": 1
       },
-      "implemented": 0,
+      "implemented": 1,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 1,
-      "implementedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
       "validatedPercent": 0.0,
-      "partialPercent": 100.0,
+      "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 1
+      "missingExamples": 0
     },
     "Mounts": {
       "total": 4,
@@ -3645,7 +3646,7 @@
         "SetDefaults",
         "SetStaticDefaults"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard_Beard.png"
@@ -3661,28 +3662,28 @@
       "preservedFeatures": [
         "Defaults, valor e vaidade originais",
         "Beard nativo e tintura pela cor de cabelo",
-        "Cor de inventario a partir do jogador local"
+        "Cor de inventario a partir do jogador local",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4106,7 +4107,7 @@
         "SetStaticDefaults",
         "VerticalWingSpeeds"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Accessories/ExampleWings.png",
         "content/Content/Items/Accessories/ExampleWings_Wings.png"
@@ -4115,26 +4116,25 @@
       "preservedFeatures": [
         "Item e sprites originais 22x20, valor 10000, raridade Green e accessory.",
         "Slot Wings, FlyTime=180, velocidade=9, aceleracao=2.5; movimento vertical 0.85/0.15/1/3/0.135.",
-        "Receita de 1 ExampleItem na ExampleWorkbench C# sem IDs dinamicos fixos."
+        "Receita de 1 ExampleItem na ExampleWorkbench C# sem IDs dinamicos fixos.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Remover a dependencia de CSharpWingPolicy/WingLoader/CSharpItemBehaviorLoader no caminho C#."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpWingPolicy.js",
-        "app/src/main/cpp/script/js/mod/Loaders/WingLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs: wire do ExampleWings real",
-        "tests/basic_items/wing_behavior_bridge_test.js: executado tambem sobre wire do ExampleWings real",
-        "tests/basic_items/item_behavior_bridge_test.js"
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "Fabricar ExampleWings na ExampleWorkbench, equipar/desquipar, verificar animacao e voo de 180 ticks, gravidade invertida, loadout, morte/respawn e save/reload."
       ],
-      "validation": "Implementado nesta continuacao; compilacao Roslyn e testes no CI pendentes. Voo/animacao/FPS ainda sem validacao Android.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4187,7 +4187,7 @@
         "SetDefaults",
         "UpdateAccessory"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest_Back.png"
@@ -4203,28 +4203,28 @@
       "preservedFeatures": [
         "Defaults e economia original",
         "Back nativo com asset original",
-        "strongBees apenas no slot funcional; reset pelo ciclo nativo"
+        "strongBees apenas no slot funcional; reset pelo ciclo nativo",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4354,36 +4354,36 @@
         "SetDefaults",
         "UpdateEquip"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Armor/ExampleBreastplate.png",
         "content/Content/Items/Armor/ExampleBreastplate_Body.png"
       ],
       "automatedEvidence": [],
       "preservedFeatures": [
-        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/item_behavior_bridge_test.js"
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4538,36 +4538,36 @@
         "SetDefaults",
         "UpdateArmorSet"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Armor/ExampleHelmet.png",
         "content/Content/Items/Armor/ExampleHelmet_Head.png"
       ],
       "automatedEvidence": [],
       "preservedFeatures": [
-        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/item_behavior_bridge_test.js"
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4624,36 +4624,36 @@
         "SetDefaults",
         "UpdateEquip"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Armor/ExampleLeggings.png",
         "content/Content/Items/Armor/ExampleLeggings_Legs.png"
       ],
       "automatedEvidence": [],
       "preservedFeatures": [
-        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench."
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Desacoplar CSharpArmorPolicy/CSharpItemBehaviorLoader da VM QuickJS no caminho C#."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpArmorPolicy.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/armor_behavior_bridge_test.js",
-        "tests/basic_items/item_behavior_bridge_test.js"
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Port integrado no HEAD preservado; testes de host nao comprovam gameplay Android nem independencia de QuickJS.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -4704,7 +4704,7 @@
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
@@ -4719,29 +4719,29 @@
       ],
       "preservedFeatures": [
         "Defaults, valor, raridade e pilha originais",
-        "Head nativo com sprite original"
+        "Head nativo com sprite original",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
         "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
-        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [
         {
           "loader": ".90.28.7",
@@ -4803,7 +4803,7 @@
         "SetMatch",
         "SetStaticDefaults"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
@@ -4820,29 +4820,29 @@
       "preservedFeatures": [
         "Defaults de vaidade originais",
         "Body e Legs originais; HidesHands=false",
-        "SetMatch: robes=true e slot Legs associado ao mesmo item"
+        "SetMatch: robes=true e slot Legs associado ao mesmo item",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
         "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
-        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts"
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "Contratos automatizados aprovados; usuario confirmou equipamento no Android .90.28.7. Roteiro completo de ciclo de vida permanece sem registro.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [
         {
           "loader": ".90.28.7",
@@ -5436,7 +5436,7 @@
         "SetStaticDefaults",
         "void AddLight(Vector2 position, float r, float g, float b)"
       ],
-      "status": "Parcial",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
       ],
@@ -5451,28 +5451,28 @@
       "preservedFeatures": [
         "Clone real de SoulofSight e overrides originais",
         "4 frames/6 ticks, AnimatesAsSoul, ItemIconPulse e ItemNoGravity",
-        "PostUpdate luz escalada por essScale; GetAlpha 255/255/255/50"
+        "PostUpdate luz escalada por essScale; GetAlpha 255/255/255/50",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
       ],
-      "missingFeatures": [
-        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
-      ],
+      "missingFeatures": [],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
-        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
-        "tests/basic_items/item_behavior_bridge_test.js",
         "tests/basic_items/native_item_binding_test.cpp",
-        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
       ],
       "terrariaTests": [
         "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
         "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
       ],
-      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
