@@ -203,10 +203,10 @@ try
         Equal(1,Compiler.Compile(root,output,runtime,diag));
         Equal(2,Compiler.Compile(root,output,runtime,diag));
     });
-    Check("compiler.513-files-rejected", () => {
+    Check("compiler.513-files-supported", () => {
         File.WriteAllText(Path.Combine(root,"content","Extra.cs"),"public class Extra {}");
-        Equal(-3,Compiler.Compile(root,output,runtime,diag));
-        Contains("atual=513 permitido=1..512",File.ReadAllText(diag));
+        Equal(1,Compiler.Compile(root,output,runtime,diag));
+        Equal(2,Compiler.Compile(root,output,runtime,diag));
         File.Delete(Path.Combine(root,"content","Extra.cs"));
     });
     Check("compiler.actual-error-path-line-code-hint", () => {
