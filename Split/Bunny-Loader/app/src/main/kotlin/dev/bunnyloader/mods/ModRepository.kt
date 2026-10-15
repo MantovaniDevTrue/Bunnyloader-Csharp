@@ -256,33 +256,6 @@ class ModRepository(private val context: Context) {
                 onRead(count)
             }
         }
-        require(manifest.id.isNotBlank()) { "manifesto sem id" }
-        require(manifest.blVersion <= BL_VERSION) {
-            "o pacote pede o Bunny Loader ${manifest.blVersion}; este é o $BL_VERSION"
-        }
-        require(!manifest.isOutdated) {
-            "pacote do formato antigo (blVersion ${manifest.blVersion}). O Bunny Loader $BL_VERSION " +
-                "pede Assets/, Common/, Content/ e a classe Mod no arquivo de entrada " +
-                "(export default class ... extends Mod): peça ao autor uma versão nova."
-        }
-        if (manifest.packType == PackType.TEXTURE) {
-            require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em content/Images" }
-        } else {
-            if (manifest.entry == "@native") {
-                require(File(root, "native/arm64-v8a/libmod.so").isFile) {
-                    "mod nativo sem native/arm64-v8a/libmod.so"
-                }
-            } else {
-                require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
-            }
-        }
-
-        val target = File(modsDir, manifest.uid)
-        target.deleteRecursively()
-        target.parentFile?.mkdirs()
-        if (!root.renameTo(target)) root.copyRecursively(target, overwrite = true)
-        temp.deleteRecursively()
-        manifest
     }
 
     /** Empacota o estado atual da pasta do mod como um ZIP .bl reimportável. */
