@@ -28,7 +28,7 @@ struct Entry {
     BasicItemEntry source;BasicItemPolicy policy;NativeItemPolicyStatus status;
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
     int color=-1,hair=-1;
-    unsigned nextRetryTick=0;
+    unsigned nextRetryTick=0,failedAttempts=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
 };
@@ -449,7 +449,7 @@ void pumpNativeItemPoliciesOnGameThread() {
                 acknowledgeBasicItemBehavior(type,"");
                 requestBasicItemInstanceRefresh("NativePolicyReady");
                 changed=true;
-            } else entry->nextRetryTick=tick+15;
+            } else if(++entry->failedAttempts>3&&tick>120)entry->nextRetryTick=tick+15;
         }
     }
     // Legacy BunnyAccessory Shield/Shoes use exactly the same native installer.
