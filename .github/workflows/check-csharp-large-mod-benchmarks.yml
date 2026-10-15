@@ -33,6 +33,7 @@ jobs:
       - name: Compile real 100 300 600 1000 class mods and recheck cached assemblies
         working-directory: Split/Bunny-Loader
         run: |
+          set -o pipefail
           dotnet run --project tests/csharp_scale/Scale.csproj -c Release -- \
             100 300 600 1000 | tee "$RUNNER_TEMP/csharp-large-mod-benchmarks.jsonl"
       - uses: actions/upload-artifact@v4
