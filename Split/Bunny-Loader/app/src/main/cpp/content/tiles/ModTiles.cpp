@@ -1091,6 +1091,26 @@ void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const
     invalidateDrawCache();
 }
 
+void ensureTileDrawHook() {
+    hookDrawData();
+}
+
+bool modObjectShape(int type, ModObjectShape* out) {
+    if (type < kVanillaTileCount) return false;
+    const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
+    if (i >= g_drawShapes.size() || !g_drawShapes[i].ok) return false;
+    const DrawShape& s = g_drawShapes[i];
+    if (s.cols * s.rows <= 1 || s.fullWidth <= 0 || s.fullHeight <= 0) return false;
+    out->cols = s.cols;
+    out->rows = s.rows;
+    out->coordWidth = s.width;
+    out->padding = s.padding;
+    out->fullWidth = s.fullWidth;
+    out->fullHeight = s.fullHeight;
+    out->heights = s.heights;
+    return true;
+}
+
 std::vector<ModTileInfo> modTiles() {
     std::lock_guard<std::mutex> l(g_mx);
     std::vector<ModTileInfo> out;
