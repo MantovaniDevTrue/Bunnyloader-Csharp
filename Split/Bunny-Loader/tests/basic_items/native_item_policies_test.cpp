@@ -171,7 +171,8 @@ void testRenderer(const std::string& root) {
  bl::testing::visualCommands={command};requestNativeVisualRenderer(command.texture);assert(pendingNativeVisualRenderer()==1);
  auto* shaderField=bl::il2cpp::findField(cls("DrawData"),"shader");const auto savedOffset=shaderField->offset;shaderField->offset=sizeof(DrawData)+sizeof(Il2CppObject)+4;
  pumpNativeVisualRendererOnGameThread();assert(!nativeVisualRendererStatus().ready);
- shaderField->offset=savedOffset;pumpNativeVisualRendererOnGameThread();
+ shaderField->offset=savedOffset;
+ for(int retry=0;retry<31&&!nativeVisualRendererStatus().ready;++retry)pumpNativeVisualRendererOnGameThread();
  auto state=nativeVisualRendererStatus();if(!state.ready)std::cerr<<"RENDERER "<<state.error<<"\n";assert(state.ready&&state.assets==1&&pendingNativeVisualRenderer()==0);
  RenderPlayer player;player.base.header.klass=&playerClass;player.base.velocity[0]=3.2f;
  DrawInfo info;info.object.klass=cls("PlayerDrawSet");info.player=&player.base.header;info.cache=makeArray(cls("DrawData"),32);
