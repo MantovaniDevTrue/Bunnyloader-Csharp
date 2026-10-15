@@ -14,8 +14,10 @@ trap 'rm -rf "$TEMP"' EXIT
 mkdir -p "$(dirname "$DEST")"
 rm -f "$DEST"
 
+cached=0
 if gh release download "$TAG" --repo "$PRIVATE" --pattern "$ASSET" --dir "$TEMP" >/dev/null 2>&1; then
     cp "$TEMP/$ASSET" "$DEST"
+    cached=1
 else
     URL="https://download.unity3d.com/download_unity/667925324b48/MacEditorTargetInstaller/UnitySetup-Android-Support-for-Editor-2021.3.56f2.pkg"
     curl --fail --location --show-error --silent --retry 4 --retry-all-errors \
@@ -52,8 +54,6 @@ else
         echo "::error::Unity 2021.3.56f2 il2cpp/Release/Classes/classes.jar not found in official installer"
         exit 1
     fi
-    (cd "$(dirname "$DEST")" && mv unity-classes.jar "$ASSET" && mv "$ASSET" unity-classes.jar)
-    gh release upload "$TAG" "$DEST#$ASSET" --repo "$PRIVATE" >/dev/null 2>&1 || true
 fi
 
 echo "$EXPECTED  $DEST" | sha256sum -c -
@@ -61,3 +61,8 @@ for class in UnityPlayer NativeLoader IUnityPlayerLifecycleEvents; do
     unzip -Z1 "$DEST" | grep -Fx "com/unity3d/player/$class.class" >/dev/null
 done
 echo "BUNNY_UNITY_2021_3_56F2_JAR_VERIFIED=PASS"
+
+if [ "$cached" -eq 0 ]; then
+    cp "$DEST" "$TEMP/$ASSET"
+    gh release upload "$TAG" "$TEMP/$ASSET" --repo "$PRIVATE" >/dev/null 2>&1 || true
+fi
