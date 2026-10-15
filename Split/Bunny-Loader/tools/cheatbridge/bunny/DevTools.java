@@ -2,6 +2,7 @@ package bunny;
 
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -38,6 +39,12 @@ import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import java.util.ArrayList;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -421,6 +428,12 @@ final class DevTools {
         final ScrollView outputScroll;
         final EditText editor;
         final TextView fullButton;
+        final TextView title;
+        final TextView languageButton;
+        boolean csharpMode;
+        File selectedCSharpSource;
+        String jsDraft = "";
+        String csharpDraft = "";
         final Handler handler = new Handler(Looper.getMainLooper());
         KeyboardWatcher keyboard;
         int keyboardHeight;
@@ -458,10 +471,14 @@ final class DevTools {
             badge.setPadding(px(a, 6), 0, px(a, 6), 0);
             head.addView(badge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, px(a, 26)));
-            TextView title = text(a, tr("Editor"), 13, INK);
+            title = text(a, tr("Editor JS"), 13, INK);
             title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            languageButton = textButton(a, "JS", BUTTON, new Runnable() {
+                @Override public void run() { switchEditorLanguage(); }
+            });
+            head.addView(languageButton);
 
             head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
@@ -533,7 +550,9 @@ final class DevTools {
             editor.setMinLines(2);
             editor.setMaxLines(5);
             editor.setVerticalScrollBarEnabled(true);
-            editor.setText(prefs(a).getString("draft", ""));
+            jsDraft = prefs(a).getString("draft", "");
+            csharpDraft = prefs(a).getString("draftCSharp", "");
+            editor.setText(jsDraft);
             editor.setSelection(editor.getText().length());
             editor.addTextChangedListener(new CodeWatcher(editor));
             editor.setOnKeyListener(new View.OnKeyListener() {
@@ -707,6 +726,7 @@ final class DevTools {
         // ---- rodar, historico, saida ----
 
         void run() {
+            if (csharpMode) { saveCSharpSource(); return; }
             String code = editor.getText().toString();
             if (code.trim().length() == 0) return;
             appendEntry('i', code);
@@ -778,7 +798,10 @@ final class DevTools {
         }
 
         void saveDraft() {
-            try { prefs(act).edit().putString("draft", editor.getText().toString()).apply(); } catch (Throwable t) { }
+            try {
+                if (csharpMode) prefs(act).edit().putString("draftCSharp", editor.getText().toString()).apply();
+                else prefs(act).edit().putString("draft", editor.getText().toString()).apply();
+            } catch (Throwable ignored) { }
         }
 
         private View iconButton(Activity a, View iconView, String description, final Runnable action) {
