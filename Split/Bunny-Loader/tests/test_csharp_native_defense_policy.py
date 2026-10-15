@@ -17,7 +17,7 @@ assert 'parts.Add(defense.ToString(CultureInfo.InvariantCulture));' in writer
 assert 'int type=-1; int defense=0;' in basic
 assert 'fields.size()>25' in basic
 assert 'fields.size()>=23 && fields[22]!="-"' in basic
-assert 'if(fields.size()>=24 && fields[23]!="-")' in basic
+assert 'if(fields.size()>=24 && fields[23]!="-" &&' in basic
 assert 'basicInteger(fields[23],&out.defense)' in basic
 assert 'if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;' in source
 assert 'instancesPending.store(true,std::memory_order_release);' in native
