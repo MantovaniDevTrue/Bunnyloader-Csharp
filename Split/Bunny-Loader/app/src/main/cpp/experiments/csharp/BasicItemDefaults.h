@@ -18,7 +18,7 @@ inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
 struct BasicRecipeIngredient { std::string key; int count=1; int type=-1; };
 struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; };
 struct BasicItemEntry {
-    std::string name; int type=-1;
+    std::string name; int type=-1; int defense=0;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
@@ -87,7 +87,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>23)||fields[0]!="ITEM") {*error="ITEM requer 20 a 23 campos";return false;}
+    if((fields.size()<20||fields.size()>24)||fields[0]!="ITEM") {*error="ITEM requer 20 a 24 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
@@ -127,7 +127,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         } else {*error=out.name+": Stage=ParsePlacement Reason=UnknownTileToken Actual="+pair[0];return false;}
         out.placeable=true;
     }
-    if(fields.size()==23) {
+    if(fields.size()>=23 && fields[22]!="-") {
         if(fields[22].empty()||fields[22]=="-"||fields[22].size()>9000) {
             *error=out.name+": traducoes de tooltip vazias ou grandes demais";return false;
         }
@@ -162,6 +162,10 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
                 *error=out.name+": cultura duplicada";return false;
             }
         }
+    }
+    if(fields.size()==24 &&
+        (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
+        *error=out.name+": defesa nativa fora do limite";return false;
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

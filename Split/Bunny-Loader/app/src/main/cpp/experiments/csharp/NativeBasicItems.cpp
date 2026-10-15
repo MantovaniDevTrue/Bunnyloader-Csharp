@@ -464,6 +464,7 @@ bool setBasicItemDefense(int type,int value,std::string* error) {
     binding.offset=static_cast<int>(offset);
     if(value>binding.max)return reject("ValueOutOfNativeRange",actual?actual:"Unknown");
     defenseDefaults[type]={binding,value};
+    instancesPending.store(true,std::memory_order_release);
     error->clear();return true;
 }
 

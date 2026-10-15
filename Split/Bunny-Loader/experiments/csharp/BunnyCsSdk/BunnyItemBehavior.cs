@@ -83,7 +83,7 @@ public sealed class BunnyItemBehavior
     public void WorldAlpha(byte red,byte green,byte blue,byte opacity) => alpha="["+red+","+green+","+blue+","+opacity+"]";
     internal string ToJson()
     {
-        if(equips.Count==0&&effects.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&defense==0&&Armor.Empty&&armorSet is null&&wings=="null")return "";
+        if(equips.Count==0&&effects.Count==0&&clone.Length==0&&animation=="null"&&light=="null"&&alpha=="null"&&!ColorFromPlayerHair&&!Robe&&Armor.Empty&&armorSet is null&&wings=="null")return "";
         return "{\"v\":1,\"clone\":\""+clone+"\",\"equips\":["+string.Join(",",equips)+"],\"effects\":["+string.Join(",",effects)+
             "],\"animation\":"+animation+",\"light\":"+light+",\"alpha\":"+alpha+",\"hair\":"+Bool(ColorFromPlayerHair)+",\"robe\":"+Bool(Robe)+",\"defense\":"+defense+",\"armor\":"+Armor.ToJson()+",\"armorSet\":"+(armorSet?.ToJson()??"null")+",\"wings\":"+wings+"}";
     }
