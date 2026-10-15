@@ -72,6 +72,7 @@ public abstract class BunnyPlayer
     public int DefenseBonus { get; protected set; } = 0;
     public int MoveSpeedPercent { get; protected set; } = 0;
     public abstract void SetDefaults();
+    public virtual void RegisterHooks(BunnyHookRegistry hooks) { }
     public virtual void ResetEffects()
     {
         DefenseBonus = 0;
