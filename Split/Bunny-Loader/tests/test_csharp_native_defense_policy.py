@@ -6,6 +6,8 @@ writer=(root/"experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs").read_t
 basic=(root/"app/src/main/cpp/experiments/csharp/BasicItemDefaults.h").read_text()
 source=(root/"app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
 native=(root/"app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp").read_text()
+auto=(root/"app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+assert "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_32_native_defense_wire" in auto
 assert '&&defense==0&&' not in sdk
 assert '&&Armor.Empty&&armorSet is null' in sdk
 assert 'int defense=Get<int>("Defense");' in writer

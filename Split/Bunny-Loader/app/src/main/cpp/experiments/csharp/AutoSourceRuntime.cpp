@@ -45,7 +45,7 @@ namespace bl::csharp {
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
-constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_7_preworld_gate";
+constexpr const char* kCacheVersion = "BUNNY_AUTO_SOURCE_V1_0_1_10_16_90_29_32_native_defense_wire";
 std::chrono::steady_clock::time_point g_sourceStart{};
 std::atomic<int> g_cachedMods{0};
 std::atomic<int> g_compiledMods{0};
