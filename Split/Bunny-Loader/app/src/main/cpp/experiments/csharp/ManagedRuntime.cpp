@@ -3237,7 +3237,10 @@ ManagedSourceCompileResult compileManagedSource(
         out.error = "Diretorio do mod ou saida invalida";
         return out;
     }
+    const auto probeStarted = std::chrono::steady_clock::now();
     const auto initialized = probeManagedRuntime(probeAssembly);
+    out.monoProbeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - probeStarted).count();
     if (!initialized.domainInitialized || !initialized.methodExecuted) {
         out.phase = "compile-mono-unavailable";
         out.error = initialized.error;
@@ -3321,7 +3324,10 @@ ManagedSourceCompileResult compileManagedSource(
     installDestroyedMutexTrace();
     installNativeSegvTrace();
     trace("compiling-source");
+    const auto roslynStarted = std::chrono::steady_clock::now();
     void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    out.roslynInvokeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - roslynStarted).count();
     if (exception || !boxed) {
         out.phase = "compile-managed-exception";
         out.error = "Excecao no compilador gerenciado, consultar logcat";
@@ -3362,7 +3368,10 @@ ManagedSourceCompileResult compileManagedSource(
     }
     void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1] };
     void* verifyException = nullptr;
+    const auto verifyStarted = std::chrono::steady_clock::now();
     void* verifiedBoxed = g_api.invoke(verifier, nullptr, verifyArguments, &verifyException);
+    out.verifyInvokeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - verifyStarted).count();
     if (verifyException || !verifiedBoxed || !g_api.unbox(verifiedBoxed)) {
         out.phase = "compiled-assembly-verifier-exception";
         out.error = "Falha ao executar assembly C# compilado";
