@@ -80,7 +80,7 @@ public static class BunnyHooks
     public static string GetStatus() => "Universal C# void(): chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
-        " callbacks=" + Calls + " excecoes=" + Faults +
+        " atrasadosDescartados=" + NativeStat(6) + " callbacks=" + Calls + " excecoes=" + Faults +
         (LastError.Length == 0 ? "" : " ultimo=" + LastError);
 
     public static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method,
@@ -147,7 +147,6 @@ public static class BunnyHooks
         {
             Faults++;
             LastError = error.GetType().Name + ": " + error.Message;
-            handle!.Dispose();
             return 0;
         }
         finally { currentTicket = 0; currentSlot = -1; }

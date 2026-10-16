@@ -32,13 +32,29 @@ static class Program
         handle.Dispose();
         Check(test_removes() == removed);
         var failing = scope.HookVoid("Terraria.Player", "ResetEffects", (_, _) => throw new Exception("before"));
-        Check(BunnyHooks.Dispatch(test_slot(), ticket++, 123) == 0 && failing.IsDisposed && BunnyHooks.Faults == 1);
+        int failingSlot = test_slot();
+        Check(BunnyHooks.Dispatch(failingSlot, ticket++, 123) == 0 && !failing.IsDisposed && BunnyHooks.Faults == 1);
+        BunnyHooks.RemoveSlot(failingSlot);
+        Check(failing.IsDisposed);
         var duplicate = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) => { original.Invoke(); original.Invoke(); });
         test_begin(ticket);
-        Check(BunnyHooks.Dispatch(test_slot(), ticket++, 123) == 0 && test_originals() == 1 && duplicate.IsDisposed);
+        int duplicateSlot = test_slot();
+        Check(BunnyHooks.Dispatch(duplicateSlot, ticket++, 123) == 0 && test_originals() == 1 && !duplicate.IsDisposed);
+        BunnyHooks.RemoveSlot(duplicateSlot);
+        Check(duplicate.IsDisposed);
         var after = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) => { original.Invoke(); throw new Exception("after"); });
         test_begin(ticket);
-        Check(BunnyHooks.Dispatch(test_slot(), ticket++, 123) == 0 && after.IsDisposed && test_originals() == 1);
+        int afterSlot = test_slot();
+        Check(BunnyHooks.Dispatch(afterSlot, ticket++, 123) == 0 && !after.IsDisposed && test_originals() == 1);
+        BunnyHooks.RemoveSlot(afterSlot);
+        Check(after.IsDisposed);
+        var stale = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) => original.Invoke());
+        int staleSlot = test_slot();
+        test_begin(ticket + 1);
+        Check(BunnyHooks.Dispatch(staleSlot, ticket++, 123) == 0 && !stale.IsDisposed);
+        test_begin(ticket);
+        Check(BunnyHooks.Dispatch(staleSlot, ticket++, 123) == 1 && !stale.IsDisposed);
+        stale.Dispose();
         var suppressed = scope.HookVoid("Terraria.Player", "ResetEffects", (_, _) => { });
         test_begin(ticket);
         BunnyHooks.Invoke(test_slot(), ticket++, 123, out int result);
@@ -66,6 +82,6 @@ static class Program
             reused.HookVoid("Terraria.Player", "ResetEffects", (_, _) => { });
         }
         Check(BunnyHooks.GetStatus().Contains("void()"));
-        Console.WriteLine("C# SDK: delegate/original, exceptions, expired original, dispose, module auto-unload, slot reuse PASS");
+        Console.WriteLine("C# SDK: delegate/original, deferred terminal disposal, stale timeout recovery, expired original, module auto-unload, slot reuse PASS");
     }
 }

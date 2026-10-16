@@ -201,6 +201,7 @@ extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remo
     if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
+    if (key == 6) return universalHookLateCompletionCount();
     return key >= 0 && key < 6 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int slot, int64_t ticket) {
