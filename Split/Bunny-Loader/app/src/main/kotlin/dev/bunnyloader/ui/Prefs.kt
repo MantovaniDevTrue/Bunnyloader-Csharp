@@ -31,6 +31,10 @@ class Prefs(context: Context) {
         get() = p.getBoolean(VERBOSE_LOG, false)
         set(v) = p.edit().putBoolean(VERBOSE_LOG, v).apply()
 
+    var disableQuickJsForCSharp: Boolean
+        get() = p.getBoolean(DISABLE_QUICKJS_FOR_CSHARP, false)
+        set(v) = p.edit().putBoolean(DISABLE_QUICKJS_FOR_CSHARP, v).apply()
+
     /**
      * Canal de comando por arquivo (adb push). Desligado, o `cmdPath` vai
      * vazio no NativeConfig e o núcleo nem tenta abrir o arquivo a cada quadro.
@@ -123,6 +127,7 @@ class Prefs(context: Context) {
         const val ERROR_PANEL = "errorPanel"
         const val DEV_CHANNEL = "devChannel"
         const val VERBOSE_LOG = "verboseLog"
+        const val DISABLE_QUICKJS_FOR_CSHARP = "disableQuickJsForCSharp"
         const val QUICK_START = "quickStart"
         const val QUICK_PLAYER = "quickPlayer"
         const val QUICK_WORLD = "quickWorld"
