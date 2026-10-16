@@ -229,102 +229,12 @@ class ManagedProbeService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun sha256(bytes: ByteArray): String =
-        java.security.MessageDigest.getInstance("SHA-256")
-            .digest(bytes)
-            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-
-    private fun sha256(file: File): String {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-        val buffer = ByteArray(65536)
-        file.inputStream().use { input ->
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                if (count > 0) digest.update(buffer, 0, count)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
-    }
-
     private fun installManagedFramework(dir: File): String {
-        val marker = File(dir, "framework-version.txt")
-        val names = assets.list("managed").orEmpty()
-            .filter { it.endsWith(".dll") }
-            .sorted()
-        require(names.contains("System.Private.CoreLib.dll"))
-        require(names.contains("System.Runtime.dll"))
-        require(names.contains("BunnyManagedProbe.dll"))
-        require(names.contains("BunnySourceCompiler.dll"))
-        require(names.contains("BunnySourceSdk.dll"))
-        require(names.contains("Microsoft.CodeAnalysis.dll"))
-        require(names.contains("Microsoft.CodeAnalysis.CSharp.dll"))
-        val manifest = assets.open("managed/framework.sha256").bufferedReader().use {
-            it.readText()
-        }
-        val expected = manifest.lineSequence().filter { it.isNotBlank() }.associate { line ->
-            val separator = line.indexOf('\t')
-            require(separator > 0)
-            val name = line.substring(0, separator)
-            val hash = line.substring(separator + 1).trim()
-            require(hash.length == 64 && hash.all { it in '0'..'9' || it in 'a'..'f' })
-            name to hash
-        }
-        require(expected.size == names.size && expected.keys.containsAll(names)) {
-            "Manifesto do MonoVM inconsistente com os assemblies no APK"
-        }
-        val fingerprint = sha256(manifest.toByteArray(Charsets.UTF_8))
-        val previousFingerprint = runCatching {
-            if (marker.isFile) marker.readText().trim() else ""
-        }.getOrDefault("")
-        val markerMatches = previousFingerprint == fingerprint ||
-            previousFingerprint.endsWith(":" + fingerprint)
-        val cached = markerMatches && names.all { name ->
-            val file = File(dir, name)
-            file.isFile && file.length() > 0L && sha256(file) == expected[name]
-        }
-        fun verifySourceSdk() {
-            val sdk = File(dir, "BunnySourceSdk.dll")
-            require(sdk.isFile && sdk.readBytes().toString(Charsets.ISO_8859_1)
-                .contains("MoveSpeedPercent")) {
-                "BunnySourceSdk.dll nao possui MoveSpeedPercent; verifique a versao do APK"
-            }
-            Log.i("BunnyCSharp", "BunnySourceSdk MoveSpeedPercent disponivel")
-        }
-        if (cached) {
-            verifySourceSdk()
-            if (previousFingerprint != fingerprint) marker.writeText(fingerprint)
-            frameworkInstallState = "HitVerified"
-            Log.i("BunnyCSharp", "framework cache validado por SHA-256: ${names.size} assemblies")
-            return File(dir, "BunnyManagedProbe.dll").absolutePath
-        }
-        marker.delete()
-        for (name in names) {
-            val target = File(dir, name)
-            val temporary = File(dir, name + ".tmp")
-            try {
-                assets.open("managed/" + name).use { source ->
-                    temporary.outputStream().use { output -> source.copyTo(output) }
-                }
-                require(sha256(temporary) == expected[name]) {
-                    "Assembly do APK falhou verificacao SHA-256: $name"
-                }
-                if (!temporary.renameTo(target)) {
-                    temporary.copyTo(target, overwrite = true)
-                    temporary.delete()
-                }
-                require(sha256(target) == expected[name]) {
-                    "Assembly instalado falhou verificacao SHA-256: $name"
-                }
-            } finally {
-                temporary.delete()
-            }
-        }
-        verifySourceSdk()
-        marker.writeText(fingerprint)
-        frameworkInstallState = "InstalledVerified"
-        Log.i("BunnyCSharp", "framework atualizado e verificado: ${names.size} assemblies")
-        return File(dir, "BunnyManagedProbe.dll").absolutePath
+        val result = ManagedFrameworkAssets.ensure(this, dir, verifyCached = true)
+        frameworkInstallState = result.state
+        Log.i("BunnyCSharp", "framework " + result.state +
+            ": installed=" + result.installed + " retained=" + result.retained)
+        return result.assemblyPath
     }
 
     private fun startAbortHandlerWatch(destination: File) {
@@ -443,6 +353,106 @@ class ManagedProbeService : Service() {
                     }
                 }
             }
+        }
+    }
+}
+
+internal object ManagedFrameworkAssets {
+    data class Result(val assemblyPath: String, val state: String,
+                      val installed: Int, val retained: Int)
+
+    private fun sha256(bytes: ByteArray): String =
+        java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bytes).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
+    private fun sha256(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(65536)
+        file.inputStream().use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count > 0) digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
+
+    fun ensure(context: android.content.Context, dir: File, verifyCached: Boolean): Result {
+        require(dir.isDirectory || dir.mkdirs()) { "CSharp framework directory unavailable" }
+        val assets = context.assets
+        val names = assets.list("managed").orEmpty()
+            .filter { it.endsWith(".dll") }.sorted()
+        for (required in listOf("System.Private.CoreLib.dll", "System.Runtime.dll",
+            "BunnyManagedProbe.dll", "BunnySourceCompiler.dll", "BunnySourceSdk.dll",
+            "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll"))
+            require(required in names) { "CSharp framework missing: $required" }
+        val manifest = assets.open("managed/framework.sha256").bufferedReader().use {
+            it.readText()
+        }
+        val expected = manifest.lineSequence().filter { it.isNotBlank() }.associate { line ->
+            val separator = line.indexOf('\t')
+            require(separator > 0) { "Invalid CSharp framework manifest" }
+            val name = line.substring(0, separator)
+            val hash = line.substring(separator + 1).trim()
+            require(hash.length == 64 && hash.all { it in '0'..'9' || it in 'a'..'f' })
+            name to hash
+        }
+        require(expected.size == names.size && expected.keys.containsAll(names)) {
+            "CSharp framework APK manifest mismatch"
+        }
+        val marker = File(dir, "framework-version.txt")
+        val fingerprint = sha256(manifest.toByteArray(Charsets.UTF_8))
+        val previousFingerprint = runCatching {
+            if (marker.isFile) marker.readText().trim() else ""
+        }.getOrDefault("")
+        val markerMatches = previousFingerprint == fingerprint ||
+            previousFingerprint.endsWith(":" + fingerprint)
+        val path = File(dir, "BunnyManagedProbe.dll").absolutePath
+        if (markerMatches && !verifyCached) return Result(path, "MarkerReady", 0, names.size)
+        val valid = HashSet<String>(names.size)
+        for (name in names) {
+            val current = File(dir, name)
+            if (current.isFile && current.length() > 0L &&
+                sha256(current) == expected[name]) valid.add(name)
+        }
+        if (valid.size == names.size) {
+            if (previousFingerprint != fingerprint) marker.writeText(fingerprint)
+            verifySdk(dir)
+            return Result(path, "HitVerified", 0, names.size)
+        }
+        marker.delete()
+        var installed = 0
+        for (name in names) {
+            if (name in valid) continue
+            val target = File(dir, name)
+            val temporary = File(dir, "$name.framework.tmp")
+            try {
+                assets.open("managed/$name").use { source ->
+                    temporary.outputStream().use { output -> source.copyTo(output) }
+                }
+                require(temporary.isFile && temporary.length() > 0L &&
+                    sha256(temporary) == expected[name]) {
+                    "Assembly do APK falhou verificacao SHA-256: $name"
+                }
+                require(temporary.renameTo(target)) {
+                    "Assembly CSharp nao pode ser instalado atomicamente: $name"
+                }
+                installed++
+            } finally {
+                temporary.delete()
+            }
+        }
+        verifySdk(dir)
+        marker.writeText(fingerprint)
+        return Result(path, "InstalledVerified", installed, names.size - installed)
+    }
+
+    private fun verifySdk(dir: File) {
+        val sdk = File(dir, "BunnySourceSdk.dll")
+        require(sdk.isFile && sdk.readBytes().toString(Charsets.ISO_8859_1)
+            .contains("MoveSpeedPercent")) {
+            "BunnySourceSdk.dll nao possui MoveSpeedPercent; verifique a versao do APK"
         }
     }
 }
