@@ -12,7 +12,8 @@ public class LogcatDiagnosticsTest {
             String line = "  W/BunnyCSharp(13365): mono phase=" + phase + " detail=";
             check(!LogcatDiagnostics.isFailureHint(line) && LogcatDiagnostics.isMonoProgress(line), line);
         }
-        String[] failures = {"F/libc (13365): Fatal signal 6", "JNI DETECTED ERROR IN APPLICATION",
+        String[] failures = {"F/libc (13365): Fatal signal 6",
+            "F/libc: Abort message: mono phase=verified detail=", "JNI DETECTED ERROR IN APPLICATION",
             "Abort message: assertion failed", "E/Unity (13365): failed frame", "E/BunnyLoader: crash",
             "W/BunnyCSharp: mono phase=opening-library detail=dlopen failed",
             "W/BunnyCSharp: mono phase=compile-failed detail=", "mono phase=compile-return-invalid detail=",
