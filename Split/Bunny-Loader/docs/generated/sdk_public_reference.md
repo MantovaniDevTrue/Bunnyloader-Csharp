@@ -324,8 +324,8 @@ abstract class; base: `System.Object`.
 ```csharp
 Int64 Calls { get; }
 Int64 Faults { get; }
-string LastError { get; }
 Int64 NativeAccessRecoveries { get; }
+string LastError { get; }
 ```
 
 | Method | Execution |
