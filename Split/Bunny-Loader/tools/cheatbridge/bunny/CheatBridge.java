@@ -131,6 +131,7 @@ public class CheatBridge {
     public static native String nCSharpConsoleRun(String id, String sourceRoot, String workDir);
     public static native String[] nCSharpConsoleTake();
     public static native String nCSharpHookCounters();
+    public static native String nCSharpRuntimeStatus();
     /** Reiniciar o jogo: pede (salvando antes, se `save`) e pergunta se ja pode fechar. */
     public static native void nRequestRestart(boolean save);
     /** Editor em tela cheia: o mundo para (Main.CanPauseGame, menu/DevTools.h). */

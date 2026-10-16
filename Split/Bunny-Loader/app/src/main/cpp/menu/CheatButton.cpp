@@ -17,6 +17,7 @@
 #include "script/api/Console.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "script/bridge/ScriptEngine.h"
 
 #include <atomic>
 #include <mutex>
@@ -26,6 +27,8 @@
 #include <jni.h>
 #include <iterator>
 #include <string>
+
+extern "C" int64_t bunny_universal_hook_stat(int key);
 
 namespace bl::ui {
 
@@ -188,6 +191,38 @@ jstring JNICALL jni_csharpHookCounters(JNIEnv* env, jclass) {
     if (!firstRead.exchange(true, std::memory_order_relaxed))
         BL_INFO("[CSharp][Editor] HookCounters=VisiblePathConnected Source=MonoVMCachedSnapshot Bytes=%zu", snapshot.size());
     return toJava(env, snapshot);
+}
+
+jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
+    const bool exclusive = bl::config().disableQuickJs;
+    const bool javascriptRunning = bl::script::engine().ready();
+    const auto mono = bl::csharp::managedRuntimeStatus();
+    std::string status = "C# exclusivo: ";
+    status += exclusive ? "ativo" : "desligado";
+    status += " | QuickJS: ";
+    status += javascriptRunning ? "inicializado" : "nao inicializado";
+    status += " | MonoVM: ";
+    status += mono.domainInitialized && mono.methodExecuted ? "ativo" : "aguardando";
+    const auto mods = bl::csharp::autoSourceStatuses();
+    int applied = 0;
+    int cached = 0;
+    int errors = 0;
+    for (const auto& mod : mods) {
+        if (mod.applied) ++applied;
+        if (mod.cached) ++cached;
+        if (!mod.error.empty()) ++errors;
+    }
+    status += "\nMods C#: " + std::to_string(applied) + "/" + std::to_string(mods.size());
+    status += " carregados | cache=" + std::to_string(cached);
+    status += " | erros=" + std::to_string(errors);
+
+    status += "\nHooks universais: chamadas=";
+    status += std::to_string(bunny_universal_hook_stat(0));
+    status += " concluidos=" + std::to_string(bunny_universal_hook_stat(1));
+    status += " ocupados=" + std::to_string(bunny_universal_hook_stat(2));
+    status += " timeouts=" + std::to_string(bunny_universal_hook_stat(3));
+    status += " falhas=" + std::to_string(bunny_universal_hook_stat(4));
+    return toJava(env, status);
 }
 
 jobjectArray JNICALL jni_csharpConsoleTake(JNIEnv* env, jclass) {
@@ -532,6 +567,7 @@ void installCheatButton() {
         {"nCSharpConsoleRun", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleRun)},
         {"nCSharpConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpConsoleTake)},
         {"nCSharpHookCounters", "()Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpHookCounters)},
+        {"nCSharpRuntimeStatus", "()Ljava/lang/String;", reinterpret_cast<void*>(&jni_csharpRuntimeStatus)},
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
