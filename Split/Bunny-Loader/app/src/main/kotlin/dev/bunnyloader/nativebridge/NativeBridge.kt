@@ -26,6 +26,7 @@ class NativeConfig(
     @JvmField val joinPlayer: String = "",
     @JvmField val managedProbePath: String = "",
     @JvmField val managedCheckpointPath: String = "",
+    @JvmField val disableQuickJs: Boolean = false,
     @JvmField val appContext: android.content.Context,
 )
 
