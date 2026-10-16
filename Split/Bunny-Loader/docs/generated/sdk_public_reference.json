@@ -340,6 +340,14 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static bool KillNpc(int modSlot, int type, int slot, int generation)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static int Register(string modId, string assemblyPath)",
           "execution": "worker_async_entity"
         },
@@ -584,8 +592,8 @@
       "constructors": [],
       "properties": [
         "BunnyItemBehavior Behavior { get; }",
-        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }",
+        "Dictionary<string, string> TooltipTranslations { get; }",
+        "IReadOnlyList<string> RecipeDefinitions { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -947,6 +955,10 @@
         },
         {
           "signature": "void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnKill(ref BunnyProjectileAiState state)",
           "execution": "worker_async_entity"
         },
         {
