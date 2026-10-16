@@ -202,6 +202,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Announce experimental .71 APK build
+        if: github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          if [ -n "${GH_TOKEN:-}" ]; then
+            gh issue comment 48 --repo "$GITHUB_REPOSITORY" \
+              --body "Compilacao APK .71 iniciada: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Commit ${GITHUB_SHA}. A publicacao privada sera confirmada somente apos assinatura e entrega." \
+              || echo "::warning::Nao foi possivel avisar a PR sobre inicio da compilacao"
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
