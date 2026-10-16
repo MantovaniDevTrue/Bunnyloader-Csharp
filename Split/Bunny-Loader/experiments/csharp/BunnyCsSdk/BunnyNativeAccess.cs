@@ -135,6 +135,26 @@ public sealed class BunnyNativeBatch
         }
     }
     public int Count => members.Length;
+    public BunnyValue ReadAndInvoke(BunnyNativeMember method,BunnyValue[] destination,
+        BunnyNativeObject target=default,BunnyValue arg0=default,BunnyValue arg1=default,
+        BunnyValue arg2=default,BunnyValue arg3=default)
+    {
+        scope.RequireLive();
+        if(method is null||method.Scope!=scope||method.Category!=3)
+            throw new ArgumentException("Metodo nativo do mesmo escopo",nameof(method));
+        if(destination is null||destination.Length<Count)
+            throw new ArgumentException("Destino insuficiente",nameof(destination));
+        int slot=0;long ticket=0;nint self=0;
+        foreach(var member in members)member.Context(target,out slot,out ticket,out self);
+        method.Context(target,out slot,out ticket,out self);
+        var args=new NativeAccess.Arguments { A=arg0,B=arg1,C=arg2,D=arg3 };
+        var status=NativeAccess.ReadBatchInvoke(scope.Token,slot,ticket,self,ids,scratch,Count,
+            method.Id,method.ArgumentCount,in args,out BunnyValue result);
+        if(status!=BunnyAccessStatus.Ok)
+            throw new BunnyAccessException(status,"Lote e metodo nativos");
+        Array.Copy(scratch,destination,Count);
+        return result;
+    }
     public void Read(BunnyValue[] destination,BunnyNativeObject target=default)
     {
         scope.RequireLive();
@@ -173,4 +193,8 @@ internal static class NativeAccess
     internal static extern BunnyAccessStatus Call(long scope,int member,int op,int slot,long ticket,nint self,int count,in Arguments args,out BunnyValue result);
     [DllImport("bunny",EntryPoint="bunny_native_read_batch",CallingConvention=CallingConvention.Cdecl)]
     internal static extern BunnyAccessStatus ReadBatch(long scope,int slot,long ticket,nint self,[In]int[] members,[Out]BunnyValue[] result,int count);
+    [DllImport("bunny",EntryPoint="bunny_native_read_batch_invoke",CallingConvention=CallingConvention.Cdecl)]
+    internal static extern BunnyAccessStatus ReadBatchInvoke(long scope,int slot,long ticket,nint self,
+        [In]int[] members,[Out]BunnyValue[] result,int count,int method,int argCount,
+        in Arguments args,out BunnyValue methodResult);
 }
