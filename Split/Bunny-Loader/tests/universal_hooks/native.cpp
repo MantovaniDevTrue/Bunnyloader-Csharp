@@ -14,6 +14,7 @@ extern "C" int bunny_universal_hook_install(const char*, const char*, int, int);
 extern "C" void bunny_universal_hook_remove(int);
 extern "C" int bunny_universal_hook_original(int, int64_t);
 extern "C" int64_t bunny_universal_hook_stat(int);
+extern "C" void bunny_universal_hook_test_expire_suspend(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
@@ -134,9 +135,31 @@ int main() {
     call();
     assert(vanilla == 8);
     assert(bunny_universal_hook_stat(3) == timeoutsBefore + 3);
-    assert(bunny_universal_hook_stat(4) == faultsBefore + 1);
+    assert(bunny_universal_hook_stat(4) == faultsBefore);
+    assert(bunny_universal_hook_stat(7) == 1);
+    assert(bunny_universal_hook_stat(8) == 0);
     call();
     assert(vanilla == 9);
     assert(bunny_universal_hook_stat(3) == timeoutsBefore + 3);
-    std::cout << "native: metadata, original affinity, cooldown recovery, 3-timeout circuit breaker, unhook and rebind PASS\n";
+    assert(bunny_universal_hook_stat(0) >= 3);
+    const int64_t completedBefore = bunny_universal_hook_stat(1);
+    std::atomic<bool> ready{false};
+    std::thread resumed([&] {
+        ready = true;
+        csharp::UniversalHookMailbox::Work work{};
+        while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
+        assert(work.slot == 5 && work.self == 123);
+        assert(bunny_universal_hook_original(work.slot, work.ticket));
+        assert(csharp::universalHookMailbox().complete(work.ticket, true));
+    });
+    while (!ready) std::this_thread::yield();
+    bunny_universal_hook_test_expire_suspend(handle);
+    call();
+    resumed.join();
+    assert(vanilla == 10);
+    assert(bunny_universal_hook_stat(1) == completedBefore + 1);
+    assert(bunny_universal_hook_stat(7) == 1);
+    assert(bunny_universal_hook_stat(8) == 1);
+    assert(bunny_universal_hook_stat(4) == faultsBefore);
+    std::cout << "native: metadata, original affinity, cooldown, 30s circuit suspension, auto-rearm, protected original PASS\n";
 }
