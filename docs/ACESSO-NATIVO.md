@@ -1,6 +1,6 @@
 # Acesso ao Terraria pelo SDK C#: lote A
 
-Núcleo experimental .70 que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
+Núcleo experimental .71 que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
 
 ## O que entra neste lote
 
@@ -119,3 +119,7 @@ LD_LIBRARY_PATH="$PWD/build/native-access" dotnet run --project tests/native_acc
 ```
 
 Executar em `Split/Bunny-Loader`. A suíte usa IL2CPP simulado para validar operações na thread correta, layouts, largura/faixa, propriedades, sobrecargas, exceções, batch e recusa de self vencido/forjado. A suíte C# compila o exemplo e verifica P/Invoke, tipos, descarregamento e 10 mil chamadas de batch+método sem nova alocação gerenciada observada no host. Não mede boxing IL2CPP, latência entre threads, FPS ou integração MonoVM/Android. O lote ainda requer build e ensaio controlado no Xiaomi.
+
+## Timeouts recuperáveis na .71
+
+Operações de acesso nativo dentro de hooks continuam síncronas e restritas à thread do jogo. A espera de acesso pode levar até 5 ms enquanto o hook universal possui orçamento de 3 ms para trabalho gerenciado; o serviço na thread do jogo agora concede no máximo 2 ms adicionais por callback, não por operação. Se um acesso resultar em `Busy` ou `TimedOut` depois de `original.Invoke()` bem-sucedido, o dispatcher C# registra `BunnyHooks.NativeAccessRecoveries`, preserva a implementação original e não desliga o hook. `TypeMismatch`, `NativeException` e outros erros reais seguem o isolamento usual. Se o original ainda não executou, um erro não é aceito como sucesso. Isso não elimina automaticamente todos os timeouts por carga no Android; testar FPS, retomadas e erros finais.
