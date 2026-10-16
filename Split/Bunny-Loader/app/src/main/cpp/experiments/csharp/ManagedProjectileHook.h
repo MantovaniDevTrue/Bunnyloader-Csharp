@@ -126,6 +126,10 @@ struct ManagedProjectileHookStatus {
 };
 
 void resetManagedSourceProjectileSlots();
+bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
+                                        int npcIndex, int damage);
+bool installManagedSourceEntityHitHook();
+bool installManagedSourceEntityKillHook();
 bool installManagedEntityProjectileHook();
 
 bool enableManagedProjectileCurve(const std::string& modId,
