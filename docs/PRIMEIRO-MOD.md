@@ -2,7 +2,7 @@
 
 Use o SDK e o APK do mesmo checkpoint. O loader compila os `.cs` no Android;
 .NET no PC é opcional para autocomplete e verificação. Mods do Bunny seguem
-os contratos deste SDK, sem importar classes de tModLoader/TLPro.
+os contratos deste SDK, sem importar classes de tModLoader.
 
 ## Criar e empacotar
 
