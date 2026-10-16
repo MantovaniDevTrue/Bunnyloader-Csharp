@@ -313,6 +313,20 @@ bool compile(const std::string& root, const std::string& id,
                                         elapsed < 12s ? 100ms : 300ms);
             continue;
         }
+        const auto compileTiming=[&](const char* name) {
+            const std::string prefix=std::string(name)+"=";
+            const size_t start=status.find(prefix);
+            if(start==std::string::npos)return std::string("n/a");
+            const auto offset=start+prefix.size();
+            const auto end=status.find('\n',offset);
+            return status.substr(offset,end==std::string::npos?24:
+                std::min<size_t>(24,end-offset));
+        };
+        BL_INFO("[CSharp][Startup] Mod=%s Stage=MonoWorkerTimeline FrameworkMs=%s ManagedCompileMs=%s WorkerTotalMs=%s FrameworkCache=%s",
+                id.c_str(),compileTiming("frameworkSetupMs").c_str(),
+                compileTiming("managedCompileMs").c_str(),
+                compileTiming("workerTotalMs").c_str(),
+                compileTiming("frameworkCache").c_str());
         *defaults = readText(workDir + "source-runtime-values.txt", kSourceDefaultsBytes);
         *curves = readText(workDir + "source-projectile-turns.txt", kSourceMotionBytes);
         *combat = readText(workDir + "source-combat-policies.txt", kSourceMotionBytes);

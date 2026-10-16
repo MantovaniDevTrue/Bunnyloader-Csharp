@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.SurfaceView
 import android.view.Window
 import android.widget.Toast
+import dev.bunnyloader.csharp.ManagedFrameworkAssets
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.Eligibility
@@ -116,6 +117,21 @@ class GameActivity : Activity() {
                     Log.w(TAG, "csharp benchmark assembly setup failed: $assembly", it)
                     BootLog.add(this, "csharp benchmark $assembly: ${it.message ?: it.javaClass.simpleName}")
                 }
+        }
+
+        val frameworkStarted = android.os.SystemClock.elapsedRealtime()
+        runCatching {
+            ManagedFrameworkAssets.ensure(
+                this, File(filesDir, "bunny-csharp"), verifyCached = false
+            )
+        }.onSuccess { result ->
+            BootLog.add(this, "csharp framework: " + result.state +
+                " updated=" + result.installed + " retained=" + result.retained +
+                " TimeMs=" + (android.os.SystemClock.elapsedRealtime() - frameworkStarted))
+        }.onFailure { error ->
+            Log.e(TAG, "CSharp framework staging failed", error)
+            BootLog.add(this, "csharp framework: staging pendente " +
+                (error.message ?: error.javaClass.simpleName).take(180))
         }
 
         // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
