@@ -125,6 +125,16 @@ public static class BunnyEntitySourceDispatcher
         bool fresh = instance.Generation != generation || instance.Type != type;
         if (fresh)
         {
+            if (instance.Generation > 0 &&
+                context.Npcs.TryGetValue(instance.Type, out BunnyNPC? previousNpc))
+            {
+                var previousState = new BunnyNpcAiState {
+                    Slot = slot, Type = instance.Type, Generation = instance.Generation,
+                    Age = instance.Age
+                };
+                try { previousNpc.OnDespawn(ref previousState); }
+                catch (Exception error) { Fault(context, previousNpc.GetType().Name + ".OnDespawn", error); }
+            }
             instance = new NpcInstance { Generation = generation, Type = type };
         }
         if (instance.Blocked) return -1;
@@ -161,6 +171,16 @@ public static class BunnyEntitySourceDispatcher
                      instance.Owner != owner;
         if (fresh)
         {
+            if (instance.Generation > 0 &&
+                context.Projectiles.TryGetValue(instance.Type, out BunnyProjectile? oldProjectile))
+            {
+                var previousState = new BunnyProjectileAiState {
+                    Slot = slot, Type = instance.Type, Generation = instance.Generation,
+                    Owner = instance.Owner, Age = instance.Age
+                };
+                try { oldProjectile.OnDespawn(ref previousState); }
+                catch (Exception error) { Fault(context, oldProjectile.GetType().Name + ".OnDespawn", error); }
+            }
             instance = new ProjectileInstance { Generation = generation, Type = type, Owner = owner };
         }
         if (instance.Blocked) return -1;
@@ -195,7 +215,11 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             npc.OnHit(ref state, damage);
-            if (killed) npc.OnKill(ref state);
+            if (killed)
+            {
+                npc.OnKill(ref state);
+                instance.Blocked = true;
+            }
             return true;
         }
         catch (Exception error)
@@ -236,6 +260,30 @@ public static class BunnyEntitySourceDispatcher
     {
         foreach (Context context in Contexts)
         {
+            for (int i = 0; i < context.NpcSlots.Length; i++)
+            {
+                NpcInstance current = context.NpcSlots[i];
+                if (current.Generation <= 0 || !context.Npcs.TryGetValue(current.Type, out BunnyNPC? npc))
+                    continue;
+                var state = new BunnyNpcAiState {
+                    Slot = i, Type = current.Type, Generation = current.Generation, Age = current.Age
+                };
+                try { npc.OnDespawn(ref state); }
+                catch (Exception error) { Fault(context, npc.GetType().Name + ".ResetWorld", error); }
+            }
+            for (int i = 0; i < context.ProjectileSlots.Length; i++)
+            {
+                ProjectileInstance current = context.ProjectileSlots[i];
+                if (current.Generation <= 0 ||
+                    !context.Projectiles.TryGetValue(current.Type, out BunnyProjectile? projectile))
+                    continue;
+                var state = new BunnyProjectileAiState {
+                    Slot = i, Type = current.Type, Generation = current.Generation,
+                    Owner = current.Owner, Age = current.Age
+                };
+                try { projectile.OnDespawn(ref state); }
+                catch (Exception error) { Fault(context, projectile.GetType().Name + ".ResetWorld", error); }
+            }
             Array.Clear(context.NpcSlots);
             Array.Clear(context.ProjectileSlots);
         }
