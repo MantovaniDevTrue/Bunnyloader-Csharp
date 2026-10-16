@@ -364,6 +364,14 @@ void* g_entityProjectileKill = nullptr;
 std::atomic<int> g_entityCombatSubmitted{0};
 std::atomic<int> g_entityCombatDropped{0};
 std::array<std::atomic<int>, 4> g_entityCombatExecuted{};
+std::array<std::atomic<int>, 4> g_entityCombatQueued{};
+std::array<std::atomic<int>, 4> g_entityCombatUnbound{};
+std::array<std::atomic<int>, 4> g_entityCombatRejected{};
+std::array<std::atomic<int>, 4> g_entityCombatFaulted{};
+std::array<std::atomic<int>, 4> g_entityCombatLost{};
+std::array<std::atomic<int>, 4> g_entityCombatDroppedByKind{};
+std::atomic<int> g_entityCombatStatusWrites{0};
+
 
 std::atomic<int> g_entityJobsSubmitted{0};
 std::atomic<int> g_entityJobsCompleted{0};
@@ -935,6 +943,45 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     return packed;
 }
 
+void persistManagedEntityCombatSnapshot(uint64_t session, size_t pending) {
+    std::string checkpoint;
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        checkpoint = g_checkpointPath;
+    }
+    const size_t slash = checkpoint.find_last_of('/');
+    if (slash == std::string::npos) return;
+    const std::string file = checkpoint.substr(0, slash + 1) + "entity-combat-status.txt";
+    const std::string temp = file + ".tmp";
+    const char* names[] = {"NPC.OnHit", "NPC.OnKill", "Projectile.OnHitNPC", "Projectile.OnKill"};
+    std::string text = "state=observed\nsession=" + std::to_string(session) +
+        "\nmods=" + std::to_string(g_entityModCount.load(std::memory_order_relaxed)) +
+        "\nqueuedTotal=" + std::to_string(g_entityCombatSubmitted.load(std::memory_order_relaxed)) +
+        "\ndroppedTotal=" + std::to_string(g_entityCombatDropped.load(std::memory_order_relaxed)) +
+        "\nqueuePending=" + std::to_string(pending) +
+        "\nworkerWrites=" + std::to_string(g_entityCombatStatusWrites.load(std::memory_order_relaxed)) + "\n";
+    for (size_t i = 0; i < 4; ++i) {
+        text += std::string(names[i]) +
+            " queued=" + std::to_string(g_entityCombatQueued[i].load(std::memory_order_relaxed)) +
+            " executed=" + std::to_string(g_entityCombatExecuted[i].load(std::memory_order_relaxed)) +
+            " rejected=" + std::to_string(g_entityCombatRejected[i].load(std::memory_order_relaxed)) +
+            " error=" + std::to_string(g_entityCombatFaulted[i].load(std::memory_order_relaxed)) +
+            " unbound=" + std::to_string(g_entityCombatUnbound[i].load(std::memory_order_relaxed)) +
+            " dropped=" + std::to_string(g_entityCombatDroppedByKind[i].load(std::memory_order_relaxed)) +
+            " stale=" + std::to_string(g_entityCombatLost[i].load(std::memory_order_relaxed)) + "\n";
+    }
+    FILE* output = std::fopen(temp.c_str(), "wb");
+    if (!output) return;
+    const bool good = std::fwrite(text.data(), 1, text.size(), output) == text.size();
+    const bool closed = std::fclose(output) == 0;
+    if (good && closed) {
+        if (std::rename(temp.c_str(), file.c_str()) == 0)
+            g_entityCombatStatusWrites.fetch_add(1, std::memory_order_relaxed);
+    } else {
+        std::remove(temp.c_str());
+    }
+}
+
 int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
@@ -1391,6 +1438,15 @@ void* pinnedMonoWorker(void*) {
                             };
                         }
                         g_entityJobsCompleted.fetch_add(1, std::memory_order_relaxed);
+                        if (job.kind >= 2 && job.kind <= 5) {
+                            const int eventIndex=job.kind-2;
+                            if (result == 0)
+                                g_entityCombatRejected[static_cast<size_t>(eventIndex)]
+                                    .fetch_add(1, std::memory_order_relaxed);
+                            if (result < 0)
+                                g_entityCombatFaulted[static_cast<size_t>(eventIndex)]
+                                    .fetch_add(1, std::memory_order_relaxed);
+                        }
                         if (job.kind >= 2 && job.kind <= 5 && result == 1) {
                             const int eventIndex=job.kind-2;
                             const int observed=g_entityCombatExecuted[static_cast<size_t>(eventIndex)]
@@ -1405,6 +1461,21 @@ void* pinnedMonoWorker(void*) {
                                     names[eventIndex], job.type, job.slot, job.generation);
 #endif
                             }
+                        }
+                    } else if (job.kind >= 2 && job.kind <= 5) {
+                        g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
+                            .fetch_add(1, std::memory_order_relaxed);
+                    }
+                    if (job.kind >= 2 && job.kind <= 5) {
+                        static std::chrono::steady_clock::time_point nextSnapshot{};
+                        const auto now = std::chrono::steady_clock::now();
+                        if (now >= nextSnapshot) {
+                            nextSnapshot = now + std::chrono::seconds(1);
+                            const uint64_t session = g_entitySession;
+                            const size_t pending = g_entityQueue.size();
+                            lock.unlock();
+                            persistManagedEntityCombatSnapshot(session, pending);
+                            lock.lock();
                         }
                     }
                     continue;
@@ -1537,17 +1608,22 @@ bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int genera
         type < 0 || type >= 32768 || slot < 0 || damage < 0 ||
         (eventKind <= 3 ? slot >= 512 : slot >= 4096) ||
         (eventKind == 4 && (targetIndex < 0 || targetIndex >= 200))) return false;
+    const size_t eventIndex = static_cast<size_t>(eventKind - 2);
     const bool npc = eventKind <= 3;
     const int bound = (npc ? g_entityNpcTypeOwner[static_cast<size_t>(type)]
                            : g_entityProjectileTypeOwner[static_cast<size_t>(type)])
                           .load(std::memory_order_acquire);
-    if (bound <= 0) return false;
+    if (bound <= 0) {
+        g_entityCombatUnbound[eventIndex].fetch_add(1, std::memory_order_relaxed);
+        return false;
+    }
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock() || !g_pinnedStarted ||
         static_cast<size_t>(bound - 1) >= g_entityBindings.size() ||
         !g_entityBindings[static_cast<size_t>(bound - 1)].armed ||
         g_entityQueue.size() >= 64) {
         g_entityCombatDropped.fetch_add(1, std::memory_order_relaxed);
+        g_entityCombatDroppedByKind[eventIndex].fetch_add(1, std::memory_order_relaxed);
         return false;
     }
     ManagedEntityJob job;
@@ -1563,6 +1639,7 @@ bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int genera
     job.target = targetIndex;
     g_entityQueue.push_back(job);
     g_entityCombatSubmitted.fetch_add(1, std::memory_order_relaxed);
+    g_entityCombatQueued[eventIndex].fetch_add(1, std::memory_order_relaxed);
     g_pinnedWake.notify_one();
     return true;
 }
