@@ -133,6 +133,7 @@ object BootLog {
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
             "\n--- último carregamento C# registrado (pode ser anterior) ---\n" + lastCSharpStartup(ctx) +
             "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
+            "\n--- combate de NPCs e projéteis C# (MonoVM) ---\n" + lastCSharpEntityCombat(ctx) +
             "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
@@ -158,6 +159,15 @@ object BootLog {
         "arquivo=${latest.name} atualizadoHa=${ageSeconds}s\n" +
             details.ifBlank { "(sem medições de carregamento C# nesse log)" }
     }.getOrElse { "(erro ao ler carregamento C#: ${it.javaClass.simpleName})" }
+
+    private fun lastCSharpEntityCombat(ctx: Context): String = runCatching {
+        val file = File(ctx.filesDir, "bunny-csharp/entity-combat-status.txt")
+        if (!file.isFile) return@runCatching "(sem telemetria de combate C# registrada nesta instalação)"
+        val ageSeconds = ((System.currentTimeMillis() - file.lastModified()) / 1000L)
+            .coerceAtLeast(0L)
+        "entity-combat-status.txt registrado há ${ageSeconds}s (pode ser de sessão anterior):\\n" +
+            file.readText().take(1800)
+    }.getOrElse { "(erro ao ler telemetria: ${it.javaClass.simpleName})" }
 
     private fun lastCSharpCompilation(ctx: Context): String = buildString {
         val dir = File(ctx.filesDir, "bunny-csharp")
