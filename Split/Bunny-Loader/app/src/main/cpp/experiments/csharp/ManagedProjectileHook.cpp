@@ -306,7 +306,8 @@ int g_managedEntityProjectileGeneration = 1;
 FieldInfo* g_managedEntityNetMode = nullptr;
 
 void runManagedEntityProjectile(Il2CppObject* projectile,
-                                const runtime::GameRefs& game, int type) {
+                                const runtime::GameRefs& game, int type,
+                                bool applyVelocity) {
     if (!hasManagedEntityProjectileType(type) ||
         !runtime::field<uint8_t>(projectile, game.proj.active)) return;
     if (!g_managedEntityNetMode) {
@@ -342,6 +343,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         reinterpret_cast<uintptr_t>(projectile),
         position.x + width * 0.5f, position.y + height * 0.5f,
         before.x, before.y, target.player.x, target.player.y, &next)) return;
+    if (!applyVelocity) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int>(projectile, game.proj.type) != type ||
         runtime::field<int>(projectile, game.entity.whoAmI) != slot ||
@@ -369,12 +371,12 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
             coveredByCurve = g_curveStates[static_cast<size_t>(curveIndex)]
                 .enabled.load(std::memory_order_acquire);
     }
-    if (!coveredByCurve &&
-        !(g_sparkEnabled.load(std::memory_order_acquire) &&
-          projectileType == g_sparkType.load(std::memory_order_relaxed)) &&
-        !(g_enabled.load(std::memory_order_acquire) &&
-          projectileType == g_type.load(std::memory_order_relaxed)))
-        runManagedEntityProjectile(projectile, game, projectileType);
+    const bool nativeMotion = coveredByCurve ||
+        (g_sparkEnabled.load(std::memory_order_acquire) &&
+         projectileType == g_sparkType.load(std::memory_order_relaxed)) ||
+        (g_enabled.load(std::memory_order_acquire) &&
+         projectileType == g_type.load(std::memory_order_relaxed));
+    runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);
     if (projectileType >= 0 &&
         static_cast<size_t>(projectileType) < g_curveByType.size()) {
         const int slot = g_curveByType[static_cast<size_t>(projectileType)]
