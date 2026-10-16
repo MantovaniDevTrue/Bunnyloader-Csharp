@@ -529,6 +529,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_int32"
+        },
+        {
           "signature": "BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -555,6 +559,10 @@
           "execution": "experimental_worker_sync_void0"
         },
         {
+          "signature": "static BunnyMethodHook HookInt32(BunnyHookScope scope, string type, string method, BunnyInt32Hook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_int32"
+        },
+        {
           "signature": "static int Dispatch(int slot, Int64 ticket, IntPtr self)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -565,6 +573,10 @@
         {
           "signature": "static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)",
           "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)",
+          "execution": "experimental_worker_sync_int32"
         },
         {
           "signature": "static void RemoveSlot(int slot)",
@@ -656,6 +668,30 @@
         "Projectile"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInt32Hook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyInt32Hook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int value, AsyncCallback callback, Object object)",
+          "execution": "experimental_worker_sync_int32"
+        },
+        {
+          "signature": "int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)",
+          "execution": "experimental_worker_sync_int32"
+        },
+        {
+          "signature": "void EndInvoke(IAsyncResult result)",
+          "execution": "experimental_worker_sync_int32"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyItem",
@@ -849,6 +885,20 @@
       "properties": [],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyOriginalInt32",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "int Invoke()",
+          "execution": "experimental_worker_sync_int32"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyOriginalVoid",
