@@ -925,6 +925,100 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     return packed;
 }
 
+int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.unbox || !g_api.newString) return -1;
+    if (!g_api.attach(g_domain)) return -1;
+
+    ManagedEntityBinding binding;
+    {
+        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+        if (job.session != g_entitySession || job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
+            !g_entityBindings[static_cast<size_t>(job.binding)].armed) return -1;
+        binding = g_entityBindings[static_cast<size_t>(job.binding)];
+    }
+    if (!g_entityRegister) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return -1;
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return -1;
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                             "BunnyEntitySourceDispatcher") : nullptr;
+        if (!klass) return -1;
+        g_entityRegister = g_api.findMethod(klass, "Register", 2);
+        g_entityBind = g_api.findMethod(klass, "Bind", 4);
+        g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 12);
+        g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 11);
+        if (!g_entityRegister || !g_entityBind ||
+            !g_entityNpcTick || !g_entityProjectileTick) return -1;
+    }
+    int managedSlot = binding.managedSlot;
+    if (managedSlot < 0) {
+        if (!validAssembly(binding.assemblyPath)) return -1;
+        void* registerArgs[] = {
+            g_api.newString(g_domain, binding.modId.c_str()),
+            g_api.newString(g_domain, binding.assemblyPath.c_str())
+        };
+        if (!registerArgs[0] || !registerArgs[1]) return -1;
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_entityRegister, nullptr, registerArgs, &exception);
+        void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return -1;
+        std::memcpy(&managedSlot, raw, sizeof(managedSlot));
+        if (managedSlot < 0 || managedSlot >= 16) return -1;
+
+        auto bindTypes = [&](int kind, const std::vector<std::pair<int, std::string>>& values) {
+            for (const auto& [id, name] : values) {
+                void* stringValue = g_api.newString(g_domain, name.c_str());
+                if (!stringValue) continue;
+                void* args[] = {&managedSlot, &kind, const_cast<int*>(&id), stringValue};
+                void* bindException = nullptr;
+                g_api.invoke(g_entityBind, nullptr, args, &bindException);
+                if (bindException) return false;
+            }
+            return true;
+        };
+        if (!bindTypes(0, binding.npcTypes) ||
+            !bindTypes(1, binding.projectileTypes)) return -1;
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.session == g_entitySession && job.binding >= 0 &&
+                static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId)
+                g_entityBindings[static_cast<size_t>(job.binding)].managedSlot = managedSlot;
+        }
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "CSharp Entity MonoVM ready mod=%s npc=%zu projectile=%zu",
+                            binding.modId.c_str(), binding.npcTypes.size(),
+                            binding.projectileTypes.size());
+#endif
+    }
+    int type = job.type, slot = job.slot, generation = job.generation;
+    int life = job.life, maxLife = job.lifeMax, owner = job.owner;
+    float x = job.x, y = job.y, vx = job.vx, vy = job.vy;
+    float px = job.playerX, py = job.playerY;
+    void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
+                       &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
+    void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
+                              &x, &y, &vx, &vy, &px, &py};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(job.kind == 0 ? g_entityNpcTick : g_entityProjectileTick,
+                               nullptr, job.kind == 0 ? npcArgs : projectileArgs,
+                               &exception);
+    void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!raw) return -1;
+    int64_t encoded = -1;
+    std::memcpy(&encoded, raw, sizeof(encoded));
+    return encoded;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
