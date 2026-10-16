@@ -1399,8 +1399,11 @@ void* pinnedMonoWorker(void*) {
                                 const char* names[]={
                                     "NPC.OnHit", "NPC.OnKill", "Projectile.OnHitNPC", "Projectile.OnKill"
                                 };
-                                BL_INFO("csharp source combat: %s executado no MonoVM type=%d slot=%d generation=%d",
+#ifdef __ANDROID__
+                                __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                    "csharp source combat: %s executado no MonoVM type=%d slot=%d generation=%d",
                                     names[eventIndex], job.type, job.slot, job.generation);
+#endif
                             }
                         }
                     }
