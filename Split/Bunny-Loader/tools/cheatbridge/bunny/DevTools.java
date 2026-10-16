@@ -938,7 +938,7 @@ final class DevTools {
                 String runtime = CheatBridge.nCSharpRuntimeStatus();
                 if (runtime == null || runtime.isEmpty())
                     runtime = "C# exclusivo: aguardando | QuickJS: aguardando | MonoVM: aguardando";
-                String summary = runtime.split("\\n", 2)[0];
+                String summary = runtime.split("\n", 2)[0];
                 if (!summary.equals(lastRuntimeStatusLine)) {
                     lastRuntimeStatusLine = summary;
                     appendEntry('h', "[C#] " + summary);
@@ -947,7 +947,7 @@ final class DevTools {
                 String current = CheatBridge.nCSharpHookCounters();
                 if (current == null || current.isEmpty())
                     current = "Hooks C#: aguardando MonoVM...";
-                current = runtime + "\\n" + current;
+                current = runtime + "\n" + current;
                 if (!current.equals(lastHookCountersText)) {
                     lastHookCountersText = current;
                     hookCounters.setText(current);
