@@ -553,12 +553,14 @@ final class DevTools {
             hookCounters.setTextColor(INK);
             hookCounters.setText("Hooks C#: aguardando evento de dano...");
             hookCounters.setBackground(panel(a, PANEL_DARK, OUTLINE));
-            hookCounters.setPadding(px(a, 6), px(a, 4), px(a, 6), px(a, 4));
+            hookCounters.setPadding(px(a, 6), px(a, 6), px(a, 6), px(a, 6));
+            hookCounters.setGravity(Gravity.CENTER_VERTICAL);
+            hookCounters.setMinHeight(px(a, 44));
             hookCounters.setVisibility(View.GONE);
             LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            hl.topMargin = px(a, 4);
-            inner.addView(hookCounters, hl);
+            hl.topMargin = px(a, 5);
+            panel.addView(hookCounters, hl);
 
             // ---- editor + rodar ----
             LinearLayout editRow = new LinearLayout(a);
@@ -585,7 +587,16 @@ final class DevTools {
             editor.setVerticalScrollBarEnabled(true);
             jsDraft = prefs(a).getString("draft", "");
             csharpDraft = prefs(a).getString("draftCSharp", "");
-            editor.setText(jsDraft);
+            csharpMode = prefs(a).getBoolean("editorCsharpMode", true);
+            if (csharpMode) {
+                languageButton.setText("C#");
+                title.setText("Editor C#");
+                editor.setHint("Print(1 + 2);");
+                editor.setText(csharpDraft);
+            } else {
+                editor.setText(jsDraft);
+            }
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
             editor.setSelection(editor.getText().length());
             editor.addTextChangedListener(new CodeWatcher(editor));
             editor.setOnKeyListener(new View.OnKeyListener() {
@@ -640,6 +651,8 @@ final class DevTools {
             if (showing) return;
             showing = true;
             removeFloatIcon();
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            lastHookCountersPoll = 0;
             place(0, false);
             panel.setVisibility(View.VISIBLE);
             // A tela do jogo nao sobe com o teclado: quem sobe e o painel.
@@ -648,6 +661,7 @@ final class DevTools {
             act.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
                 | (savedSoftInput & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE));
             keyboard = new KeyboardWatcher(act, this);
+            if (csharpMode) pullHookCounters();
             handler.post(poll);
             // Sem foco nem teclado ao abrir: o teclado cobria metade da tela
             // antes de a pessoa decidir escrever. Ele abre no toque no editor.
@@ -798,6 +812,7 @@ final class DevTools {
             }
             editor.setSelection(editor.getText().length());
             hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            prefs(act).edit().putBoolean("editorCsharpMode", csharpMode).apply();
             lastHookCountersPoll = 0;
             if (csharpMode) pullHookCounters();
             appendEntry('i', csharpMode
