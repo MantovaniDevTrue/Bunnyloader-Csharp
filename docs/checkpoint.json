@@ -20,9 +20,14 @@
     "androidApi": 34,
     "abi": "arm64-v8a",
     "gameVersion": "1.4.5.8.6 (301720)",
-    "fps": null,
-    "combatTelemetry": null,
-    "scope": "User confirmed successful Android test; FPS, duration and event counters were not provided for this .62 session."
+    "fps": 69,
+    "combatTelemetry": {
+      "queued": 280,
+      "executed": 280,
+      "rejected": 0
+    },
+    "scope": "User confirmed successful .62 Android test. PR #35 records 69 FPS, 280/280 callbacks and zero rejections for that test; not a guarantee for all loads or devices.",
+    "metricsEvidenceUrl": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/35"
   },
   "packages": [
     {

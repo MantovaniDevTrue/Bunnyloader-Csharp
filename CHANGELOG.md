@@ -13,7 +13,7 @@ As alterações abaixo referem-se ao **protótipo C# neste repositório**, não 
 ## 0.1.10.16.90.29.62 — primeiro tick de projétil
 
 - Antecipa o primeiro tick C# sem remover cadência posterior ou validação de identidade/sessão.
-- Build/CI aprovados; Mantovani confirmou: “.62 foi perfeita”. Contadores/FPS da sessão não informados.
+- Build/CI aprovados; Mantovani confirmou: “.62 foi perfeita”. PR #35 registra 69 FPS, 280/280 callbacks e zero rejeições nesse teste.
 
 ## 0.1.10.16.90.29.59–.61 — combate e telemetria
 

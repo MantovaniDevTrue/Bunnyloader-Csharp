@@ -4,7 +4,9 @@ Atualizado em **16/10/2026**. Checkpoint de código e APK:
 **`0.1.10.16.90.29.62-csharp-projectile-initial-tick`**, `versionCode=222`,
 commit [`fe424d7`](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/commit/fe424d7ca2b56bd5474eaaedd3706f17f6f03997).
 Mantovani confirmou nesta data: **“.62 foi perfeita”**. Registramos o teste
-Android informado, sem atribuir contadores ou FPS não enviados para essa sessão.
+Android informado. A PR #35 também registra 69 FPS, 280/280 callbacks e zero
+rejeições para a .62; os números são atribuídos a esse registro, sem extrapolar
+para outros cenários.
 
 ## Evidências por checkpoint
 
@@ -13,11 +15,15 @@ Android informado, sem atribuir contadores ou FPS não enviados para essa sessã
 | `0.1.10.16.90.29.57` | Relatório Android sem erros/avisos; 2 mods C#, 17 itens, 2 prefixos, 11 receitas; save de personagem/mundo; confirmação do usuário | Correções de equipamento, Color e luz no mundo; preparo frio de 14.609 ms nessa sessão |
 | `0.1.10.16.90.29.58` | Usuário confirmou validação; PR #31 registra Android a 60 FPS | IA C# de NPC/projétil sobre as correções da PR #28 |
 | `0.1.10.16.90.29.61` | PR #34: `projectileAiJobsProcessed=735`; projétil hit 23/28 e kill 58/62; NPC hit 128/128 e kill 23/23; zero erros | Ponte com curva nativa; houve rejeições; FPS da sessão não informado |
-| `0.1.10.16.90.29.62` | Build e sete workflows de CI aprovados; usuário confirmou funcionamento perfeito no Android | Primeiro tick antecipado; redução de rejeições precisa de telemetria para ser quantificada |
+| `0.1.10.16.90.29.62` | Build e sete workflows de CI aprovados; usuário confirmou funcionamento perfeito; PR #35 registra 280/280 callbacks, zero rejeições e 69 FPS | Primeiro tick antecipado; números correspondem ao teste registrado, não a todas as cargas |
 
 Ambiente desta linha: **Xiaomi 2109119DG, Android 14/API 34, arm64-v8a,
 Terraria 1.4.5.8.6 (301720)**. A validação nesse aparelho não substitui testes
 em outros dispositivos, multiplayer ou sessões prolongadas.
+
+A [PR #35 (.63)](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/35)
+acrescenta controle de QuickJS e avisos de sessão mista em outra branch. Ela
+ainda pede validação Android e não está incluída no checkpoint integrado .62.
 
 ## Build e pacotes correspondentes
 
