@@ -203,7 +203,7 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += javascriptRunning ? "inicializado" : "nao inicializado";
     status += " | MonoVM: ";
     status += mono.domainInitialized && mono.methodExecuted ? "ativo" : "aguardando";
-    status += "\\nHooks universais: chamadas=";
+    status += "\nHooks universais: chamadas=";
     status += std::to_string(bunny_universal_hook_stat(0));
     status += " concluidos=" + std::to_string(bunny_universal_hook_stat(1));
     status += " ocupados=" + std::to_string(bunny_universal_hook_stat(2));
