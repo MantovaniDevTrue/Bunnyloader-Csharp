@@ -1162,6 +1162,8 @@ void noteAutoGameUpdate() {
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
         installManagedEntityProjectileHook();
+        installManagedSourceEntityHitHook();
+        installManagedSourceEntityKillHook();
     }
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
