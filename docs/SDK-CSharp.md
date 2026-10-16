@@ -201,6 +201,10 @@ DLL e retorna `parsed=0 integrity=verified`. DLL corrompida ou manifesto incompl
 provoca recompilacao. Fontes e bytes usados no hash sao os mesmos usados no
 parsing, evitando compilar uma versao diferente durante uma edicao concorrente.
 
+Na linha experimental .73, o GameActivity prepara os assemblies do MonoVM antes do cache do AutoSourceRuntime: um manifesto SHA-256 seleciona apenas as DLLs realmente alteradas. O processo isolado verifica por SHA-256 os arquivos instalados antes de usá-los. Não existe reutilização de DLL corrompida e a falha de verificação impede o compilador de prosseguir. O arquivo de marcador não substitui a checagem de integridade realizada no worker. Por isso, uma atualização de APK que só altera código nativo não precisa recopiá-las nem invalidar artificialmente o cache C#. Quando o SDK ou compilador mudar de fato, a recompilação continua obrigatória.
+
+O diagnóstico por mod passa a informar `Stage=MonoWorkerTimeline FrameworkMs=... ManagedCompileMs=... WorkerTotalMs=...`, permitindo separar instalação/preparação e execução Roslyn. O RPC usa um polling limitado a 48 µs no worker antes do sono convencional, sem estender o prazo máximo do hook de 3 ms; o Editor C# exibe `respostaRapida` para quantificar esse caminho. Isso não garante iniciar em menos de três segundos no Android: a primeira inicialização MonoVM, as mudanças reais de dependências e compilação de fontes novas dependem do aparelho. Os testes do host e do APK não substituem a medição de carregamento cold/warm e FPS.
+
 O cache externo de AutoSourceRuntime usa um envelope verificado separado.
 Sua chave SHA-256 inclui nomes e bytes dos fontes, identidade do mod, versao do
 envelope/contrato nativo e hashes de todos os assemblies instalados no diretorio
