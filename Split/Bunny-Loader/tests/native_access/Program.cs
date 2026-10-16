@@ -51,10 +51,13 @@ static class Program
             Check(property.Read(target).AsInt32()==125);
             Check(method.Invoke(target,BunnyValue.FromInt32(9)).AsInt32()==10);
             Throws<BunnyAccessException>(()=>position.Write(BunnyValue.FromVector2(default),target));
-            int before=test_calls();batch.Read(destination,target);Check(test_calls()==before+1);
+            int before=test_calls();
+            var combined=batch.ReadAndInvoke(method,destination,target,BunnyValue.FromInt32(9));
+            Check(test_calls()==before+1&&combined.AsInt32()==10);
             Check(destination[0].AsInt32()==125&&destination[1].AsVector2().Y==8&&destination[2].AsBoolean());
             destination[0]=BunnyValue.FromInt32(987);test_batch_fail(1);
-            Throws<BunnyAccessException>(()=>batch.Read(destination,target));Check(destination[0].AsInt32()==987);test_batch_fail(0);
+            Throws<BunnyAccessException>(()=>batch.ReadAndInvoke(method,destination,target,BunnyValue.FromInt32(9)));
+            Check(destination[0].AsInt32()==987);test_batch_fail(0);
             life.Write(BunnyValue.FromInt32(100),target);
             dispatched++;
         });
@@ -63,8 +66,7 @@ static class Program
         hook.Dispose();
         hooks.HookVoid("Terraria.Player","ResetEffects",(_,self)=> {
             var target=BunnyNativeObject.FromHook(self);
-            batch.Read(destination,target);
-            Check(method.Invoke(target,BunnyValue.FromInt32(9)).AsInt32()==10);
+            Check(batch.ReadAndInvoke(method,destination,target,BunnyValue.FromInt32(9)).AsInt32()==10);
         });
         slot=test_slot();
         for(int i=2;i<12;++i)Check(BunnyHooks.Dispatch(slot,i,123)==1);
@@ -77,9 +79,9 @@ static class Program
         var typed=hooks.HookInt32("Terraria.Player","Probe",(original,self,value)=> {
             var target=BunnyNativeObject.FromHook(self);escaped=target;
             Check(target.IsCurrent);
-            batch.Read(destination,target);
+            int combined=batch.ReadAndInvoke(method,destination,target,BunnyValue.FromInt32(value)).AsInt32();
             Check(destination[0].AsInt32()==100);
-            return original.Invoke()+method.Invoke(target,BunnyValue.FromInt32(value)).AsInt32();
+            return original.Invoke()+combined;
         });
         BunnyHooks.InvokeInt32(test_slot(),10013,123,9,out int ok,out int returned);
         Check(ok==1&&returned==52&&!escaped.IsCurrent);
@@ -87,6 +89,6 @@ static class Program
         int closes=test_closes();hooks.Dispose();Check(scope.IsDisposed&&test_closes()==closes+1);
         Throws<ObjectDisposedException>(()=>life.Read(escaped));
         Check(BunnyNativeScope.GetStatus().Contains("lotes="));
-        Console.WriteLine("C# native access: value ABI, cache/scopes, typed access, batch isolation and expired self PASS");
+        Console.WriteLine("C# native access: typed values, scoped access, fused batch+method, atomic publish and expired self PASS");
     }
 }
