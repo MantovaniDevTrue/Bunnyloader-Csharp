@@ -18,7 +18,7 @@ string Name(Type type)
 }
 
 string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
-    .Select(parameter => Name(parameter.ParameterType) + " " + parameter.Name));
+    .Select(parameter => (parameter.IsOut ? "out " + Name(parameter.ParameterType.GetElementType()!) : Name(parameter.ParameterType)) + " " + parameter.Name));
 
 string Mode(Type type, MethodInfo method)
 {
@@ -27,6 +27,7 @@ string Mode(Type type, MethodInfo method)
             "ModifyHurt" or "ModifyHitByNPC" or "ModifyHitByProjectile" or "FreeDodge" => "worker_sync_pre_hit",
             "OnHurt" or "OnHitByNPC" or "OnHitByProjectile" => "worker_async_post_hit",
             "ResetEffects" or "UpdateEquips" => "compile_policy_and_worker_hurt",
+            "RegisterHooks" => "worker_registration",
             _ => "compile_policy"
         };
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";

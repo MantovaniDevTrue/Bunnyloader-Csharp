@@ -28,6 +28,7 @@ nomes repetidos dentro do mesmo dominio nativo continuam sendo recusados.
 | `BunnyLiveEvents.OnHitNPC/OnKill` e callbacks adicionais | Eventos reais no worker Mono persistente | Dados capturados no evento; worker separado da thread do jogo |
 | `BunnyPlayer.ModifyHurt`, `ModifyHitByNPC/Projectile`, `FreeDodge` | Worker Mono; o chamador aguarda a decisao ate o prazo de 5 ms | Modificadores limitados do golpe; timeout preserva o resultado anterior |
 | `BunnyPlayer.OnHurt`, `OnHitByNPC/Projectile` | Notificacoes posteriores no worker | Snapshot do golpe ocorrido, sem alterar retroativamente o dano |
+| `BunnyPlayer.RegisterHooks` | Uma vez por instancia gerenciada no registro do dispatcher Mono | Registra delegates BeforeHurt (`ref`), Dodge (`out`) e AfterHurt; o handle permite Unhook |
 | `BunnyPlayer.ResetEffects/UpdateEquips` | Avaliados para policies e tambem pelo dispatcher de dano | Nao representam um ciclo gerenciado geral de jogador por frame |
 | Demais hooks de ciclo/movimento de `BunnyPlayer` | Retornos avaliados para policies do host | Mensagens/efeitos declarados, nao execucao arbitraria no evento original |
 | Helpers de combate, receitas e dados | Na chamada C# correspondente | Calculo/definicao; nao concedem acesso direto aos objetos IL2CPP |
@@ -36,7 +37,7 @@ nomes repetidos dentro do mesmo dominio nativo continuam sendo recusados.
 A [referencia gerada](../Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
 lista a superficie realmente compilada em BunnySourceSdk. `compile_policy`
 significa preparacao de descritor; `compile_sampled_policy`, amostragem para
-tabela; `worker_sync_pre_hit`, decisao de dano; `worker_async_post_hit`,
+tabela; `worker_registration`, registro de hooks no worker; `worker_sync_pre_hit`, decisao de dano; `worker_async_post_hit`,
 notificacao posterior; `managed_command_queue`, comando enfileirado;
 `managed_helper`, operacao C# chamada pelo proprio codigo. A presenca de um
 membro publico nao implica ponte para qualquer metodo do Terraria.

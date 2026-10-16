@@ -254,7 +254,7 @@ object BootLog {
     }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
 
     /**
-     * A CAUSA primeiro, depois o resto.
+     * Indicios de falha primeiro, depois progresso do Mono e o resto.
      *
      * Quando a Unity aborta via JNI FatalError, a ART despeja um stack enorme
      * logo depois — e cortar pelo fim justamente esconde a mensagem, que vem
@@ -269,21 +269,17 @@ object BootLog {
             found = true
             append(if (generation == 0) ">>> SESSAO ATUAL" else ">>> SESSAO ANTERIOR $generation")
             append(" | ").append(lines.first().trim()).append('\n')
-            val causes = lines.filter { line ->
-                line.contains("F/libc") || line.contains("FORTIFY") ||
-                    line.contains("Fatal signal") || line.contains("FatalError called") ||
-                    line.contains("JNI DETECTED") || line.contains("Abort message") ||
-                    line.contains("UnsatisfiedLink") || line.contains("dlopen") ||
-                    line.contains("mono phase=") || line.contains("Unable to") ||
-                    line.contains("Failed to") || line.contains("E/Unity") ||
-                    line.contains("E Unity") || line.contains("could not") ||
-                    line.startsWith("E/$TAG")
-            }.distinct().take(18)
+            val causes = lines.filter { LogcatDiagnostics.isFailureHint(it) }.distinct().take(18)
             if (causes.isNotEmpty()) {
-                append(">>> CAUSA:\n")
+                append(">>> INDICIOS DE FALHA (nao confirmam a causa):\n")
                 causes.forEach { append("  ").append(it.trim()).append('\n') }
-                append(">>> RESTO:\n")
             }
+            val monoProgress = lines.filter { LogcatDiagnostics.isMonoProgress(it) }.takeLast(4)
+            if (monoProgress.isNotEmpty()) {
+                append(">>> ETAPAS MONO (contexto):\n")
+                monoProgress.forEach { append("  ").append(it.trim()).append('\n') }
+            }
+            append(">>> FIM DO LOGCAT:\n")
             lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
                 .takeLast(30).forEach { append(it).append('\n') }
         }

@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "content/common/ContentAssets.h"
 #include "mods/ModLoader.h"
@@ -60,7 +61,7 @@ struct Refs {
     size_t actor=0,cache=0,count=0,shadow=0,position=0,effect=0;
     size_t index=0,dead=0,invis=0,width=0,height=0,direction=0,rotation=0,world=0,velocity=0,mount=0,frame=0,frameHeight=0;
     size_t texture=0,drawPosition=0,source=0,color=0,drawRotation=0,origin=0,scale=0,drawEffect=0,shader=0,sourceValue=0,hasSource=0;
-    bool nullableSource=false;
+    bool nullableSource=false;NativeColorLayout nativeColor;
     Il2CppClass* cacheClass=nullptr;FieldInfo* screen=nullptr;
     const MethodInfo* mounted=nullptr;
     const MethodInfo* screenGetter=nullptr;
@@ -113,7 +114,7 @@ bool context(void* info,int mode,Context* out) {
 }
 uint32_t tint(const ManagedVisualCommand& command,float fraction) {
     const auto raw=command.color;const auto alpha=static_cast<uint32_t>(std::floor((raw>>24)*std::clamp(command.opacity*fraction,0.f,1.f)+0.5f));
-    return ((raw>>16)&255u)|(raw&0xff00u)|((raw&255u)<<16)|(alpha<<24);
+    return (raw&0x00ffffffu)|(alpha<<24);
 }
 bool sprite(Context& ctx,Asset& asset,const ManagedVisualCommand& command,float x,float y,float scale,float opacity,int frame=0,float rotation=0) {
     if(!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(scale)||!std::isfinite(rotation))return false;
@@ -127,7 +128,7 @@ bool sprite(Context& ctx,Asset& asset,const ManagedVisualCommand& command,float 
     int rectangle[]={0,sheet?std::clamp(frame,0,27)*height:0,asset.width,height};
     if(refs.nullableSource)put<uint8_t>(data.data(),refs.source+refs.hasSource,1);
     std::memcpy(data.data()+refs.source+refs.sourceValue,rectangle,sizeof(rectangle));
-    put(data.data(),refs.color,color);put(data.data(),refs.drawRotation,rotation);put(data.data(),refs.origin,Vec{asset.width*0.5f,height*0.5f});
+    put(data.data(),refs.color,refs.nativeColor.fromArgb(color));put(data.data(),refs.drawRotation,rotation);put(data.data(),refs.origin,Vec{asset.width*0.5f,height*0.5f});
     put(data.data(),refs.scale,Vec{scale,scale});put<int32_t>(data.data(),refs.drawEffect,ctx.effect);put<int32_t>(data.data(),refs.shader,0);
     auto* target=static_cast<char*>(arrayData(ctx.cache))+static_cast<size_t>(count)*refs.data.bytes;
     std::memcpy(target,data.data(),refs.data.bytes);
@@ -226,6 +227,7 @@ bool bind(std::string* error) {
     }
     Il2CppClass* color=nullptr,*drawEffect=nullptr;
     if(!refs.data.field("color",4,&refs.color,&color)||!a.class_is_valuetype(color)||!refs.data.field("effect",4,&refs.drawEffect,&drawEffect))return unavailable("DrawDataColorOrEffect");
+    if(!refs.nativeColor.bind(color,error))return unavailable("DrawDataColorChannelLayout");
     if(a.class_is_enum(drawEffect))drawEffect=a.class_from_il2cpp_type(a.class_enum_basetype(drawEffect));
     refs.references.clear();
     if(!primitive(drawEffect,"Int32",4)||!valueReferenceOffsets(data,0,&refs.references,error)||refs.references.size()!=1||refs.references[0]!=refs.texture)return unavailable("DrawDataReferenceLayout");

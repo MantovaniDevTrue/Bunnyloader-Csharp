@@ -42,6 +42,30 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyAfterHurtHook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyAfterHurtHook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(BunnyHurtInfo info, AsyncCallback callback, Object object)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EndInvoke(IAsyncResult result)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Invoke(BunnyHurtInfo info)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyArmorEffects",
       "kind": "class",
       "baseType": "System.Object",
@@ -110,6 +134,30 @@
         "MoveSpeed"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyBeforeHurtHook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyBeforeHurtHook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(ref int damage, ref int hitDirection, ref bool cancel, AsyncCallback callback, Object object)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EndInvoke(ref int damage, ref int hitDirection, ref bool cancel, IAsyncResult result)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Invoke(ref int damage, ref int hitDirection, ref bool cancel)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyBuff",
@@ -238,6 +286,30 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyDodgeHook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyDodgeHook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(int damage, out bool dodge, AsyncCallback callback, Object object)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EndInvoke(out bool dodge, IAsyncResult result)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Invoke(int damage, out bool dodge)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyEquipDrawFlags",
       "kind": "enum",
       "baseType": "System.Enum",
@@ -291,6 +363,90 @@
         "Wings"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHookHandle",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "BunnyHookPhase Phase { get; }",
+        "bool IsValid { get; }",
+        "int Id { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHookPhase",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "BeforeHurt",
+        "Dodge",
+        "AfterHurt"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHookRegistry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyHookRegistry()"
+      ],
+      "properties": [
+        "Int64 AfterCalls { get; }",
+        "Int64 BeforeCalls { get; }",
+        "Int64 CancelledByHook { get; }",
+        "Int64 DodgeChecks { get; }",
+        "Int64 FaultedHooks { get; }",
+        "Int64 SuccessfulDodges { get; }",
+        "Int64 UnhookCalls { get; }",
+        "bool HasLastDamage { get; }",
+        "bool LastEquipped { get; }",
+        "int Count { get; }",
+        "int LastDamageAfter { get; }",
+        "int LastDamageBefore { get; }",
+        "string LastHookError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyHookHandle HookAfterHurt(BunnyAfterHurtHook handler)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyHookHandle HookBeforeHurt(BunnyBeforeHurtHook handler)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyHookHandle HookDodge(BunnyDodgeHook handler)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool InvokeDodge(int damage)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Unhook(BunnyHookHandle handle)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Clear()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void InvokeAfter(BunnyHurtInfo info)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void InvokeBefore(ref int damage, ref int hitDirection, ref bool cancel)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyHurtInfo",
@@ -602,6 +758,10 @@
           "execution": "worker_async_post_hit"
         },
         {
+          "signature": "void RegisterHooks(BunnyHookRegistry hooks)",
+          "execution": "worker_registration"
+        },
+        {
           "signature": "void ResetEffects()",
           "execution": "compile_policy_and_worker_hurt"
         },
@@ -633,6 +793,10 @@
         },
         {
           "signature": "static int Register(string modId, string assemblyPath)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string GetHookSnapshot()",
           "execution": "managed_helper"
         },
         {
@@ -847,7 +1011,7 @@
           "execution": "managed_command_queue"
         },
         {
-          "signature": "static bool TryTake(ref BunnyVisualCommand command)",
+          "signature": "static bool TryTake(out BunnyVisualCommand command)",
           "execution": "managed_command_queue"
         },
         {

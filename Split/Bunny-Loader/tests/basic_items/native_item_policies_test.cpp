@@ -4,11 +4,13 @@
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "native_policy_support.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeStaticValue.h"
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 
 namespace {
-struct World {Il2CppObject object;FakeItem* inner=nullptr;bool active=true;float position[2]{10,20};int width=20,height=30;};
+struct World {Il2CppObject object;float position[2]{10,20};int width=20,height=30;bool active=true;FakeItem* inner=nullptr;};
 struct Match {int part,head,body,legs;bool male;};
 struct RenderPlayer {FakePlayer base;int who=0,width=20,height=42,direction=1;bool dead=false,invis=false;float rotation=0,position[2]{1010,1020};int frame[4]{0,112,40,56};Il2CppObject* mount=nullptr;};
 struct SourceRectangle {bool hasValue=false;int value[4]{};};
@@ -27,8 +29,16 @@ auto& roots=*new std::map<unsigned,Il2CppObject*>;
 std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
-int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0;
-bool failAsset=false,failSet=false,rawOffsets=true,screenPropertyOnly=false;
+int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0,animationConstructors=0;
+bool android145=false,animationCtorFault=false,worldActiveProperty=true,activeReturnWrong=false,stopWorldOnUpdate=false;
+int activeReads=0,worldUpdates=0;
+std::string colorNamespace="Microsoft.Xna.Framework.Graphics";
+Il2CppClass* alphaReturn=nullptr;Il2CppClass* alphaParameter=nullptr;
+int wrongColorLookups=0;
+std::map<Il2CppObject*,std::pair<int,int>> animationParameters;
+bool failAsset=false,failSet=false,rawOffsets=true,screenPropertyOnly=false,androidFields=false,androidProperties=false,getterFault=false;
+std::map<const MethodInfo*,FieldInfo*> propertyFields;
+std::map<const MethodInfo*,bool> propertySetter;
 float lastLight[3]{},lastPosition[2]{};
 Il2CppObject exception{};
 Il2CppClass* cls(const std::string& name,bool value=false,int size=0){auto [it,added]=classes.try_emplace(name,Il2CppClass{});if(added){it->second.name=it->first.c_str();it->second.value=value;it->second.size=size;}return &it->second;}
@@ -46,20 +56,51 @@ const MethodInfo* getMethod(const std::string& c,const std::string& signature){r
 template<class Fn>Fn hook(const std::string& c,const std::string& signature){return reinterpret_cast<Fn>(hooks.at(getMethod(c,signature)));}
 void originalMove(Il2CppObject*,const MethodInfo*){++movementCalls;}
 void originalVoid(const MethodInfo*){}
-void originalWorld(Il2CppObject*,int32_t,const MethodInfo*){}
+void originalWorld(Il2CppObject* world,int32_t,const MethodInfo*){++worldUpdates;if(stopWorldOnUpdate)reinterpret_cast<World*>(world)->active=false;}
+bool worldActive(Il2CppObject* world,const MethodInfo*){++activeReads;return reinterpret_cast<World*>(world)->active;}
 void originalLayer(void*,const MethodInfo*){}
 bool originalMounted(Il2CppObject*,const MethodInfo*){return true;}
+uint32_t expectedNativeColor(uint32_t argb) {
+ const uint8_t r=argb>>16,g=argb>>8,b=argb,a=argb>>24;
+ return colorNamespace=="Microsoft.Xna.Framework"?uint32_t(r)|(uint32_t(g)<<8)|(uint32_t(b)<<16)|(uint32_t(a)<<24):
+     uint32_t(a)|(uint32_t(b)<<8)|(uint32_t(g)<<16)|(uint32_t(r)<<24);
+}
 uint32_t originalColor(Il2CppObject*,uint32_t color,const MethodInfo*){return color;}
 int32_t originalMatch(const void*,uint8_t*,const MethodInfo*){return 42;}
 struct Vec2 {float x,y;};
 Vec2 screenProperty(const MethodInfo*){return {1000.f,1000.f};}
 void addLight(Vec2 position,float r,float g,float b,const MethodInfo*){++lightCalls;lastPosition[0]=position.x;lastPosition[1]=position.y;lastLight[0]=r;lastLight[1]=g;lastLight[2]=b;}
 size_t width(Il2CppClass* c){return c->value?static_cast<size_t>(c->size):sizeof(void*);}
+float jumpSpeedGetter(const MethodInfo*) {return 5.f;}
+void property(Il2CppClass* c,const char* name,void* pointer=nullptr) {
+ auto* f=bl::il2cpp::findField(c,name);assert(f);
+ c->fields.erase(std::find(c->fields.begin(),c->fields.end(),f));
+ auto* get=addMethod(c,std::string("property get_")+name+"()",false);
+ const_cast<MethodInfo*>(get)->pointer=pointer;
+ propertyFields[get]=f;propertySetter[get]=false;
+ auto* set=addMethod(c,std::string("void set_")+name+"(property value)",false);
+ propertyFields[set]=f;propertySetter[set]=true;
+}
+void testStaticIntegerWidths() {
+ using namespace bl::csharp::native_static;
+ struct Kind {const char* name;int bytes;int64_t low,high;};
+ for(const auto& k:{Kind{"SByte",1,-128,127},{"Byte",1,0,255},{"Int16",2,-32768,32767},{"UInt16",2,0,65535},{"Int32",4,INT32_MIN,INT32_MAX},{"UInt32",4,0,UINT32_MAX}}) {
+  auto* owner=cls(std::string("StaticTest")+k.name);auto* f=field(owner,"Value",cls(k.name,true,k.bytes),0,true);
+  statics[f].resize(static_cast<size_t>(k.bytes));auto value=resolve(owner,"Value");int64_t number=0;
+  assert(writeInteger(value,k.low)&&readInteger(value,&number)&&number==k.low);
+  assert(writeInteger(value,k.high)&&readInteger(value,&number)&&number==k.high);
+  const auto before=statics[f];assert(!writeInteger(value,k.low-1)&&!writeInteger(value,k.high+1)&&before==statics[f]);
+ }
+ auto* owner=cls("StaticWrongType");auto* f=field(owner,"Value",&floatClass,0,true);constant(f,2.f);
+ int64_t number=123;assert(!readInteger(resolve(owner,"Value"),&number)&&number==123);
+}
 void configurePolicies() {
  configure();fields.reserve(200);storage.reserve(64);
  auto* byte=cls("Byte",true,1);auto* uint=cls("UInt32",true,4);auto* vector=cls("Vector2",true,8);auto* color=cls("Color",true,4);
  field(vector,"X",&floatClass,rawOffsets?0:sizeof(Il2CppObject));field(vector,"Y",&floatClass,(rawOffsets?0:sizeof(Il2CppObject))+4);
- field(color,"PackedValue",uint,rawOffsets?0:sizeof(Il2CppObject));
+ alphaReturn=alphaParameter=color;
+ const char* channelNames[]={"R","G","B","A"};
+ for(size_t i=0;i<4;++i)field(color,channelNames[i],byte,(rawOffsets?0:sizeof(Il2CppObject))+(colorNamespace=="Microsoft.Xna.Framework"?i:3-i));
  field(&itemClass,"color",color,offsetof(FakeItem,color));field(&itemClass,"wornArmor",&legacyClass,offsetof(FakeItem,clonedReference));
  field(&playerClass,"hairColor",color,offsetof(FakePlayer,hairColor));field(&playerClass,"wingsLogic",&intClass,offsetof(FakePlayer,wingsLogic));
  field(&playerClass,"velocity",vector,offsetof(FakePlayer,velocity));field(&playerClass,"gravDir",&floatClass,offsetof(FakePlayer,gravDir));
@@ -77,8 +118,8 @@ void configurePolicies() {
  std::array<unsigned char,24> defaults{};defaults[13]=0x5a;constant(field(wingStats,"Default",wingStats,0,true),defaults);
  for(const char* kind:{"Head","Body","Legs","Beard","Back","Wing","Shield","Shoe"}) {
   auto* k=cls(kind);constant(field(k,"Count",&intClass,0,true),2);auto* sets=cls(std::string(kind)+"/Sets");
-  arrayField(sets,"UsesNewFramingCode",&boolClass,2);arrayField(sets,"UseHairColor",&boolClass,2);auto* hides=arrayField(sets,"HidesHands",&boolClass,2);
-  auto* table=*reinterpret_cast<Il2CppArray**>(statics[hides].data());std::memset(arrayData(table),1,2);
+  arrayField(sets,"UsesNewFramingCode",&boolClass,2);arrayField(sets,"UseHairColor",&boolClass,2);auto* hides=arrayField(sets,android145?"MissingHand":"HidesHands",&boolClass,2);
+  auto* table=*reinterpret_cast<Il2CppArray**>(statics[hides].data());std::memset(arrayData(table),android145?0:1,2);
   if(std::string(kind)=="Wing")arrayField(sets,"Stats",wingStats,2);
  }
  for(const char* n:{"ArmorHead","ArmorBodyComposite","ArmorBody","FemaleBody","ArmorArm","ArmorLeg","AccBeard","AccBack","Wings","AccShield","AccShoes"})arrayField(assets,n,asset,2);
@@ -86,17 +127,21 @@ void configurePolicies() {
  auto* request=cls("Player/SetMatchRequest",true,sizeof(Match));
  for(const auto& pair:std::initializer_list<std::pair<const char*,size_t>>{{"ArmorSlotRequested",offsetof(Match,part)},{"Head",offsetof(Match,head)},{"Body",offsetof(Match,body)},{"Legs",offsetof(Match,legs)}})field(request,pair.first,&intClass,(rawOffsets?0:sizeof(Il2CppObject))+pair.second);
  field(request,"Male",&boolClass,(rawOffsets?0:sizeof(Il2CppObject))+offsetof(Match,male));
- auto* world=cls("WorldItem",false,sizeof(World));field(world,"inner",&itemClass,offsetof(World,inner));field(world,"active",&boolClass,offsetof(World,active));
- field(world,"position",vector,offsetof(World,position));field(world,"width",&intClass,offsetof(World,width));field(world,"height",&intClass,offsetof(World,height));
+ auto* entity=cls("Entity",false,offsetof(World,inner));
+ field(entity,"position",vector,offsetof(World,position));field(entity,"width",&intClass,offsetof(World,width));field(entity,"height",&intClass,offsetof(World,height));
+ auto* world=cls("WorldItem",false,sizeof(World));world->parent=entity;field(world,"inner",&itemClass,offsetof(World,inner));
+ if(worldActiveProperty){auto* active=addMethod(world,"bool get_active()",true);const_cast<MethodInfo*>(active)->pointer=reinterpret_cast<void*>(worldActive);}
+ else field(world,"active",&boolClass,offsetof(World,active));
  auto* array=cls("Array");
  addMethod(array,"void Copy(Array sourceArray, Array destinationArray, int length)",false);addMethod(array,"void SetValue(object value, int index)",true);
  addMethod(&itemClass,"void .ctor()",true);addMethod(&itemClass,"void SetDefaults(int Type, ItemVariant variant)",true);addMethod(&itemClass,"Color GetAlpha(Color newColor)",true);
  addMethod(&playerClass,"void WingMovement()",true);addMethod(&playerClass,"int SetMatch(Player.SetMatchRequest request, ref bool somethingSpecial)",false);
  addMethod(main,"Player get_LocalPlayer()",false);addMethod(main,"void RegisterItemAnimation(int index, DrawAnimation animation)",false);addMethod(main,"void InitializeItemAnimations()",false);
- addMethod(cls("DrawAnimationVertical",false,sizeof(Il2CppObject)),"void .ctor(int ticksperframe, int frameCount)",true);
+ addMethod(cls("DrawAnimationVertical",false,sizeof(Il2CppObject)),android145?"void .ctor(int ticksperframe, int frameCount, bool pingPong)":"void .ctor(int ticksperframe, int frameCount)",true);
  addMethod(cls("WingStatsInitializer"),"void Load()",false);addMethod(world,"void UpdateItem(int i)",true);
  const auto* light=addMethod(cls("Lighting"),"void AddLight(Vector2 position, float r, float g, float b)",false);const_cast<MethodInfo*>(light)->pointer=reinterpret_cast<void*>(addLight);
  additionalClass=[](const bl::il2cpp::TypeRef& r)->Il2CppClass* {
+  if(r.name=="Color"&&r.ns!=colorNamespace){++wrongColorLookups;return nullptr;}
   if(r.name=="Int32")return &intClass;
   if(r.name=="Boolean")return &boolClass;
   if(r.name=="Item")return &itemClass;
@@ -115,6 +160,25 @@ void configurePolicies() {
  };
  apiInstance.class_get_rank=[](const Il2CppClass* c){return c->rank;};apiInstance.class_get_element_class=[](Il2CppClass* c){return c->element;};
  apiInstance.object_get_class=[](Il2CppObject* o){return o->klass;};apiInstance.array_new=[](Il2CppClass* c,uintptr_t n){return makeArray(c,n);};
+ apiInstance.class_get_method_from_name=[](Il2CppClass* c,const char* name,int n)->const MethodInfo* {
+  for(const auto& [m,f]:propertyFields){(void)f;const auto& key=methodNames.at(m).first;
+   if(methods.contains(std::string(c->name)+":"+key)&&key.find(std::string(name)+"(")!=std::string::npos&&n==(propertySetter.at(m)?1:0))return m;}
+  return nullptr;
+ };
+ apiInstance.method_get_param_count=[](const MethodInfo* m){
+  const auto& name=methodNames.at(m).first;
+  if(name=="bool get_active()")return 0u;
+  return name=="Color GetAlpha(Color newColor)"?1u:propertySetter.at(m)?1u:0u;
+ };
+ apiInstance.method_get_param=[](const MethodInfo* m,uint32_t)->const Il2CppType* {
+  return methodNames.at(m).first=="Color GetAlpha(Color newColor)"?type(alphaParameter):propertyFields.at(m)->type;
+ };
+ apiInstance.method_get_return_type=[](const MethodInfo* m)->const Il2CppType* {
+  if(methodNames.at(m).first=="bool get_active()")return activeReturnWrong?&intType:&boolType;
+  if(methodNames.at(m).first=="Color GetAlpha(Color newColor)")return type(alphaReturn);
+  return propertySetter.at(m)?type(cls("Void",true,0)):propertyFields.at(m)->type;
+ };
+ apiInstance.class_get_namespace=[](Il2CppClass* c){return c==cls("Color")?colorNamespace.c_str():"System";};
  apiInstance.field_get_name=[](FieldInfo* f){return f->name;};apiInstance.type_get_name=[](const Il2CppType* t){return ::strdup(t->cls->name);};apiInstance.il2cpp_free=std::free;
  apiInstance.object_new=[](Il2CppClass* c){auto* o=static_cast<Il2CppObject*>(std::calloc(1,static_cast<size_t>(c->size)));o->klass=c;++allocations;return o;};
  apiInstance.runtime_class_init=[](Il2CppClass*){};
@@ -124,16 +188,36 @@ void configurePolicies() {
  apiInstance.field_static_set_value=[](FieldInfo* f,void* value){auto* c=f->type->cls;auto& v=statics[f];v.resize(width(c));if(c->value)std::memcpy(v.data(),value,v.size());else std::memcpy(v.data(),&value,v.size());};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** error)->Il2CppObject* {
   *error=nullptr;const auto& n=methodNames.at(m).first;
+  if(propertyFields.contains(m)) {
+   if(getterFault&&!propertySetter.at(m)){*error=&exception;return nullptr;}
+   auto* f=propertyFields.at(m);const size_t bytes=width(f->type->cls);auto& storage=statics.at(f);
+   if(propertySetter.at(m)) {
+    if(f->type->cls->value)std::memcpy(storage.data(),args[0],bytes);
+    else std::memcpy(storage.data(),&args[0],bytes);
+    return nullptr;
+   }
+   if(!f->type->cls->value){Il2CppObject* value=nullptr;std::memcpy(&value,storage.data(),sizeof(value));return value;}
+   auto* box=static_cast<Il2CppObject*>(std::calloc(1,sizeof(Il2CppObject)+bytes));box->klass=f->type->cls;++allocations;
+   std::memcpy(reinterpret_cast<char*>(box)+sizeof(Il2CppObject),storage.data(),bytes);return box;
+  }
   if(n.find("void Copy(")==0){auto* from=static_cast<Il2CppArray*>(args[0]);auto* to=static_cast<Il2CppArray*>(args[1]);const auto count=*static_cast<int*>(args[2]);std::memcpy(arrayData(to),arrayData(from),static_cast<size_t>(count)*width(from->obj.klass->element));++arrayWrites;}
   else if(n.find("void SetValue(")==0){if(failSet){failSet=false;*error=&exception;return nullptr;}auto* a=static_cast<Il2CppArray*>(self);const int index=*static_cast<int*>(args[1]);assert(index>=0&&static_cast<uintptr_t>(index)<a->length);std::memcpy(static_cast<char*>(arrayData(a))+sizeof(void*)*static_cast<size_t>(index),&args[0],sizeof(void*));++arrayWrites;}
   else if(n.find("void SetDefaults(")==0){auto* item=static_cast<FakeItem*>(self);item->values[0]=28;item->values[1]=20;item->clonedReference=&soundObject;void* sound=&soundObject;std::memcpy(item->sound,&sound,sizeof(void*));}
   else if(n.find("get_LocalPlayer")!=std::string::npos)return &localPlayer.header;
-  else if(n.find("RegisterItemAnimation")!=std::string::npos)animations[*static_cast<int*>(args[0])]=static_cast<Il2CppObject*>(args[1]);
+  else if(n.find("void .ctor(int ticksperframe") == 0) {
+   ++animationConstructors;assert(self&&*static_cast<int*>(args[0])>0&&*static_cast<int*>(args[1])>1);
+   if(android145)assert(*static_cast<uint8_t*>(args[2])==0);
+   if(animationCtorFault){*error=&exception;return nullptr;}
+   animationParameters[static_cast<Il2CppObject*>(self)]={*static_cast<int*>(args[0]),*static_cast<int*>(args[1])};
+  }
+  else if(n.find("RegisterItemAnimation")!=std::string::npos){
+   auto* object=static_cast<Il2CppObject*>(args[1]);assert(animationParameters.contains(object));animations[*static_cast<int*>(args[0])]=object;
+  }
   return nullptr;
  };
  bl::testing::loadAsset=[](const std::string&)->Il2CppObject* {++assetLoads;if(failAsset){failAsset=false;return nullptr;}auto* object=new Il2CppObject{bl::testing::assetClass,nullptr};
   bl::testing::assetSizes[object]={52,72};return object;};
- (void)byte;
+ (void)byte;(void)uint;
 }
 void configureRenderer() {
  const size_t box=rawOffsets?0:sizeof(Il2CppObject);playerClass.size=sizeof(RenderPlayer);
@@ -179,7 +263,7 @@ void testRenderer(const std::string& root) {
  auto barrier=hook<void(*)(void*,const MethodInfo*)>("PlayerDrawLayers","void DrawPlayer_35_IceBarrier(PlayerDrawSet drawinfo)");
  barrier(&info,nullptr);assert(info.count==2);auto* first=static_cast<DrawData*>(arrayData(info.cache));
  assert(first[0].position[0]==20&&first[0].position[1]==41&&first[0].source.hasValue&&first[0].source.value[2]==52&&first[0].source.value[3]==72);
- assert(first[0].origin[0]==26&&first[0].origin[1]==36&&first[0].color==0x28ffcc66&&first[1].color==0xbbffcc66);
+ assert(first[0].origin[0]==26&&first[0].origin[1]==36&&first[0].color==expectedNativeColor(0x2866ccff)&&first[1].color==expectedNativeColor(0xbb66ccff));
  const auto allocated=allocations,loaded=assetLoads;
  for(int i=0;i<10000;++i){info.count=0;barrier(&info,nullptr);assert(info.count==2);}
  assert(allocations==allocated&&assetLoads==loaded);
@@ -192,6 +276,10 @@ void testRenderer(const std::string& root) {
  auto shield=hook<void(*)(void*,const MethodInfo*)>("PlayerDrawLayers","void DrawPlayer_25_Shield(PlayerDrawSet drawinfo)");shield(&info,nullptr);
  assert(info.count==1&&first[0].position[0]==16&&first[0].position[1]==41);
  player.direction=-1;info.count=0;shield(&info,nullptr);assert(first[0].position[0]==24);
+ command.color=0xff0000ff;bl::testing::visualCommands={command};info.count=0;shield(&info,nullptr);
+ assert(info.count==1&&first[0].color==expectedNativeColor(0xff0000ff));
+ command.color=0x00ff0000;bl::testing::visualCommands={command};info.count=0;shield(&info,nullptr);assert(info.count==0);
+ command.color=0xffffffff;
  command.style=3;bl::testing::visualCommands={command};info.count=0;
  auto back=hook<void(*)(void*,const MethodInfo*)>("PlayerDrawLayers","void DrawPlayer_10_BackAcc(PlayerDrawSet drawinfo)");back(&info,nullptr);assert(info.count==1);
  player.dead=true;info.count=0;back(&info,nullptr);assert(info.count==0);
@@ -205,7 +293,34 @@ int slot(int type,const std::string& kind) {
 }
 }
 int main(int argc,char** argv) {
- using namespace bl::csharp;assert(argc>=3);rawOffsets=argc<4||std::string(argv[3])!="--boxed";screenPropertyOnly=argc>=4&&std::string(argv[3])=="--screen-property";configurePolicies();
+ using namespace bl::csharp;assert(argc>=3);
+ const auto mode=argc>3?std::string(argv[3]):"";
+ worldActiveProperty=mode!="--world-active-field";
+ if(mode=="--framework-color")colorNamespace="Microsoft.Xna.Framework";
+ android145=mode=="--android-145"||mode=="--android-145-boxed"||mode=="--animation-ctor-exception";
+ animationCtorFault=mode=="--animation-ctor-exception";
+ androidProperties=mode=="--android-properties"||mode=="--android-properties-boxed"||mode=="--getter-exception";
+ androidFields=android145||mode=="--android-fields"||androidProperties||mode=="--count-overflow";
+ rawOffsets=mode!="--boxed"&&mode!="--android-properties-boxed"&&mode!="--android-145-boxed";screenPropertyOnly=mode=="--screen-property";configurePolicies();
+ if(androidFields) {
+  auto* count=bl::il2cpp::findField(cls("Beard"),"Count");count->type=type(cls("Byte",true,1));constant<uint8_t>(count,2);
+  auto* clone=bl::il2cpp::findField(cls("ItemID"),"SoulofSight");clone->type=type(cls("Int16",true,2));constant<int16_t>(clone,547);
+  classes.erase("Shield/Sets");
+  auto* hands=bl::il2cpp::findField(cls("Body/Sets"),android145?"MissingHand":"HidesHands");
+  auto* small=makeArray(&boolClass,1);static_cast<uint8_t*>(arrayData(small))[0]=android145?0:1;constant(hands,small);
+ }
+ if(androidProperties) {
+  property(cls("Beard"),"Count");property(cls("Body/Sets"),"HidesHands");property(cls("ItemID"),"SoulofSight");
+  property(&playerClass,"jumpSpeed",reinterpret_cast<void*>(jumpSpeedGetter));
+ }
+ if(mode=="--color-argument-mismatch")alphaParameter=cls("WrongColor",true,4);
+ if(mode=="--color-return-mismatch")alphaReturn=cls("WideColor",true,8);
+ if(mode=="--world-active-static")methodNames.at(getMethod("WorldItem","bool get_active()")).second=false;
+ if(mode=="--world-active-type")activeReturnWrong=true;
+ if(mode=="--world-active-pointer")const_cast<MethodInfo*>(getMethod("WorldItem","bool get_active()"))->pointer=nullptr;
+ testStaticIntegerWidths();
+ getterFault=mode=="--getter-exception";
+ if(mode=="--count-overflow") {auto* f=bl::il2cpp::findField(cls("Beard"),"Count");f->type=type(cls("SByte",true,1));constant<int8_t>(f,127);}
  std::ifstream input(argv[1]);assert(input);std::string line,error;std::getline(input,line);std::vector<BasicItemEntry> all;int next=6400;
  while(std::getline(input,line)) {
   auto parts=basicSplit(line,'\t');if(parts[0]!="ITEM")continue;BasicItemEntry entry;assert(parseBasicItemWire(parts,&entry,&error));
@@ -215,7 +330,6 @@ int main(int argc,char** argv) {
   assert(applyNativeBasicItemDefaults("mod",{base},&error));all.push_back(entry);
  }
  assert(!all.empty());std::shared_ptr<NativeItemPolicyBatch> batch;assert(prepareNativeItemPolicies(all,&batch,&error));commitNativeItemPolicies(batch);
- const auto mode=argc>3?std::string(argv[3]):"";
  auto* headField=bl::il2cpp::findField(&itemClass,"headSlot");const auto savedHead=*headField;
  if(mode=="--bounds")headField->offset=sizeof(FakeItem);
  if(mode=="--type")headField->type=&floatType;
@@ -228,8 +342,41 @@ int main(int argc,char** argv) {
   assert(rejected);*headField=savedHead;
   for(int i=0;i<10&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
  }
+ if(mode=="--getter-exception"||mode=="--count-overflow") {
+  assert(pendingNativeItemPolicies()>0);
+  if(mode=="--count-overflow") {
+   bool found=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleBeard"){found=status.error.find("EquipmentCountOverflow")!=std::string::npos;}
+   int8_t unchanged=0;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Beard"),"Count"),&unchanged);
+   assert(found&&unchanged==127);constant<int8_t>(bl::il2cpp::findField(cls("Beard"),"Count"),2);
+  }
+  getterFault=false;for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
+ if(animationCtorFault) {
+  bool rejected=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleSoul"){
+   assert(!status.ready&&status.error=="Reason=AnimationConstructor3Failed");rejected=true;
+  }
+  assert(rejected&&animations.empty());animationCtorFault=false;
+  for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
+ if(mode=="--color-argument-mismatch"||mode=="--color-return-mismatch") {
+  bool rejected=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleSoul"){
+   assert(!status.ready&&status.error=="Reason=ColorAbiMismatch");rejected=true;
+  }
+  assert(rejected&&!hooks.contains(getMethod("Item","Color GetAlpha(Color newColor)")));
+  alphaReturn=alphaParameter=cls("Color");
+  for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
+ if(mode=="--world-active-static"||mode=="--world-active-type"||mode=="--world-active-pointer") {
+  bool rejected=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleSoul"){
+   assert(!status.ready&&status.error=="Reason=WorldItemActiveGetterContract");rejected=true;
+  }
+  assert(rejected&&!hooks.contains(getMethod("WorldItem","void UpdateItem(int i)")));
+  auto* getter=getMethod("WorldItem","bool get_active()");methodNames.at(getter).second=true;activeReturnWrong=false;
+  const_cast<MethodInfo*>(getter)->pointer=reinterpret_cast<void*>(worldActive);
+  for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
  for(const auto& status:nativeItemPolicyStatus())if(!status.ready)std::cerr<<status.name<<" "<<status.error<<"\n";
- assert(pendingNativeItemPolicies()==0);
+ assert(pendingNativeItemPolicies()==0&&wrongColorLookups==0);
  auto find=[&](const std::string& name)->const BasicItemEntry& {for(const auto& e:all)if(e.name==name)return e;assert(false);return all[0];};
  const auto& wings=find("ExampleWings");const int wing=slot(wings.type,"Wings");assert(wing==2);
  FakePlayer p;p.wingsLogic=wing;p.velocity[1]=2;const int before=allocations;
@@ -241,12 +388,32 @@ int main(int argc,char** argv) {
  const auto& robe=find("ExampleRobe");Match request{1,0,slot(robe.type,"Body"),0,true};uint8_t special=0;
  auto match=hook<int32_t(*)(const void*,uint8_t*,const MethodInfo*)>("Player","int SetMatch(Player.SetMatchRequest request, ref bool somethingSpecial)");
  assert(match(&request,&special,nullptr)==slot(robe.type,"Legs")&&special);request.part=2;special=0;assert(match(&request,&special,nullptr)==42&&!special);
+ auto* hands=bl::il2cpp::findField(cls("Body/Sets"),android145?"MissingHand":"HidesHands");
+ if(androidProperties){for(const auto& [m,f]:propertyFields)if(methodNames.at(m).first=="property get_HidesHands()")hands=f;}
+ assert(hands);auto* handTable=*reinterpret_cast<Il2CppArray**>(statics.at(hands).data());
+ assert(handTable->length>static_cast<uintptr_t>(request.body));
+ assert(static_cast<uint8_t*>(arrayData(handTable))[request.body]==(android145?1:0));
+ assert(static_cast<uint8_t*>(arrayData(handTable))[0]==(android145?0:1));
  const auto& beard=find("ExampleBeard");localPlayer.hairColor=0xff123456;FakeItem colored{};assert(applyBasicItemToObject(&colored.header,beard.type)&&colored.color==localPlayer.hairColor);
  const auto& soul=find("ExampleSoul");FakeItem item{};item.type=soul.type;assert(applyBasicItemToObject(&item.header,soul.type));assert(item.clonedReference==&soundObject&&barriers>0);
- auto alpha=hook<uint32_t(*)(Il2CppObject*,uint32_t,const MethodInfo*)>("Item","Color GetAlpha(Color newColor)");assert(alpha(&item.header,0,nullptr)==0x32ffffffu);
+ auto alpha=hook<uint32_t(*)(Il2CppObject*,uint32_t,const MethodInfo*)>("Item","Color GetAlpha(Color newColor)");assert(alpha(&item.header,0,nullptr)==expectedNativeColor(0x32ffffffu));
+ const auto alphaAllocations=allocations;for(int i=0;i<10000;++i)assert(alpha(&item.header,0x01020304u,nullptr)==expectedNativeColor(0x32ffffffu));
+ FakeItem vanilla{};vanilla.type=1;assert(alpha(&vanilla.header,0x12345678u,nullptr)==0x12345678u);
+ assert(allocations==alphaAllocations);
  World world;world.inner=&item;auto update=hook<void(*)(Il2CppObject*,int32_t,const MethodInfo*)>("WorldItem","void UpdateItem(int i)");update(&world.object,0,nullptr);
- assert(lightCalls==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f);
- auto animation=hook<void(*)(const MethodInfo*)>("Main","void InitializeItemAnimations()");animations.clear();animation(nullptr);assert(animations.contains(soul.type));
+ assert(lightCalls==1&&worldUpdates==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f);
+ const auto worldAllocations=allocations;for(int i=0;i<10000;++i)update(&world.object,0,nullptr);
+ assert(lightCalls==10001&&worldUpdates==10001&&allocations==worldAllocations);
+ world.active=false;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ world.active=true;stopWorldOnUpdate=true;update(&world.object,0,nullptr);assert(!world.active&&lightCalls==10001);stopWorldOnUpdate=false;
+ world.active=true;FakeItem ordinary{};ordinary.type=1;world.inner=&ordinary;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ world.inner=nullptr;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ assert(!worldActiveProperty||activeReads>=10001);
+ BasicItemPolicy soulPolicy;assert(item_policy_wire::read(soul,&soulPolicy,&error));
+ assert(animations.contains(soul.type)&&animationConstructors>0);
+ assert(animationParameters.at(animations.at(soul.type))==std::make_pair(soulPolicy.ticks,soulPolicy.frames));
+ const auto constructed=animationConstructors;
+ auto animation=hook<void(*)(const MethodInfo*)>("Main","void InitializeItemAnimations()");animations.clear();animation(nullptr);assert(animations.contains(soul.type)&&animationConstructors==constructed);
  auto wingStats=hook<void(*)(const MethodInfo*)>("WingStatsInitializer","void Load()");
  const auto statsField=bl::il2cpp::findField(cls("Wing/Sets"),"Stats");auto* replaced=makeArray(cls("WingStats"),2);constant(statsField,replaced);wingStats(nullptr);
  Il2CppArray* stats=nullptr;apiInstance.field_static_get_value(statsField,&stats);assert(stats->length>static_cast<uintptr_t>(wing));
