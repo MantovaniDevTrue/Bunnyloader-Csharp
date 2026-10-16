@@ -30,6 +30,9 @@ jobs:
       - name: Compile inherited content, cache corruption and reference invalidation
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/sdk_foundation/SdkFoundation.csproj -c Release
+      - name: Verify pure CSharp NPC and projectile lifecycle registries
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/entity_lifecycle/EntityLifecycle.csproj -c Release
       - name: Recheck existing complete item package and native wire
         working-directory: Split/Bunny-Loader
         run: |
