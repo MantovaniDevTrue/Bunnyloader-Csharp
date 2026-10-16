@@ -1,0 +1,64 @@
+name: Inspect Terraria CSharp policy metadata
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/csharp-editor-log-fixes-pr28]
+    paths:
+      - '.github/workflows/check-csharp-native-policy-metadata.yml'
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Extract only the native contracts used by the pending policies
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+          DOTNET_ROLL_FORWARD: Major
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          mkdir runtime dumper metadata
+          gh release download bunny-private-build-inputs-v1 --repo MantovaniDevTrue/Bunnyloader-Csharp-Builds --pattern BunnyRuntime_Terraria_1.4.5.8.6.zip --dir runtime
+          echo '2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab  runtime/BunnyRuntime_Terraria_1.4.5.8.6.zip' | sha256sum -c -
+          unzip -q runtime/BunnyRuntime_Terraria_1.4.5.8.6.zip -d runtime/extracted
+          curl -fsSL https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip -o dumper.zip
+          unzip -q dumper.zip -d dumper
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('dumper/config.json');c=json.loads(p.read_text())
+          c.update(RequireAnyKey=False,GenerateDummyDll=False,GenerateStruct=False,DumpAttribute=False)
+          p.write_text(json.dumps(c))
+          PY
+          SO="$(find runtime/extracted -path '*/arm64-v8a/libil2cpp.so' -print -quit)"
+          META="$(find runtime/extracted -name global-metadata.dat -print -quit)"
+          test -n "$SO" && test -n "$META"
+          dotnet dumper/Il2CppDumper.dll "$SO" "$META" metadata
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          rows=[];namespace='';owner=''
+          for line in Path('metadata/dump.cs').read_text().splitlines():
+              if line.startswith('// Namespace:'):namespace=line
+              if re.match(r'^(?:public|private|internal|protected).*\b(?:class|struct|enum)\b',line):owner=line
+              selected=(('DrawAnimationVertical' in owner and line.strip() and not line.lstrip().startswith('//')) or
+                        (' Main ' in owner and any(n in line for n in ('RegisterItemAnimation','InitializeItemAnimations','itemAnimations'))) or
+                        ('ArmorIDs.Body' in owner and any(n in line for n in ('Hands','Hand','Count','Framing'))) or
+                        any(n in line for n in ('HidesHands','HideHands')))
+              if selected:rows.append(namespace+' | '+owner+' | '+line.strip())
+          assert rows,'No requested metadata found'
+          Path('native-policy-metadata.txt').write_text('\n'.join(rows)+'\n')
+          print('FILTERED_NATIVE_POLICY_METADATA_READY lines='+str(len(rows)))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Native-CSharp-Policy-Metadata
+          path: ${{ runner.temp }}/native-policy-metadata.txt
+          retention-days: 7
+          if-no-files-found: error
