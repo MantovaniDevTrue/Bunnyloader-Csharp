@@ -41,3 +41,6 @@ PRs posteriores devem partir da `main` integrada ou declarar sua dependência.
 Não apague branches/checkpoints necessários para reproduzir testes antigos.
 
 [Contribuição](../CONTRIBUTING.md) · [Build/CI](BUILD.md) · [Testes](../tests/README.md)
+
+A comparação de upstream é somente leitura. Sincronizações não devem substituir
+`Split/Bunny-Loader` nem publicar diretamente na main. [Procedimento](BUILD.md#comparar-atualizações-do-bunny-original).

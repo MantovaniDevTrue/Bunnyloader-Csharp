@@ -63,5 +63,39 @@ class RepositoryChecks(unittest.TestCase):
             self.assertTrue(any('package differs' in e for e in errors))
 
 
+class UpstreamComparison(unittest.TestCase):
+    def test_compares_tracked_files_without_modifying_either_tree(self):
+        import subprocess
+        s = importlib.util.spec_from_file_location('upstream_compare', guard.ROOT / 'tools/compare_bunny_upstream.py')
+        module = importlib.util.module_from_spec(s)
+        s.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            roots = [Path(tmp) / 'local', Path(tmp) / 'upstream']
+            for root in roots:
+                root.mkdir()
+                subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            local, upstream = roots
+            canonical = local / module.PREFIX
+            canonical.mkdir(parents=True)
+            (canonical / 'same.cs').write_text('same')
+            (canonical / 'changed.cs').write_text('CSharp-preserved')
+            (canonical / 'custom.cs').write_text('custom')
+            (upstream / 'same.cs').write_text('same')
+            (upstream / 'changed.cs').write_text('upstream')
+            (upstream / 'new.cs').write_text('new')
+            for root in roots:
+                subprocess.run(['git', '-C', str(root), 'add', '.'], check=True)
+                subprocess.run(['git', '-C', str(root), '-c', 'user.name=Test', '-c', 'user.email=test@example.org', 'commit', '-qm', 'fixture'], check=True)
+            (upstream / 'untracked.cs').write_text('ignore')
+            before = [subprocess.check_output(['git', '-C', str(r), 'status', '--porcelain']) for r in roots]
+            result = module.compare(local, upstream)
+            self.assertEqual(result['changed'], ['changed.cs'])
+            self.assertEqual(result['onlyCSharpCheckout'], ['custom.cs'])
+            self.assertEqual(result['onlyUpstreamCheckout'], ['new.cs'])
+            self.assertEqual(result['unchangedCount'], 1)
+            self.assertEqual(before, [subprocess.check_output(['git', '-C', str(r), 'status', '--porcelain']) for r in roots])
+            self.assertEqual((canonical / 'changed.cs').read_text(), 'CSharp-preserved')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -6,13 +6,14 @@ on:
       - '**/*.md'
       - 'docs/checkpoint.json'
       - 'src/**'
-      - 'tools/check_repository.py'
+      - 'tools/**'
       - 'tests/test_repository_checks.py'
       - 'Split/Bunny-Loader/app/build.gradle.kts'
       - 'Split/Bunny-Loader/samples/**'
       - 'Split/Bunny-Loader/experiments/csharp/**'
       - 'Split/Bunny-Loader/tools/mods/pack.py'
       - '.github/workflows/check-repository.yml'
+      - '.github/workflows/sync-bunny-source.yml'
   pull_request:
   workflow_dispatch:
 permissions:

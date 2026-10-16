@@ -8,6 +8,7 @@ As alterações abaixo referem-se ao **protótipo C# neste repositório**, não 
 - Atualiza README, SDK/arquitetura, roadmap, catálogo de exemplos, build, testes e contribuição.
 - Separa relatórios históricos; remove o espelho antigo da ponte JS e corrige o atalho para o SDK C#.
 - Adiciona checkpoint verificável, guarda de links/caminhos/versões/pacotes e CI de organização.
+- Comparação de upstream somente leitura; arquiva integração antiga e torna a build UI-only do Split manual.
 - Preserva versionCode, fontes de produção e conteúdo dos pacotes da .62.
 
 ## 0.1.10.16.90.29.62 — primeiro tick de projétil

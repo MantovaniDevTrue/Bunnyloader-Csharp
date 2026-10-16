@@ -71,3 +71,8 @@ Os arquivos `snapshot-*` registram as páginas antes da consolidação da `.62`.
 | [vm-parity-v66.md](vm-parity-v66.md) | Bunny Loader C# .66 — QuickJS × MonoVM: mesmo algoritmo, mesma carga |
 | [vm-parity-v67.md](vm-parity-v67.md) | Bunny Loader C# .67 — benchmark com assembly gerenciada dedicada |
 | [vm-parity-v68.md](vm-parity-v68.md) | Bunny Loader C# .68 — extração de assembly verificada na abertura do jogo |
+
+## Workflows históricos
+
+- [Integração Jonata antiga](workflows/integrate-jonata-csharp.yml): preservada
+  para consulta; não é um workflow ativo. Use a comparação de upstream e uma PR revisada.

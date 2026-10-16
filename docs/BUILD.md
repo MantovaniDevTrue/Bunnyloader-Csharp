@@ -53,3 +53,16 @@ assinatura e migração não fazem parte da checagem de documentação.
 
 CI aprovado comprova o que cada suíte exercita. Teste de host com IL2CPP/Mono
 simulados não comprova ABI, renderização, multiplayer ou 60 FPS no Android.
+
+## Comparar atualizações do Bunny original
+
+[Sync/Compare Bunny Source](../.github/workflows/sync-bunny-source.yml) agora
+compara arquivos rastreados com um ref do upstream e entrega um relatório
+como artifact. Tem permissão somente de leitura: não substitui a pasta do
+loader, não faz push na main e não gera APK. Use o relatório para preparar
+uma PR de integração e executar as suítes C# antes de incorporar mudanças.
+
+O antigo workflow de integração, preso a uma versão anterior e ao significado
+antigo de main, está [arquivado](history/workflows/integrate-jonata-csharp.yml).
+A build UI-only do Split passou a ser manual, evitando APK legado a cada
+edição dos fontes/README. As receitas históricas continuam consultáveis.
