@@ -51,3 +51,7 @@ LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universa
 ```
 
 Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` serve para ensaio controlado de frequência alta; ainda não deve ser tratado como aprovado para produção. A próxima etapa é essa integração e medição, antes de ampliar para parâmetros, `ref/out`, retornos, structs, sobrecargas e encadeamento de vários mods no mesmo alvo.
+
+## Acesso tipado durante callbacks
+
+O [lote de acesso nativo](ACESSO-NATIVO.md) permite transformar o `self` opaco em `BunnyNativeObject.FromHook(self)` e consultar membros previamente vinculados por `hooks.Native`. O objeto é limitado à chamada atual; não autoriza dereferenciar o ponteiro nem reter um objeto do Terraria entre callbacks.

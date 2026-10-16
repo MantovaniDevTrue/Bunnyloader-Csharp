@@ -4,6 +4,43 @@
   "warning": "Public SDK surface and execution contracts. Compilation is not Android validation. Managed entity AI is experimental, asynchronous, and requires native Android validation. Multiplayer is not implied.",
   "types": [
     {
+      "name": "BunnyLoader.Source.BunnyAccessException",
+      "kind": "class",
+      "baseType": "System.InvalidOperationException",
+      "constructors": [
+        "BunnyAccessException(BunnyAccessStatus status, string operation)"
+      ],
+      "properties": [
+        "BunnyAccessStatus Status { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAccessStatus",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Ok",
+        "Invalid",
+        "WrongThread",
+        "Capacity",
+        "NativeException",
+        "TimedOut",
+        "Busy",
+        "Expired",
+        "ReadOnly",
+        "TypeMismatch",
+        "Ambiguous",
+        "NotFound",
+        "Unavailable",
+        "Unsupported"
+      ],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -193,6 +230,24 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyColor",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyColor(Byte red, Byte green, Byte blue, Byte alpha)"
+      ],
+      "properties": [
+        "UInt32 PackedRgba { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyColor FromPackedRgba(UInt32 value)",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -525,7 +580,9 @@
       "constructors": [
         "BunnyHookScope()"
       ],
-      "properties": [],
+      "properties": [
+        "BunnyNativeScope Native { get; }"
+      ],
       "values": [],
       "methods": [
         {
@@ -842,6 +899,117 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyNativeBatch",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int Count { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Read(BunnyValue[] destination, BunnyNativeObject target)",
+          "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeMember",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyValueKind Kind { get; }",
+        "bool CanWrite { get; }",
+        "bool IsStatic { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyValue Invoke(BunnyNativeObject target, BunnyValue arg0, BunnyValue arg1, BunnyValue arg2, BunnyValue arg3)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "BunnyValue Read(BunnyNativeObject target)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "void Write(BunnyValue value, BunnyNativeObject target)",
+          "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeObject",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "bool IsCurrent { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyNativeObject FromHook(IntPtr self)",
+          "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeScope",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool IsDisposed { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyNativeBatch Batch(BunnyNativeMember[] members)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "BunnyNativeType Type(string fullName)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "static string GetStatus()",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "void Dispose()",
+          "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeType",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyNativeMember Field(string name, BunnyValueKind kind, bool isStatic, bool writable)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "BunnyNativeMember Method(string name, BunnyValueKind result, bool isStatic, string[] parameterTypes)",
+          "execution": "experimental_game_thread_access"
+        },
+        {
+          "signature": "BunnyNativeMember Property(string name, BunnyValueKind kind, bool isStatic, bool writable)",
+          "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNpcAiState",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -1113,6 +1281,22 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyRectangle",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyRectangle(int x, int y, int width, int height)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Contains(int x, int y)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyTile",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1199,6 +1383,117 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyValue",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyColor AsColor()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRectangle AsRectangle()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyVector2 AsVector2()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Double AsDouble()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Int64 AsInt64()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "UInt32 AsUInt32()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "UInt64 AsUInt64()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool AsBoolean()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "float AsSingle()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int AsInt32()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromBoolean(bool value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromColor(BunnyColor value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromDouble(Double value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromInt32(int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromInt64(Int64 value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromRectangle(BunnyRectangle value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromSingle(float value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromUInt32(UInt32 value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromUInt64(UInt64 value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyValue FromVector2(BunnyVector2 value)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyValueKind",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Void",
+        "Boolean",
+        "Int32",
+        "UInt32",
+        "Int64",
+        "Single",
+        "Double",
+        "Vector2",
+        "Rectangle",
+        "Color",
+        "UInt64"
+      ],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyVanillaItems",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1213,6 +1508,19 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyVector2",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyVector2(float x, float y)"
+      ],
+      "properties": [
+        "float LengthSquared { get; }"
+      ],
       "values": [],
       "methods": []
     },

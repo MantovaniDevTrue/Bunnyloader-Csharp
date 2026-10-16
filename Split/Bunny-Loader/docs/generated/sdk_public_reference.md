@@ -4,6 +4,21 @@ Generated from the compiled BunnySourceSdk. Update with `dotnet run --project to
 
 Execution terms are defined in [the SDK guide](../../../../docs/SDK-CSharp.md). Public methods do not imply Android validation, arbitrary per-frame AI, or multiplayer support. Only members declared on each type are listed; inherited members follow its base type.
 
+## BunnyLoader.Source.BunnyAccessException
+
+class; base: `System.InvalidOperationException`.
+
+```csharp
+BunnyAccessException(BunnyAccessStatus status, string operation)
+BunnyAccessStatus Status { get; }
+```
+
+## BunnyLoader.Source.BunnyAccessStatus
+
+enum; base: `System.Enum`.
+
+Values: Ok, Invalid, WrongThread, Capacity, NativeException, TimedOut, Busy, Expired, ReadOnly, TypeMismatch, Ambiguous, NotFound, Unavailable, Unsupported.
+
 ## BunnyLoader.Source.BunnyAccessory
 
 abstract class; base: `System.Object`.
@@ -122,6 +137,19 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyColor
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyColor(Byte red, Byte green, Byte blue, Byte alpha)
+UInt32 PackedRgba { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyColor FromPackedRgba(UInt32 value)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyCombat
 
@@ -280,6 +308,7 @@ class; base: `System.Object`.
 
 ```csharp
 BunnyHookScope()
+BunnyNativeScope Native { get; }
 ```
 
 | Method | Execution |
@@ -487,6 +516,76 @@ string Texture { get; set; }
 | `void OnSpawn(ref BunnyNpcAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyNativeBatch
+
+class; base: `System.Object`.
+
+```csharp
+int Count { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Read(BunnyValue[] destination, BunnyNativeObject target)` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeMember
+
+class; base: `System.Object`.
+
+```csharp
+BunnyValueKind Kind { get; }
+bool CanWrite { get; }
+bool IsStatic { get; }
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyValue Invoke(BunnyNativeObject target, BunnyValue arg0, BunnyValue arg1, BunnyValue arg2, BunnyValue arg3)` | experimental_game_thread_access |
+| `BunnyValue Read(BunnyNativeObject target)` | experimental_game_thread_access |
+| `void Write(BunnyValue value, BunnyNativeObject target)` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeObject
+
+struct; base: `System.ValueType`.
+
+```csharp
+bool IsCurrent { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyNativeObject FromHook(IntPtr self)` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeScope
+
+class; base: `System.Object`.
+
+```csharp
+bool IsDisposed { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyNativeBatch Batch(BunnyNativeMember[] members)` | experimental_game_thread_access |
+| `BunnyNativeType Type(string fullName)` | experimental_game_thread_access |
+| `static string GetStatus()` | experimental_game_thread_access |
+| `void Dispose()` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeType
+
+class; base: `System.Object`.
+
+```csharp
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyNativeMember Field(string name, BunnyValueKind kind, bool isStatic, bool writable)` | experimental_game_thread_access |
+| `BunnyNativeMember Method(string name, BunnyValueKind result, bool isStatic, string[] parameterTypes)` | experimental_game_thread_access |
+| `BunnyNativeMember Property(string name, BunnyValueKind kind, bool isStatic, bool writable)` | experimental_game_thread_access |
+
 ## BunnyLoader.Source.BunnyNpcAiState
 
 struct; base: `System.ValueType`.
@@ -604,6 +703,18 @@ class; base: `System.Object`.
 | `BunnyRecipe AddTile(string modTileName)` | managed_helper |
 | `void Register()` | managed_helper |
 
+## BunnyLoader.Source.BunnyRectangle
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyRectangle(int x, int y, int width, int height)
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Contains(int x, int y)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyTile
 
 abstract class; base: `System.Object`.
@@ -653,6 +764,39 @@ string LastError { get; }
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |
 
+## BunnyLoader.Source.BunnyValue
+
+struct; base: `System.ValueType`.
+
+| Method | Execution |
+| --- | --- |
+| `BunnyColor AsColor()` | managed_helper |
+| `BunnyRectangle AsRectangle()` | managed_helper |
+| `BunnyVector2 AsVector2()` | managed_helper |
+| `Double AsDouble()` | managed_helper |
+| `Int64 AsInt64()` | managed_helper |
+| `UInt32 AsUInt32()` | managed_helper |
+| `UInt64 AsUInt64()` | managed_helper |
+| `bool AsBoolean()` | managed_helper |
+| `float AsSingle()` | managed_helper |
+| `int AsInt32()` | managed_helper |
+| `static BunnyValue FromBoolean(bool value)` | managed_helper |
+| `static BunnyValue FromColor(BunnyColor value)` | managed_helper |
+| `static BunnyValue FromDouble(Double value)` | managed_helper |
+| `static BunnyValue FromInt32(int value)` | managed_helper |
+| `static BunnyValue FromInt64(Int64 value)` | managed_helper |
+| `static BunnyValue FromRectangle(BunnyRectangle value)` | managed_helper |
+| `static BunnyValue FromSingle(float value)` | managed_helper |
+| `static BunnyValue FromUInt32(UInt32 value)` | managed_helper |
+| `static BunnyValue FromUInt64(UInt64 value)` | managed_helper |
+| `static BunnyValue FromVector2(BunnyVector2 value)` | managed_helper |
+
+## BunnyLoader.Source.BunnyValueKind
+
+enum; base: `System.Enum`.
+
+Values: Void, Boolean, Int32, UInt32, Int64, Single, Double, Vector2, Rectangle, Color, UInt64.
+
 ## BunnyLoader.Source.BunnyVanillaItems
 
 abstract class; base: `System.Object`.
@@ -660,6 +804,15 @@ abstract class; base: `System.Object`.
 ## BunnyLoader.Source.BunnyVanillaTiles
 
 abstract class; base: `System.Object`.
+
+## BunnyLoader.Source.BunnyVector2
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyVector2(float x, float y)
+float LengthSquared { get; }
+```
 
 ## BunnyLoader.Source.BunnyVisual
 

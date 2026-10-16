@@ -28,6 +28,7 @@ on:
       - codex/csharp-universal-timeout-recovery-v90-29-65
       - codex/csharp-universal-late-callback-fix-v90-29-66
       - codex/csharp-universal-circuit-rearm-v90-29-67
+      - codex/csharp-native-access-lot-a
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
       - csharp-composite-accessories-v90-26
@@ -1073,6 +1074,14 @@ jobs:
           python3 "$ROOT/tests/basic_items/check_placement_probe.py" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
           sha256sum "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" > "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256"
 
+      - name: Package read-only native access CSharp Android probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/tools/package_native_access_probe.py" "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod"
+          (cd "$RUNNER_TEMP" && sha256sum NativeAccessProbeCSharp-v0.1.0.bmod > NativeAccessProbeCSharp-v0.1.0.bmod.sha256)
+
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
         run: |
@@ -1192,6 +1201,15 @@ jobs:
           mkdir -p build/universal-hooks
           g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
+      - name: Verify typed native access lot before Android compilation
+        shell: bash
+        run: |
+          cd Split/Bunny-Loader
+          python3 tests/run_native_access.py
+          mkdir -p build/native-access
+          g++ -std=c++20 -shared -fPIC -I app/src/main/cpp tests/native_access/sdk_mock.cpp -o build/native-access/libbunny.so
+          LD_LIBRARY_PATH="$PWD/build/native-access" dotnet run --project tests/native_access/NativeAccess.csproj -c Release
+
       - name: Verify packages QuickJS C# isolation and mixed-mode warning
         shell: bash
         run: |
@@ -1757,6 +1775,13 @@ jobs:
                   content = package.read("assets/managed/" + name)
                   assert hashlib.sha256(content).hexdigest() == checksum, name
               print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
+              native = package.read("lib/arm64-v8a/libbunny.so")
+              for symbol in (b"bunny_native_open", b"bunny_native_call", b"bunny_native_read_batch", b"bunny_native_access_stat"):
+                  assert symbol in native, "Missing native access export: " + symbol.decode()
+              sdk = package.read("assets/managed/BunnySourceSdk.dll")
+              for name in (b"BunnyNativeScope", b"BunnyNativeBatch", b"BunnyNativeObject", b"BunnyValue"):
+                  assert name in sdk, "Missing SDK type: " + name.decode()
+              print("APK_NATIVE_ACCESS_BRIDGE_AND_SDK=PASS")
           PY
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceSdk.dll"
           unzip -l "$APK" | grep -F "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
@@ -1831,9 +1856,15 @@ jobs:
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
             NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.40.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-access-lot-a" ]; then
+            TITLE="EXPERIMENTAL — Acesso nativo C# lote A | $VERSION"
+            NOTES="Experimental .68: typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
+          fi
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod.sha256" \
+            "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod" \
+            "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod.sha256" \
             "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod" \
             "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod.sha256" \
             "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" \
@@ -1851,7 +1882,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.40.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.40.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -1873,6 +1904,8 @@ jobs:
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/NativeAccessProbeCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/NativeAccessProbeCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
 

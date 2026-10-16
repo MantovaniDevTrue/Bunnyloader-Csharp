@@ -1,11 +1,14 @@
 #pragma once
 #include <chrono>
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <thread>
 
 namespace bl::csharp {
+inline std::atomic<bool(*)()> universalNativeService{nullptr};
+inline thread_local bool universalNativeAccessInProgress=false;
 inline thread_local bool universalCanInstall = false;
 inline thread_local void (*universalLeaveMono)() = nullptr;
 inline thread_local void (*universalResumeMono)() = nullptr;
@@ -22,7 +25,7 @@ public:
 
     template<class Original, class Wake>
     Outcome dispatch(int slot, uintptr_t self, Original original, Wake wake,
-                     std::chrono::microseconds budget = std::chrono::milliseconds(3)) {
+                     std::chrono::microseconds budget = std::chrono::milliseconds(3), bool(*service)()=nullptr) {
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock || state_ != State::Idle) return {};
         work_ = {slot, ++ticket_, self};
@@ -63,10 +66,32 @@ public:
                 changed_.notify_all();
                 continue;
             }
+            if(service) {
+                const uint64_t notifications=notifications_;
+                lock.unlock();
+                const bool handled=service();
+                lock.lock();
+                if(handled||originalRequested_||state_==State::Done||cancelled_||notifications_!=notifications)continue;
+            }
             changed_.wait_until(lock, deadline);
         }
     }
 
+    void notify() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        ++notifications_;
+        changed_.notify_all();
+    }
+    bool context(int slot,uint64_t ticket,uintptr_t* self) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(!self||state_!=State::Running||cancelled_||slot!=work_.slot||ticket!=work_.ticket)return false;
+        *self=work_.self;return true;
+    }
+    bool workerContext(int slot,uint64_t ticket,uintptr_t* self) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(!self||state_!=State::Running||cancelled_||slot!=work_.slot||ticket!=work_.ticket||worker_!=std::this_thread::get_id())return false;
+        *self=work_.self;return true;
+    }
     bool take(Work& work) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (state_ != State::Pending) return false;
@@ -111,7 +136,7 @@ private:
     std::condition_variable changed_;
     State state_ = State::Idle;
     Work work_{};
-    uint64_t ticket_ = 0;
+    uint64_t ticket_ = 0, notifications_ = 0;
     std::thread::id worker_;
     bool cancelled_ = false, originalRequested_ = false, originalDone_ = false;
     bool originalRan_ = false, failed_ = false;

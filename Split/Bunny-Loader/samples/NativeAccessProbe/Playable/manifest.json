@@ -1,0 +1,14 @@
+{
+  "uid": "256c6e8a-07bc-4e98-b157-e82bd5993e0b",
+  "id": "nativeaccesscsharpprobe",
+  "name": "Native Access Probe CSharp",
+  "version": "0.1.0",
+  "authors": [{"name": "Mantovani", "role": "Developer"}],
+  "category": "Example",
+  "summary": "Read-only Player fields, static world state, batched snapshots and native method calls in CSharp.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.cs",
+  "dependencies": []
+}
