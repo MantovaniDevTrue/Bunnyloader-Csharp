@@ -39,7 +39,7 @@ struct Install {
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
-std::array<std::atomic<int64_t>, 6> counters{};
+std::array<std::atomic<int64_t>, 7> counters{};
 
 void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
