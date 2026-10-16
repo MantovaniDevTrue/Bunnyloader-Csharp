@@ -28,6 +28,8 @@ on:
       - codex/csharp-universal-timeout-recovery-v90-29-65
       - codex/csharp-universal-late-callback-fix-v90-29-66
       - codex/csharp-universal-circuit-rearm-v90-29-67
+      - codex/csharp-native-access-lot-a
+      - codex/csharp-native-access-adaptive-v90-29-70
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -1074,6 +1076,14 @@ jobs:
           python3 "$ROOT/tests/basic_items/check_placement_probe.py" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
           sha256sum "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" > "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256"
 
+      - name: Package read-only native access CSharp Android probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/tools/package_native_access_probe.py" "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod"
+          (cd "$RUNNER_TEMP" && sha256sum NativeAccessProbeCSharp-v0.1.0.bmod > NativeAccessProbeCSharp-v0.1.0.bmod.sha256)
+
       - name: Package second independent CSharp mod 0.1.0
         shell: bash
         run: |
@@ -1150,13 +1160,16 @@ jobs:
           assert 'entry.retryAfter = now + std::chrono::seconds(1);' in native
           assert 'now - entry.timeoutWindow > std::chrono::seconds(30)' in native
           assert '++entry.timeoutsInWindow < 3' in native
-          assert 'entry.retryAfter = now + std::chrono::seconds(30);' in native
+          assert 'assert(bunny_universal_hook_test_backoff_seconds(1) == 5)' in tests
+          assert 'assert(bunny_universal_hook_test_backoff_seconds(3) == 15)' in tests
+          assert 'entry.retryAfter = now + std::chrono::seconds(entry.lastSuspensionSeconds);' in native
+          assert 'suspensionSecondsFor(++entry.suspensionsInBurst)' in native
           assert 'entry.suspended = true;' in native
           assert 'if (entry.suspended)' in native
           assert 'if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);' in native
           assert 'std::array<std::atomic<int64_t>, 9> counters' in native
           assert 'NativeStat(5)' in sdk and 'bunny_universal_hook_stat(5)' in editor
-          assert '30s circuit suspension, auto-rearm' in tests
+          assert 'adaptive 5/10/15s suspension, auto-rearm' in tests
           print("UNIVERSAL_HOOK_TIMEOUT_RECOVERY=PASS")
           PY
       - name: Verify stale universal callback cannot unload recovered hook
@@ -1216,6 +1229,33 @@ jobs:
           mkdir -p build/universal-hooks
           g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
+      - name: Verify fused native access and fast hook recovery in .70
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader")
+          native=(root/"app/src/main/cpp/experiments/csharp/NativeAccess.cpp").read_text()
+          hooks=(root/"app/src/main/cpp/experiments/csharp/UniversalHooks.cpp").read_text()
+          sdk=(root/"experiments/csharp/BunnyCsSdk/BunnyNativeAccess.cs").read_text()
+          sample=(root/"samples/ExampleModCSharp/Experimental/NativeAccess/ExampleNativeAccess.cs").read_text()
+          assert 'bunny_native_read_batch_invoke' in native
+          assert 'r.op==5||r.op==6' in native
+          assert 'stats[3].fetch_add(1' in native and 'stats[4].fetch_add(1' in native
+          assert 'ReadAndInvoke(' in sdk and 'ReadAndInvoke(' in sample
+          assert 'universalNativeAccessInProgress' in hooks
+          assert 'suspensionSecondsFor(++entry.suspensionsInBurst)' in hooks
+          print("NATIVE_ACCESS_ADAPTIVE_FUSED=PASS")
+          PY
+      - name: Verify typed native access lot before Android compilation
+        shell: bash
+        run: |
+          cd Split/Bunny-Loader
+          python3 tests/run_native_access.py
+          mkdir -p build/native-access
+          g++ -std=c++20 -shared -fPIC -I app/src/main/cpp tests/native_access/sdk_mock.cpp -o build/native-access/libbunny.so
+          LD_LIBRARY_PATH="$PWD/build/native-access" dotnet run --project tests/native_access/NativeAccess.csproj -c Release
+
       - name: Verify packages QuickJS C# isolation and mixed-mode warning
         shell: bash
         run: |
@@ -1781,6 +1821,14 @@ jobs:
                   content = package.read("assets/managed/" + name)
                   assert hashlib.sha256(content).hexdigest() == checksum, name
               print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
+              native = package.read("lib/arm64-v8a/libbunny.so")
+              for symbol in (b"bunny_native_open", b"bunny_native_call", b"bunny_native_read_batch",
+                             b"bunny_native_read_batch_invoke", b"bunny_native_access_stat"):
+                  assert symbol in native, "Missing native access export: " + symbol.decode()
+              sdk = package.read("assets/managed/BunnySourceSdk.dll")
+              for name in (b"BunnyNativeScope", b"BunnyNativeBatch", b"BunnyNativeObject", b"BunnyValue"):
+                  assert name in sdk, "Missing SDK type: " + name.decode()
+              print("APK_NATIVE_ACCESS_BRIDGE_AND_SDK=PASS")
           PY
           unzip -l "$APK" | grep -F "assets/managed/BunnySourceSdk.dll"
           unzip -l "$APK" | grep -F "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
@@ -1807,7 +1855,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ (github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
@@ -1855,9 +1903,19 @@ jobs:
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
             NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.40.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-access-adaptive-v90-29-70" ]; then
+            TITLE="EXPERIMENTAL — Acesso nativo C# + retomada rápida | $VERSION"
+            NOTES="Bunny CSharp .70 reúne PR43 e PR44: campos/propriedades, chamadas tipadas, lotes e novas leituras+lógica de método numa só operação nativa; hooks com suspensões 5/10/15 segundos. O NativeAccessProbe v0.1.0 está otimizado e não deve ser usado simultaneamente com UniversalHooksProbe (ambos interceptam Player.ResetEffects). A execução real Android desta fusão ainda deve ser validada. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-access-lot-a" ]; then
+            TITLE="EXPERIMENTAL — Acesso nativo C# lote A | $VERSION"
+            NOTES="Experimental .69: includes .68 typed Int32 hooks; typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
+          fi
           gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod" \
             "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod.sha256" \
+            "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod" \
+            "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod.sha256" \
             "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod" \
             "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod.sha256" \
             "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" \
@@ -1875,7 +1933,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.40.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.40.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -1897,6 +1955,8 @@ jobs:
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/NativeAccessProbeCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/NativeAccessProbeCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
 

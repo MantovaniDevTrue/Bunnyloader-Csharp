@@ -57,6 +57,11 @@ public sealed class BunnyHookScope : IDisposable
     private readonly object gate = new();
     private readonly List<BunnyMethodHook> handles = new();
     private bool disposed;
+    private BunnyNativeScope? native;
+    public BunnyNativeScope Native
+    {
+        get { lock(gate) { if(disposed)throw new ObjectDisposedException(nameof(BunnyHookScope));return native??=new BunnyNativeScope(); } }
+    }
     public BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic = false)
     {
         lock (gate)
@@ -85,6 +90,8 @@ public sealed class BunnyHookScope : IDisposable
             disposed = true;
             foreach (BunnyMethodHook handle in handles) handle.Dispose();
             handles.Clear();
+            native?.Dispose();
+            native=null;
         }
     }
 }
@@ -101,11 +108,12 @@ public static class BunnyHooks
     private static readonly BunnyMethodHook?[] Slots = new BunnyMethodHook?[64];
     [ThreadStatic] private static int currentSlot;
     [ThreadStatic] private static long currentTicket;
+    [ThreadStatic] private static nint currentSelf;
     public static long Calls { get; private set; }
     public static long Faults { get; private set; }
     public static string LastError { get; private set; } = "";
 
-    public static string GetStatus() => "Universal C# void(): chamadas=" + NativeStat(0) +
+    public static string GetStatus() => "Universal C# void()/int(int): chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
@@ -190,6 +198,8 @@ public static class BunnyHooks
         if (slot >= 0 && slot < Slots.Length) Volatile.Read(ref Slots[slot])?.Dispose();
     }
 
+    internal static void GetNativeContext(out int slot,out long ticket,out nint self) { slot=currentSlot;ticket=currentTicket;self=currentSelf; }
+
     internal static bool IsCurrent(int slot, long ticket) => ticket != 0 && currentTicket == ticket && currentSlot == slot;
 
     public static void Invoke(int slot, long ticket, nint self, out int result) => result = Dispatch(slot, ticket, self);
@@ -202,6 +212,7 @@ public static class BunnyHooks
         if (callback is null) return 0;
         currentSlot = slot;
         currentTicket = ticket;
+        currentSelf = self;
         try
         {
             callback(new BunnyOriginalVoid(slot, ticket), self);
@@ -214,7 +225,7 @@ public static class BunnyHooks
             LastError = error.GetType().Name + ": " + error.Message;
             return 0;
         }
-        finally { currentTicket = 0; currentSlot = -1; }
+        finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
     }
 
     public static void InvokeInt32(int slot, long ticket, nint self, int value, out int success, out int returnedValue)
@@ -227,6 +238,7 @@ public static class BunnyHooks
         if (callback is null) return;
         currentSlot = slot;
         currentTicket = ticket;
+        currentSelf = self;
         try
         {
             returnedValue = callback(new BunnyOriginalInt32(slot, ticket), self, value);
@@ -238,7 +250,7 @@ public static class BunnyHooks
             Faults++;
             LastError = error.GetType().Name + ": " + error.Message;
         }
-        finally { currentTicket = 0; currentSlot = -1; }
+        finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
     }
 
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_stat", CallingConvention = CallingConvention.Cdecl)]

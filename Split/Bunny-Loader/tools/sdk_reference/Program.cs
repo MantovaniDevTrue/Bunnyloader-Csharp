@@ -22,6 +22,8 @@ string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
 
 string Mode(Type type, MethodInfo method)
 {
+    if (type == typeof(BunnyNativeScope) || type == typeof(BunnyNativeType) || type == typeof(BunnyNativeMember) ||
+        type == typeof(BunnyNativeBatch) || type == typeof(BunnyNativeObject)) return "experimental_game_thread_access";
     if (type == typeof(BunnyVoidHook) || type == typeof(BunnyHooks) || type == typeof(BunnyOriginalVoid) || type == typeof(BunnyMethodHook) ||
         type == typeof(BunnyHookScope) || type == typeof(BunnyHookModule) || type == typeof(BunnyUniversalHookDispatcher))
         return "experimental_worker_sync_void0";
