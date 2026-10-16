@@ -1396,10 +1396,10 @@ void* pinnedMonoWorker(void*) {
                             const int observed=g_entityCombatExecuted[static_cast<size_t>(eventIndex)]
                                 .fetch_add(1, std::memory_order_relaxed);
                             if (observed == 0) {
+#ifdef __ANDROID__
                                 const char* names[]={
                                     "NPC.OnHit", "NPC.OnKill", "Projectile.OnHitNPC", "Projectile.OnKill"
                                 };
-#ifdef __ANDROID__
                                 __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
                                     "csharp source combat: %s executado no MonoVM type=%d slot=%d generation=%d",
                                     names[eventIndex], job.type, job.slot, job.generation);
