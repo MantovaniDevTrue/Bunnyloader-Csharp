@@ -1,6 +1,6 @@
-# Hooks C# por método: núcleo experimental void()
+# Hooks C# por método: núcleo experimental void() e int(int)
 
-Esta etapa permite escolher uma classe `Terraria.*` e um método `void()` sem parâmetros. Não contém QuickJS nem código de tModLoader. A linha Android `.90.29.67` parte da `.66` e preserva a alternância QuickJS, o Editor C# independente e o sistema de recuperação de timeout. O teste de continuidade no dispositivo ainda é necessário.
+Esta etapa permite escolher uma classe `Terraria.*` com método `void()` sem parâmetros ou, na .68 experimental, método `int(int)` com exatamente um parâmetro `System.Int32` e retorno `System.Int32`. Não contém QuickJS nem código de tModLoader. A linha Android `.90.29.68` parte da `.67` e preserva a alternância QuickJS, o Editor C# independente e o sistema de recuperação de timeout. O teste de continuidade no dispositivo ainda é necessário.
 
 ```csharp
 using BunnyLoader.Source;
@@ -24,6 +24,27 @@ O arquivo deve ficar entre os fontes `content/**/*.cs` do mod C#. O autoloader d
 
 `self` é uma identidade nativa opaca (`nint`), válida apenas durante a chamada. Não é um `Terraria.Player` gerenciado nem uma API de acesso a campos. Não deve ser armazenada ou dereferenciada. `isStatic: true` seleciona métodos estáticos; nesses callbacks `self` é zero.
 
+## Assinatura experimental int(int) da .68
+
+```csharp
+using BunnyLoader.Source;
+
+public sealed class IntHooks : BunnyHookModule
+{
+    public override void Load(BunnyHookScope hooks)
+    {
+        hooks.HookInt32("Terraria.ExampleType", "ExampleMethod",
+            (original, self, value) =>
+            {
+                int vanilla = original.Invoke();
+                return vanilla + 1;
+            });
+    }
+}
+```
+
+Os nomes `ExampleType` e `ExampleMethod` são placeholders: é obrigatório escolher um método existente com assinatura exata `System.Int32 Method(System.Int32)`. O carregador rejeita os demais alvos em vez de forçar uma chamada com ABI incompatível. `original.Invoke()` chama a implementação vanilla na thread do jogo e devolve o `int` original. O callback pode retornar outro `int`; se não chamar o original, substitui totalmente o resultado. Parâmetro de entrada é somente leitura nesta etapa. Um erro ou timeout faz o jogo usar o resultado vanilla quando necessário, mantendo o circuito de recuperação da .67.
+
 ## Execução e limites desta etapa
 
 - A resolução e instalação ocorrem no pump da thread do jogo; o callback permanece no worker MonoVM fixo. Não se anexa a thread do jogo ao Mono.
@@ -34,7 +55,7 @@ O arquivo deve ficar entre os fontes `content/**/*.cs` do mod C#. O autoloader d
 - A fila é de uma chamada síncrona por vez. Calls vindas de outra thread e hooks universais aninhados durante o original seguem pelo original. Outros callbacks síncronos especializados que dependam do mesmo worker podem atingir seus próprios timeouts durante esse original. Métodos que exigem esse aninhamento ainda não são suportados para uso real.
 - `Dispose()` remove o delegate e desativa o despacho nativo. O trampolim permanece como passagem ao original até o processo encerrar, evitando liberar código enquanto alguém ainda o executa. Saída do mundo cancela o mailbox, desativa os hooks e agenda `UnloadAll` no worker; entrada em outro mundo registra novamente. Não implementa hot-reload de assemblies nem o hot-unload geral do loader.
 - Até 64 alvos nativos distintos por processo e 64 callbacks ativos. Alvos desativados podem ser vinculados novamente. Um segundo hook C# ativo no mesmo endereço é recusado nesta etapa; os elos existentes do HookManager (inclusive JS) são preservados.
-- Genéricos, instâncias de structs, construtores, métodos com parâmetros, `ref/out`, retornos e ambiguidades são recusados antes da instalação. ARM64 é a arquitetura inicial. A forma `Player.Update(...)` do rascunho inicial ainda não é suportada.
+- Genéricos, instâncias de structs, construtores, `ref/out`, `float`, referências, múltiplos parâmetros e assinaturas de retorno diferentes de `void()` ou `int(int)` são recusados antes da instalação. O instalador usa os metadados IL2CPP para distinguir as assinaturas permitidas. ARM64 é a arquitetura inicial. A forma `Player.Update(...)` do rascunho inicial ainda não é suportada.
 
 O Editor C# pode consultar `Print(BunnyHooks.GetStatus());`: chamadas, concluídas, mailbox ocupado, timeouts, falhas terminais, timeouts recuperados e `atrasadosDescartados` são contados separadamente. O painel também mostra `atrasados`, `suspensoes` e `retomadas`, indicando conclusões vencidas descartadas sem desmontar o hook e o progresso da recuperação automática. A consulta formata uma string somente quando solicitada.
 
@@ -50,4 +71,4 @@ g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/
 LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
 ```
 
-Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` serve para ensaio controlado de frequência alta; ainda não deve ser tratado como aprovado para produção. A próxima etapa é essa integração e medição, antes de ampliar para parâmetros, `ref/out`, retornos, structs, sobrecargas e encadeamento de vários mods no mesmo alvo.
+Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` já foi testado no Xiaomi com a .67: chamadas crescentes durante sessão prolongada e recuperações sem falhas terminais. A ABI `int(int)` da .68 ainda requer verificação em um método real do Terraria Android antes de produção; a seguir estão `ref/out`, outros tipos, múltiplos parâmetros e encadeamento de mods no mesmo alvo.

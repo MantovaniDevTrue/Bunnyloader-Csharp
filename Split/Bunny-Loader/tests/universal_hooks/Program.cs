@@ -7,6 +7,7 @@ static class Program
     [DllImport("bunny")] static extern int test_removes();
     [DllImport("bunny")] static extern int test_originals();
     [DllImport("bunny")] static extern void test_begin(long ticket);
+    [DllImport("bunny")] static extern void test_int_argument(int value);
     static void Check(bool value) { if (!value) throw new Exception("Universal hook assertion failed"); }
     static void Throws(Action body) { try { body(); } catch (InvalidOperationException) { return; } throw new Exception("Expected invalid original"); }
     static void Main()
@@ -80,6 +81,44 @@ static class Program
         for (int i = 0; i < 100; ++i) {
             using var reused = new BunnyHookScope();
             reused.HookVoid("Terraria.Player", "ResetEffects", (_, _) => { });
+        }
+        using (var typed = new BunnyHookScope())
+        {
+            int seen = 0;
+            BunnyOriginalInt32 expired = default;
+            var typedHandle = typed.HookInt32("Terraria.Player", "Int32Transform", (original, self, value) =>
+            {
+                Check(self == (nint)123 && value == 10);
+                expired = original;
+                seen++;
+                return original.Invoke() + 20;
+            });
+            int typedSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(10);
+            BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 10, out int ok, out int value);
+            Check(ok == 1 && value == 37 && test_originals() == 1 && seen == 1);
+            Throws(() => expired.Invoke());
+            typedHandle.Dispose();
+            var replace = typed.HookInt32("Terraria.Player", "Int32Transform", (_, _, value) => value * 3);
+            typedSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 9, out ok, out value);
+            Check(ok == 1 && value == 27 && test_originals() == 0);
+            replace.Dispose();
+            var invalid = typed.HookInt32("Terraria.Player", "Int32Transform", (original, _, _) =>
+            {
+                original.Invoke();
+                original.Invoke();
+                return 0;
+            });
+            typedSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(2);
+            BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 2, out ok, out value);
+            Check(ok == 0 && test_originals() == 1 && !invalid.IsDisposed);
+            BunnyHooks.RemoveSlot(typedSlot);
+            Check(invalid.IsDisposed);
         }
         Check(BunnyHooks.GetStatus().Contains("void()"));
         Console.WriteLine("C# SDK: delegate/original, deferred terminal disposal, stale timeout recovery, expired original, module auto-unload, slot reuse PASS");

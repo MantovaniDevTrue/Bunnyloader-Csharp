@@ -18,6 +18,7 @@ struct Entry {
     const MethodInfo* method = nullptr;
     void* original = nullptr;
     bool isStatic = false;
+    bool int32Mode = false;
     int managedSlot = -1;
     std::atomic<bool> active{false};
     std::chrono::steady_clock::time_point retryAfter{};
@@ -36,7 +37,7 @@ struct Install {
     uint64_t epoch = 0;
     std::string type, method;
     int slot = -1, result = -1;
-    bool isStatic = false;
+    bool isStatic = false, int32Mode = false;
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
@@ -46,6 +47,13 @@ void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
     if (entry.isStatic) reinterpret_cast<void(*)(const MethodInfo*)>(target)(info);
     else reinterpret_cast<void(*)(void*, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), info);
+}
+int32_t callOriginalInt32(Entry& entry, uintptr_t self, int32_t value, const MethodInfo* info) {
+    void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
+    if (entry.isStatic)
+        return reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(target)(value, info);
+    return reinterpret_cast<int32_t(*)(void*, int32_t, const MethodInfo*)>(target)(
+        reinterpret_cast<void*>(self), value, info);
 }
 void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     Entry& entry = entries[index];
@@ -103,6 +111,75 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     }
     if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);
 }
+int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo* info) {
+    Entry& entry = entries[index];
+    if (!entry.active.load(std::memory_order_acquire) || inOriginal ||
+        static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire))
+        return callOriginalInt32(entry, self, value, info);
+    const auto now = std::chrono::steady_clock::now();
+    if (now < entry.retryAfter) return callOriginalInt32(entry, self, value, info);
+    if (entry.suspended) {
+        entry.suspended = false;
+        entry.timeoutsInWindow = 0;
+        entry.timeoutWindow = now;
+        counters[8].fetch_add(1, std::memory_order_relaxed);
+    }
+    int32_t originalValue = 0;
+    auto original = [&] {
+        inOriginal = true;
+        auto body = [&] { originalValue = callOriginalInt32(entry, self, value, info); };
+        const bool ok = il2cpp::guarded(body);
+        inOriginal = false;
+        if (ok) universalHookMailbox().setOriginalInt32Value(originalValue);
+        return ok;
+    };
+    counters[0].fetch_add(1, std::memory_order_relaxed);
+    const auto result = universalHookMailbox().dispatch(
+        entry.managedSlot, self, original, wakeUniversalHookWorker,
+        std::chrono::milliseconds(3), value, true);
+    if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
+    else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
+    if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
+    if (result.faulted) {
+        bool disable = true;
+        if (result.timedOut) {
+            const auto moment = std::chrono::steady_clock::now();
+            if (moment - entry.timeoutWindow > std::chrono::seconds(30)) {
+                entry.timeoutWindow = moment;
+                entry.timeoutsInWindow = 0;
+            }
+            if (++entry.timeoutsInWindow < 3) {
+                entry.retryAfter = moment + std::chrono::seconds(1);
+                counters[5].fetch_add(1, std::memory_order_relaxed);
+            } else {
+                entry.suspended = true;
+                entry.retryAfter = moment + std::chrono::seconds(30);
+                counters[7].fetch_add(1, std::memory_order_relaxed);
+            }
+            disable = false;
+        }
+        if (disable) {
+            counters[4].fetch_add(1, std::memory_order_relaxed);
+            entry.active.store(false, std::memory_order_release);
+        }
+    }
+    if (!result.accepted || result.faulted)
+        return result.originalRan ? originalValue : callOriginalInt32(entry, self, value, info);
+    return result.value;
+}
+template<size_t N> int32_t instanceInt32Stub(void* self, int32_t arg, const MethodInfo* info) {
+    return dispatchInt32(N, reinterpret_cast<uintptr_t>(self), arg, info);
+}
+template<size_t N> int32_t staticInt32Stub(int32_t arg, const MethodInfo* info) {
+    return dispatchInt32(N, 0, arg, info);
+}
+template<size_t... N> auto instanceInt32Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceInt32Stub<N>)...};
+}
+template<size_t... N> auto staticInt32Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticInt32Stub<N>)...};
+}
+
 template<size_t N> void instanceStub(void* self, const MethodInfo* info) {
     dispatch(N, reinterpret_cast<uintptr_t>(self), info);
 }
@@ -124,25 +201,34 @@ int installOnGameThread() {
         !accepting.load(std::memory_order_acquire) || install.epoch != epoch.load(std::memory_order_acquire)) return -3;
     if (!api.class_get_methods || !api.method_get_param_count || !api.method_get_name ||
         !api.method_get_return_type || !api.type_get_name || !api.il2cpp_free ||
-        !api.class_is_valuetype || !api.method_is_instance || !api.method_is_generic || !api.class_is_generic) return -4;
+        !api.class_is_valuetype || !api.method_is_instance || !api.method_is_generic || !api.class_is_generic ||
+        (install.int32Mode && !api.method_get_param)) return -4;
     Il2CppClass* cls = il2cpp::findClassQuiet(install.type.substr(0, dot), install.type.substr(dot + 1));
     if (!cls || api.class_is_valuetype(cls) || api.class_is_generic(cls)) return -5;
     const MethodInfo* selected = nullptr;
     void* iter = nullptr;
     while (const MethodInfo* method = api.class_get_methods(cls, &iter)) {
-        if (install.method != api.method_get_name(method) || api.method_get_param_count(method) != 0 ||
+        if (install.method != api.method_get_name(method) ||
+            api.method_get_param_count(method) != (install.int32Mode ? 1u : 0u) ||
             api.method_is_instance(method) == install.isStatic) continue;
         char* name = api.type_get_name(api.method_get_return_type(method));
-        const bool isVoid = name && std::strcmp(name, "System.Void") == 0;
+        const bool rightReturn = name && std::strcmp(name, install.int32Mode ? "System.Int32" : "System.Void") == 0;
         if (name) api.il2cpp_free(name);
-        if (!isVoid || selected || api.method_is_generic(method)) return -6;
+        bool rightParam = !install.int32Mode;
+        if (install.int32Mode && api.method_get_param) {
+            const Il2CppType* param = api.method_get_param(method, 0);
+            char* paramName = param ? api.type_get_name(param) : nullptr;
+            rightParam = paramName && std::strcmp(paramName, "System.Int32") == 0;
+            if (paramName) api.il2cpp_free(paramName);
+        }
+        if (!rightReturn || !rightParam || selected || api.method_is_generic(method)) return -6;
         selected = method;
     }
     if (!selected || !il2cpp::methodPointer(selected)) return -7;
     for (int i = 0; i < used; ++i) {
         auto& entry = entries[i];
         if (il2cpp::methodPointer(entry.method) != il2cpp::methodPointer(selected)) continue;
-        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic) return -8;
+        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic || entry.int32Mode != install.int32Mode) return -8;
         entry.managedSlot = install.slot;
         entry.retryAfter = {};
         entry.timeoutWindow = {};
@@ -154,15 +240,20 @@ int installOnGameThread() {
     if (used >= MaxHooks) return -3;
     static const auto instances = instanceStubs(std::make_index_sequence<MaxHooks>{});
     static const auto statics = staticStubs(std::make_index_sequence<MaxHooks>{});
+    static const auto intInstances = instanceInt32Stubs(std::make_index_sequence<MaxHooks>{});
+    static const auto intStatics = staticInt32Stubs(std::make_index_sequence<MaxHooks>{});
     Entry& entry = entries[used];
     entry.method = selected;
     entry.isStatic = install.isStatic;
+    entry.int32Mode = install.int32Mode;
     entry.managedSlot = install.slot;
     entry.retryAfter = {};
     entry.timeoutWindow = {};
     entry.timeoutsInWindow = 0;
     entry.suspended = false;
-    if (!hook::install(selected, entry.isStatic ? statics[used] : instances[used], &entry.original)) return -9;
+    void* stub = entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
+                                 : (entry.isStatic ? statics[used] : instances[used]);
+    if (!hook::install(selected, stub, &entry.original)) return -9;
     entry.active.store(true, std::memory_order_release);
     return used++;
 #endif
@@ -190,8 +281,7 @@ void disableUniversalHooks() {
 }
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
 
-extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install(
-    const char* type, const char* method, int slot, int isStatic) {
+int requestInstall(const char* type, const char* method, int slot, int isStatic, bool int32Mode) {
     if (!accepting.load(std::memory_order_acquire) || !type || !method || strnlen(type, 257) > 256 || strnlen(method, 129) > 128 ||
         slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1)) return -1;
     if (!universalCanInstall || !universalLeaveMono || !universalResumeMono) return -12;
@@ -202,6 +292,7 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_insta
     install.method = method;
     install.slot = slot;
     install.isStatic = isStatic != 0;
+    install.int32Mode = int32Mode;
     install.epoch = epoch.load(std::memory_order_acquire);
     install.pending = true;
     install.done = false;
@@ -210,6 +301,22 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_insta
         return -11;
     }
     return install.result;
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install(
+    const char* type, const char* method, int slot, int isStatic) {
+    return requestInstall(type, method, slot, isStatic, false);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_i32(
+    const char* type, const char* method, int slot, int isStatic) {
+    return requestInstall(type, method, slot, isStatic, true);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original_i32(
+    int slot, int64_t ticket, int32_t* result) {
+    if (!result) return 0;
+    int32_t value = 0;
+    const bool ok = universalHookMailbox().originalInt32(slot, static_cast<uint64_t>(ticket), value);
+    if (ok) *result = value;
+    return ok ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int index) {
     if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
