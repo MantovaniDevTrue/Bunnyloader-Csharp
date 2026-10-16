@@ -1,3 +1,5 @@
+namespace BunnyLoader.Source;
+
 public struct BunnyNpcAiState
 {
     public int Slot;
@@ -28,8 +30,6 @@ public struct BunnyProjectileAiState
     public float PlayerX;
     public float PlayerY;
 }
-
-namespace BunnyLoader.Source;
 
 public abstract class BunnyProjectile
 {
