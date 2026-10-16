@@ -127,8 +127,9 @@ assert "Texture = \"Content/Items/Weapons/SourceWand.png\";" in wave_weapon
 assert "Texture = \"Content/Projectiles/SourceBolt.png\";" in wave_projectile
 assert "AiStyle = 1;" in wave_projectile
 assert "return MathF.Sin(tick * 0.20f) * 0.018f;" in wave_motion
-assert "OnHitNPC" not in wave_projectile
-assert "OnKill" not in wave_projectile
+assert "public override void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)" in wave_projectile
+assert "public override void OnKill(ref BunnyProjectileAiState state)" in wave_projectile
+assert "public override int OnHitNPC(int damage)" not in wave_projectile
 wave_events = (playable / "content/Common/Live/ExampleWaveBoltLiveEvents.cs").read_text(encoding="utf-8")
 assert "static class ExampleWaveBoltLiveEvents" in wave_events
 assert "static int OnHitNPC(int call, int damage)" in wave_events
