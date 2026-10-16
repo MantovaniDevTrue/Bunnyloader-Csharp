@@ -328,6 +328,8 @@ struct ManagedEntityJob {
     uintptr_t identity = 0;
     float x = 0, y = 0, vx = 0, vy = 0, playerX = 0, playerY = 0;
     uint64_t session = 0;
+    int damage = 0;
+    int target = -1;
 };
 
 struct ManagedEntityResult {
@@ -355,6 +357,12 @@ void* g_entityRegister = nullptr;
 void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
 void* g_entityProjectileTick = nullptr;
+void* g_entityNpcHit = nullptr;
+void* g_entityNpcKill = nullptr;
+void* g_entityProjectileHit = nullptr;
+void* g_entityProjectileKill = nullptr;
+std::atomic<int> g_entityCombatSubmitted{0};
+std::atomic<int> g_entityCombatDropped{0};
 std::atomic<int> g_entityJobsSubmitted{0};
 std::atomic<int> g_entityJobsCompleted{0};
 std::atomic<int> g_entityJobsDropped{0};
@@ -955,8 +963,14 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 12);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 11);
+        g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
+        g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
+        g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
+        g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
         if (!g_entityRegister || !g_entityBind ||
-            !g_entityNpcTick || !g_entityProjectileTick) return -1;
+            !g_entityNpcTick || !g_entityProjectileTick ||
+            !g_entityNpcHit || !g_entityNpcKill ||
+            !g_entityProjectileHit || !g_entityProjectileKill) return -1;
     }
     int managedSlot = binding.managedSlot;
     if (managedSlot < 0) {
@@ -1004,6 +1018,25 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     int life = job.life, maxLife = job.lifeMax, owner = job.owner;
     float x = job.x, y = job.y, vx = job.vx, vy = job.vy;
     float px = job.playerX, py = job.playerY;
+    if (job.kind >= 2 && job.kind <= 5) {
+        int damage = job.damage, target = job.target;
+        void* npcHit[] = {&managedSlot, &type, &slot, &generation, &damage, nullptr};
+        uint8_t killed = 0;
+        npcHit[5] = &killed;
+        void* npcKill[] = {&managedSlot, &type, &slot, &generation};
+        void* projectileHit[] = {&managedSlot, &type, &slot, &generation,
+                                 &owner, &target, &damage};
+        void* projectileKill[] = {&managedSlot, &type, &slot, &generation, &owner};
+        void* chosen = job.kind == 2 ? g_entityNpcHit :
+                       job.kind == 3 ? g_entityNpcKill :
+                       job.kind == 4 ? g_entityProjectileHit : g_entityProjectileKill;
+        void** chosenArgs = job.kind == 2 ? npcHit :
+                            job.kind == 3 ? npcKill :
+                            job.kind == 4 ? projectileHit : projectileKill;
+        void* exception = nullptr;
+        g_api.invoke(chosen, nullptr, chosenArgs, &exception);
+        return exception ? -1 : 0;
+    }
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
                        &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
     void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
@@ -1477,6 +1510,42 @@ void pauseManagedEntitySourceCallbacks() {
     g_entityProjectileResults.fill({});
     g_entityNpcTicks.fill(0);
     g_entityProjectileTicks.fill(0);
+}
+
+bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int generation,
+                                   int owner, uintptr_t identity, int damage, int targetIndex) {
+    if (eventKind < 2 || eventKind > 5 || generation <= 0 || !identity ||
+        type < 0 || type >= 32768 || slot < 0 || damage < 0 ||
+        (eventKind <= 3 ? slot >= 512 : slot >= 4096) ||
+        (eventKind == 4 && (targetIndex < 0 || targetIndex >= 200))) return false;
+    const bool npc = eventKind <= 3;
+    const int bound = (npc ? g_entityNpcTypeOwner[static_cast<size_t>(type)]
+                           : g_entityProjectileTypeOwner[static_cast<size_t>(type)])
+                          .load(std::memory_order_acquire);
+    if (bound <= 0) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted ||
+        static_cast<size_t>(bound - 1) >= g_entityBindings.size() ||
+        !g_entityBindings[static_cast<size_t>(bound - 1)].armed ||
+        g_entityQueue.size() >= 64) {
+        g_entityCombatDropped.fetch_add(1, std::memory_order_relaxed);
+        return false;
+    }
+    ManagedEntityJob job;
+    job.binding = bound - 1;
+    job.kind = eventKind;
+    job.type = type;
+    job.slot = slot;
+    job.generation = generation;
+    job.owner = owner;
+    job.identity = identity;
+    job.session = g_entitySession;
+    job.damage = damage;
+    job.target = targetIndex;
+    g_entityQueue.push_back(job);
+    g_entityCombatSubmitted.fetch_add(1, std::memory_order_relaxed);
+    g_pinnedWake.notify_one();
+    return true;
 }
 
 bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
