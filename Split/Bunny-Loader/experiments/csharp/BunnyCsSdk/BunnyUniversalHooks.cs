@@ -111,13 +111,14 @@ public static class BunnyHooks
     [ThreadStatic] private static nint currentSelf;
     public static long Calls { get; private set; }
     public static long Faults { get; private set; }
+    public static long Deferred { get; private set; }
     public static string LastError { get; private set; } = "";
 
     public static string GetStatus() => "Universal C# void()/int(int): chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
-        " callbacks=" + Calls + " excecoes=" + Faults +
+        " adiados=" + Deferred + " callbacks=" + Calls + " excecoes=" + Faults +
         (LastError.Length == 0 ? "" : " ultimo=" + LastError);
 
     public static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method,
@@ -219,6 +220,11 @@ public static class BunnyHooks
             Calls++;
             return 1;
         }
+        catch (BunnyAccessException error) when (error.Status is BunnyAccessStatus.Busy or BunnyAccessStatus.TimedOut)
+        {
+            Deferred++;
+            return 2;
+        }
         catch (Exception error)
         {
             Faults++;
@@ -244,6 +250,11 @@ public static class BunnyHooks
             returnedValue = callback(new BunnyOriginalInt32(slot, ticket), self, value);
             Calls++;
             success = 1;
+        }
+        catch (BunnyAccessException error) when (error.Status is BunnyAccessStatus.Busy or BunnyAccessStatus.TimedOut)
+        {
+            Deferred++;
+            success = 2;
         }
         catch (Exception error)
         {
