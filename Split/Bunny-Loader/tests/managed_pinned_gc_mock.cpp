@@ -64,12 +64,20 @@ void* mono_class_get_method_from_name(void*, const char* name, int params) {
         assert(params == 2);
         return reinterpret_cast<void*>(3);
     }
+    if (!std::strcmp(name, "GetHookSnapshot")) {
+        assert(params == 0);
+        return reinterpret_cast<void*>(7);
+    }
     assert(params == 2);
     return reinterpret_cast<void*>(1);
 }
 void* mono_runtime_invoke(void* method, void*, void** args, void** exception) {
     assert(attached && safe);
     static int result;
+    if (method == reinterpret_cast<void*>(7)) {
+        *exception = nullptr;
+        return reinterpret_cast<void*>(8);
+    }
     const int tick = *static_cast<int*>(args[0]);
     const int damage = *static_cast<int*>(args[1]);
     if (method == reinterpret_cast<void*>(2))
