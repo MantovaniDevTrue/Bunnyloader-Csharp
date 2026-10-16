@@ -35,6 +35,7 @@ public:
         originalRequested_ = originalDone_ = originalRan_ = failed_ = false;
         originalValue_ = completedValue_ = 0;
         auto deadline = Clock::now() + budget;
+        Clock::duration nativeCompensated{};
         wake();
         Outcome out{true, false, false};
         for (;;) {
@@ -79,7 +80,12 @@ public:
                 if(handled) {
                     const auto nativeAllowance=std::chrono::duration_cast<Clock::duration>(
                         std::chrono::milliseconds(2));
-                    deadline+=nativeElapsed<nativeAllowance?nativeElapsed:nativeAllowance;
+                    if(nativeCompensated<nativeAllowance) {
+                        const auto remaining=nativeAllowance-nativeCompensated;
+                        const auto credited=nativeElapsed<remaining?nativeElapsed:remaining;
+                        nativeCompensated+=credited;
+                        deadline+=credited;
+                    }
                 }
                 if(handled||originalRequested_||state_==State::Done||cancelled_||notifications_!=notifications)continue;
             }
