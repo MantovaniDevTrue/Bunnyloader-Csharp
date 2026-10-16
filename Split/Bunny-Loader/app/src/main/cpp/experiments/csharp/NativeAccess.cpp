@@ -35,7 +35,12 @@ struct Binding {
 std::array<Scope,MaxScopes> scopes;
 std::array<Binding,MaxBindings> bindings;
 uint64_t nextScope=1;
-std::array<std::atomic<int64_t>,8> stats{};
+std::array<std::atomic<int64_t>,12> stats{};
+void recordMax(int index, int64_t value) {
+    auto current=stats[index].load(std::memory_order_relaxed);
+    while(current<value && !stats[index].compare_exchange_weak(
+        current,value,std::memory_order_relaxed)) {}
+}
 bool scopeLive(uint64_t token) {
     int slot=static_cast<int>(token&255)-1;
     return slot>=0&&slot<MaxScopes&&token&&scopes[slot].token.load(std::memory_order_acquire)==token;
@@ -363,21 +368,48 @@ Response submit(Request request) {
         uintptr_t self=0;
         if(!universalHookMailbox().workerContext(request.slot,request.ticket,&self)||self!=request.self){fail.status=S::Expired;return fail;}
     }
+    const bool loading=request.op<=1||request.loadingRead;
+    std::chrono::microseconds waitBudget;
+    if(loading)waitBudget=std::chrono::seconds(2);
+    else {
+        const auto remaining=universalHookMailbox().remaining(request.slot,request.ticket);
+        const auto reserve=std::chrono::microseconds(350);
+#if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
+        const auto configured=std::chrono::milliseconds(accessWaitMs.load(std::memory_order_relaxed));
+#else
+        const auto configured=std::chrono::milliseconds(accessWaitMs);
+#endif
+        waitBudget=std::min(std::chrono::duration_cast<std::chrono::microseconds>(configured),
+                            remaining-reserve);
+        if(waitBudget<=std::chrono::microseconds(100)) {
+            stats[9].fetch_add(1,std::memory_order_relaxed);
+            fail.status=S::Busy;
+            return fail;
+        }
+    }
     UniversalHookWorkerYield yield;
     std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
     if(!lock||rpc.state!=Rpc::Idle){fail.status=S::Busy;return fail;}
+    const auto start=std::chrono::steady_clock::now();
     rpc.request=std::move(request);rpc.state=Rpc::Pending;
     universalHookMailbox().notify();
-    const auto budget=(rpc.request.op<=1||rpc.request.loadingRead)?std::chrono::milliseconds(2000):std::chrono::milliseconds(accessWaitMs);
-    if(!rpc.changed.wait_for(lock,budget,[]{return rpc.state==Rpc::Done;})) {
-        rpc.state=Rpc::Idle;fail.status=S::TimedOut;stats[6].fetch_add(1,std::memory_order_relaxed);return fail;
+    if(!rpc.changed.wait_for(lock,waitBudget,[]{return rpc.state==Rpc::Done;})) {
+        rpc.state=Rpc::Idle;
+        fail.status=S::TimedOut;
+        stats[6].fetch_add(1,std::memory_order_relaxed);
+        recordMax(10,std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now()-start).count());
+        return fail;
     }
+    recordMax(10,std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()-start).count());
     auto result=rpc.response;rpc.state=Rpc::Idle;return result;
 }
 }
 int64_t nativeAccessStat(int key) {
     if(key>=0&&key<8)return stats[key].load(std::memory_order_relaxed);
     if(key==8){int count=0;for(auto& scope:scopes)if(scope.token.load(std::memory_order_relaxed))++count;return count;}
+    if(key>=9&&key<12)return stats[key].load(std::memory_order_relaxed);
     return -1;
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_native_access_stat(int key) { return nativeAccessStat(key); }
@@ -386,8 +418,11 @@ bool pumpNativeAccessOnGameThread() {
     if(!lock||rpc.state!=Rpc::Pending)return false;
     const bool previous=universalNativeAccessInProgress;
     universalNativeAccessInProgress=true;
+    const auto serviceStart=std::chrono::steady_clock::now();
     auto body=[&]{rpc.response=execute(rpc.request);};
     if(!il2cpp::guarded(body))rpc.response.status=S::NativeException;
+    recordMax(11,std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()-serviceStart).count());
     universalNativeAccessInProgress=previous;
     const int status=static_cast<int>(rpc.response.status);
     stats[7].store(status,std::memory_order_relaxed);
