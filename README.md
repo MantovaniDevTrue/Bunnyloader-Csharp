@@ -9,8 +9,7 @@ mantida por **Mantovani**. O caminho C# implementado de carregamento, receitas,
 equipamentos e gameplay usa código nativo/gerenciado, sem adaptadores JavaScript.
 Mods JS continuam disponíveis pelo motor original.
 
-**Checkpoint atual: `0.1.10.16.90.29.62`**, build aprovada e validada por Mantovani
-no Android em 16/10/2026. A confirmação vale para o teste realizado; a API segue
+**Checkpoint atual: `0.1.10.16.90.29.62`**, a API segue
 em evolução. [Versões, evidências e limites](docs/STATUS.md).
 
 ## Comece aqui
