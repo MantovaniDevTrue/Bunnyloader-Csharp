@@ -39,7 +39,7 @@ struct Install {
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
-std::array<std::atomic<int64_t>, 7> counters{};
+std::array<std::atomic<int64_t>, 6> counters{};
 
 void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
@@ -175,7 +175,6 @@ void disableUniversalHooks() {
     install.wake.notify_one();
 }
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
-void noteUniversalHookLateCompletion() { counters[6].fetch_add(1, std::memory_order_relaxed); }
 
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install(
     const char* type, const char* method, int slot, int isStatic) {
@@ -202,7 +201,8 @@ extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remo
     if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
-    return key >= 0 && key < 7 ? counters[key].load(std::memory_order_relaxed) : -1;
+    if (key == 6) return universalHookLateCompletionCount();
+    return key >= 0 && key < 6 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int slot, int64_t ticket) {
     return universalHookMailbox().original(slot, static_cast<uint64_t>(ticket)) ? 1 : 0;
