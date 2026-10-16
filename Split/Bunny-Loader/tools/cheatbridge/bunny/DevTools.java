@@ -331,7 +331,13 @@ final class DevTools {
     // mostra o que ja estava la. O historico (e o rascunho) vao tambem para o
     // disco, e sobrevivem ao "Reiniciar".
     private static final SpannableStringBuilder sOutput = new SpannableStringBuilder();
+    private static final SpannableStringBuilder sCSharpOutput = new SpannableStringBuilder();
     private static int sOutputLines;
+    private static int sCSharpOutputLines;
+
+    private static SpannableStringBuilder activeOutput() {
+        return sConsole != null && sConsole.csharpMode ? sCSharpOutput : sOutput;
+    }
     private static ArrayList<String> sHistory;
     private static ArrayList<String> sCSharpHistory;
     private static Console sConsole;
@@ -409,30 +415,37 @@ final class DevTools {
             case 'h': color = C_HINT; break;
             default:  color = C_LOG; break;
         }
-        if (sOutput.length() > 0) sOutput.append('\n');
-        if (prefix != null) span(prefix, prefixColor);
-        span(body, color);
-        sOutputLines += 1;
-        for (int i = 0; i < body.length(); i++) if (body.charAt(i) == '\n') sOutputLines++;
+        SpannableStringBuilder target = activeOutput();
+        if (target.length() > 0) target.append('\n');
+        if (prefix != null) span(target, prefix, prefixColor);
+        span(target, body, color);
+        int rows = 1;
+        for (int i = 0; i < body.length(); i++) if (body.charAt(i) == '\n') rows++;
+        if (sConsole != null && sConsole.csharpMode) sCSharpOutputLines += rows;
+        else sOutputLines += rows;
     }
 
-    private static void span(String s, int color) {
-        int start = sOutput.length();
-        sOutput.append(s);
-        sOutput.setSpan(new ForegroundColorSpan(color), start, sOutput.length(),
+    private static void span(SpannableStringBuilder target, String s, int color) {
+        int start = target.length();
+        target.append(s);
+        target.setSpan(new ForegroundColorSpan(color), start, target.length(),
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
 
     /** Passou do teto: fica so o fim. */
     private static boolean trimOutput() {
-        if (sOutputLines <= MAX_LINES) return false;
-        int drop = sOutputLines - KEEP_LINES, at = 0;
-        while (drop > 0 && at < sOutput.length()) {
-            if (sOutput.charAt(at) == '\n') drop--;
+        boolean csharp = sConsole != null && sConsole.csharpMode;
+        SpannableStringBuilder target = activeOutput();
+        int count = csharp ? sCSharpOutputLines : sOutputLines;
+        if (count <= MAX_LINES) return false;
+        int drop = count - KEEP_LINES, at = 0;
+        while (drop > 0 && at < target.length()) {
+            if (target.charAt(at) == '\n') drop--;
             at++;
         }
-        sOutput.delete(0, at);
-        sOutputLines = KEEP_LINES;
+        target.delete(0, at);
+        if (csharp) sCSharpOutputLines = KEEP_LINES;
+        else sOutputLines = KEEP_LINES;
         return true;
     }
 
@@ -654,7 +667,7 @@ final class DevTools {
             a.addContentView(panel, layout);
 
             updateEditorHelp();
-            output.setText(sOutput);
+            output.setText(csharpMode ? sCSharpOutput : sOutput);
         }
 
         // ---- mostrar, esconder, recolher ----
@@ -963,14 +976,19 @@ final class DevTools {
 
         void refreshOutput() {
             trimOutput();
-            output.setText(sOutput);
+            output.setText(csharpMode ? sCSharpOutput : sOutput);
             scrollToEnd();
         }
 
         void clearOutput() {
-            sOutput.clear();
-            sOutputLines = 0;
-            output.setText(sOutput);
+            if (csharpMode) {
+                sCSharpOutput.clear();
+                sCSharpOutputLines = 0;
+            } else {
+                sOutput.clear();
+                sOutputLines = 0;
+            }
+            output.setText(csharpMode ? sCSharpOutput : sOutput);
         }
 
         void scrollToEnd() {
