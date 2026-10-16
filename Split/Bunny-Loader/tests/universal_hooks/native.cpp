@@ -13,6 +13,7 @@
 extern "C" int bunny_universal_hook_install(const char*, const char*, int, int);
 extern "C" void bunny_universal_hook_remove(int);
 extern "C" int bunny_universal_hook_original(int, int64_t);
+extern "C" int64_t bunny_universal_hook_stat(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
@@ -113,5 +114,29 @@ int main() {
     bunny_universal_hook_remove(stat);
     reinterpret_cast<void(*)(const MethodInfo*)>(replacedStatic)(reinterpret_cast<MethodInfo*>(&methods[1]));
     assert(vanilla == 4);
-    std::cout << "native: metadata validation, same-thread original, order, duplicate refusal, unhook, rebind, static ABI PASS\n";
+    const int64_t timeoutsBefore = bunny_universal_hook_stat(3);
+    const int64_t faultsBefore = bunny_universal_hook_stat(4);
+    const int64_t recoveriesBefore = bunny_universal_hook_stat(5);
+    assert(install("ResetEffects", 5) == handle);
+    call();
+    assert(vanilla == 5);
+    assert(bunny_universal_hook_stat(3) == timeoutsBefore + 1);
+    assert(bunny_universal_hook_stat(5) == recoveriesBefore + 1);
+    assert(bunny_universal_hook_stat(4) == faultsBefore);
+    call();
+    assert(vanilla == 6);
+    assert(bunny_universal_hook_stat(3) == timeoutsBefore + 1);
+    std::this_thread::sleep_for(1050ms);
+    call();
+    assert(vanilla == 7);
+    assert(bunny_universal_hook_stat(5) == recoveriesBefore + 2);
+    std::this_thread::sleep_for(1050ms);
+    call();
+    assert(vanilla == 8);
+    assert(bunny_universal_hook_stat(3) == timeoutsBefore + 3);
+    assert(bunny_universal_hook_stat(4) == faultsBefore + 1);
+    call();
+    assert(vanilla == 9);
+    assert(bunny_universal_hook_stat(3) == timeoutsBefore + 3);
+    std::cout << "native: metadata, original affinity, cooldown recovery, 3-timeout circuit breaker, unhook and rebind PASS\n";
 }
