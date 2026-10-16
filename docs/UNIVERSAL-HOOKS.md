@@ -71,4 +71,8 @@ g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/
 LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
 ```
 
-Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` já foi testado no Xiaomi com a .67: chamadas crescentes durante sessão prolongada e recuperações sem falhas terminais. A ABI `int(int)` da .68 ainda requer verificação em um método real do Terraria Android antes de produção; a seguir estão `ref/out`, outros tipos, múltiplos parâmetros e encadeamento de mods no mesmo alvo.
+Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` já foi testado no Xiaomi com a .67: chamadas crescentes durante sessão prolongada e recuperações sem falhas terminais. A ABI `int(int)` da .68 e o acesso tipado da .69 ainda requerem verificação no Terraria Android antes de produção; a seguir estão `ref/out`, outros tipos, múltiplos parâmetros e encadeamento de mods no mesmo alvo.
+
+## Acesso tipado durante callbacks
+
+O [lote de acesso nativo](ACESSO-NATIVO.md) permite transformar o `self` opaco em `BunnyNativeObject.FromHook(self)` e consultar membros previamente vinculados por `hooks.Native`. O objeto é limitado à chamada atual; não autoriza dereferenciar o ponteiro nem reter um objeto do Terraria entre callbacks. Esse acesso é válido nos callbacks `void()` e `int(int)`.

@@ -57,7 +57,7 @@ int32_t callOriginalInt32(Entry& entry, uintptr_t self, int32_t value, const Met
 }
 void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     Entry& entry = entries[index];
-    if (!entry.active.load(std::memory_order_acquire) || inOriginal ||
+    if (!entry.active.load(std::memory_order_acquire) || inOriginal || universalNativeAccessInProgress ||
         static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire)) {
         callOriginal(entry, self, info);
         return;
@@ -82,7 +82,8 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     };
     counters[0].fetch_add(1, std::memory_order_relaxed);
     const auto result = universalHookMailbox().dispatch(entry.managedSlot, self,
-                                                       original, wakeUniversalHookWorker);
+                                                       original, wakeUniversalHookWorker,
+                                                       std::chrono::milliseconds(3), 0, false, universalNativeService.load(std::memory_order_acquire));
     if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
@@ -113,7 +114,7 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
 }
 int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo* info) {
     Entry& entry = entries[index];
-    if (!entry.active.load(std::memory_order_acquire) || inOriginal ||
+    if (!entry.active.load(std::memory_order_acquire) || inOriginal || universalNativeAccessInProgress ||
         static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire))
         return callOriginalInt32(entry, self, value, info);
     const auto now = std::chrono::steady_clock::now();
@@ -136,7 +137,7 @@ int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo
     counters[0].fetch_add(1, std::memory_order_relaxed);
     const auto result = universalHookMailbox().dispatch(
         entry.managedSlot, self, original, wakeUniversalHookWorker,
-        std::chrono::milliseconds(3), value, true);
+        std::chrono::milliseconds(3), value, true, universalNativeService.load(std::memory_order_acquire));
     if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);

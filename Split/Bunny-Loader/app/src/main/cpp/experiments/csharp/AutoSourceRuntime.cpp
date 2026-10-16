@@ -1,4 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/NativeAccess.h"
+#include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
@@ -1163,6 +1165,8 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
+    pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
@@ -1227,6 +1231,7 @@ void noteAutoGameUpdate() {
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
         disableUniversalHooks();
+        resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
     resetManagedSourceNpcSlots();

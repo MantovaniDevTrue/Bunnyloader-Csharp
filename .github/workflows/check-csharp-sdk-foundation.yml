@@ -57,6 +57,13 @@ jobs:
           mkdir -p build/universal-hooks
           g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
+      - name: Verify native access API, structs and batched reads
+        working-directory: Split/Bunny-Loader
+        run: |
+          mkdir -p build/native-access
+          g++ -std=c++20 -shared -fPIC -I app/src/main/cpp tests/native_access/sdk_mock.cpp -o build/native-access/libbunny.so
+          LD_LIBRARY_PATH="$PWD/build/native-access" dotnet run --project tests/native_access/NativeAccess.csproj -c Release
+          python3 tools/package_native_access_probe.py build/native-access/NativeAccessProbeCSharp-v0.1.0.bmod
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: |
@@ -87,6 +94,9 @@ jobs:
       - name: Verify universal void hooks and caller-thread original rendezvous
         working-directory: Split/Bunny-Loader
         run: python3 tests/run_universal_hooks.py
+      - name: Verify native access on caller thread and scoped values
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/run_native_access.py
       - name: Recheck callback lifecycle and fault isolation
         working-directory: Split/Bunny-Loader
         run: python3 tests/run_managed_lifecycle_regressions.py
