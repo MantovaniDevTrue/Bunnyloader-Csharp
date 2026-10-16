@@ -36,7 +36,7 @@ struct Binding {
 std::array<Scope,MaxScopes> scopes;
 std::array<Binding,MaxBindings> bindings;
 uint64_t nextScope=1;
-std::array<std::atomic<int64_t>,13> stats{};
+std::array<std::atomic<int64_t>,14> stats{};
 bool scopeLive(uint64_t token) {
     int slot=static_cast<int>(token&255)-1;
     return slot>=0&&slot<MaxScopes&&token&&scopes[slot].token.load(std::memory_order_acquire)==token;
@@ -172,6 +172,7 @@ struct Response { S status=S::Ok; uint64_t number=0; std::array<AccessValue,MaxB
 struct Rpc {
     std::mutex mutex;
     std::condition_variable changed;
+    std::atomic<uint64_t> completed{0};
     enum { Idle,Pending,Done } state=Idle;
     Request request;
     Response response;
@@ -393,10 +394,21 @@ Response submit(Request request) {
         }
         if(budget>remaining-reserve)budget=remaining-reserve;
     }
+    const auto completionBefore=rpc.completed.load(std::memory_order_relaxed);
     rpc.request=std::move(request);
     rpc.state=Rpc::Pending;
     universalHookMailbox().notify();
-    const bool done=rpc.changed.wait_for(lock,budget,[]{return rpc.state==Rpc::Done;});
+    if(hookRequest) {
+        const auto spinUntil=std::min(Clock::now()+std::chrono::microseconds(48),
+                                      now+budget);
+        lock.unlock();
+        while(Clock::now()<spinUntil &&
+              rpc.completed.load(std::memory_order_acquire)==completionBefore) {}
+        lock.lock();
+        if(rpc.state==Rpc::Done) stats[13].fetch_add(1,std::memory_order_relaxed);
+    }
+    const bool done=rpc.state==Rpc::Done ||
+        rpc.changed.wait_until(lock,now+budget,[]{return rpc.state==Rpc::Done;});
     const auto waited=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-now).count();
     stats[9].fetch_add(waited,std::memory_order_relaxed);
     auto peak=stats[11].load(std::memory_order_relaxed);
@@ -412,7 +424,7 @@ Response submit(Request request) {
 }
 }
 int64_t nativeAccessStat(int key) {
-    if((key>=0&&key<8)||(key>=9&&key<13))return stats[key].load(std::memory_order_relaxed);
+    if((key>=0&&key<8)||(key>=9&&key<14))return stats[key].load(std::memory_order_relaxed);
     if(key==8){int count=0;for(auto& scope:scopes)if(scope.token.load(std::memory_order_relaxed))++count;return count;}
     return -1;
 }
@@ -436,7 +448,9 @@ bool pumpNativeAccessOnGameThread() {
         stats[3].fetch_add(1,std::memory_order_relaxed);
         stats[4].fetch_add(1,std::memory_order_relaxed);
     } else if(status!=0)stats[5].fetch_add(1,std::memory_order_relaxed);
-    rpc.state=Rpc::Done;rpc.changed.notify_one();return true;
+    rpc.state=Rpc::Done;
+    rpc.completed.fetch_add(1,std::memory_order_release);
+    rpc.changed.notify_one();return true;
 }
 #if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
 extern "C" void bunny_native_test_wait_ms(int value) { accessWaitMs.store(value,std::memory_order_relaxed); }
