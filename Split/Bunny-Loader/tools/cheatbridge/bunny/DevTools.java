@@ -465,6 +465,7 @@ final class DevTools {
         boolean csharpMode;
         long lastHookCountersPoll;
         String lastHookCountersText = "";
+        String lastRuntimeStatusLine = "";
         String jsDraft = "";
         String csharpDraft = "";
         final Handler handler = new Handler(Looper.getMainLooper());
@@ -934,9 +935,19 @@ final class DevTools {
             if (now - lastHookCountersPoll < 850) return;
             lastHookCountersPoll = now;
             try {
+                String runtime = CheatBridge.nCSharpRuntimeStatus();
+                if (runtime == null || runtime.isEmpty())
+                    runtime = "C# exclusivo: aguardando | QuickJS: aguardando | MonoVM: aguardando";
+                String summary = runtime.split("\\n", 2)[0];
+                if (!summary.equals(lastRuntimeStatusLine)) {
+                    lastRuntimeStatusLine = summary;
+                    appendEntry('h', "[C#] " + summary);
+                    refreshOutput();
+                }
                 String current = CheatBridge.nCSharpHookCounters();
                 if (current == null || current.isEmpty())
                     current = "Hooks C#: aguardando MonoVM...";
+                current = runtime + "\\n" + current;
                 if (!current.equals(lastHookCountersText)) {
                     lastHookCountersText = current;
                     hookCounters.setText(current);
@@ -953,18 +964,21 @@ final class DevTools {
         void pullOutput() {
             boolean changed = false;
             try {
-                String[] js = CheatBridge.nConsoleTake();
-                if (js != null) for (String entry : js) {
-                    if (entry != null && !entry.isEmpty()) {
-                        appendEntry(entry.charAt(0), entry.substring(1));
-                        changed = true;
+                if (csharpMode) {
+                    String[] cs = CheatBridge.nCSharpConsoleTake();
+                    if (cs != null) for (String entry : cs) {
+                        if (entry != null && !entry.isEmpty()) {
+                            appendEntry(entry.charAt(0), "[C#] " + entry.substring(1));
+                            changed = true;
+                        }
                     }
-                }
-                String[] cs = CheatBridge.nCSharpConsoleTake();
-                if (cs != null) for (String entry : cs) {
-                    if (entry != null && !entry.isEmpty()) {
-                        appendEntry(entry.charAt(0), "[C#] " + entry.substring(1));
-                        changed = true;
+                } else {
+                    String[] js = CheatBridge.nConsoleTake();
+                    if (js != null) for (String entry : js) {
+                        if (entry != null && !entry.isEmpty()) {
+                            appendEntry(entry.charAt(0), entry.substring(1));
+                            changed = true;
+                        }
                     }
                 }
             } catch (Throwable error) {
