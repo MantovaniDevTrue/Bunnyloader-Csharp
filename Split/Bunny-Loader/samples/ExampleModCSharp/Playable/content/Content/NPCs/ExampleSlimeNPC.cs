@@ -1,6 +1,3 @@
-// ExampleMod C# | Content/NPCs/ExampleSlimeNPC.cs
-// Conteudo do exemplo. Leia os membros do SDK desta build antes de copiar uma API de outro loader.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using System;
 using BunnyLoader.Source;
 
@@ -31,5 +28,19 @@ public sealed class ExampleSlimeNPC : BunnyNPC
             (direction > 0f ? 0.055f : -0.055f), -3f, 3f);
         return true;
     }
+
+    public static int HitEvents;
+    public static int KillEvents;
+
+    public override void OnHit(ref BunnyNpcAiState state, int damage)
+    {
+        if (damage > 0) HitEvents++;
+    }
+
+    public override void OnKill(ref BunnyNpcAiState state)
+    {
+        KillEvents++;
+    }
+
 }
 
