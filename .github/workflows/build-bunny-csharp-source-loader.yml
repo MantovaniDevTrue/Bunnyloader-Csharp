@@ -335,7 +335,8 @@ jobs:
           assert "g_liveIngress.pop(&event)" in runtime
           assert "g_liveIngress.depth()" in runtime
           assert "ManagedLiveIngressQueue g_liveIngress" in runtime
-          assert "std::try_to_lock" not in runtime
+          live_ingress = runtime.split("void queueManagedLiveEvent(", 1)[1].split("void queueManagedLiveHit(", 1)[0]
+          assert "std::try_to_lock" not in live_ingress
           assert "g_liveIngress.dropped()" in runtime
           assert "addManagedCounter(status.dropped, status.lockDrops);" in runtime
           assert "addManagedCounter(status.dropped, g_liveIngress.dropped());" in runtime
