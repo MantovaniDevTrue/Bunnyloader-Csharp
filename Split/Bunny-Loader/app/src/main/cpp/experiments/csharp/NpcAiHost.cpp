@@ -300,6 +300,8 @@ struct ManagedNpcSlot {
     Il2CppObject* object = nullptr;
     int type = -1;
     int generation = 0;
+    int lastLife = 0;
+    bool killQueued = false;
 };
 std::array<ManagedNpcSlot, 512> g_managedSourceNpcSlots{};
 int g_managedSourceNpcGeneration = 1;
@@ -328,9 +330,17 @@ void runManagedSourceNpcAi(Il2CppObject* npc) {
     const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
     if (slot < 0 || static_cast<size_t>(slot) >= g_managedSourceNpcSlots.size()) return;
     ManagedNpcSlot& identity = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
+    const int life = runtime::field<int>(npc, r.life);
     if (identity.object != npc || identity.type != type) {
         if (g_managedSourceNpcGeneration <= 0) g_managedSourceNpcGeneration = 1;
-        identity = {npc, type, g_managedSourceNpcGeneration++};
+        identity = {npc, type, g_managedSourceNpcGeneration++, life, false};
+    } else if (identity.lastLife > life && !identity.killQueued) {
+        queueManagedEntityCombatEvent(2, type, slot, identity.generation, -1,
+                                      reinterpret_cast<uintptr_t>(npc),
+                                      std::min(identity.lastLife - life, 1000000), -1);
+        identity.lastLife = life;
+    } else {
+        identity.lastLife = life;
     }
     const TerrariaSnapshot player = captureTerrariaSnapshot(false, false);
     if (!player.ready || player.player.life <= 0) return;
@@ -517,6 +527,28 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
 }
 
 void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
+    if (npc && refs().ok && runtime::resolveGameRefs()) {
+        const int type = runtime::field<int>(npc, refs().type);
+        const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
+        int mode = -1;
+        il2cpp::api().field_static_get_value(refs().netMode, &mode);
+        if (mode == 0 && hasManagedEntityNpcType(type) && slot >= 0 &&
+            static_cast<size_t>(slot) < g_managedSourceNpcSlots.size()) {
+            ManagedNpcSlot& state = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
+            if (state.object == npc && state.type == type && !state.killQueued) {
+                const int life = runtime::field<int>(npc, refs().life);
+                if (state.lastLife > life) {
+                    queueManagedEntityCombatEvent(2, type, slot, state.generation, -1,
+                        reinterpret_cast<uintptr_t>(npc),
+                        std::min(state.lastLife - life, 1000000), -1);
+                    state.lastLife = life;
+                }
+                state.killQueued = true;
+                queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
+                    reinterpret_cast<uintptr_t>(npc), 0, -1);
+            }
+        }
+    }
     retireObject(npc);
     releaseManagedSourceNpc(npc);
     g_origLoot(npc, method);
