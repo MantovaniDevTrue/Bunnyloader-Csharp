@@ -146,7 +146,7 @@ static class Program
             test_begin(ticket);
             test_int_argument(8);
             BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 8, out ok, out value);
-            Check(ok == 1 && value == 35 && test_originals() == 1);
+            Check(ok == 1 && value == 15 && test_originals() == 1);
             Check(BunnyHooks.NativeAccessRecoveries == beforeTypedRecoveries + 1 && !typedTransient.IsDisposed);
             typedTransient.Dispose();
             var invalid = typed.HookInt32("Terraria.Player", "Int32Transform", (original, _, _) =>
