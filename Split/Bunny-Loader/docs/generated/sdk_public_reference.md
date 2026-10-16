@@ -388,8 +388,8 @@ BunnyInt32Hook(Object object, IntPtr method)
 | Method | Execution |
 | --- | --- |
 | `IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int value, AsyncCallback callback, Object object)` | experimental_worker_sync_int32 |
+| `int EndInvoke(IAsyncResult result)` | experimental_worker_sync_int32 |
 | `int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)` | experimental_worker_sync_int32 |
-| `void EndInvoke(IAsyncResult result)` | experimental_worker_sync_int32 |
 
 ## BunnyLoader.Source.BunnyItem
 
