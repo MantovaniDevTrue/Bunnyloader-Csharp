@@ -49,6 +49,36 @@ static class Program
         Check(BunnyHooks.Dispatch(afterSlot, ticket++, 123) == 0 && !after.IsDisposed && test_originals() == 1);
         BunnyHooks.RemoveSlot(afterSlot);
         Check(after.IsDisposed);
+        long beforeTransient = BunnyHooks.NativeAccessRecoveries;
+        long beforeFaults = BunnyHooks.Faults;
+        foreach (BunnyAccessStatus status in new[] { BunnyAccessStatus.Busy, BunnyAccessStatus.TimedOut })
+        {
+            var transient = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) =>
+            {
+                original.Invoke();
+                throw new BunnyAccessException(status, "Lote nativo");
+            });
+            int transientSlot = test_slot();
+            test_begin(ticket);
+            Check(BunnyHooks.Dispatch(transientSlot, ticket++, 123) == 1 && !transient.IsDisposed && test_originals() == 1);
+            transient.Dispose();
+        }
+        Check(BunnyHooks.NativeAccessRecoveries == beforeTransient + 2 && BunnyHooks.Faults == beforeFaults);
+        var fatalAccess = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) =>
+        {
+            original.Invoke();
+            throw new BunnyAccessException(BunnyAccessStatus.TypeMismatch, "Tipo incorreto");
+        });
+        int fatalAccessSlot = test_slot();
+        test_begin(ticket);
+        Check(BunnyHooks.Dispatch(fatalAccessSlot, ticket++, 123) == 0 && BunnyHooks.Faults == beforeFaults + 1);
+        fatalAccess.Dispose();
+        var beforeOriginal = scope.HookVoid("Terraria.Player", "ResetEffects", (_, _) =>
+            throw new BunnyAccessException(BunnyAccessStatus.TimedOut, "Sem original"));
+        int beforeOriginalSlot = test_slot();
+        test_begin(ticket);
+        Check(BunnyHooks.Dispatch(beforeOriginalSlot, ticket++, 123) == 0 && BunnyHooks.Faults == beforeFaults + 2);
+        beforeOriginal.Dispose();
         var stale = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) => original.Invoke());
         int staleSlot = test_slot();
         test_begin(ticket + 1);
@@ -106,6 +136,19 @@ static class Program
             BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 9, out ok, out value);
             Check(ok == 1 && value == 27 && test_originals() == 0);
             replace.Dispose();
+            long beforeTypedRecoveries = BunnyHooks.NativeAccessRecoveries;
+            var typedTransient = typed.HookInt32("Terraria.Player", "Int32Transform", (original, _, value) =>
+            {
+                _ = original.Invoke();
+                throw new BunnyAccessException(BunnyAccessStatus.TimedOut, "Metodo nativo");
+            });
+            typedSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(8);
+            BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 8, out ok, out value);
+            Check(ok == 1 && value == 35 && test_originals() == 1);
+            Check(BunnyHooks.NativeAccessRecoveries == beforeTypedRecoveries + 1 && !typedTransient.IsDisposed);
+            typedTransient.Dispose();
             var invalid = typed.HookInt32("Terraria.Player", "Int32Transform", (original, _, _) =>
             {
                 original.Invoke();
@@ -121,6 +164,6 @@ static class Program
             Check(invalid.IsDisposed);
         }
         Check(BunnyHooks.GetStatus().Contains("void()"));
-        Console.WriteLine("C# SDK: delegate/original, deferred terminal disposal, stale timeout recovery, expired original, module auto-unload, slot reuse PASS");
+        Console.WriteLine("C# SDK: transient native Busy/TimedOut preserved after original, fatal errors remain terminal, typed original return, 10000 allocations PASS");
     }
 }
