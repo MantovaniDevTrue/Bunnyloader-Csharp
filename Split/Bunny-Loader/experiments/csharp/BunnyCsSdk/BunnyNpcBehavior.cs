@@ -115,8 +115,14 @@ public abstract class BunnyNpcBehavior
 {
     public virtual void OnSpawn(ref NpcContext context, ref NpcMemory memory) { }
     public abstract bool AI(ref NpcContext context, ref NpcMemory memory);
+    public virtual bool TryAttack(ref NpcContext context, ref NpcMemory memory, out NpcCombatCommand attack)
+    {
+        attack = default;
+        return false;
+    }
+    public virtual void OnHit(ref NpcMemory memory, int damage) { }
+    public virtual void OnKill(ref NpcMemory memory) { }
     public virtual void OnDespawn(ref NpcMemory memory) { }
-    public virtual bool TryAttack(ref NpcContext context, ref NpcMemory memory, out NpcCombatCommand attack) { attack = default; return false; }
 }
 
 public sealed class BunnyNpcRegistry
@@ -126,13 +132,22 @@ public sealed class BunnyNpcRegistry
     private readonly Dictionary<int, BunnyNpcBehavior> _types = new();
     private readonly NpcMemory[] _memory = new NpcMemory[MaxSlots];
     private readonly BunnyNpcBehavior?[] _active = new BunnyNpcBehavior?[MaxSlots];
+    private readonly bool[] _blocked = new bool[MaxSlots];
 
     public int ActiveInstances { get; private set; }
-    public int Spawns { get; private set; }
-    public int Releases { get; private set; }
+    public long Spawns { get; private set; }
+    public long Releases { get; private set; }
+    public long AiCalls { get; private set; }
+    public long AttackCalls { get; private set; }
+    public long HitCalls { get; private set; }
+    public long KillCalls { get; private set; }
+    public long Faults { get; private set; }
+    public string LastError { get; private set; } = "";
 
     public void Register(string name, BunnyNpcBehavior behavior)
     {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
+        ArgumentNullException.ThrowIfNull(behavior);
         _names.Add(name, behavior);
     }
 
@@ -143,11 +158,29 @@ public sealed class BunnyNpcRegistry
         return true;
     }
 
+    private void Fault(int slot, string phase, Exception error)
+    {
+        Faults++;
+        _blocked[slot] = true;
+        LastError = phase + " slot=" + slot + " " + error.GetType().Name + ": " + error.Message;
+    }
+
+    private bool Matches(int type, int slot, int generation)
+    {
+        return (uint)slot < MaxSlots && generation > 0 &&
+            _active[slot] != null && !_blocked[slot] &&
+            _memory[slot].Type == type && _memory[slot].Generation == generation;
+    }
+
     public bool Tick(ref NpcContext context)
     {
         int slot = context.Slot;
-        if ((uint)slot >= MaxSlots || context.Generation <= 0 ||
-            !_types.TryGetValue(context.Type, out var behavior)) return false;
+        if ((uint)slot >= MaxSlots || context.Generation <= 0) return false;
+        if (!_types.TryGetValue(context.Type, out var behavior))
+        {
+            ReleaseSlot(slot);
+            return false;
+        }
 
         ref NpcMemory memory = ref _memory[slot];
         if (_active[slot] != behavior || memory.Generation != context.Generation ||
@@ -160,44 +193,134 @@ public sealed class BunnyNpcRegistry
                 Generation = context.Generation
             };
             _active[slot] = behavior;
+            _blocked[slot] = false;
             ActiveInstances++;
             Spawns++;
-            behavior.OnSpawn(ref context, ref memory);
+            NpcMemory original = memory;
+            float vx = context.VelocityX, vy = context.VelocityY;
+            try
+            {
+                behavior.OnSpawn(ref context, ref memory);
+            }
+            catch (Exception error)
+            {
+                memory = original;
+                context.SetVelocity(vx, vy);
+                Fault(slot, "OnSpawn", error);
+                return false;
+            }
         }
 
-        bool changed = behavior.AI(ref context, ref memory);
-        if (memory.Age < int.MaxValue) memory.Age++;
-        return changed;
+        if (_blocked[slot]) return false;
+        NpcMemory previous = memory;
+        float oldX = context.VelocityX, oldY = context.VelocityY;
+        try
+        {
+            bool changed = behavior.AI(ref context, ref memory);
+            AiCalls++;
+            if (memory.Age < int.MaxValue) memory.Age++;
+            return changed;
+        }
+        catch (Exception error)
+        {
+            memory = previous;
+            context.SetVelocity(oldX, oldY);
+            Fault(slot, "AI", error);
+            return false;
+        }
     }
 
     public bool TryAttack(ref NpcContext context, out NpcCombatCommand attack)
     {
         attack = default;
         int slot = context.Slot;
-        if ((uint)slot >= MaxSlots) return false;
-        ref NpcMemory memory = ref _memory[slot];
-        BunnyNpcBehavior? behavior = _active[slot];
-        if (behavior == null || context.Generation <= 0 || memory.Generation != context.Generation ||
-            memory.Type != context.Type || memory.Age < 1) return false;
-        return behavior.TryAttack(ref context, ref memory, out attack);
+        if (!Matches(context.Type, slot, context.Generation) || _memory[slot].Age < 1)
+            return false;
+        NpcMemory previous = _memory[slot];
+        float vx = context.VelocityX, vy = context.VelocityY;
+        try
+        {
+            bool result = _active[slot]!.TryAttack(ref context, ref _memory[slot], out attack);
+            AttackCalls++;
+            return result;
+        }
+        catch (Exception error)
+        {
+            _memory[slot] = previous;
+            context.SetVelocity(vx, vy);
+            attack = default;
+            Fault(slot, "TryAttack", error);
+            return false;
+        }
+    }
+
+    public bool NotifyHit(int type, int slot, int generation, int damage)
+    {
+        if (!Matches(type, slot, generation) || damage < 0) return false;
+        NpcMemory previous = _memory[slot];
+        try
+        {
+            _active[slot]!.OnHit(ref _memory[slot], damage);
+            HitCalls++;
+            return true;
+        }
+        catch (Exception error)
+        {
+            _memory[slot] = previous;
+            Fault(slot, "OnHit", error);
+            return false;
+        }
+    }
+
+    public bool NotifyKill(int type, int slot, int generation)
+    {
+        if (!Matches(type, slot, generation)) return false;
+        bool succeeded = true;
+        try
+        {
+            _active[slot]!.OnKill(ref _memory[slot]);
+            KillCalls++;
+        }
+        catch (Exception error)
+        {
+            Fault(slot, "OnKill", error);
+            succeeded = false;
+        }
+        ReleaseSlot(slot);
+        return succeeded;
     }
 
     public void Release(int type, int slot, int generation)
     {
-        if ((uint)slot >= MaxSlots) return;
-        ref NpcMemory state = ref _memory[slot];
-        if (_active[slot] != null && state.Type == type && state.Generation == generation)
+        if ((uint)slot < MaxSlots && _active[slot] != null &&
+            _memory[slot].Type == type && _memory[slot].Generation == generation)
             ReleaseSlot(slot);
+    }
+
+    public void ResetWorld()
+    {
+        for (int i = 0; i < MaxSlots; i++) ReleaseSlot(i);
     }
 
     private void ReleaseSlot(int slot)
     {
         BunnyNpcBehavior? behavior = _active[slot];
         if (behavior == null) return;
-        behavior.OnDespawn(ref _memory[slot]);
-        _memory[slot] = default;
-        _active[slot] = null;
-        if (ActiveInstances > 0) ActiveInstances--;
-        Releases++;
+        try
+        {
+            behavior.OnDespawn(ref _memory[slot]);
+        }
+        catch (Exception error)
+        {
+            Fault(slot, "OnDespawn", error);
+        }
+        finally
+        {
+            _memory[slot] = default;
+            _active[slot] = null;
+            _blocked[slot] = false;
+            if (ActiveInstances > 0) ActiveInstances--;
+            Releases++;
+        }
     }
 }
