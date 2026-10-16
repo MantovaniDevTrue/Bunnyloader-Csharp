@@ -1,6 +1,6 @@
 # Acesso ao Terraria pelo SDK C#: lote A
 
-Núcleo experimental .70 que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
+Núcleo experimental .71, derivado da .70, que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
 
 ## O que entra neste lote
 
@@ -119,3 +119,9 @@ LD_LIBRARY_PATH="$PWD/build/native-access" dotnet run --project tests/native_acc
 ```
 
 Executar em `Split/Bunny-Loader`. A suíte usa IL2CPP simulado para validar operações na thread correta, layouts, largura/faixa, propriedades, sobrecargas, exceções, batch e recusa de self vencido/forjado. A suíte C# compila o exemplo e verifica P/Invoke, tipos, descarregamento e 10 mil chamadas de batch+método sem nova alocação gerenciada observada no host. Não mede boxing IL2CPP, latência entre threads, FPS ou integração MonoVM/Android. O lote ainda requer build e ensaio controlado no Xiaomi.
+
+## Correção de notificação da .71
+
+A .69/.70 notificava o mailbox enquanto ainda segurava o mutex do pedido RPC. Como o pump tenta adquirir esse mutex sem bloquear, podia receber o aviso, encontrar o pedido bloqueado e voltar a esperar até o deadline. Esse interleaving foi reproduzido num teste determinístico.
+
+A .71 publica o pedido, libera o mutex e então notifica a thread do jogo. O worker readquire o mutex e usa a condição `Done` antes de esperar, cobrindo também a conclusão antes do wait. Se o pump encontrar o mutex ocupado nessa readquisição, um indicador atômico de pedido pendente manda repetir o atendimento, dentro do deadline externo, em vez de dormir após consumir o único aviso. O indicador é limpo na conclusão ou no cancelamento. O teste força 64 atendimentos nos dois intervalos (após aviso e após readquirir o mutex), alternando leitura individual e `ReadAndInvoke`. Esperas de 3 ms do hook e 5 ms do RPC, fallback, tickets, cancelamento de pedidos pendentes e recuperação adaptativa permanecem iguais. Corrige essa corrida específica; timeouts por carga/escalonamento ainda podem ocorrer e o resultado precisa ser medido no Android.

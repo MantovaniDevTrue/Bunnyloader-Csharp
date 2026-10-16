@@ -172,6 +172,7 @@ struct Rpc {
     std::mutex mutex;
     std::condition_variable changed;
     enum { Idle,Pending,Done } state=Idle;
+    std::atomic<bool> servicePending{false};
     Request request;
     Response response;
 } rpc;
@@ -349,6 +350,7 @@ Response execute(const Request& r) {
 }
 #if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
 std::atomic<int> accessWaitMs{1000};
+void (*nativeNotifyObserver)(int)=nullptr;
 #else
 constexpr int accessWaitMs=5;
 #endif
@@ -367,10 +369,22 @@ Response submit(Request request) {
     std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
     if(!lock||rpc.state!=Rpc::Idle){fail.status=S::Busy;return fail;}
     rpc.request=std::move(request);rpc.state=Rpc::Pending;
-    universalHookMailbox().notify();
+    rpc.servicePending.store(true,std::memory_order_release);
     const auto budget=(rpc.request.op<=1||rpc.request.loadingRead)?std::chrono::milliseconds(2000):std::chrono::milliseconds(accessWaitMs);
+    // The game-thread pump uses try_lock. Publish an unlocked request before
+    // waking it, or it can observe this mutex busy and sleep until the deadline.
+    lock.unlock();
+    universalHookMailbox().notify();
+#if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
+    if(nativeNotifyObserver)nativeNotifyObserver(0);
+#endif
+    lock.lock();
+#if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
+    if(nativeNotifyObserver)nativeNotifyObserver(1);
+#endif
+    // Done may already be set: the predicate also covers completion before wait.
     if(!rpc.changed.wait_for(lock,budget,[]{return rpc.state==Rpc::Done;})) {
-        rpc.state=Rpc::Idle;fail.status=S::TimedOut;stats[6].fetch_add(1,std::memory_order_relaxed);return fail;
+        rpc.state=Rpc::Idle;rpc.servicePending.store(false,std::memory_order_release);fail.status=S::TimedOut;stats[6].fetch_add(1,std::memory_order_relaxed);return fail;
     }
     auto result=rpc.response;rpc.state=Rpc::Idle;return result;
 }
@@ -383,7 +397,15 @@ int64_t nativeAccessStat(int key) {
 extern "C" __attribute__((visibility("default"))) int64_t bunny_native_access_stat(int key) { return nativeAccessStat(key); }
 bool pumpNativeAccessOnGameThread() {
     std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
-    if(!lock||rpc.state!=Rpc::Pending)return false;
+    if(!lock) {
+        // The worker may have reacquired the mutex just before wait releases it.
+        // Keep the mailbox servicing this published request instead of sleeping
+        // after its only notification. The outer hook deadline still bounds retry.
+        const bool retry=rpc.servicePending.load(std::memory_order_acquire);
+        if(retry)std::this_thread::yield();
+        return retry;
+    }
+    if(rpc.state!=Rpc::Pending)return false;
     const bool previous=universalNativeAccessInProgress;
     universalNativeAccessInProgress=true;
     auto body=[&]{rpc.response=execute(rpc.request);};
@@ -397,10 +419,11 @@ bool pumpNativeAccessOnGameThread() {
         stats[3].fetch_add(1,std::memory_order_relaxed);
         stats[4].fetch_add(1,std::memory_order_relaxed);
     } else if(status!=0)stats[5].fetch_add(1,std::memory_order_relaxed);
-    rpc.state=Rpc::Done;rpc.changed.notify_one();return true;
+    rpc.state=Rpc::Done;rpc.servicePending.store(false,std::memory_order_release);rpc.changed.notify_one();return true;
 }
 #if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
 extern "C" void bunny_native_test_wait_ms(int value) { accessWaitMs.store(value,std::memory_order_relaxed); }
+extern "C" void bunny_native_test_notify_observer(void (*observer)(int)) { nativeNotifyObserver=observer; }
 #endif
 void resetNativeAccessOnGameThread() {
     for(auto& scope:scopes)scope.token.store(0,std::memory_order_release);
