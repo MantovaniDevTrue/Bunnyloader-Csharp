@@ -61,6 +61,8 @@ int32_t callOriginalInt32(Entry& entry, uintptr_t self, int32_t value, const Met
 constexpr int suspensionSecondsFor(int consecutive) {
     return consecutive < 2 ? 5 : consecutive == 2 ? 10 : 15;
 }
+static_assert(suspensionSecondsFor(1) == 5 && suspensionSecondsFor(2) == 10 &&
+              suspensionSecondsFor(3) == 15 && suspensionSecondsFor(100) == 15);
 
 void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& result) {
     if (!result.faulted) return;
