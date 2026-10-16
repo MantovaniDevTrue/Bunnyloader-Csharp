@@ -5,6 +5,7 @@
 #include "il2cpp/GuardedCall.h"
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <utility>
 #include <unistd.h>
@@ -19,6 +20,9 @@ struct Entry {
     bool isStatic = false;
     int managedSlot = -1;
     std::atomic<bool> active{false};
+    std::chrono::steady_clock::time_point retryAfter{};
+    std::chrono::steady_clock::time_point timeoutWindow{};
+    int timeoutsInWindow = 0;
 };
 std::array<Entry, MaxHooks> entries;
 int used = 0;
@@ -35,7 +39,7 @@ struct Install {
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
-std::array<std::atomic<int64_t>, 5> counters{};
+std::array<std::atomic<int64_t>, 6> counters{};
 
 void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
@@ -46,6 +50,10 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     Entry& entry = entries[index];
     if (!entry.active.load(std::memory_order_acquire) || inOriginal ||
         static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire)) {
+        callOriginal(entry, self, info);
+        return;
+    }
+    if (std::chrono::steady_clock::now() < entry.retryAfter) {
         callOriginal(entry, self, info);
         return;
     }
@@ -63,8 +71,23 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
     if (result.faulted) {
-        counters[4].fetch_add(1, std::memory_order_relaxed);
-        entry.active.store(false, std::memory_order_release);
+        bool disable = true;
+        if (result.timedOut) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now - entry.timeoutWindow > std::chrono::seconds(30)) {
+                entry.timeoutWindow = now;
+                entry.timeoutsInWindow = 0;
+            }
+            if (++entry.timeoutsInWindow < 3) {
+                entry.retryAfter = now + std::chrono::seconds(1);
+                counters[5].fetch_add(1, std::memory_order_relaxed);
+                disable = false;
+            }
+        }
+        if (disable) {
+            counters[4].fetch_add(1, std::memory_order_relaxed);
+            entry.active.store(false, std::memory_order_release);
+        }
     }
     if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);
 }
@@ -109,6 +132,9 @@ int installOnGameThread() {
         if (il2cpp::methodPointer(entry.method) != il2cpp::methodPointer(selected)) continue;
         if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic) return -8;
         entry.managedSlot = install.slot;
+        entry.retryAfter = {};
+        entry.timeoutWindow = {};
+        entry.timeoutsInWindow = 0;
         entry.active.store(true, std::memory_order_release);
         return i;
     }
@@ -119,6 +145,9 @@ int installOnGameThread() {
     entry.method = selected;
     entry.isStatic = install.isStatic;
     entry.managedSlot = install.slot;
+    entry.retryAfter = {};
+    entry.timeoutWindow = {};
+    entry.timeoutsInWindow = 0;
     if (!hook::install(selected, entry.isStatic ? statics[used] : instances[used], &entry.original)) return -9;
     entry.active.store(true, std::memory_order_release);
     return used++;
@@ -172,7 +201,7 @@ extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remo
     if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
-    return key >= 0 && key < 5 ? counters[key].load(std::memory_order_relaxed) : -1;
+    return key >= 0 && key < 6 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int slot, int64_t ticket) {
     return universalHookMailbox().original(slot, static_cast<uint64_t>(ticket)) ? 1 : 0;
