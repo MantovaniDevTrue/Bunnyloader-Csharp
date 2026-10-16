@@ -241,6 +241,7 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += " execucao=" + std::to_string(bl::csharp::nativeAccessStat(10));
     status += " picoEspera=" + std::to_string(bl::csharp::nativeAccessStat(11));
     status += " ocupadoRpc=" + std::to_string(bl::csharp::nativeAccessStat(12));
+    status += " respostaRapida=" + std::to_string(bl::csharp::nativeAccessStat(13));
     return toJava(env, status);
 }
 
