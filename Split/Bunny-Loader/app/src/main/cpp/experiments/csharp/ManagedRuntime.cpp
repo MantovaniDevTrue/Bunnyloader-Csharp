@@ -1332,9 +1332,34 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                if (!g_entityQueue.empty()) {
+                    ManagedEntityJob job = std::move(g_entityQueue.front());
+                    g_entityQueue.pop_front();
+                    lock.unlock();
+                    const int64_t result = executeManagedEntityOnWorker(job);
+                    lock.lock();
+                    if (job.session == g_entitySession && job.slot >= 0) {
+                        if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcResults.size()) {
+                            g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+                            g_entityNpcResults[static_cast<size_t>(job.slot)] = {
+                                job.type, job.generation, job.owner,
+                                job.identity, result, true
+                            };
+                        } else if (job.kind == 1 &&
+                                   static_cast<size_t>(job.slot) < g_entityProjectileResults.size()) {
+                            g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+                            g_entityProjectileResults[static_cast<size_t>(job.slot)] = {
+                                job.type, job.generation, job.owner,
+                                job.identity, result, true
+                            };
+                        }
+                        g_entityJobsCompleted.fetch_add(1, std::memory_order_relaxed);
+                    }
+                    continue;
+                }
                 if (!g_auditEnabled) {
                     if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -1347,7 +1372,8 @@ void* pinnedMonoWorker(void*) {
                         std::chrono::milliseconds(2)) : until;
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
-                        !g_liveHitQueue.empty() || g_liveIngress.depth() != 0;
+                        !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
+                        !g_entityQueue.empty();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
