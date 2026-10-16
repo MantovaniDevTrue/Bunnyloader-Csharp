@@ -307,6 +307,58 @@ std::condition_variable g_managedHurtResultWake;
 uint64_t g_managedHurtTicket = 0;
 uint64_t g_managedHurtGeneration = 0;
 ManagedHurtSchedulerStatus g_hurtScheduler;
+struct ManagedEntityBinding {
+    std::string modId;
+    std::string assemblyPath;
+    std::vector<std::pair<int, std::string>> npcTypes;
+    std::vector<std::pair<int, std::string>> projectileTypes;
+    int managedSlot = -1;
+    bool armed = true;
+};
+
+struct ManagedEntityJob {
+    int binding = -1;
+    int kind = 0;
+    int type = -1;
+    int slot = -1;
+    int generation = 0;
+    int owner = -1;
+    int life = 0;
+    int lifeMax = 0;
+    uintptr_t identity = 0;
+    float x = 0, y = 0, vx = 0, vy = 0, playerX = 0, playerY = 0;
+    uint64_t session = 0;
+};
+
+struct ManagedEntityResult {
+    int type = -1;
+    int generation = 0;
+    int owner = -1;
+    uintptr_t identity = 0;
+    int64_t packed = -1;
+    bool ready = false;
+};
+
+std::vector<ManagedEntityBinding> g_entityBindings;
+std::deque<ManagedEntityJob> g_entityQueue;
+std::array<ManagedEntityResult, 512> g_entityNpcResults{};
+std::array<ManagedEntityResult, 4096> g_entityProjectileResults{};
+std::array<bool, 512> g_entityNpcPending{};
+std::array<bool, 4096> g_entityProjectilePending{};
+std::array<unsigned, 512> g_entityNpcTicks{};
+std::array<unsigned, 4096> g_entityProjectileTicks{};
+std::array<std::atomic<int>, 32768> g_entityNpcTypeOwner{};
+std::array<std::atomic<int>, 32768> g_entityProjectileTypeOwner{};
+std::atomic<int> g_entityModCount{0};
+uint64_t g_entitySession = 1;
+void* g_entityRegister = nullptr;
+void* g_entityBind = nullptr;
+void* g_entityNpcTick = nullptr;
+void* g_entityProjectileTick = nullptr;
+std::atomic<int> g_entityJobsSubmitted{0};
+std::atomic<int> g_entityJobsCompleted{0};
+std::atomic<int> g_entityJobsDropped{0};
+
 void* g_managedHurtRegisterMethod = nullptr;
 void* g_managedHurtModifyMethod = nullptr;
 void* g_managedHurtAfterMethod = nullptr;
