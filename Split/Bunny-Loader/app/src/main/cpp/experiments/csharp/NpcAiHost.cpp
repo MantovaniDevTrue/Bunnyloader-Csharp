@@ -296,6 +296,71 @@ void runNativeAi(Il2CppObject* npc) {
     ++g_attacksQueued;
 }
 
+struct ManagedNpcSlot {
+    Il2CppObject* object = nullptr;
+    int type = -1;
+    int generation = 0;
+};
+std::array<ManagedNpcSlot, 512> g_managedSourceNpcSlots{};
+int g_managedSourceNpcGeneration = 1;
+
+void releaseManagedSourceNpc(Il2CppObject* npc) {
+    if (!npc || !runtime::resolveGameRefs()) return;
+    const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
+    if (slot < 0 || static_cast<size_t>(slot) >= g_managedSourceNpcSlots.size()) return;
+    if (g_managedSourceNpcSlots[static_cast<size_t>(slot)].object == npc)
+        g_managedSourceNpcSlots[static_cast<size_t>(slot)] = {};
+}
+
+void runManagedSourceNpcAi(Il2CppObject* npc) {
+    if (!npc || !refs().ok || !runtime::resolveGameRefs()) return;
+    const Refs& r = refs();
+    const int type = runtime::field<int>(npc, r.type);
+    if (!hasManagedEntityNpcType(type) || csharpmods::hasOwnedNpcBehavior(type)) return;
+    if (!runtime::field<uint8_t>(npc, r.active) ||
+        runtime::field<int>(npc, r.life) <= 0) {
+        releaseManagedSourceNpc(npc);
+        return;
+    }
+    int netMode = -1;
+    il2cpp::api().field_static_get_value(r.netMode, &netMode);
+    if (netMode != 0) return;
+    const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
+    if (slot < 0 || static_cast<size_t>(slot) >= g_managedSourceNpcSlots.size()) return;
+    ManagedNpcSlot& identity = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
+    if (identity.object != npc || identity.type != type) {
+        if (g_managedSourceNpcGeneration <= 0) g_managedSourceNpcGeneration = 1;
+        identity = {npc, type, g_managedSourceNpcGeneration++};
+    }
+    const TerrariaSnapshot player = captureTerrariaSnapshot(false, false);
+    if (!player.ready || player.player.life <= 0) return;
+    const auto& game = runtime::game();
+    const Vector2 pos = runtime::field<Vector2>(npc, game.entity.position);
+    const Vector2 before = runtime::field<Vector2>(npc, game.entity.velocity);
+    const int width = runtime::field<int>(npc, game.entity.width);
+    const int height = runtime::field<int>(npc, game.entity.height);
+    ManagedEntityVelocity next{};
+    if (!tickManagedEntityNpc(type, slot, identity.generation,
+                              reinterpret_cast<uintptr_t>(npc),
+                              runtime::field<int>(npc, r.life),
+                              runtime::field<int>(npc, r.lifeMax),
+                              pos.x + width * 0.5f, pos.y + height * 0.5f,
+                              before.x, before.y, player.player.x,
+                              player.player.y, &next)) return;
+    if (runtime::field<int>(npc, r.type) != type ||
+        runtime::field<int>(npc, game.entity.whoAmI) != slot ||
+        !runtime::field<uint8_t>(npc, r.active) ||
+        runtime::field<int>(npc, r.life) <= 0 ||
+        identity.object != npc) return;
+    runtime::field<Vector2>(npc, game.entity.velocity) = {next.x, next.y};
+    if (r.direction >= 0 && std::fabs(next.x) > 0.1f) {
+        const int facing = next.x >= 0.f ? 1 : -1;
+        runtime::field<int>(npc, r.direction) = facing;
+        if (r.spriteDirection >= 0)
+            runtime::field<int>(npc, r.spriteDirection) = facing;
+    }
+}
+
 void runLiveNpcAi(Il2CppObject* npc) {
     if (!g_liveNpcEnabled.load(std::memory_order_acquire) || !npc) return;
     const auto& r = refs();
@@ -439,16 +504,21 @@ void hookAi(Il2CppObject* npc, const MethodInfo* method) {
     if (hasPendingManagedNpcBuffEffect())
         processManagedNpcBuffEffect(npc);
     runNativeAi(npc);
+    runManagedSourceNpcAi(npc);
     runLiveNpcAi(npc);
 }
 
 void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
     g_origCheckActive(npc, method);
-    if (npc && !runtime::field<uint8_t>(npc, refs().active)) retireObject(npc);
+    if (npc && !runtime::field<uint8_t>(npc, refs().active)) {
+        retireObject(npc);
+        releaseManagedSourceNpc(npc);
+    }
 }
 
 void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
     retireObject(npc);
+    releaseManagedSourceNpc(npc);
     g_origLoot(npc, method);
 }
 
@@ -596,6 +666,7 @@ bool installNpcAiHost() {
     Refs& r = refs();
     if (!r.ok || (!csharpmods::hasNpcBehavior() &&
                   !g_liveNpcInstallRequested &&
+                  !managedEntitySourceModsRegistered() &&
                   !g_buffDispatchRequested.load(std::memory_order_acquire))) return false;
     if (!hook::install(r.ai, hookAi, &g_origAi)) {
         BL_WARN("csharp NPC: falha no hook NPC.AI");
