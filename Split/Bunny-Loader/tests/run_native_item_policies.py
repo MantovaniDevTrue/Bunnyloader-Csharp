@@ -1,6 +1,20 @@
 from pathlib import Path
 import subprocess,sys,tempfile
 root=Path(__file__).resolve().parents[1]
+source=(root/"app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp").read_text()
+for reason in (
+    "EquipmentHandFlagUnavailable Detail=HidesHandsStaticBoolArrayUnavailable",
+    "EquipmentHandFlagUnavailable Detail=HidesHandsTableNotInitialized",
+    "EquipmentHandFlagUnavailable Detail=HidesHandsWriteOrGrowthFailed",
+    "RegisterItemAnimation,",
+    "InitializeItemAnimations,",
+    "DrawAnimationVerticalCtor,",
+):
+    assert reason in source, reason
+assert 'if(!handFlags)return fail(' in source
+assert 'if(!table(handFlags))return fail(' in source
+assert 'if(!registerMethod||!init||!ctor)' in source
+print("CSHARP_NATIVE_PENDING_CONTRACT_DIAGNOSTICS=PASS")
 with tempfile.TemporaryDirectory(prefix="bunny-native-items-") as temporary:
     executable=Path(temporary)/"items"
     subprocess.run(["g++","-std=c++20","-O2","-Wall","-Wextra","-Werror","-pthread","-ffunction-sections","-fdata-sections","-DBL_HAVE_QUICKJS=0",
