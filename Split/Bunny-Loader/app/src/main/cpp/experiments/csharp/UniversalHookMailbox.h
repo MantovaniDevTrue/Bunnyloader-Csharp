@@ -72,8 +72,15 @@ public:
             if(service) {
                 const uint64_t notifications=notifications_;
                 lock.unlock();
+                const auto nativeStart=Clock::now();
                 const bool handled=service();
+                const auto nativeElapsed=Clock::now()-nativeStart;
                 lock.lock();
+                if(handled) {
+                    const auto nativeAllowance=std::chrono::duration_cast<Clock::duration>(
+                        std::chrono::milliseconds(2));
+                    deadline+=nativeElapsed<nativeAllowance?nativeElapsed:nativeAllowance;
+                }
                 if(handled||originalRequested_||state_==State::Done||cancelled_||notifications_!=notifications)continue;
             }
             changed_.wait_until(lock, deadline);
