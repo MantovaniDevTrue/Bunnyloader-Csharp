@@ -48,6 +48,9 @@ jobs:
               if line.startswith('// Namespace:'):namespace=line
               if re.match(r'^(?:public|private|internal|protected).*\b(?:class|struct|enum)\b',line):owner=line
               selected=(('DrawAnimationVertical' in owner and line.strip() and not line.lstrip().startswith('//')) or
+                        (' Item ' in owner and ' GetAlpha(' in line) or
+                        (re.search(r'\b(?:struct|class) Color\b',owner) and 'Microsoft.Xna.Framework' in namespace and
+                         (line==owner or re.match(r'\s*(?:public|private|internal) (?:uint|byte) \w+;',line))) or
                         (' Main ' in owner and any(n in line for n in ('RegisterItemAnimation','InitializeItemAnimations','itemAnimations'))) or
                         ('ArmorIDs.Body' in owner and any(n in line for n in ('Hands','Hand','Count','Framing'))) or
                         any(n in line for n in ('HidesHands','HideHands')))
