@@ -39,6 +39,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
         {"cmdPath", "Ljava/lang/String;"},
         {"showErrors", "Z"},
         {"verboseLog", "Z"},
+        {"disableQuickJs", "Z"},
         {"gameVersion", "J"},
         {"fastBoot", "Z"},
         {"quickPlayer", "Ljava/lang/String;"},
@@ -81,6 +82,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     }
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
+    c.disableQuickJs = env->GetBooleanField(cfg, env->GetFieldID(cls, "disableQuickJs", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
     c.fastBoot   = env->GetBooleanField(cfg, env->GetFieldID(cls, "fastBoot", "Z"));
     c.quickPlayer = readString(env, cfg, cls, "quickPlayer");
