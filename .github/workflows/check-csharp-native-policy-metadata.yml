@@ -48,7 +48,13 @@ jobs:
               if line.startswith('// Namespace:'):namespace=line
               if re.match(r'^(?:public|private|internal|protected).*\b(?:class|struct|enum)\b',line):owner=line
               selected=(('DrawAnimationVertical' in owner and line.strip() and not line.lstrip().startswith('//')) or
-                        (' Main ' in owner and any(n in line for n in ('RegisterItemAnimation','InitializeItemAnimations','itemAnimations'))) or
+                        (' Item ' in owner and ' GetAlpha(' in line) or
+                        (re.search(r'\b(?:struct|class) Color\b',owner) and 'Microsoft.Xna.Framework' in namespace and
+                         (line==owner or re.match(r'\s*(?:public|private|internal) (?:uint|byte) \w+;',line))) or
+                        (' Main ' in owner and any(n in line for n in ('RegisterItemAnimation','InitializeItemAnimations','itemAnimations','essScale'))) or
+                        (re.search(r'\bclass (?:WorldItem|Entity|Item)\b',owner) and any(n in line for n in (' inner;',' active;',' position;',' width;',' height;',' UpdateItem(','get_active(','set_active(','get_position(','set_position(','get_width(','set_width(','get_height(','set_height('))) or
+                        (re.search(r'\bclass Lighting\b',owner) and ' AddLight(' in line) or
+                        (re.search(r'\bclass Player\b',owner) and any(n in line for n in (' WingMovement(',' SetMatch(','get_jumpSpeed(',' jumpSpeed;'))) or
                         ('ArmorIDs.Body' in owner and any(n in line for n in ('Hands','Hand','Count','Framing'))) or
                         any(n in line for n in ('HidesHands','HideHands')))
               if selected:rows.append(namespace+' | '+owner+' | '+line.strip())
