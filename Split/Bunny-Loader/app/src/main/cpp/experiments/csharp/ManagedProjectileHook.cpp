@@ -4,6 +4,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -292,6 +293,65 @@ void applySparkAi(Il2CppObject* projectile, const runtime::GameRefs& game) {
     g_sparkWrites.fetch_add(1, std::memory_order_relaxed);
 }
 
+struct ManagedEntityProjectileSlot {
+    Il2CppObject* object = nullptr;
+    int type = -1;
+    int owner = -1;
+    int lastTimeLeft = 0;
+    int generation = 0;
+};
+std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
+int g_managedEntityProjectileGeneration = 1;
+FieldInfo* g_managedEntityNetMode = nullptr;
+
+void runManagedEntityProjectile(Il2CppObject* projectile,
+                                const runtime::GameRefs& game, int type) {
+    if (!hasManagedEntityProjectileType(type) ||
+        !runtime::field<uint8_t>(projectile, game.proj.active)) return;
+    if (!g_managedEntityNetMode) {
+        auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+        g_managedEntityNetMode = main ? il2cpp::findField(main, "netMode") : nullptr;
+    }
+    if (!g_managedEntityNetMode) return;
+    int mode = -1;
+    il2cpp::api().field_static_get_value(g_managedEntityNetMode, &mode);
+    if (mode != 0) return;
+    const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
+    const int timeLeft = runtime::field<int>(projectile, game.proj.timeLeft);
+    if (slot < 0 || slot >= static_cast<int>(g_managedEntityProjectileSlots.size()) ||
+        timeLeft <= 0) return;
+    const int owner = runtime::field<int>(projectile, game.proj.owner);
+    ManagedEntityProjectileSlot& state =
+        g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    if (state.object != projectile || state.type != type ||
+        state.owner != owner || timeLeft > state.lastTimeLeft) {
+        if (g_managedEntityProjectileGeneration <= 0)
+            g_managedEntityProjectileGeneration = 1;
+        state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++};
+    }
+    state.lastTimeLeft = timeLeft;
+    const TerrariaSnapshot target = captureTerrariaSnapshot(false, false);
+    if (!target.ready || target.player.life <= 0) return;
+    const Vector2 position = runtime::field<Vector2>(projectile, game.entity.position);
+    const Vector2 before = runtime::field<Vector2>(projectile, game.entity.velocity);
+    const int width = runtime::field<int>(projectile, game.entity.width);
+    const int height = runtime::field<int>(projectile, game.entity.height);
+    ManagedEntityVelocity next{};
+    if (!tickManagedEntityProjectile(type, slot, state.generation, owner,
+        reinterpret_cast<uintptr_t>(projectile),
+        position.x + width * 0.5f, position.y + height * 0.5f,
+        before.x, before.y, target.player.x, target.player.y, &next)) return;
+    if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
+        runtime::field<int>(projectile, game.proj.type) != type ||
+        runtime::field<int>(projectile, game.entity.whoAmI) != slot ||
+        state.object != projectile || state.owner != owner) return;
+    runtime::field<Vector2>(projectile, game.entity.velocity) = {next.x, next.y};
+    const float squared = next.x * next.x + next.y * next.y;
+    if (squared > 0.001f)
+        runtime::field<float>(projectile, game.proj.rotation) =
+            std::atan2(next.y, next.x);
+}
+
 void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
     if (original) original(projectile, method);
@@ -299,6 +359,21 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
 
     const auto& game = runtime::game();
     const int projectileType = runtime::field<int32_t>(projectile, game.proj.type);
+    bool coveredByCurve = false;
+    if (projectileType >= 0 &&
+        static_cast<size_t>(projectileType) < g_curveByType.size()) {
+        const int curveIndex = g_curveByType[static_cast<size_t>(projectileType)]
+            .load(std::memory_order_acquire) - 1;
+        if (curveIndex >= 0 && curveIndex < g_curveCount.load(std::memory_order_acquire))
+            coveredByCurve = g_curveStates[static_cast<size_t>(curveIndex)]
+                .enabled.load(std::memory_order_acquire);
+    }
+    if (!coveredByCurve &&
+        !(g_sparkEnabled.load(std::memory_order_acquire) &&
+          projectileType == g_sparkType.load(std::memory_order_relaxed)) &&
+        !(g_enabled.load(std::memory_order_acquire) &&
+          projectileType == g_type.load(std::memory_order_relaxed)))
+        runManagedEntityProjectile(projectile, game, projectileType);
     if (projectileType >= 0 &&
         static_cast<size_t>(projectileType) < g_curveByType.size()) {
         const int slot = g_curveByType[static_cast<size_t>(projectileType)]
@@ -422,6 +497,15 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     g_writes.fetch_add(1, std::memory_order_relaxed);
 }
 
+}
+
+bool installManagedEntityProjectileHook() {
+    if (g_installed.load(std::memory_order_acquire)) return true;
+    if (!runtime::resolveGameRefs() || !runtime::game().proj.aiMethod) return false;
+    if (!hook::install(runtime::game().proj.aiMethod, hkAi, &g_original)) return false;
+    g_installed.store(true, std::memory_order_release);
+    BL_INFO("csharp source projectile: seletivo AI MonoVM instalado");
+    return true;
 }
 
 bool enableManagedProjectileCurve(const std::string& modId,
