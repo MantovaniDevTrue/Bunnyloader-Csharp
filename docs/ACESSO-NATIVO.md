@@ -13,6 +13,7 @@ Núcleo experimental .70 que integra o acesso nativo C# da PR #43 com os hooks `
 | Métodos | Chamada por nome e tipos completos dos parâmetros; até quatro argumentos e retorno suportado |
 | Sobrecargas | Assinatura exata, sem escolher a primeira por contagem |
 | Leitura em lote | Um pedido para até 16 campos/propriedades previamente vinculados |
+| Lote + método | `batch.ReadAndInvoke(...)` combina até 16 leituras e uma chamada tipada (até quatro argumentos) num único encontro com a thread do jogo, reduzindo esperas |
 | Ciclo de vida | Escopo descartável do módulo e objetos válidos somente no callback atual |
 
 Isso amplia **chamadas a métodos**. Para interceptação, o núcleo integrado suporta `void()` sem parâmetros e `int(int)`; o acesso tipado deste lote pode ser usado em ambos. Outras assinaturas de hook ainda são recusadas.
@@ -47,6 +48,8 @@ public sealed class PlayerSnapshot : BunnyHookModule
     }
 }
 ```
+
+O probe .70 usa `batch.ReadAndInvoke(buffIndex, snapshot, target, BunnyValue.FromInt32(24))` para ler vida, posição e hora do dia e chamar `FindBuffIndex` numa única operação. O método combinado valida os argumentos antes de tocar no mundo e não altera o array de destino se a chamada falhar. O método original `batch.Read(...)` e `member.Invoke(...)` permanece disponível.
 
 O [exemplo compilável](../Split/Bunny-Loader/samples/ExampleModCSharp/Experimental/NativeAccess/ExampleNativeAccess.cs) também demonstra um campo estático e `FindBuffIndex(System.Int32)`. Fica fora de `Playable` para não acrescentar chamadas por frame ao mod padrão antes da medição no aparelho. Usar junto com outro hook C# no mesmo endereço continua sendo recusado pelo núcleo universal.
 
