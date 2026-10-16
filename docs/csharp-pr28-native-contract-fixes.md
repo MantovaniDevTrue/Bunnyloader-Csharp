@@ -47,7 +47,11 @@ modo, sem novos objetos IL2CPP durante esses loops.
 ASan/UBSan passa no modo de propriedades/boxed e no registro de armadura com
 IDs menores (deteccao de leaks desativada no host simulado). O CI tambem roda
 os testes reais de delegates ref/out, falhas e Unhook da PR #27 e a ajuda do
-editor.
+editor. A referencia publica foi regenerada do SDK compilado (43 tipos),
+incluindo delegates, handles, contadores de falha e RegisterHooks. O gerador
+agora distingue `out` de `ref` e identifica RegisterHooks como registro no
+worker. A suite gerenciada de hooks tambem passou localmente com compilacao
+Roslyn e execucao .NET reais.
 
 Estas variacoes reproduzem as suposicoes incorretas, mas nao substituem um
 dump dos metadados nem um teste no Xiaomi. A confirmacao Android deve repetir

@@ -30,6 +30,20 @@ enum; base: `System.Enum`.
 
 Values: None, EquippedSprite, EnergyBarrier, RunningTrail.
 
+## BunnyLoader.Source.BunnyAfterHurtHook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyAfterHurtHook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(BunnyHurtInfo info, AsyncCallback callback, Object object)` | managed_helper |
+| `void EndInvoke(IAsyncResult result)` | managed_helper |
+| `void Invoke(BunnyHurtInfo info)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyArmorEffects
 
 class; base: `System.Object`.
@@ -65,6 +79,20 @@ BunnyArmorEffects Effects { get; }
 enum; base: `System.Enum`.
 
 Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
+
+## BunnyLoader.Source.BunnyBeforeHurtHook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyBeforeHurtHook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(ref int damage, ref int hitDirection, ref bool cancel, AsyncCallback callback, Object object)` | managed_helper |
+| `void EndInvoke(ref int damage, ref int hitDirection, ref bool cancel, IAsyncResult result)` | managed_helper |
+| `void Invoke(ref int damage, ref int hitDirection, ref bool cancel)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyBuff
 
@@ -130,6 +158,20 @@ enum; base: `System.Enum`.
 
 Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
 
+## BunnyLoader.Source.BunnyDodgeHook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyDodgeHook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(int damage, out bool dodge, AsyncCallback callback, Object object)` | managed_helper |
+| `void EndInvoke(out bool dodge, IAsyncResult result)` | managed_helper |
+| `void Invoke(int damage, out bool dodge)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyEquipDrawFlags
 
 enum; base: `System.Enum`.
@@ -153,6 +195,54 @@ Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
+
+## BunnyLoader.Source.BunnyHookHandle
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyHookPhase Phase { get; }
+bool IsValid { get; }
+int Id { get; }
+```
+
+## BunnyLoader.Source.BunnyHookPhase
+
+enum; base: `System.Enum`.
+
+Values: BeforeHurt, Dodge, AfterHurt.
+
+## BunnyLoader.Source.BunnyHookRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyHookRegistry()
+Int64 AfterCalls { get; }
+Int64 BeforeCalls { get; }
+Int64 CancelledByHook { get; }
+Int64 DodgeChecks { get; }
+Int64 FaultedHooks { get; }
+Int64 SuccessfulDodges { get; }
+Int64 UnhookCalls { get; }
+bool HasLastDamage { get; }
+bool LastEquipped { get; }
+int Count { get; }
+int LastDamageAfter { get; }
+int LastDamageBefore { get; }
+string LastHookError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyHookHandle HookAfterHurt(BunnyAfterHurtHook handler)` | managed_helper |
+| `BunnyHookHandle HookBeforeHurt(BunnyBeforeHurtHook handler)` | managed_helper |
+| `BunnyHookHandle HookDodge(BunnyDodgeHook handler)` | managed_helper |
+| `bool InvokeDodge(int damage)` | managed_helper |
+| `bool Unhook(BunnyHookHandle handle)` | managed_helper |
+| `void Clear()` | managed_helper |
+| `void InvokeAfter(BunnyHurtInfo info)` | managed_helper |
+| `void InvokeBefore(ref int damage, ref int hitDirection, ref bool cancel)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyHurtInfo
 
@@ -347,6 +437,7 @@ string Accessory { get; set; }
 | `void OnHitByNPC(bool accessoryEquipped, int npcIndex, BunnyHurtInfo info)` | worker_async_post_hit |
 | `void OnHitByProjectile(bool accessoryEquipped, int projectileIndex, BunnyHurtInfo info)` | worker_async_post_hit |
 | `void OnHurt(bool accessoryEquipped, BunnyHurtInfo info)` | worker_async_post_hit |
+| `void RegisterHooks(BunnyHookRegistry hooks)` | worker_registration |
 | `void ResetEffects()` | compile_policy_and_worker_hurt |
 | `void SetDefaults()` | compile_policy |
 | `void UpdateEquips(bool accessoryEquipped)` | compile_policy_and_worker_hurt |
@@ -360,6 +451,7 @@ abstract class; base: `System.Object`.
 | `static Int64 Modify(int slot, int damage, int direction, int flags, int life, int maxLife, int equippedMask, int npcIndex, int projectileIndex, int npcType, int npcDamage, int npcLife, int projectileType, int projectileDamage, int projectileOwner, float attackerX, float attackerY, float attackerVelocityX, float attackerVelocityY, float attackerAngle, float attackerDistance)` | managed_helper |
 | `static int After(int slot, int damage, int sourceDamage, int direction, int flags, int lifeRemaining, int equippedMask, int npcIndex, int projectileIndex, int npcType, int npcDamage, int npcLife, int projectileType, int projectileDamage, int projectileOwner, float attackerX, float attackerY, float attackerVelocityX, float attackerVelocityY, float attackerAngle, float attackerDistance)` | managed_helper |
 | `static int Register(string modId, string assemblyPath)` | managed_helper |
+| `static string GetHookSnapshot()` | managed_helper |
 | `static string GetLastError(int slot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyPrefix
@@ -471,7 +563,7 @@ int PendingCount { get; }
 | `static bool SetEquipmentSprite(int playerIndex, int effectId, string texture)` | managed_command_queue |
 | `static bool SetPlayerOverlay(int playerIndex, int effectId, string texture, float scale, float opacity, UInt32 color, int durationTicks)` | managed_command_queue |
 | `static bool SpawnParticle(int playerIndex, int effectId, string texture, float x, float y, float scale, UInt32 color, int durationTicks)` | managed_command_queue |
-| `static bool TryTake(ref BunnyVisualCommand command)` | managed_command_queue |
+| `static bool TryTake(out BunnyVisualCommand command)` | managed_command_queue |
 | `static string TakeWire()` | managed_command_queue |
 | `static void ClearPending()` | managed_command_queue |
 
