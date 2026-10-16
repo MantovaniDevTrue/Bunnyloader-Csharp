@@ -212,6 +212,8 @@ int main() {
     assert(bunny_universal_hook_test_retry_delay_ms(handle) <= 24);
     assert(bunny_universal_hook_test_inject_outcome(handle, 1) == 0);
     assert(bunny_universal_hook_test_real_streak(handle) == 1);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 3) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 1);
     assert(bunny_universal_hook_test_inject_outcome(handle, 0) == 0);
     assert(bunny_universal_hook_test_real_streak(handle) == 0);
     for (int i = 0; i < 10; ++i) {
