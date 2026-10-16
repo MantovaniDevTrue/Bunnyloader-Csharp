@@ -1216,6 +1216,7 @@ void noteAutoGameUpdate() {
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
+        pauseManagedEntitySourceCallbacks();
         {
             std::lock_guard<std::mutex> guard(g_lock);
             for (auto& state : g_statuses)
