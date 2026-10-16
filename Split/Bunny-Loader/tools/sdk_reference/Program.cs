@@ -30,6 +30,12 @@ string Mode(Type type, MethodInfo method)
             "RegisterHooks" => "worker_registration",
             _ => "compile_policy"
         };
+    if (type == typeof(BunnyEntitySourceDispatcher)) return "worker_async_entity";
+    if (type == typeof(BunnyNPC) && method.Name is "OnSpawn" or "AI" or "OnHit" or "OnKill" or "OnDespawn")
+        return "worker_async_entity";
+    if (type == typeof(BunnyProjectile) && method.GetParameters().Any(parameter =>
+        parameter.ParameterType == typeof(BunnyProjectileAiState).MakeByRefType()))
+        return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
     if (type == typeof(BunnyPrefix)) return "compile_policy";
     if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes" or "NumDust") return "compile_policy";
@@ -57,7 +63,7 @@ var types = sdk.GetExportedTypes().OrderBy(type => type.FullName, StringComparer
 var report = new {
     schemaVersion = 1,
     sourceProject = "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
-    warning = "Public SDK surface and execution contracts. Compilation is not Android validation. No general per-frame AI or multiplayer implied.",
+    warning = "Public SDK surface and execution contracts. Compilation is not Android validation. Managed entity AI is experimental, asynchronous, and requires native Android validation. Multiplayer is not implied.",
     types
 };
 var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }) + "\n";
