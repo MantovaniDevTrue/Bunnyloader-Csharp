@@ -19,19 +19,21 @@ public:
 };
 class UniversalHookMailbox {
 public:
-    struct Work { int slot; uint64_t ticket; uintptr_t self; };
-    struct Outcome { bool accepted = false; bool originalRan = false; bool faulted = false; bool timedOut = false; };
+    struct Work { int slot; uint64_t ticket; uintptr_t self; int32_t argument = 0; bool int32Mode = false; };
+    struct Outcome { bool accepted = false; bool originalRan = false; bool faulted = false; bool timedOut = false; int32_t value = 0; };
     using Clock = std::chrono::steady_clock;
 
     template<class Original, class Wake>
     Outcome dispatch(int slot, uintptr_t self, Original original, Wake wake,
-                     std::chrono::microseconds budget = std::chrono::milliseconds(3), bool(*service)()=nullptr) {
+                     std::chrono::microseconds budget = std::chrono::milliseconds(3),
+                     int32_t argument = 0, bool int32Mode = false, bool(*service)()=nullptr) {
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock || state_ != State::Idle) return {};
-        work_ = {slot, ++ticket_, self};
+        work_ = {slot, ++ticket_, self, argument, int32Mode};
         state_ = State::Pending;
         cancelled_ = false;
         originalRequested_ = originalDone_ = originalRan_ = failed_ = false;
+        originalValue_ = completedValue_ = 0;
         auto deadline = Clock::now() + budget;
         wake();
         Outcome out{true, false, false};
@@ -39,6 +41,7 @@ public:
             if (state_ == State::Done) {
                 out.originalRan = originalRan_;
                 out.faulted = failed_;
+                out.value = completedValue_;
                 state_ = State::Idle;
                 return out;
             }
@@ -113,18 +116,33 @@ public:
         lock.unlock();
         return result;
     }
+    bool originalInt32(int slot, uint64_t ticket, int32_t& result) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (!work_.int32Mode) return false;
+        }
+        if (!original(slot, ticket)) return false;
+        std::lock_guard<std::mutex> lock(mutex_);
+        result = originalValue_;
+        return true;
+    }
+    void setOriginalInt32Value(int32_t value) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (state_ == State::Running && originalRan_) originalValue_ = value;
+    }
     void cancel() {
         std::lock_guard<std::mutex> lock(mutex_);
         cancelled_ = true;
         changed_.notify_all();
     }
-    bool complete(uint64_t ticket, bool success) {
+    bool complete(uint64_t ticket, bool success, int32_t result = 0) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (ticket != work_.ticket || worker_ != std::this_thread::get_id()) return false;
         const bool accepted = state_ == State::Running && !cancelled_;
         if (state_ == State::Abandoned) state_ = State::Idle;
         else if (state_ == State::Running) {
             failed_ |= !success || cancelled_;
+            completedValue_ = result;
             state_ = State::Done;
         }
         changed_.notify_all();
@@ -140,6 +158,7 @@ private:
     std::thread::id worker_;
     bool cancelled_ = false, originalRequested_ = false, originalDone_ = false;
     bool originalRan_ = false, failed_ = false;
+    int32_t originalValue_ = 0, completedValue_ = 0;
 };
 inline bool universalHookCallbackIsTerminal(bool accepted, bool success) {
     return accepted && !success;

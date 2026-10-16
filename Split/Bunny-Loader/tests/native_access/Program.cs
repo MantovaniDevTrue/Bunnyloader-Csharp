@@ -74,6 +74,16 @@ static class Program
         long allocations=GC.GetAllocatedBytesForCurrentThread();
         for(int i=0;i<10000;++i) { var v=BunnyValue.FromVector2(vector).AsVector2();Check(v.X==vector.X); }
         Check(GC.GetAllocatedBytesForCurrentThread()==allocations);
+        var typed=hooks.HookInt32("Terraria.Player","Probe",(original,self,value)=> {
+            var target=BunnyNativeObject.FromHook(self);escaped=target;
+            Check(target.IsCurrent);
+            batch.Read(destination,target);
+            Check(destination[0].AsInt32()==100);
+            return original.Invoke()+method.Invoke(target,BunnyValue.FromInt32(value)).AsInt32();
+        });
+        BunnyHooks.InvokeInt32(test_slot(),10013,123,9,out int ok,out int returned);
+        Check(ok==1&&returned==52&&!escaped.IsCurrent);
+        Throws<BunnyAccessException>(()=>life.Read(escaped));
         int closes=test_closes();hooks.Dispose();Check(scope.IsDisposed&&test_closes()==closes+1);
         Throws<ObjectDisposedException>(()=>life.Read(escaped));
         Check(BunnyNativeScope.GetStatus().Contains("lotes="));

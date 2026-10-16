@@ -157,6 +157,16 @@ int main() {
                 universalHookMailbox().complete(work.ticket,true);mono.unlock();continue;
             }
             V result;
+            if(work.slot==7) {
+                assert(work.int32Mode&&work.argument==9);
+                int ids[]={h.life,h.day};V values[2]{};
+                assert(bunny_native_read_batch(h.scope,work.slot,work.ticket,work.self,ids,values,2)==0&&values[0].a==125);
+                assert(call(h.method,4,work,integer(work.argument),&result,1)==0&&result.a==10);
+                int32_t originalValue=0;
+                assert(universalHookMailbox().originalInt32(work.slot,work.ticket,originalValue)&&originalValue==42);
+                universalHookMailbox().complete(work.ticket,true,originalValue+static_cast<int>(result.a));
+                mono.unlock();continue;
+            }
             assert(call(h.prefix,2,work,{},&result)==0&&result.a==7);
             assert(call(h.prefix,3,work,{K::UInt32,0,255,0},nullptr,1)==0);
             assert(call(h.prefix,3,work,{K::UInt32,0,256,0},nullptr,1)==static_cast<int>(S::TypeMismatch));
@@ -202,8 +212,10 @@ int main() {
     auto cancelled=universalHookMailbox().dispatch(6,reinterpret_cast<uintptr_t>(&player),[]{return true;},[]{},std::chrono::seconds(1));
     assert(cancelled.accepted&&!cancelled.faulted&&!cancelled.originalRan&&player.life==100&&!pumpNativeAccessOnGameThread());
     bunny_native_test_wait_ms(1000);
-    auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),pumpNativeAccessOnGameThread);
+    auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);
     assert(result.accepted&&!result.faulted&&result.originalRan&&originals==1&&player.life==125&&!day&&player.color.r==1&&player.color.a==4&&player.prefix==255&&player.small==-32768&&player.canary==0x5a);
+    auto typed=universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},[]{},std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);
+    assert(typed.accepted&&!typed.faulted&&typed.originalRan&&typed.value==52&&originals==2);
     stop=true;worker.join();
     auto recycled=std::async(std::launch::async,[&] {
         mono.lock();universalLeaveMono=+[]{mono.unlock();};universalResumeMono=+[]{mono.lock();};universalCanInstall=true;

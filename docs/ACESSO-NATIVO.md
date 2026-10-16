@@ -1,6 +1,6 @@
 # Acesso ao Terraria pelo SDK C#: lote A
 
-Núcleo experimental .68 sobre a linha .67. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
+Núcleo experimental .69 sobre a linha .67. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
 
 ## O que entra neste lote
 
@@ -102,7 +102,7 @@ Referências de objetos, strings, arrays, ponteiros, genéricos, argumentos `ref
 
 ## Teste Android
 
-O [Native Access Probe CSharp](../Split/Bunny-Loader/samples/NativeAccessProbe/README.md) combina o módulo canônico e um BunnyPlayer mínimo, sem alterar vida, posição ou buffs. O pipeline .68 gera um APK assinado V3 e esse pacote de fontes. Desative o antigo Universal Hooks Probe CSharp para evitar dois hooks no mesmo endereço.
+O [Native Access Probe CSharp](../Split/Bunny-Loader/samples/NativeAccessProbe/README.md) combina o módulo canônico e um BunnyPlayer mínimo, sem alterar vida, posição ou buffs. O pipeline .69 gera um APK assinado V3 e esse pacote de fontes. Desative o antigo Universal Hooks Probe CSharp para evitar dois hooks no mesmo endereço.
 
 No Editor C#, a linha `Acesso C#` mostra vínculos, leituras, escritas, métodos, lotes, falhas, esperas vencidas, último status e escopos ativos. `lotes` e `metodos` devem crescer com o teste; `escritas` permanece zero. A consulta manual é `Print(BunnyNativeScope.GetStatus());`. Conferir também os contadores de recuperação dos hooks e os FPS; sair e entrar no mundo exercita descarregamento.
 

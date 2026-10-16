@@ -9,6 +9,8 @@ int next=1,lastSlot=0,calls=0,closes=0,batchFailure=0;
 V stored{K::Int32,0,100,0};
 extern "C" {
 int bunny_universal_hook_install(const char*,const char*,int slot,int) { lastSlot=slot;return slot; }
+int bunny_universal_hook_install_i32(const char*,const char*,int slot,int) { lastSlot=slot;return slot; }
+int bunny_universal_hook_original_i32(int,int64_t,int32_t* result) { *result=42;return 1; }
 void bunny_universal_hook_remove(int) { }
 int bunny_universal_hook_original(int,int64_t) { return 1; }
 int64_t bunny_universal_hook_stat(int) { return 0; }
