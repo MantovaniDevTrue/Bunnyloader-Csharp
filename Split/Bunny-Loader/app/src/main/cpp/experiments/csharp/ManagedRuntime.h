@@ -46,6 +46,9 @@ bool hasManagedEntityNpcType(int type);
 bool hasManagedEntityProjectileType(int type);
 bool managedEntitySourceModsRegistered();
 void pauseManagedEntitySourceCallbacks();
+bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int generation,
+                                   int owner, uintptr_t identity, int damage, int targetIndex);
+
 bool tickManagedEntityNpc(int type, int slot, int generation,
                           uintptr_t identity, int life, int lifeMax,
                           float x, float y, float vx, float vy,
