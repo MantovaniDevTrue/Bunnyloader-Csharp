@@ -19,6 +19,9 @@ extern "C" int64_t bunny_universal_hook_stat(int);
 extern "C" void bunny_universal_hook_test_expire_suspend(int);
 extern "C" int bunny_universal_hook_test_backoff_seconds(int);
 extern "C" int bunny_universal_hook_test_last_suspend_seconds(int);
+extern "C" int bunny_universal_hook_test_inject_outcome(int, int);
+extern "C" int bunny_universal_hook_test_real_streak(int);
+extern "C" int bunny_universal_hook_test_retry_delay_ms(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
@@ -197,6 +200,34 @@ int main() {
     assert(bunny_universal_hook_stat(7) == 1);
     assert(bunny_universal_hook_stat(8) == 1);
     assert(bunny_universal_hook_stat(4) == faultsBefore);
+    const auto suspensionBaseline = bunny_universal_hook_stat(7);
+    for (int i = 0; i < 50; ++i) {
+        assert(bunny_universal_hook_test_inject_outcome(handle, 1) == 0);
+        assert(bunny_universal_hook_test_real_streak(handle) == 0);
+        assert(bunny_universal_hook_test_retry_delay_ms(handle) <= 4);
+    }
+    assert(bunny_universal_hook_stat(7) == suspensionBaseline);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 2) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 1);
+    assert(bunny_universal_hook_test_retry_delay_ms(handle) <= 24);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 1) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 1);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 3) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 1);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 0) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 0);
+    for (int i = 0; i < 10; ++i) {
+        assert(bunny_universal_hook_test_inject_outcome(handle, 2) == 0);
+        assert(bunny_universal_hook_test_inject_outcome(handle, 0) == 0);
+        assert(bunny_universal_hook_test_real_streak(handle) == 0);
+    }
+    assert(bunny_universal_hook_stat(7) == suspensionBaseline);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 2) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 1);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 2) == 0);
+    assert(bunny_universal_hook_test_real_streak(handle) == 2);
+    assert(bunny_universal_hook_test_inject_outcome(handle, 2) == 1);
+    assert(bunny_universal_hook_stat(7) == suspensionBaseline + 1);
     assert(install("Int32Transform", 13, false, false) == -7);
     assert(install("WrongIntParam", 13, false, true) == -6);
     assert(install("WrongIntReturn", 13, false, true) == -6);

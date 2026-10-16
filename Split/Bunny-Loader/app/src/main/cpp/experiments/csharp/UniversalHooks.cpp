@@ -65,14 +65,24 @@ static_assert(suspensionSecondsFor(1) == 5 && suspensionSecondsFor(2) == 10 &&
               suspensionSecondsFor(3) == 15 && suspensionSecondsFor(100) == 15);
 
 void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& result) {
-    if (!result.faulted) return;
-    if (!result.timedOut && !result.retryable) {
+    if (!result.faulted) {
+        if (result.accepted) {
+            entry.timeoutsInWindow = 0;
+            entry.timeoutWindow = {};
+        }
+        return;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (result.retryable && !result.timedOut) {
+        counters[9].fetch_add(1, std::memory_order_relaxed);
+        entry.retryAfter = now + std::chrono::milliseconds(4);
+        return;
+    }
+    if (!result.timedOut) {
         counters[4].fetch_add(1, std::memory_order_relaxed);
         entry.active.store(false, std::memory_order_release);
         return;
     }
-    if (result.retryable) counters[9].fetch_add(1, std::memory_order_relaxed);
-    const auto now = std::chrono::steady_clock::now();
     if (entry.lastTimeout == std::chrono::steady_clock::time_point{} ||
         now - entry.lastTimeout > std::chrono::seconds(60))
         entry.suspensionsInBurst = 0;
@@ -82,7 +92,7 @@ void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& 
         entry.timeoutsInWindow = 0;
     }
     if (++entry.timeoutsInWindow < 3) {
-        entry.retryAfter = now + std::chrono::seconds(1);
+        entry.retryAfter = now + std::chrono::milliseconds(24);
         counters[5].fetch_add(1, std::memory_order_relaxed);
     } else {
         entry.suspended = true;
@@ -330,6 +340,24 @@ extern "C" int bunny_universal_hook_test_backoff_seconds(int consecutive) {
 }
 extern "C" int bunny_universal_hook_test_last_suspend_seconds(int index) {
     return index >= 0 && index < used ? entries[index].lastSuspensionSeconds : -1;
+}
+extern "C" int bunny_universal_hook_test_inject_outcome(int index, int kind) {
+    if (index < 0 || index >= used || kind < 0 || kind > 3) return -1;
+    UniversalHookMailbox::Outcome outcome{};
+    outcome.accepted = kind != 3;
+    outcome.faulted = kind != 0 && kind != 3;
+    outcome.retryable = kind == 1;
+    outcome.timedOut = kind == 2;
+    applyUniversalHookFault(entries[index], outcome);
+    return entries[index].suspended ? 1 : 0;
+}
+extern "C" int bunny_universal_hook_test_real_streak(int index) {
+    return index >= 0 && index < used ? entries[index].timeoutsInWindow : -1;
+}
+extern "C" int bunny_universal_hook_test_retry_delay_ms(int index) {
+    if (index < 0 || index >= used) return -1;
+    const auto remaining = entries[index].retryAfter - std::chrono::steady_clock::now();
+    return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count());
 }
 extern "C" void bunny_universal_hook_test_expire_suspend(int index) {
     if (index >= 0 && index < used) entries[index].retryAfter = {};
