@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeStaticValue.h"
+#include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/NativeContent.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
@@ -29,7 +30,7 @@ struct Field { int offset=-1;size_t bytes=0;std::vector<size_t> refs; };
 struct Entry {
     BasicItemEntry source;BasicItemPolicy policy;NativeItemPolicyStatus status;
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
-    int color=-1,hair=-1;
+    int color=-1,hair=-1;uint32_t nativeAlpha=0;
     unsigned nextRetryTick=0,failedAttempts=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
@@ -191,7 +192,14 @@ bool installEquipment(Equipment& equip,std::string* error) {
     if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
     if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
     if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
-    if((equip.flags&2)&&!boolTable(staticArray(sets,"HidesHands"),equip.slot,false))return fail("EquipmentHandFlagUnavailable");
+    if(equip.flags&2) {
+        // Android 1.4.5 uses MissingHand (show the skin hands). HidesHands in
+        // other contracts expresses the opposite policy; never reuse its value.
+        auto hands=staticArray(sets,"MissingHand");
+        const bool missingHand=bool(hands);
+        if(!hands)hands=staticArray(sets,"HidesHands");
+        if(!boolTable(hands,equip.slot,missingHand))return fail("EquipmentHandFlagUnavailable");
+    }
     if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
     kind.total=total;equip.published=true;return true;
 }
@@ -206,19 +214,29 @@ bool registerAnimation(Entry& entry,std::string* error) {
     const auto* registerMethod=method(main,"void RegisterItemAnimation(int index, DrawAnimation animation)",false);
     const auto* init=method(main,"void InitializeItemAnimations()",false);
     auto* cls=findClass({"Terraria.DataStructures","DrawAnimationVertical",{}});
-    const auto* ctor=method(cls,"void .ctor(int ticksperframe, int frameCount)",true);
-    if(!registerMethod||!init||!ctor){*error="Reason=AnimationMethodsUnavailable";return false;}
-    if(!animationsHooked){if(!hook::install(init,hkAnimations,&originalAnimations))return false;animationsHooked=true;}
+    const auto* ctor=method(cls,"void .ctor(int ticksperframe, int frameCount, bool pingPong)",true);
+    const bool hasPingPong=ctor!=nullptr;
+    if(!ctor)ctor=method(cls,"void .ctor(int ticksperframe, int frameCount)",true);
+    auto fail=[&](const char* why){*error=std::string("Reason=")+why;return false;};
+    if(!registerMethod)return fail("AnimationRegisterMethodUnavailable");
+    if(!init)return fail("AnimationInitializerUnavailable");
+    if(!ctor)return fail("AnimationConstructorUnavailable");
+    if(!animationsHooked){if(!hook::install(init,hkAnimations,&originalAnimations))return fail("AnimationHookFailed");animationsHooked=true;}
     if(!entry.animation) {
-        auto* object=a.object_new(cls);if(!object)return false;
-        auto root=std::make_shared<Root>(object);if(!root->get())return false;
-        void* args[]={&entry.policy.ticks,&entry.policy.frames};if(!invoke(ctor,object,args))return false;
+        auto* object=a.object_new(cls);if(!object)return fail("AnimationAllocationFailed");
+        auto root=std::make_shared<Root>(object);if(!root->get())return fail("AnimationRootUnavailable");
+        uint8_t pingPong=0;
+        void* args[]={&entry.policy.ticks,&entry.policy.frames,&pingPong};
+        if(!invoke(ctor,object,args))return fail(hasPingPong?"AnimationConstructor3Failed":"AnimationConstructor2Failed");
         entry.animation=std::move(root);
     }
-    void* args[]={&entry.source.type,entry.animation->get()};if(!invoke(registerMethod,nullptr,args))return false;
+    void* args[]={&entry.source.type,entry.animation->get()};
+    if(!invoke(registerMethod,nullptr,args))return fail("AnimationRegisterFailed");
     auto* ids=findClass({"Terraria.ID","ItemID","Sets"});
     const char* names[]={"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"};
-    for(size_t i=0;i<3;++i)if(!boolTable(staticArray(ids,names[i]),entry.source.type,entry.policy.animationFlags[i]))return false;
+    for(size_t i=0;i<3;++i)if(!boolTable(staticArray(ids,names[i]),entry.source.type,entry.policy.animationFlags[i])){
+        *error=std::string("Reason=AnimationFlagUnavailable Table=")+names[i];return false;
+    }
     return true;
 }
 void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated){std::string error;registerAnimation(*entry,&error);}}}
@@ -327,31 +345,44 @@ bool prepareWings(std::string* error) {
     return true;
 }
 using AlphaFn=uint32_t (*)(Il2CppObject*,uint32_t,const MethodInfo*);
-AlphaFn originalAlpha=nullptr;bool alphaHooked=false;
+AlphaFn originalAlpha=nullptr;bool alphaHooked=false;NativeColorLayout alphaLayout;
 uint32_t hkAlpha(Il2CppObject* item,uint32_t color,const MethodInfo* m) {
     const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
-    if(item&&view){const auto found=view->items.find(read<int32_t>(item,itemType));if(found!=view->items.end()&&found->second->policy.colored)std::memcpy(&color,found->second->policy.color.data(),4);}
+    if(item&&view){const auto found=view->items.find(read<int32_t>(item,itemType));if(found!=view->items.end()&&found->second->policy.colored)color=found->second->nativeAlpha;}
     return originalAlpha?originalAlpha(item,color,m):color;
 }
 bool prepareAlpha(std::string* error) {
     if(alphaHooked)return true;
-    auto* color=findClass({"Microsoft.Xna.Framework","Color",{}});uint32_t align=0;
-    if(!color||!api().class_is_valuetype(color)||api().class_value_size(color,&align)!=4){*error="Reason=ColorAbiMismatch";return false;}
-    const auto* m=method(findClass({"Terraria","Item",{}}),"Color GetAlpha(Color newColor)",true);
-    if(!m||!hook::install(m,hkAlpha,&originalAlpha))return false;
+    auto& a=api();auto* item=findClass({"Terraria","Item",{}});
+    const auto* m=method(item,"Color GetAlpha(Color newColor)",true);
+    if(!m){*error="Reason=ColorMethodUnavailable";return false;}
+    if(!a.method_get_return_type||!a.method_get_param_count||!a.method_get_param||a.method_get_param_count(m)!=1){
+        *error="Reason=ColorMethodMetadataUnavailable";return false;
+    }
+    auto* color=a.class_from_il2cpp_type(a.method_get_return_type(m));
+    auto* parameter=a.class_from_il2cpp_type(a.method_get_param(m,0));
+    auto* field=item?findField(item,"color"):nullptr;
+    if(!color||parameter!=color||!field||(a.field_get_flags(field)&0x10u)||
+       a.class_from_il2cpp_type(a.field_get_type(field))!=color){*error="Reason=ColorAbiMismatch";return false;}
+    if(!alphaLayout.bind(color,error))return false;
+    if(!hook::install(m,hkAlpha,&originalAlpha)){*error="Reason=ColorHookRejected";return false;}
     alphaHooked=true;return true;
 }
 struct Vec2 {float x,y;};
-struct LightRefs {int inner=-1,active=-1,position=-1,width=-1,height=-1;FieldInfo* essence=nullptr;const MethodInfo* add=nullptr;};
+struct LightRefs {int inner=-1,active=-1,position=-1,width=-1,height=-1;FieldInfo* essence=nullptr;const MethodInfo* add=nullptr;const MethodInfo* activeGetter=nullptr;};
 LightRefs lightRefs;
 using WorldFn=void (*)(Il2CppObject*,int32_t,const MethodInfo*);
 WorldFn originalWorld=nullptr;bool worldHooked=false;
 void hkWorld(Il2CppObject* world,int32_t index,const MethodInfo* m) {
     if(originalWorld)originalWorld(world,index,m);
-    if(!world||!read<uint8_t>(world,lightRefs.active))return;
+    if(!world)return;
     auto* item=read<Il2CppObject*>(world,lightRefs.inner);if(!item)return;
     const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);if(!view)return;
     const auto it=view->items.find(read<int32_t>(item,itemType));if(it==view->items.end()||!it->second->policy.lit)return;
+    using ActiveFn=bool (*)(Il2CppObject*,const MethodInfo*);
+    const bool active=lightRefs.activeGetter?
+        reinterpret_cast<ActiveFn>(methodPointer(lightRefs.activeGetter))(world,lightRefs.activeGetter):read<uint8_t>(world,lightRefs.active)!=0;
+    if(!active)return;
     const auto& policy=it->second->policy;float scale=1;if(policy.essence)api().field_static_get_value(lightRefs.essence,&scale);
     auto position=read<Vec2>(world,lightRefs.position);position.x+=read<int32_t>(world,lightRefs.width)*0.5f;position.y+=read<int32_t>(world,lightRefs.height)*0.5f;
     if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(scale)||scale<0||scale>10)return;
@@ -362,14 +393,43 @@ bool prepareLight(std::string* error) {
     if(worldHooked)return true;
     auto& a=api();auto* world=findClass({"Terraria","WorldItem",{}});Field inner,position;
     if(!bindField(world,"inner",&inner,error,false,nullptr,sizeof(void*))||inner.refs.size()!=1||
-        !scalar(world,"active","Boolean",1,&lightRefs.active,error)||!bindField(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
+        !bindField(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
         !scalar(world,"width","Int32",4,&lightRefs.width,error)||!scalar(world,"height","Int32",4,&lightRefs.height,error))return false;
+    if(a.class_from_il2cpp_type(a.field_get_type(findField(world,"inner")))!=findClass({"Terraria","Item",{}})){
+        *error="Reason=WorldItemInnerTypeMismatch";return false;
+    }
+    // WorldItem.active is a bool instance getter on Android 1.4.5. Entity
+    // supplies position/width/height; there is no active field to offset-read.
+    if(findField(world,"active")) {
+        if(!scalar(world,"active","Boolean",1,&lightRefs.active,error))return false;
+        lightRefs.activeGetter=nullptr;
+    } else {
+        const auto* getter=method(world,"bool get_active()",true);
+        auto* result=getter&&a.method_get_return_type?a.class_from_il2cpp_type(a.method_get_return_type(getter)):nullptr;
+        if(!getter||!a.method_get_param_count||a.method_get_param_count(getter)!=0||
+           !primitive(result,"Boolean",1)||!methodPointer(getter)){
+            *error="Reason=WorldItemActiveGetterContract";return false;
+        }
+        lightRefs.activeGetter=getter;lightRefs.active=-1;
+    }
+    auto* vector=a.class_from_il2cpp_type(a.field_get_type(findField(world,"position")));ValueLayout layout;
+    if(!resolveValueLayout(vector,&layout,error)||layout.size!=8)return false;
+    for(const auto& [name,offset]:std::initializer_list<std::pair<const char*,size_t>>{{"X",0},{"Y",4}}) {
+        auto* f=findField(vector,name);size_t actual=0;
+        if(!f||!primitive(a.class_from_il2cpp_type(a.field_get_type(f)),"Single",4)||!layout.offset(a.field_get_offset(f),4,&actual)||actual!=offset){
+            *error="Reason=WorldItemPositionLayoutMismatch";return false;
+        }
+    }
     lightRefs.inner=inner.offset;lightRefs.position=position.offset;
     auto* main=findClass({"Terraria","Main",{}});lightRefs.essence=main?findField(main,"essScale"):nullptr;
-    if(!lightRefs.essence||!(a.field_get_flags(lightRefs.essence)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(lightRefs.essence)),"Single",4))return false;
+    if(!lightRefs.essence||!(a.field_get_flags(lightRefs.essence)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(lightRefs.essence)),"Single",4)){
+        *error="Reason=ItemLightEssenceScaleContract";return false;
+    }
     lightRefs.add=method(findClass({"Terraria","Lighting",{}}),"void AddLight(Vector2 position, float r, float g, float b)",false);
     const auto* update=method(world,"void UpdateItem(int i)",true);
-    if(!lightRefs.add||!methodPointer(lightRefs.add)||!update||!hook::install(update,hkWorld,&originalWorld))return false;
+    if(!lightRefs.add||!methodPointer(lightRefs.add)){*error="Reason=ItemLightMethodUnavailable";return false;}
+    if(!update){*error="Reason=WorldItemUpdateUnavailable";return false;}
+    if(!hook::install(update,hkWorld,&originalWorld)){*error="Reason=WorldItemUpdateHookRejected";return false;}
     worldHooked=true;return true;
 }
 using MatchFn=int32_t (*)(const void*,uint8_t*,const MethodInfo*);
@@ -430,7 +490,10 @@ bool install(Entry& entry,std::string* error) {
                     entry.source.type,entry.source.name.c_str(),movementError.empty()?"NativeHookUnavailable":movementError.c_str());
         }
     }
-    if(entry.policy.colored&&!prepareAlpha(error))return false;
+    if(entry.policy.colored){
+        if(!prepareAlpha(error))return false;
+        const auto& c=entry.policy.color;entry.nativeAlpha=alphaLayout.pack(c[0],c[1],c[2],c[3]);
+    }
     if(entry.policy.lit&&!prepareLight(error))return false;
     if(entry.policy.robe&&!prepareRobe(error))return false;
     return true;
@@ -499,7 +562,7 @@ void pumpNativeItemPoliciesOnGameThread() {
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
             if(!entry->status.ready&&(entry->failedAttempts==0||previousError!=error))
-                BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Reason=%s",
+                BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Detail=%s",
                         type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
                 acknowledgeBasicItemBehavior(type,"");
