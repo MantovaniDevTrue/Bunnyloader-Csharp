@@ -363,6 +363,8 @@ void* g_entityProjectileHit = nullptr;
 void* g_entityProjectileKill = nullptr;
 std::atomic<int> g_entityCombatSubmitted{0};
 std::atomic<int> g_entityCombatDropped{0};
+std::array<std::atomic<int>, 4> g_entityCombatExecuted{};
+
 std::atomic<int> g_entityJobsSubmitted{0};
 std::atomic<int> g_entityJobsCompleted{0};
 std::atomic<int> g_entityJobsDropped{0};
@@ -1034,8 +1036,10 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             job.kind == 3 ? npcKill :
                             job.kind == 4 ? projectileHit : projectileKill;
         void* exception = nullptr;
-        g_api.invoke(chosen, nullptr, chosenArgs, &exception);
-        return exception ? -1 : 0;
+        void* boxed = g_api.invoke(chosen, nullptr, chosenArgs, &exception);
+        if (exception || !boxed) return -1;
+        void* raw = g_api.unbox(boxed);
+        return raw && *static_cast<uint8_t*>(raw) ? 1 : 0;
     }
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
                        &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
@@ -1387,6 +1391,18 @@ void* pinnedMonoWorker(void*) {
                             };
                         }
                         g_entityJobsCompleted.fetch_add(1, std::memory_order_relaxed);
+                        if (job.kind >= 2 && job.kind <= 5 && result == 1) {
+                            const int eventIndex=job.kind-2;
+                            const int observed=g_entityCombatExecuted[static_cast<size_t>(eventIndex)]
+                                .fetch_add(1, std::memory_order_relaxed);
+                            if (observed == 0) {
+                                const char* names[]={
+                                    "NPC.OnHit", "NPC.OnKill", "Projectile.OnHitNPC", "Projectile.OnKill"
+                                };
+                                BL_INFO("csharp source combat: %s executado no MonoVM type=%d slot=%d generation=%d",
+                                    names[eventIndex], job.type, job.slot, job.generation);
+                            }
+                        }
                     }
                     continue;
                 }
