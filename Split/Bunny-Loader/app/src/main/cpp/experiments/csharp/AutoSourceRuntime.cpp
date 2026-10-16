@@ -1314,7 +1314,9 @@ void flushDeferredWorldEntry() {
     static auto lastPendingReport=std::chrono::steady_clock::time_point{};
     if (now-lastPendingReport>=std::chrono::seconds(3)) {
         lastPendingReport=now;
-        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
+        const bool initialRegistration=!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire);
+        bl::log::write(initialRegistration?ANDROID_LOG_DEBUG:ANDROID_LOG_WARN,
+                "[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
                 static_cast<long long>(elapsed),pendingCore,pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,content.pendingPlacements,
                 pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
                 bl::runtime::modItemsSettled()?1:0);
@@ -1323,7 +1325,8 @@ void flushDeferredWorldEntry() {
             const std::string reason=policy.error.empty()?policy.phase:policy.error.substr(0,180);
             if(reportedNativePolicies[policy.type]==reason)continue;
             reportedNativePolicies[policy.type]=reason;
-            BL_WARN("[CSharp][WorldLoading] Stage=PendingNativePolicy Type=%d Mod=%s Class=%s Reason=%s",
+            bl::log::write(initialRegistration&&policy.error.empty()?ANDROID_LOG_DEBUG:ANDROID_LOG_WARN,
+                    "[CSharp][WorldLoading] Stage=PendingNativePolicy Type=%d Mod=%s Class=%s Detail=%s",
                     policy.type,policy.mod.c_str(),policy.name.c_str(),reason.c_str());
         }
     }
