@@ -20,7 +20,7 @@ public:
 class UniversalHookMailbox {
 public:
     struct Work { int slot; uint64_t ticket; uintptr_t self; int32_t argument = 0; bool int32Mode = false; };
-    struct Outcome { bool accepted = false; bool originalRan = false; bool faulted = false; bool timedOut = false; int32_t value = 0; };
+    struct Outcome { bool accepted = false; bool originalRan = false; bool faulted = false; bool timedOut = false; bool transient = false; int32_t value = 0; };
     using Clock = std::chrono::steady_clock;
 
     template<class Original, class Wake>
@@ -32,15 +32,17 @@ public:
         work_ = {slot, ++ticket_, self, argument, int32Mode};
         state_ = State::Pending;
         cancelled_ = false;
-        originalRequested_ = originalDone_ = originalRan_ = failed_ = false;
+        originalRequested_ = originalDone_ = originalRan_ = failed_ = transient_ = false;
         originalValue_ = completedValue_ = 0;
         auto deadline = Clock::now() + budget;
+        deadline_ = deadline;
         wake();
         Outcome out{true, false, false};
         for (;;) {
             if (state_ == State::Done) {
                 out.originalRan = originalRan_;
                 out.faulted = failed_;
+                out.transient = transient_;
                 out.value = completedValue_;
                 state_ = State::Idle;
                 return out;
@@ -64,6 +66,7 @@ public:
                 const auto elapsed = Clock::now() - start;
                 lock.lock();
                 deadline += elapsed;
+                deadline_ = deadline;
                 originalDone_ = true;
                 failed_ |= !ok;
                 changed_.notify_all();
@@ -80,6 +83,14 @@ public:
         }
     }
 
+    std::chrono::microseconds remaining(int slot, uint64_t ticket) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (state_ != State::Running || cancelled_ || slot != work_.slot ||
+            ticket != work_.ticket || worker_ != std::this_thread::get_id())
+            return std::chrono::microseconds::zero();
+        const auto left = std::chrono::duration_cast<std::chrono::microseconds>(deadline_ - Clock::now());
+        return left > std::chrono::microseconds::zero() ? left : std::chrono::microseconds::zero();
+    }
     void notify() {
         std::lock_guard<std::mutex> lock(mutex_);
         ++notifications_;
@@ -135,13 +146,14 @@ public:
         cancelled_ = true;
         changed_.notify_all();
     }
-    bool complete(uint64_t ticket, bool success, int32_t result = 0) {
+    bool complete(uint64_t ticket, bool success, int32_t result = 0, bool transient = false) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (ticket != work_.ticket || worker_ != std::this_thread::get_id()) return false;
         const bool accepted = state_ == State::Running && !cancelled_;
         if (state_ == State::Abandoned) state_ = State::Idle;
         else if (state_ == State::Running) {
             failed_ |= !success || cancelled_;
+            transient_ = transient;
             completedValue_ = result;
             state_ = State::Done;
         }
@@ -155,9 +167,10 @@ private:
     State state_ = State::Idle;
     Work work_{};
     uint64_t ticket_ = 0, notifications_ = 0;
+    Clock::time_point deadline_{};
     std::thread::id worker_;
     bool cancelled_ = false, originalRequested_ = false, originalDone_ = false;
-    bool originalRan_ = false, failed_ = false;
+    bool originalRan_ = false, failed_ = false, transient_ = false;
     int32_t originalValue_ = 0, completedValue_ = 0;
 };
 inline bool universalHookCallbackIsTerminal(bool accepted, bool success) {
