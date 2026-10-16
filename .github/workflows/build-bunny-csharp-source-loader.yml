@@ -782,6 +782,9 @@ jobs:
           jni=(Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/MonoWorkerJni.cpp")).read_text()
           for metric in ['monoProbeMs', 'roslynInvokeMs', 'verifyInvokeMs']:
               assert metric in probe and metric in jni
+          assert 'static bool compilerSignalTraceInstalled = false' in probe
+          assert 'if (!compilerSignalTraceInstalled)' in probe
+          assert 'if (!reused) {' in worker
           assert 'assets.list("managed")' in worker
           assert 'internal object ManagedFrameworkAssets' in worker
           assert 'if (name in valid) continue' in worker
