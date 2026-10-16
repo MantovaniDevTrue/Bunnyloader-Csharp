@@ -49,6 +49,18 @@ static class Program
         Check(BunnyHooks.Dispatch(afterSlot, ticket++, 123) == 0 && !after.IsDisposed && test_originals() == 1);
         BunnyHooks.RemoveSlot(afterSlot);
         Check(after.IsDisposed);
+        var busy = scope.HookVoid("Terraria.Player", "ResetEffects", (_, _) =>
+            throw new BunnyAccessException(BunnyAccessStatus.Busy, "rpc"));
+        int busySlot = test_slot();
+        Check(BunnyHooks.Dispatch(busySlot, ticket++, 123) == 2 && !busy.IsDisposed && BunnyHooks.TransientRetries == 1);
+        BunnyHooks.RemoveSlot(busySlot);
+        Check(busy.IsDisposed);
+        var timed = scope.HookVoid("Terraria.Player", "ResetEffects", (_, _) =>
+            throw new BunnyAccessException(BunnyAccessStatus.TimedOut, "rpc"));
+        int timedSlot = test_slot();
+        Check(BunnyHooks.Dispatch(timedSlot, ticket++, 123) == 2 && !timed.IsDisposed && BunnyHooks.TransientRetries == 2);
+        BunnyHooks.RemoveSlot(timedSlot);
+        Check(timed.IsDisposed);
         var stale = scope.HookVoid("Terraria.Player", "ResetEffects", (original, _) => original.Invoke());
         int staleSlot = test_slot();
         test_begin(ticket + 1);
@@ -100,6 +112,12 @@ static class Program
             Check(ok == 1 && value == 37 && test_originals() == 1 && seen == 1);
             Throws(() => expired.Invoke());
             typedHandle.Dispose();
+            var typedBusy = typed.HookInt32("Terraria.Player", "Int32Transform", (_, _, _) =>
+                throw new BunnyAccessException(BunnyAccessStatus.Busy, "rpc"));
+            typedSlot = test_slot();
+            BunnyHooks.InvokeInt32(typedSlot, ticket++, 123, 10, out ok, out value);
+            Check(ok == 2 && !typedBusy.IsDisposed && BunnyHooks.TransientRetries == 3);
+            typedBusy.Dispose();
             var replace = typed.HookInt32("Terraria.Player", "Int32Transform", (_, _, value) => value * 3);
             typedSlot = test_slot();
             test_begin(ticket);

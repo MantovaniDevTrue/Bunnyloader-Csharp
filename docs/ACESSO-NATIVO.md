@@ -1,6 +1,6 @@
 # Acesso ao Terraria pelo SDK C#: lote A
 
-Núcleo experimental .70 que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
+Núcleo experimental .70, atualizado na .71, que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
 
 ## O que entra neste lote
 
@@ -95,7 +95,7 @@ Referências de objetos, strings, arrays, ponteiros, genéricos, argumentos `ref
 - Leituras estáticas individuais também podem ocorrer em `Load`. Acesso a instâncias, escritas, métodos e lotes exigem um callback universal ativo. Não há acesso livre a partir de outras threads, callbacks assíncronos antigos ou `SetDefaults`.
 - `BunnyNativeObject.FromHook(self)` aceita somente o self atual. O nativo valida o ticket, a thread do worker e o self antes de enfileirar, e valida novamente na thread do jogo. A classe real precisa ser compatível com a classe vinculada. Guardar esse objeto para outra chamada é inválido.
 - O worker libera o mutex Mono durante o pedido. A thread do jogo atende a operação enquanto aguarda o callback; chamadas ao jogo feitas por essa operação ignoram a reentrada de hooks universais para não esperar recursivamente pelo mesmo worker.
-- Pedidos usam armazenamento fixo e cópias de valores. Nenhum ponteiro para um buffer gerenciado fica pendente no jogo. Metadados têm espera de até 2 segundos; pedidos durante callbacks usam até 5 ms, mantendo o orçamento externo de 3 ms do hook. Um pedido pendente vencido não é executado posteriormente.
+- Pedidos usam armazenamento fixo e cópias de valores. Nenhum ponteiro para um buffer gerenciado fica pendente no jogo. Metadados têm espera de até 2 segundos. Pedidos durante callbacks respeitam o menor limite entre a espera máxima nativa e o tempo restante do prazo absoluto do hook (3 ms, excluindo a execução do original), reservando 200 µs para o retorno do worker ao MonoVM. Isso evita que uma espera nativa de 5 ms ultrapasse, por contrato, o prazo já vencido do callback. Um pedido pendente vencido não é executado posteriormente.
 - Prazos não interrompem um método IL2CPP que já começou. Getters/métodos podem alocar objetos encaixotados e executar código caro. Outros callbacks síncronos que dependam do worker mantêm as limitações de aninhamento do núcleo universal. Não usar operações longas ou que dependam dessa reentrada.
 - Escritas e métodos têm efeitos no jogo: uma exceção posterior ou timeout do callback não desfaz efeitos já executados. Não é uma transação com rollback. O mod continua responsável pelos valores que escreve.
 - Um lote publica os resultados no destino somente se todas as leituras terminarem com sucesso. A execução acontece numa sequência na thread do jogo; isso não é um snapshot atômico contra todas as outras threads da geração de mundo.
@@ -106,6 +106,8 @@ Referências de objetos, strings, arrays, ponteiros, genéricos, argumentos `ref
 ## Teste Android
 
 O [Native Access Probe CSharp](../Split/Bunny-Loader/samples/NativeAccessProbe/README.md) combina o módulo canônico e um BunnyPlayer mínimo, sem alterar vida, posição ou buffs. O pipeline .69 gera um APK assinado V3 e esse pacote de fontes. Desative o antigo Universal Hooks Probe CSharp para evitar dois hooks no mesmo endereço.
+
+Na .71, `Busy` e `TimedOut` dentro do callback são falhas transitórias: retornam código recuperável ao núcleo, com fallback vanilla e cooldown sem descartar o registro C#. Exceções de lógica e status inválidos continuam terminando o hook. O novo painel `Tempo nativo (us)` mostra tempo total de espera RPC, tempo acumulado de execução no jogo, pico de espera e tentativas ocupadas; são contadores acumulados, não médias por callback. O prazo reduz esperas órfãs, mas não interrompe um método nativo que já começou nem garante zero timeouts.
 
 No Editor C#, a linha `Acesso C#` mostra vínculos, leituras, escritas, métodos, lotes, falhas, esperas vencidas, último status e escopos ativos. `lotes` e `metodos` devem crescer com o teste; `escritas` permanece zero. A consulta manual é `Print(BunnyNativeScope.GetStatus());`. Conferir também os contadores de recuperação dos hooks e os FPS; sair e entrar no mundo exercita descarregamento.
 

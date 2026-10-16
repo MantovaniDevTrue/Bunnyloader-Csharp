@@ -1154,6 +1154,7 @@ bool pollUniversalHooksOnWorker() {
     UniversalHookMailbox::Work work{};
     if (universalHookMailbox().take(work)) {
         bool success = false;
+        bool retryable = false;
         int32_t returnedValue = 0;
         {
             std::lock_guard<std::mutex> guard(g_mutex);
@@ -1173,11 +1174,12 @@ bool pollUniversalHooksOnWorker() {
                     g_api.invoke(g_universalDispatch, nullptr, args, &exception);
                 }
                 success = !exception && result == 1;
+                retryable = !exception && result == 2;
             }
         }
-        const bool accepted = universalHookMailbox().complete(work.ticket, success, returnedValue);
+        const bool accepted = universalHookMailbox().complete(work.ticket, success, returnedValue, retryable);
         if (!accepted) noteUniversalHookLateCompletion();
-        if (universalHookCallbackIsTerminal(accepted, success)) {
+        if (universalHookCallbackIsTerminal(accepted, success, retryable)) {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (g_universalRemove) {
                 void* args[] = {&work.slot};

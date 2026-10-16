@@ -227,6 +227,7 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += " atrasados=" + std::to_string(bunny_universal_hook_stat(6));
     status += " suspensoes=" + std::to_string(bunny_universal_hook_stat(7));
     status += " retomadas=" + std::to_string(bunny_universal_hook_stat(8));
+    status += " transitorios=" + std::to_string(bunny_universal_hook_stat(9));
     status += "\nAcesso C#: vinculos=" + std::to_string(bl::csharp::nativeAccessStat(0));
     status += " leituras=" + std::to_string(bl::csharp::nativeAccessStat(1));
     status += " escritas=" + std::to_string(bl::csharp::nativeAccessStat(2));
@@ -236,6 +237,10 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += " esperasVencidas=" + std::to_string(bl::csharp::nativeAccessStat(6));
     status += " ultimo=" + std::to_string(bl::csharp::nativeAccessStat(7));
     status += " escopos=" + std::to_string(bl::csharp::nativeAccessStat(8));
+    status += "\nTempo nativo (us): espera=" + std::to_string(bl::csharp::nativeAccessStat(9));
+    status += " execucao=" + std::to_string(bl::csharp::nativeAccessStat(10));
+    status += " picoEspera=" + std::to_string(bl::csharp::nativeAccessStat(11));
+    status += " ocupadoRpc=" + std::to_string(bl::csharp::nativeAccessStat(12));
     return toJava(env, status);
 }
 
