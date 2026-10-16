@@ -371,6 +371,7 @@ std::array<std::atomic<int>, 4> g_entityCombatFaulted{};
 std::array<std::atomic<int>, 4> g_entityCombatLost{};
 std::array<std::atomic<int>, 4> g_entityCombatDroppedByKind{};
 std::atomic<int> g_entityCombatStatusWrites{0};
+std::array<std::atomic<int>, 2> g_entityAiProcessed{};
 
 
 std::atomic<int> g_entityJobsSubmitted{0};
@@ -959,6 +960,8 @@ void persistManagedEntityCombatSnapshot(uint64_t session, size_t pending) {
         "\nqueuedTotal=" + std::to_string(g_entityCombatSubmitted.load(std::memory_order_relaxed)) +
         "\ndroppedTotal=" + std::to_string(g_entityCombatDropped.load(std::memory_order_relaxed)) +
         "\nqueuePending=" + std::to_string(pending) +
+        "\nnpcAiJobsProcessed=" + std::to_string(g_entityAiProcessed[0].load(std::memory_order_relaxed)) +
+        "\nprojectileAiJobsProcessed=" + std::to_string(g_entityAiProcessed[1].load(std::memory_order_relaxed)) +
         "\nworkerWrites=" + std::to_string(g_entityCombatStatusWrites.load(std::memory_order_relaxed)) + "\n";
     for (size_t i = 0; i < 4; ++i) {
         text += std::string(names[i]) +
@@ -1438,6 +1441,9 @@ void* pinnedMonoWorker(void*) {
                             };
                         }
                         g_entityJobsCompleted.fetch_add(1, std::memory_order_relaxed);
+                        if (job.kind == 0 || job.kind == 1)
+                            g_entityAiProcessed[static_cast<size_t>(job.kind)]
+                                .fetch_add(1, std::memory_order_relaxed);
                         if (job.kind >= 2 && job.kind <= 5) {
                             const int eventIndex=job.kind-2;
                             if (result == 0)
@@ -1466,11 +1472,15 @@ void* pinnedMonoWorker(void*) {
                         g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
                             .fetch_add(1, std::memory_order_relaxed);
                     }
-                    if (job.kind >= 2 && job.kind <= 5) {
-                        static std::chrono::steady_clock::time_point nextSnapshot{};
+                    if (job.kind >= 0 && job.kind <= 5) {
+                        static std::chrono::steady_clock::time_point nextAiSnapshot{};
+                        static std::chrono::steady_clock::time_point nextCombatSnapshot{};
                         const auto now = std::chrono::steady_clock::now();
-                        if (now >= nextSnapshot) {
-                            nextSnapshot = now + std::chrono::seconds(1);
+                        const bool combat = job.kind >= 2;
+                        if ((combat && now >= nextCombatSnapshot) ||
+                            (!combat && now >= nextAiSnapshot)) {
+                            if (combat) nextCombatSnapshot = now + std::chrono::seconds(1);
+                            else nextAiSnapshot = now + std::chrono::seconds(10);
                             const uint64_t session = g_entitySession;
                             const size_t pending = g_entityQueue.size();
                             lock.unlock();
