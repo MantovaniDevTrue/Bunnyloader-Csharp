@@ -191,7 +191,12 @@ bool installEquipment(Equipment& equip,std::string* error) {
     if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
     if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
     if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
-    if((equip.flags&2)&&!boolTable(staticArray(sets,"HidesHands"),equip.slot,false))return fail("EquipmentHandFlagUnavailable");
+    if(equip.flags&2) {
+        const auto handFlags=staticArray(sets,"HidesHands");
+        if(!handFlags)return fail("EquipmentHandFlagUnavailable Detail=HidesHandsStaticBoolArrayUnavailable");
+        if(!table(handFlags))return fail("EquipmentHandFlagUnavailable Detail=HidesHandsTableNotInitialized");
+        if(!boolTable(handFlags,equip.slot,false))return fail("EquipmentHandFlagUnavailable Detail=HidesHandsWriteOrGrowthFailed");
+    }
     if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
     kind.total=total;equip.published=true;return true;
 }
@@ -207,7 +212,13 @@ bool registerAnimation(Entry& entry,std::string* error) {
     const auto* init=method(main,"void InitializeItemAnimations()",false);
     auto* cls=findClass({"Terraria.DataStructures","DrawAnimationVertical",{}});
     const auto* ctor=method(cls,"void .ctor(int ticksperframe, int frameCount)",true);
-    if(!registerMethod||!init||!ctor){*error="Reason=AnimationMethodsUnavailable";return false;}
+    if(!registerMethod||!init||!ctor) {
+        *error="Reason=AnimationMethodsUnavailable Missing=";
+        if(!registerMethod)*error+="RegisterItemAnimation,";
+        if(!init)*error+="InitializeItemAnimations,";
+        if(!ctor)*error+="DrawAnimationVerticalCtor,";
+        return false;
+    }
     if(!animationsHooked){if(!hook::install(init,hkAnimations,&originalAnimations))return false;animationsHooked=true;}
     if(!entry.animation) {
         auto* object=a.object_new(cls);if(!object)return false;
