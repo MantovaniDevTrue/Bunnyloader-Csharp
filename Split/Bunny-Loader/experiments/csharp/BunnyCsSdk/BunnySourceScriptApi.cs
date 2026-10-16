@@ -45,6 +45,7 @@ public abstract class BunnyProjectile
     public virtual void OnSpawn(ref BunnyProjectileAiState state) { }
     public virtual bool AI(ref BunnyProjectileAiState state) => false;
     public virtual void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage) { }
+    public virtual void OnKill(ref BunnyProjectileAiState state) { }
     public virtual void OnDespawn(ref BunnyProjectileAiState state) { }
     public virtual int OnHitNPC(int damage) => 0;
     public virtual int OnKill(int damage) => 0;
