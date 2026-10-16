@@ -89,9 +89,9 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         if (legacy || autoSlot >= 0 || additionalLive || additionalSource)
             damage = runtime::field<int32_t>(projectile, game.proj.damage);
     }
-    if (g_originalHit) g_originalHit(projectile, index, method);
     if (additionalSource && index >= 0 && index < 200)
         queueManagedSourceProjectileCombat(4, projectile, index, damage);
+    if (g_originalHit) g_originalHit(projectile, index, method);
     if ((!legacy && autoSlot < 0 && !additionalLive) || index < 0 || index >= 200 ||
         !g_addBuff || !g_npcs || !g_netMode) return;
 
