@@ -1,3 +1,7 @@
+> Estado consolidado: [checkpoint .62](STATUS.md), validado pelo usuário.
+> Este documento detalha o contrato e os testes da etapa correspondente;
+> a validação geral não substitui evidências específicas por cenário.
+
 # PR 28: contratos nativos e ajuda do editor
 
 Base: PR #27, com o isolamento de delegates e os contadores da .52/.53.

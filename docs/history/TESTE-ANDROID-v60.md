@@ -24,4 +24,4 @@ JSON.stringify({
 
 **Importante:** aumentar `processed` prova que o método gerenciado foi executado ao receber evento. **Não prova** por si só que o retorno do C# modificou o dano ou que APIs arbitrárias sejam suportadas. O exemplo foi desenhado para não alterar o gameplay nessa etapa.
 
-Resultados reais deste teste devem ser incluídos em [STATUS.md](STATUS.md), diferenciando teste Android de simulação/CI.
+Resultados reais deste teste devem ser incluídos em [STATUS.md](../STATUS.md), diferenciando teste Android de simulação/CI.

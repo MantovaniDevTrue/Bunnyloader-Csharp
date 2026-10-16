@@ -1,45 +1,64 @@
-# Validacao C#
+# Testes C#
 
-Na raiz `Split/Bunny-Loader`:
+Na raiz do repositório, sem toolchain Android:
 
 ```sh
+python3 tools/check_repository.py
+```
+
+As suítes canônicas ficam em `Split/Bunny-Loader/tests`. Para os comandos
+seguintes, entre **uma vez** em `Split/Bunny-Loader`. Requer .NET SDK 8,
+Python 3 e g++/C++20; suites legadas específicas também usam Node.js.
+
+```sh
+cd Split/Bunny-Loader
 dotnet run --project tests/sdk_foundation/SdkFoundation.csproj -c Release
 dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+dotnet run --project tests/entity_lifecycle/EntityLifecycle.csproj -c Release
+dotnet run --project tests/entity_source/EntitySource.csproj -c Release
+dotnet run --project tests/hooks/HookBatch.csproj -c Release
 dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
 python3 tests/run_csharp_foundation.py
 python3 tests/run_managed_lifecycle_regressions.py
 python3 tests/run_managed_pinned_gc.py
 python3 tests/run_managed_signal_ownership.py
 python3 tests/test_create_csharp_mod.py
+python3 tests/test_csharp_independent_mod_loading.py
+python3 tests/test_csharp_no_javascript_dependency.py
+python3 samples/ExampleModCSharp/Tests/check_examples.py
 ```
 
-O [workflow desta etapa](../.github/workflows/check-csharp-sdk-foundation.yml)
-executa essas verificacoes no SHA da branch/PR. O conjunto existente de testes
-continua em `Split/Bunny-Loader/tests`; nao foi substituido pelo novo conjunto.
+## Policies nativas sem QuickJS
 
-[Resultados, limites e roteiro Android](../docs/SDK-VALIDACAO.md).
-Host nativo com metadata/VM simulada verifica contratos, concorrencia e
-transicoes; nao comprova o Mono real em ARM64, estabilidade Android ou FPS.
-
-O segundo conjunto inclui cache externo com fontes/runtime/DLL/descritores
-verificados por SHA-256 e efeitos nativos de acessorio. Depois de executar
-`tests/sdk_foundation` e `tests/basic_items/ItemBatch.csproj`, verifique sem QuickJS:
+SDKFoundation e ItemBatch geram os arquivos wire consumidos abaixo. Ainda a
+partir de `Split/Bunny-Loader`:
 
 ```sh
-cd Split/Bunny-Loader
 python3 tests/run_native_equip_effects.py build/basic-items/full-source-runtime-values.txt build/sdk-foundation/native-accessory-wire.txt
-python3 tests/run_csharp_foundation.py
+python3 tests/run_native_armor_policies.py build/basic-items/armor-source-runtime-values.txt
+python3 tests/run_native_item_policies.py build/basic-items/full-source-runtime-values.txt samples/ExampleModCSharp/Playable
 ```
 
-O primeiro comando usa wire real de Roslyn e mocks IL2CPP/hooks. O WaspNest tem
-apenas StrongBees isolado nesse teste; o visual Back continua no teste JS legado.
-NativeCharm e ExampleStatAccessory nao precisam de policy JS. A regressao do
-cache usa as funcoes de I/O e fingerprint reais de AutoSourceRuntime.
+As suítes usam os módulos de produção com doubles IL2CPP/hooks e QuickJS
+desligado. Equipamento, textura Back, armaduras/conjuntos, luz, Color,
+animação e renderização C# implementados têm caminho nativo. Fixtures JS em
+`tests/fixtures/legacy_csharp_policies` preservam regressões do adaptador antigo,
+fora do bundle de produção; sua presença não cria dependência JS no mod C#.
 
-Armaduras: execute `python3 tests/run_native_armor_policies.py
-build/basic-items/armor-source-runtime-values.txt` depois de ItemBatch. A suite
-usa o modulo de producao com QuickJS desligado, preserva os conjuntos vanilla e
-exercita arrays de referencia e structs, imunidades, limites, falhas/retry e reparo.
-O exemplo ArmorPoliciesCSharp compila em SDKFoundation; seus sprites vestidos
-ainda dependem da ponte visual JS. A regressao JS separada reconstroi apenas no
-teste os descritores antigos e verifica que nativeArmor impede bonus duplicados.
+| Suíte | O que verifica |
+| --- | --- |
+| SDKFoundation/ItemBatch | Roslyn real, cache, herança, identidade, defaults/receitas e wire |
+| EntityLifecycle/EntitySource | Registro, estado por entidade, IA, combate, slot/geração e falhas |
+| HookBatch | Ref/out, unhook e isolamento de callbacks |
+| run_csharp_foundation | Parser/cache/fila contínua e scheduler de dano com prazo |
+| run_native_* | Equipamento/armadura/item, metadata, retry e limites sem JS |
+| run_managed_* | Ciclo de vida, GC, sinais e resultados atrasados |
+| check_examples e auditoria | Fontes, assets e evidências de exemplos; não comprovam todos os ports no Android |
+| check_repository | Links locais dos guias mantidos, atalhos, projetos, versões e integridade dos pacotes do checkpoint |
+
+[Mapa do CI](../docs/BUILD.md#workflows). A referência gerada deve corresponder
+ao SDK: para regenerar, rode SdkReference sem `--check` e revise o diff.
+Não edite arquivos gerados manualmente.
+
+Host não comprova ABI/renderização real, estabilidade ou 60 FPS.
+[Protocolo Android](../docs/SDK-VALIDACAO.md) · [Evidências atuais](../docs/STATUS.md).

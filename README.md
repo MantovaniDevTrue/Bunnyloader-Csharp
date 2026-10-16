@@ -1,51 +1,63 @@
 # Bunny Loader C#
 
-Suporte experimental a mods C# para Terraria Mobile, baseado no
-[Bunny Loader de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader).
-Os mods-fonte usam `.cs`, Roslyn e MonoVM, com integracao nativa C++/IL2CPP.
+Mods C# em **Terraria Mobile**, com fontes `.cs` compilados no Android por
+Roslyn e executados pelo MonoVM. O host C++ integra o código ao Terraria IL2CPP.
+Não precisa de compilador externo nem de uma `.so` por mod.
 
-## Comecar a desenvolver
+Extensão independente do [Bunny Loader de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader),
+mantida por **Mantovani**. O caminho C# implementado de carregamento, receitas,
+equipamentos e gameplay usa código nativo/gerenciado, sem adaptadores JavaScript.
+Mods JS continuam disponíveis pelo motor original.
 
-- [Guia atual do SDK e contratos de execucao](docs/SDK-CSharp.md)
-- [StarterMod minimo e gerador de mods](Split/Bunny-Loader/samples/StarterModCSharp/README.md)
-- [Exemplo de heranca e identidade declarada](Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md)
-- [Exemplo de acessorio com efeitos nativos](Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md)
-- [Independencia C# de JavaScript](docs/csharp-native-policy-independence.md)
-- [Armaduras, imunidades e conjunto com receitas vanilla](Split/Bunny-Loader/samples/ArmorPoliciesCSharp/README.md)
-- [Referencia publica gerada do SDK](Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
-- [Plano completo de evolucao e pendencias](docs/SDK-ROADMAP.md)
-- [Testes e roteiro Android desta etapa](docs/SDK-VALIDACAO.md)
+**Checkpoint atual: `0.1.10.16.90.29.62`**, build aprovada e validada por Mantovani
+no Android em 16/10/2026. A confirmação vale para o teste realizado; a API segue
+em evolução. [Versões, evidências e limites](docs/STATUS.md).
 
-## Fontes canonicos deste checkout
+## Comece aqui
 
-| Diretorio | Conteudo |
+| Quero… | Caminho |
 | --- | --- |
-| [BunnySourceSdk](Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/) | Projeto do SDK gerenciado utilizado pelo runtime |
-| [BunnyCsSdk](Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/) | Classes-fonte publicas C#; o csproj acima define quais entram no SDK fonte |
-| [BunnySourceCompiler](Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/) | Roslyn, cache, verificacao e exportacao de descritores |
-| [Host C++](Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/) | MonoVM, filas, callbacks e integracao IL2CPP |
-| [ExampleMod C#](Split/Bunny-Loader/samples/ExampleModCSharp/) | Exemplos existentes, fontes e assets |
-| [Projeto Android](Split/Bunny-Loader/app/) | App, NDK e integracao do loader |
+| Criar meu primeiro mod | [Guia rápido](docs/PRIMEIRO-MOD.md) |
+| Encontrar exemplos para adaptar | [Catálogo C#](examples/README.md) |
+| Entender hooks, policies e threads | [Contratos do SDK](docs/SDK-CSharp.md) |
+| Consultar classes e assinaturas | [Referência gerada](Split/Bunny-Loader/docs/generated/sdk_public_reference.md) |
+| Compilar ou contribuir com o loader | [Build](docs/BUILD.md) · [Contribuição](CONTRIBUTING.md) · [Testes](tests/README.md) |
+| Ver progresso e próximos lotes | [Estado atual](docs/STATUS.md) · [Roadmap](docs/SDK-ROADMAP.md) |
 
-A branch `main` historicamente acompanha sincronizacoes do Bunny original e
-nao representa automaticamente o estado C# mais recente. Este conjunto parte de
-`codex/sync-jonata-20261015`, commit `7229a61` (.90.29.31), e esta sendo revisado
-em `codex/csharp-sdk-runtime-foundation`, com a atualizacao .90.29.32.1
-(commit `3dd8c8d`) de defesa nativa e a .90.29.33 (`13e53fe`) de efeitos de
-acessorio integradas. Compile o checkout da branch desejada.
-Os links acima abrem os diretorios canonicos diretamente, sem depender de espelhos.
+## Organização
 
-## Estado desta etapa
+| Diretório | Responsabilidade |
+| --- | --- |
+| [Split/Bunny-Loader/](Split/Bunny-Loader/) | Projeto canônico Android, C++, SDK, ferramentas e samples |
+| [src/](src/README.md) | Navegação para os fontes canônicos, sem cópias paralelas |
+| [examples/](examples/README.md) | Escolha de exemplos para mods independentes |
+| [tests/](tests/README.md) | Comandos reproduzíveis e mapa das suítes |
+| [docs/](docs/README.md) | Guias atuais e histórico separado |
+| [.github/workflows/](.github/workflows/) | CI, build e manutenção; [mapa](docs/BUILD.md#workflows) |
+| [Split/](Split/) | Integração histórica com o port Split e ferramentas associadas |
 
-Implementados para verificacao: caches de assembly e descritores com integridade,
-parsing adiado, efeitos, armaduras/conjuntos e instalacao de equipamentos/animacao/luz em C++ sem adaptadores JS e samples, declaracao explicita de conteudo para heranca, StarterMod com projeto de
-editor, referencia publica gerada e callbacks automaticos continuos com filas
-limitadas e 32 vinculos. Benchmarks manuais mantem o teto de 25 mil eventos.
-Essas mudancas ainda precisam de build Android e validacao em aparelho.
+Os caminhos de compilação permanecem em `Split/Bunny-Loader`.
+[Mapa detalhado do repositório](docs/REPOSITORIO.md).
 
-Ainda ha policies de equipamento executadas pelos carregadores JavaScript.
-IA gerenciada geral por frame, multiplayer, hot-unload e todos os exemplos do
-Bunny continuam pendentes no plano. Nenhum teste de host implica 60 FPS no jogo.
-O projeto e independente e nao e uma distribuicao oficial do Bunny Loader.
-Nao executa mods tModLoader automaticamente. Direitos de Terraria permanecem
-com seus respectivos titulares; o projeto nao fornece o jogo.
+## Suporte e próximos passos
+
+Há carregamento automático antes do mundo, cache verificado, itens/receitas,
+equipamentos, armaduras/conjuntos, prefixos, desenho limitado, hooks de dano do
+jogador e IA/eventos de NPCs e projéteis via worker MonoVM. Policies nativas
+e callbacks gerenciados têm contratos diferentes. As filas são limitadas e
+eventos podem ser recusados: consulte os contratos e a telemetria antes de portar.
+
+Ainda faltam categorias da matriz de exemplos, APIs de mundo/UI e um contrato
+completo de multiplayer e hot-unload. Esta extensão não executa automaticamente
+mods tModLoader. Presença de uma classe no SDK não comprova todos os seus usos
+no jogo. Benchmarks do host não medem FPS no Android.
+
+## Créditos e distribuição
+
+O Bunny Loader original é de **Jonata Oliveira**. Consulte a
+[licença do loader](Split/Bunny-Loader/LICENSE.md), o
+[escopo de licenciamento](Split/Bunny-Loader/LICENSING.md) e os
+[avisos de terceiros](Split/Bunny-Loader/THIRD_PARTY_NOTICES.md).
+Terraria pertence aos seus respectivos titulares. Este repositório público
+não fornece os binários ou assets proprietários do jogo; as builds de teste
+com runtime integrado permanecem em distribuição restrita.

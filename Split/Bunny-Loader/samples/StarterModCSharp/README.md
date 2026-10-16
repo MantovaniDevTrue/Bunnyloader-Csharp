@@ -27,9 +27,9 @@ Arquivos de build ficam fora de `Playable/` e nao entram no pacote.
 
 ## Testar no Android
 
-Requer a linha .90.29.31 para o caminho de carregamento consultado; receitas e
-itens basicos ja existiam nas builds anteriores. Este novo pacote ainda nao
-foi validado no aparelho. Importe, habilite, confira o carregamento antes do
+Use o SDK e o APK do [checkpoint atual](../../../../docs/STATUS.md).
+O template tem testes de compilacao/empacotamento; a validacao geral do
+ExampleMod nao comprova um teste Android independente deste sample. Importe, habilite, confira o carregamento antes do
 mundo, obtenha uma terra e fabrique o material. Confira consumo e tooltip;
 salve e reabra o mundo e o personagem. Depois teste junto de outro mod C# e
 de um mod JS. Registre versao, erros e tempo de carregamento.

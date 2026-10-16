@@ -1,3 +1,7 @@
+> Estado consolidado: [checkpoint .62](STATUS.md), validado pelo usuário.
+> Este documento detalha o contrato e os testes da etapa correspondente;
+> a validação geral não substitui evidências específicas por cenário.
+
 # Mods C# sem dependencia de JavaScript
 
 Base: PR #24, checkpoint Android `.90.29.41`, com a correcao de cache do #25.

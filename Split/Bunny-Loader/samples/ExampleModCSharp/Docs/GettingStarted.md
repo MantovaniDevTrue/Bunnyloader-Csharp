@@ -1,3 +1,9 @@
+> Guia histórico de evolução da API. Para desenvolvimento atual, use o
+> [guia rápido](../../../../../docs/PRIMEIRO-MOD.md), os
+> [contratos atuais](../../../../../docs/SDK-CSharp.md) e o
+> [checkpoint validado](../../../../../docs/STATUS.md). Comandos manuais abaixo
+> não são necessários para o carregamento automático de mods C# atuais.
+
 # Bunny Loader C# 0.1.10.16.60 — eventos automáticos
 
 Na versão experimental .60, o ExampleMod CSharp 0.1.7 descobre e vincula `BunnyLiveEvents.OnHitNPC(int,int)` e `BunnyLiveEvents.OnKill(int,int)` automaticamente em singleplayer, após a inicialização do mundo e da biblioteca Mono. Não é necessário executar os comandos de ativação da .59.

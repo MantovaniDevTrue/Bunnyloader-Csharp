@@ -1,8 +1,8 @@
 # Desenvolver mods C# no Bunny
 
-Esta branch parte da .90.29.31, integra a .90.29.33 e acrescenta uma etapa
-experimental do SDK e do runtime. Os fontes do ExampleModBunny e do loader original sao a referencia.
-Os novos recursos ainda precisam de validacao no Android.
+Contratos do [checkpoint atual](STATUS.md). Os fontes do loader e do
+ExampleModBunny são a referência. O [guia rápido](PRIMEIRO-MOD.md) mostra como
+criar e empacotar um mod independente. Validação é registrada por recurso.
 
 ## Primeiro mod
 
@@ -226,7 +226,38 @@ original no diagnostico e nao substituir erros por sucesso generico.
 
 ## Proximas capacidades
 
-IA gerenciada geral por entidade/frame, estado persistente de jogador/mundo,
+IA geral por frame sem amostragem, estado persistente de jogador/mundo,
 hot-unload, registro livre de callbacks e multiplayer continuam no [plano completo](SDK-ROADMAP.md).
 Nenhum exemplo deve anunciar essas capacidades antes de possuir uma bridge
 funcional, testes e evidencia de comportamento no aparelho.
+
+## IA e combate por instância de entidade
+
+Desde a `.90.29.58`, `BunnyNPC.AI(ref BunnyNpcAiState)` e
+`BunnyProjectile.AI(ref BunnyProjectileAiState)` executam no worker MonoVM,
+com estado isolado por mod/tipo/instância. `OnSpawn` prepara a instância.
+Os snapshots incluem slot/tipo/geração, posição/velocidade, idade e alvo;
+NPC inclui vida, e projétil inclui owner. Não são objetos IL2CPP livres.
+
+A IA é amostrada a cada seis ticks. A `.90.29.62` antecipa o primeiro tick de
+projéteis recém-observados. `AI` retorna se produziu uma alteração de velocidade;
+o host só aplica a resposta quando identidade/geração/owner/sessão conferem.
+Curvas nativas, SourceBolt e SourceSpark conservam seu movimento prioritário,
+mas continuam alimentando o ciclo C# de eventos desde a `.61`.
+
+Desde `.59`, `BunnyNPC.OnHit(ref BunnyNpcAiState, int damage)` e
+`OnKill(ref BunnyNpcAiState)` recebem eventos reais encaminhados pelo host.
+NPC.OnHit observa redução de vida entre atualizações, incluindo dano contínuo;
+não substitui cada fonte de dano original. `BunnyProjectile.OnHitNPC(ref
+BunnyProjectileAiState, int npcIndex, int damage)` e
+`OnKill(ref BunnyProjectileAiState)` usam os hooks compartilhados de combate.
+São diferentes dos overloads de policy `OnHitNPC(int damage)`/`OnKill(int damage)`.
+
+A fila é limitada e não bloqueante: eventos podem ser rejeitados antes de
+existir contexto, por estado antigo ou saturação. O SDK também declara
+`OnDespawn`; sua presença não comprova despacho nativo universal. Pausa/troca
+de mundo não equivalem a unload completo dos assemblies ou dos estáticos.
+
+Consulte [ExampleSlimeNPC](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs)
+e [ExampleWaveBolt](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs).
+O [roteiro Android](SDK-VALIDACAO.md) explica `entity-combat-status.txt`.

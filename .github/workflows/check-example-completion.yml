@@ -147,7 +147,7 @@ jobs:
           name: ExampleMod-Complete-Audit
           path: |
             Split/Bunny-Loader/docs/generated/example_completion/
-            docs/csharp-completion-plan.md
+            docs/history/csharp-completion-plan.md
             Split/Bunny-Loader/build/basic-items-results.json
             Split/Bunny-Loader/build/basic-items/source-runtime-values.txt
             Split/Bunny-Loader/build/basic-items/armor-source-runtime-values.txt

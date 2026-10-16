@@ -1,3 +1,9 @@
+> Guia histórico de evolução da API. Para desenvolvimento atual, use o
+> [guia rápido](../../../../../docs/PRIMEIRO-MOD.md), os
+> [contratos atuais](../../../../../docs/SDK-CSharp.md) e o
+> [checkpoint validado](../../../../../docs/STATUS.md). Comandos manuais abaixo
+> não são necessários para o carregamento automático de mods C# atuais.
+
 # API C# suportada: Bunny Loader Roslyn + MonoVM
 
 Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs). O ExampleModBunny é a referência de estrutura e comportamento, não as classes do tModLoader.
@@ -54,4 +60,4 @@ Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tMo
 - A troca de mundo refaz os vínculos, mas mantém o runtime e os caches. O estado estático de um exemplo deve considerar essa duração de vida.
 - A API de mod não deve chamar comandos `bl.csharp.*` do console para se inicializar. Esses comandos servem a diagnóstico e controle do loader.
 
-Veja a [base para a API de modders](../../../../../docs/csharp-api-foundation-v79.md) para as correções de lifecycle e os próximos contratos a estabilizar.
+Veja a [base para a API de modders](../../../../../docs/history/csharp-api-foundation-v79.md) para as correções de lifecycle e os próximos contratos a estabilizar.

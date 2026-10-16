@@ -1,22 +1,17 @@
-# Histórico técnico — linha experimental C#
+# Histórico de checkpoints
 
-As branches de versão funcionam como snapshots de regressão. O acompanhamento atual está na branch de documentação **`csharp-development`**, derivada da **.60**, enquanto a branch de teste **.60 permanece intacta**.
-
-| Versão | Mudança principal | Evidência |
+| Etapa | Referência | Resultado |
 | --- | --- | --- |
-| `0.1.10.16.34–.36` | Ponte de conteúdo, IA de exemplos, compilação por identidade de mod e carregamento automático | Testes de exemplo em etapas; cobertura específica |
-| `0.1.10.16.45–.48` | Investigações de execução gerenciada ao vivo/IA NPC e threads | Experimental; parte dos caminhos exigiu correções de ciclo de vida |
-| `0.1.10.16.49–.57` | Diagnósticos de Mono, threads, sinais ARM64 e travamentos | Investigação incremental; nem toda versão é estável |
-| **`0.1.10.16.58`** | Espera na thread proprietária do Mono compatível com GC | `DOMAIN_ONLY` e `PINNED_MONO` relatados funcionando no Android, retorno 42 |
-| **`0.1.10.16.59`** | Callback **C# gerenciado OnHitNPC** sob ativação explícita | **10/10 eventos reais**, sem perda/falha no relato registrado |
-| **`0.1.10.16.60`** | Registro automático de `OnHitNPC` + `OnKill` via convenção, ExampleMod 0.1.7 | CI aprovado; **teste real Android pendente** |
+| MonoVM, sinais/GC e Roslyn iniciais | [Relatórios preservados](history/README.md) | Investigação de compilação, mutex, processos e sinais |
+| Eventos automáticos e contexto | [Snapshot de status anterior](history/snapshot-STATUS.md) | Evidências por versão antiga |
+| SDK, cache e Lote A | [Plano de conclusão](history/csharp-completion-plan.md) | Matriz de exemplos e expansão do SDK |
+| Independência C# | [Contrato nativo](csharp-native-policy-independence.md) | Adaptadores JS retirados do caminho C# implementado |
+| `0.1.10.16.90.29.54`–`.57` | [PR #28](csharp-pr28-native-contract-fixes.md) | Equipamento, animação, Color, luz e editor; `.57` validada |
+| `0.1.10.16.90.29.58` | [PR #30](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/30) | IA de NPC/projétil; validada pelo usuário |
+| `0.1.10.16.90.29.59`–`.61` | [PR #31](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/31), [#32](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/32), [#33](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/33) | Combate de entidades, telemetria e eventos com curvas nativas |
+| `0.1.10.16.90.29.62` | [PR #34](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/34) | Primeiro tick antecipado; usuário confirmou funcionamento perfeito |
 
-### Links essenciais
+Use a versão completa: `0.1.10.16.62` e `0.1.10.16.90.29.62` pertencem a
+etapas diferentes. Abreviações só fazem sentido dentro da série do documento.
 
-- [Release .58](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.58)
-- [Release .59](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.59)
-- [Release .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60)
-- [Branch congelada de teste .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/bunny-csharp-source-0.1.10.16.60-auto-live-events)
-- [Origem upstream de Jonata](https://github.com/JonataOliveiraa/Bunny-Loader)
-
-Não tratar `result=42` como prova de compatibilidade de todo o gameplay; ele confirma uma execução gerenciada específica. Da mesma forma, um workflow verde não comprova FPS no aparelho.
+[Estado atual](STATUS.md) · [Changelog](../CHANGELOG.md) · [Índice histórico](history/README.md)

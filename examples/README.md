@@ -1,17 +1,34 @@
 # Exemplos para modders C#
 
-| Exemplo | Uso | Evidencia desta etapa |
+Comece pelo [primeiro mod](../docs/PRIMEIRO-MOD.md). Os fontes editáveis ficam
+em `Split/Bunny-Loader/samples`; esta pasta oferece navegação.
+
+| Exemplo | Aprender | Evidência e limites |
 | --- | --- | --- |
-| [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, projeto de editor e gerador de UID | Compilacao e pacote em host; Android pendente |
-| [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base abstrata generica e identidade declarada por atributo | Parser nativo e Roslyn; exige o novo SDK; Android pendente |
-| [ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/) | Conjunto existente de armas, equipamentos, jogador, NPC e bancada | Validacao varia por recurso; consultar as evidencias |
+| [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, UID e projeto de editor | Compilação/empacotamento em host; não atribuir teste Android independente sem registro |
+| [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base genérica e identidade por atributo | Parser e Roslyn; restrições sintáticas no SDK |
+| [NativeAccessory](../Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md) | Acessório independente e efeitos nativos | Host sem QuickJS; validação varia por efeito |
+| [ArmorPolicies](../Split/Bunny-Loader/samples/ArmorPoliciesCSharp/README.md) | Peças, imunidades, conjunto e receitas vanilla | Integrante dos testes Android da linha .57; não generalizar a todos os cenários |
+| [ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/README.md) | Armas, equipamento, jogador, prefixos, bancada, NPC/IA/eventos | Pacote `0.1.40` correspondente à .62 validada; cobertura por recurso continua na matriz |
+| [NativePlacementProbe](../Split/Bunny-Loader/samples/NativePlacementProbe/) | Diagnóstico de colocação e bancada | Probe de desenvolvimento; não habilitar junto do exemplo unificado se duplicar conteúdo |
 
-O manifest do ExampleMod deste checkout identifica a versao 0.1.37. Nao
-confundir quantidade de fontes C# com quantidade de ports integrais concluidos.
-A [matriz dos 201 arquivos de referencia](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
-e o backlog existente continuam preservados; o historico de cada entrada pode
-precisar ser conciliado com os commits recentes antes de promover seu estado.
+## Encontrar código no ExampleMod
 
-Use os [contratos do SDK](../docs/SDK-CSharp.md). Os callbacks estaticos legados
-sao diferentes das policies de instancia avaliadas na compilacao. Os exemplos
-seguem o ExampleModBunny e os fontes do loader; nao importam APIs de outros loaders.
+| Recurso | Diretório |
+| --- | --- |
+| Armas e ferramentas | [Content/Items](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/) |
+| Projéteis e callbacks por instância | [Content/Projectiles](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Projectiles/) |
+| NPC, IA e combate | [ExampleSlimeNPC.cs](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs) |
+| Hooks/policies do jogador | [Common/Players](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Players/) |
+| Eventos estáticos legados | [Common/Live](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/) |
+| Receitas | [Common/Recipes](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Recipes/) |
+| Conteúdo e assets importáveis | [Playable](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/) |
+
+Use o ExampleMod da mesma release do APK: pacotes antigos também se chamam
+`0.1.40`, mas têm hashes diferentes. [Checkpoint/hashes](../docs/STATUS.md).
+
+Os exemplos seguem o ExampleModBunny e os contratos reais do loader. Não
+exigem JS nem APIs de TLPro/tModLoader. Quantidade de fontes não é quantidade
+de ports completos: a [matriz dos exemplos](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
+preserva lacunas e critérios. A referência JS serve como especificação de
+comportamento, sem virar dependência no caminho C#.

@@ -2,6 +2,38 @@
 
 As alterações abaixo referem-se ao **protótipo C# neste repositório**, não às versões oficiais do Bunny Loader de Jonata.
 
+## Consolidação do repositório — 16/10/2026
+
+- Reúne o código da linha C# até a PR #34 (.90.29.62) como entrada pública integrada.
+- Atualiza README, SDK/arquitetura, roadmap, catálogo de exemplos, build, testes e contribuição.
+- Separa relatórios históricos; remove o espelho antigo da ponte JS e corrige o atalho para o SDK C#.
+- Adiciona checkpoint verificável, guarda de links/caminhos/versões/pacotes e CI de organização.
+- Preserva versionCode, fontes de produção e conteúdo dos pacotes da .62.
+
+## 0.1.10.16.90.29.62 — primeiro tick de projétil
+
+- Antecipa o primeiro tick C# sem remover cadência posterior ou validação de identidade/sessão.
+- Build/CI aprovados; Mantovani confirmou: “.62 foi perfeita”. Contadores/FPS da sessão não informados.
+
+## 0.1.10.16.90.29.59–.61 — combate e telemetria
+
+- Hit/kill de NPC e projétil pelo worker, telemetria persistente e ciclo C# mesmo com movimento nativo prioritário.
+- .61 tem eventos executados no Android, com rejeições registradas. [Evidências](docs/STATUS.md).
+
+## 0.1.10.16.90.29.58 — IA de entidades e base nativa
+
+- IA NPC/projétil por snapshot no MonoVM, preservando as correções nativas da .57.
+- Validação Android confirmada pelo usuário; PR #31 registra 60 FPS.
+
+## 0.1.10.16.90.29.57 — equipamento, Color e luz
+
+- Corrige contratos reais de equipamento/animação, Color ABGR e getter de WorldItem.active.
+- Carregamento de 2 mods C# sem erros/avisos e save/reabertura confirmados. [Detalhes](docs/csharp-pr28-native-contract-fixes.md).
+
+---
+
+As notas seguintes preservam checkpoints anteriores, com suas próprias versões e evidências.
+
 ## 0.1.10.16.70 — profiler de gameplay real (aguarda build/Android)
 - Reutiliza `sourcePerfStart()`, `sourcePerfStatus()` e `sourcePerfStop()` da .65. Janela opt-in de 15 s, sem alterações em combate ou efeitos e sem geração artificial de 25 mil eventos.
 - Adiciona `updateP99Ms`, percentis p90/p99 de fila e duração de callback C#, média/máximo/p90 de CPU da thread MonoVM, contadores de eventos aceitos/processados/falhos/descartados e pico de fila na janela.
