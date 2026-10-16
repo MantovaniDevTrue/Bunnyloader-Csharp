@@ -1657,7 +1657,8 @@ bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int genera
 bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
                        uintptr_t identity, int life, int lifeMax,
                        float x, float y, float vx, float vy,
-                       float playerX, float playerY, ManagedEntityVelocity* velocity) {
+                       float playerX, float playerY, ManagedEntityVelocity* velocity,
+                       bool immediateFirstTick) {
     if (!velocity || generation <= 0 || identity == 0 ||
         !std::isfinite(x) || !std::isfinite(y) ||
         !std::isfinite(vx) || !std::isfinite(vy) ||
@@ -1695,7 +1696,8 @@ bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
     auto& ticks = kind == 0
         ? g_entityNpcTicks[static_cast<size_t>(slot)]
         : g_entityProjectileTicks[static_cast<size_t>(slot)];
-    if (++ticks % 6 != 0 || pending) return applied;
+    ++ticks;
+    if ((!immediateFirstTick && ticks % 6 != 0) || pending) return applied;
     if (g_entityQueue.size() >= 32) {
         g_entityJobsDropped.fetch_add(1, std::memory_order_relaxed);
         return applied;
@@ -1715,15 +1717,15 @@ bool tickManagedEntityNpc(int type, int slot, int generation,
                           float x, float y, float vx, float vy,
                           float playerX, float playerY, ManagedEntityVelocity* result) {
     return pollManagedEntity(0, type, slot, generation, -1, identity, life, lifeMax,
-                             x, y, vx, vy, playerX, playerY, result);
+                             x, y, vx, vy, playerX, playerY, result, false);
 }
 
 bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
                                  uintptr_t identity, float x, float y,
                                  float vx, float vy, float playerX, float playerY,
-                                 ManagedEntityVelocity* result) {
+                                 ManagedEntityVelocity* result, bool immediateFirstTick) {
     return pollManagedEntity(1, type, slot, generation, owner, identity, 0, 0,
-                             x, y, vx, vy, playerX, playerY, result);
+                             x, y, vx, vy, playerX, playerY, result, immediateFirstTick);
 }
 
 bool registerManagedPlayerHurtMod(const std::string& modId,
