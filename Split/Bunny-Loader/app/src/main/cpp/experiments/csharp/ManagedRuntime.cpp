@@ -3321,8 +3321,12 @@ ManagedSourceCompileResult compileManagedSource(
     };
     void* exception = nullptr;
     rearmNativeAbortProbe("after-mono-preflight-before-roslyn");
-    installDestroyedMutexTrace();
-    installNativeSegvTrace();
+    static bool compilerSignalTraceInstalled = false;
+    if (!compilerSignalTraceInstalled) {
+        installDestroyedMutexTrace();
+        installNativeSegvTrace();
+        compilerSignalTraceInstalled = true;
+    }
     trace("compiling-source");
     const auto roslynStarted = std::chrono::steady_clock::now();
     void* boxed = g_api.invoke(method, nullptr, args, &exception);
