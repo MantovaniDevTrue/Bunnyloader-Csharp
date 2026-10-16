@@ -29,6 +29,7 @@ extern "C" void bunny_native_close(int64_t);
 extern "C" int bunny_native_bind(int64_t,int,int,int,int,const char*,const char*);
 extern "C" int bunny_native_call(int64_t,int,int,int,int64_t,uintptr_t,int,const V*,V*);
 extern "C" int bunny_native_read_batch(int64_t,int,int64_t,uintptr_t,const int*,V*,int);
+extern "C" int bunny_native_read_batch_invoke(int64_t,int,int64_t,uintptr_t,const int*,V*,int,int,int,const V*,V*);
 namespace {
 bl::il2cpp::Api api;
 Il2CppClass cVoid{"System","Void",0,true},cBool{"System","Boolean",1,true},cInt{"System","Int32",4,true},cUInt{"System","UInt32",4,true},cLong{"System","Int64",8,true},cFloat{"System","Single",4,true},cDouble{"System","Double",8,true},cByte{"System","Byte",1,true};
@@ -160,8 +161,9 @@ int main() {
             if(work.slot==7) {
                 assert(work.int32Mode&&work.argument==9);
                 int ids[]={h.life,h.day};V values[2]{};
-                assert(bunny_native_read_batch(h.scope,work.slot,work.ticket,work.self,ids,values,2)==0&&values[0].a==125);
-                assert(call(h.method,4,work,integer(work.argument),&result,1)==0&&result.a==10);
+                V arg=integer(work.argument);
+                assert(bunny_native_read_batch_invoke(h.scope,work.slot,work.ticket,work.self,
+                    ids,values,2,h.method,1,&arg,&result)==0&&values[0].a==125&&result.a==10);
                 int32_t originalValue=0;
                 assert(universalHookMailbox().originalInt32(work.slot,work.ticket,originalValue)&&originalValue==42);
                 universalHookMailbox().complete(work.ticket,true,originalValue+static_cast<int>(result.a));
@@ -195,6 +197,16 @@ int main() {
             int ids[]={h.life,h.position,h.color,h.box,h.day,h.speed,h.timer,h.ticks};V values[8]{};
             assert(bunny_native_read_batch(h.scope,work.slot,work.ticket,work.self,ids,values,8)==0);
             assert(values[0].a==125&&values[2].a==0x04030201&&values[4].a==0&&values[7].a==9000000000ULL);
+            int fusedIds[]={h.life,h.day};
+            V fusedValues[2]{};V fusedArg=integer(12);V fusedResult{};
+            assert(bunny_native_read_batch_invoke(h.scope,work.slot,work.ticket,work.self,
+                fusedIds,fusedValues,2,h.method,1,&fusedArg,&fusedResult)==0);
+            assert(fusedValues[0].a==125&&fusedResult.a==13);
+            V fusedUntouched[2]={integer(555),integer(555)};
+            V wrongArg={K::Single,0,0,0};
+            assert(bunny_native_read_batch_invoke(h.scope,work.slot,work.ticket,work.self,
+                fusedIds,fusedUntouched,2,h.method,1,&wrongArg,&fusedResult)==static_cast<int>(S::TypeMismatch));
+            assert(fusedUntouched[0].a==555&&fusedUntouched[1].a==555);
             V sentinel{K::Int32,0,987,0};int invalid[]={h.life,2048};V untouched[]={sentinel,sentinel};
             assert(bunny_native_read_batch(h.scope,work.slot,work.ticket,work.self,invalid,untouched,2)==static_cast<int>(S::Expired)&&untouched[0].a==987);
             assert(bunny_native_call(h.scope,h.life,2,work.slot,work.ticket+1,work.self,0,nullptr,&result)==static_cast<int>(S::Expired));
