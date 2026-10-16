@@ -1138,6 +1138,8 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
+    resetManagedSourceNpcSlots();
+    resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
     if (!g_preWorldBindingsArmed.load(std::memory_order_acquire))
@@ -1217,6 +1219,8 @@ void noteAutoGameUpdate() {
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
         pauseManagedEntitySourceCallbacks();
+    resetManagedSourceNpcSlots();
+    resetManagedSourceProjectileSlots();
         {
             std::lock_guard<std::mutex> guard(g_lock);
             for (auto& state : g_statuses)
