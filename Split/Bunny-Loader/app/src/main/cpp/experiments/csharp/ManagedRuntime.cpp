@@ -1414,6 +1414,143 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+bool registerManagedEntitySourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& npcTypes,
+    const std::vector<std::pair<int, std::string>>& projectileTypes) {
+    if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
+        assemblyPath.size() > 2048 || assemblyPath.find("..") != std::string::npos ||
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
+        (npcTypes.empty() && projectileTypes.empty())) return false;
+    for (const auto& list : {&npcTypes, &projectileTypes})
+        for (const auto& [type, name] : *list)
+            if (type < 0 || type >= 32768 || name.empty() || name.size() > 128)
+                return false;
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    for (const auto& binding : g_entityBindings)
+        if (binding.modId == modId)
+            return binding.assemblyPath == assemblyPath;
+    if (g_entityBindings.size() >= 16) return false;
+    const int index = static_cast<int>(g_entityBindings.size());
+    for (const auto& [type, unused] : npcTypes)
+        if (g_entityNpcTypeOwner[static_cast<size_t>(type)].load(
+                std::memory_order_acquire) != 0) return false;
+    for (const auto& [type, unused] : projectileTypes)
+        if (g_entityProjectileTypeOwner[static_cast<size_t>(type)].load(
+                std::memory_order_acquire) != 0) return false;
+    g_entityBindings.push_back({
+        modId, assemblyPath, npcTypes, projectileTypes, -1, true
+    });
+    for (const auto& [type, unused] : npcTypes)
+        g_entityNpcTypeOwner[static_cast<size_t>(type)].store(index + 1,
+                                                              std::memory_order_release);
+    for (const auto& [type, unused] : projectileTypes)
+        g_entityProjectileTypeOwner[static_cast<size_t>(type)].store(index + 1,
+                                                                     std::memory_order_release);
+    g_entityModCount.store(index + 1, std::memory_order_release);
+    return true;
+}
+
+bool managedEntitySourceModsRegistered() {
+    return g_entityModCount.load(std::memory_order_acquire) > 0;
+}
+
+bool hasManagedEntityNpcType(int type) {
+    return type >= 0 && type < 32768 &&
+           g_entityNpcTypeOwner[static_cast<size_t>(type)].load(
+               std::memory_order_acquire) > 0;
+}
+
+bool hasManagedEntityProjectileType(int type) {
+    return type >= 0 && type < 32768 &&
+           g_entityProjectileTypeOwner[static_cast<size_t>(type)].load(
+               std::memory_order_acquire) > 0;
+}
+
+void pauseManagedEntitySourceCallbacks() {
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    ++g_entitySession;
+    g_entityQueue.clear();
+    g_entityNpcPending.fill(false);
+    g_entityProjectilePending.fill(false);
+    g_entityNpcResults.fill({});
+    g_entityProjectileResults.fill({});
+    g_entityNpcTicks.fill(0);
+    g_entityProjectileTicks.fill(0);
+}
+
+bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
+                       uintptr_t identity, int life, int lifeMax,
+                       float x, float y, float vx, float vy,
+                       float playerX, float playerY, ManagedEntityVelocity* velocity) {
+    if (!velocity || generation <= 0 || identity == 0 ||
+        !std::isfinite(x) || !std::isfinite(y) ||
+        !std::isfinite(vx) || !std::isfinite(vy) ||
+        !std::isfinite(playerX) || !std::isfinite(playerY)) return false;
+    const int bound = kind == 0
+        ? (hasManagedEntityNpcType(type)
+            ? g_entityNpcTypeOwner[static_cast<size_t>(type)].load(std::memory_order_acquire) : 0)
+        : (hasManagedEntityProjectileType(type)
+            ? g_entityProjectileTypeOwner[static_cast<size_t>(type)].load(std::memory_order_acquire) : 0);
+    if (bound == 0 || slot < 0 ||
+        (kind == 0 ? static_cast<size_t>(slot) >= g_entityNpcResults.size()
+                   : static_cast<size_t>(slot) >= g_entityProjectileResults.size()))
+        return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted ||
+        static_cast<size_t>(bound - 1) >= g_entityBindings.size() ||
+        !g_entityBindings[static_cast<size_t>(bound - 1)].armed) return false;
+    auto& last = kind == 0
+        ? g_entityNpcResults[static_cast<size_t>(slot)]
+        : g_entityProjectileResults[static_cast<size_t>(slot)];
+    bool applied = false;
+    if (last.ready) {
+        if (last.type == type && last.generation == generation &&
+            last.owner == owner && last.identity == identity &&
+            last.packed >= (1LL << 32)) {
+            velocity->x = static_cast<int16_t>(last.packed & 0xffff) / 256.f;
+            velocity->y = static_cast<int16_t>((last.packed >> 16) & 0xffff) / 256.f;
+            applied = std::isfinite(velocity->x) && std::isfinite(velocity->y);
+        }
+        last = {};
+    }
+    auto& pending = kind == 0
+        ? g_entityNpcPending[static_cast<size_t>(slot)]
+        : g_entityProjectilePending[static_cast<size_t>(slot)];
+    auto& ticks = kind == 0
+        ? g_entityNpcTicks[static_cast<size_t>(slot)]
+        : g_entityProjectileTicks[static_cast<size_t>(slot)];
+    if (++ticks % 6 != 0 || pending) return applied;
+    if (g_entityQueue.size() >= 32) {
+        g_entityJobsDropped.fetch_add(1, std::memory_order_relaxed);
+        return applied;
+    }
+    g_entityQueue.push_back({
+        bound - 1, kind, type, slot, generation, owner, life, lifeMax,
+        identity, x, y, vx, vy, playerX, playerY, g_entitySession
+    });
+    pending = true;
+    g_entityJobsSubmitted.fetch_add(1, std::memory_order_relaxed);
+    g_pinnedWake.notify_one();
+    return applied;
+}
+
+bool tickManagedEntityNpc(int type, int slot, int generation,
+                          uintptr_t identity, int life, int lifeMax,
+                          float x, float y, float vx, float vy,
+                          float playerX, float playerY, ManagedEntityVelocity* result) {
+    return pollManagedEntity(0, type, slot, generation, -1, identity, life, lifeMax,
+                             x, y, vx, vy, playerX, playerY, result);
+}
+
+bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
+                                 uintptr_t identity, float x, float y,
+                                 float vx, float vy, float playerX, float playerY,
+                                 ManagedEntityVelocity* result) {
+    return pollManagedEntity(1, type, slot, generation, owner, identity, 0, 0,
+                             x, y, vx, vy, playerX, playerY, result);
+}
+
 bool registerManagedPlayerHurtMod(const std::string& modId,
                                   const std::string& assemblyPath) {
     if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
