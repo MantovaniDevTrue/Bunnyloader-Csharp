@@ -116,6 +116,9 @@ private:
     bool cancelled_ = false, originalRequested_ = false, originalDone_ = false;
     bool originalRan_ = false, failed_ = false;
 };
+inline bool universalHookCallbackIsTerminal(bool accepted, bool success) {
+    return accepted && !success;
+}
 inline UniversalHookMailbox& universalHookMailbox() {
     static UniversalHookMailbox mailbox;
     return mailbox;
