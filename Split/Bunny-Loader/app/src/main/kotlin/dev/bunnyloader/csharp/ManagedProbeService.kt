@@ -213,10 +213,12 @@ class ManagedProbeService : Service() {
                     File(dir, name + ".tmp").delete()
                 }
                 health.delete()
-                nativeTrace.delete()
-                nativeMaps.delete()
-                nativeThreads.delete()
-                abortWatch.delete()
+                if (!reused) {
+                    nativeTrace.delete()
+                    nativeMaps.delete()
+                    nativeThreads.delete()
+                    abortWatch.delete()
+                }
                 compileStatus.writeText("state=preparing-framework\nmodId=" +
                     job.modId + "\npid=" + Process.myPid() + "\n")
                 startCompileHealthMonitor(health, currentHealth)
