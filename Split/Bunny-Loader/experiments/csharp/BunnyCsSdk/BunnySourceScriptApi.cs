@@ -1,3 +1,34 @@
+public struct BunnyNpcAiState
+{
+    public int Slot;
+    public int Type;
+    public int Generation;
+    public int Life;
+    public int LifeMax;
+    public int Age;
+    public float X;
+    public float Y;
+    public float VelocityX;
+    public float VelocityY;
+    public float PlayerX;
+    public float PlayerY;
+}
+
+public struct BunnyProjectileAiState
+{
+    public int Slot;
+    public int Type;
+    public int Generation;
+    public int Owner;
+    public int Age;
+    public float X;
+    public float Y;
+    public float VelocityX;
+    public float VelocityY;
+    public float PlayerX;
+    public float PlayerY;
+}
+
 namespace BunnyLoader.Source;
 
 public abstract class BunnyProjectile
@@ -11,6 +42,10 @@ public abstract class BunnyProjectile
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
     public abstract void SetDefaults();
+    public virtual void OnSpawn(ref BunnyProjectileAiState state) { }
+    public virtual bool AI(ref BunnyProjectileAiState state) => false;
+    public virtual void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage) { }
+    public virtual void OnDespawn(ref BunnyProjectileAiState state) { }
     public virtual int OnHitNPC(int damage) => 0;
     public virtual int OnKill(int damage) => 0;
     public virtual int OnKillDuration(int damage) => 0;
@@ -195,6 +230,11 @@ public abstract class BunnyNPC
     public int AnimationType { get; set; } = 1;
     public int Frames { get; set; } = 2;
     public abstract void SetDefaults();
+    public virtual void OnSpawn(ref BunnyNpcAiState state) { }
+    public virtual bool AI(ref BunnyNpcAiState state) => false;
+    public virtual void OnHit(ref BunnyNpcAiState state, int damage) { }
+    public virtual void OnKill(ref BunnyNpcAiState state) { }
+    public virtual void OnDespawn(ref BunnyNpcAiState state) { }
 }
 
 
