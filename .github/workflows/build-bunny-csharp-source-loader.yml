@@ -1489,7 +1489,7 @@ jobs:
           print("CSHARP_BUNNYNPC_SLIME_STATIC_CHECK=PASS")
           worker=(Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt")).read_text()
           mono=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
-          assert 'val output = File(outputDir, "$compileModId.dll")' in worker
+          assert 'val output = File(outputDir, job.modId + ".dll")' in worker
           assert "g_sourceLiveEntries" in mono
           assert "invokeLiveSourceTick(" in mono
           assert '"BunnyLiveEntry"' in mono
