@@ -187,6 +187,8 @@ string LastRegistrationError { get; }
 | `static bool Bind(int modSlot, int kind, int type, string name)` | worker_async_entity |
 | `static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)` | worker_async_entity |
 | `static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)` | worker_async_entity |
+| `static bool KillNpc(int modSlot, int type, int slot, int generation)` | worker_async_entity |
+| `static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)` | worker_async_entity |
 | `static int Register(string modId, string assemblyPath)` | worker_async_entity |
 | `static string Status(int modSlot)` | worker_async_entity |
 | `static void ResetWorld()` | worker_async_entity |
@@ -522,6 +524,7 @@ string Texture { get; set; }
 | `int OnKillDuration(int damage)` | compile_sampled_policy |
 | `void OnDespawn(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)` | worker_async_entity |
+| `void OnKill(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void OnSpawn(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
 
