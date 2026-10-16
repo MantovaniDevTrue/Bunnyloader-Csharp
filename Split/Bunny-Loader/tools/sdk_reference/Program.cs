@@ -22,6 +22,10 @@ string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
 
 string Mode(Type type, MethodInfo method)
 {
+    if (type == typeof(BunnyInt32Hook) || type == typeof(BunnyOriginalInt32) ||
+        (type == typeof(BunnyHookScope) && method.Name == "HookInt32") ||
+        (type == typeof(BunnyHooks) && method.Name is "HookInt32" or "InvokeInt32"))
+        return "experimental_worker_sync_int32";
     if (type == typeof(BunnyVoidHook) || type == typeof(BunnyHooks) || type == typeof(BunnyOriginalVoid) || type == typeof(BunnyMethodHook) ||
         type == typeof(BunnyHookScope) || type == typeof(BunnyHookModule) || type == typeof(BunnyUniversalHookDispatcher))
         return "experimental_worker_sync_void0";
