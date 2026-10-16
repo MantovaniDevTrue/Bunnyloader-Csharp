@@ -92,6 +92,9 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
                 width >= 0 && width <= 512 && height >= 0 && height <= 512;
         }
     }
+    if (projectile && hasManagedEntityProjectileType(type))
+        queueManagedSourceProjectileCombat(5, projectile, -1,
+            runtime::field<int>(projectile, game.proj.damage));
     if (g_originalKill) g_originalKill(projectile, method);
     if (!selected || !g_npcs || !g_netMode || !g_addBuff) return;
     int mode = -1;
@@ -184,6 +187,16 @@ void hkKill(Il2CppObject* projectile, const MethodInfo* method) {
         g_lastAffected.store(affected, std::memory_order_relaxed);
 }
 
+}
+
+bool installManagedSourceEntityKillHook() {
+    if (g_installed.load(std::memory_order_acquire)) return true;
+    if (!runtime::resolveGameRefs() || !runtime::game().proj.kill) return false;
+    if (!hook::install(runtime::game().proj.kill, hkKill, &g_originalKill))
+        return false;
+    g_installed.store(true, std::memory_order_release);
+    BL_INFO("csharp source kill: Projectile.Kill hook compartilhado instalado");
+    return true;
 }
 
 bool enableSourceBoltOnKill(const SourceBoltKillPolicy& policy, std::string* error) {
