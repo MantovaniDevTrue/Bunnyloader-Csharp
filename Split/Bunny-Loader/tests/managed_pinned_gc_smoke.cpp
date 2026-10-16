@@ -104,6 +104,26 @@ int main(int argc, char** argv) {
         bl::csharp::queueManagedLiveKill(1136, 30);
         assert(bl::csharp::managedLiveHitStatus().queued == 2);
         assert(value("test_entries") == 0 && value("test_exits") == 0);
+        const std::vector<std::pair<int, std::string>> npcs{{697, "MockNpc"}};
+        const std::vector<std::pair<int, std::string>> projectiles{{1136, "MockProjectile"}};
+        assert(bl::csharp::registerManagedEntitySourceMod(
+            "68c3115f-62f4-49f2-a56b-388256781d5f", argv[1], npcs, projectiles));
+        assert(bl::csharp::managedEntitySourceModsRegistered());
+        assert(bl::csharp::hasManagedEntityNpcType(697));
+        assert(bl::csharp::hasManagedEntityProjectileType(1136));
+        assert(!bl::csharp::hasManagedEntityNpcType(-1));
+        assert(!bl::csharp::hasManagedEntityProjectileType(32768));
+        bl::csharp::ManagedEntityVelocity movement{};
+        for (int i = 0; i < 18; i++) {
+            bl::csharp::tickManagedEntityNpc(697, 3, 1, uintptr_t(1234),
+                25, 25, 100.f, 100.f, 1.f, 0.f, 120.f, 100.f, &movement);
+            bl::csharp::tickManagedEntityProjectile(1136, 4, 1, 0, uintptr_t(5678),
+                100.f, 100.f, 2.f, 0.f, 120.f, 100.f, &movement);
+        }
+        bl::csharp::pauseManagedEntitySourceCallbacks();
+        assert(bl::csharp::hasManagedEntityNpcType(697));
+        assert(bl::csharp::hasManagedEntityProjectileType(1136));
+        assert(value("test_entries") == 0 && value("test_exits") == 0);
     }
     std::printf("PASS pinned GC lifecycle: %s\n", argv[2]);
     std::fflush(stdout);
