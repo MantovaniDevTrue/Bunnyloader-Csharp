@@ -284,6 +284,7 @@ BunnyHookScope()
 
 | Method | Execution |
 | --- | --- |
+| `BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_int32 |
 | `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
@@ -300,9 +301,11 @@ string LastError { get; }
 | Method | Execution |
 | --- | --- |
 | `static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `static BunnyMethodHook HookInt32(BunnyHookScope scope, string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_int32 |
 | `static int Dispatch(int slot, Int64 ticket, IntPtr self)` | experimental_worker_sync_void0 |
 | `static string GetStatus()` | experimental_worker_sync_void0 |
 | `static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)` | experimental_worker_sync_void0 |
+| `static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)` | experimental_worker_sync_int32 |
 | `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyHurtInfo
@@ -373,6 +376,20 @@ int ProjectileType { get; set; }
 enum; base: `System.Enum`.
 
 Values: Unknown, Npc, Projectile.
+
+## BunnyLoader.Source.BunnyInt32Hook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyInt32Hook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int value, AsyncCallback callback, Object object)` | experimental_worker_sync_int32 |
+| `int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)` | experimental_worker_sync_int32 |
+| `void EndInvoke(IAsyncResult result)` | experimental_worker_sync_int32 |
 
 ## BunnyLoader.Source.BunnyItem
 
@@ -490,6 +507,14 @@ string Texture { get; set; }
 ## BunnyLoader.Source.BunnyNpcAiState
 
 struct; base: `System.ValueType`.
+
+## BunnyLoader.Source.BunnyOriginalInt32
+
+struct; base: `System.ValueType`.
+
+| Method | Execution |
+| --- | --- |
+| `int Invoke()` | experimental_worker_sync_int32 |
 
 ## BunnyLoader.Source.BunnyOriginalVoid
 
