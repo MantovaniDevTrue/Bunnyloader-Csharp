@@ -941,7 +941,7 @@ final class DevTools {
                 String summary = runtime.split("\n", 2)[0];
                 if (!summary.equals(lastRuntimeStatusLine)) {
                     lastRuntimeStatusLine = summary;
-                    appendEntry('h', "[C#] " + summary);
+                    appendEntry('l', "[C#] " + summary);
                     refreshOutput();
                 }
                 String current = CheatBridge.nCSharpHookCounters();
