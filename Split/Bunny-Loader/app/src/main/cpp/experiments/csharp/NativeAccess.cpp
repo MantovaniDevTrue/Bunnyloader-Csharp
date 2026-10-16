@@ -3,6 +3,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/ValueLayout.h"
 #include "il2cpp/GuardedCall.h"
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <condition_variable>
