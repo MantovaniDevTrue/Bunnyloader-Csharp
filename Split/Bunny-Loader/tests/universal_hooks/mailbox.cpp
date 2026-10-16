@@ -6,6 +6,10 @@ using namespace bl::csharp;
 using namespace std::chrono_literals;
 
 int main() {
+    assert(!universalHookCallbackIsTerminal(false, false));
+    assert(!universalHookCallbackIsTerminal(false, true));
+    assert(!universalHookCallbackIsTerminal(true, true));
+    assert(universalHookCallbackIsTerminal(true, false));
     UniversalHookMailbox box;
     const auto caller = std::this_thread::get_id();
     int originals = 0;
@@ -45,7 +49,7 @@ int main() {
     assert(noWorker.faulted && !noWorker.originalRan);
     UniversalHookMailbox::Work stale{};
     assert(!box.take(stale));
-    std::atomic<bool> running{false}, release{false};
+    std::atomic<bool> running{false}, release{false}, staleAccepted{true};
     std::thread late([&] {
         await();
         UniversalHookMailbox::Work w{};
@@ -53,7 +57,7 @@ int main() {
         running = true;
         while (!release) std::this_thread::yield();
         assert(!box.original(7, w.ticket));
-        box.complete(w.ticket, true);
+        staleAccepted = box.complete(w.ticket, false);
     });
     auto timed = box.dispatch(7, 0, original, notify, 20ms);
     assert(running && timed.faulted && !timed.originalRan);
@@ -61,6 +65,8 @@ int main() {
     assert(!busy.accepted);
     release = true;
     late.join();
+    assert(!staleAccepted);
+    assert(!universalHookCallbackIsTerminal(staleAccepted, false));
     release = false;
     std::thread afterOriginal([&] {
         await();
@@ -79,5 +85,5 @@ int main() {
     assert(recovered.accepted && !recovered.faulted);
     auto cancelled = run([&](auto w) { box.cancel(); assert(!box.original(7, w.ticket)); box.complete(w.ticket, false); });
     assert(cancelled.faulted && !cancelled.originalRan);
-    std::cout << "mailbox: original caller affinity, suppression, exception, timeout, stale ticket, cancellation, recovery PASS\n";
+    std::cout << "mailbox: original caller affinity, timeout, stale failure rejected, accepted failure terminal, cancellation, recovery PASS\n";
 }
