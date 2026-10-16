@@ -190,5 +190,35 @@ int main() {
     assert(bunny_universal_hook_stat(7) == 1);
     assert(bunny_universal_hook_stat(8) == 1);
     assert(bunny_universal_hook_stat(4) == faultsBefore);
+    assert(install("Int32Transform", 13, false, false) == -7);
+    assert(install("WrongIntParam", 13, false, true) == -6);
+    assert(install("WrongIntReturn", 13, false, true) == -6);
+    int typedHandle = install("Int32Transform", 13, false, true);
+    assert(typedHandle >= 0 && replacedInt32);
+    assert(install("Int32Transform", 14, false, true) == -8);
+    int baseline = vanilla;
+    std::thread typedWorker([&] {
+        csharp::UniversalHookMailbox::Work work{};
+        while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
+        assert(work.slot == 13 && work.int32Mode && work.argument == 12);
+        int32_t originalResult = -1;
+        assert(bunny_universal_hook_original_i32(work.slot, work.ticket, &originalResult));
+        assert(originalResult == 19);
+        assert(!bunny_universal_hook_original_i32(work.slot, work.ticket, &originalResult));
+        assert(csharp::universalHookMailbox().complete(work.ticket, true, originalResult + 30));
+    });
+    assert(callInt32(12) == 49);
+    typedWorker.join();
+    assert(vanilla == baseline + 1);
+    assert(callInt32(40) == 47);
+    assert(vanilla == baseline + 2);
+    bunny_universal_hook_remove(typedHandle);
+    assert(callInt32(5) == 12);
+    int staticHandle = install("Int32Static", 14, true, true);
+    assert(staticHandle >= 0 && replacedInt32Static);
+    bunny_universal_hook_remove(staticHandle);
+    assert(reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(replacedInt32Static)(
+        40, reinterpret_cast<MethodInfo*>(&methods[6])) == 38);
+    std::cout << "native: typed Int32(int) ABI, validation, original and return override PASS\n";
     std::cout << "native: metadata, original affinity, cooldown, 30s circuit suspension, auto-rearm, protected original PASS\n";
 }
