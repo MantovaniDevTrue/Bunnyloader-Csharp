@@ -1,6 +1,3 @@
-// ExampleMod C# | Content/Projectiles/ExampleWaveBolt.cs
-// Conteudo do exemplo. Leia os membros do SDK desta build antes de copiar uma API de outro loader.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using System;
 using BunnyLoader.Source;
 
@@ -32,5 +29,19 @@ public sealed class ExampleWaveBolt : BunnyProjectile
         state.VelocityY = vx * sine + vy * cosine;
         return true;
     }
+
+    public static int HitEvents;
+    public static int KillEvents;
+
+    public override void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)
+    {
+        if (npcIndex >= 0 && damage >= 0) HitEvents++;
+    }
+
+    public override void OnKill(ref BunnyProjectileAiState state)
+    {
+        KillEvents++;
+    }
+
 }
 
