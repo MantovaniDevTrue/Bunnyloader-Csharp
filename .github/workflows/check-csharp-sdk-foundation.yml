@@ -11,6 +11,8 @@ on:
       - 'Split/Bunny-Loader/samples/NativeAccessoryCSharp/**'
       - 'Split/Bunny-Loader/samples/ArmorPoliciesCSharp/**'
       - 'Split/Bunny-Loader/tests/**'
+      - 'Split/Bunny-Loader/app/src/main/java/dev/bunnyloader/game/LogcatDiagnostics.java'
+      - 'Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt'
       - 'Split/Bunny-Loader/tools/create_csharp_mod.py'
       - 'Split/Bunny-Loader/tools/sdk_reference/**'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.*'
@@ -45,6 +47,7 @@ jobs:
         run: |
           dotnet run --project tests/hooks/HookBatch.csproj -c Release
           python3 tests/test_csharp_hook_editor_counters.py
+          python3 tests/run_logcat_diagnostics.py
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: |

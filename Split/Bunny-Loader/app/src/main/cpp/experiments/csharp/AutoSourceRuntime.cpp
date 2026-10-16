@@ -1295,7 +1295,13 @@ void flushDeferredWorldEntry() {
     static auto lastPendingReport=std::chrono::steady_clock::time_point{};
     if (now-lastPendingReport>=std::chrono::seconds(3)) {
         lastPendingReport=now;
-        BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
+        // A cold compile with no outstanding content is normal startup work.
+        // Keep real pending content and post-registration binding waits visible.
+        const bool compilingOnly=!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
+            pendingCore==0&&pendingNativePolicies==0&&pendingArmor==0&&pendingEquipment==0&&
+            content.pendingRecipes==0&&content.pendingPlacements==0&&pendingNativeVisualRenderer()==0;
+        bl::log::write(compilingOnly?ANDROID_LOG_DEBUG:ANDROID_LOG_WARN,
+                "[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
                 static_cast<long long>(elapsed),pendingCore,pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,content.pendingPlacements,
                 pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
                 bl::runtime::modItemsSettled()?1:0);
@@ -1304,7 +1310,7 @@ void flushDeferredWorldEntry() {
             const std::string reason=policy.error.empty()?policy.phase:policy.error.substr(0,180);
             if(reportedNativePolicies[policy.type]==reason)continue;
             reportedNativePolicies[policy.type]=reason;
-            BL_WARN("[CSharp][WorldLoading] Stage=PendingNativePolicy Type=%d Mod=%s Class=%s Reason=%s",
+            BL_WARN("[CSharp][WorldLoading] Stage=PendingNativePolicy Type=%d Mod=%s Class=%s Detail=%s",
                     policy.type,policy.mod.c_str(),policy.name.c_str(),reason.c_str());
         }
     }

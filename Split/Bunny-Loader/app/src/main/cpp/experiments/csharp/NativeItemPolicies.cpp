@@ -191,7 +191,14 @@ bool installEquipment(Equipment& equip,std::string* error) {
     if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
     if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
     if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
-    if((equip.flags&2)&&!boolTable(staticArray(sets,"HidesHands"),equip.slot,false))return fail("EquipmentHandFlagUnavailable");
+    if(equip.flags&2) {
+        // Android 1.4.5 uses MissingHand (show the skin hands). HidesHands in
+        // other contracts expresses the opposite policy; never reuse its value.
+        auto hands=staticArray(sets,"MissingHand");
+        const bool missingHand=bool(hands);
+        if(!hands)hands=staticArray(sets,"HidesHands");
+        if(!boolTable(hands,equip.slot,missingHand))return fail("EquipmentHandFlagUnavailable");
+    }
     if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
     kind.total=total;equip.published=true;return true;
 }
@@ -206,19 +213,29 @@ bool registerAnimation(Entry& entry,std::string* error) {
     const auto* registerMethod=method(main,"void RegisterItemAnimation(int index, DrawAnimation animation)",false);
     const auto* init=method(main,"void InitializeItemAnimations()",false);
     auto* cls=findClass({"Terraria.DataStructures","DrawAnimationVertical",{}});
-    const auto* ctor=method(cls,"void .ctor(int ticksperframe, int frameCount)",true);
-    if(!registerMethod||!init||!ctor){*error="Reason=AnimationMethodsUnavailable";return false;}
-    if(!animationsHooked){if(!hook::install(init,hkAnimations,&originalAnimations))return false;animationsHooked=true;}
+    const auto* ctor=method(cls,"void .ctor(int ticksperframe, int frameCount, bool pingPong)",true);
+    const bool hasPingPong=ctor!=nullptr;
+    if(!ctor)ctor=method(cls,"void .ctor(int ticksperframe, int frameCount)",true);
+    auto fail=[&](const char* why){*error=std::string("Reason=")+why;return false;};
+    if(!registerMethod)return fail("AnimationRegisterMethodUnavailable");
+    if(!init)return fail("AnimationInitializerUnavailable");
+    if(!ctor)return fail("AnimationConstructorUnavailable");
+    if(!animationsHooked){if(!hook::install(init,hkAnimations,&originalAnimations))return fail("AnimationHookFailed");animationsHooked=true;}
     if(!entry.animation) {
-        auto* object=a.object_new(cls);if(!object)return false;
-        auto root=std::make_shared<Root>(object);if(!root->get())return false;
-        void* args[]={&entry.policy.ticks,&entry.policy.frames};if(!invoke(ctor,object,args))return false;
+        auto* object=a.object_new(cls);if(!object)return fail("AnimationAllocationFailed");
+        auto root=std::make_shared<Root>(object);if(!root->get())return fail("AnimationRootUnavailable");
+        uint8_t pingPong=0;
+        void* args[]={&entry.policy.ticks,&entry.policy.frames,&pingPong};
+        if(!invoke(ctor,object,args))return fail(hasPingPong?"AnimationConstructor3Failed":"AnimationConstructor2Failed");
         entry.animation=std::move(root);
     }
-    void* args[]={&entry.source.type,entry.animation->get()};if(!invoke(registerMethod,nullptr,args))return false;
+    void* args[]={&entry.source.type,entry.animation->get()};
+    if(!invoke(registerMethod,nullptr,args))return fail("AnimationRegisterFailed");
     auto* ids=findClass({"Terraria.ID","ItemID","Sets"});
     const char* names[]={"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"};
-    for(size_t i=0;i<3;++i)if(!boolTable(staticArray(ids,names[i]),entry.source.type,entry.policy.animationFlags[i]))return false;
+    for(size_t i=0;i<3;++i)if(!boolTable(staticArray(ids,names[i]),entry.source.type,entry.policy.animationFlags[i])){
+        *error=std::string("Reason=AnimationFlagUnavailable Table=")+names[i];return false;
+    }
     return true;
 }
 void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated){std::string error;registerAnimation(*entry,&error);}}}
@@ -499,7 +516,7 @@ void pumpNativeItemPoliciesOnGameThread() {
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
             if(!entry->status.ready&&(entry->failedAttempts==0||previousError!=error))
-                BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Reason=%s",
+                BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Detail=%s",
                         type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
                 acknowledgeBasicItemBehavior(type,"");

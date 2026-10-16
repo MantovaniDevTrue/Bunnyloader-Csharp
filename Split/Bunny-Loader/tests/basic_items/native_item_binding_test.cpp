@@ -51,7 +51,9 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fi
 Signature parseSignature(std::string_view text){Signature s;s.name=std::string(text);return s;}
 const MethodInfo* findMethodBySignature(Il2CppClass* cls,const Signature& s,bool*,const MethodInfo**) {
  if(additionalMethod)if(auto* method=additionalMethod(cls,s))return method;
- assert(cls==&playerClass&&s.name=="void ApplyEquipFunctional(int itemSlot, Item currentItem)");return &functionalMethod;
+ if(cls==&playerClass&&s.name=="void ApplyEquipFunctional(int itemSlot, Item currentItem)")return &functionalMethod;
+ if(additionalMethod)return nullptr; // A missing overload is a normal lookup result.
+ assert(false&&"Unexpected method lookup in the basic item fixture");return nullptr;
 }
 Il2CppClass* findNested(Il2CppClass* outer,std::string_view name){return additionalClass?additionalClass({"",outer->name,name}):nullptr;}
 Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name){return findClass({ns,name,{}});}
