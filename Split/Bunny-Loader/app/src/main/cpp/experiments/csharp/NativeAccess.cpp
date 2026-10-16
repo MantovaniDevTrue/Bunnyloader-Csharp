@@ -6,6 +6,7 @@
 #include <array>
 #include <atomic>
 #include <condition_variable>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <mutex>
@@ -35,7 +36,7 @@ struct Binding {
 std::array<Scope,MaxScopes> scopes;
 std::array<Binding,MaxBindings> bindings;
 uint64_t nextScope=1;
-std::array<std::atomic<int64_t>,8> stats{};
+std::array<std::atomic<int64_t>,13> stats{};
 bool scopeLive(uint64_t token) {
     int slot=static_cast<int>(token&255)-1;
     return slot>=0&&slot<MaxScopes&&token&&scopes[slot].token.load(std::memory_order_acquire)==token;
@@ -353,30 +354,65 @@ std::atomic<int> accessWaitMs{1000};
 constexpr int accessWaitMs=5;
 #endif
 Response submit(Request request) {
+    using Clock=std::chrono::steady_clock;
     Response fail;
     if(!universalLeaveMono||!universalResumeMono){fail.status=S::WrongThread;return fail;}
+    Clock::time_point deadline{};
+    bool hookRequest=false;
     if(request.op<=1) {
         if(!universalCanInstall){fail.status=S::WrongThread;return fail;}
     } else if(request.op==2&&request.slot==-1&&request.ticket==0&&request.self==0&&universalCanInstall) {
         request.loadingRead=true;
     } else {
         uintptr_t self=0;
-        if(!universalHookMailbox().workerContext(request.slot,request.ticket,&self)||self!=request.self){fail.status=S::Expired;return fail;}
+        if(!universalHookMailbox().workerDeadline(request.slot,request.ticket,&self,&deadline)||
+           self!=request.self){fail.status=S::Expired;return fail;}
+        hookRequest=true;
     }
     UniversalHookWorkerYield yield;
     std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
-    if(!lock||rpc.state!=Rpc::Idle){fail.status=S::Busy;return fail;}
-    rpc.request=std::move(request);rpc.state=Rpc::Pending;
-    universalHookMailbox().notify();
-    const auto budget=(rpc.request.op<=1||rpc.request.loadingRead)?std::chrono::milliseconds(2000):std::chrono::milliseconds(accessWaitMs);
-    if(!rpc.changed.wait_for(lock,budget,[]{return rpc.state==Rpc::Done;})) {
-        rpc.state=Rpc::Idle;fail.status=S::TimedOut;stats[6].fetch_add(1,std::memory_order_relaxed);return fail;
+    if(!lock||rpc.state!=Rpc::Idle){
+        stats[12].fetch_add(1,std::memory_order_relaxed);
+        fail.status=S::Busy;return fail;
     }
-    auto result=rpc.response;rpc.state=Rpc::Idle;return result;
+    const auto now=Clock::now();
+    const auto limit=(request.op<=1||request.loadingRead)
+        ?std::chrono::microseconds(2000000)
+        :std::chrono::microseconds(accessWaitMs
+#if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
+            .load(std::memory_order_relaxed)
+#endif
+        *1000);
+    auto budget=limit;
+    if(hookRequest) {
+        const auto remaining=std::chrono::duration_cast<std::chrono::microseconds>(deadline-now);
+        constexpr auto reserve=std::chrono::microseconds(200);
+        if(remaining<=reserve) {
+            stats[6].fetch_add(1,std::memory_order_relaxed);
+            fail.status=S::TimedOut;return fail;
+        }
+        if(budget>remaining-reserve)budget=remaining-reserve;
+    }
+    rpc.request=std::move(request);
+    rpc.state=Rpc::Pending;
+    universalHookMailbox().notify();
+    const bool done=rpc.changed.wait_for(lock,budget,[]{return rpc.state==Rpc::Done;});
+    const auto waited=std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-now).count();
+    stats[9].fetch_add(waited,std::memory_order_relaxed);
+    auto peak=stats[11].load(std::memory_order_relaxed);
+    while(waited>peak&&!stats[11].compare_exchange_weak(peak,waited,std::memory_order_relaxed)) {}
+    if(!done||(hookRequest&&Clock::now()>=deadline)) {
+        rpc.state=Rpc::Idle;
+        stats[6].fetch_add(1,std::memory_order_relaxed);
+        fail.status=S::TimedOut;return fail;
+    }
+    auto result=rpc.response;
+    rpc.state=Rpc::Idle;
+    return result;
 }
 }
 int64_t nativeAccessStat(int key) {
-    if(key>=0&&key<8)return stats[key].load(std::memory_order_relaxed);
+    if((key>=0&&key<8)||(key>=9&&key<13))return stats[key].load(std::memory_order_relaxed);
     if(key==8){int count=0;for(auto& scope:scopes)if(scope.token.load(std::memory_order_relaxed))++count;return count;}
     return -1;
 }
@@ -386,8 +422,11 @@ bool pumpNativeAccessOnGameThread() {
     if(!lock||rpc.state!=Rpc::Pending)return false;
     const bool previous=universalNativeAccessInProgress;
     universalNativeAccessInProgress=true;
+    const auto begun=std::chrono::steady_clock::now();
     auto body=[&]{rpc.response=execute(rpc.request);};
     if(!il2cpp::guarded(body))rpc.response.status=S::NativeException;
+    stats[10].fetch_add(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()-begun).count(),std::memory_order_relaxed);
     universalNativeAccessInProgress=previous;
     const int status=static_cast<int>(rpc.response.status);
     stats[7].store(status,std::memory_order_relaxed);
