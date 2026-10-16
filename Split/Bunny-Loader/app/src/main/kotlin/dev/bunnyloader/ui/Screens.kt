@@ -355,7 +355,8 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
  */
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
-    val prefs = remember { Prefs(shell.catalog.context) }
+    val context = LocalContext.current
+    val prefs = remember(context) { Prefs(context) }
     var quickJsOff by remember { mutableStateOf(prefs.disableQuickJsForCSharp) }
     val runtimes = remember(shell.packages, shell.enabled) {
         ScriptRuntimeModes.fromSpecs(shell.packages
