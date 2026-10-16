@@ -1155,7 +1155,7 @@ jobs:
           assert 'now - entry.lastTimeout > std::chrono::seconds(60)' in native
           assert 'assert(bunny_universal_hook_test_backoff_seconds(1) == 5)' in tests
           assert 'assert(bunny_universal_hook_test_backoff_seconds(3) == 15)' in tests
-          assert 'entry.retryAfter = now + std::chrono::seconds(30);' in native
+          assert 'entry.retryAfter = now + std::chrono::seconds(entry.lastSuspensionSeconds);' in native
           assert 'entry.suspended = true;' in native
           assert 'if (entry.suspended)' in native
           assert 'if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);' in native
