@@ -125,16 +125,24 @@ class ManagedProbeService : Service() {
         if (sourceRoot != null &&
             (modId.isBlank() || modId.length > 128 ||
              !modId.matches(Regex("[0-9a-fA-F-]+")))) {
-            File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
-                parentFile?.mkdirs()
-                writeText("state=failed\nmodId=" + modId + "\nerror=InvalidWorkerModIdentity\n")
+            runCatching {
+                File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
+                    parentFile?.mkdirs()
+                    writeText("state=failed\nmodId=" + modId +
+                        "\nerror=InvalidWorkerModIdentity\n")
+                }
             }
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
             if (!pending.offer(CompileWork(startId, sourceRoot, modId))) {
-                File(filesDir, "bunny-csharp/source-compile-status.txt").writeText(
-                    "state=failed\nmodId=" + modId + "\nerror=CompilerQueueFull\n")
+                runCatching {
+                    File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
+                        parentFile?.mkdirs()
+                        writeText("state=failed\nmodId=" + modId +
+                            "\nerror=CompilerQueueFull\n")
+                    }
+                }
             } else if (workerThread == null) {
                 startResidentWorker()
             }
@@ -157,7 +165,7 @@ class ManagedProbeService : Service() {
             } catch (error: Throwable) {
                 Log.e("BunnyCSharp", "Mono compiler worker failed", error)
             } finally {
-                val hasPending: Boolean
+                var hasPending = false
                 synchronized(workerGate) {
                     workerThread = null
                     hasPending = pending.isNotEmpty()
