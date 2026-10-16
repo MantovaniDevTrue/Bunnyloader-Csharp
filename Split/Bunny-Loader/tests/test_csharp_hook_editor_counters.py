@@ -28,6 +28,14 @@ assert "CheatBridge.nCSharpHookCounters()" in editor
 assert "hookCounters.setText(current)" in editor
 assert "if (!showing || !csharpMode) return;" in editor
 assert "hookCounters.setVisibility(View.GONE);" in editor
+assert "panel.addView(hookCounters, hl);" in editor
+assert "inner.addView(hookCounters, hl);" not in editor
+assert 'csharpMode = prefs(a).getBoolean("editorCsharpMode", true);' in editor
+assert 'prefs(act).edit().putBoolean("editorCsharpMode", csharpMode).apply();' in editor
+assert "hookCounters.setMinHeight(px(a, 44));" in editor
+assert 'if (csharpMode) pullHookCounters();' in editor
+assert editor.index("panel.addView(hookCounters, hl);") < editor.index("panel.addView(inner, ")
+assert 'HookCounters=VisiblePathConnected' in jni
 assert "pullHookCounters();" in editor
 assert "g_api.invoke(g_managedHurtSnapshotMethod" in runtime
 assert 'g_hurtSnapshotText = "Hooks C#: aguardando evento de dano..."' in runtime
