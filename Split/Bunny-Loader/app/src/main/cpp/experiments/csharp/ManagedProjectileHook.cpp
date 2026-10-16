@@ -299,6 +299,7 @@ struct ManagedEntityProjectileSlot {
     int owner = -1;
     int lastTimeLeft = 0;
     int generation = 0;
+    bool killQueued = false;
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
@@ -327,7 +328,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         state.owner != owner || timeLeft > state.lastTimeLeft) {
         if (g_managedEntityProjectileGeneration <= 0)
             g_managedEntityProjectileGeneration = 1;
-        state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++};
+        state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
     }
     state.lastTimeLeft = timeLeft;
     const TerrariaSnapshot target = captureTerrariaSnapshot(false, false);
@@ -497,6 +498,31 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
     g_writes.fetch_add(1, std::memory_order_relaxed);
 }
 
+}
+
+bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
+                                        int npcIndex, int damage) {
+    if (!projectile || (eventKind != 4 && eventKind != 5) ||
+        !runtime::resolveGameRefs()) return false;
+    const auto& game = runtime::game();
+    const int type = runtime::field<int>(projectile, game.proj.type);
+    if (!hasManagedEntityProjectileType(type)) return false;
+    if (!g_managedEntityNetMode) return false;
+    int mode = -1;
+    il2cpp::api().field_static_get_value(g_managedEntityNetMode, &mode);
+    if (mode != 0) return false;
+    const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
+    if (slot < 0 || static_cast<size_t>(slot) >= g_managedEntityProjectileSlots.size())
+        return false;
+    ManagedEntityProjectileSlot& state =
+        g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const int owner = runtime::field<int>(projectile, game.proj.owner);
+    if (state.object != projectile || state.type != type || state.owner != owner ||
+        state.generation <= 0 || state.killQueued) return false;
+    if (eventKind == 5) state.killQueued = true;
+    return queueManagedEntityCombatEvent(eventKind, type, slot, state.generation,
+        owner, reinterpret_cast<uintptr_t>(projectile),
+        std::clamp(damage, 0, 1000000), npcIndex);
 }
 
 void resetManagedSourceProjectileSlots() {
