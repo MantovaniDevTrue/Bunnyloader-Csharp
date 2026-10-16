@@ -592,8 +592,8 @@
       "constructors": [],
       "properties": [
         "BunnyItemBehavior Behavior { get; }",
-        "Dictionary<string, string> TooltipTranslations { get; }",
-        "IReadOnlyList<string> RecipeDefinitions { get; }",
+        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
+        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
