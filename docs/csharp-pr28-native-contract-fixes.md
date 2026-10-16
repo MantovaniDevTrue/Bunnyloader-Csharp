@@ -1,7 +1,8 @@
 # PR 28: contratos nativos e ajuda do editor
 
 Base: PR #27, com o isolamento de delegates e os contadores da .52/.53.
-Este lote nao cria outro APK nem altera a versao do ExampleMod.
+A versao do ExampleMod permanece 0.1.40. APKs .55 e .56 gerados a pedido para
+validacao das correcoes no dispositivo.
 
 O relato da .52 identificou EquipmentCountUnavailable (ExampleBeard),
 EquipmentHandFlagUnavailable (ExampleRobe), VanillaCloneIdUnavailable
@@ -98,4 +99,40 @@ Timeouts e gates de entrada no mundo permanecem preservados.
 
 Ainda falta testar estas novas correcoes no Xiaomi para confirmar o visual
 do manto, a animacao da alma e o espaco da ajuda em janela/tela cheia. Este lote
-nao gera APK nem afirma validacao visual Android ou 60 FPS.
+nao afirma validacao visual Android ou 60 FPS; as builds de teste estao descritas abaixo.
+
+
+## Retorno da .55: Color e ordem dos canais
+
+A .55 entrou no mundo e salvou, mas passou a repetir a busca por
+Microsoft.Xna.Framework.Color. O teste anterior ignorava o namespace na
+resolucao simulada, portanto aceitava um contrato que nao existe neste jogo.
+A simulacao agora confere esse namespace: o codigo anterior reproduz
+ExampleSoul/ColorAbiMismatch com as policies pendentes.
+
+A [segunda inspecao do runtime verificado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38892035086)
+confirma que o tipo ja existe: Microsoft.Xna.Framework.Graphics.Color,
+com os campos Byte A/B/G/R nas posicoes 0/1/2/3 e Item.GetAlpha(Color newColor).
+Nao e preciso criar uma classe substituta no Mono ou alterar os assemblies do
+jogo. A API C# ja oferece WorldAlpha e cores ARGB para os efeitos visuais.
+
+A nova ponte NativeColorLayout recebe o tipo real pela assinatura/campo e
+valida tamanho de quatro bytes, canais Byte nao estaticos, offsets dentro do
+valor e sem sobreposicao. GetAlpha exige que retorno, parametro e Item.color
+sejam exatamente o mesmo tipo antes de instalar o hook. Falhas continuam
+pendentes e com diagnostico; nao ha busca repetitiva por namespaces candidatos.
+
+O empacotamento usa os offsets verificados, tanto na cor da alma quanto em
+DrawData dos efeitos visuais. A cor do item fica pre-calculada na instalacao;
+a conversao de visuais nao cria objetos IL2CPP. A visibilidade continua baseada
+no alpha do comando, independente de onde esse canal esta no valor nativo.
+
+Os 17 modos incluem o namespace Graphics com layout ABGR, o contrato Framework
+com layout RGBA, layouts raw/boxed, rejeicao de parametro/retorno incompatíveis
+e recuperacao. Ha 10.000 chamadas GetAlpha sem novas alocacoes IL2CPP e
+preservacao da cor recebida para itens vanilla, alem dos loops de voo/desenho.
+O renderer tambem verifica azul opaco (R=0) e vermelho transparente (A=0).
+
+O APK .56 (versionCode 216) inclui essa ponte e a validacao do marcador de
+layout no binario final. A confirmacao de cores e transparencia no Xiaomi
+continua sendo feita no aparelho; os testes do host nao substituem essa etapa.

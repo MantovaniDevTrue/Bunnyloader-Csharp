@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeStaticValue.h"
+#include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/NativeContent.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
@@ -29,7 +30,7 @@ struct Field { int offset=-1;size_t bytes=0;std::vector<size_t> refs; };
 struct Entry {
     BasicItemEntry source;BasicItemPolicy policy;NativeItemPolicyStatus status;
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
-    int color=-1,hair=-1;
+    int color=-1,hair=-1;uint32_t nativeAlpha=0;
     unsigned nextRetryTick=0,failedAttempts=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
@@ -344,18 +345,27 @@ bool prepareWings(std::string* error) {
     return true;
 }
 using AlphaFn=uint32_t (*)(Il2CppObject*,uint32_t,const MethodInfo*);
-AlphaFn originalAlpha=nullptr;bool alphaHooked=false;
+AlphaFn originalAlpha=nullptr;bool alphaHooked=false;NativeColorLayout alphaLayout;
 uint32_t hkAlpha(Il2CppObject* item,uint32_t color,const MethodInfo* m) {
     const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
-    if(item&&view){const auto found=view->items.find(read<int32_t>(item,itemType));if(found!=view->items.end()&&found->second->policy.colored)std::memcpy(&color,found->second->policy.color.data(),4);}
+    if(item&&view){const auto found=view->items.find(read<int32_t>(item,itemType));if(found!=view->items.end()&&found->second->policy.colored)color=found->second->nativeAlpha;}
     return originalAlpha?originalAlpha(item,color,m):color;
 }
 bool prepareAlpha(std::string* error) {
     if(alphaHooked)return true;
-    auto* color=findClass({"Microsoft.Xna.Framework","Color",{}});uint32_t align=0;
-    if(!color||!api().class_is_valuetype(color)||api().class_value_size(color,&align)!=4){*error="Reason=ColorAbiMismatch";return false;}
-    const auto* m=method(findClass({"Terraria","Item",{}}),"Color GetAlpha(Color newColor)",true);
-    if(!m||!hook::install(m,hkAlpha,&originalAlpha))return false;
+    auto& a=api();auto* item=findClass({"Terraria","Item",{}});
+    const auto* m=method(item,"Color GetAlpha(Color newColor)",true);
+    if(!m){*error="Reason=ColorMethodUnavailable";return false;}
+    if(!a.method_get_return_type||!a.method_get_param_count||!a.method_get_param||a.method_get_param_count(m)!=1){
+        *error="Reason=ColorMethodMetadataUnavailable";return false;
+    }
+    auto* color=a.class_from_il2cpp_type(a.method_get_return_type(m));
+    auto* parameter=a.class_from_il2cpp_type(a.method_get_param(m,0));
+    auto* field=item?findField(item,"color"):nullptr;
+    if(!color||parameter!=color||!field||(a.field_get_flags(field)&0x10u)||
+       a.class_from_il2cpp_type(a.field_get_type(field))!=color){*error="Reason=ColorAbiMismatch";return false;}
+    if(!alphaLayout.bind(color,error))return false;
+    if(!hook::install(m,hkAlpha,&originalAlpha)){*error="Reason=ColorHookRejected";return false;}
     alphaHooked=true;return true;
 }
 struct Vec2 {float x,y;};
@@ -447,7 +457,10 @@ bool install(Entry& entry,std::string* error) {
                     entry.source.type,entry.source.name.c_str(),movementError.empty()?"NativeHookUnavailable":movementError.c_str());
         }
     }
-    if(entry.policy.colored&&!prepareAlpha(error))return false;
+    if(entry.policy.colored){
+        if(!prepareAlpha(error))return false;
+        const auto& c=entry.policy.color;entry.nativeAlpha=alphaLayout.pack(c[0],c[1],c[2],c[3]);
+    }
     if(entry.policy.lit&&!prepareLight(error))return false;
     if(entry.policy.robe&&!prepareRobe(error))return false;
     return true;
