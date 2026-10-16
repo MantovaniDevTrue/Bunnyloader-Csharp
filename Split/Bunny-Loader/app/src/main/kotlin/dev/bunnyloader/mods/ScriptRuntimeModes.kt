@@ -12,7 +12,7 @@ object ScriptRuntimeModes {
         var javascript = 0
         for (spec in specs) {
             val entry = spec.substringAfter('=', "main.js")
-            if (entry.startsWith("@")) continue
+            if (entry == "@texture" || entry == "@font" || entry == "@native") continue
             if (entry.endsWith(".cs")) csharp++ else javascript++
         }
         return Selection(csharp, javascript)
