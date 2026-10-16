@@ -227,6 +227,15 @@ bool IsValid { get; }
 int Id { get; }
 ```
 
+## BunnyLoader.Source.BunnyHookModule
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void Load(BunnyHookScope hooks)` | experimental_worker_sync_void0 |
+| `void Unload()` | experimental_worker_sync_void0 |
+
 ## BunnyLoader.Source.BunnyHookPhase
 
 enum; base: `System.Enum`.
@@ -264,6 +273,37 @@ string LastHookError { get; }
 | `void Clear()` | managed_helper |
 | `void InvokeAfter(BunnyHurtInfo info)` | managed_helper |
 | `void InvokeBefore(ref int damage, ref int hitDirection, ref bool cancel)` | managed_helper |
+
+## BunnyLoader.Source.BunnyHookScope
+
+class; base: `System.Object`.
+
+```csharp
+BunnyHookScope()
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `void Dispose()` | experimental_worker_sync_void0 |
+
+## BunnyLoader.Source.BunnyHooks
+
+abstract class; base: `System.Object`.
+
+```csharp
+Int64 Calls { get; }
+Int64 Faults { get; }
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `static int Dispatch(int slot, Int64 ticket, IntPtr self)` | experimental_worker_sync_void0 |
+| `static string GetStatus()` | experimental_worker_sync_void0 |
+| `static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)` | experimental_worker_sync_void0 |
+| `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyHurtInfo
 
@@ -409,6 +449,18 @@ string NativeArmorDefinition { get; }
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
 
+## BunnyLoader.Source.BunnyMethodHook
+
+class; base: `System.Object`.
+
+```csharp
+bool IsDisposed { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Dispose()` | experimental_worker_sync_void0 |
+
 ## BunnyLoader.Source.BunnyNPC
 
 abstract class; base: `System.Object`.
@@ -438,6 +490,14 @@ string Texture { get; set; }
 ## BunnyLoader.Source.BunnyNpcAiState
 
 struct; base: `System.ValueType`.
+
+## BunnyLoader.Source.BunnyOriginalVoid
+
+struct; base: `System.ValueType`.
+
+| Method | Execution |
+| --- | --- |
+| `void Invoke()` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyPlayer
 
@@ -580,6 +640,19 @@ enum; base: `System.Enum`.
 
 Values: Single, Style2x1.
 
+## BunnyLoader.Source.BunnyUniversalHookDispatcher
+
+abstract class; base: `System.Object`.
+
+```csharp
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static int Register(string id, string path)` | experimental_worker_sync_void0 |
+| `static void UnloadAll()` | experimental_worker_sync_void0 |
+
 ## BunnyLoader.Source.BunnyVanillaItems
 
 abstract class; base: `System.Object`.
@@ -619,6 +692,20 @@ BunnyVisualCommand(BunnyVisualKind kind, int playerIndex, int effectId, string t
 enum; base: `System.Enum`.
 
 Values: Particle, PlayerOverlay, ClearOverlay, EquipmentSprite.
+
+## BunnyLoader.Source.BunnyVoidHook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyVoidHook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(BunnyOriginalVoid original, IntPtr self, AsyncCallback callback, Object object)` | experimental_worker_sync_void0 |
+| `void EndInvoke(IAsyncResult result)` | experimental_worker_sync_void0 |
+| `void Invoke(BunnyOriginalVoid original, IntPtr self)` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyWeapon
 

@@ -1,4 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/UniversalHookMailbox.h"
+#include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -255,6 +257,17 @@ constexpr int kAuditSamples[] = {2, 5, 15, 30, 60, 120};
 bool g_auditEnabled = false;
 size_t g_auditIndex = 0;
 std::chrono::steady_clock::time_point g_auditStart;
+
+struct UniversalMod { std::string id, path; bool registered = false; };
+std::vector<UniversalMod> g_universalMods;
+bool g_universalUnload = false;
+bool g_universalEnabled = true;
+void* g_universalRegister = nullptr;
+void* g_universalDispatch = nullptr;
+void* g_universalClear = nullptr;
+void* g_universalRemove = nullptr;
+void* g_universalError = nullptr;
+std::atomic<bool> g_universalPolling{false};
 
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
@@ -1106,6 +1119,120 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     return encoded;
 }
 
+bool prepareUniversalHookSdk() {
+    if (g_universalRegister && g_universalDispatch && g_universalClear && g_universalRemove) return true;
+    if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
+    const auto slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* dispatcher = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyUniversalHookDispatcher") : nullptr;
+    void* hooks = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyHooks") : nullptr;
+    if (!dispatcher || !hooks) return false;
+    g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
+    g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
+    g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
+    g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
+    g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
+    return g_universalRegister && g_universalDispatch && g_universalClear && g_universalRemove;
+}
+
+struct UniversalMonoContext {
+    explicit UniversalMonoContext(bool allowInstall = false) {
+        universalCanInstall = allowInstall;
+        universalLeaveMono = +[] { g_mutex.unlock(); };
+        universalResumeMono = +[] { g_mutex.lock(); };
+    }
+    ~UniversalMonoContext() { universalCanInstall = false; universalLeaveMono = universalResumeMono = nullptr; }
+};
+
+bool pollUniversalHooksOnWorker() {
+    UniversalHookMailbox::Work work{};
+    if (universalHookMailbox().take(work)) {
+        bool success = false;
+        {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            if (prepareUniversalHookSdk()) {
+                int slot = work.slot;
+                int64_t ticket = static_cast<int64_t>(work.ticket);
+                uintptr_t self = work.self;
+                int value = 0;
+                void* args[] = {&slot, &ticket, &self, &value};
+                void* exception = nullptr;
+                UniversalMonoContext context;
+                g_api.invoke(g_universalDispatch, nullptr, args, &exception);
+                success = !exception && value == 1;
+            }
+        }
+        const bool accepted = universalHookMailbox().complete(work.ticket, success);
+        if (!accepted || !success) {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            if (g_universalRemove) {
+                void* args[] = {&work.slot};
+                void* exception = nullptr;
+                g_api.invoke(g_universalRemove, nullptr, args, &exception);
+            }
+        }
+        return true;
+    }
+    UniversalMod next;
+    bool unload = false, found = false;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        unload = g_universalUnload;
+        g_universalUnload = false;
+        if (!unload && g_universalEnabled) {
+            for (auto& mod : g_universalMods) {
+                if (mod.registered) continue;
+                mod.registered = true;
+                next = mod;
+                found = true;
+                break;
+            }
+        }
+    }
+    if (!unload && !found) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!prepareUniversalHookSdk()) {
+        if (found) {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            for (auto& mod : g_universalMods) if (mod.id == next.id) mod.registered = false;
+        }
+        return false;
+    }
+    void* exception = nullptr;
+    UniversalMonoContext context(!unload);
+    if (unload) {
+        g_api.invoke(g_universalClear, nullptr, nullptr, &exception);
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
+    }
+    else if (g_api.newString) {
+        void* args[] = {g_api.newString(g_domain, next.id.c_str()), g_api.newString(g_domain, next.path.c_str())};
+        void* boxed = args[0] && args[1] ? g_api.invoke(g_universalRegister, nullptr, args, &exception) : nullptr;
+        int count = -1;
+        void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        if (raw) std::memcpy(&count, raw, sizeof(count));
+        if (count < 0) {
+            std::string line = "csharp universal hooks: registro recusado mod=" + next.id;
+            using Utf8 = char* (*)(void*);
+            using Free = void (*)(void*);
+            auto utf8 = resolve<Utf8>("mono_string_to_utf8");
+            auto release = resolve<Free>("mono_free");
+            if (g_universalError && utf8 && release) {
+                void* errorException = nullptr;
+                void* text = g_api.invoke(g_universalError, nullptr, nullptr, &errorException);
+                char* detail = !errorException && text ? utf8(text) : nullptr;
+                if (detail) { line += " "; line.append(detail, strnlen(detail, 1024)); release(detail); }
+            }
+            if (auto logger = g_hurtDiagnosticLogger.load(std::memory_order_acquire)) logger(line.c_str());
+        }
+    }
+    return true;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1121,6 +1248,12 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if (g_universalPolling.load(std::memory_order_acquire)) {
+                    lock.unlock();
+                    const bool handled = pollUniversalHooksOnWorker();
+                    lock.lock();
+                    if (handled) continue;
+                }
                 if (!g_managedHurtQueue.empty()) {
                     ManagedHurtJob job = std::move(g_managedHurtQueue.front());
                     g_managedHurtQueue.pop_front();
@@ -1491,7 +1624,8 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
                 if (!g_auditEnabled) {
-                    if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
+                    if (g_universalPolling.load(std::memory_order_acquire) ||
+                        g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
@@ -1500,7 +1634,7 @@ void* pinnedMonoWorker(void*) {
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                const auto deadline = g_liveHitStatus.enabled
+                const auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
@@ -1545,6 +1679,34 @@ void* pinnedMonoWorker(void*) {
     return nullptr;
 }
 
+}
+
+void wakeUniversalHookWorker() { g_pinnedWake.notify_one(); }
+
+bool registerUniversalHookMod(const std::string& id, const std::string& assembly) {
+    if (id.empty() || id.size() > 128 || !validAssembly(assembly)) return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (const auto& mod : g_universalMods) if (mod.id == id) return mod.path == assembly;
+    if (g_universalMods.size() >= 16) return false;
+    g_universalMods.push_back({id, assembly, false});
+    g_universalPolling.store(true, std::memory_order_release);
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void pauseUniversalHookMods() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_universalEnabled = false;
+    g_universalUnload = true;
+    for (auto& mod : g_universalMods) mod.registered = false;
+    g_pinnedWake.notify_one();
+}
+
+void resumeUniversalHookMods() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_universalEnabled = true;
+    if (!g_universalMods.empty()) g_universalPolling.store(true, std::memory_order_release);
+    g_pinnedWake.notify_one();
 }
 
 bool registerManagedEntitySourceMod(
