@@ -524,6 +524,10 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
 
 }
 
+void resetManagedSourceNpcSlots() {
+    g_managedSourceNpcSlots.fill({});
+}
+
 LiveNpcAiStatus liveNpcAiStatus() {
     std::lock_guard<std::mutex> guard(g_liveNpcMutex);
     LiveNpcAiStatus result = g_liveNpcStatus;
