@@ -125,6 +125,8 @@ struct ManagedProjectileHookStatus {
     int lastState = 0;
 };
 
+bool installManagedEntityProjectileHook();
+
 bool enableManagedProjectileCurve(const std::string& modId,
                                   const std::string& projectileName,
                                   const std::array<int, 120>& turns,
