@@ -684,11 +684,11 @@
           "execution": "experimental_worker_sync_int32"
         },
         {
-          "signature": "int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)",
+          "signature": "int EndInvoke(IAsyncResult result)",
           "execution": "experimental_worker_sync_int32"
         },
         {
-          "signature": "void EndInvoke(IAsyncResult result)",
+          "signature": "int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)",
           "execution": "experimental_worker_sync_int32"
         }
       ]
