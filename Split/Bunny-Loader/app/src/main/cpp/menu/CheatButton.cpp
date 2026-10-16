@@ -183,7 +183,11 @@ jstring JNICALL jni_csharpConsoleRun(JNIEnv* env, jclass, jstring id, jstring ro
 }
 
 jstring JNICALL jni_csharpHookCounters(JNIEnv* env, jclass) {
-    return toJava(env, bl::csharp::managedHurtHookSnapshot());
+    static std::atomic<bool> firstRead{false};
+    const std::string snapshot = bl::csharp::managedHurtHookSnapshot();
+    if (!firstRead.exchange(true, std::memory_order_relaxed))
+        BL_INFO("[CSharp][Editor] HookCounters=VisiblePathConnected Source=MonoVMCachedSnapshot Bytes=%zu", snapshot.size());
+    return toJava(env, snapshot);
 }
 
 jobjectArray JNICALL jni_csharpConsoleTake(JNIEnv* env, jclass) {
