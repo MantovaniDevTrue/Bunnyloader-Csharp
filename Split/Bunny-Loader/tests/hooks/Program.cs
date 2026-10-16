@@ -57,6 +57,60 @@ catch (InvalidOperationException) { limitReached = true; }
 Check(limitReached && registry.Count == 24, "registration cap");
 registry.Clear();
 
+var mutableRegistry = new BunnyHookRegistry();
+BunnyHookHandle selfRemoving = default;
+selfRemoving = mutableRegistry.HookBeforeHurt((ref int damage, ref int direction, ref bool cancel) =>
+{
+    damage += 1;
+    Check(mutableRegistry.Unhook(selfRemoving), "self unhook during invocation");
+});
+mutableRegistry.HookBeforeHurt((ref int damage, ref int direction, ref bool cancel) => damage += 2);
+int mutableDamage = 5, mutableDirection = 1;
+bool mutableCancel = false;
+mutableRegistry.InvokeBefore(ref mutableDamage, ref mutableDirection, ref mutableCancel);
+Check(mutableDamage == 8 && mutableRegistry.Count == 1 && mutableRegistry.BeforeCalls == 2,
+    "snapshot traversal must survive mutation");
+mutableDamage = 5;
+mutableRegistry.InvokeBefore(ref mutableDamage, ref mutableDirection, ref mutableCancel);
+Check(mutableDamage == 7 && mutableRegistry.BeforeCalls == 3,
+    "removed hook must not reappear on next call");
+
+var isolatedRegistry = new BunnyHookRegistry();
+isolatedRegistry.HookBeforeHurt((ref int damage, ref int direction, ref bool cancel) =>
+{
+    damage = 0;
+    direction = -1;
+    cancel = true;
+    throw new InvalidOperationException("expected fault");
+});
+isolatedRegistry.HookBeforeHurt((ref int damage, ref int direction, ref bool cancel) => damage -= 2);
+int safeDamage = 10, safeDirection = 1;
+bool safeCancel = false;
+isolatedRegistry.InvokeBefore(ref safeDamage, ref safeDirection, ref safeCancel);
+Check(safeDamage == 8 && safeDirection == 1 && !safeCancel &&
+      isolatedRegistry.BeforeCalls == 1 && isolatedRegistry.FaultedHooks == 1 &&
+      isolatedRegistry.Count == 1 && isolatedRegistry.LastHookError.Contains("expected fault"),
+    "faulty BeforeHurt cannot leak partial ref writes or stop healthy handlers");
+safeDamage = 10;
+isolatedRegistry.InvokeBefore(ref safeDamage, ref safeDirection, ref safeCancel);
+Check(safeDamage == 8 && isolatedRegistry.FaultedHooks == 1,
+    "quarantined handler must not run again");
+isolatedRegistry.HookDodge((int damage, out bool dodge) =>
+{
+    dodge = true;
+    throw new InvalidOperationException("broken dodge");
+});
+isolatedRegistry.HookDodge((int damage, out bool dodge) => dodge = true);
+Check(isolatedRegistry.InvokeDodge(20) && isolatedRegistry.DodgeChecks == 1 &&
+      isolatedRegistry.FaultedHooks == 2, "dodge failure isolation");
+isolatedRegistry.HookAfterHurt(info => throw new InvalidOperationException("broken after"));
+int afterSafe = 0;
+isolatedRegistry.HookAfterHurt(info => afterSafe++);
+isolatedRegistry.InvokeAfter(new BunnyHurtInfo(9, 11, 1, 72, false, false));
+Check(afterSafe == 1 && isolatedRegistry.AfterCalls == 1 &&
+      isolatedRegistry.FaultedHooks == 3, "after hook failure isolation");
+Console.WriteLine("BUNNY_CSHARP_HOOK_MUTATION_AND_ISOLATION=PASS");
+
 string modId = Guid.NewGuid().ToString("D");
 int slot = BunnyPlayerHurtDispatcher.Register(modId, Assembly.GetExecutingAssembly().Location);
 Check(slot >= 0, "register source player: " + BunnyPlayerHurtDispatcher.GetLastError(-1));
