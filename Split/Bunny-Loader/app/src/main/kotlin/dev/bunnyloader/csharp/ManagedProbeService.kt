@@ -156,7 +156,7 @@ class ManagedProbeService : Service() {
             val residency = ResidentRuntime()
             var finalStartId = 0
             try {
-                while (residency.compiled < 16) {
+                while (true) {
                     val job = pending.poll(8, TimeUnit.SECONDS) ?: break
                     finalStartId = job.startId
                     executeJob(job, residency)
