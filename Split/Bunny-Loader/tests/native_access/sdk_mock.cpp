@@ -40,6 +40,14 @@ int bunny_native_read_batch(int64_t,int,int64_t,uintptr_t,const int* ids,V* outp
     for(int i=0;i<count;++i)output[i]=value(ids[i]);
     return batchFailure?-10:0;
 }
+int bunny_native_read_batch_invoke(int64_t,int,int64_t,uintptr_t,const int* ids,V* output,
+    int count,int method,int argCount,const V* input,V* methodOut) {
+    ++calls;
+    if(batchFailure||argCount!=1||members[method].category!=3)return -10;
+    for(int i=0;i<count;++i)output[i]=value(ids[i]);
+    *methodOut={K::Int32,0,input[0].a+1,0};
+    return 0;
+}
 int test_slot() { return lastSlot; }
 int test_calls() { return calls; }
 int test_closes() { return closes; }
