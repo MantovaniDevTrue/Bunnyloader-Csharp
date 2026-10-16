@@ -1167,6 +1167,7 @@ bool pollUniversalHooksOnWorker() {
             }
         }
         const bool accepted = universalHookMailbox().complete(work.ticket, success);
+        if (!accepted) noteUniversalHookLateCompletion();
         if (universalHookCallbackIsTerminal(accepted, success)) {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (g_universalRemove) {
