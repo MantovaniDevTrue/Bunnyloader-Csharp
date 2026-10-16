@@ -528,6 +528,13 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
             runtime::field<int>(npc, refs().life) <= 0) {
             ManagedNpcSlot& state = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
             if (state.object == npc && state.type == type && !state.killQueued) {
+                const int life = runtime::field<int>(npc, refs().life);
+                if (state.lastLife > life) {
+                    queueManagedEntityCombatEvent(2, type, slot, state.generation, -1,
+                        reinterpret_cast<uintptr_t>(npc),
+                        std::min(state.lastLife - life, 1000000), -1);
+                    state.lastLife = life;
+                }
                 state.killQueued = true;
                 queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
                     reinterpret_cast<uintptr_t>(npc), 0, -1);
