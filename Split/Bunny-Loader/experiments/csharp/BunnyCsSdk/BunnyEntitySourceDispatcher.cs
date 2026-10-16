@@ -35,7 +35,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
-        public long NpcCalls, ProjectileCalls, Faults;
+        public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
     }
 
     private static readonly List<Context> Contexts = new(16);
@@ -215,10 +215,12 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             npc.OnHit(ref state, damage);
+            context.NpcHits++;
             if (killed)
             {
-                npc.OnKill(ref state);
                 instance.Blocked = true;
+                npc.OnKill(ref state);
+                context.NpcKills++;
             }
             return true;
         }
@@ -246,12 +248,64 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             projectile.OnHitNPC(ref state, npcIndex, damage);
+            context.ProjectileHits++;
             return true;
         }
         catch (Exception error)
         {
             instance.Blocked = true;
             Fault(context, projectile.GetType().Name + ".OnHitNPC", error);
+            return false;
+        }
+    }
+
+    public static bool KillNpc(int modSlot, int type, int slot, int generation)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 512u || generation <= 0)
+            return false;
+        Context context = Contexts[modSlot];
+        ref NpcInstance instance = ref context.NpcSlots[slot];
+        if (instance.Type != type || instance.Generation != generation || instance.Blocked ||
+            !context.Npcs.TryGetValue(type, out BunnyNPC? npc)) return false;
+        instance.Blocked = true;
+        var state = new BunnyNpcAiState {
+            Slot = slot, Type = type, Generation = generation, Age = instance.Age
+        };
+        try
+        {
+            npc.OnKill(ref state);
+            context.NpcKills++;
+            return true;
+        }
+        catch (Exception error)
+        {
+            Fault(context, npc.GetType().Name + ".OnKill", error);
+            return false;
+        }
+    }
+
+    public static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u || generation <= 0)
+            return false;
+        Context context = Contexts[modSlot];
+        ref ProjectileInstance instance = ref context.ProjectileSlots[slot];
+        if (instance.Type != type || instance.Generation != generation || instance.Owner != owner ||
+            instance.Blocked || !context.Projectiles.TryGetValue(type, out BunnyProjectile? projectile))
+            return false;
+        instance.Blocked = true;
+        var state = new BunnyProjectileAiState {
+            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age
+        };
+        try
+        {
+            projectile.OnKill(ref state);
+            context.ProjectileKills++;
+            return true;
+        }
+        catch (Exception error)
+        {
+            Fault(context, projectile.GetType().Name + ".OnKill", error);
             return false;
         }
     }
@@ -294,6 +348,8 @@ public static class BunnyEntitySourceDispatcher
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;
         Context context = Contexts[modSlot];
         return "npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
+            " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
+            " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
             " faults=" + context.Faults + " last=" + context.LastError;
     }
 }
