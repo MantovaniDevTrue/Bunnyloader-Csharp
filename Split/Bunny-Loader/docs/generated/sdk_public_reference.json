@@ -430,6 +430,24 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyHookModule",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Load(BunnyHookScope hooks)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyHookPhase",
       "kind": "enum",
       "baseType": "System.Enum",
@@ -497,6 +515,60 @@
         {
           "signature": "void InvokeBefore(ref int damage, ref int hitDirection, ref bool cancel)",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHookScope",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyHookScope()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "void Dispose()",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHooks",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "Int64 Calls { get; }",
+        "Int64 Faults { get; }",
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method, BunnyVoidHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static int Dispatch(int slot, Int64 ticket, IntPtr self)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static string GetStatus()",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static void RemoveSlot(int slot)",
+          "execution": "experimental_worker_sync_void0"
         }
       ]
     },
@@ -709,6 +781,22 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyMethodHook",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool IsDisposed { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Dispose()",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNPC",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -761,6 +849,20 @@
       "properties": [],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyOriginalVoid",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Invoke()",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyPlayer",
@@ -1077,6 +1179,26 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyUniversalHookDispatcher",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static int Register(string id, string path)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static void UnloadAll()",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyVanillaItems",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1158,6 +1280,30 @@
         "EquipmentSprite"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyVoidHook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyVoidHook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(BunnyOriginalVoid original, IntPtr self, AsyncCallback callback, Object object)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "void EndInvoke(IAsyncResult result)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "void Invoke(BunnyOriginalVoid original, IntPtr self)",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyWeapon",
