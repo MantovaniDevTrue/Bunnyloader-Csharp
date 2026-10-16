@@ -224,6 +224,8 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += " falhas=" + std::to_string(bunny_universal_hook_stat(4));
     status += " recuperados=" + std::to_string(bunny_universal_hook_stat(5));
     status += " atrasados=" + std::to_string(bunny_universal_hook_stat(6));
+    status += " suspensoes=" + std::to_string(bunny_universal_hook_stat(7));
+    status += " retomadas=" + std::to_string(bunny_universal_hook_stat(8));
     return toJava(env, status);
 }
 
