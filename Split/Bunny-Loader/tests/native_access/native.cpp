@@ -225,6 +225,14 @@ int main() {
     assert(cancelled.accepted&&!cancelled.faulted&&!cancelled.originalRan&&player.life==100&&!pumpNativeAccessOnGameThread());
     bunny_native_test_wait_ms(1000);
     auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);
+    if(!(result.accepted&&!result.faulted&&result.originalRan&&originals==1&&player.life==125&&!day&&player.color.r==1&&player.color.a==4&&player.prefix==255&&player.small==-32768&&player.canary==0x5a)) {
+        std::cerr << "native callback diag accepted="<<result.accepted<<" faulted="<<result.faulted
+                  <<" timedOut="<<result.timedOut<<" originalRan="<<result.originalRan
+                  <<" originals="<<originals<<" life="<<player.life<<" day="<<day
+                  <<" r="<<static_cast<int>(player.color.r)<<" a="<<static_cast<int>(player.color.a)
+                  <<" prefix="<<static_cast<int>(player.prefix)<<" small="<<player.small
+                  <<" canary="<<static_cast<int>(player.canary)<<std::endl;
+    }
     assert(result.accepted&&!result.faulted&&result.originalRan&&originals==1&&player.life==125&&!day&&player.color.r==1&&player.color.a==4&&player.prefix==255&&player.small==-32768&&player.canary==0x5a);
     auto typed=universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},[]{},std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);
     assert(typed.accepted&&!typed.faulted&&typed.originalRan&&typed.value==52&&originals==2);
