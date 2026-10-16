@@ -40,6 +40,11 @@ jobs:
           python3 tests/run_native_armor_policies.py build/basic-items/armor-source-runtime-values.txt
           python3 tests/run_native_item_policies.py build/basic-items/full-source-runtime-values.txt samples/ExampleModCSharp/Playable
           python3 tests/test_csharp_no_javascript_dependency.py
+      - name: Verify typed damage hook isolation and language-specific editor help
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet run --project tests/hooks/HookBatch.csproj -c Release
+          python3 tests/test_csharp_hook_editor_counters.py
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: |

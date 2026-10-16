@@ -58,7 +58,8 @@ void originalSets(Il2CppObject*,int32_t,const MethodInfo*){++updates;}
 void originalPumpkinBonus(Il2CppObject*,const MethodInfo*){++vanillaPumpkinCalls;}
 const MethodInfo* method(const std::string& signature) {return &methods.at(signature);}
 void configureArmor() {
- configure();extraFields.reserve(32);
+ configure();
+ apiInstance.runtime_class_init=[](Il2CppClass*){};extraFields.reserve(32);
  auto add=[](Il2CppClass& cls,const char* name,Il2CppType* type,size_t offset,uint32_t flags=0){extraFields.push_back({name,type,offset,flags});cls.fields.push_back(&extraFields.back());return &extraFields.back();};
  add(playerClass,"statManaMax2",&intType,offsetof(FakePlayer,statManaMax2));add(playerClass,"maxMinions",&intType,offsetof(FakePlayer,maxMinions));
  add(playerClass,"statDefense",&intType,offsetof(FakePlayer,statDefense));add(playerClass,"lifeRegen",&intType,offsetof(FakePlayer,lifeRegen));
@@ -106,8 +107,8 @@ void configureArmor() {
  apiInstance.gchandle_free=[](uint32_t h){assert(roots.erase(h)==1);};
  apiInstance.gchandle_get_target=[](uint32_t h){return roots.at(h);};
  apiInstance.field_static_get_value=[](FieldInfo* f,void* out) {
-  if(f->name==std::string("OnFire")){*static_cast<int*>(out)=buffId;return;}
-  if(f->name==std::string("PumpkinHelmet")){*static_cast<int*>(out)=pumpkinId;return;}
+  if(f->name==std::string("OnFire")){std::memcpy(out,&buffId,static_cast<size_t>(f->type->cls->size));return;}
+  if(f->name==std::string("PumpkinHelmet")){std::memcpy(out,&pumpkinId,static_cast<size_t>(f->type->cls->size));return;}
   if(f==lookupField){*static_cast<Il2CppArray**>(out)=lookup;return;}
   if(f->name==std::string("All")){*static_cast<Il2CppObject**>(out)=&allObject;return;}
   assert(false);
@@ -140,6 +141,10 @@ int main(int argc,char** argv) {
  using namespace bl::csharp;
  assert(argc>=2);const std::string mode=argc>2?argv[2]:"";valueMode=mode=="--struct"||mode=="--boxed";boxedOffsets=mode=="--boxed";
  configureArmor();badAbi=mode=="--abi";
+ if(mode=="--narrow-ids") {
+  bl::il2cpp::findField(&buffIdClass,"OnFire")->type=&shortType;
+  bl::il2cpp::findField(&itemIdClass,"PumpkinHelmet")->type=&shortType;
+ }
  std::ifstream input(argv[1]);assert(input);std::string line,error;std::getline(input,line);
  std::vector<BasicItemEntry> entries;int next=6400;
  while(std::getline(input,line)) {

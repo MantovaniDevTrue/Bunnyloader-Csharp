@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeStaticValue.h"
 #include "experiments/csharp/NativeContent.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
@@ -82,24 +83,36 @@ const MethodInfo* method(Il2CppClass* cls,const char* signature,bool instance) {
     return m&&api().method_is_instance&&api().method_is_instance(m)==instance?m:nullptr;
 }
 Il2CppClass* nested(const char* kind) {auto* armor=findClass({"Terraria.ID","ArmorIDs",{}});return armor?findNested(armor,kind):nullptr;}
-FieldInfo* staticArray(Il2CppClass* cls,const char* name,Il2CppClass* element=nullptr) {
-    auto& a=api();auto* f=cls?findField(cls,name):nullptr;auto* type=f?a.class_from_il2cpp_type(a.field_get_type(f)):nullptr;
-    if(!f||!(a.field_get_flags(f)&0x10u)||!type||a.class_get_rank(type)!=1||a.class_is_valuetype(type)||
-        (element&&a.class_get_element_class(type)!=element))return nullptr;
-    return f;
+using StaticValue=native_static::Value;
+StaticValue staticArray(Il2CppClass* cls,const char* name,Il2CppClass* element=nullptr) {
+    auto& a=api();auto value=native_static::resolve(cls,name);auto* type=value.type;
+    if(!value||!type||a.class_get_rank(type)!=1||a.class_is_valuetype(type)||
+       (element&&a.class_get_element_class(type)!=element))return {};
+    return value;
+}
+Il2CppArray* table(const StaticValue& f) {
+    Il2CppArray* array=nullptr;
+    if(!native_static::read(f,&array,sizeof(array))||!array||api().object_get_class(reinterpret_cast<Il2CppObject*>(array))!=f.type)return nullptr;
+    return array;
 }
 Il2CppArray* table(FieldInfo* f) {Il2CppArray* array=nullptr;if(f)api().field_static_get_value(f,&array);return array;}
-bool grow(FieldInfo* f,int total) {
-    auto* array=table(f);if(!array||array->length>65536)return false;
+bool grow(const StaticValue& f,int total) {
+    auto* array=table(f);if(!array||total<1||array->length>65536)return false;
     if(array->length>=static_cast<uintptr_t>(total))return true;
+    if(!f.writable())return false;
     auto* next=runtime::TypeTables::resizedCopy(array,static_cast<uintptr_t>(total));if(!next)return false;
-    api().field_static_set_value(f,next);return true;
+    return native_static::write(f,&next,sizeof(next));
 }
-bool boolTable(FieldInfo* f,int slot,bool value) {
+bool boolTable(const StaticValue& f,int slot,bool value) {
     auto* array=table(f);auto& a=api();
-    if(!array||slot<0||static_cast<uintptr_t>(slot)>=array->length||
-       !primitive(a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array))),"Boolean",1))return false;
-    write<uint8_t>(arrayData(array),static_cast<size_t>(slot),value?1:0);return true;
+    if(!array||slot<0||!primitive(a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array))),"Boolean",1)||!grow(f,slot+1))return false;
+    write<uint8_t>(arrayData(table(f)),static_cast<size_t>(slot),value?1:0);return true;
+}
+bool setTexture(const StaticValue& field,int slot,Il2CppObject* value) {
+    if(field.field)return runtime::content::setTableElement(field.field,slot,value);
+    auto* array=table(field);if(!array||slot<0||static_cast<uintptr_t>(slot)>=array->length)return false;
+    auto* cls=findClass({"System","Array",{}});const auto* set=method(cls,"void SetValue(object value, int index)",true);
+    void* args[]={value,&slot};return invoke(set,array,args);
 }
 struct EquipKind {
     std::string ids;int vanilla=0,total=0;
@@ -125,22 +138,25 @@ KindInfo kindInfo(const std::string& kind) {
 bool installEquipment(Equipment& equip,std::string* error) {
     auto fail=[&](const char* why){*error="Kind="+equip.kind+" Reason="+why;return false;};
     auto& a=api();const auto info=kindInfo(equip.kind);auto* ids=nested(info.ids);
-    auto* countField=ids?findField(ids,"Count"):nullptr;
-    if(!countField||!(a.field_get_flags(countField)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(countField)),"Int32",4))return fail("EquipmentCountUnavailable");
-    int count=0;a.field_static_get_value(countField,&count);
-    if(count<=0||count>=32767)return fail("EquipmentCountInvalid");
+    const auto countField=native_static::resolve(ids,"Count");int64_t nativeCount=0;
+    if(!native_static::readInteger(countField,&nativeCount)||!countField.writable())return fail("EquipmentCountUnavailable");
+    if(nativeCount<=0||nativeCount>=32767)return fail("EquipmentCountInvalid");
+    const int count=static_cast<int>(nativeCount);
     if(!equip.published)equip.slot=count;
     int total=std::max(count,equip.slot+1);
     if(!*info.itemTypes&&total>128)return fail("SignedByteSlotLimit");
+    if(!native_static::fitsInteger(countField,total))return fail("EquipmentCountOverflow");
     auto& kind=kinds[equip.kind];
-    if(!kind.sets) {
+    auto* sets=ids?findNested(ids,"Sets"):nullptr;
+    if(!kind.sets&&sets) {
         kind.ids=info.ids;kind.vanilla=count;kind.total=count;
         kind.sets=std::make_unique<runtime::TypeTables>("C# equipment",count,
             std::vector<runtime::TableClass>{{"Terraria.ID","ArmorIDs",kind.ids.c_str(),"Sets"}},runtime::TypeTables::Fill::Mode);
     }
-    auto* sets=ids?findNested(ids,"Sets"):nullptr;
-    if(!sets)return fail("EquipmentSetsUnavailable");
-    if(a.runtime_class_init)a.runtime_class_init(sets);
+    // Some Android equipment kinds (e.g. Shield) have no Sets class.
+    // Require only the tables actually used by this descriptor.
+    if(!sets&&(info.composite||equip.flags||equip.kind=="Wings"))return fail("EquipmentSetsUnavailable");
+    if(sets&&a.runtime_class_init)a.runtime_class_init(sets);
     if(equip.kind=="Wings"&&!table(staticArray(sets,"Stats"))) {
         auto* initializer=findClass({"Terraria.Initializers","WingStatsInitializer",{}});
         if(!invoke(method(initializer,"void Load()",false),nullptr,nullptr))return fail("WingStatsUnavailable");
@@ -149,11 +165,11 @@ bool installEquipment(Equipment& equip,std::string* error) {
     auto* assets=findClass({"Terraria.GameContent","TextureAssets",{}});
     auto* assetClass=runtime::content::textureAssetClass();
     if(!assetClass)return fail("TextureAssetTypeUnavailable");
-    std::vector<FieldInfo*> textures;
+    std::vector<StaticValue> textures;
     for(const char* name:info.textures) {
-        auto* f=staticArray(assets,name,assetClass);if(!f||!table(f))return fail("EquipmentTextureTableUnavailable");textures.push_back(f);
+        auto f=staticArray(assets,name,assetClass);if(!f||!table(f))return fail("EquipmentTextureTableUnavailable");textures.push_back(f);
     }
-    auto* mapping=*info.itemTypes?staticArray(findClass({"Terraria","Item",{}}),info.itemTypes,findClass({"System","Int32",{}})):nullptr;
+    auto mapping=*info.itemTypes?staticArray(findClass({"Terraria","Item",{}}),info.itemTypes,findClass({"System","Int32",{}})):StaticValue{};
     if(*info.itemTypes&&(!mapping||!table(mapping)))return fail("EquipmentItemMapUnavailable");
     if(!equip.asset) {
         struct stat file{};if(stat(equip.path.c_str(),&file)||!S_ISREG(file.st_mode)||file.st_size<1||file.st_size>1024*1024)return fail("EquipmentTextureMissingOrTooLarge");
@@ -165,16 +181,19 @@ bool installEquipment(Equipment& equip,std::string* error) {
     }
     if(!equip.asset->get())return fail("EquipmentTextureRootUnavailable");
     // TypeTables preserves existing mod slots and uses the vanilla modal fill.
-    kind.sets->grow(count,total);kind.sets->checkPending(total);
-    for(auto* f:kind.sets->tables())if(!table(f)||table(f)->length<static_cast<uintptr_t>(total))return fail("EquipmentSetGrowthFailed");
-    for(auto* f:textures)if(!grow(f,total))return fail("EquipmentTextureGrowthFailed");
+    if(kind.sets) {
+        kind.sets->grow(count,total);kind.sets->checkPending(total);
+        for(auto* f:kind.sets->tables())if(!table(f)||table(f)->length<static_cast<uintptr_t>(total))return fail("EquipmentSetGrowthFailed");
+    }
+    for(const auto& f:textures)if(!grow(f,total))return fail("EquipmentTextureGrowthFailed");
     if(mapping&&!grow(mapping,total))return fail("EquipmentItemMapGrowthFailed");
-    for(auto* f:textures)if(!runtime::content::setTableElement(f,equip.slot,equip.asset->get()))return fail("EquipmentTextureWriteFailed");
+    for(const auto& f:textures)if(!setTexture(f,equip.slot,equip.asset->get()))return fail("EquipmentTextureWriteFailed");
     if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
     if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
     if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
     if((equip.flags&2)&&!boolTable(staticArray(sets,"HidesHands"),equip.slot,false))return fail("EquipmentHandFlagUnavailable");
-    a.field_static_set_value(countField,&total);kind.total=total;equip.published=true;return true;
+    if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
+    kind.total=total;equip.published=true;return true;
 }
 using VoidFn=void (*)(const MethodInfo*);
 VoidFn originalAnimations=nullptr,originalWingStats=nullptr;
@@ -206,7 +225,7 @@ void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->st
 bool writeWingStats(const Entry& entry,std::string* error) {
     auto found=entry.slots.find("Wings");if(found==entry.slots.end()){*error="Reason=WingEquipSlotNotRegistered";return false;}
     auto* ids=nested("Wing");auto* sets=ids?findNested(ids,"Sets"):nullptr;
-    auto* f=staticArray(sets,"Stats");auto* array=table(f);auto& a=api();
+    auto f=staticArray(sets,"Stats");auto* array=table(f);auto& a=api();
     if(!array||!grow(f,found->second+1)){*error="Reason=WingStatsUnavailable";return false;}array=table(f);
     auto* type=a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array)));
     ValueLayout layout;if(!resolveValueLayout(type,&layout,error))return false;
@@ -249,7 +268,7 @@ bool writeWingStats(const Entry& entry,std::string* error) {
     std::memcpy(bytes,initialized.data(),layout.size);return true;
 }
 void restoreWingStats(){for(const auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.wing){std::string error;writeWingStats(*entry,&error);}}}
-struct WingRefs {int logic=-1,velocity=-1,gravity=-1,time=-1,maxTime=-1,brooch=-1;FieldInfo* jump=nullptr;};
+struct WingRefs {int logic=-1,velocity=-1,gravity=-1,time=-1,maxTime=-1,brooch=-1;StaticValue jump;};
 WingRefs wingRefs;
 using PlayerFn=void (*)(Il2CppObject*,const MethodInfo*);
 PlayerFn originalMovement=nullptr;bool movementHooked=false;
@@ -258,7 +277,9 @@ void hkMovement(Il2CppObject* player,const MethodInfo* m) {
     if(!player||!view){if(originalMovement)originalMovement(player,m);return;}
     const int logic=read<int32_t>(player,wingRefs.logic);const auto found=view->wings.find(logic);
     if(found==view->wings.end()){if(originalMovement)originalMovement(player,m);return;}
-    float jump=0;api().field_static_get_value(wingRefs.jump,&jump);
+    float jump=0;
+    if(wingRefs.jump.field)api().field_static_get_value(wingRefs.jump.field,&jump);
+    else {using JumpFn=float (*)(const MethodInfo*);jump=reinterpret_cast<JumpFn>(methodPointer(wingRefs.jump.getter))(wingRefs.jump.getter);}
     const float gravity=read<float>(player,wingRefs.gravity),time=read<float>(player,wingRefs.time);
     const float old=read<float>(player,static_cast<size_t>(wingRefs.velocity)+4),maxTime=read<int32_t>(player,wingRefs.maxTime);
     if(!std::isfinite(jump)||jump<0||!std::isfinite(old)||!std::isfinite(time)||!std::isfinite(maxTime)||(gravity!=1&&gravity!=-1))return;
@@ -286,8 +307,8 @@ bool prepareWings(std::string* error) {
         auto* f=findField(vector,name);size_t actual=0;
         if(!f||!primitive(a.class_from_il2cpp_type(a.field_get_type(f)),"Single",4)||!layout.offset(a.field_get_offset(f),4,&actual)||actual!=offset)return false;
     }
-    wingRefs.velocity=velocity.offset;wingRefs.jump=findField(player,"jumpSpeed");
-    if(!wingRefs.jump||!(a.field_get_flags(wingRefs.jump)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(wingRefs.jump)),"Single",4)){
+    wingRefs.velocity=velocity.offset;wingRefs.jump=native_static::resolve(player,"jumpSpeed");
+    if(!wingRefs.jump||!primitive(wingRefs.jump.type,"Single",4)||(!wingRefs.jump.field&&!methodPointer(wingRefs.jump.getter))){
         *error="Reason=WingJumpSpeedContractUnavailable";return false;
     }
     const auto* movement=method(player,"void WingMovement()",true);
@@ -376,9 +397,11 @@ bool install(Entry& entry,std::string* error) {
     if(!a.object_get_class||!a.class_get_rank||!a.class_get_element_class||!a.gchandle_new||!a.gchandle_get_target||!a.gchandle_free||!a.gc_wbarrier_set_field||
        !scalar(item,"type","Int32",4,&itemType,error))return false;
     if(!entry.policy.clone.empty()&&!entry.clone) {
-        auto* ids=findClass({"Terraria.ID","ItemID",{}});auto* id=ids?findField(ids,entry.policy.clone):nullptr;
-        if(!id||!(a.field_get_flags(id)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(id)),"Int32",4)){*error="Reason=VanillaCloneIdUnavailable";return false;}
-        int value=0;a.field_static_get_value(id,&value);if(value<1||value>=6196)return false;
+        auto* ids=findClass({"Terraria.ID","ItemID",{}});
+        const auto id=native_static::resolve(ids,entry.policy.clone.c_str());int64_t nativeId=0;
+        if(!native_static::readInteger(id,&nativeId)){*error="Reason=VanillaCloneIdUnavailable";return false;}
+        if(nativeId<1||nativeId>=6196){*error="Reason=VanillaCloneIdOutOfRange";return false;}
+        int value=static_cast<int>(nativeId);
         auto* source=a.object_new(item);if(!source)return false;auto cloneRoot=std::make_shared<Root>(source);if(!cloneRoot->get())return false;
         int variant=0;void* args[]={&value,&variant};
         if(!invoke(method(item,"void .ctor()",true),source,nullptr)||!invoke(method(item,"void SetDefaults(int Type, ItemVariant variant)",true),source,args))return false;
@@ -500,9 +523,9 @@ void pumpNativeItemPoliciesOnGameThread() {
         {std::lock_guard lock(queueMutex);statuses[source.itemType]=std::move(status);}
     }
     if(changed)publish();
-    for(auto& [name,kind]:kinds){(void)name;kind.sets->checkPending(kind.total);}
+    for(auto& [name,kind]:kinds){(void)name;if(kind.sets)kind.sets->checkPending(kind.total);}
     if(tick%120u==0) {
-        for(auto& [name,kind]:kinds){(void)name;kind.sets->watch(kind.total,nullptr);}
+        for(auto& [name,kind]:kinds){(void)name;if(kind.sets)kind.sets->watch(kind.total,nullptr);}
         static std::pair<int,std::string> last;
         auto it=equipment.upper_bound(last);
         for(size_t n=0;n<std::min(size_t{8},equipment.size());++n) {

@@ -42,3 +42,14 @@ assert 'g_hurtSnapshotText = "Hooks C#: aguardando evento de dano..."' in runtim
 assert "mono_runtime_invoke" in runtime
 assert "g_api.invoke" not in jni
 print("BUNNY_CSHARP_EDITOR_HOOK_COUNTERS_BRIDGE=PASS")
+
+# C# help must not inherit the JS thread/global/let/const instructions.
+help_method = editor.split("void updateEditorHelp()", 1)[1].split("void switchEditorLanguage()", 1)[0]
+csharp_help, js_help = help_method.split("?", 1)[1].split(": tr(", 1)
+assert "Print(1 + 2);" in csharp_help and "arquivo .cs" in csharp_help
+for word in ("let/const", "globalThis", "bl.log", "thread do jogo"):
+    assert word not in csharp_help, word
+assert "globalThis" in js_help and "bl.log" in js_help
+assert "appendEntry('h'" not in editor
+assert editor.count("updateEditorHelp();") == 2
+print("BUNNY_EDITOR_LANGUAGE_HELP_AND_SHARED_LOG_SEPARATION=PASS")

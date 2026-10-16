@@ -4,6 +4,8 @@
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "native_policy_support.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeStaticValue.h"
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 
@@ -28,7 +30,9 @@ std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
 int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0;
-bool failAsset=false,failSet=false,rawOffsets=true,screenPropertyOnly=false;
+bool failAsset=false,failSet=false,rawOffsets=true,screenPropertyOnly=false,androidFields=false,androidProperties=false,getterFault=false;
+std::map<const MethodInfo*,FieldInfo*> propertyFields;
+std::map<const MethodInfo*,bool> propertySetter;
 float lastLight[3]{},lastPosition[2]{};
 Il2CppObject exception{};
 Il2CppClass* cls(const std::string& name,bool value=false,int size=0){auto [it,added]=classes.try_emplace(name,Il2CppClass{});if(added){it->second.name=it->first.c_str();it->second.value=value;it->second.size=size;}return &it->second;}
@@ -55,6 +59,29 @@ struct Vec2 {float x,y;};
 Vec2 screenProperty(const MethodInfo*){return {1000.f,1000.f};}
 void addLight(Vec2 position,float r,float g,float b,const MethodInfo*){++lightCalls;lastPosition[0]=position.x;lastPosition[1]=position.y;lastLight[0]=r;lastLight[1]=g;lastLight[2]=b;}
 size_t width(Il2CppClass* c){return c->value?static_cast<size_t>(c->size):sizeof(void*);}
+float jumpSpeedGetter(const MethodInfo*) {return 5.f;}
+void property(Il2CppClass* c,const char* name,void* pointer=nullptr) {
+ auto* f=bl::il2cpp::findField(c,name);assert(f);
+ c->fields.erase(std::find(c->fields.begin(),c->fields.end(),f));
+ auto* get=addMethod(c,std::string("property get_")+name+"()",false);
+ const_cast<MethodInfo*>(get)->pointer=pointer;
+ propertyFields[get]=f;propertySetter[get]=false;
+ auto* set=addMethod(c,std::string("void set_")+name+"(property value)",false);
+ propertyFields[set]=f;propertySetter[set]=true;
+}
+void testStaticIntegerWidths() {
+ using namespace bl::csharp::native_static;
+ struct Kind {const char* name;int bytes;int64_t low,high;};
+ for(const auto& k:{Kind{"SByte",1,-128,127},{"Byte",1,0,255},{"Int16",2,-32768,32767},{"UInt16",2,0,65535},{"Int32",4,INT32_MIN,INT32_MAX},{"UInt32",4,0,UINT32_MAX}}) {
+  auto* owner=cls(std::string("StaticTest")+k.name);auto* f=field(owner,"Value",cls(k.name,true,k.bytes),0,true);
+  statics[f].resize(static_cast<size_t>(k.bytes));auto value=resolve(owner,"Value");int64_t number=0;
+  assert(writeInteger(value,k.low)&&readInteger(value,&number)&&number==k.low);
+  assert(writeInteger(value,k.high)&&readInteger(value,&number)&&number==k.high);
+  const auto before=statics[f];assert(!writeInteger(value,k.low-1)&&!writeInteger(value,k.high+1)&&before==statics[f]);
+ }
+ auto* owner=cls("StaticWrongType");auto* f=field(owner,"Value",&floatClass,0,true);constant(f,2.f);
+ int64_t number=123;assert(!readInteger(resolve(owner,"Value"),&number)&&number==123);
+}
 void configurePolicies() {
  configure();fields.reserve(200);storage.reserve(64);
  auto* byte=cls("Byte",true,1);auto* uint=cls("UInt32",true,4);auto* vector=cls("Vector2",true,8);auto* color=cls("Color",true,4);
@@ -115,6 +142,14 @@ void configurePolicies() {
  };
  apiInstance.class_get_rank=[](const Il2CppClass* c){return c->rank;};apiInstance.class_get_element_class=[](Il2CppClass* c){return c->element;};
  apiInstance.object_get_class=[](Il2CppObject* o){return o->klass;};apiInstance.array_new=[](Il2CppClass* c,uintptr_t n){return makeArray(c,n);};
+ apiInstance.class_get_method_from_name=[](Il2CppClass* c,const char* name,int n)->const MethodInfo* {
+  for(const auto& [m,f]:propertyFields){(void)f;const auto& key=methodNames.at(m).first;
+   if(methods.contains(std::string(c->name)+":"+key)&&key.find(std::string(name)+"(")!=std::string::npos&&n==(propertySetter.at(m)?1:0))return m;}
+  return nullptr;
+ };
+ apiInstance.method_get_param_count=[](const MethodInfo* m){return propertySetter.at(m)?1u:0u;};
+ apiInstance.method_get_param=[](const MethodInfo* m,uint32_t){return static_cast<const Il2CppType*>(propertyFields.at(m)->type);};
+ apiInstance.method_get_return_type=[](const MethodInfo* m)->const Il2CppType* {return propertySetter.at(m)?type(cls("Void",true,0)):propertyFields.at(m)->type;};
  apiInstance.field_get_name=[](FieldInfo* f){return f->name;};apiInstance.type_get_name=[](const Il2CppType* t){return ::strdup(t->cls->name);};apiInstance.il2cpp_free=std::free;
  apiInstance.object_new=[](Il2CppClass* c){auto* o=static_cast<Il2CppObject*>(std::calloc(1,static_cast<size_t>(c->size)));o->klass=c;++allocations;return o;};
  apiInstance.runtime_class_init=[](Il2CppClass*){};
@@ -124,6 +159,18 @@ void configurePolicies() {
  apiInstance.field_static_set_value=[](FieldInfo* f,void* value){auto* c=f->type->cls;auto& v=statics[f];v.resize(width(c));if(c->value)std::memcpy(v.data(),value,v.size());else std::memcpy(v.data(),&value,v.size());};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** error)->Il2CppObject* {
   *error=nullptr;const auto& n=methodNames.at(m).first;
+  if(propertyFields.contains(m)) {
+   if(getterFault&&!propertySetter.at(m)){*error=&exception;return nullptr;}
+   auto* f=propertyFields.at(m);const size_t bytes=width(f->type->cls);auto& storage=statics.at(f);
+   if(propertySetter.at(m)) {
+    if(f->type->cls->value)std::memcpy(storage.data(),args[0],bytes);
+    else std::memcpy(storage.data(),&args[0],bytes);
+    return nullptr;
+   }
+   if(!f->type->cls->value){Il2CppObject* value=nullptr;std::memcpy(&value,storage.data(),sizeof(value));return value;}
+   auto* box=static_cast<Il2CppObject*>(std::calloc(1,sizeof(Il2CppObject)+bytes));box->klass=f->type->cls;++allocations;
+   std::memcpy(reinterpret_cast<char*>(box)+sizeof(Il2CppObject),storage.data(),bytes);return box;
+  }
   if(n.find("void Copy(")==0){auto* from=static_cast<Il2CppArray*>(args[0]);auto* to=static_cast<Il2CppArray*>(args[1]);const auto count=*static_cast<int*>(args[2]);std::memcpy(arrayData(to),arrayData(from),static_cast<size_t>(count)*width(from->obj.klass->element));++arrayWrites;}
   else if(n.find("void SetValue(")==0){if(failSet){failSet=false;*error=&exception;return nullptr;}auto* a=static_cast<Il2CppArray*>(self);const int index=*static_cast<int*>(args[1]);assert(index>=0&&static_cast<uintptr_t>(index)<a->length);std::memcpy(static_cast<char*>(arrayData(a))+sizeof(void*)*static_cast<size_t>(index),&args[0],sizeof(void*));++arrayWrites;}
   else if(n.find("void SetDefaults(")==0){auto* item=static_cast<FakeItem*>(self);item->values[0]=28;item->values[1]=20;item->clonedReference=&soundObject;void* sound=&soundObject;std::memcpy(item->sound,&sound,sizeof(void*));}
@@ -205,7 +252,24 @@ int slot(int type,const std::string& kind) {
 }
 }
 int main(int argc,char** argv) {
- using namespace bl::csharp;assert(argc>=3);rawOffsets=argc<4||std::string(argv[3])!="--boxed";screenPropertyOnly=argc>=4&&std::string(argv[3])=="--screen-property";configurePolicies();
+ using namespace bl::csharp;assert(argc>=3);
+ const auto mode=argc>3?std::string(argv[3]):"";
+ androidProperties=mode=="--android-properties"||mode=="--android-properties-boxed"||mode=="--getter-exception";
+ androidFields=mode=="--android-fields"||androidProperties||mode=="--count-overflow";
+ rawOffsets=mode!="--boxed"&&mode!="--android-properties-boxed";screenPropertyOnly=mode=="--screen-property";configurePolicies();
+ if(androidFields) {
+  auto* count=bl::il2cpp::findField(cls("Beard"),"Count");count->type=type(cls("Byte",true,1));constant<uint8_t>(count,2);
+  auto* clone=bl::il2cpp::findField(cls("ItemID"),"SoulofSight");clone->type=type(cls("Int16",true,2));constant<int16_t>(clone,547);
+  classes.erase("Shield/Sets");
+  auto* hands=bl::il2cpp::findField(cls("Body/Sets"),"HidesHands");constant(hands,makeArray(&boolClass,1));
+ }
+ if(androidProperties) {
+  property(cls("Beard"),"Count");property(cls("Body/Sets"),"HidesHands");property(cls("ItemID"),"SoulofSight");
+  property(&playerClass,"jumpSpeed",reinterpret_cast<void*>(jumpSpeedGetter));
+ }
+ testStaticIntegerWidths();
+ getterFault=mode=="--getter-exception";
+ if(mode=="--count-overflow") {auto* f=bl::il2cpp::findField(cls("Beard"),"Count");f->type=type(cls("SByte",true,1));constant<int8_t>(f,127);}
  std::ifstream input(argv[1]);assert(input);std::string line,error;std::getline(input,line);std::vector<BasicItemEntry> all;int next=6400;
  while(std::getline(input,line)) {
   auto parts=basicSplit(line,'\t');if(parts[0]!="ITEM")continue;BasicItemEntry entry;assert(parseBasicItemWire(parts,&entry,&error));
@@ -215,7 +279,6 @@ int main(int argc,char** argv) {
   assert(applyNativeBasicItemDefaults("mod",{base},&error));all.push_back(entry);
  }
  assert(!all.empty());std::shared_ptr<NativeItemPolicyBatch> batch;assert(prepareNativeItemPolicies(all,&batch,&error));commitNativeItemPolicies(batch);
- const auto mode=argc>3?std::string(argv[3]):"";
  auto* headField=bl::il2cpp::findField(&itemClass,"headSlot");const auto savedHead=*headField;
  if(mode=="--bounds")headField->offset=sizeof(FakeItem);
  if(mode=="--type")headField->type=&floatType;
@@ -227,6 +290,15 @@ int main(int argc,char** argv) {
   bool rejected=false;for(const auto& status:nativeItemPolicyStatus())if(!status.ready){assert(status.error.find("Rejected")!=std::string::npos);rejected=true;}
   assert(rejected);*headField=savedHead;
   for(int i=0;i<10&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
+ if(mode=="--getter-exception"||mode=="--count-overflow") {
+  assert(pendingNativeItemPolicies()>0);
+  if(mode=="--count-overflow") {
+   bool found=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleBeard"){found=status.error.find("EquipmentCountOverflow")!=std::string::npos;}
+   int8_t unchanged=0;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Beard"),"Count"),&unchanged);
+   assert(found&&unchanged==127);constant<int8_t>(bl::il2cpp::findField(cls("Beard"),"Count"),2);
+  }
+  getterFault=false;for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
  }
  for(const auto& status:nativeItemPolicyStatus())if(!status.ready)std::cerr<<status.name<<" "<<status.error<<"\n";
  assert(pendingNativeItemPolicies()==0);

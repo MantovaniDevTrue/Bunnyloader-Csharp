@@ -444,6 +444,7 @@ final class DevTools {
         final TextView output;
         final ScrollView outputScroll;
         final TextView hookCounters;
+        final TextView editorHelp;
         final EditText editor;
         final TextView fullButton;
         final TextView title;
@@ -530,6 +531,14 @@ final class DevTools {
             LinearLayout inner = new LinearLayout(a);
             inner.setOrientation(LinearLayout.VERTICAL);
             body = inner;
+
+            // Language-specific help stays separate from the shared log history.
+            editorHelp = new TextView(a);
+            applyTextSize(a, editorHelp, 7.5f);
+            editorHelp.setTextColor(INK_DIM);
+            editorHelp.setPadding(px(a, 6), px(a, 4), px(a, 6), px(a, 4));
+            inner.addView(editorHelp, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
             // ---- saida ----
             output = new TextView(a);
@@ -639,9 +648,7 @@ final class DevTools {
             layout.bottomMargin = px(a, 8);
             a.addContentView(panel, layout);
 
-            if (sOutput.length() == 0) {
-                appendEntry('h', tr("O código roda na thread do jogo, como num hook. Main, ID e player (o seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log (que aparece aqui também). let/const valem só na execução; para guardar entre uma e outra, var ou globalThis.x."));
-            }
+            updateEditorHelp();
             output.setText(sOutput);
         }
 
@@ -793,6 +800,12 @@ final class DevTools {
             }
         }
 
+        void updateEditorHelp() {
+            editorHelp.setText(csharpMode
+                ? "C#: use Print(1 + 2); e toque no botao verde para executar. Para editar fontes de um mod, abra e salve o arquivo .cs; reinicie o jogo para aplicar."
+                : tr("JS: Main, ID e player já estão prontos. print(...) escreve no chat; bl.log(...), no log. let/const valem só nesta execução; para guardar valores, use var ou globalThis.x."));
+        }
+
         void switchEditorLanguage() {
             saveDraft();
             if (!csharpMode) {
@@ -812,6 +825,7 @@ final class DevTools {
             }
             editor.setSelection(editor.getText().length());
             hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            updateEditorHelp();
             prefs(act).edit().putBoolean("editorCsharpMode", csharpMode).apply();
             lastHookCountersPoll = 0;
             if (csharpMode) pullHookCounters();

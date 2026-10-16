@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeArmorPolicies.h"
+#include "experiments/csharp/NativeStaticValue.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -73,10 +74,9 @@ bool referenceBinding(Il2CppClass* cls,const char* name,Il2CppClass* element,int
     *offset=static_cast<int>(a.field_get_offset(f));*array=type;return true;
 }
 bool constant(const char* cls,const std::string& name,int* value) {
-    auto& a=il2cpp::api();auto* type=il2cpp::findClass({"Terraria.ID",cls,{}});auto* f=type?il2cpp::findField(type,name):nullptr;
-    auto* ft=f?a.class_from_il2cpp_type(a.field_get_type(f)):nullptr;
-    if(!f||!(a.field_get_flags(f)&0x10u)||!primitive(ft,"Int32"))return false;
-    a.field_static_get_value(f,value);return *value>=0&&*value<=65535;
+    auto* type=il2cpp::findClass({"Terraria.ID",cls,{}});int64_t resolved=0;
+    if(!native_static::readInteger(native_static::resolve(type,name.c_str()),&resolved)||resolved<0||resolved>65535)return false;
+    *value=static_cast<int>(resolved);return true;
 }
 bool resolvePolicy(const BasicArmorEffects& source,Il2CppClass* player,Policy* out,std::string* error) {
     for(const auto& e:source.effects) {
