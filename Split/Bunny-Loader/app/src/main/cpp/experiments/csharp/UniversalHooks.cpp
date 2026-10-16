@@ -23,6 +23,7 @@ struct Entry {
     std::chrono::steady_clock::time_point retryAfter{};
     std::chrono::steady_clock::time_point timeoutWindow{};
     int timeoutsInWindow = 0;
+    bool suspended = false;
 };
 std::array<Entry, MaxHooks> entries;
 int used = 0;
@@ -39,7 +40,7 @@ struct Install {
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
-std::array<std::atomic<int64_t>, 6> counters{};
+std::array<std::atomic<int64_t>, 9> counters{};
 
 void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
@@ -53,9 +54,16 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
         callOriginal(entry, self, info);
         return;
     }
-    if (std::chrono::steady_clock::now() < entry.retryAfter) {
+    const auto now = std::chrono::steady_clock::now();
+    if (now < entry.retryAfter) {
         callOriginal(entry, self, info);
         return;
+    }
+    if (entry.suspended) {
+        entry.suspended = false;
+        entry.timeoutsInWindow = 0;
+        entry.timeoutWindow = now;
+        counters[8].fetch_add(1, std::memory_order_relaxed);
     }
     auto original = [&] {
         inOriginal = true;
@@ -81,8 +89,12 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
             if (++entry.timeoutsInWindow < 3) {
                 entry.retryAfter = now + std::chrono::seconds(1);
                 counters[5].fetch_add(1, std::memory_order_relaxed);
-                disable = false;
+            } else {
+                entry.suspended = true;
+                entry.retryAfter = now + std::chrono::seconds(30);
+                counters[7].fetch_add(1, std::memory_order_relaxed);
             }
+            disable = false;
         }
         if (disable) {
             counters[4].fetch_add(1, std::memory_order_relaxed);
@@ -135,6 +147,7 @@ int installOnGameThread() {
         entry.retryAfter = {};
         entry.timeoutWindow = {};
         entry.timeoutsInWindow = 0;
+        entry.suspended = false;
         entry.active.store(true, std::memory_order_release);
         return i;
     }
@@ -148,6 +161,7 @@ int installOnGameThread() {
     entry.retryAfter = {};
     entry.timeoutWindow = {};
     entry.timeoutsInWindow = 0;
+    entry.suspended = false;
     if (!hook::install(selected, entry.isStatic ? statics[used] : instances[used], &entry.original)) return -9;
     entry.active.store(true, std::memory_order_release);
     return used++;
@@ -202,8 +216,13 @@ extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remo
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
     if (key == 6) return universalHookLateCompletionCount();
-    return key >= 0 && key < 6 ? counters[key].load(std::memory_order_relaxed) : -1;
+    return key >= 0 && key < 9 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
+#if defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
+extern "C" void bunny_universal_hook_test_expire_suspend(int index) {
+    if (index >= 0 && index < used) entries[index].retryAfter = {};
+}
+#endif
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int slot, int64_t ticket) {
     return universalHookMailbox().original(slot, static_cast<uint64_t>(ticket)) ? 1 : 0;
 }
