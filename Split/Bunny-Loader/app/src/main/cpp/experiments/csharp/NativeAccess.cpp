@@ -157,7 +157,7 @@ const MethodInfo* method(Il2CppClass* cls,const std::string& name,const std::str
     error=selected?S::Ok:S::NotFound;return selected;
 }
 struct Request {
-    int op=0,category=0,parent=0,flags=0,member=0,slot=-1,count=0;
+    int op=0,category=0,parent=0,flags=0,member=0,slot=-1,count=0,callCount=0;
     uint64_t scope=0,ticket=0;
     uintptr_t self=0;
     K kind=K::Void;
@@ -165,8 +165,9 @@ struct Request {
     std::string name,parameters;
     std::array<int,MaxBatch> ids{};
     std::array<AccessValue,MaxBatch> values{};
+    std::array<AccessValue,MaxArgs> arguments{};
 };
-struct Response { S status=S::Ok; uint64_t number=0; std::array<AccessValue,MaxBatch> values{}; };
+struct Response { S status=S::Ok; uint64_t number=0; std::array<AccessValue,MaxBatch> values{}; AccessValue methodResult{}; };
 struct Rpc {
     std::mutex mutex;
     std::condition_variable changed;
@@ -276,8 +277,27 @@ Response execute(const Request& r) {
     }
     uintptr_t self=0;
     if(!universalHookMailbox().context(r.slot,r.ticket,&self)||self!=r.self){response.status=S::Expired;return response;}
-    if(r.op==5) {
+    if(r.op==5||r.op==6) {
         if(r.count<1||r.count>MaxBatch){response.status=S::Invalid;return response;}
+        Binding* methodBinding=nullptr;
+        void* methodTarget=nullptr;
+        alignas(16) uint8_t methodBytes[MaxArgs][16]{};
+        void* methodArgs[MaxArgs]{};
+        if(r.op==6) {
+            methodBinding=binding(r.scope,r.member);
+            if(!methodBinding){response.status=S::Expired;return response;}
+            if(methodBinding->category!=3||r.callCount!=methodBinding->argc){
+                response.status=S::Invalid;return response;
+            }
+            response.status=target(*methodBinding,self,methodTarget);
+            if(response.status!=S::Ok)return response;
+            for(int i=0;i<r.callCount;++i) {
+                if(!encode(methodBinding->args[i],r.arguments[i],methodBytes[i])){
+                    response.status=S::TypeMismatch;return response;
+                }
+                methodArgs[i]=methodBytes[i];
+            }
+        }
         for(int i=0;i<r.count;++i) {
             auto* b=binding(r.scope,r.ids[i]);
             if(!b){response.status=S::Expired;return response;}
@@ -290,6 +310,10 @@ Response execute(const Request& r) {
             if(!item){response.status=S::Expired;return response;}
             response.status=read(*item,self,response.values[i]);
             if(response.status!=S::Ok)return response;
+        }
+        if(methodBinding) {
+            response.status=invoke(*methodBinding,methodBinding->getter,methodTarget,
+                methodArgs,response.methodResult);
         }
         return response;
     }
@@ -367,8 +391,12 @@ bool pumpNativeAccessOnGameThread() {
     universalNativeAccessInProgress=previous;
     const int status=static_cast<int>(rpc.response.status);
     stats[7].store(status,std::memory_order_relaxed);
-    if(status==0&&rpc.request.op>=1&&rpc.request.op<=5)stats[rpc.request.op-1].fetch_add(1,std::memory_order_relaxed);
-    else if(status!=0)stats[5].fetch_add(1,std::memory_order_relaxed);
+    if(status==0&&rpc.request.op>=1&&rpc.request.op<=5)
+        stats[rpc.request.op-1].fetch_add(1,std::memory_order_relaxed);
+    else if(status==0&&rpc.request.op==6) {
+        stats[3].fetch_add(1,std::memory_order_relaxed);
+        stats[4].fetch_add(1,std::memory_order_relaxed);
+    } else if(status!=0)stats[5].fetch_add(1,std::memory_order_relaxed);
     rpc.state=Rpc::Done;rpc.changed.notify_one();return true;
 }
 #if defined(BUNNY_NATIVE_ACCESS_HOST_TEST)
@@ -406,6 +434,25 @@ extern "C" __attribute__((visibility("default"))) int bunny_native_read_batch(in
     for(int i=0;i<count;++i)r.ids[i]=members[i];
     auto result=submit(std::move(r));
     if(result.status==S::Ok)for(int i=0;i<count;++i)output[i]=result.values[i];
+    return static_cast<int>(result.status);
+}
+
+extern "C" __attribute__((visibility("default"))) int bunny_native_read_batch_invoke(
+    int64_t scope,int slot,int64_t ticket,uintptr_t self,const int* members,AccessValue* output,
+    int count,int methodId,int argCount,const AccessValue* input,AccessValue* methodOutput) {
+    if(!members||!output||!methodOutput||count<1||count>MaxBatch||
+       methodId<=0||argCount<0||argCount>MaxArgs||(argCount&&!input))
+        return static_cast<int>(S::Invalid);
+    Request r;r.op=6;r.scope=static_cast<uint64_t>(scope);
+    r.slot=slot;r.ticket=static_cast<uint64_t>(ticket);r.self=self;
+    r.count=count;r.member=methodId;r.callCount=argCount;
+    for(int i=0;i<count;++i)r.ids[i]=members[i];
+    for(int i=0;i<argCount;++i)r.arguments[i]=input[i];
+    auto result=submit(std::move(r));
+    if(result.status==S::Ok) {
+        for(int i=0;i<count;++i)output[i]=result.values[i];
+        *methodOutput=result.methodResult;
+    }
     return static_cast<int>(result.status);
 }
 }
