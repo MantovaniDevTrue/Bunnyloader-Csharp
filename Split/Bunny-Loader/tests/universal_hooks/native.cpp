@@ -17,6 +17,8 @@ extern "C" void bunny_universal_hook_remove(int);
 extern "C" int bunny_universal_hook_original(int, int64_t);
 extern "C" int64_t bunny_universal_hook_stat(int);
 extern "C" void bunny_universal_hook_test_expire_suspend(int);
+extern "C" int bunny_universal_hook_test_backoff_seconds(int);
+extern "C" int bunny_universal_hook_test_last_suspend_seconds(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
@@ -167,6 +169,11 @@ int main() {
     assert(bunny_universal_hook_stat(4) == faultsBefore);
     assert(bunny_universal_hook_stat(7) == 1);
     assert(bunny_universal_hook_stat(8) == 0);
+    assert(bunny_universal_hook_test_last_suspend_seconds(handle) == 5);
+    assert(bunny_universal_hook_test_backoff_seconds(1) == 5);
+    assert(bunny_universal_hook_test_backoff_seconds(2) == 10);
+    assert(bunny_universal_hook_test_backoff_seconds(3) == 15);
+    assert(bunny_universal_hook_test_backoff_seconds(4) == 15);
     call();
     assert(vanilla == 9);
     assert(bunny_universal_hook_stat(3) == timeoutsBefore + 3);
@@ -220,5 +227,5 @@ int main() {
     assert(reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(replacedInt32Static)(
         40, reinterpret_cast<MethodInfo*>(&methods[6])) == 38);
     std::cout << "native: typed Int32(int) ABI, validation, original and return override PASS\n";
-    std::cout << "native: metadata, original affinity, cooldown, 30s circuit suspension, auto-rearm, protected original PASS\n";
+    std::cout << "native: metadata, original affinity, adaptive 5/10/15s suspension, auto-rearm, protected original PASS\n";
 }

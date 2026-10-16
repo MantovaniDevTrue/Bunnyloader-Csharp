@@ -65,7 +65,12 @@ jobs:
           dotnet build samples/ArmorPoliciesCSharp/ArmorPolicies.csproj -c Release
       - name: Check generated public SDK reference
         working-directory: Split/Bunny-Loader
-        run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+        run: |
+          if ! dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check; then
+            dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+            git diff -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+            exit 1
+          fi
       - name: Verify independent source package and generator
         working-directory: Split/Bunny-Loader
         run: |
