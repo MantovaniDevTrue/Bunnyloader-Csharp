@@ -203,6 +203,19 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
     status += javascriptRunning ? "inicializado" : "nao inicializado";
     status += " | MonoVM: ";
     status += mono.domainInitialized && mono.methodExecuted ? "ativo" : "aguardando";
+    const auto mods = bl::csharp::autoSourceStatuses();
+    int applied = 0;
+    int cached = 0;
+    int errors = 0;
+    for (const auto& mod : mods) {
+        if (mod.applied) ++applied;
+        if (mod.cached) ++cached;
+        if (!mod.error.empty()) ++errors;
+    }
+    status += "\nMods C#: " + std::to_string(applied) + "/" + std::to_string(mods.size());
+    status += " carregados | cache=" + std::to_string(cached);
+    status += " | erros=" + std::to_string(errors);
+
     status += "\nHooks universais: chamadas=";
     status += std::to_string(bunny_universal_hook_stat(0));
     status += " concluidos=" + std::to_string(bunny_universal_hook_stat(1));
