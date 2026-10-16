@@ -30,6 +30,7 @@ on:
       - codex/csharp-universal-circuit-rearm-v90-29-67
       - codex/csharp-native-access-lot-a
       - codex/csharp-native-access-adaptive-v90-29-70
+      - codex/csharp-native-rpc-deadline-v90-29-71
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -1167,7 +1168,7 @@ jobs:
           assert 'entry.suspended = true;' in native
           assert 'if (entry.suspended)' in native
           assert 'if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);' in native
-          assert 'std::array<std::atomic<int64_t>, 9> counters' in native
+          assert 'std::array<std::atomic<int64_t>, 10> counters' in native
           assert 'NativeStat(5)' in sdk and 'bunny_universal_hook_stat(5)' in editor
           assert 'adaptive 5/10/15s suspension, auto-rearm' in tests
           print("UNIVERSAL_HOOK_TIMEOUT_RECOVERY=PASS")
@@ -1186,12 +1187,12 @@ jobs:
           dispatch=sdk.split("public static int Dispatch(",1)[1].split("[DllImport",1)[0]
           assert "handle!.Dispose()" not in dispatch
           assert "return 0;" in dispatch
-          assert "universalHookCallbackIsTerminal(accepted, success)" in runtime
+          assert "universalHookCallbackIsTerminal(accepted, success, retryable)" in runtime
           assert "if (!accepted) noteUniversalHookLateCompletion();" in runtime
-          assert "return accepted && !success;" in mailbox
+          assert "return accepted && !success && !retryable;" in mailbox
           assert "staleAccepted = box.complete(w.ticket, false);" in tests
           assert "assert(!staleAccepted);" in tests
-          assert "std::array<std::atomic<int64_t>, 9> counters" in native
+          assert "std::array<std::atomic<int64_t>, 10> counters" in native
           assert 'NativeStat(6)' in sdk
           assert 'NativeStat(7)' in sdk and 'NativeStat(8)' in sdk
           assert 'universalHookLateCompletionCount()' in native
@@ -1214,7 +1215,7 @@ jobs:
           assert 'System.Int32' in native
           assert 'callOriginalInt32' in native
           assert 'int32Mode' in mailbox and 'originalInt32' in mailbox
-          assert 'complete(work.ticket, success, returnedValue)' in worker
+          assert 'complete(work.ticket, success, returnedValue, retryable)' in worker
           assert 'g_universalDispatchInt32' in worker
           assert 'HookInt32' in sdk and 'InvokeInt32' in sdk
           assert 'typed Int32(int) ABI' in tests
@@ -1229,7 +1230,7 @@ jobs:
           mkdir -p build/universal-hooks
           g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
-      - name: Verify fused native access and fast hook recovery in .70
+      - name: Verify fused native access and fast hook recovery in .70 and .71
         shell: bash
         run: |
           python3 - <<'PY'
@@ -1246,6 +1247,12 @@ jobs:
           assert 'universalNativeAccessInProgress' in hooks
           assert 'suspensionSecondsFor(++entry.suspensionsInBurst)' in hooks
           print("NATIVE_ACCESS_ADAPTIVE_FUSED=PASS")
+          assert 'workerDeadline(' in (root/"app/src/main/cpp/experiments/csharp/UniversalHookMailbox.h").read_text()
+          assert 'remaining-reserve' in native
+          assert 'stats[9].fetch_add(waited' in native
+          assert 'retryable = !exception && result == 2' in (root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          assert 'transient.retryable' in (root/"tests/universal_hooks/native.cpp").read_text()
+          print("NATIVE_RPC_DEADLINE_AND_TRANSIENT_RECOVERY=PASS")
           PY
       - name: Verify typed native access lot before Android compilation
         shell: bash
@@ -1855,7 +1862,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ (github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71' || github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
@@ -1902,6 +1909,10 @@ jobs:
             TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
             NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.40.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-rpc-deadline-v90-29-71" ]; then
+            TITLE="EXPERIMENTAL — C# RPC sincronizada e recuperação de hooks | $VERSION"
+            NOTES="Bunny CSharp .71: espera RPC alinhada ao deadline do callback, reserva para retorno ao MonoVM, falhas transitorias Busy/TimedOut recuperaveis sem destruir registro CSharp, telemetria de espera/execucao e pico. Mantem deadline de 3ms, fallback vanilla, backoff 5/10/15s e acesso nativo 100% CSharp. Testar com NativeAccessProbe; desligar UniversalHooksProbe para evitar hook duplicado. Sem validacao Android ou promessa de zero timeouts. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
           fi
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-access-adaptive-v90-29-70" ]; then
             TITLE="EXPERIMENTAL — Acesso nativo C# + retomada rápida | $VERSION"
