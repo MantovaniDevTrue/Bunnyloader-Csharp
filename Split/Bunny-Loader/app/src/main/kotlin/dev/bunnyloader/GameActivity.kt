@@ -224,12 +224,17 @@ class GameActivity : Activity() {
         // nesta abertura só.
         val session = ServerSync.takeSession(this)
         if (session != null) Log.i(TAG, "sincronizar mods: abrindo com os ${session.mods.size} pacotes do servidor")
+        val activeMods = session?.mods ?: repo.enabledSpecs()
+        val runtimeModes = dev.bunnyloader.mods.ScriptRuntimeModes.fromSpecs(activeMods)
+        val disableQuickJs = runtimeModes.disableQuickJs(prefs.disableQuickJsForCSharp)
+        Log.i(TAG, "pacotes: C#=${runtimeModes.csharpCount}, JS=${runtimeModes.javaScriptCount}, QuickJS=${if (disableQuickJs) "desativado" else "disponivel"}")
         val ok = runCatching {
             NativeBridge.init(
                 NativeConfig(
                     gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
-                    enabledMods = (session?.mods ?: repo.enabledSpecs()).toTypedArray(),
+                    enabledMods = activeMods.toTypedArray(),
+                    disableQuickJs = disableQuickJs,
                     logPath = logFile.absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11
