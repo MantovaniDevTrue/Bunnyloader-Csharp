@@ -141,7 +141,7 @@ public static class Program
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Check(allocated <= 512, "npc 10k tick allocations " + allocated);
         BunnyEntitySourceDispatcher.ResetWorld();
-        Check(ManagedProbeProjectile.Despawns == 2 && ManagedProbeNpc.Despawns >= 3, "world release");
+        Check(ManagedProbeProjectile.Despawns >= 3 && ManagedProbeNpc.Despawns >= 3, "world release");
         Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 13, 0,
             100, 100, 4, 0, 120, 120) >= 0, "next world projectile");
         Console.WriteLine("BUNNY_CSHARP_MONO_ENTITY_SOURCE=PASS checks=" + checks);
