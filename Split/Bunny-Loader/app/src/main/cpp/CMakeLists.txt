@@ -123,6 +123,15 @@ configure_file(
 
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+list(REMOVE_ITEM BL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/experiments/csharp/MonoWorkerJni.cpp)
+
+add_library(bunnymonoprobe SHARED
+    experiments/csharp/ManagedRuntime.cpp
+    experiments/csharp/MonoWorkerJni.cpp
+    experiments/csharp/NativeAbortProbe.cpp)
+target_include_directories(bunnymonoprobe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(bunnymonoprobe PRIVATE -O2 -fno-exceptions -fno-rtti -fno-omit-frame-pointer)
+target_link_libraries(bunnymonoprobe shadowhook::shadowhook log dl)
 
 # O trampolim da chamada guardada (il2cpp/GuardedCall.h), em assembly.
 file(GLOB_RECURSE BL_ASM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.S)
@@ -147,3 +156,4 @@ target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 # loadHook do TexturePacks.cpp) nao precisa de nada: sem personalidade, o frame
 # dele e so atravessado (um destrutor pendente ali fica sem rodar).
 target_link_libraries(bunny shadowhook::shadowhook log dl)
+

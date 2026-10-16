@@ -1,0 +1,22 @@
+{
+  "uid": "240fb430-96b4-4d10-9a2b-ed524b548e61",
+  "id": "armorpoliciescsharp",
+  "name": "Armor Policies CSharp",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Your Name",
+      "role": "Mod author"
+    }
+  ],
+  "category": "Example",
+  "summary": "Independent C# armor example with native stats, immunity, set bonus and equipment textures.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

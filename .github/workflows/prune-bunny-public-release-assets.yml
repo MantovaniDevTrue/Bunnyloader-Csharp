@@ -1,0 +1,68 @@
+name: Audit and clean Bunny public release binaries
+
+on:
+  push:
+    branches:
+      - csharp-public-release-cleanup-v1
+    paths:
+      - ".github/workflows/prune-bunny-public-release-assets.yml"
+      - ".github/scripts/prune_bunny_public_assets.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BUNNY_EXECUTE_CLEANUP: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit public release assets without deleting anything
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/prune_bunny_public_assets.py
+      - name: Verify required private baselines and signed private test build
+        if: ${{ env.BUNNY_EXECUTE_CLEANUP == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}"
+          DEST="MantovaniDevTrue/Bunnyloader-Csharp-Builds"
+          test "$(gh api "repos/$DEST" --jq '.private')" = "true"
+          gh release view bunny-private-build-inputs-v1 --repo "$DEST" >/dev/null
+          gh release view csharp-v3-run-38217387836-a1 --repo "$DEST" >/dev/null
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          dest = "MantovaniDevTrue/Bunnyloader-Csharp-Builds"
+          base = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{dest}/releases/tags/bunny-private-build-inputs-v1"], text=True))
+          expected = {
+              "BunnyRuntime_Terraria_1.4.5.8.6.zip": "2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab",
+              "BunnyLoader-v0.1.9.1-MusicPrewarm.apk": "aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00",
+              "BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk": "84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb",
+          }
+          actual = {a["name"]: a["digest"] for a in base["assets"]}
+          for name, sha in expected.items():
+              assert actual.get(name) == "sha256:" + sha, name
+          latest = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{dest}/releases/tags/csharp-v3-run-38217387836-a1"], text=True))
+          assert any(a["name"].endswith(".apk") and a["size"] > 200000000 for a in latest["assets"])
+          print("BUNNY_PRIVATE_DEPENDENCIES_AND_PRIVATE_BUILD_VERIFIED=PASS")
+          PY
+      - name: Delete only prior public APKs and proprietary runtime after approval
+        if: ${{ env.BUNNY_EXECUTE_CLEANUP == 'true' }}
+        shell: bash
+        env:
+          BUNNY_PUBLIC_CLEANUP_TOKEN: ${{ secrets.BUNNY_PUBLIC_CLEANUP_TOKEN }}
+          BUNNY_PUBLIC_CLEANUP_APPROVED: "YES"
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/prune_bunny_public_assets.py --execute

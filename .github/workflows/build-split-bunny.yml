@@ -1,14 +1,7 @@
 name: Build Split Bunny APK
 
+# Legacy UI-only build: invoke explicitly; main is the integrated CSharp source.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/build-split-bunny.yml"
-      - "Split/Bunny-Loader/**"
-      - "Split/patches/**"
-      - "Split/mod/**"
   workflow_dispatch:
 
 permissions:

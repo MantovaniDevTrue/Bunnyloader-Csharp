@@ -1,0 +1,22 @@
+{
+  "uid": "b31bc3bb-d47f-4b8c-bd0e-adb1df57810a",
+  "id": "nativeaccessorycsharp",
+  "name": "Native Accessory CSharp",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Your Name",
+      "role": "Mod author"
+    }
+  ],
+  "category": "Example",
+  "summary": "A source-only accessory with native equip policies.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

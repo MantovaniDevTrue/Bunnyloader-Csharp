@@ -1,13 +1,19 @@
-# Documentação da integração C#
+# Documentação C#
 
-A documentação completa e atualizada desta linha de desenvolvimento está em **[`csharp-development/docs/`](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs)**.
+Entrada atual da extensão C#. Os [guias do loader original](../Split/Bunny-Loader/docs/README.md)
+continuam disponíveis e identificam as APIs JavaScript.
 
-- [Situação real e limitações](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/STATUS.md)
-- [Arquitetura de MonoVM, Roslyn e ponte nativa](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/ARQUITETURA.md)
-- [Teste atual da v0.1.10.16.60 no Android](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/TESTE-ANDROID-v60.md)
-- [Histórico das versões](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/HISTORICO.md)
-- [Roadmap de desenvolvimento](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/docs/ROADMAP.md)
+| Trilha | Documentos |
+| --- | --- |
+| Primeiro mod | [Guia rápido](PRIMEIRO-MOD.md) · [Exemplos](../examples/README.md) |
+| SDK e execução | [Contratos](SDK-CSharp.md) · [Referência gerada](../Split/Bunny-Loader/docs/generated/sdk_public_reference.md) · [Arquitetura](ARQUITETURA.md) |
+| Código e contribuição | [Mapa do repositório](REPOSITORIO.md) · [Build e CI](BUILD.md) · [Contribuição](../CONTRIBUTING.md) |
+| Estado e testes | [Checkpoint atual](STATUS.md) · [Android](SDK-VALIDACAO.md) · [Suítes automatizadas](../tests/README.md) |
+| Próximos lotes | [Roadmap](SDK-ROADMAP.md) · [Matriz completa](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md) |
+| Contratos nativos | [Independência de JS](csharp-native-policy-independence.md) · [Correções da PR #28](csharp-pr28-native-contract-fixes.md) |
+| Histórico | [Linha do tempo](HISTORICO.md) · [Relatórios por versão](history/README.md) · [Changelog](../CHANGELOG.md) |
 
-A documentação da `main` serve como entrada permanente do repositório; **a fonte C# experimental está na branch de desenvolvimento**, não necessariamente nesta branch de sincronização da base Bunny Loader.
-
-Origem do Bunny Loader: https://github.com/JonataOliveiraa/Bunny-Loader
+`STATUS.md` descreve o checkpoint verificado. `history/` preserva investigações
+anteriores, inclusive falhas e limitações já corrigidas. A referência gerada
+reflete o SDK compilado; a matriz de exemplos mantém suas próprias evidências.
+Atualizar uma dessas fontes não valida automaticamente as demais.

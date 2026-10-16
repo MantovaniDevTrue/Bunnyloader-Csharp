@@ -23,6 +23,8 @@ namespace bl::runtime {
  * itens no chao continuam seguindo o ciclo normal do Terraria (nao sao
  * persistidos pelo save do mundo).
  */
+void retryPendingManagedPrefixesOnWorldReady();
+int pendingManagedPrefixCountForActivePlayer();
 void installModItemSave();
 std::string modChestItemData(Il2CppObject* chest, int slot);
 bool setModChestItemData(Il2CppObject* chest, int slot, const std::string& data);

@@ -1,10 +1,34 @@
-# ExampleModCSharp
+# Exemplos para modders C#
 
-O pacote C# testado na versão experimental .60 é o **ExampleModCSharp 0.1.7**.
+Comece pelo [primeiro mod](../docs/PRIMEIRO-MOD.md). Os fontes editáveis ficam
+em `Split/Bunny-Loader/samples`; esta pasta oferece navegação.
 
-- [Código-fonte do exemplo](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content)
-- [Documentação do exemplo](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/Split/Bunny-Loader/samples/ExampleModCSharp/README.md)
-- [Callbacks automáticos C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/csharp-development/Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs)
-- [Download do pacote .bmod e APK da .60](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/releases/tag/bunny-csharp-managed-runtime-0.1.10.16.60)
+| Exemplo | Aprender | Evidência e limites |
+| --- | --- | --- |
+| [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, UID e projeto de editor | Compilação/empacotamento em host; não atribuir teste Android independente sem registro |
+| [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base genérica e identidade por atributo | Parser e Roslyn; restrições sintáticas no SDK |
+| [NativeAccessory](../Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md) | Acessório independente e efeitos nativos | Host sem QuickJS; validação varia por efeito |
+| [ArmorPolicies](../Split/Bunny-Loader/samples/ArmorPoliciesCSharp/README.md) | Peças, imunidades, conjunto e receitas vanilla | Integrante dos testes Android da linha .57; não generalizar a todos os cenários |
+| [ExampleModCSharp](../Split/Bunny-Loader/samples/ExampleModCSharp/README.md) | Armas, equipamento, jogador, prefixos, bancada, NPC/IA/eventos | Pacote `0.1.40` correspondente à .62 validada; cobertura por recurso continua na matriz |
+| [NativePlacementProbe](../Split/Bunny-Loader/samples/NativePlacementProbe/) | Diagnóstico de colocação e bancada | Probe de desenvolvimento; não habilitar junto do exemplo unificado se duplicar conteúdo |
 
-Os exemplos utilizam as APIs que realmente existem na integração Bunny Loader. Não são exemplos de tModLoader copiados sem adaptação.
+## Encontrar código no ExampleMod
+
+| Recurso | Diretório |
+| --- | --- |
+| Armas e ferramentas | [Content/Items](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/) |
+| Projéteis e callbacks por instância | [Content/Projectiles](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Projectiles/) |
+| NPC, IA e combate | [ExampleSlimeNPC.cs](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs) |
+| Hooks/policies do jogador | [Common/Players](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Players/) |
+| Eventos estáticos legados | [Common/Live](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/) |
+| Receitas | [Common/Recipes](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Recipes/) |
+| Conteúdo e assets importáveis | [Playable](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/) |
+
+Use o ExampleMod da mesma release do APK: pacotes antigos também se chamam
+`0.1.40`, mas têm hashes diferentes. [Checkpoint/hashes](../docs/STATUS.md).
+
+Os exemplos seguem o ExampleModBunny e os contratos reais do loader. Não
+exigem JS nem APIs de TLPro/tModLoader. Quantidade de fontes não é quantidade
+de ports completos: a [matriz dos exemplos](../Split/Bunny-Loader/docs/generated/example_completion/matrix.md)
+preserva lacunas e critérios. A referência JS serve como especificação de
+comportamento, sem virar dependência no caminho C#.

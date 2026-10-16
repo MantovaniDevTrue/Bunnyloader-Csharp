@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "mode": "Expected CSharp Roslyn compile rejection",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "cases": [
+    {
+      "id": "item_prefix",
+      "candidate": "item_prefixes",
+      "error": "CS0246",
+      "status": "pass"
+    },
+    {
+      "id": "item_recipes",
+      "candidate": "item_recipes",
+      "error": "CS1061",
+      "status": "pass"
+    },
+    {
+      "id": "npc_loot",
+      "candidate": "npc_loot",
+      "error": "CS1061",
+      "status": "pass"
+    },
+    {
+      "id": "projectile_tile_collision",
+      "candidate": "projectile_collisions",
+      "error": "CS1061",
+      "status": "pass"
+    },
+    {
+      "id": "player_dash",
+      "candidate": "player_dash",
+      "error": "CS1061",
+      "status": "pass"
+    }
+  ]
+}

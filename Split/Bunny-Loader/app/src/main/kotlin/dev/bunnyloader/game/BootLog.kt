@@ -63,7 +63,21 @@ object BootLog {
         }
     }
 
-    private fun logcatFile(ctx: Context) = File(ctx.filesDir, "hosted-logcat.log")
+    private fun logcatFile(ctx: Context, generation: Int = 0) =
+        File(ctx.filesDir, if (generation == 0) "hosted-logcat.log" else "hosted-logcat-prev$generation.log")
+
+    private fun rotateLogcat(ctx: Context) {
+        for (generation in 3 downTo 1) {
+            val source = logcatFile(ctx, generation - 1)
+            if (!source.exists()) continue
+            val destination = logcatFile(ctx, generation)
+            if (destination.exists()) destination.delete()
+            if (!source.renameTo(destination)) {
+                source.copyTo(destination, overwrite = true)
+                source.delete()
+            }
+        }
+    }
 
     /**
      * Captura o logcat DO PRÓPRIO processo para arquivo.
@@ -75,7 +89,10 @@ object BootLog {
      */
     fun captureLogcat(ctx: Context) {
         val out = logcatFile(ctx)
-        runCatching { out.writeText("") }
+        runCatching {
+            rotateLogcat(ctx)
+            out.writeText("SESSION_START pid=${android.os.Process.myPid()} unixMs=${System.currentTimeMillis()}\n")
+        }
         Thread {
             runCatching {
                 val pid = android.os.Process.myPid()
@@ -87,7 +104,7 @@ object BootLog {
                     // descartava as linhas do nosso próprio núcleo (giveItem,
                     // cheats, mods), que são justamente as que o usuário
                     // precisa conseguir mandar quando algo não funciona.
-                    val keep = line.contains(TAG) ||
+                    val keep = line.contains(TAG) || line.contains("BunnyCSharp") ||
                         line.contains("Unity") || line.contains("IL2CPP") ||
                         line.contains("DEBUG") || line.contains("libc") ||
                         line.contains("Fatal") || line.contains("FATAL") ||
@@ -112,10 +129,98 @@ object BootLog {
     fun read(ctx: Context): String =
         header(ctx) +
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
+            "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
+            "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
+            "\n--- último carregamento C# registrado (pode ser anterior) ---\n" + lastCSharpStartup(ctx) +
+            "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
+            "\n--- combate de NPCs e projéteis C# (MonoVM) ---\n" + lastCSharpEntityCombat(ctx) +
+            "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    private fun lastCSharpStartup(ctx: Context): String = runCatching {
+        val base = ctx.getExternalFilesDir(null)?.parentFile
+            ?: return@runCatching "(sem pasta de logs)"
+        val latest = File(base, "logs")
+            .listFiles { entry -> entry.name.startsWith("bunny_") && entry.name.endsWith(".txt") }
+            .orEmpty().maxByOrNull { it.name }
+            ?: return@runCatching "(sem log da sessão)"
+        val ageSeconds = ((System.currentTimeMillis() - latest.lastModified()) / 1000L)
+            .coerceAtLeast(0L)
+        val details = latest.useLines { lines ->
+            lines.filter { line ->
+                line.contains("[CSharp][Startup]") ||
+                    line.contains("C# carregou sem problemas") ||
+                    line.contains("inicio rapido: no mundo em")
+            }.take(24).toList().joinToString("\n")
+        }
+        "arquivo=${latest.name} atualizadoHa=${ageSeconds}s\n" +
+            details.ifBlank { "(sem medições de carregamento C# nesse log)" }
+    }.getOrElse { "(erro ao ler carregamento C#: ${it.javaClass.simpleName})" }
+
+    private fun lastCSharpEntityCombat(ctx: Context): String = runCatching {
+        val file = File(ctx.filesDir, "bunny-csharp/entity-combat-status.txt")
+        if (!file.isFile) return@runCatching "(sem telemetria de combate C# registrada nesta instalação)"
+        val ageSeconds = ((System.currentTimeMillis() - file.lastModified()) / 1000L)
+            .coerceAtLeast(0L)
+        "entity-combat-status.txt registrado há ${ageSeconds}s (pode ser de sessão anterior):\n" +
+            file.readText().take(1800)
+    }.getOrElse { "(erro ao ler telemetria: ${it.javaClass.simpleName})" }
+
+    private fun lastCSharpCompilation(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        val status = File(dir, "source-compile-status.txt")
+        if (status.isFile) {
+            val ageMs = (System.currentTimeMillis() - status.lastModified()).coerceAtLeast(0L)
+            append("source-compile-status.txt (registrado há ")
+                .append(ageMs / 1000L).append(" s):\n")
+            append(runCatching { status.readText().take(3200) }
+                .getOrElse { "(erro ao ler: ${it.javaClass.simpleName})" })
+            append('\n')
+        } else {
+            append("source-compile-status.txt: (sem compilação registrada)\n")
+        }
+        val profile = File(dir, "source-compile-diagnostics.txt.profile")
+        if (profile.isFile) {
+            append("perfil Roslyn:\n")
+            append(runCatching { profile.readText().take(1400) }
+                .getOrElse { "(erro ao ler: ${it.javaClass.simpleName})" })
+            append('\n')
+        }
+    }
+
+    private fun lastMonoCheckpoint(ctx: Context): String = runCatching {
+        val checkpoint = File(ctx.filesDir, "bunny-csharp/last-probe.txt")
+        if (!checkpoint.isFile) "(nenhuma tentativa registrada)\n"
+        else checkpoint.readText().take(2048).ifBlank { "(registro vazio)\n" }
+    }.getOrElse { "(erro ao ler checkpoint MonoVM: ${it.javaClass.simpleName})\n" }
+
+    private fun gameCrashTraces(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        for (name in listOf("native-game-probe-mode.txt", "native-game-module-maps.txt",
+            "native-game-abort-trace.txt", "native-game-abort-previous.txt")) {
+            append(name).append(":\n")
+            val value = runCatching { File(dir, name).readText().takeLast(8192) }
+                .getOrDefault("(sem registro)")
+            append(value).append('\n')
+        }
+    }
+
+    private fun lastIsolatedMonoWorker(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        for (name in listOf("isolated-worker-status.txt", "last-isolated-probe.txt")) {
+            append(name).append(":\n")
+            val value = runCatching { File(dir, name).readText().take(1600) }
+                .getOrDefault("(sem registro)")
+            append(value).append('\n')
+        }
+        val log = runCatching {
+            File(dir, "isolated-worker-logcat.txt").readLines().takeLast(30).joinToString("\n")
+        }.getOrDefault("(sem logcat do worker)")
+        append("logcat do worker:\n").append(log).append('\n')
+    }
 
     /** Versões, aparelho, data e os mods ligados: sem isso ninguém reproduz nada. */
     private fun header(ctx: Context): String = buildString {
@@ -159,34 +264,37 @@ object BootLog {
     }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
 
     /**
-     * A CAUSA primeiro, depois o resto.
+     * Indicios de falha primeiro, depois progresso do Mono e o resto.
      *
      * Quando a Unity aborta via JNI FatalError, a ART despeja um stack enorme
      * logo depois — e cortar pelo fim justamente esconde a mensagem, que vem
      * antes. Então destacamos as linhas de causa e só depois mostramos a cauda.
      */
-    private fun lastLogcat(ctx: Context): String = runCatching {
-        val lines = logcatFile(ctx).readLines()
-        if (lines.isEmpty()) return@runCatching "(vazio)"
-        val causes = lines.filter { l ->
-            l.contains("FatalError called") || l.contains("JNI DETECTED") ||
-                l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
-                l.contains("dlopen") || l.contains("Unable to") ||
-                l.contains("Failed to") || l.contains("E/Unity") ||
-                l.contains("E Unity") || l.contains("could not") ||
-                l.startsWith("E/$TAG")  // erro do próprio núcleo
-        }.distinct().take(15)
-        buildString {
+    private fun lastLogcat(ctx: Context): String = buildString {
+        var found = false
+        for (generation in 0..3) {
+            val capture = logcatFile(ctx, generation)
+            val lines = runCatching { capture.readLines() }.getOrDefault(emptyList())
+            if (lines.isEmpty()) continue
+            found = true
+            append(if (generation == 0) ">>> SESSAO ATUAL" else ">>> SESSAO ANTERIOR $generation")
+            append(" | ").append(lines.first().trim()).append('\n')
+            val causes = lines.filter { LogcatDiagnostics.isFailureHint(it) }.distinct().take(18)
             if (causes.isNotEmpty()) {
-                append(">>> CAUSA:\n")
-                causes.forEach { append("  ").append(it.trim()).append("\n") }
-                append(">>> resto:\n")
+                append(">>> INDICIOS DE FALHA (nao confirmam a causa):\n")
+                causes.forEach { append("  ").append(it.trim()).append('\n') }
             }
-            // Sem os quadros de stack repetidos, que não acrescentam nada.
+            val monoProgress = lines.filter { LogcatDiagnostics.isMonoProgress(it) }.takeLast(4)
+            if (monoProgress.isNotEmpty()) {
+                append(">>> ETAPAS MONO (contexto):\n")
+                monoProgress.forEach { append("  ").append(it.trim()).append('\n') }
+            }
+            append(">>> FIM DO LOGCAT:\n")
             lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
-                .takeLast(25).forEach { append(it).append("\n") }
+                .takeLast(30).forEach { append(it).append('\n') }
         }
-    }.getOrElse { "(sem captura)" }
+        if (!found) append("(sem captura)")
+    }
 
     /**
      * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por

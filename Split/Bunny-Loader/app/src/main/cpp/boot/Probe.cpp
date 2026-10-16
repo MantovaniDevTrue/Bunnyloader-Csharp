@@ -6,7 +6,6 @@
 #include "il2cpp/Api.h"
 #include "content/common/GameRefs.h"
 
-#include "script/bridge/ScriptEngine.h"
 #include "mods/ModLoader.h"
 #include "core/Config.h"
 #include "menu/Cheats.h"
@@ -18,6 +17,10 @@
 #include "content/walls/ModWalls.h"
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
+#include "experiments/csharp/CSharpModLoader.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/ProjectileWriteTest.h"
+#include "experiments/csharp/NpcAiHost.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -70,12 +73,9 @@ void probeThread() {
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
 
-            // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um).
-            if (!script::engine().init()) {
-                BL_ERROR("sonda: QuickJS nao iniciou");
-                return;
-            }
+            // Each language initializes only when an enabled mod needs it.
             mods::loadAll(config().modsDir, config().enabledMods);
+            csharpmods::loadAll();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
             // pelo launcher significa que o usuario desativou todos os mods.
             if (config().modsDir.empty() && mods::loadedCount() == 0) {
@@ -87,6 +87,13 @@ void probeThread() {
             registerUnloadedPool();
             registerUnloadedWall();
             prepareModNpcs();
+            csharp::startAutoSourceRuntime();
+            if (csharpmods::hasProjectileBehavior()) {
+                csharp::installProjectileWriteTest();
+            }
+            if (csharpmods::hasNpcBehavior()) {
+                csharp::installNpcAiHost();
+            }
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
@@ -94,6 +101,7 @@ void probeThread() {
             installFramePacing();
             graphics::installRenderHook();
             installModItemSave();
+            csharp::installCSharpWorldEntryGate();
             installModTileSave();
             installModNpcSave();
             ui::installCheatButton();

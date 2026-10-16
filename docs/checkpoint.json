@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-16",
+  "loader": {
+    "versionName": "0.1.10.16.90.29.62-csharp-projectile-initial-tick",
+    "versionCode": 222,
+    "sourceCommit": "fe424d7ca2b56bd5474eaaedd3706f17f6f03997",
+    "pullRequest": 34,
+    "buildRun": 38916992142,
+    "buildResult": "success",
+    "releaseUrl": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-38916992142-a1",
+    "apkSha256": "4813b5c490096774913e12e571e6b2148a1a44385f16ae6e2dcf58c92a9ba40e"
+  },
+  "androidValidation": {
+    "state": "user_confirmed",
+    "date": "2026-10-16",
+    "confirmedBy": "Mantovani",
+    "statement": ".62 foi perfeita",
+    "device": "Xiaomi 2109119DG",
+    "androidApi": 34,
+    "abi": "arm64-v8a",
+    "gameVersion": "1.4.5.8.6 (301720)",
+    "fps": 69,
+    "combatTelemetry": {
+      "queued": 280,
+      "executed": 280,
+      "rejected": 0
+    },
+    "scope": "User confirmed successful .62 Android test. PR #35 records 69 FPS, 280/280 callbacks and zero rejections for that test; not a guarantee for all loads or devices.",
+    "metricsEvidenceUrl": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/35"
+  },
+  "packages": [
+    {
+      "sample": "ExampleModCSharp",
+      "version": "0.1.40",
+      "fileName": "ExampleModCSharp-v0.1.40.bmod",
+      "size": 140711,
+      "sha256": "347fa274b2b50cfd57bf7f033edc8a4af03e56d9dbc1c13236e0e2331aee71c4"
+    },
+    {
+      "sample": "ArmorPoliciesCSharp",
+      "version": "0.1.0",
+      "fileName": "ArmorPoliciesCSharp-v0.1.0.bmod",
+      "size": 8135,
+      "sha256": "83b73a6fd875a670a71174a3756f98d9e4b43739d10049785ba1901497fda2de"
+    }
+  ]
+}

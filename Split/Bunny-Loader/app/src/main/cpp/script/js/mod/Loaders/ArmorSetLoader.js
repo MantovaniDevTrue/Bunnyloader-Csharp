@@ -36,6 +36,24 @@ class ArmorSetLoader {
 
     static CreateArmorSet(head, body, legs, text, primaryPart = 0) {
         const { ArmorSetBonuses, ArmorSetBonus } = Terraria.DataStructures;
+        const types = [...new Set([head, body, legs])].filter(type => type > 0);
+        const last = Math.max(0, ...types);
+        if (!Number.isSafeInteger(last) || last > 65535) throw new Error('ArmorSet ContentId invalido: ' + last);
+        let lookup = ArmorSetBonuses.SetsContaining;
+        if (!lookup || !Number.isSafeInteger(lookup.length) || lookup.length === 0)
+            throw new Error('ArmorSet SetsContaining indisponivel');
+        if (last >= lookup.length) {
+            if (typeof lookup.cloneResized !== 'function')
+                throw new Error('ArmorSet SetsContaining nao permite expandir para ' + (last + 1));
+            const next = lookup.cloneResized(last + 1);
+            if (!next || next.length <= last) throw new Error('ArmorSet falhou ao expandir SetsContaining');
+            for (let i = lookup.length; i < next.length; i++)
+                next[i] = ArmorSetBonus.newArray([]);
+            ArmorSetBonuses.SetsContaining = next;
+            lookup = next;
+        }
+        for (const type of types)
+            if (!lookup[type]) lookup[type] = ArmorSetBonus.newArray([]);
         ArmorSetLoader.#Want('armor.Bonus', ArmorSetLoader.#HookBonus);
 
         ArmorSetBonuses['void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)'](
@@ -45,8 +63,7 @@ class ArmorSetLoader {
         ArmorSetLoader.#sets.push({ head, body, legs });
 
         // O BuildLookup do jogo já rodou: o conjunto entra à mão na lista de cada peça.
-        for (const type of new Set([head, body, legs])) {
-            if (type <= 0) continue;
+        for (const type of types) {
 
             const old = ArmorSetBonuses.SetsContaining[type];
             const list = [];

@@ -1,0 +1,95 @@
+name: Test ExampleModCSharp 0.1.8 dual projectiles
+
+on:
+  push:
+    branches:
+      - csharp-examplemod-dual-projectile-0.1.8
+    paths:
+      - ".github/workflows/test-examplemod-csharp-dual-projectile.yml"
+      - "Split/Bunny-Loader/samples/ExampleModCSharp/**"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/Program.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/**"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compile-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Validate ExampleModCSharp source and declarations
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/samples/ExampleModCSharp/Tests/check_examples.py
+          python3 -m py_compile Split/Bunny-Loader/samples/ExampleModCSharp/Tests/check_examples.py
+      - name: Compile SDK and host Roslyn compiler
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          dotnet build "$ROOT/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" -c Release --nologo
+          dotnet build "$ROOT/experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" -c Release --nologo
+          mkdir -p "$RUNNER_TEMP/managed"
+          curl -fLsS --retry 3 \
+            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.android-arm64/8.0.23/microsoft.netcore.app.runtime.mono.android-arm64.8.0.23.nupkg" \
+            -o "$RUNNER_TEMP/mono.nupkg"
+          python3 "$ROOT/tools/stage_mono_runtime.py" \
+            "$RUNNER_TEMP/mono.nupkg" "$RUNNER_TEMP/native" "$RUNNER_TEMP/managed"
+          cp "$ROOT/experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll" \
+            "$RUNNER_TEMP/managed/"
+      - name: Execute full compiler and C# projectile regression suite
+        run: |
+          set -euo pipefail
+          dotnet run --project \
+            Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj \
+            -c Release -- \
+            "Split/Bunny-Loader/samples/SourceCSharpMod" "$RUNNER_TEMP/managed"
+      - name: Retrieve Android-validated 0.1.7 sprite assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/previous"
+          gh release download bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress \
+            --repo "${{ github.repository }}" \
+            --pattern "ExampleModCSharp-v0.1.7.bmod" \
+            --dir "$RUNNER_TEMP/previous"
+          test -s "$RUNNER_TEMP/previous/ExampleModCSharp-v0.1.7.bmod"
+      - name: Build 0.1.8 source-only test package
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release"
+          python3 Split/Bunny-Loader/samples/ExampleModCSharp/Tests/package_dual_example.py \
+            "$RUNNER_TEMP/previous/ExampleModCSharp-v0.1.7.bmod" \
+            "Split/Bunny-Loader/samples/ExampleModCSharp/Playable" \
+            "$RUNNER_TEMP/release/ExampleModCSharp-v0.1.8.bmod"
+          cd "$RUNNER_TEMP/release"
+          sha256sum ExampleModCSharp-v0.1.8.bmod > ExampleModCSharp-v0.1.8.bmod.sha256
+      - name: Publish prerelease for Android testing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="bunny-csharp-examplemod-0.1.8-dual-projectile-test"
+          DEST="$RUNNER_TEMP/release"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DEST/ExampleModCSharp-v0.1.8.bmod" \
+              "$DEST/ExampleModCSharp-v0.1.8.bmod.sha256" \
+              --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" \
+              "$DEST/ExampleModCSharp-v0.1.8.bmod" \
+              "$DEST/ExampleModCSharp-v0.1.8.bmod.sha256" \
+              --repo "${{ github.repository }}" --target "$GITHUB_SHA" \
+              --title "ExampleModCSharp 0.1.8 — dual weapon and projectile Android test" \
+              --notes "PRE-RELEASE for Bunny Loader C# .72 only. Second weapon ExampleWaveWand and independently curved ExampleWaveBolt, preserving original ExampleBolt managed OnHitNPC/OnKill. Reuses validated 0.1.7 sprites; no APK/runtime change. CI smoke checks both weapons, projectiles and 120-tick trajectories. Android gameplay and FPS are still unverified." \
+              --prerelease
+          fi

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "candidates": [
+    {
+      "id": "item_prefixes",
+      "priority": 1,
+      "jsBase": "ModPrefix",
+      "callbacks": [
+        "Apply",
+        "ModifyValue",
+        "CanRoll"
+      ],
+      "target": "BunnyPrefix (ainda inexistente)",
+      "reason": "Prefixos de itens e acessorios sao pedidos recorrentes. Inspecionar hook real de item prefix e o contrato de save antes de expor C#."
+    },
+    {
+      "id": "npc_loot",
+      "priority": 1,
+      "jsBase": "ModNPC",
+      "callbacks": [
+        "ModifyNPCLoot"
+      ],
+      "target": "BunnyNPC loot hook",
+      "reason": "Permitir drops condicionais sem depender do editor JS; exigir hook na thread do jogo e regras deterministicas."
+    },
+    {
+      "id": "projectile_spawning",
+      "priority": 1,
+      "jsBase": "ModProjectile",
+      "callbacks": [
+        "OnSpawn"
+      ],
+      "target": "ManagedProjectile spawn bridge",
+      "reason": "Separar pedido de spawn MonoVM e criacao na thread do Terraria, com limites por tick e validacao."
+    },
+    {
+      "id": "item_recipes",
+      "priority": 1,
+      "jsBase": "ModItem",
+      "callbacks": [
+        "AddRecipes"
+      ],
+      "target": "BunnyWeapon crafting bridge",
+      "reason": "Criacao e registro de receitas para itens C# exigem verificacao no sistema nativo."
+    },
+    {
+      "id": "npc_ai_lifecycle",
+      "priority": 2,
+      "jsBase": "ModNPC",
+      "callbacks": [
+        "AI",
+        "PreAI"
+      ],
+      "target": "BunnyNPC AI managed event",
+      "reason": "Ha prototipo AI, mas nao o ciclo completo por NPC a cada tick; medir custo e sincronizacao."
+    },
+    {
+      "id": "projectile_collisions",
+      "priority": 2,
+      "jsBase": "ModProjectile",
+      "callbacks": [
+        "OnTileCollide",
+        "OnKill"
+      ],
+      "target": "BunnyProjectile collision hooks",
+      "reason": "Callbacks de colisao e morte na API real antes de portar projeteis complexos."
+    },
+    {
+      "id": "item_tooltips",
+      "priority": 2,
+      "jsBase": "ModItem",
+      "callbacks": [
+        "ModifyTooltips"
+      ],
+      "target": "BunnyWeapon tooltip API",
+      "reason": "Permitir descricoes dinamicas e traducoes nos itens gerenciados."
+    },
+    {
+      "id": "player_dash",
+      "priority": 2,
+      "jsBase": "ModPlayer",
+      "callbacks": [
+        "UpdateDash",
+        "OnStartDash"
+      ],
+      "target": "BunnyPlayer movement events",
+      "reason": "ResetEffects/UpdateEquips nao garantem hooks de movimento; precisa API separada."
+    },
+    {
+      "id": "world_save",
+      "priority": 2,
+      "jsBase": "ModSystem",
+      "callbacks": [
+        "SaveWorldData",
+        "LoadWorldData"
+      ],
+      "target": "BunnyWorld persistence API",
+      "reason": "Persistencia por mundo para estados gerenciados, sem depender de campos nao serializados."
+    },
+    {
+      "id": "tile_interactions",
+      "priority": 3,
+      "jsBase": "ModTile",
+      "callbacks": [
+        "RightClick",
+        "ModifyLight"
+      ],
+      "target": "BunnyTile interaction API",
+      "reason": "Interacao e emissao de luz em tiles gerenciados com limites de custo por frame."
+    },
+    {
+      "id": "projectile_drawing",
+      "priority": 3,
+      "jsBase": "ModProjectile",
+      "callbacks": [
+        "PreDraw"
+      ],
+      "target": "BunnyProjectile draw bridge",
+      "reason": "Renderizacao de projeteis customizados exige roteamento correto para thread grafica."
+    },
+    {
+      "id": "npc_bestiary",
+      "priority": 3,
+      "jsBase": "ModNPC",
+      "callbacks": [
+        "SetBestiary"
+      ],
+      "target": "BunnyNPC bestiary bridge",
+      "reason": "Catalogo visual exige registro adicional, nao basta NPC.SetDefaults."
+    }
+  ]
+}

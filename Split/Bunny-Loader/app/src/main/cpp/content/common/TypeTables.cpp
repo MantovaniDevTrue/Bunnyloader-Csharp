@@ -206,7 +206,7 @@ int TypeTables::grow(int from, int to) {
     return grown;
 }
 
-void TypeTables::checkPending(int size) {
+void TypeTables::checkPending(int size, Regrown onRegrown) {
     // A cada quadro, e nao a cada 2 s como o watch: entre a criacao e o
     // aumento, uma consulta pelo tipo novo le fora do array. Custa uma leitura
     // de campo estatico por pendente.
@@ -221,6 +221,7 @@ void TypeTables::checkPending(int size) {
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
         tables_.push_back(f);
+        if (onRegrown) onRegrown(f, size);
         BL_DEBUG("%s: tabela %s criada pelo jogo; aumentada", what_, fieldName(f));
     }
 }

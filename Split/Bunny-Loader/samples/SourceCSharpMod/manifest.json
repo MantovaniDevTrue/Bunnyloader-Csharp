@@ -1,0 +1,22 @@
+{
+  "uid": "57a98f20-7a35-4d19-8ce8-079e25bb36a1",
+  "id": "sourcecsharp",
+  "name": "Source C# Test",
+  "version": "0.1.5",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Teste de fonte C#"
+    }
+  ],
+  "category": "Teste",
+  "summary": "Teste C# compilado no Android com SetDefaults, IA de perseguicao e Homing, OnHitNPC e OnKill em C#, com duas armas e dois projeteis no mesmo mod.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

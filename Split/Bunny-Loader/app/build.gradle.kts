@@ -53,11 +53,11 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.bunnyloader"
+        applicationId = "com.bunnyloader.csharptest"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 222
+        versionName = "0.1.10.16.90.29.62-csharp-projectile-initial-tick"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
@@ -160,21 +160,24 @@ android {
         )
     }
 
-    signingConfigs {
-        if (releaseKeys != null) {
-            create("release") {
-                storeFile = rootProject.file(releaseKeys.getValue("storeFile"))
-                storePassword = releaseKeys.getValue("storePassword")
-                keyAlias = releaseKeys.getValue("keyAlias")
-                keyPassword = releaseKeys.getValue("keyPassword")
-            }
+    val signingStorePath = System.getenv("BUNNY_SIGNING_STORE")
+    val stableSigning = if (!signingStorePath.isNullOrBlank()) {
+        signingConfigs.create("bunnyStable") {
+            storeFile = file(signingStorePath)
+            storePassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+            keyAlias = System.getenv("BUNNY_SIGNING_ALIAS")
+            keyPassword = System.getenv("BUNNY_SIGNING_PASSWORD")
         }
-    }
+    } else null
 
     buildTypes {
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            if (stableSigning != null) signingConfig = stableSigning
+        }
         release {
             isMinifyEnabled = false
+            if (stableSigning != null) signingConfig = stableSigning
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             signingConfig = signingConfigs.findByName("release")
         }
@@ -257,3 +260,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
 }
+
+
+

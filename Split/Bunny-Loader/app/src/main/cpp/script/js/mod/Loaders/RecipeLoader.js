@@ -11,7 +11,6 @@ class RecipeLoader {
     static #beyond = 0;
     static #groups = new Map();
     static #stations = new Set();   // os tiles de mod pedidos como estação
-
     static #byIndex = new Map();     // posição em Main.recipe -> condições e callbacks da receita de mod
     static #byAddress = new Map();   // o mesmo, pelo objeto Recipe
     static #filtering = false;       // alguma receita tem condição, ou algum GlobalRecipe.RecipeAvailable
@@ -58,7 +57,7 @@ class RecipeLoader {
     static SetGroup(name, group) { RecipeLoader.#groups.set(name, group); }
 
     // As tabelas que o jogo monta a partir das receitas, depois de todas.
-    static Finish() {
+    static Finish(strict = false) {
         if (!RecipeLoader.#added) return;
 
         const steps = [
@@ -70,7 +69,10 @@ class RecipeLoader {
             () => Terraria.ID.ContentSamples.FixItemsAfterRecipesAreAdded(),
             () => TileLoader.SetCraftingStations(RecipeLoader.#stations),
         ];
-        for (const step of steps) Safe.Run('receitas', step);
+        for (const step of steps) {
+            if (strict) step();
+            else Safe.Run('receitas', step);
+        }
 
         bl.log('receitas de mod: ' + RecipeLoader.#added + ' (total ' + Terraria.Recipe.numRecipes + ')');
         if (RecipeLoader.#beyond) {

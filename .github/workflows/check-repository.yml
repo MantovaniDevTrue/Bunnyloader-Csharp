@@ -1,0 +1,31 @@
+name: Check repository organization
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.md'
+      - 'docs/checkpoint.json'
+      - 'src/**'
+      - 'tools/**'
+      - 'tests/test_repository_checks.py'
+      - 'Split/Bunny-Loader/app/build.gradle.kts'
+      - 'Split/Bunny-Loader/samples/**'
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/tools/mods/pack.py'
+      - '.github/workflows/check-repository.yml'
+      - '.github/workflows/sync-bunny-source.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  navigation-and-checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/check_repository.py
+      - run: python3 -m unittest discover -s tests -p test_repository_checks.py -v

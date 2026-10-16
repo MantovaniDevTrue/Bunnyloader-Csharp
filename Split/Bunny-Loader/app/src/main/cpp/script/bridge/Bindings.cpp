@@ -19,6 +19,7 @@
 #include "script/api/Sounds.h"
 #include "script/api/Screen.h"
 #include "script/api/Console.h"
+#include "script/api/CSharpPrototypeApi.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
 #include "script/bridge/Members.h"
@@ -1873,6 +1874,7 @@ void installBindings(void* context) {
     installSoundsApi(ctx, bl);
     installScreenApi(ctx, bl);
     installConsoleApi(ctx, global, bl);
+    installCSharpPrototypeApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass

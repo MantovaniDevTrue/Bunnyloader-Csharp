@@ -2,6 +2,8 @@
 
 #if BL_HAVE_QUICKJS
 #include "content/sounds/AndroidAudio.h"
+#include "content/sounds/NativeSoundRouter.h"
+#include "content/sounds/NativeMusicRouter.h"
 #include "core/Log.h"
 #include "script/api/Texture.h"
 
@@ -61,7 +63,8 @@ JSValue sounds_play(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
 JSValue sounds_stop(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t stream = 0;
     if (!argInt(ctx, argc, argv, 0, &stream)) return JS_ThrowTypeError(ctx, "bl.sounds.stop(stream)");
-    runtime::content::stopSound(stream);
+    if (runtime::content::isSoundStyleToken(stream)) runtime::content::stopSoundStyleToken(stream);
+    else runtime::content::stopSound(stream);
     return JS_UNDEFINED;
 }
 
@@ -71,41 +74,33 @@ JSValue sounds_duration(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return JS_NewInt32(ctx, runtime::content::soundDuration(id));
 }
 
-JSValue sounds_enqueue(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t group = 0, id = 0, max = 1;
-    float left = 1, right = 1, rate = 1;
-    if (!argInt(ctx, argc, argv, 0, &group) || !argInt(ctx, argc, argv, 1, &id) ||
-        !argFloat(ctx, argc, argv, 2, &left) || !argFloat(ctx, argc, argv, 3, &right) ||
-        !argFloat(ctx, argc, argv, 4, &rate) || !argInt(ctx, argc, argv, 5, &max)) {
-        return JS_ThrowTypeError(ctx, "bl.sounds.enqueue(grupo, id, esquerda, direita, velocidade, limite, ignorar)");
+JSValue sounds_registerStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0, maxInstances = 1, limitBehavior = 1;
+    float volume = 1, pitch = 0, pitchVariance = 0;
+    if (!argInt(ctx, argc, argv, 0, &id) || !argFloat(ctx, argc, argv, 1, &volume) ||
+        !argFloat(ctx, argc, argv, 2, &pitch) || !argFloat(ctx, argc, argv, 3, &pitchVariance) ||
+        !argInt(ctx, argc, argv, 4, &maxInstances) || !argInt(ctx, argc, argv, 5, &limitBehavior)) {
+        return JS_ThrowTypeError(ctx, "bl.sounds.registerStyle(id, volume, pitch, pitchVariance, maxInstances, limitBehavior)");
     }
-    const int ignore = argc > 6 ? JS_ToBool(ctx, argv[6]) : 0;
-    if (ignore < 0) return JS_EXCEPTION;
-    return JS_NewInt32(ctx, runtime::content::enqueueSound(group, id, left, right, rate, max, ignore != 0));
+    return JS_NewInt32(ctx, runtime::content::registerSoundStyle(id, volume, pitch, pitchVariance,
+                                                                  maxInstances, limitBehavior));
 }
 
-JSValue sounds_cancel(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t handle = 0;
-    if (!argInt(ctx, argc, argv, 0, &handle)) return JS_ThrowTypeError(ctx, "bl.sounds.cancel(handle)");
-    runtime::content::cancelSound(handle);
-    return JS_UNDEFINED;
+JSValue sounds_playStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t style = -1, x = -1, y = -1;
+    float volumeScale = 1, pitchOffset = 0;
+    if (!argInt(ctx, argc, argv, 0, &style) || !argInt(ctx, argc, argv, 1, &x) ||
+        !argInt(ctx, argc, argv, 2, &y) || !argFloat(ctx, argc, argv, 3, &volumeScale) ||
+        !argFloat(ctx, argc, argv, 4, &pitchOffset)) {
+        return JS_ThrowTypeError(ctx, "bl.sounds.playStyle(style, x, y, volumeScale, pitchOffset)");
+    }
+    return JS_NewInt32(ctx, runtime::content::playSoundStyle(style, x, y, volumeScale, pitchOffset));
 }
 
-JSValue sounds_playbackState(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t handle = 0;
-    if (!argInt(ctx, argc, argv, 0, &handle)) return JS_ThrowTypeError(ctx, "bl.sounds.playbackState(handle)");
-    return JS_NewInt32(ctx, runtime::content::playbackState(handle));
-}
-
-JSValue sounds_active(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t group = 0;
-    if (!argInt(ctx, argc, argv, 0, &group)) return JS_ThrowTypeError(ctx, "bl.sounds.active(grupo)");
-    return JS_NewInt32(ctx, runtime::content::activeSound(group));
-}
-
-JSValue sounds_queueStats(JSContext* ctx, JSValueConst, int, JSValueConst*) {
-    const auto json = runtime::content::soundQueueStats();
-    return JS_ParseJSON(ctx, json.c_str(), json.size(), "soundQueueStats");
+JSValue sounds_findActiveStyle(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t style = -1;
+    if (!argInt(ctx, argc, argv, 0, &style)) return JS_ThrowTypeError(ctx, "bl.sounds.findActiveStyle(style)");
+    return JS_NewInt32(ctx, runtime::content::findActiveSoundStyle(style));
 }
 
 JSValue music_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
@@ -120,6 +115,7 @@ JSValue music_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     }
     const int id = runtime::content::registerMusic(path);
     if (id <= 0) return JS_ThrowInternalError(ctx, "bl.music.register: o Android recusou %s (ver o log)", path.c_str());
+    runtime::content::registerNativeMusicTrack(id);
     BL_DEBUG("musica: %s (id %d)", path.c_str(), id);
     return JS_NewInt32(ctx, id);
 }
@@ -140,6 +136,21 @@ JSValue music_state(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     return JS_NewInt32(ctx, runtime::content::musicState(id));
 }
 
+JSValue music_target(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0;
+    float masterVolume = 1;
+    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.target(id, masterVolume)");
+    if (argc > 1 && !argFloat(ctx, argc, argv, 1, &masterVolume)) return JS_EXCEPTION;
+    runtime::content::setNativeMusicTarget(id, masterVolume);
+    return JS_UNDEFINED;
+}
+
+JSValue music_fade(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t id = 0;
+    if (!argInt(ctx, argc, argv, 0, &id)) return JS_ThrowTypeError(ctx, "bl.music.fade(id)");
+    return JS_NewFloat64(ctx, runtime::content::nativeMusicFade(id));
+}
+
 } // namespace
 
 void installSoundsApi(JSContext* ctx, JSValue bl) {
@@ -149,16 +160,16 @@ void installSoundsApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("duration", 1, sounds_duration),
         JS_CFUNC_DEF("play", 4, sounds_play),
         JS_CFUNC_DEF("stop", 1, sounds_stop),
-        JS_CFUNC_DEF("enqueue", 7, sounds_enqueue),
-        JS_CFUNC_DEF("cancel", 1, sounds_cancel),
-        JS_CFUNC_DEF("playbackState", 1, sounds_playbackState),
-        JS_CFUNC_DEF("active", 1, sounds_active),
-        JS_CFUNC_DEF("queueStats", 0, sounds_queueStats),
+        JS_CFUNC_DEF("registerStyle", 6, sounds_registerStyle),
+        JS_CFUNC_DEF("playStyle", 5, sounds_playStyle),
+        JS_CFUNC_DEF("findActiveStyle", 1, sounds_findActiveStyle),
     };
     static const JSCFunctionListEntry musicFns[] = {
         JS_CFUNC_DEF("register", 1, music_register),
         JS_CFUNC_DEF("setVolume", 2, music_setVolume),
         JS_CFUNC_DEF("state", 1, music_state),
+        JS_CFUNC_DEF("target", 2, music_target),
+        JS_CFUNC_DEF("fade", 1, music_fade),
     };
     JSValue sounds = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, sounds, soundFns, sizeof soundFns / sizeof soundFns[0]);

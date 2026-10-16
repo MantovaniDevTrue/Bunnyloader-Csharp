@@ -1,0 +1,153 @@
+name: Check complete ExampleMod audit
+on:
+  push:
+    branches: [codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/samples/ExampleModCSharp/**'
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/tests/basic_items/**'
+      - 'Split/Bunny-Loader/tools/example_completion/**'
+      - 'Split/Bunny-Loader/tools/example_completion_audit.py'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/docs/generated/example_completion/**'
+      - '.github/workflows/check-example-completion.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: JonataOliveiraa/Bunny-Loader
+          ref: e608114efb15a3a021887a6132d9e2a487ba6b62
+          path: .audit-upstream
+      - name: Check all canonical JS examples and evidence gates
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tools/example_completion_audit.py --upstream-root ../../.audit-upstream --check
+          python3 tests/basic_items/check_lot_a_scope.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run real CSharp items-only and full-package compiler tests
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Guard Android auto-source V2 cache recovery
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          loader = Path("app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text()
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015"' in auto
+          assert 'error.rfind("Linha V2 inesperada", 0) == 0' in auto
+          assert 'defaultsApplied = applyManagedSourceDefaults(mod.id, defaults, &error)' in auto
+          assert 'tipo=" + fields[0]' in loader
+          assert '" campos=" + std::to_string(fields.size())' in loader
+          print("BUNNY_ANDROID_V2_CACHE_RECOVERY_GUARD=PASS")
+          PY
+      - name: Guard CSharp warm-start and stable compatible cache
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          auto = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          app = Path("app/build.gradle.kts").read_text()
+          assert any(line.strip().startswith('versionName = "0.1.10.16.90.29.') and line.strip().endswith('"') for line in app.splitlines())
+          assert 'kCacheVersion = "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015"' in auto
+          assert 'status.cached = !runtimeIdentity.empty() &&' in auto
+          assert 'readCache(cacheFile, mod.id, key, assembly,' in auto
+          assert 'g_cachedMods.fetch_add(1' in auto
+          assert 'g_compiledMods.fetch_add(1' in auto
+          compile_part = auto[auto.index("bool compile("):auto.index("bool parseCurves(")]
+          assert 'const auto deadline = started + std::chrono::seconds(180)' in compile_part
+          assert 'elapsed < 2500ms ? 35ms' in compile_part
+          assert 'elapsed < 12s ? 100ms : 300ms' in compile_part
+          assert compile_part.index('const std::string status = readText(path, 8192)') < compile_part.index('std::this_thread::sleep_for(elapsed <')
+          assert 'elapsed < 2s ? 35ms : 150ms' in auto
+          assert 'g_runtimeWarming.store(true, std::memory_order_release)' in auto
+          assert 'probeManagedRuntimePinnedThread(probe, "PINNED_MONO")' in auto
+          assert auto.index('g_runtimeWarming.store(true, std::memory_order_release)') < auto.index('note(&status, "applying")')
+          assert 'g_preWorldBindingsArmed.load(std::memory_order_acquire)' in auto
+          assert 'preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()' in auto
+          assert 'C# carregou sem problemas:' in auto
+          print("BUNNY_CSHARP_WARM_START_GUARD=PASS")
+          PY
+      - name: Guard optional Terraria Item.active lookup
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path("app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp").read_text()
+          start=source.index("void refreshLiveBasicItems()")
+          end=source.index("bool registerBasicItemPlaceholder",start)
+          refresh=source[start:end]
+          assert 'il2cpp::fieldOffset(item,"active")' not in refresh
+          assert 'itemActiveField=il2cpp::findField(item,"active")' in refresh
+          assert 'itemActiveField?static_cast<int>(api.field_get_offset(itemActiveField)):-1' in refresh
+          assert 'activeItem<0||runtime::field<uint8_t>(values[i],activeItem)' in refresh
+          assert 'if(!isBasicItem(type))return;' in refresh
+          assert 'runtime::field<int32_t>(object,typeOffset)' in refresh
+          print("BUNNY_OPTIONAL_ITEM_ACTIVE_LOOKUP_PASS")
+          PY
+      - name: Validate full ExampleMod CSharp V2 wire schema
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
+      - name: Test actual CSharp wire and native field/sound binding
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_wire_test.cpp -o /tmp/basic-wire-test
+          /tmp/basic-wire-test build/basic-items/source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_source_parser_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/basic-parser-test
+          /tmp/basic-parser-test
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/content_texture_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/content-texture-test
+          /tmp/content-texture-test samples/ExampleModCSharp/Playable/content --assets
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o /tmp/native-basic-test
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --nullable
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --int16
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --int32
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --enum
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --invalid
+          /tmp/native-basic-test build/basic-items/source-runtime-values.txt --range
+          /tmp/native-basic-test build/basic-items/capacity-source-runtime-values.txt --capacity
+          python3 tests/basic_items/check_csharp_tooltip_refresh.py
+          node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
+      - name: Execute native recipes and shared registries without QuickJS
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o /tmp/native-recipes-test
+          /tmp/native-recipes-test
+          /tmp/native-recipes-test --pump
+          /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
+          /tmp/native-recipes-test --probe-wire build/basic-items/probe-source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
+          /tmp/placement-probe-registration-test samples/NativePlacementProbe/Playable/content
+          /tmp/native-recipes-test --type
+          /tmp/native-recipes-test --bounds
+          /tmp/native-recipes-test --method
+          python3 tests/native_recipes/delivery_gate_test.py
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
+          /tmp/shared-registry-test
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/value_layout_test.cpp -o /tmp/value-layout-test
+          /tmp/value-layout-test
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o /tmp/native-items-no-js
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --recipes-only
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
+          /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExampleMod-Complete-Audit
+          path: |
+            Split/Bunny-Loader/docs/generated/example_completion/
+            docs/history/csharp-completion-plan.md
+            Split/Bunny-Loader/build/basic-items-results.json
+            Split/Bunny-Loader/build/basic-items/source-runtime-values.txt
+            Split/Bunny-Loader/build/basic-items/armor-source-runtime-values.txt

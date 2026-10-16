@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>BunnySourceSdk</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>12</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyArmorEffects.cs" Link="BunnyArmorEffects.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
+    <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
+  </ItemGroup>
+</Project>
+
+

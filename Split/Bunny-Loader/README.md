@@ -1,3 +1,6 @@
+> Documentação do Bunny Loader base (JavaScript). A extensão C# deste
+> repositório tem [guias e estado próprios](../../docs/README.md).
+
 <p align="center"><img src="_icons/launcher/titulo.png" alt="Bunny Loader"></p>
 
 # Bunny Loader

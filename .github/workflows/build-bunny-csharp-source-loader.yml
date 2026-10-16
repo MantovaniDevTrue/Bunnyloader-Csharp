@@ -1,0 +1,1793 @@
+name: Build Bunny CSharp Source Files Prototype
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/example-completion-v90-28
+      - codex/integrate-csharp-sdk-lot-a-20261015
+      - codex/csharp-native-policies-android-v90-29-42
+      - codex/csharp-native-visual-diagnostics-v90-29-43
+      - codex/csharp-native-perf-visual-v90-29-44
+      - codex/csharp-preworld-rehydration-v90-29-45
+      - codex/csharp-preworld-policy-deferred-v90-29-46
+      - codex/csharp-wing-editor-native-v90-29-47
+      - codex/csharp-wing-policy-diagnostics-v90-29-48
+      - codex/csharp-interactive-console-v90-29-49
+      - codex/csharp-managed-hurt-hooks-v90-29-50
+      - codex/csharp-hook-telemetry-editor-v90-29-51
+      - codex/csharp-hook-counters-visible-v90-29-52
+      - codex/csharp-hook-fault-isolation-v90-29-53
+      - codex/csharp-entity-lifecycle-lot-v90-29-55
+      - codex/csharp-entity-combat-callbacks-v90-29-59
+      - codex/csharp-entity-combat-telemetry-v90-29-60
+      - codex/csharp-projectile-native-curve-bridge-v90-29-61
+      - codex/csharp-projectile-initial-tick-v90-29-62
+      - codex/native-equips-fix-v90-27-6
+      - csharp-visual-effects-v90-27-wip
+      - csharp-composite-accessories-v90-26
+      - codex/combat-batch-v90-25
+      - csharp-hurt-spatial-context-v90-24
+      - csharp-hurt-attacker-array-fix-v90-23-1
+      - csharp-hurt-attacker-context-v90-23
+      - csharp-player-modify-hit-source-v90-22
+      - csharp-player-hit-source-layout-v90-21-2
+      - csharp-player-hit-source-diagnostics-v90-21-1
+      - csharp-player-hit-source-v90-21
+      - csharp-free-dodge-immunity-v90-20-1
+      - csharp-player-free-dodge-v90-20
+      - csharp-player-hurt-events-v90-19
+      - csharp-player-regeneration-lifecycle-v90-18
+      - csharp-respawn-local-player-v90-17-2
+      - csharp-respawn-enum-hotfix-v90-17-1
+      - csharp-global-player-respawn-v90-17
+      - csharp-shadow-tooltip-v90-16-2
+      - csharp-accessory-tooltips-v90-16-1
+      - csharp-bunnyplayer-hooks-v90-16
+      - csharp-late-prefix-restore-v90-15
+      - csharp-swift-sdk-verify-v90-14
+      - csharp-player-movespeed-v90-13
+      - csharp-prefix-tooltip-v90-12
+      - codex/prefix-restore-fix
+      - csharp-prefix-rehydrate-v90-10
+      - csharp-prefix-overload-v90-9
+      - csharp-prefix-forced-roll-v90-8
+      - csharp-prefix-restoration-v90-7
+      - csharp-prefix-firstlaunch-v90-6
+      - csharp-prefix-eligibility-v90-5
+      - csharp-prefix-persistence-v90-4
+      - csharp-prefix-accessory-tooltip-v90-3
+      - csharp-public-release-cleanup-v1
+      - csharp-private-apk-delivery-v3
+      - csharp-secure-signing-v3-public-safe
+      - csharp-prefix-reforge-v90-2-hotfix
+      - csharp-prefix-autoload-v90-1-hotfix
+      - csharp-prefix-gameplay-v90-experiment
+      - csharp-managed-npc-impulse-v86-experiment
+      - csharp-managed-gameplay-effects-v851-lifecycle-hotfix
+      - csharp-managed-gameplay-effects-v85-experiment
+      - csharp-managed-player-npc-context-v84-experiment
+      - csharp-managed-npc-snapshot-v83-experiment
+      - csharp-managed-hit-diagnostics-v82-experiment
+      - csharp-managed-event-context-v81-experiment
+      - csharp-per-projectile-profiler-v80-experiment
+      - csharp-managed-lifecycle-v79-1-experiment
+      - csharp-managed-heap-v79-experiment
+      - csharp-managed-memory-v78-experiment
+      - csharp-managed-mod-resume-v77-experiment
+      - csharp-managed-lifecycle-v76-experiment
+      - csharp-world-lifecycle-v75-experiment
+      - csharp-world-lifecycle-v74-cleanup
+      - csharp-world-lifecycle-v73-experiment
+      - csharp-live-ingress-v72-experiment
+      - csharp-lockdrops-v71-upgrade-fix
+      - bunny-csharp-nativeaot-prototype
+      - bunny-csharp-nativeaot-0.1.10.1
+      - bunny-csharp-nativeaot-0.1.10.2
+      - bunny-csharp-nativeaot-0.1.10.3
+      - bunny-csharp-nativeaot-0.1.10.4
+      - bunny-csharp-nativeaot-0.1.10.5
+      - bunny-csharp-source-0.1.10.11-interpreter
+      - bunny-csharp-source-0.1.10.12-managed-runtime
+      - bunny-csharp-source-0.1.10.12.1-staged-probe
+      - bunny-csharp-source-0.1.10.12.2-crash-checkpoint
+      - bunny-csharp-source-0.1.10.12.3-isolated-mono
+      - bunny-csharp-source-0.1.10.12.4-runtime-dependencies
+      - bunny-csharp-source-0.1.10.13-inprocess-gate
+      - bunny-csharp-source-0.1.10.14-callback-probe
+      - bunny-csharp-source-0.1.10.15-live-projectile-ai
+      - bunny-csharp-source-0.1.10.15.1-status-diagnostics
+      - bunny-csharp-source-0.1.10.15.2-source-uid-lookup
+      - bunny-csharp-source-0.1.10.16-roslyn-worker
+      - bunny-csharp-source-0.1.10.16.1-roslyn-checkpoints
+      - bunny-csharp-source-0.1.10.16.5-portable-sha256
+      - bunny-csharp-source-0.1.10.16.5-serial-emit
+      - bunny-csharp-source-0.1.10.16.5-nondeterministic-emit
+      - bunny-csharp-source-0.1.10.16.5-reference-trim
+      - bunny-csharp-source-0.1.10.16.6-roslyn-minimal-probe
+      - bunny-csharp-source-0.1.10.16.7-semantic-exit-probe
+      - bunny-csharp-source-0.1.10.16.8-native-exit-metadata
+      - bunny-csharp-source-0.1.10.16.9-native-tombstone
+      - bunny-csharp-source-0.1.10.16.10-signal-stack
+      - bunny-csharp-source-0.1.10.16.11-signal-rearm
+      - bunny-csharp-source-0.1.10.16.12-sigaction-watch
+      - bunny-csharp-source-0.1.10.16.13-mutex-caller-trace
+      - bunny-csharp-source-0.1.10.16.14-mutex-map-trace
+      - bunny-csharp-source-0.1.10.16.15-exit-order
+      - bunny-csharp-source-0.1.10.16.16-exit-caller
+      - bunny-csharp-source-0.1.10.16.17-sigsegv-origin
+      - bunny-csharp-source-0.1.10.16.18-crypto-jni-init
+      - bunny-csharp-source-0.1.10.16.19-managed-execution
+      - bunny-csharp-source-0.1.10.16.20-dll-cache-fingerprint
+      - bunny-csharp-source-0.1.10.16.21-world-lifecycles-bridge
+      - bunny-csharp-source-0.1.10.16.22-buffered-ai
+      - bunny-csharp-source-0.1.10.16.23-helper-class-fix
+      - bunny-csharp-source-0.1.10.16.24-homing-policy
+      - bunny-csharp-source-0.1.10.16.25-npc-ref-hotfix
+      - bunny-csharp-source-0.1.10.16.26-local-player-fallback
+      - bunny-csharp-source-0.1.10.16.27-onhit-buff
+      - bunny-csharp-source-0.1.10.16.28-onhit-precise
+      - bunny-csharp-source-0.1.10.16.29-roslyn-memory
+      - bunny-csharp-source-0.1.10.16.30-onkill-burn
+      - bunny-csharp-source-0.1.10.16.31-multi-content
+      - bunny-csharp-source-0.1.10.16.32-multicontent-homing
+      - bunny-csharp-source-0.1.10.16.33-spark-ai
+      - bunny-csharp-source-0.1.10.16.34-generic-projectile-ai
+      - bunny-csharp-source-0.1.10.16.35-examplemod-independent
+      - bunny-csharp-source-0.1.10.16.36-auto-loader
+      - bunny-csharp-source-0.1.10.16.37-auto-loader-polish
+      - bunny-csharp-source-0.1.10.16.38-auto-arm-fix
+      - bunny-csharp-source-0.1.10.16.39-menu-field-optional
+      - bunny-csharp-source-0.1.10.16.40-auto-combat
+      - bunny-csharp-source-0.1.10.16.41-buff
+      - bunny-csharp-source-0.1.10.16.42-player-accessory
+      - bunny-csharp-source-0.1.10.16.43-npc
+      - bunny-csharp-source-0.1.10.16.45-live-runtime
+      - bunny-csharp-source-0.1.10.16.46-live-npc-ai
+      - bunny-csharp-source-0.1.10.16.47-live-npc-syntax
+      - bunny-csharp-source-0.1.10.16.48-async-npc-ai
+      - bunny-csharp-source-0.1.10.16.49-mono-thread-lifecycle
+      - bunny-csharp-source-0.1.10.16.50-game-abort-trace
+      - bunny-csharp-source-0.1.10.16.51-crash-session-preservation
+      - bunny-csharp-source-0.1.10.16.52-mono-isolation-early-abort
+      - bunny-csharp-source-0.1.10.16.53-mono-pinned-thread-control
+      - bunny-csharp-source-0.1.10.16.54-mono-startup-stages
+      - bunny-csharp-source-0.1.10.16.55-mono-pre-domain-controls
+      - bunny-csharp-source-0.1.10.16.56-mono-domain-thread-audit
+      - bunny-csharp-source-0.1.10.16.57-mono-arm64-signals
+      - bunny-csharp-source-0.1.10.16.58-mono-gc-blocking-fix
+      - bunny-csharp-source-0.1.10.16.59-live-onhit
+      - bunny-csharp-source-0.1.10.16.60-auto-live-events
+      - bunny-csharp-source-0.1.10.16.61-auto-live-menu-getter
+      - bunny-csharp-source-0.1.10.16.62-auto-live-world-signal
+      - bunny-csharp-source-0.1.10.16.63-managed-event-queue
+      - bunny-csharp-source-0.1.10.16.64-managed-live-benchmark
+      - bunny-csharp-source-0.1.10.16.65-gameplay-perf-telemetry
+      - bunny-csharp-source-0.1.10.16.66-quickjs-monovm-parity
+      - bunny-csharp-source-0.1.10.16.67-unique-benchmark-assembly
+      - bunny-csharp-source-0.1.10.16.68-game-benchmark-asset-install
+      - bunny-csharp-source-0.1.10.16.69-managed-ai-parity
+      - bunny-csharp-source-0.1.10.16.70-live-gameplay-profiler
+    paths:
+      - ".github/workflows/build-bunny-csharp-source-loader.yml"
+      - ".github/workflows/check-csharp-native-tile-compile.yml"
+      - "Split/Bunny-Loader/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bunny-csharp-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      RUNTIME_TAG: bunny-private-build-inputs-v1
+      PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+      RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
+      RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install Android toolchain
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "ndk;30.0.16248370" "cmake;3.22.1"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Stage verified Unity 2021.3.56f2 Android player classes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          bash Split/Bunny-Loader/tools/android/stage_unity_classes.sh
+
+      - name: Ensure QuickJS
+        shell: bash
+        run: |
+          rm -rf Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+          git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+
+      - name: Configure Maven mirror
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Split/Bunny-Loader/settings.gradle.kts")
+          s = p.read_text()
+          s = s.replace("mavenCentral()", 'maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2") }')
+          p.write_text(s)
+          PY
+
+      - name: Verify signing secret integration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_STORE' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_PASSWORD' Split/Bunny-Loader/app/build.gradle.kts
+          grep -q 'BUNNY_SIGNING_ALIAS' Split/Bunny-Loader/app/build.gradle.kts
+          echo 'BUNNY_SECRET_SIGNING_CONTRACT=PASS'
+
+      - name: Verify game-process abort instrumentation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          cpp = Path("Split/Bunny-Loader/app/src/main/cpp")
+          api = (cpp / "script/api/CSharpPrototypeApi.cpp").read_text()
+          native = (cpp / "experiments/csharp/NativeAbortProbe.cpp").read_text()
+          assert "native-game-abort-trace.txt" in api
+          assert "gameNativePrevious" in api
+          assert 'rearmNativeAbortProbe("after-game-mono-probe")' in api
+          assert "gameMutexTraceInstalled" in api
+          assert "native-game-abort-previous.txt" in native
+          assert "std::rename(file.c_str(), previous.c_str())" in native
+          print("CSHARP_GAME_CRASH_TRACE_WIRING=PASS")
+          PY
+
+      - name: Verify retained crash session diagnostics
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          boot = (root / "app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt").read_text()
+          native = (root / "app/src/main/cpp/experiments/csharp/NativeAbortProbe.cpp").read_text()
+          assert "rotateLogcat(ctx)" in boot
+          assert "for (generation in 3 downTo 1)" in boot
+          assert "for (generation in 0..3)" in boot
+          assert "native-game-abort-previous.txt" in boot
+          assert "private fun gameCrashTraces(" in boot
+          assert "emitAbortHeader();" in native
+          assert "NATIVE_ABORT_SIGNAL pid=" in native
+          print("CSHARP_CRASH_SESSION_RETENTION=PASS")
+          PY
+
+      - name: Verify isolated MonoVM modes and early SIGABRT capture
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          api = (root / "app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          native = (root / "app/src/main/cpp/experiments/csharp/NativeAbortProbe.cpp").read_text()
+          log = (root / "app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt").read_text()
+          assert all(mode in api for mode in ("MONO_ONLY", "ABORT_ONLY", "FULL_DIAGNOSTICS"))
+          assert 'selectedMode != "MONO_ONLY" && selectedMode != "NO_MONO"' in api
+          assert 'selectedMode != "PINNED_MONO" && selectedMode != "LIBRARY_ONLY"' in api
+          assert 'selectedMode == "FULL_DIAGNOSTICS"' in api
+          assert 'gameProbeMode' in api and 'gameModuleMaps' in api
+          assert 'ABORT_CRITICAL_V2 pid=' in native
+          assert 'emitCriticalAbortSnapshot(signal, info, raw);' in native
+          assert 'persistGameNativeModuleMaps' in native
+          assert 'native-game-module-maps.txt' in log
+          print("CSHARP_MONO_ISOLATION_AND_CRASH_CONTEXT=PASS")
+          PY
+
+      - name: Stress test concurrent managed ingress queue
+        shell: bash
+        run: |
+          c++ -std=c++20 -O2 -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/managed_live_ingress_smoke.cpp \
+            -o "$RUNNER_TEMP/managed_live_ingress_smoke"
+          "$RUNNER_TEMP/managed_live_ingress_smoke"
+          echo "CSHARP_MANAGED_INGRESS_FIFO25K_CONCURRENCY=PASS"
+
+      - name: Validate 25k managed callback limit and FIFO64
+        shell: bash
+        run: |
+          python3 Split/Bunny-Loader/tests/run_managed_live_queue.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (root / "experiments/csharp/ManagedLiveEventQueue.h").read_text()
+          status = (root / "experiments/csharp/ManagedRuntime.h").read_text()
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "kEventLimit = 25000" in header
+          assert "kCapacity = 64" in header
+          assert "g_liveHitQueue.pop(&event)" in runtime
+          assert "g_liveHitQueue.push({" in runtime
+          assert "g_liveHitQueue.clear();" in runtime
+          assert "g_liveHitInFlight" in runtime
+          assert "g_liveIngress.push(" in runtime
+          assert "g_liveIngress.pop(&event)" in runtime
+          assert "g_liveIngress.depth()" in runtime
+          assert "ManagedLiveIngressQueue g_liveIngress" in runtime
+          live_ingress = runtime.split("void queueManagedLiveEvent(", 1)[1].split("void queueManagedLiveHit(", 1)[0]
+          assert "std::try_to_lock" not in live_ingress
+          assert "g_liveIngress.dropped()" in runtime
+          assert "addManagedCounter(status.dropped, status.lockDrops);" in runtime
+          assert "addManagedCounter(status.dropped, g_liveIngress.dropped());" in runtime
+          assert "ManagedLiveEventQueue::kEventLimit" in runtime
+          assert 'g_liveHitStatus.phase = "draining"' in runtime
+          assert 'g_liveHitStatus.phase = "limit-reached"' in runtime
+          assert "g_liveHitStatus.queued >= 512" not in runtime
+          assert "tick > 512" not in runtime
+          for name in ["queueDepth", "maxQueueDepth", "queueCapacity", "eventLimit", "lockDrops", "inFlight"]:
+              assert name in status and f'"{name}"' in api
+          print("BUNNY_CSHARP_MANAGED_LIVE_QUEUE_LIMITS=PASS")
+          PY
+
+      - name: Verify multi-projectile FIFO64 routing and event caps
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -I"$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_multi_live_ingress_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-multi-live-ingress"
+          "$RUNNER_TEMP/managed-multi-live-ingress"
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          auto = (root / "experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          hit = (root / "experiments/csharp/ManagedHitHook.cpp").read_text()
+          kill = (root / "experiments/csharp/ManagedKillHook.cpp").read_text()
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          for token in (
+              "enableManagedLiveProjectile", "g_additionalLiveByType",
+              "pushAdditional(", "callbackClass", "disarmAdditionalLiveBindings",
+              "managedLiveProjectileStatuses", "g_liveIngress.pop(&event)"
+          ):
+              assert token in runtime, token
+          for label, data in (("hit", hit), ("kill", kill)):
+              assert "isManagedLiveProjectileBound(type)" in data, label
+          assert "enableManagedLiveProjectile(" in auto
+          assert "sourceLiveProjectileStatus" in api
+          print("BUNNY_CSHARP_MULTI_LIVE_BINDING_GUARDS=PASS")
+          PY
+
+      - name: Run Codex managed lifecycle and failure isolation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/tests/run_managed_lifecycle_regressions.py
+
+      - name: Verify optional CSharp per-projectile profiler and isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          header=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "struct ManagedLivePerfProjectileStatus" in header
+          assert "std::vector<ManagedLivePerfProjectileStatus> projectiles;" in header
+          assert "std::array<PerfProjectileCounters, ManagedLiveIngressQueue::kBindingCount> g_perfProjectileCounters{};" in runtime
+          assert "const size_t perfSlot = binding ?" in runtime
+          assert "event.bindingSlot + 1" in runtime
+          assert "auto& projectilePerf = g_perfProjectileCounters[perfSlot];" in runtime
+          assert "if (samplePerf)" in runtime
+          assert "projectilePerf.callbacks.fetch_add(1" in runtime
+          assert "projectilePerf.queueSamples.fetch_add(1" in runtime
+          assert "projectilePerf.failures.fetch_add(1" in runtime
+          assert "perfPercentileUs(" in runtime
+          assert "resetPerfCounters();" in runtime
+          assert "result.projectiles.push_back(std::move(item));" in runtime
+          assert 'JS_SetPropertyStr(ctx, out, "projectiles", projectiles);' in api
+          for symbol in ("callbacksSampled", "hitSamples", "killSamples", "queueWaitAvgUs",
+                         "queueWaitMaxUs", "callbackAvgUs", "callbackMaxUs",
+                         "callbackP90Us", "callbackCpuAvgUs", "callbackCpuMaxUs",
+                         "failures", "enabled"):
+              assert f'"{symbol}"' in api
+          perf=runtime.split("void queueManagedLiveEvent(", 1)[1].split(
+              "void queueManagedLiveHit(", 1)[0]
+          assert "g_perfProjectileCounters" not in perf
+          assert "std::lock_guard<std::mutex>" not in perf
+          print("BUNNY_CSHARP_OPT_IN_PER_PROJECTILE_PROFILER=PASS")
+          PY
+
+      - name: Verify optional Mono heap and assembly cache reuse counters
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          cpp=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          hdr=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          for symbol in ("mono_gc_get_heap_size", "mono_gc_get_used_size"):
+              assert f'resolve<MonoGcSizeFn>("{symbol}")' in cpp
+          assert "using MonoGcSizeFn = int64_t (*)();" in cpp
+          assert "status.monoGcStatsAvailable = status.monoReady &&" in cpp
+          assert "g_api.gcHeapSize && g_api.gcUsedSize;" in cpp
+          assert "status.monoGcHeapBytes = g_api.gcHeapSize();" in cpp
+          assert "status.monoGcUsedBytes = g_api.gcUsedSize();" in cpp
+          assert "g_liveMethodCacheHits" in cpp
+          assert "g_liveMethodCacheMisses" in cpp
+          assert "g_liveAssemblyOpenAttempts" in cpp
+          assert "g_liveAssemblyOpenSuccesses" in cpp
+          assert "g_liveAssemblyOpenPaths.insert(assemblyPath)" in cpp
+          assert "++g_liveMethodCacheHits;" in cpp
+          assert "++g_liveMethodCacheMisses;" in cpp
+          assert "int64_t monoGcHeapBytes = 0;" in hdr
+          assert "int64_t monoGcUsedBytes = 0;" in hdr
+          for field in ("monoGcStatsAvailable", "monoGcHeapBytes",
+                        "monoGcUsedBytes", "liveMethodCacheHits",
+                        "liveMethodCacheMisses", "liveAssemblyOpenAttempts",
+                        "liveAssemblyOpenSuccesses", "distinctLiveOpenedAssemblyPaths"):
+              assert f'"{field}"' in api, field
+          assert "mono_gc_collect(" not in cpp
+          assert "mono_domain_unload(" not in cpp
+          print("BUNNY_CSHARP_OPTIONAL_MONO_HEAP_AND_REUSE_TELEMETRY=PASS")
+          PY
+
+      - name: Verify CSharp memory snapshot and world lifecycle diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I "$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_memory_snapshot_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-managed-heap"
+          "$RUNNER_TEMP/managed-managed-heap"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          auto=(root/"experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "ManagedMemoryStatus managedMemoryStatus(bool resetBaseline)" in runtime
+          assert "readManagedProcMemory()" in runtime
+          assert "g_sourceLiveEntries.size()" in runtime
+          assert "g_memoryBaselineRssKb" in runtime
+          assert "autoWorldLifecycleStatus()" in auto
+          assert "g_worldLoads.fetch_add(1" in auto
+          assert "g_worldExits.fetch_add(1" in auto
+          assert "g_worldRebindSchedules.fetch_add(1" in auto
+          assert 'sourceMemoryStatus' in api
+          assert 'sourceMemoryBaseline' in api
+          assert "JS_NewInt64(ctx, mem.rssKb)" in api
+          assert "JS_NewInt32(ctx, mem.cachedAssemblyPaths)" in api
+          print("BUNNY_CSHARP_MEMORY_LIFECYCLE_INTEGRATION=PASS")
+          PY
+
+      - name: Verify independent per-mod pause and world queue reset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I "$ROOT/app/src/main/cpp" \
+            "$ROOT/tests/managed_live_lifecycle_smoke.cpp" \
+            -o "$RUNNER_TEMP/managed-live-lifecycle"
+          "$RUNNER_TEMP/managed-live-lifecycle"
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          runtime=(root/"ManagedRuntime.cpp").read_text()
+          ingress=(root/"ManagedLiveIngressQueue.h").read_text()
+          auto=(root/"AutoSourceRuntime.cpp").read_text()
+          assert "pauseBinding(int bindingSlot, std::atomic<int>& armedType)" in ingress
+          assert "g_liveIngress.pauseBinding(i, entry.armedType)" in runtime
+          assert "g_liveHitActiveBindingSlot" in runtime
+          assert "pauseManagedLiveMod(" in runtime
+          assert "g_worldEpoch.fetch_add(1" in auto
+          assert "g_worldTransitionMutex" in auto
+          assert "scheduleAutoLiveBindings()" in auto
+          assert "g_liveBoundEpoch" in auto
+          assert "if (context.gameMenu != 1 && context.netMode == 0) {" in auto
+          assert "updateManagedNpcBuffDispatcherOnGameThread();" in auto
+          assert "pauseManagedLiveHit();" in auto
+          assert "bindLiveEventsOnWorld(id, type, work, epoch)" in auto
+          assert "g_pendingLiveSpecs = std::move(bindings)" in auto
+          assert "g_worldMenuPollFrames" in auto
+          assert "resumeManagedLiveMod(" in runtime
+          assert "entry.armedType.store(entry.type" in runtime
+          api = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          assert 'sourceLiveModResume' in api
+          assert 'CONFIRM_RESUME_MOD' in api
+          print("BUNNY_CSHARP_WORLD_EPOCH_AND_MOD_PAUSE_GUARDS=PASS")
+          PY
+
+      - name: Validate opt-in 25k MonoVM benchmark guards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          header=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          for token in [
+              "managedBenchmarkProducer", "startManagedLiveBenchmark",
+              "managedLiveBenchmarkStatus", "stopManagedLiveBenchmark",
+              "g_liveHitQueue.push({tick, 18, (tick & 1) == 0})",
+              "g_liveHitStatus.processed == ManagedLiveEventQueue::kEventLimit",
+              "kBenchmarkTimeout = std::chrono::seconds(120)",
+              "kBenchmarkInterval = std::chrono::microseconds(400)",
+              "g_liveHitGeneration", "finishBenchmarkErrorLocked",
+              'g_liveBenchmark.phase = "completed"',
+              '"benchmark-timeout"', '"benchmark-cancelled"',
+              "g_liveBenchmarkAttempted"
+          ]:
+              assert token in runtime, token
+          assert "struct ManagedLiveBenchmarkStatus" in header
+          assert "CONFIRM_25000_CSHARP_CALLBACKS" in api
+          for function in [
+              "sourceLiveBenchmarkStart", "sourceLiveBenchmarkStatus",
+              "sourceLiveBenchmarkStop"
+          ]:
+              assert f'"{function}"' in api
+          assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
+          print("BUNNY_CSHARP_REAL_MANAGED_BENCHMARK_GUARDS=PASS")
+          PY
+
+      - name: Verify opt-in gameplay performance telemetry
+        shell: bash
+        run: |
+          python3 Split/Bunny-Loader/tests/run_managed_live_queue.py
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          header=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          queue=(root/"experiments/csharp/ManagedLiveEventQueue.h").read_text()
+          cheats=(root/"menu/Cheats.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          for token in [
+              "g_perfState", "g_perfUpdateBins", "g_perfQueueTotalUs",
+              "g_perfCallbackTotalUs", "g_perfLockDropBaseline",
+              "noteManagedLivePerfUpdate", "startManagedLivePerf",
+              "managedLivePerfStatus", "stopManagedLivePerf",
+              "kPerfDurationNs = 15000000000LL",
+              "g_perfState.store(1, std::memory_order_release)",
+              "g_perfCallbacks.fetch_add(1",
+              "const std::string modId = binding ? binding->modId : g_liveHitStatus.modId",
+              "const std::string dll = binding ? binding->assemblyPath : g_liveHitAssembly",
+              "g_liveHitInFlight = true",
+              "g_liveHitInFlight = false"
+          ]:
+              assert token in runtime, token
+          assert "struct ManagedLivePerfStatus" in header
+          assert "uint64_t enqueuedAtNs = 0" in queue
+          assert "bl::csharp::noteManagedLivePerfUpdate();" in cheats
+          for function in ("sourcePerfStart","sourcePerfStatus","sourcePerfStop"):
+              assert f'"{function}"' in api
+          assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
+          assert "g_liveHitType.load(std::memory_order_acquire)" in runtime
+          assert "g_liveIngress.push(" in runtime
+          assert "g_liveIngress.pop(&event)" in runtime
+          assert "g_liveIngress.depth()" in runtime
+          assert "ManagedLiveIngressQueue g_liveIngress" in runtime
+          live_ingress = runtime.split("void queueManagedLiveEvent(", 1)[1].split("void queueManagedLiveHit(", 1)[0]
+          assert "std::try_to_lock" not in live_ingress
+          print("CSHARP_GAMEPLAY_PROFILER_AND_LOCK_GUARDS=PASS")
+          PY
+
+      - name: Verify real gameplay profiling extensions have safe sampling guards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          header=(root/"experiments/csharp/ManagedRuntime.h").read_text()
+          bridge=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          projectile=(root/"experiments/csharp/ManagedProjectileHook.cpp").read_text()
+          for name in (
+              "g_perfCallbackCpuTotalUs", "perfThreadCpuNs",
+              "g_perfQueueBins", "g_perfCallbackBins", "g_perfCallbackCpuBins",
+              "perfRecordUs", "perfPercentileUs", "g_perfAccepted",
+              "g_perfProcessed", "g_perfFailed", "g_perfQueueDropped",
+              "g_perfProjectileCurveUpdates", "g_perfProjectileVelocityWrites",
+              "g_perfState.load(std::memory_order_relaxed) == 2",
+              "g_vmComparePending || g_vmCompare.running",
+          ):
+              assert name in runtime, name
+          for name in (
+              "updateP99Ms", "callbackP90Us", "callbackP99Us", "callbackCpuAvgUs",
+              "callbackCpuMaxUs", "callbackCpuP90Us", "queueWaitP90Us",
+              "queueWaitP99Us", "eventsAccepted", "eventsProcessed",
+              "eventsQueueDropped", "projectileCurveUpdates",
+              "projectileVelocityWrites",
+          ):
+              assert name in header and name in bridge, name
+          assert "noteManagedLivePerfProjectileCurveUpdate();" in projectile
+          assert "noteManagedLivePerfProjectileVelocityWrite();" in projectile
+          assert 'if (g_perfState.load(std::memory_order_relaxed) == 2)' in runtime
+          assert 'g_perfCallbacks.fetch_add(1' in runtime
+          assert 'g_perfQueueSamples.fetch_add(1' in runtime
+          assert 'g_perfCallbackCpuTotalUs.fetch_add(cpuUs' in runtime
+          assert 'g_perfState.store(1, std::memory_order_release)' in runtime
+          assert 'sourcePerfStart' in bridge and 'sourcePerfStatus' in bridge
+          print("BUNNY_CSHARP_V70_REAL_GAMEPLAY_PROFILER_GUARDS=PASS")
+          PY
+
+      - name: Verify identical QuickJS and MonoVM math benchmark
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader")
+          cpp=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          api=(root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          h=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text()
+          cs=(root/"experiments/csharp/BunnyVmBenchmark67/Kernel.cs").read_text()
+          for t in ["0xA5A5A5A5","0x9E3779B9","0x85EBCA6B"]:
+              assert t in api and t.lower() in cs.lower(), t
+          for t in ["BunnyVmBenchmark67.dll", "g_vmComparePending", "runVmCompareMono",
+                    "compareThreadCpuNs", "compareRssKb", "beginVmCompare",
+                    "vmCompareStatus", "g_pinnedWake.notify_one()"]:
+              assert t in cpp, t
+          for t in ["JS_Call(ctx, routine", "JS_ToInt32(ctx, &sample.jsResult",
+                    "vmCompareJsThreadCpuNs", "vmCompareProcessRssKb",
+                    "vmCompareStart", "vmCompareStatus"]:
+              assert t in api, t
+          assert "struct VmCompareStatus" in h
+          assert 'math ? "BunnyLoader.VmBenchmark67" : "BunnyLoader.VmGameplay69"' in cpp
+          assert '"Execute"' in cpp and 'g_api.findMethod(klass, methodName, 2)' in cpp
+          assert "g_vmCompare.monoResult" in cpp
+          assert "done.result == g_vmCompare.jsResult" in cpp
+          assert "JS_EVAL_TYPE_GLOBAL" in api
+          assert "mod.applied && mod.worldReady && mod.netMode == 0" in api
+          print("BUNNY_CSHARP_QUICKJS_MONOVM_MATCHED_MATH_GUARDS=PASS")
+          PY
+
+      - name: Verify distinct versioned benchmark source binding
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader")
+          native=(root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          kernel=(root/"experiments/csharp/BunnyVmBenchmark67/Kernel.cs").read_text()
+          project=(root/"experiments/csharp/BunnyVmBenchmark67/BunnyVmBenchmark67.csproj").read_text()
+          for constant in ("0xA5A5A5A5", "0x9E3779B9", "0x85EBCA6B"):
+              assert constant in kernel and constant in (
+                  root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          assert '"BunnyVmBenchmark67.dll"' in native
+          assert '"BunnyLoader.VmBenchmark67"' in native
+          assert '"Execute"' in native and 'g_api.findMethod(klass, methodName, 2)' in native
+          assert "AssemblyName>BunnyVmBenchmark67</AssemblyName" in project
+          assert "public static int Execute(int iterations, int seed)" in kernel
+          assert "result == g_vmCompare.jsResult" in native or "done.result == g_vmCompare.jsResult" in native
+          print("BUNNY_BENCHMARK67_UNIQUE_MANAGED_ASSEMBLY_SOURCE=PASS")
+          PY
+
+      - name: Verify AI benchmark parity API and original Bunny JS AI patterns
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          native = (root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (root/"app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text()
+          bridge = (root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          ai = (root/"experiments/csharp/BunnyVmGameplay69/Kernel.cs").read_text()
+          for name in ["kVmProjectileJs", "kVmNpcJs", "jsVmGameplayCompareStart", "vmGameplayCompareStart"]:
+              assert name in bridge, name
+          for name in ["Projectile(int ticks, int seed)", "Npc(int ticks, int seed)", "Math.Abs(dx)"]:
+              assert name in ai, name
+          assert "int kind = 0;" in header
+          assert '"BunnyVmGameplay69.dll"' in native
+          assert 'g_api.findMethod(klass, methodName, 2)' in native
+          assert 'kind == 1 ? "Projectile" : kind == 2 ? "Npc" : "Execute"' in native
+          assert 'sample.kind = kind;' in bridge
+          assert 'kind == 0 ? 4096 : 64' in native and 'kind == 0 ? 4096 : 64' in bridge
+          for loader, name in [("ProjectileLoader.js", "m.AI(p)"), ("NPCLoader.js", "m.AI(npc)")]:
+              folder = root/"app/src/main/cpp/script/js/mod/Loaders"
+              assert name in (folder/loader).read_text(), loader
+          print("CSHARP_AI_SIMULATION_PARITY_SOURCE_GUARDS=PASS")
+          PY
+
+      - name: Verify benchmark assembly extracted before game core loads
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/GameActivity.kt").read_text()
+          worker = Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt").read_text()
+          required = [
+              'ensureVmBenchmarkAssembly(assembly)',
+              'assets.open("managed/framework.sha256")',
+              'assets.open("managed/$name")',
+              'listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll")',
+              'val dir = File(filesDir, "bunny-csharp")',
+              'sha256(temporary) == expected',
+              'sha256(target) == expected',
+              'temporary.renameTo(target)',
+              '"$name.game.tmp"',
+          ]
+          for token in required:
+              assert token in src, token
+          assert src.index('runCatching { ensureVmBenchmarkAssembly(assembly) }') < src.index('startNativeCore() else')
+          assert 'private fun installManagedFramework(dir: File)' in worker
+          assert 'assets.list("managed")' in worker
+          print("BUNNY_CSHARP_GAME_ASSEMBLY_EXTRACTION_GUARDS=PASS")
+          PY
+
+      - name: Verify native MonoVM owner controls
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (root / "experiments/csharp/ManagedRuntime.h").read_text()
+          assert "NO_MONO" in api and "PINNED_MONO" in api
+          assert 'result.phase = "no-mono-control"' in api
+          assert "probeManagedRuntimePinnedThread(assembly, selectedMode)" in api
+          assert "pinnedOwnerTid" in api
+          assert "pthread_create(&thread" in runtime
+          assert "pthread_detach(thread)" in runtime
+          assert "g_pinnedWake.wait" in runtime
+          assert "probeManagedRuntime(assembly)" in runtime
+          assert "probeManagedRuntimePinnedThread" in header
+          print("MONOVM_PINNED_THREAD_CONTROL_CHECK=PASS")
+          PY
+
+      - name: Verify staged MonoVM startup isolation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          cpp = Path("Split/Bunny-Loader/app/src/main/cpp")
+          api = (cpp / "script/api/CSharpPrototypeApi.cpp").read_text()
+          runtime = (cpp / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          header = (cpp / "experiments/csharp/ManagedRuntime.h").read_text()
+          for mode in ("LIBRARY_ONLY", "DOMAIN_ONLY", "ATTACH_ONLY", "PINNED_MONO", "NO_MONO"):
+              assert mode in api
+          assert "probeManagedRuntimeStartupStage(assembly, stage)" in runtime
+          assert "trace(\"library-only-verified\")" in runtime
+          assert "trace(\"domain-only-verified\")" in runtime
+          assert "trace(\"attach-only-verified\")" in runtime
+          assert "g_pinnedStage = stage;" in runtime
+          assert "probeManagedRuntimePinnedThread" in header
+          assert 'selectedMode != "ATTACH_ONLY"' in api
+          print("MONOVM_STARTUP_STAGE_ISOLATION=PASS")
+          PY
+
+      - name: Verify pre-domain MonoVM controls
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          for name in ("PATH_ONLY", "SYSTEM_NATIVE_ONLY", "LIBRARY_ONLY", "DOMAIN_ONLY", "ATTACH_ONLY"):
+              assert name in runtime and name in api
+          pre = runtime.split("ManagedRuntimeStatus probeManagedRuntimeStartupStage(", 2)[-1].split("ManagedRuntimeStatus probeManagedRuntimePinnedThread(", 1)[0]
+          assert pre.index('trace("path-only-verified")') < pre.index('trace("stage-checking-system-native")')
+          assert pre.index('trace("system-native-only-verified")') < pre.index('trace("stage-initializing-domain")')
+          assert pre.index('trace("stage-initializing-domain")') < pre.index('trace("domain-only-verified")')
+          assert 'selectedMode == "PATH_ONLY"' in api and 'selectedMode == "SYSTEM_NATIVE_ONLY"' in api
+          assert 'selectedMode != "PATH_ONLY" && selectedMode != "SYSTEM_NATIVE_ONLY"' in api
+          print("MONOVM_PRE_DOMAIN_CONTROL_CHECK=PASS")
+          PY
+
+      - name: Build and validate source-only CSharp mod
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          CPP="$ROOT/app/src/main/cpp"
+          TEST="$RUNNER_TEMP/bunny-csharp-source-parser-test"
+          dotnet build "$ROOT/experiments/csharp/SourceCSharpSyntaxCheck/SourceCSharpSyntaxCheck.csproj" \
+            -c Release --nologo
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I"$CPP" \
+            "$CPP/experiments/csharp/SourceParser.cpp" \
+            "$ROOT/tests/source_parser_smoke.cpp" -o "$TEST"
+          python3 - "$CPP/script/api/CSharpPrototypeApi.cpp" <<'PY'
+          import pathlib, sys
+          content = pathlib.Path(sys.argv[1]).read_text()
+          assert 'mod.sourceFiles == 3' not in content, "Legacy 3-file homing gate"
+          assert 'mod.registeredTypes.contains("SourceBolt")' in content, "Homing must verify SourceBolt"
+          print("CSHARP_MULTI_CONTENT_HOMING_GUARD=PASS")
+          PY
+          "$TEST" "$ROOT/samples/SourceCSharpMod/content/main.cs" \
+            "$ROOT/samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.cs" \
+            "$ROOT/samples/SourceCSharpMod/content/Content/Projectiles/SourceSpark.cs" \
+            "$ROOT/samples/SourceCSharpMod/content/Content/Items/Weapons/SourceStaff.cs" \
+            "$ROOT/samples/SourceCSharpMod/content/SourceBoltMotion.cs" \
+            "$ROOT/samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs"
+          PKG="$ROOT/samples/SourceCSharpMod"
+          test ! -d "$PKG/native"
+          test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' \) -print -quit)"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          PACK="$ROOT/build/mods-packs/sourcecsharp-0.1.5.bl"
+          test -f "$PACK"
+          cp "$PACK" "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod"
+          python3 - "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" <<'PY'
+          import json,sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names=z.namelist()
+              manifest=json.loads(z.read("manifest.json"))
+              assert manifest["entry"]=="main.cs"
+              assert "content/main.cs" in names
+              assert "content/Content/Items/Weapons/SourceWand.cs" in names
+              assert "content/Content/Items/Weapons/SourceStaff.cs" in names
+              assert "content/Content/Projectiles/SourceSpark.cs" in names
+              assert "content/SourceSparkMotion.cs" in names
+              assert len([n for n in names if n.endswith(".png")])==2
+              assert "content/SourceBoltMotion.cs" in names
+              assert len([n for n in names if n.endswith(".cs")])==6
+              assert not any(n.endswith((".js",".so",".dll")) for n in names)
+              print("CSHARP_SOURCE_ONLY_PACKAGE=YES")
+          PY
+          sha256sum "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod" > "$RUNNER_TEMP/SourceCSharpMod-v0.1.5.bmod.sha256"
+
+      - name: Guard managed prefix class-count auto-loader on native host
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/managed_prefix_auto_count_v90_1.cpp \
+            -o "$RUNNER_TEMP/bunny-prefix-autoload-contract"
+          "$RUNNER_TEMP/bunny-prefix-autoload-contract"
+          grep -F 'expectedManagedSourceTypes(mod)' \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          echo 'BUNNY_PREFIX_AUTOLOAD_VERIFIED_COUNT=PASS'
+
+      - name: Verify native CSharp reforge candidate weights and mobile eligibility
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/managed_prefix_roll_v90_2.cpp \
+            -o "$RUNNER_TEMP/prefix-rolling-weights"
+          "$RUNNER_TEMP/prefix-rolling-weights"
+          cd Split/Bunny-Loader
+          python3 tests/prefix_v89/guard_reforge_v90_2.py
+
+      - name: Verify CSharp-only native equipment and grounded boot effects
+        run: |
+          node Split/Bunny-Loader/tests/csharp_native_equips_test.js Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js
+          g++ -std=c++20 -Wall -Wextra -Werror -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/native_boot_effects_test.cpp -o "$RUNNER_TEMP/native-boot-effects-test"
+          "$RUNNER_TEMP/native-boot-effects-test"
+
+      - name: Execute basic item compiler and native bridge regressions
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_wire_test.cpp -o "$RUNNER_TEMP/basic-wire-test"
+          "$RUNNER_TEMP/basic-wire-test" build/basic-items/source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_source_parser_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o "$RUNNER_TEMP/basic-parser-test"
+          "$RUNNER_TEMP/basic-parser-test"
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=1 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/native-basic-test"
+          "$RUNNER_TEMP/native-basic-test" build/basic-items/source-runtime-values.txt
+          "$RUNNER_TEMP/native-basic-test" build/basic-items/source-runtime-values.txt --nullable
+          node tests/basic_items/recipe_bridge_test.js app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js
+
+      - name: Execute shared native content and recipe service without QuickJS
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o "$RUNNER_TEMP/native-recipes-test"
+          "$RUNNER_TEMP/native-recipes-test"
+          "$RUNNER_TEMP/native-recipes-test" --pump
+          "$RUNNER_TEMP/native-recipes-test" --placement-wire build/basic-items/placement-source-runtime-values.txt
+          "$RUNNER_TEMP/native-recipes-test" --probe-wire build/basic-items/probe-source-runtime-values.txt
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
+          /tmp/placement-probe-registration-test samples/NativePlacementProbe/Playable/content
+          "$RUNNER_TEMP/native-recipes-test" --type
+          "$RUNNER_TEMP/native-recipes-test" --bounds
+          "$RUNNER_TEMP/native-recipes-test" --method
+          python3 tests/native_recipes/delivery_gate_test.py
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
+          /tmp/shared-registry-test
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/value_layout_test.cpp -o /tmp/value-layout-test
+          /tmp/value-layout-test
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/basic_items/native_item_binding_test.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/native-items-no-js"
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --recipes-only
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable-unboxed
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --bounds
+      - name: Execute combat batch and actionable diagnostic regressions
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/combat_batch/CombatBatch.csproj -c Release
+      - name: Export per-case combat batch results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bunny-CSharp-Combat-Batch-Results
+          path: Split/Bunny-Loader/build/combat-batch-results.json
+          if-no-files-found: warn
+      - name: Verify source batch limits agree
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/combat_batch/check_package.py
+      - name: Package independent ExampleMod CSharp 0.1.40
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          PKG="$ROOT/samples/ExampleModCSharp/Playable"
+          python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
+          test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.40.bl"
+          test -s "$SOURCE"
+          python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod" <<'PY'
+          import json,sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names=z.namelist()
+              manifest=json.loads(z.read("manifest.json"))
+              assert manifest["id"]=="examplemodcsharp"
+              assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
+              assert manifest["entry"]=="main.cs"
+              assert [n for n in names if n.endswith(".cs")]
+              assert "content/LEIA_PRIMEIRO.md" in names
+              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
+              for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
+                  assert "content/Content/Items/" + file in names
+              for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
+                  assert "content/Documentation/" + file in names
+              assert "content/main.cs" in names
+              assert "content/Content/Items/Weapons/ExampleWand.cs" in names
+              assert "content/ExampleBoltMotion.cs" in names
+              assert "content/Content/Buffs/ExampleDefenseBuff.cs" in names
+              assert "content/Content/Items/Consumables/ExampleBuffPotion.cs" in names
+              assert "content/Content/Buffs/ExampleDefenseBuff.png" in names
+              assert "content/Content/Items/Consumables/ExampleBuffPotion.png" in names
+              assert "content/Content/Items/Accessories/ExampleFocusAccessory.cs" in names
+              assert "content/Common/Players/ExampleFocusPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleSwiftAccessory.cs" in names
+              assert "content/Common/Players/ExampleSwiftPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleWelcomeAccessory.cs" not in names
+              assert "content/Common/Players/ExampleWelcomePlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleMomentumAccessory.cs" in names
+              assert "content/Common/Players/ExampleMomentumPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleShadowAccessory.cs" in names
+              assert "content/Common/Players/ExampleShadowPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleVitalAccessory.cs" in names
+              assert "content/Common/Players/ExampleVitalPlayer.cs" in names
+              assert "content/Content/Items/Accessories/ExampleArcaneAccessory.cs" in names
+              assert "content/Common/Players/ExampleArcanePlayer.cs" in names
+              for cls in ("ExampleGuardianShield", "ExampleTrailblazerBoots", "ExampleMysticWard"):
+                  assert "content/Content/Items/Accessories/" + cls + "Accessory.cs" in names
+                  assert "content/Common/Players/" + cls + "Player.cs" in names
+              for cls in ("ExampleFocusAccessory", "ExampleSwiftAccessory",
+                          "ExampleMomentumAccessory",
+                          "ExampleShadowAccessory",
+                          "ExampleVitalAccessory", "ExampleArcaneAccessory",
+                          "ExampleGuardianShieldAccessory", "ExampleTrailblazerBootsAccessory",
+                          "ExampleMysticWardAccessory"):
+                  assert b"Tooltip = " in z.read("content/Content/Items/Accessories/" + cls + ".cs")
+              assert "content/Content/Items/Accessories/ExampleFocusAccessory.png" in names
+              assert "content/Content/NPCs/ExampleSlimeNPC.cs" in names
+              assert "content/Content/NPCs/ExampleSlimeNPC.png" in names
+              assert "content/Content/Tiles/Furniture/ExampleWorkbench.cs" in names
+              assert "content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs" in names
+              assert "content/Content/Tiles/Furniture/ExampleWorkbench_Highlight.png" in names
+              for part in ("ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"):
+                  assert "content/Content/Items/Armor/" + part + ".cs" in names
+              assert "content/Common/Live/ExampleLiveRuntime.cs" in names
+              assert "content/Common/Live/ExampleLiveNpcAI.cs" in names
+              assert "content/Common/Live/ExampleWaveBoltLiveEvents.cs" in names
+              for visual in ("ExampleGuardianShieldAccessory.png",
+                             "ExampleGuardianShieldAccessory_Shield.png",
+                             "ExampleTrailblazerBootsAccessory.png",
+                             "ExampleTrailblazerBootsAccessory_Shoes.png"):
+                  assert "content/Content/Items/Accessories/" + visual in names
+              for effect in ("MysticWardBarrier.png", "TrailblazerSpark.png"):
+                  assert "content/Content/Effects/" + effect in names
+              assert "content/Content/Items/Accessories/ExampleWings.png" in names
+              assert "content/Content/Items/Accessories/ExampleWings_Wings.png" in names
+              assert len([n for n in names if n.endswith(".png")])>=35
+              assert not any(n.endswith((".dll",".so",".js")) for n in names)
+              print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
+          PY
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod.sha256"
+
+      - name: Validate native-only CSharp runtime and package standalone armor sample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/tests/test_csharp_no_javascript_dependency.py"
+          python3 "$ROOT/tests/test_csharp_interactive_console.py"
+          dotnet run --project "$ROOT/tests/hooks/HookBatch.csproj" -c Release
+          python3 "$ROOT/tests/test_csharp_hook_editor_counters.py"
+          python3 "$ROOT/tests/run_csharp_independent_loading.py"
+          python3 "$ROOT/tests/run_native_armor_policies.py" "$ROOT/build/basic-items/armor-source-runtime-values.txt"
+          python3 "$ROOT/tests/run_native_item_policies.py" "$ROOT/build/basic-items/full-source-runtime-values.txt" "$ROOT/samples/ExampleModCSharp/Playable"
+          PKG="$ROOT/samples/ArmorPoliciesCSharp/Playable"
+          test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          SOURCE="$ROOT/build/mods-packs/armorpoliciescsharp-0.1.0.bl"
+          test -s "$SOURCE"
+          cp "$SOURCE" "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod"
+          python3 - "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod" <<'PY'
+          import sys,zipfile,json
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              files=z.namelist()
+              manifest=json.loads(z.read("manifest.json"))
+              assert manifest["id"]=="armorpoliciescsharp"
+              assert sum(n.endswith(".cs") for n in files)>=4
+              assert sum(n.endswith(".png") for n in files)>=6
+              assert not any(n.endswith((".js",".dll",".so")) for n in files)
+          print("CSHARP_STANDALONE_NATIVE_ARMOR_PACKAGE=PASS")
+          PY
+          (cd "$RUNNER_TEMP" && sha256sum ArmorPoliciesCSharp-v0.1.0.bmod > ArmorPoliciesCSharp-v0.1.0.bmod.sha256)
+
+      - name: Package native CSharp placement Android probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/tools/mods/pack.py" "$ROOT/samples/NativePlacementProbe/Playable"
+          cp "$ROOT/build/mods-packs/nativeplacementprobe-0.1.0.bl" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
+          python3 "$ROOT/tests/basic_items/check_placement_probe.py" "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
+          sha256sum "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" > "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256"
+
+      - name: Package second independent CSharp mod 0.1.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          PKG="$ROOT/samples/SecondExampleModCSharp/Playable"
+          mkdir -p "$PKG/content/Content/Projectiles" "$PKG/content/Content/Items/Weapons"
+          cp "$ROOT/samples/SourceCSharpMod/content/Content/Projectiles/SourceBolt.png" \
+            "$PKG/content/Content/Projectiles/SourceBolt.png"
+          cp "$ROOT/samples/SourceCSharpMod/content/Content/Items/Weapons/SourceWand.png" \
+            "$PKG/content/Content/Items/Weapons/SourceWand.png"
+          test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          cp "$ROOT/build/mods-packs/secondexamplecsharp-0.1.0.bl" \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod"
+          python3 - "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" <<'PY'
+          import json,sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names=set(z.namelist())
+              mf=json.loads(z.read("manifest.json"))
+              assert mf["id"]=="secondexamplecsharp"
+              assert mf["uid"]=="2e508d4f-f192-4a21-83b2-496e6c482c75"
+              assert "content/Common/Live/BunnyLiveEvents.cs" in names
+              assert "content/main.cs" in names
+              assert "content/Content/Projectiles/SourceBolt.png" in names
+              assert "content/Content/Items/Weapons/SourceWand.png" in names
+              assert len([n for n in names if n.endswith(".cs")]) == 2
+              assert not any(n.endswith((".dll",".so",".js")) for n in names)
+          print("BUNNY_SECOND_CSHARP_MOD_PACKAGE=PASS")
+          PY
+          sha256sum "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod" > \
+            "$RUNNER_TEMP/SecondExampleModCSharp-v0.1.0.bmod.sha256"
+
+      - name: Validate multiple mod callback identity routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          auto=(root/"experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          runtime=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          assert "std::set<std::string> liveMods" in auto
+          assert "enableManagedLiveMod(" in auto
+          assert "binding->assemblyPath" in runtime and "binding->modId" in runtime
+          assert "pauseManagedLiveMod(" in runtime
+          assert "sourceLiveModPause" in api
+          print("BUNNY_CSHARP_MULTIMOD_ROUTING_GUARDS=PASS")
+          PY
+
+      - name: Verify source projectile lifecycle with native motion
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
+          assert 'runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);' in source
+          assert 'if (!applyVelocity) return;' in source
+          assert 'const bool nativeMotion = coveredByCurve ||' in source
+          assert 'queueManagedSourceProjectileCombat(4,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp').read_text()
+          assert 'queueManagedSourceProjectileCombat(5,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedKillHook.cpp').read_text()
+          print('PROJECTILE_NATIVE_CURVE_LIFECYCLE=PASS')
+          PY
+      - name: Verify early managed projectile registration and six-tick cadence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp')
+          source = (root / 'ManagedProjectileHook.cpp').read_text()
+          dispatcher = (root / 'ManagedRuntime.cpp').read_text()
+          header = (root / 'ManagedRuntime.h').read_text()
+          prewarm = source.index('void hkAi(')
+          call = source.index('runManagedEntityProjectile(projectile, game, type, false);', prewarm)
+          native = source.index('if (original) original(projectile, method);', prewarm)
+          assert call < native, 'first registration must precede native AI'
+          assert 'firstObserved)) return;' in source
+          assert 'result, bool immediateFirstTick' in header
+          assert 'if ((!immediateFirstTick && ticks % 6 != 0) || pending)' in dispatcher
+          assert 'result, false);' in dispatcher
+          print('PROJECTILE_EARLY_FIRST_TICK=PASS')
+          PY
+      - name: Validate generic C# projectile policy integration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader")
+          compiler=(root/"experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          native=(root/"app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp").read_text()
+          api=(root/"app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          smoke=(root/"experiments/csharp/BunnySourceCompiler.Smoke/Program.cs").read_text()
+          assert "BUNNY_PROJECTILE_TURNS_V1" in compiler
+          assert "managedProjectileCurveStatus" in native
+          assert "g_curveByType" in native
+          assert "sourceEnableProjectileAI" in api
+          assert "sourcePauseProjectileAI" in api
+          assert "BUNNY_CSHARP_GENERIC_PROJECTILE_POLICIES=PASS" in smoke
+          print("CSHARP_GENERIC_PROJECTILE_AI_INTEGRATION=PASS")
+          PY
+
+      - name: Check automatic CSharp integration and cache guards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("Split/Bunny-Loader/app/src/main/cpp")
+          native=(root/"experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          probe=(root/"boot/Probe.cpp").read_text()
+          api=(root/"script/api/CSharpPrototypeApi.cpp").read_text()
+          build=(root/"CMakeLists.txt").read_text()
+          header=(root/"experiments/csharp/AutoSourceRuntime.h").read_text()
+          assert "file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS" in build
+          assert "csharp::startAutoSourceRuntime();" in probe
+          assert probe.index("mods::loadBuiltins();") < probe.index("csharp::startAutoSourceRuntime();")
+          assert probe.index("prepareModNpcs();") < probe.index("csharp::startAutoSourceRuntime();")
+          assert "ch == '_'" in native
+          assert "if (depth > kSourceMaxDepth" in native
+          assert "auto_cache::decode(value,kCacheVersion,id,key,dllHash,defaults,curves,combat,reason)" in native
+          assert "CacheReason=%s CacheWrite=%s" in native
+          cache=(root/"experiments/csharp/AutoSourceCache.h").read_text()
+          assert "sectionsHash(defaults,curves,combat)" in cache
+          assert "auto_cache::runtimeIdentity(work)" in native
+          assert "std::thread(run).detach()" in native
+          assert "readActivationContext()" in native
+          gate=native.split("ActivationContext readActivationContext()", 1)[1].split("void bindLiveEventsOnWorld(", 1)[0]
+          assert 'published.load(std::memory_order_acquire)' in gate
+          assert 'const MethodInfo* getter = metadata->getter;' in gate
+          assert "api.runtime_invoke(" in gate
+          assert "if (!exception && boxed)" in gate
+          assert "result.gameMenu < 0 && menu" in gate
+          assert "if (context.netMode == 0 &&" in native
+          print("CSHARP_AUTO_LIVE_MENU_GETTER_GUARD=PASS")
+          tile=(root/"content/tiles/ModTileSave.cpp").read_text()
+          cheats=(root/"menu/Cheats.cpp").read_text()
+          assert "g_worldTilesLoaded" in native
+          assert "g_worldSessionReady" in native
+          assert "worldPlayerReady()" in native
+          assert "noteAutoWorldTilesLoaded()" in tile
+          assert "noteAutoGameUpdate()" in cheats
+          assert "refs.world" in native and "refs.myPlayer" in native
+          assert "context.gameMenu < 0 && context.worldReady" in native
+          assert "context.netMode == 0" in native
+          assert "state.worldReady = context.worldReady" in native
+          assert 'status.worldReady' in api
+          print("CSHARP_AUTO_LIVE_WORLD_SIGNAL_GUARD=PASS")
+          assert "if (context.netMode < 0)" in native
+          assert "if (context.netMode == 0 &&" in native
+          assert "gameMenu=%d (opcional)" in native
+          assert "curve.turns, &error, true" in native
+          assert "while (!canActivateCurves())" not in native
+          assert "state.netMode = context.netMode" in native
+          assert "state.gameMenu = context.gameMenu" in native
+          assert "status.netMode" in api and "status.gameMenu" in api
+          projectileHook=(root/"experiments/csharp/ManagedProjectileHook.cpp").read_text()
+          projectileHeader=(root/"experiments/csharp/ManagedProjectileHook.h").read_text()
+          assert "menu && !allowInMenu" in projectileHook
+          assert "bool allowInMenu = false" in projectileHeader
+          assert "sourceAutoStatus" in api
+          assert "std::mutex g_lock" in native
+          assert "modProjectilesSettled()" in native
+          assert "kFixtureId" in native
+          assert "source-compile-status.txt" in native
+          count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
+          assert "modId=" in count_contract and "executedTypes=" in count_contract
+          assert "managedSourceCompileFinished(status, id, mod)" in native
+          assert "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015" in native
+          assert "requestIsolatedMonoCompile(root, id, *error)" in native
+          assert "applyManagedSourceDefaults(mod.id, defaults" in native
+          assert "enableManagedProjectileCurve(" in native
+          assert "autoSourceStatuses" in header
+          compiler=(Path("Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs")).read_text()
+          hit=(root/"experiments/csharp/ManagedHitHook.cpp").read_text()
+          kill=(root/"experiments/csharp/ManagedKillHook.cpp").read_text()
+          smoke=(Path("Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler.Smoke/Program.cs")).read_text()
+          assert "BUNNY_COMBAT_POLICIES_V1" in compiler
+          assert "source-combat-policies.txt" in compiler
+          assert "source-combat-policies.txt" in native
+          assert "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015" in native
+          assert "enableAutoProjectileOnHit(" in native
+          assert "enableAutoProjectileOnKill(" in native
+          assert "autoProjectileHitStatus(" in hit
+          assert "autoProjectileKillStatus(" in kill
+          assert "BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS" in smoke
+          assert "BUNNY_CSHARP_AUTO_COMBAT_FIXTURE=PASS" in smoke
+          assert "status.hitPolicies" in api and "status.killPolicies" in api
+          sdk=(Path("Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs")).read_text()
+          source=(root/"experiments/csharp/SourceLoader.cpp").read_text()
+          parser=(root/"experiments/csharp/SourceParser.cpp").read_text()
+          nativeContent=(root/"experiments/csharp/NativeContent.cpp").read_text()
+          assert "public abstract class BunnyBuff" in sdk
+          assert "public abstract class BunnyBuffPotion" in sdk
+          assert 'base == "BunnyBuff"' in parser
+          assert 'base == "BunnyBuffPotion"' in parser
+          assert "NativeBuffPotion" in source
+          assert "applyManagedNativeBuffDefaultsBatch" in source
+          assert "mod.items + mod.tiles + mod.projectiles + mod.buffs" in count_contract
+          assert "mod.players + mod.npcs + mod.prefixes" in count_contract
+          assert "BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS" in smoke
+          assert "g_buffs.find(typeValues[slot])" in nativeContent
+          assert "BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS" in smoke
+          assert "BunnyPlayer" in sdk and "BunnyAccessory" in sdk
+          assert "applyManagedNativePlayerDefaultsBatch" in source
+          assert "applyManagedNativePlayerDefaultsBatch" in nativeContent
+          assert "mod.players" in count_contract
+          print("CSHARP_BUNNYPLAYER_EQUIPMENT_STATIC_CHECK=PASS")
+          assert "BUNNY_CSHARP_MANAGED_NPC_SLIME=PASS" in smoke
+          assert "public abstract class BunnyNPC" in sdk
+          assert 'base == "BunnyNPC"' in parser
+          assert "NativeNpc" in source
+          assert "applyManagedNativeNpcDefaultsBatch" in source
+          assert "applyManagedNativeNpcDefaultsBatch" in nativeContent
+          assert "mod.npcs" in count_contract
+          print("CSHARP_BUNNYNPC_SLIME_STATIC_CHECK=PASS")
+          worker=(Path("Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt")).read_text()
+          mono=(root/"experiments/csharp/ManagedRuntime.cpp").read_text()
+          assert 'val output = File(outputDir, "$compileModId.dll")' in worker
+          assert "g_sourceLiveEntries" in mono
+          assert "invokeLiveSourceTick(" in mono
+          assert '"BunnyLiveEntry"' in mono
+          assert '"Tick", 2' in mono
+          assert "sourceLiveTick" in api and "sourceLiveStatus" in api
+          assert "BUNNY_CSHARP_LIVE_STATEFUL_CALLBACK=PASS" in smoke
+          assert "sourcecsharp.dll" not in worker
+          print("CSHARP_LIVE_RUNTIME_PROTOTYPE_STATIC_CHECK=PASS")
+          npcHost=(root/"experiments/csharp/NpcAiHost.cpp").read_text()
+          npcHeader=(root/"experiments/csharp/NpcAiHost.h").read_text()
+          assert "BUNNY_CSHARP_LIVE_NPC_AI_CALLBACK=PASS" in smoke
+          assert "BunnyLiveNpc" in mono and "invokeLiveSourceNpcAi" in mono
+          assert "invokeLiveSourceNpcAi(" in npcHost
+          assert "runLiveNpcAi(npc);" in npcHost
+          assert "kLiveNpcMaxCalls = 24" in npcHost
+          assert "kLiveNpcSampleInterval = 12" in npcHost
+          assert "pthread_create(&worker, nullptr" in npcHost
+          assert "pthread_detach(worker)" in npcHost
+          assert "std::condition_variable g_liveDispatchCv" in npcHost
+          assert "g_liveHasCompletion" in npcHost
+          assert "paused-world-transition" in npcHost
+          assert 'g_api.invoke(entry.npcAiMethod' in mono
+          assert "workerPending" in api and "discarded" in api
+          assert "installNpcAiHost" in npcHost
+          assert "liveNpcAiStatus" in npcHeader
+          assert "sourceLiveNpcEnable" in api and "sourceLiveNpcPause" in api
+          print("CSHARP_LIVE_NPC_AI_INTEGRATION_STATIC_CHECK=PASS")
+          assert 'resolve<CurrentThreadFn>("mono_thread_current")' in mono
+          assert 'resolve<DetachFn>("mono_thread_detach")' in mono
+          assert "ScopedNativeMonoThread" in mono
+          assert "++status.npcThreadDetaches;" in mono
+          assert "++status.npcThreadAttaches;" in mono
+          assert "npcThreadDetaches" in api and "npcThreadAttaches" in api
+          print("CSHARP_LIVE_NPC_MONO_DETACH_GUARD=PASS")
+          assert "CSHARP_LIVE_NPC_SOURCE_PARSER_PASS=YES" in (Path("Split/Bunny-Loader/tests/source_parser_smoke.cpp")).read_text()
+          assert "std::string(\"{}()[]=;:.,-*+/%<>!&|?~^\")" in parser
+          print("CSHARP_LIVE_NPC_SOURCE_SYNTAX_REGRESSION_GUARD=PASS")
+          print("CSHARP_MANAGED_BUFF_POTION_STATIC_CHECK=PASS")
+          print("CSHARP_AUTOMATIC_COMBAT_STATIC_CHECK=PASS")
+          print("CSHARP_AUTOMATIC_LOADER_STATIC_CHECK=PASS")
+          PY
+
+      - name: Reuse Android-validated patched MonoVM 8.0.23 from .72
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$PRIVATE_INPUTS_REPO" --jq '.private')" = "true"
+          PREVIOUS="$RUNNER_TEMP/stable-mono"
+          mkdir -p "$PREVIOUS" "$RUNNER_TEMP/bunny-mono-arm64"
+          gh release download "$RUNTIME_TAG" \
+            --repo "$PRIVATE_INPUTS_REPO" \
+            --pattern "BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk" \
+            --dir "$PREVIOUS"
+          APK="$PREVIOUS/BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk"
+          test -s "$APK"
+          EXPECTED="84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb"
+          echo "$EXPECTED  $APK" | sha256sum -c -
+          OUT="$RUNNER_TEMP/bunny-mono-arm64/libmonosgen-2.0.so"
+          unzip -p "$APK" "lib/arm64-v8a/libmonosgen-2.0.so" > "$OUT"
+          test -s "$OUT"
+          readelf -h "$OUT" | grep -q AArch64
+          readelf -Ws "$OUT" | grep 'mono_bunny_android_signal_policy_v1' >/dev/null
+          readelf -Ws "$OUT" | grep 'mono_jit_init' >/dev/null
+          echo "MONO_PATCHED_SO=$OUT" >> "$GITHUB_ENV"
+          sha256sum "$OUT"
+          echo "BUNNY_MONO_REUSE_VALIDATED_V72=YES"
+
+      - name: Stage experimental MonoVM and managed probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          PACK="$RUNNER_TEMP/mono-android-arm64-8.0.23.nupkg"
+          curl -fLsS --retry 3 \
+            "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.mono.android-arm64/8.0.23/microsoft.netcore.app.runtime.mono.android-arm64.8.0.23.nupkg" \
+            -o "$PACK"
+          JNI="$ROOT/app/src/main/jniLibs/arm64-v8a"
+          ASSETS="$ROOT/app/src/main/assets/managed"
+          python3 "$ROOT/tools/stage_mono_runtime.py" "$PACK" "$JNI" "$ASSETS"
+          file "$JNI/libmonosgen-2.0.so"
+          file "$JNI/libSystem.Native.so"
+          readelf -Ws "$JNI/libmonosgen-2.0.so" | grep -q 'mono_jit_init' || {
+            echo "MonoVM sem Mono Embedding API esperada" >&2
+            exit 1
+          }
+          dotnet build "$ROOT/experiments/csharp/BunnyManagedProbe/BunnyManagedProbe.csproj" \
+            -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnyManagedProbe/bin/Release/net8.0/BunnyManagedProbe.dll" \
+            "$ASSETS/BunnyManagedProbe.dll"
+          dotnet build "$ROOT/experiments/csharp/BunnyVmBenchmark67/BunnyVmBenchmark67.csproj" \
+            -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnyVmBenchmark67/bin/Release/net8.0/BunnyVmBenchmark67.dll" \
+            "$ASSETS/BunnyVmBenchmark67.dll"
+          dotnet build "$ROOT/experiments/csharp/BunnyVmGameplay69/BunnyVmGameplay69.csproj" \
+            -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnyVmGameplay69/bin/Release/net8.0/BunnyVmGameplay69.dll" \
+            "$ASSETS/BunnyVmGameplay69.dll"
+          VERIFIER="$RUNNER_TEMP/bunny-managed-benchmark-verify"
+          mkdir -p "$VERIFIER"
+          cat > "$VERIFIER/Verify.csproj" <<'CSHTML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net8.0</TargetFramework>
+            </PropertyGroup>
+          </Project>
+          CSHTML
+          cat > "$VERIFIER/Program.cs" <<'CSCODE'
+          using System;
+          using System.IO;
+          using System.Reflection;
+          var path = Path.GetFullPath(args[0]);
+          var asm = Assembly.LoadFrom(path);
+          var type = asm.GetType("BunnyLoader.VmBenchmark67.Kernel", throwOnError: true)!;
+          var method = type.GetMethod("Execute",
+              BindingFlags.Public | BindingFlags.Static,
+              binder: null, types: new[] {typeof(int), typeof(int)}, modifiers: null);
+          if (method == null) throw new Exception("Kernel.Execute(int,int) is absent in bundled binary");
+          var value = (int)method.Invoke(null, new object[] {1000000, 0x12345678})!;
+          if (value != 1336190628)
+              throw new Exception("Managed binary checksum mismatch: " + value);
+          Console.WriteLine("BUNNY_MANAGED_BENCHMARK_DLL_INVOKE=PASS value=" + value);
+          CSCODE
+          dotnet run --project "$VERIFIER/Verify.csproj" --configuration Release \
+            -- "$ASSETS/BunnyVmBenchmark67.dll"
+          test -s "$ASSETS/BunnyVmBenchmark67.dll"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, json, re
+          cpp = Path("Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+          found = {}
+          for name in ("kVmProjectileJs", "kVmNpcJs"):
+              m = re.search(r'constexpr char ' + name + r'\[\] = R"JS\(\n(.*?)\n\)JS";', cpp, re.S)
+              assert m, name
+              found[name] = m.group(1)
+          Path(os.environ["RUNNER_TEMP"], "vm-ai-kernels-69.json").write_text(json.dumps(found))
+          print("BUNNY_AI_JS_KERNELS_EXTRACTED=PASS")
+          PY
+          node - <<'NODE'
+          const fs = require("fs");
+          const path = process.env.RUNNER_TEMP;
+          const source = JSON.parse(fs.readFileSync(path + "/vm-ai-kernels-69.json", "utf8"));
+          const rows = [];
+          for (const [key, method] of [["kVmProjectileJs", "Projectile"], ["kVmNpcJs", "Npc"]]) {
+              const routine = eval(source[key]);
+              for (const ticks of [64, 512, 2000]) {
+                  const checksum = routine(ticks, 0x12345678);
+                  if (!Number.isInteger(checksum)) throw new Error("invalid JS checksum");
+                  rows.push([method, ticks, checksum].join("\t"));
+              }
+          }
+          fs.writeFileSync(path + "/vm-ai-expected-69.tsv", rows.join("\n") + "\n");
+          console.log("BUNNY_AI_JAVASCRIPT_CHECKSUMS=PASS\n" + rows.join("\n"));
+          NODE
+          AIVERIFIER="$RUNNER_TEMP/bunny-managed-ai-verify"
+          mkdir -p "$AIVERIFIER"
+          cp "$VERIFIER/Verify.csproj" "$AIVERIFIER/Verify.csproj"
+          cat > "$AIVERIFIER/Program.cs" <<'CSCODE'
+          using System;
+          using System.IO;
+          using System.Reflection;
+          var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));
+          var type = assembly.GetType("BunnyLoader.VmGameplay69.Kernel", true)!;
+          int checkedCount = 0;
+          foreach (var line in File.ReadLines(args[1]))
+          {
+              var cells = line.Split('\t');
+              var method = type.GetMethod(cells[0], BindingFlags.Public | BindingFlags.Static,
+                  null, new[] {typeof(int), typeof(int)}, null);
+              if (method == null) throw new Exception("Missing managed " + cells[0]);
+              int ticks = int.Parse(cells[1]);
+              int expected = int.Parse(cells[2]);
+              int actual = (int)method.Invoke(null, new object[] {ticks, 0x12345678})!;
+              if (actual != expected)
+                  throw new Exception("AI mismatch " + cells[0] + " ticks=" + ticks +
+                      " JS=" + expected + " Mono=" + actual);
+              checkedCount++;
+          }
+          if (checkedCount != 6) throw new Exception("Expected 6 parity cases, got " + checkedCount);
+          Console.WriteLine("BUNNY_AI_MANAGED_JS_CHECKSUM_MATCH=PASS cases=" + checkedCount);
+          CSCODE
+          dotnet run --project "$AIVERIFIER/Verify.csproj" -c Release -- \
+            "$ASSETS/BunnyVmGameplay69.dll" "$RUNNER_TEMP/vm-ai-expected-69.tsv"
+          test -s "$ASSETS/BunnyVmGameplay69.dll"
+          test -s "$ASSETS/System.Private.CoreLib.dll"
+          test -s "$ASSETS/BunnyManagedProbe.dll"
+          echo "MONO_LIBRARY_BUNDLED=YES"
+          dotnet build "$ROOT/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" -c Release --nologo
+          dotnet build "$ROOT/experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" -c Release --nologo
+          cp "$ROOT/experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll" "$ASSETS/"
+          cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/BunnySourceCompiler.dll" "$ASSETS/"
+          cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/Microsoft.CodeAnalysis.dll" "$ASSETS/"
+          cp "$ROOT/experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/Microsoft.CodeAnalysis.CSharp.dll" "$ASSETS/"
+          dotnet run --project "$ROOT/experiments/csharp/BunnySourceCompiler.Smoke/BunnySourceCompiler.Smoke.csproj" -c Release -- "$ROOT/samples/SourceCSharpMod" "$ASSETS" \
+            "$ROOT/samples/SecondExampleModCSharp/Playable"
+          test -s "$ASSETS/BunnySourceCompiler.dll"
+          test -s "$ASSETS/BunnySourceSdk.dll"
+          python3 - "$ASSETS/BunnySourceSdk.dll" <<'PY'
+          from pathlib import Path
+          import sys
+          sdk = Path(sys.argv[1]).read_bytes()
+          assert b"MoveSpeedPercent" in sdk, "Embarcado BunnySourceSdk sem MoveSpeedPercent"
+          print("BUNNY_CSHARP_ANDROID_SDK_MOVESPEED=PASS")
+          PY
+          test -s "$ASSETS/Microsoft.CodeAnalysis.dll"
+          test -s "$ASSETS/Microsoft.CodeAnalysis.CSharp.dll"
+          echo "BUNNY_ROSLYN_IN_APK=YES"
+          echo "MANAGED_ASSEMBLY_BUNDLED=YES"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path("Split/Bunny-Loader/app/src/main/assets/managed")
+          libraries = sorted(root.glob("*.dll"))
+          assert libraries, "No managed assemblies for manifest"
+          manifest = "".join(
+              f"{file.name}\t{hashlib.sha256(file.read_bytes()).hexdigest()}\n"
+              for file in libraries
+          )
+          (root / "framework.sha256").write_text(manifest, encoding="utf-8")
+          print(f"MANAGED_FRAMEWORK_FINGERPRINT_READY=YES files={len(libraries)}")
+          PY
+
+      - name: Install patched MonoVM ARM64 in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so"
+          test -s "$MONO_PATCHED_SO"
+          cp "$MONO_PATCHED_SO" "$DEST"
+          readelf -h "$DEST" | grep -q AArch64
+          readelf -Ws "$DEST" | grep 'mono_bunny_android_signal_policy_v1' >/dev/null
+          readelf -Ws "$DEST" | grep 'mono_thread_attach' >/dev/null
+          echo "BUNNY_MONO_ARM64_RT_SIGNAL_LIBRARY_STAGED=YES"
+
+      - name: Integrate Terraria runtime
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/runtime"
+          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/runtime"
+          cd "$RUNNER_TEMP/runtime"
+          echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -
+          mkdir -p extracted
+          unzip -q "$RUNTIME_ASSET" -d extracted
+          cd "$GITHUB_WORKSPACE"
+          JNI="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a"
+          ASSETS="Split/Bunny-Loader/terraria1456_assets/src/main/assets"
+          mkdir -p "$JNI" "$ASSETS/bin"
+          cp "$RUNNER_TEMP/runtime/extracted/lib/arm64-v8a/libil2cpp.so" "$JNI/"
+          cp "$RUNNER_TEMP/runtime/extracted/lib/arm64-v8a/libunity.so" "$JNI/"
+          cp "$RUNNER_TEMP/runtime/extracted/lib/arm64-v8a/libmain.so" "$JNI/"
+          cp "$RUNNER_TEMP/runtime/extracted/lib/arm64-v8a/libc++_shared.so" "$JNI/"
+          rm -rf "$ASSETS/bin/Data"
+          cp -a "$RUNNER_TEMP/runtime/extracted/assets/bin/Data" "$ASSETS/bin/Data"
+
+      - name: Restore stable sprite pack
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/stable-apk"
+          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "BunnyLoader-v0.1.9.1-MusicPrewarm.apk" --dir "$RUNNER_TEMP/stable-apk"
+          printf '%s  %s\n' "aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00" "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/stable-sprites"
+          unzip -q "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" "assets/sprites/*" -d "$RUNNER_TEMP/stable-sprites"
+          ROOT="Split/Bunny-Loader/_sprites"
+          rm -rf "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
+          mkdir -p "$ROOT"
+          cp -a "$RUNNER_TEMP/stable-sprites/assets/sprites/item" "$ROOT/"
+          cp -a "$RUNNER_TEMP/stable-sprites/assets/sprites/npc" "$ROOT/"
+          cp -a "$RUNNER_TEMP/stable-sprites/assets/sprites/buff" "$ROOT/"
+
+      - name: Rebuild CheatBridge dex
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        run: |
+          OUT=".cheatbridge"
+          AJAR="$ANDROID_HOME/platforms/android-34/android.jar"
+          D8="$ANDROID_HOME/build-tools/34.0.0/d8"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/classes"
+          javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes" \
+            app/src/main/java/bunny/TranslationCatalog.java \
+            app/src/main/java/bunny/MenuLocalization.java \
+            tools/cheatbridge/bunny/CheatBridge.java \
+            tools/cheatbridge/bunny/CheatData.java \
+            tools/cheatbridge/bunny/DevTools.java
+          mapfile -t CLASSES < <(find "$OUT/classes" -name "*.class" -type f)
+          "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
+          python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex > app/src/main/cpp/menu/CheatBridgeDex.h
+
+      - name: Build APK with isolated v3 signing secrets
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BUNNY_KEYSTORE_B64:-}" ] || [ -z "${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "${BUNNY_SIGNING_ALIAS:-}" ]; then
+            echo "Missing Bunny signing secrets. Configure BUNNY_KEYSTORE_B64, BUNNY_SIGNING_PASSWORD and BUNNY_SIGNING_ALIAS." >&2
+            exit 1
+          fi
+          umask 077
+          SIGNING_DIR="$RUNNER_TEMP/bunny-signing-v3"
+          mkdir -p "$SIGNING_DIR"
+          export BUNNY_SIGNING_STORE="$SIGNING_DIR/bunny-v3.jks"
+          trap 'rm -f "$BUNNY_SIGNING_STORE"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
+          test -s "$BUNNY_SIGNING_STORE"
+          keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
+          echo 'BUNNY_V3_SECRET_KEYSTORE_VALIDATED=YES'
+          gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Validate APK
+        shell: bash
+        run: |
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.bunnyloader.csharptest'"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
+          python3 - "$APK" <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import sys
+          with ZipFile(sys.argv[1]) as package:
+              native = package.read("lib/arm64-v8a/libbunny.so")
+          for marker in (b"nCSharpHookCounters", b"editorCsharpMode",
+                         b"Hooks C#: aguardando evento de dano", b"MissingHand",
+                         b"AnimationConstructor3Failed", b"ColorChannelLayoutUnavailable",
+                         b"WorldItemActiveGetterContract"):
+              assert marker in native, "Embedded CSharp editor dex missing: " + marker.decode()
+          print("BUNNY_CSHARP_VISIBLE_HOOK_EDITOR_EMBEDDED_DEX=PASS")
+          PY
+          python3 - "$APK" <<'PY'
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as package:
+              dex = [package.read(name) for name in package.namelist()
+                     if name.startswith("classes") and name.endswith(".dex")]
+              assert dex, "No Android DEX found in APK"
+              for item in ("Lcom/unity3d/player/UnityPlayer;",
+                           "Lcom/unity3d/player/NativeLoader;",
+                           "Lcom/unity3d/player/IUnityPlayerLifecycleEvents;"):
+                  assert any(item.encode() in content for content in dex), "Unity class absent from APK: " + item
+              print("BUNNY_CLEAN_UNITY_PLAYER_IN_APK=PASS")
+          PY
+          if unzip -Z1 "$APK" | grep -Fx "lib/arm64-v8a/libbunnycs.so"; then
+            echo "NativeAOT prototype was unexpectedly bundled in projectile-profiler APK" >&2
+            exit 1
+          fi
+          echo "BUNNY_MANAGED_DEFAULT_NO_NATIVEAOT_PROTOTYPE=PASS"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libmonosgen-2.0.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libSystem.Native.so"
+          unzip -l "$APK" | grep -F "assets/managed/System.Runtime.dll"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunnymonoprobe.so"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyManagedProbe.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyVmBenchmark67.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnyVmGameplay69.dll"
+          unzip -l "$APK" | grep -F "assets/managed/BunnySourceCompiler.dll"
+          unzip -l "$APK" | grep -F "assets/managed/framework.sha256"
+          VERSION="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          VERSION_CODE="$(sed -nE 's/^[[:space:]]*versionCode = ([0-9]+).*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION" && test -n "$VERSION_CODE"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "versionCode='${VERSION_CODE}' versionName='${VERSION}'"
+          python3 - "$APK" <<'PY'
+          import hashlib
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as package:
+              lines = package.read("assets/managed/framework.sha256").decode("utf-8").splitlines()
+              assert lines, "Empty framework fingerprint"
+              for line in lines:
+                  name, checksum = line.split("\t", 1)
+                  content = package.read("assets/managed/" + name)
+                  assert hashlib.sha256(content).hexdigest() == checksum, name
+              print(f"APK_MANAGED_DLL_SHA256_VALIDATED=YES files={len(lines)}")
+          PY
+          unzip -l "$APK" | grep -F "assets/managed/BunnySourceSdk.dll"
+          unzip -l "$APK" | grep -F "assets/managed/Microsoft.CodeAnalysis.CSharp.dll"
+          unzip -l "$APK" | grep -F "assets/managed/System.Private.CoreLib.dll"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libil2cpp.so"
+          unzip -l "$APK" | grep -F "assets/bin/Data/Managed/Metadata/global-metadata.dat"
+
+      - name: Guard world-lifecycle boot and preserve legacy external loader
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          entry = (root / "boot/Entry.cpp").read_text()
+          mod = (root / "experiments/csharp/CSharpModLoader.cpp").read_text()
+          native = (root / "experiments/csharp/NativeContent.cpp").read_text()
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          assert "installPrototype()" not in entry
+          assert "libmod.so" in mod
+          assert "bunny_mod_initialize" in mod
+          assert "registerNativeContent" in native
+          assert "libmonosgen-2.0.so" in runtime
+          print("BUNNY_MANAGED_DEFAULT_NATIVEAOT_DEMOTION=PASS")
+          PY
+
+      - name: Deliver signed APK to private Builds repository
+        if: ${{ (github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::BUNNY_PRIVATE_BUILD_TOKEN is missing. Full APK delivery was not attempted."
+            exit 1
+          fi
+          PRIVATE_REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"
+          IS_PRIVATE="$(gh api "repos/$PRIVATE_REPO" --jq '.private')"
+          if [ "$IS_PRIVATE" != "true" ]; then
+            echo "Refusing to upload a game-bundled APK: destination is not private." >&2
+            exit 1
+          fi
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify "$APK" >/dev/null
+          VERSION="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION"
+          SAFE_VERSION="$(printf '%s' "$VERSION" | tr -c 'A-Za-z0-9._-' '_')"
+          FILE="BunnyLoader-CSharp-${SAFE_VERSION}-SignedV3.apk"
+          cp "$APK" "$RUNNER_TEMP/$FILE"
+          (cd "$RUNNER_TEMP" && sha256sum "$FILE" > "$FILE.sha256")
+          trap 'rm -f "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256"' EXIT
+          TAG="csharp-v3-run-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          TITLE="Bunny Loader C# $VERSION | private signing v3"
+          NOTES="Private Android test build signed with the v3 key. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contains the Terraria runtime for restricted development/testing; do not publish or redistribute without appropriate rights."
+          if [ "$GITHUB_REF" = "refs/heads/codex/lot-a-complete-v90-29" ]; then
+            # Experimental delivery requires all nine independent regression workflows.
+            for attempt in $(seq 1 40); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/lot-a-workflows.json"
+              set +e
+              python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/lot-a-workflows.json" "$GITHUB_SHA"
+              DELIVERY_STATUS=$?
+              set -e
+              if [ "$DELIVERY_STATUS" = "0" ]; then break; fi
+              if [ "$DELIVERY_STATUS" != "2" ] || [ "$attempt" = "40" ]; then
+                echo "::error::Experimental delivery refused: independent regressions did not all succeed."
+                exit 1
+              fi
+              sleep 15
+            done
+            TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+            TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
+            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.40.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+          fi
+          gh release create "$TAG" "$RUNNER_TEMP/$FILE" "$RUNNER_TEMP/$FILE.sha256" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod" \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.40.bmod.sha256" \
+            "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod" \
+            "$RUNNER_TEMP/ArmorPoliciesCSharp-v0.1.0.bmod.sha256" \
+            "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod" \
+            "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256" \
+            "Split/Bunny-Loader/build/combat-batch-results.json" \
+            "Split/Bunny-Loader/build/basic-items-results.json" \
+            --repo "$PRIVATE_REPO" \
+            --target main \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            --prerelease
+          echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
+
+      - name: Verify and retain only source-only mod packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.40.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod; do
+            test -s "$RUNNER_TEMP/$file"
+            test -s "$RUNNER_TEMP/$file.sha256"
+          done
+          rm -f "Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          echo "BUNNY_PUBLIC_RELEASE_EXCLUDES_TERRARIA_RUNTIME=YES"
+
+      - name: Export source-only CSharp examples as safe workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.40
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
+            ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.40.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.40.bmod.sha256
+            ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
+            ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod
+            ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
+
+
+

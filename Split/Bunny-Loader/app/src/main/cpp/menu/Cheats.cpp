@@ -4,6 +4,8 @@
 #include "boot/FramePacing.h"
 #include "boot/QuickStart.h"
 #include "menu/Cheats.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -854,10 +856,12 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // Daqui sai a identidade da thread do jogo: e a unica em que se pode criar
     // objeto de Unity (ver bl.loadTexture).
     runtime::noteGameThread();
+    bl::csharp::noteManagedLivePerfUpdate();
     tickFramePacing();
     runSelftestOnce();
     allowDeprecatedItems();
     updateInWorld();
+    bl::csharp::noteAutoGameUpdate();
     readNamesSlice();
     tickPowers();
     tickModItems();

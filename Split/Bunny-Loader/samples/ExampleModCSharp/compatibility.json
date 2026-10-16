@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "exampleModCSharpVersion": "0.1.40",
+  "verifiedLoaderVersion": "0.1.10.16.34",
+  "fixtureMod": "sourcecsharp",
+  "fixtureModVersion": "0.1.5",
+  "supportedModId": "57a98f20-7a35-4d19-8ce8-079e25bb36a1",
+  "features": [
+    {
+      "id": "weapons",
+      "status": "device_verified",
+      "examples": [
+        "SourceWand",
+        "SourceStaff"
+      ]
+    },
+    {
+      "id": "projectiles",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt",
+        "SourceSpark"
+      ]
+    },
+    {
+      "id": "managed_set_defaults",
+      "status": "device_verified",
+      "examples": [
+        "SourceWand",
+        "SourceStaff",
+        "SourceBolt",
+        "SourceSpark"
+      ]
+    },
+    {
+      "id": "homing",
+      "status": "device_verified",
+      "examples": [
+        "SourceBoltMotion"
+      ]
+    },
+    {
+      "id": "on_hit_npc_native_effect",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "on_kill_native_effect",
+      "status": "device_verified",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "independent_projectile_motion",
+      "status": "device_verified",
+      "examples": [
+        "SourceBoltMotion",
+        "SourceSparkMotion"
+      ]
+    },
+    {
+      "id": "generic_projectile_curve_dispatch",
+      "status": "device_verified",
+      "examples": [
+        "SourceSparkMotion"
+      ]
+    },
+    {
+      "id": "arbitrary_mod_csharp_compile",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "generic_on_hit_on_kill",
+      "status": "experimental",
+      "examples": [
+        "SourceBolt"
+      ]
+    },
+    {
+      "id": "custom_npc_csharp",
+      "status": "experimental",
+      "examples": [
+        "ExampleSlimeNPC"
+      ]
+    },
+    {
+      "id": "custom_buff_csharp",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "custom_accessory_csharp",
+      "status": "experimental",
+      "examples": [
+        "ExampleFocusAccessory",
+        "ExampleSwiftAccessory",
+        "ExampleMomentumAccessory",
+        "ExampleShadowAccessory"
+      ]
+    },
+    {
+      "id": "custom_player_csharp",
+      "status": "experimental",
+      "examples": [
+        "ExampleFocusPlayer",
+        "ExampleSwiftPlayer",
+        "ExampleWelcomePlayer",
+        "ExampleMomentumPlayer",
+        "ExampleShadowPlayer"
+      ]
+    },
+    {
+      "id": "experimental_csharp_multiplayer",
+      "status": "not_implemented",
+      "examples": []
+    },
+    {
+      "id": "source_bunny_buff",
+      "status": "experimental",
+      "examples": [
+        "ExampleDefenseBuff"
+      ]
+    },
+    {
+      "id": "source_bunny_buff_potion",
+      "status": "experimental",
+      "examples": [
+        "ExampleBuffPotion"
+      ]
+    },
+    {
+      "id": "persistent_mono_live_callback",
+      "status": "experimental",
+      "examples": [
+        "BunnyLiveEntry"
+      ]
+    },
+    {
+      "id": "live_npc_ai_callback",
+      "status": "experimental",
+      "examples": [
+        "BunnyLiveNpc",
+        "ExampleSlimeNPC"
+      ]
+    },
+    {
+      "id": "dual_weapon_projectile_registration",
+      "status": "experimental",
+      "examples": [
+        "ExampleWaveWand",
+        "ExampleWaveBolt",
+        "ExampleWaveBoltMotion"
+      ]
+    },
+    {
+      "id": "secondary_managed_live_callbacks",
+      "status": "experimental",
+      "examples": [
+        "ExampleWaveBoltLiveEvents",
+        "ExampleWaveBolt"
+      ]
+    },
+    {
+      "id": "managed_prefix_native",
+      "status": "experimental",
+      "examples": [
+        "ExampleMightyPrefix",
+        "ExampleGuardedPrefix"
+      ]
+    },
+    {
+      "id": "native_player_move_speed",
+      "status": "experimental",
+      "examples": [
+        "ExampleSwiftAccessory",
+        "ExampleSwiftPlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_typed_hurt_hooks",
+      "status": "experimental",
+      "examples": [
+        "ExampleSwiftPlayer"
+      ],
+      "validation": "Roslyn/MonoVM and host delegate tests required; Android device not yet verified",
+      "features": [
+        "BeforeHurt(ref int damage, ref int hitDirection, ref bool cancel)",
+        "Dodge(int damage, out bool dodge)",
+        "AfterHurt(BunnyHurtInfo info)",
+        "Unhook(BunnyHookHandle)"
+      ]
+    },
+    {
+      "id": "bunnyplayer_on_enter_world",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_update_movement",
+      "status": "experimental",
+      "examples": [
+        "ExampleMomentumPlayer",
+        "ExampleMomentumAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_frame_effects",
+      "status": "experimental",
+      "examples": [
+        "ExampleShadowPlayer",
+        "ExampleShadowAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_on_respawn",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_pre_update",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_post_update",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_update_dead",
+      "status": "experimental",
+      "examples": [
+        "ExampleWelcomePlayer"
+      ]
+    },
+    {
+      "id": "bunnyplayer_update_life_regen",
+      "status": "experimental",
+      "examples": [
+        "ExampleVitalPlayer",
+        "ExampleVitalAccessory"
+      ]
+    },
+    {
+      "id": "bunnyplayer_update_mana_regen",
+      "status": "experimental",
+      "examples": [
+        "ExampleArcanePlayer",
+        "ExampleArcaneAccessory"
+      ]
+    },
+    {
+      "id": "native_csharp_recipe_service",
+      "status": "experimental",
+      "examples": [
+        "ExampleItem",
+        "ExamplePickaxe",
+        "ExampleHamaxe"
+      ],
+      "loaderSince": "0.1.10.16.90.29.1",
+      "validation": "Adapter/registries executed in host without QuickJS; Android pending",
+      "limits": [
+        "CSharp station placement pending",
+        "Beyond-max menu bridge pending",
+        "Equipment policies not decoupled"
+      ]
+    },
+    {
+      "id": "native_2x1_workbench",
+      "status": "experimental",
+      "examples": [
+        "ExampleWorkbench"
+      ]
+    },
+    {
+      "id": "native_workbench_armor",
+      "status": "experimental",
+      "examples": [
+        "ExampleHelmet",
+        "ExampleBreastplate",
+        "ExampleLeggings"
+      ]
+    }
+  ]
+}

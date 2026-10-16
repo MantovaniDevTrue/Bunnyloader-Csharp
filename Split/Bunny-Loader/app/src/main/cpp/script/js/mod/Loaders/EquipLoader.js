@@ -112,7 +112,6 @@ class EquipLoader {
         EquipLoader.#pending = [];
     }
 
-    // O this.Mod do tModLoader: a classe Mod do mod ou o bl.mod (o que os moldes guardam).
     static #IsMod(x) {
         return x instanceof Mod || (!!x && typeof x === 'object' && 'uuid' in x && 'path' in x);
     }
@@ -167,8 +166,10 @@ class EquipLoader {
 
         bl.items.growEquipSets(k.ids, vanilla, total);
         Ids.Count = total;
-        EquipLoader.#vanilla.set(kind, vanilla);
-        EquipLoader.#kinds.push(kind);
+        if (!EquipLoader.#vanilla.has(kind)) {
+            EquipLoader.#vanilla.set(kind, vanilla);
+            EquipLoader.#kinds.push(kind);
+        }
         if (kind === EquipType.Wings) EquipLoader.#PrepareWingStats(vanilla, total);
 
         const T = Terraria.GameContent.TextureAssets;
@@ -197,6 +198,7 @@ class EquipLoader {
             const slots = EquipLoader.#slots.get(item.Type);
             if (slots[k.slot] === undefined) slots[k.slot] = slot;
             if (k.itemTypes) Terraria.Item[k.itemTypes][slot] = item.Type;
+
         });
 
         bl.log('texturas vestidas: ' + list.length + ' de ' + kind + ' (slots ' + vanilla + '..' + (total - 1) + ')');
@@ -220,3 +222,6 @@ class EquipLoader {
         if (!Terraria.ID.ArmorIDs.Wing.Sets.Stats) init.Load();
     }
 }
+
+// Instalacao dos equipamentos declarados por mods JavaScript.
+Ready.Add(() => EquipLoader.Install(), 'content');

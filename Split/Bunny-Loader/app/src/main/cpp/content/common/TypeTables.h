@@ -63,7 +63,7 @@ public:
     int grow(int from, int to);
 
     /** Tabela que era nula e o jogo acabou de criar. A cada quadro. */
-    void checkPending(int size);
+    void checkPending(int size, Regrown onRegrown = nullptr);
 
     /** Tabela que o jogo refez com o tamanho de fabrica (troca de idioma...). */
     void watch(int size, Regrown onRegrown);

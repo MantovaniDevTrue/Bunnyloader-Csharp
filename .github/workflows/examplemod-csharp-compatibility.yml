@@ -1,0 +1,20 @@
+name: ExampleMod CSharp compatibility
+
+on:
+  push:
+    branches:
+      - bunny-csharp-examplemodcsharp-0.1.0
+    paths:
+      - 'Split/Bunny-Loader/samples/ExampleModCSharp/**'
+      - 'Split/Bunny-Loader/samples/SourceCSharpMod/**'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/**'
+      - '.github/workflows/examplemod-csharp-compatibility.yml'
+  workflow_dispatch:
+
+jobs:
+  static-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify official ExampleMod CSharp source compatibility
+        run: python3 Split/Bunny-Loader/samples/ExampleModCSharp/Tests/check_examples.py

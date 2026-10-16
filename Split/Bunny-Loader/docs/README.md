@@ -1,3 +1,6 @@
+> Documentação do Bunny Loader base (JavaScript). A extensão C# deste
+> repositório tem [guias e estado próprios](../../../docs/README.md).
+
 # Bunny Loader documentation
 
 Bunny Loader is a mod loader for **Terraria Mobile**: an Android app that

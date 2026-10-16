@@ -1,0 +1,94 @@
+name: Verify Bunny CSharp v3 signing secrets
+
+on:
+  push:
+    branches:
+      - csharp-prefix-persistence-v90-4
+      - csharp-prefix-accessory-tooltip-v90-3
+      - csharp-public-release-cleanup-v1
+      - csharp-private-apk-delivery-v3
+      - csharp-secure-signing-v3-public-safe
+    paths:
+      - ".github/workflows/bunny-csharp-signing-v3-smoke.yml"
+      - ".github/workflows/build-bunny-csharp-source-loader.yml"
+      - ".github/workflows/build-split-full.yml"
+      - "Split/Bunny-Loader/docs/csharp-secure-signing-v3.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-signing-material:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify no legacy key or public APK upload in secure workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          paths = [
+              Path(".github/workflows/build-bunny-csharp-source-loader.yml"),
+              Path(".github/workflows/build-split-full.yml"),
+          ]
+          for path in paths:
+              content = path.read_text(encoding="utf-8")
+              assert "bunny-signing-key-v1" not in content, path
+              assert "bunny-release.jks" not in content, path
+              assert "gh release upload \"$TAG\" \"$APK\"" not in content, path
+              assert "secrets.BUNNY_KEYSTORE_B64" in content, path
+              assert "secrets.BUNNY_SIGNING_PASSWORD" in content, path
+              assert "secrets.BUNNY_SIGNING_ALIAS" in content, path
+              assert "keytool -list" in content, path
+          pub = paths[0].read_text(encoding="utf-8").split(
+              "- name: Export source-only CSharp examples as safe workflow artifact", 1)[1]
+          assert '.apk' not in pub
+          assert "actions/upload-artifact@v4" in pub
+          assert ".bmod" in pub
+          assert "gh release" not in pub
+          delivery = paths[0].read_text(encoding="utf-8").split(
+              "- name: Deliver signed APK to private Builds repository", 1)[1].split(
+              "- name: Verify and retain only source-only mod packages", 1)[0]
+          assert "secrets.BUNNY_PRIVATE_BUILD_TOKEN" in delivery
+          assert 'PRIVATE_REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"' in delivery
+          assert "IS_PRIVATE" in delivery and '!= "true"' in delivery
+          assert 'gh api "repos/$PRIVATE_REPO"' in delivery
+          assert 'gh release create "$TAG"' in delivery
+          assert '--repo "$PRIVATE_REPO"' in delivery
+          assert 'gh release upload' not in pub
+          assert 'upload-artifact' not in delivery
+          assert "bunny-private-build-inputs-v1" in paths[0].read_text()
+          assert 'PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds' in paths[0].read_text()
+          assert 'BUNNY_PRIVATE_BUILD_TOKEN' in paths[0].read_text()
+          assert 'gh release download bunny-music-prewarm-v1' not in paths[0].read_text()
+          assert 'gh release download bunny-csharp-managed-runtime-0.1.10.16.72-managed-ingress' not in paths[0].read_text()
+          assert 'RUNTIME_TAG: bunny-private-build-inputs-v1' in paths[1].read_text()
+          print("BUNNY_PRIVATE_APK_GATE_AND_PUBLIC_ARTIFACTS=PASS")
+          print("BUNNY_PUBLIC_SIGNING_AND_RELEASE_GUARD=PASS")
+          PY
+      - name: Validate v3 keystore from encrypted repository secrets
+        shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BUNNY_KEYSTORE_B64:-}" ] || [ -z "${BUNNY_SIGNING_PASSWORD:-}" ] || [ -z "${BUNNY_SIGNING_ALIAS:-}" ]; then
+            echo "Three Bunny signing repository secrets are required." >&2
+            exit 1
+          fi
+          umask 077
+          folder="$RUNNER_TEMP/bunny-v3-only"
+          mkdir -p "$folder"
+          key="$folder/private.jks"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$key"
+          test -s "$key"
+          keytool -list -keystore "$key" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
+          echo "BUNNY_V3_KEYSTORE_AND_ALIAS=PASS"

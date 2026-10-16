@@ -317,6 +317,7 @@ class ModRepository(private val context: Context) {
     private fun entryOf(dir: File): File? {
         val m = readManifest(dir) ?: return null
         if (m.packType == PackType.TEXTURE) return TexturePackFiles.images(dir)?.takeIf { TexturePackFiles.hasImages(dir) }
+        if (m.entry == "@native") return File(dir, "native/arm64-v8a/libmod.so").takeIf { it.isFile }
         val path = resolvePackagePath(dir.path, true, "${Catalog.CONTENT}/${m.entry}") ?: return null
         return File(path).takeIf { it.isFile }
     }

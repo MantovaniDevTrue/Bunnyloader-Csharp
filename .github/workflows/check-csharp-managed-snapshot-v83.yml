@@ -1,0 +1,49 @@
+name: Check CSharp managed NPC snapshot v83
+
+on:
+  push:
+    branches:
+      - csharp-managed-npc-snapshot-v83-experiment
+  workflow_dispatch:
+
+jobs:
+  check-npc-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate snapshot FIFO and fallback
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/test_managed_hit_context_v83.cpp \
+            -o /tmp/bunny-snapshot-v83
+          /tmp/bunny-snapshot-v83
+      - name: Check MonoVM callback and old callback compatibility
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/tests/run_managed_lifecycle_regressions.py
+      - name: Confirm native field offsets and diagnostics
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          hit = (root / "experiments/csharp/ManagedHitHook.cpp").read_text()
+          runtime = (root / "experiments/csharp/ManagedRuntime.cpp").read_text()
+          queue = (root / "experiments/csharp/ManagedLiveEventQueue.h").read_text()
+          api = (root / "script/api/CSharpPrototypeApi.cpp").read_text()
+          sample = Path("Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs").read_text()
+          assert 'g_npcType = il2cpp::fieldOffset(npc, "type");' in hit
+          assert 'g_npcPosition = runtime::game().entity.position;' in hit
+          assert 'queueManagedLiveHit(type, damage, index, snapshot);' in hit
+          assert "ManagedNpcSnapshot npc{};" in queue
+          assert "event.damage, event.npcIndex, event.npc, callbackClass" in runtime
+          assert 'g_api.findMethod(klass, "OnHitNPCV3", 7)' in runtime
+          assert "useV3 ? argsV3 : useV2 ? argsV2 : argsLegacy" in runtime
+          assert "recordV3(" in runtime
+          assert "OnHitNPCV3(int call, int damage, int npcIndex, int npcType, int npcLife, float posX, float posY)" in sample
+          for field in ("v3Calls", "v3Successes", "v3Failures", "lastNpcType",
+                        "lastNpcLife", "lastNpcX", "lastNpcY"):
+              assert f'"{field}"' in api
+          print("CSHARP_V83_NPC_SNAPSHOT_PIPELINE=PASS")
+          PY

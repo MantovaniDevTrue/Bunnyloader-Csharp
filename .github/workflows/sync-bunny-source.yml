@@ -1,49 +1,29 @@
-name: Sync Bunny Loader Source
-# refresh upstream bc5c1589 2026-10-15
-# manual sync refresh 2026-10-14
-# manual sync refresh 2026-10-10
-# manual sync refresh 2026-10-06 evening
-# manual sync refresh 2026-10-06
-# manual sync refresh 2026-10-03
-# manual sync refresh 2026-10-02
-# manual sync refresh 2026-10-01
-
+name: Compare Bunny upstream source (read only)
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/sync-bunny-source.yml"
   workflow_dispatch:
-
+    inputs:
+      upstream_ref:
+        description: Jonata Bunny-Loader branch, tag or commit to compare
+        required: true
+        default: main
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  sync:
+  compare:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    timeout-minutes: 10
     steps:
-      - name: Checkout Split workspace
-        uses: actions/checkout@v4
-
-      - name: Fetch Bunny Loader
-        shell: bash
-        run: |
-          rm -rf Split/Bunny-Loader
-          git clone --depth 1 https://github.com/JonataOliveiraa/Bunny-Loader.git Split/Bunny-Loader
-          rm -rf Split/Bunny-Loader/.git
-
-      - name: Commit Bunny Loader source
-        shell: bash
-        run: |
-          git config user.name "Split Build Bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add Split/Bunny-Loader
-          if git diff --cached --quiet; then
-            echo "Bunny Loader source already synchronized."
-          else
-            git commit -m "Sync Bunny Loader source"
-            git push origin main
-          fi
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: JonataOliveiraa/Bunny-Loader
+          ref: ${{ inputs.upstream_ref }}
+          path: .upstream-bunny
+          persist-credentials: false
+      - name: Compare tracked source trees without replacing CSharp
+        run: python3 tools/compare_bunny_upstream.py .upstream-bunny --output build/upstream-comparison
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bunny-upstream-comparison
+          path: build/upstream-comparison/
+          retention-days: 14

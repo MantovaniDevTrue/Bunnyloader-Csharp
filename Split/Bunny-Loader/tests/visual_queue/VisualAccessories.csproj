@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="VisualAccessoryProgram.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleMysticWardPlayer.cs" Link="ExampleMysticWardPlayer.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs" Link="ExampleTrailblazerBootsPlayer.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleMysticWardAccessory.cs" Link="ExampleMysticWardAccessory.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs" Link="ExampleTrailblazerBootsAccessory.cs" />
+  </ItemGroup>
+</Project>

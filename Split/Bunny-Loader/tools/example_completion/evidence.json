@@ -1,0 +1,1142 @@
+{
+  "schemaVersion": 1,
+  "deviceBaseline": {
+    "loader": "0.1.10.16.90.27.6",
+    "exampleMod": "0.1.33",
+    "platform": "Terraria Android 1.4.5.8.6 arm64-v8a / Xiaomi 2109119DG Android 14",
+    "report": "Usuario: \"funcionou perfeitamente\"",
+    "attachment": "1000279487.jpg",
+    "scope": [
+      "equipamento nativo Guardian Shield",
+      "Trailblazer Boots / chamas",
+      "barreira Mystic Ward preservada"
+    ],
+    "fps": null,
+    "doesNotProve": "Equivalencia integral de cada arquivo JS; FPS sustentado desta versao nao foi medido neste relato."
+  },
+  "examples": {
+    "Content/Items/Accessories/ExampleShield.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Dash e double-tap originais ainda nao portados.",
+        "Valores/efeitos originais do ExampleShield diferem dos atributos preservados do Guardian Shield."
+      ],
+      "preservedFeatures": [
+        "shieldSlot nativo, folha animada e atualizacao do slot de item salvo"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/ExampleBoots.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs"
+      ],
+      "missingFeatures": [
+        "rocketBoots, waterWalk, iceSkate, desertBoots, fireWalk, noFallDmg, lavaRose/lavaMax do original.",
+        "Rastro em montarias permitidas pelo JS original; C# atual restringe a personagem sem montaria."
+      ],
+      "preservedFeatures": [
+        "shoeSlot nativo, CancelAllBootRunVisualEffects, hellfireTreads e chamas no chao; velocidade/aceleracao do exemplo C#"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/ExampleStatAccessory.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults e tooltip de 10%",
+        "Multiplicador de melee/ranged/magic; nao altera minion; vaidade sem bonus"
+      ],
+      "missingFeatures": [
+        "Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/CSharpItemBehaviorLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+        "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/item_behavior_bridge_test.js",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleStatAccessory",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "CI aprovou os contratos e hooks com doubles de Terraria. Android .90.28.5 recusou ExampleBeard antes de instalar o grupo por Texture sem extensao. A correcao .90.28.6 passou nos testes de fontes/caminho/PNG; teste Android da correcao pendente.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleStatAccessory.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+    },
+    "Content/Items/Accessories/ExampleStatBonusAccessory.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente."
+      ],
+      "preservedFeatures": [
+        "Hurt, FreeDodge, NPC/projetil, vida e contexto espacial."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Buffs/ExampleDefenseBuff.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "missingFeatures": [
+        "ModifyDescription com localizacao e ModifyBuffText com duracao restante."
+      ],
+      "preservedFeatures": [
+        "+10 defesa em UpdatePlayer pelo hook nativo de buffs."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Consumables/ExampleBuffPotion.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+      ],
+      "missingFeatures": [
+        "DrinkParticleColors, som Item3, pilha/valor/raridade/duracao original e defaults de uso completos."
+      ],
+      "preservedFeatures": [
+        "consumivel que aplica o buff via Terraria."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/NPCs/ExampleSlimeNPC.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs"
+      ],
+      "missingFeatures": [
+        "Comparacao de toda a IA/animacao/spawn/loot com o original atualizado; contrato NPC geral."
+      ],
+      "preservedFeatures": [
+        "registro, defaults e IA seletiva nativa/MonoVM."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Prefixes/ExampleAccessoryPrefix.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleGuardedPrefix.cs"
+      ],
+      "missingFeatures": [
+        "API publica GetTooltipLines modificavel como no original."
+      ],
+      "preservedFeatures": [
+        "+4 defesa, valor 1.2, elegibilidade/rolagem/restauracao e tooltip nativo."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Prefixes/ExamplePrefix.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs"
+      ],
+      "missingFeatures": [
+        "Power sobrescrevivel, heranca do ExampleDerivedPrefix, GetTooltipLines e Apply genericos."
+      ],
+      "preservedFeatures": [
+        "dano 1.2, valor 1.05, RollWeight 5 e restauracao."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Common/Players/ExamplePlayer.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs"
+      ],
+      "missingFeatures": [
+        "Todos os hooks/estado persistente do ModPlayer original; exemplos atuais nao sao portas integrais."
+      ],
+      "preservedFeatures": [
+        "OnEnterWorld, respawn, UpdateDead e callbacks de dano existentes."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/combat_batch/Program.cs",
+        "tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel)",
+        ".github/workflows/build-bunny-csharp-source-loader.yml"
+      ],
+      "validation": "Compilacao/contratos existentes exercitados na .90.27.6; ainda sem prova de equivalencia do arquivo JS inteiro.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Tools/ExamplePickaxe.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
+      ],
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Tools/ExampleHamaxe.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
+      ],
+      "preservedFeatures": [
+        "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
+        "Receita original: dez ExampleItems e WorkBenches."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
+      "deviceEvidence": []
+    },
+    "Content/Items/ExampleItem.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
+      "preservedFeatures": [
+        "MaxStack 9999, value buyPrice(0,0,1,0), receita de 999 itens com dez DirtBlocks na Work Bench."
+      ],
+      "missingFeatures": [
+        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/basic_wire_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/recipe_bridge_test.js",
+        "tests/basic_items/basic_source_parser_test.cpp"
+      ],
+      "terrariaTests": [
+        "tests/basic_items/ANDROID.md"
+      ],
+      "validation": "Item/receita aprovados nos testes de host e build Android (runs 38508838476 / 38508373513). Arquivo JS inteiro permanece Parcial: moeda customizada nao implementada. Gameplay no aparelho pendente.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Accessories/WaspNest.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults e economia original",
+        "Back nativo com asset original",
+        "strongBees apenas no slot funcional; reset pelo ciclo nativo",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico WaspNest",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/WaspNest_Back.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+    },
+    "Content/Items/Accessories/ExampleBeard.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults, valor e vaidade originais",
+        "Beard nativo e tintura pela cor de cabelo",
+        "Cor de inventario a partir do jogador local",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBeard",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Accessories/ExampleBeard_Beard.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+    },
+    "Content/Items/Armor/Vanity/ExampleBossMask.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults, valor, raridade e pilha originais",
+        "Head nativo com sprite original",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleBossMask",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleBossMask_Head.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
+    },
+    "Content/Items/Armor/Vanity/ExampleRobe.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults de vaidade originais",
+        "Body e Legs originais; HidesHands=false",
+        "SetMatch: robes=true e slot Legs associado ao mesmo item",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/basic_items/native_item_binding_test.cpp: persistent native armor slots on newly created items, width sentinel and rejection contracts",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleRobe",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "deviceEvidence": [
+        {
+          "loader": ".90.28.7",
+          "report": "Funcionou perfeitamente",
+          "scope": "equipamento apos correcao; outros procedimentos de ciclo de vida ainda nao registrados"
+        }
+      ],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Body.png",
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Armor/Vanity/ExampleRobe_Legs.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": "Usuario confirmou funcionamento na .90.28.7"
+    },
+    "Content/Items/Materials/ExampleSoul.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs"
+      ],
+      "preservedFeatures": [
+        "Clone real de SoulofSight e overrides originais",
+        "4 frames/6 ticks, AnimatesAsSoul, ItemIconPulse e ItemNoGravity",
+        "PostUpdate luz escalada por essScale; GetAlpha 255/255/255/50",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_binding_test.cpp",
+        "tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "terrariaTests": [
+        "docs/csharp-lot2-item-behaviors.md: roteiro especifico ExampleSoul",
+        "Equipar/desequipar, vaidade, loadout, morte/respawn, Save/Exit, convivência JS/C#"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "deviceEvidence": [],
+      "assets": [
+        "Split/Bunny-Loader/samples/ExampleMod/content/Content/Items/Materials/ExampleSoul.png"
+      ],
+      "automatedEvidence": [
+        {
+          "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+          "runId": 38559202417,
+          "scope": "SDK, Roslyn automatico, wire real, tipos/larguras IL2CPP, slots e hooks em doubles; nao execucao no aparelho"
+        },
+        "Contratos de comportamento existentes preservados; validacao automatizada anterior nao comprova independencia de QuickJS."
+      ],
+      "androidRegistration": ".90.28.5 primary texture regression affects this group; .90.28.6 correction awaiting Android validation"
+    },
+    "Content/Items/Armor/ExampleHelmet.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ]
+    },
+    "Content/Items/Armor/ExampleBreastplate.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ]
+    },
+    "Content/Items/Armor/ExampleLeggings.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py",
+        "tests/run_native_armor_policies.py"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "preservedFeatures": [
+        "Fonte C# e sprites originais integrados no ExampleMod 0.1.37; defesa, efeitos e receita na ExampleWorkbench.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ]
+    },
+    "Content/Items/Accessories/ExampleWings.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
+        "app/src/main/cpp/content/common/TypeTables.cpp",
+        "app/src/main/cpp/content/common/ContentAssets.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs: wire do ExampleWings real",
+        "tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0",
+        "tests/test_csharp_no_javascript_dependency.py"
+      ],
+      "validation": "Implementacao e testes de host sem QuickJS; metadados/Unity simulados. Gameplay, renderizacao e ABI ainda aguardam validacao Android.",
+      "preservedFeatures": [
+        "Item e sprites originais 22x20, valor 10000, raridade Green e accessory.",
+        "Slot Wings, FlyTime=180, velocidade=9, aceleracao=2.5; movimento vertical 0.85/0.15/1/3/0.135.",
+        "Receita de 1 ExampleItem na ExampleWorkbench C# sem IDs dinamicos fixos.",
+        "Instalacao e execucao por servicos nativos, sem adaptadores JS de comportamento/equipamento."
+      ],
+      "terrariaTests": [
+        "Fabricar ExampleWings na ExampleWorkbench, equipar/desquipar, verificar animacao e voo de 180 ticks, gravidade invertida, loadout, morte/respawn e save/reload."
+      ]
+    },
+    "Common/Players/ExampleTouchButtonPlayer.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "ProcessTriggers C#; JustPressed/Current; estado por jogador; tocar/segurar/double-tap; random buff e texto localizado."
+      ],
+      "terrariaTests": [
+        "Adicionar botoes ao layout de controles; pressionar/segurar/double-tap; multiplayer/ciclo de jogador."
+      ]
+    },
+    "Common/Systems/TouchButtonSystem.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "API C# publica de registro de botoes; labels/icones; registro Load; integracao e persistencia do layout de controles."
+      ],
+      "assets": [
+        "samples/ExampleMod/content/Assets/TouchButtons/RandomBuff.png",
+        "samples/ExampleMod/content/Assets/TouchButtons/LearningExample.png"
+      ],
+      "terrariaTests": [
+        "Registrar dois botoes em mod C# independente; editor de controles; salvar e reabrir layout."
+      ]
+    },
+    "Content/Items/Placeable/Furniture/ExampleWorkbench.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Tile e item com identidades separadas, shape 2x1, frames, mapa, housing, adjacencia, receita, dust/drop e sprites originais."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp",
+        "app/src/main/cpp/content/recipes/NativeRecipes.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/native_tile_policy.cpp",
+        "tests/native_recipes/native_recipes_test.cpp"
+      ],
+      "terrariaTests": [
+        "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
+      ],
+      "validation": "Implementacao nativa existente preservada; colocacao de tiles vanilla testada anteriormente nao valida a ExampleWorkbench C#."
+    },
+    "Content/Tiles/Furniture/ExampleWorkbench.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Furniture/ExampleWorkbench.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Tile e item com identidades separadas, shape 2x1, frames, mapa, housing, adjacencia, receita, dust/drop e sprites originais."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp",
+        "app/src/main/cpp/content/recipes/NativeRecipes.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/native_tile_policy.cpp",
+        "tests/native_recipes/native_recipes_test.cpp"
+      ],
+      "terrariaTests": [
+        "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
+      ],
+      "validation": "Implementacao nativa existente preservada; colocacao de tiles vanilla testada anteriormente nao valida a ExampleWorkbench C#."
+    }
+  },
+  "additionalCSharpDeviceEvidence": {
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleMysticWardAccessory.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ],
+    "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleMysticWardPlayer.cs": [
+      {
+        "loader": ".90.27.6",
+        "report": "Usuario: \"funcionou perfeitamente\"",
+        "attachment": "1000279487.jpg",
+        "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
+      }
+    ]
+  },
+  "validationHistory": [
+    {
+      "sourceCommit": "dff3d4e898e0c314a57886475d254ec635708a8d",
+      "loader": "0.1.10.16.90.28.0",
+      "exampleMod": "0.1.34",
+      "hostAuditRun": 38508838476,
+      "prefixRegressionRun": 38508838414,
+      "apkBuildRun": 38508373513,
+      "hostCasesPassed": 8,
+      "deviceTested": false
+    },
+    {
+      "sourceCommit": "2d9c534464750c1f626df6158fbec8373528b3f7",
+      "loader": "0.1.10.16.90.28.5",
+      "exampleMod": "0.1.35",
+      "hostAuditRun": 38559202417,
+      "combatRun": 38559216905,
+      "prefixRegressionRun": 38559202414,
+      "hostCasesPassed": 10,
+      "deviceTested": false,
+      "canonicalJsFiles": 199,
+      "cSharpSourceFiles": 51,
+      "apkBuildRun": 38560108522,
+      "apkBuildSourceCommit": "2d1012b7d067347688ea242827762b4dfe6f51b3"
+    },
+    {
+      "loader": "0.1.10.16.90.28.5",
+      "exampleMod": "0.1.35",
+      "kind": "Android registration failure reported by user",
+      "class": "ExampleBeard",
+      "result": "Rejected before behavior installation; no Android validation for new group",
+      "rootCause": "Primary Texture lacks .png; native preflight required extension and discarded its reason",
+      "fix": "0.1.10.16.90.28.6 shared texture normalization and detailed preflight diagnostics; Android retest pending"
+    },
+    {
+      "loader": "0.1.10.16.90.28.6-csharp-texture-contract",
+      "exampleMod": "0.1.35",
+      "commit": "cec309b023f4092723d29c43567865c3ebb2fe33",
+      "kind": "Automated regressions",
+      "auditRun": 38563527368,
+      "combatRun": 38563534832,
+      "prefixRun": 38563527455,
+      "lifecycleRun": 38563534821,
+      "monoSignalRun": 38563534910,
+      "monoGcRun": 38563534879,
+      "visualRun": 38563527245,
+      "nativeVisualRun": 38563527051,
+      "result": "All eight host suites passed; Android device validation pending",
+      "androidBuildRun": 38563527063,
+      "buildResult": "APK signed and pipeline completed successfully; no device validation"
+    },
+    {
+      "loader": "0.1.10.16.90.28.6-csharp-texture-contract",
+      "exampleMod": "0.1.35",
+      "kind": "User Android feedback",
+      "result": "Automatic loading successful; ExampleBossMask and ExampleRobe cannot equip",
+      "scope": "Loading only; equipment behavior not validated"
+    },
+    {
+      "loader": "0.1.10.16.90.28.7-csharp-native-armor-slots",
+      "exampleMod": "0.1.35",
+      "commit": "e50e613f649e8806f8a82c919859dbc4c60309db",
+      "kind": "Corrective build and automated validation",
+      "androidBuildRun": 38566058511,
+      "auditRun": 38566058963,
+      "combatRun": 38566067509,
+      "prefixRun": 38566058717,
+      "lifecycleRun": 38566067638,
+      "monoSignalRun": 38566067925,
+      "monoGcRun": 38566067576,
+      "visualRun": 38566058875,
+      "nativeVisualRun": 38566058926,
+      "result": "All eight regression suites and signed Android APK pipeline passed; no Android validation of mask/robe correction"
+    },
+    {
+      "loader": "0.1.10.16.90.28.7-csharp-native-armor-slots",
+      "exampleMod": "0.1.35",
+      "kind": "User Android feedback",
+      "report": "Funcionou perfeitamente",
+      "scope": [
+        "automatic CSharp loading",
+        "ExampleBossMask equipment",
+        "ExampleRobe equipment"
+      ],
+      "doesNotProve": [
+        "entire Lot A",
+        "all examples",
+        "sustained FPS",
+        "all lifecycle tests"
+      ]
+    },
+    {
+      "kind": "Internal Lot A infrastructure validation",
+      "commit": "eefe0c304ee5272782c2df1c543193166bc755fe",
+      "androidBuildRun": 38569808364,
+      "auditRun": 38569808387,
+      "result": "8 host suites and Android build succeeded; no partial APK release; no Android gameplay validation"
+    },
+    {
+      "kind": "Internal Lot A armor/station/wing validation",
+      "commit": "a3242340700dd16bba4b2e528907892130cc5ee3",
+      "androidBuildRun": 38571726472,
+      "auditRun": 38571726537,
+      "result": "8 host suites and Android build succeeded; no release; no Android gameplay validation"
+    },
+    {
+      "kind": "Internal complete-Lot-A infrastructure final verification",
+      "commit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
+      "androidBuildRun": 38573406719,
+      "auditRun": 38573406958,
+      "combatRun": 38573406634,
+      "prefixRun": 38573406671,
+      "lifecycleRun": 38573407022,
+      "monoSignalRun": 38573406878,
+      "monoGcRun": 38573406772,
+      "visualRun": 38573406814,
+      "nativeVisualRun": 38573406876,
+      "result": "All 8 independent suites and Android build/signing passed; private publication skipped; device gameplay not validated"
+    }
+  ],
+  "deviceBaselines": [
+    {
+      "loader": "0.1.10.16.90.28.4-csharp-item-active-optional",
+      "exampleMod": "0.1.34",
+      "sourceCommit": "67e6be55d495472e0dfb8e3b6b0d411aa61e821e",
+      "reportedBy": "usuario",
+      "device": "Xiaomi 2109119DG / Android 14 / arm64 / Terraria 1.4.5.8.6",
+      "observedFps": 60,
+      "benchmarkMeasured": false,
+      "scope": "Carga automatica, MonoVM, registros, callbacks, persistencia e sessao sem erros/avisos. Nao prova equivalencia de todos os arquivos JS."
+    }
+  ],
+  "implementationWork": {
+    "branch": "codex/lot-a-complete-v90-29",
+    "baseCommit": "28a9d71dac28a4ce14bff16fb492707c55227d05",
+    "lot": "A",
+    "delivery": "experimental private prerelease after eight independent suites and Android build; official complete-lot release remains disabled",
+    "apis": [
+      "BunnyItem.Defense",
+      "BunnyArmorEffects",
+      "BunnyArmorSet",
+      "BunnyRecipe.AddTile(string)",
+      "BunnyEquipKind.Wings",
+      "BunnyItemBehavior.SetWingStats",
+      "per-recipe diagnostic reporting",
+      "round-robin pending registrations",
+      "shared native Recipe service without QuickJS"
+    ],
+    "status": "Infraestrutura real de armaduras, conjuntos, estacoes JS e asas; exemplos do Lote A ainda nao portados",
+    "pending": [
+      "all 33 Lot A counterparts and applicable behavior",
+      "mod workbench and recipe dependencies",
+      "other Lot A APIs",
+      "Android lifecycle validation"
+    ],
+    "runtimeCommit": "6fac739d8e748ca390d83cc7ebe55ba4e7b9f44a",
+    "androidBuildRun": 38609568759,
+    "result": "Eight CI suites and Android build/signing passed; experimental private delivery; no Android gameplay or FPS validation; Lot A incomplete",
+    "recipeInfrastructure": {
+      "version": "0.1.10.16.90.29.1-native-recipe-service",
+      "source": "app/src/main/cpp/content/recipes/NativeRecipes.cpp",
+      "tests": [
+        "tests/native_recipes/native_recipes_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --recipes-only"
+      ],
+      "status": "Host integration and eight CI suites passed; Android build/signing passed; Android gameplay pending",
+      "scope": "Production registries/IL2CPP adapter executed without QuickJS; not a placed CSharp workbench",
+      "remaining": [
+        "CSharp station API and placement/hooks",
+        "crafting guide station icon",
+        "native beyond-max recipe menu support",
+        "equipment policy QuickJS decoupling",
+        "Android validation"
+      ]
+    },
+    "upstreamRefresh": {
+      "commit": "e608114efb15a3a021887a6132d9e2a487ba6b62",
+      "previousCanonicalCount": 199,
+      "canonicalCount": 201,
+      "addedExamples": [
+        "samples/ExampleMod/content/Common/Players/ExampleTouchButtonPlayer.js",
+        "samples/ExampleMod/content/Common/Systems/TouchButtonSystem.js"
+      ],
+      "lotAScopeUnchanged": 33
+    },
+    "nativeValueLayout": {
+      "version": "0.1.10.16.90.29.2-native-value-layout",
+      "source": "app/src/main/cpp/il2cpp/ValueLayout.h",
+      "tests": [
+        "tests/native_recipes/value_layout_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --nullable --nullable-unboxed --bounds"
+      ],
+      "status": "Production helper exercised without QuickJS; eight CI suites and Android build passed; device validation pending",
+      "preserved": [
+        "useStyle native width",
+        "optional Item.active",
+        "LegacySoundStyle reference ABI",
+        "existing QuickJS struct helper unchanged"
+      ],
+      "correctedDependency": "NativeBasicItems no longer calls QuickJS-compiled script::structFieldOffset",
+      "scope": "No new examples; CSharp station placement and policies still pending"
+    },
+    "recipePumpIntegration": {
+      "version": "0.1.10.16.90.29.3-recipe-policy-ready",
+      "test": "tests/native_recipes/native_recipes_test.cpp --pump",
+      "status": "Host and CI passed; user Android report for .90.29.3 shows repeated SIGSEGV on UnityMain; reference setter ABI fixed in .90.29.4, device retest pending",
+      "scope": [
+        "Production NativeBasicItems queue and NativeRecipes adapter linked to production registries",
+        "Preview/defaults and delayed station retry",
+        "Policy readiness isolated per item"
+      ],
+      "notProven": [
+        "CSharp placed station",
+        "Full Android boot without VM",
+        "Android gameplay or 60 FPS"
+      ]
+    },
+    "previousRuntimeCommit": "e466ae4c4fc1097b67ad0d0c6460a36e4fb66b8b",
+    "eightSuiteRuns": {
+      "audit": 38609568681,
+      "combat": 38609568434,
+      "prefix": 38609568384,
+      "lifecycle": 38609568885,
+      "monoGc": 38609568717,
+      "monoSignals": 38609568721,
+      "visual": 38609568862,
+      "nativeVisual": 38609568707
+    },
+    "recipeReferenceAbiFix": {
+      "version": "0.1.10.16.90.29.4-recipe-reference-abi",
+      "runtimeCommit": "cf1a24d9196aac51feb0d96e9e30029a374771c6",
+      "androidBuildRun": 38613198798,
+      "deviceEvidence": {
+        "failedVersion": "0.1.10.16.90.29.3-recipe-policy-ready",
+        "signal": "SIGSEGV",
+        "thread": "UnityMain",
+        "pids": [
+          4610,
+          4424
+        ],
+        "faultAddress": "0x10000004b",
+        "limitation": "First native stack frames absent from readable report; fault address alone does not locate native function"
+      },
+      "correctedContract": "il2cpp_field_static_set_value takes the object directly for reference fields; value fields take an address",
+      "tests": [
+        "Corrected IL2CPP reference setter mock rejects stack-variable addresses",
+        "Previous production code fails under corrected mock",
+        "Fixed production adapter passes registration, restoration, rollback and --pump without QuickJS"
+      ],
+      "validation": "Eight CI suites and Android build/signing passed; user confirms .90.29.4 opens successfully and ExampleMod recipes have no errors; scope limited to reported session",
+      "newExamples": 0,
+      "eightSuiteRuns": {
+        "audit": 38613198853,
+        "combat": 38613198723,
+        "prefix": 38613198765,
+        "lifecycle": 38613198818,
+        "monoGc": 38613198960,
+        "monoSignals": 38613198782,
+        "visual": 38613198669,
+        "nativeVisual": 38613198759
+      }
+    },
+    "nativePlacement": {
+      "version": "0.1.10.16.90.29.5-native-placeable-items",
+      "api": "BunnyItem.DefaultToPlaceableTile(int|string, int style=0)",
+      "test": "tests/native_recipes/native_recipes_test.cpp --placement-wire",
+      "scope": "Compiled CSharp descriptor to production registry/defaults/queue/recipe adapter without QuickJS, with emulated Terraria metadata",
+      "status": "Compiled-source contract, eight CI suites and Android build/signing passed; experimental private artifact delivered; device validation pending",
+      "remaining": [
+        "CSharp tile/station API",
+        "TileObjectData configuration lifecycle",
+        "placement/break/support/dust/housing/adjacency on Android",
+        "all incomplete Lot A examples"
+      ],
+      "newCompletedExamples": 0,
+      "runtimeCommit": "f0ba6804d6cc53b546e9b6133182083ad7321394",
+      "androidBuildRun": 38617948804,
+      "eightSuiteRuns": {
+        "audit": 38617948795,
+        "combat": 38617948838,
+        "prefix": 38617948716,
+        "lifecycle": 38617948914,
+        "monoGc": 38617948691,
+        "monoSignals": 38617948980,
+        "visual": 38617948879,
+        "nativeVisual": 38617948676
+      },
+      "androidProbe": {
+        "id": "nativeplacementprobe",
+        "version": "0.1.0",
+        "uid": "943c352f-5b07-4b3a-b565-620fc7ea63d3",
+        "path": "samples/NativePlacementProbe/Playable",
+        "sources": 4,
+        "items": 3,
+        "assets": 3,
+        "minimumRuntime": "0.1.10.16.90.29.5",
+        "scope": "Vanilla tile placement/style/consumption/persistence test instructions; not CSharp station implementation",
+        "tests": [
+          "Compiler and CompiledAssemblyProbe",
+          "native_recipes_test --probe-wire",
+          "check_placement_probe.py"
+        ],
+        "status": "Real CSharp compilation, early registration/assets, native wire integration, eight CI suites and Android build passed; private package delivered; Android validation pending",
+        "runtimeCommit": "4a15074920521d812a964a71568d1a26ed660f3e",
+        "buildRun": 38620813619,
+        "eightSuiteRuns": {
+          "audit": 38620813424,
+          "combat": 38620814061,
+          "prefix": 38620813444,
+          "lifecycle": 38620813593,
+          "monoGc": 38620813870,
+          "monoSignals": 38620813842,
+          "visual": 38620813699,
+          "nativeVisual": 38620813712
+        }
+      }
+    }
+  }
+}

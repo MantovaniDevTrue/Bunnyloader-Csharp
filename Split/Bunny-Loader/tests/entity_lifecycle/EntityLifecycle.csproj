@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyNpcBehavior.cs" Link="BunnyNpcBehavior.cs" />
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyProjectileBehavior.cs" Link="BunnyProjectileBehavior.cs" />
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/HostApi.cs" Link="HostApi.cs" />
+  </ItemGroup>
+</Project>

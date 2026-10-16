@@ -1,0 +1,12 @@
+# Local build outputs and editor caches; canonical source remains under Split/.
+**/bin/
+**/obj/
+**/__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.idea/
+/MeusMods/
+/Split/MeusMods/
+/build/
+/.upstream-bunny/

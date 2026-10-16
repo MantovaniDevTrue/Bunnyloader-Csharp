@@ -55,6 +55,7 @@ struct Api {
     // (GetType, Equals herdado) quer o objeto com cabecalho, nao os dados.
     Il2CppObject* (*value_box)(Il2CppClass*, void*) = nullptr;
     int32_t (*class_value_size)(Il2CppClass*, uint32_t*) = nullptr;
+    uint32_t (*class_instance_size)(Il2CppClass*) = nullptr;
     // Caminho de volta classe -> tipo: o elemento de um array chega como
     // classe, e quem sabe ler memoria trabalha com Il2CppType.
     const Il2CppType* (*class_get_type)(Il2CppClass*) = nullptr;
@@ -140,3 +141,4 @@ inline void* methodPointer(const MethodInfo* m) {
 }
 
 } // namespace bl::il2cpp
+

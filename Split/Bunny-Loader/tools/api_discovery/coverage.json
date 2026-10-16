@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "features": [
+    {
+      "id": "weapon_registration",
+      "status": "device_verified",
+      "reason": "Arma C# funcional em combate Android .86.",
+      "sdkClass": "BunnyWeapon",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyWeapon"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs",
+          "contains": "Shoot = nameof(ExampleWaveBolt);"
+        }
+      ]
+    },
+    {
+      "id": "projectile_registration",
+      "status": "device_verified",
+      "reason": "Projeteis C# ativos no Android .86.",
+      "sdkClass": "BunnyProjectile",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyProjectile"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
+          "contains": "class ExampleWaveBolt : BunnyProjectile"
+        }
+      ]
+    },
+    {
+      "id": "npc_registration",
+      "status": "device_verified",
+      "reason": "Slime C# registrado e testado em Terraria Android.",
+      "sdkClass": "BunnyNPC",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyNPC"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+          "contains": "class ExampleSlimeNPC : BunnyNPC"
+        }
+      ]
+    },
+    {
+      "id": "legacy_live_hits",
+      "status": "device_verified",
+      "reason": "Callbacks tradicionais confirmados com dois mods C#.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs",
+          "contains": "OnHitNPC(int call, int damage)"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+          "contains": "\"OnHitNPC\", 2"
+        }
+      ]
+    },
+    {
+      "id": "on_hit_context_v2",
+      "status": "device_verified",
+      "reason": "Indice do NPC C# verificado Android .82.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+          "contains": "OnHitNPCV2(int call, int damage, int npcIndex)"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+          "contains": "\"OnHitNPCV2\", 3"
+        }
+      ]
+    },
+    {
+      "id": "on_hit_context_v3",
+      "status": "device_verified",
+      "reason": "Tipo, vida e posicao NPC verificados com 383 chamadas .83.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+          "contains": "OnHitNPCV3(int call, int damage, int npcIndex, int npcType"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+          "contains": "\"OnHitNPCV3\", 7"
+        }
+      ]
+    },
+    {
+      "id": "on_hit_context_v4",
+      "status": "device_verified",
+      "reason": "Contexto de jogador e NPC confirmado Android .84/.86.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+          "contains": "OnHitNPCV4(int call, int damage, int npcIndex, int npcType"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+          "contains": "\"OnHitNPCV4\", 12"
+        }
+      ]
+    },
+    {
+      "id": "managed_npc_debuff",
+      "status": "device_verified",
+      "reason": "Efeitos de debuff reais confirmados Android .85.1/.86.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "probes": [
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h",
+          "contains": "decodeManagedNpcBuffCode"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp",
+          "contains": "runtime_invoke(g_addBuff, npc, args, &exception)"
+        }
+      ]
+    },
+    {
+      "id": "managed_npc_impulse",
+      "status": "device_verified",
+      "reason": "87 empurroes confirmados visualmente Android .86 com 60 FPS.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
+      "probes": [
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h",
+          "contains": "decodeManagedNpcImpulseCode"
+        },
+        {
+          "path": "app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp",
+          "contains": "std::clamp(current.x + delta, -12.0f, 12.0f)"
+        }
+      ]
+    },
+    {
+      "id": "projectile_motion",
+      "status": "device_verified",
+      "reason": "Curvas controladas por C# validadas em dispositivo.",
+      "example": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+          "contains": "TurnAtTick(int tick)"
+        }
+      ]
+    },
+    {
+      "id": "buff_definition",
+      "status": "ci_verified",
+      "reason": "Definicao BunnyBuff e fonte C# presentes; nao e debuff vanilla V4.",
+      "sdkClass": "BunnyBuff",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyBuff"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs",
+          "contains": "class ExampleDefenseBuff : BunnyBuff"
+        }
+      ]
+    },
+    {
+      "id": "buff_potion",
+      "status": "ci_verified",
+      "reason": "Definicao BunnyBuffPotion presente; uso e duracao ainda exigem teste isolado.",
+      "sdkClass": "BunnyBuffPotion",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyBuffPotion"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs",
+          "contains": "class ExampleBuffPotion : BunnyBuffPotion"
+        }
+      ]
+    },
+    {
+      "id": "accessory",
+      "status": "ci_verified",
+      "reason": "Definicao de acessorio compila, teste extenso do equipamento pendente.",
+      "sdkClass": "BunnyAccessory",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyAccessory"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs",
+          "contains": "class ExampleFocusAccessory : BunnyAccessory"
+        }
+      ]
+    },
+    {
+      "id": "player_equips",
+      "status": "ci_verified",
+      "reason": "ResetEffects/UpdateEquips declarados; persistencia nao comprovada.",
+      "sdkClass": "BunnyPlayer",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs",
+      "probes": [
+        {
+          "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+          "contains": "public abstract class BunnyPlayer"
+        },
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs",
+          "contains": "UpdateEquips(bool accessoryEquipped)"
+        }
+      ]
+    },
+    {
+      "id": "npc_ai_prototype",
+      "status": "experimental",
+      "reason": "AI gerenciada demonstrada, nao equivale a hooks JS NPC AI universais.",
+      "example": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs",
+      "probes": [
+        {
+          "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleLiveNpcAI.cs",
+          "contains": "AI(int playerDeltaX, int npcLife)"
+        }
+      ]
+    },
+    {
+      "id": "npc_loot_rules",
+      "status": "not_implemented",
+      "reason": "ModifyNPCLoot JS nao tem equivalente gerenciado neste SDK."
+    },
+    {
+      "id": "npc_bestiary",
+      "status": "not_implemented",
+      "reason": "SetBestiary JS sem ponte C# comprovada."
+    },
+    {
+      "id": "managed_dynamic_projectile_spawn",
+      "status": "not_implemented",
+      "reason": "Spawn dinamico a partir de callback C# nao comprovado neste runtime."
+    },
+    {
+      "id": "multiplayer_effect_sync",
+      "status": "not_implemented",
+      "reason": "Gameplay effects V4 disponiveis apenas na rota singleplayer."
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 #include "mods/LoadOrder.h"
 #include "mods/ManifestText.h"
 #include "core/Log.h"
+#include "experiments/csharp/SourceLoader.h"
 #include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
@@ -115,6 +116,18 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
 
         // O `entry` do manifesto manda, relativo a content/ (sem ele, main.js).
         const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
+        if (name == "@native") {
+            const std::string native = mod.dir + "/native/arm64-v8a/libmod.so";
+            if (!fileExists(native)) {
+                BL_ERROR("mod %s: biblioteca NativeAOT ausente", id.c_str());
+                registry().back().enabled = false;
+                continue;
+            }
+            registry().back().entry = "@native";
+            dirsById()[id] = mod.dir + "/content";
+            registry().back().loaded = true;
+            continue;
+        }
         const std::string path = mod.dir + "/content/" + name;
         if (!fileExists(path)) {
             BL_ERROR("mod %s: nao achei o arquivo de entrada content/%s", id.c_str(), name.c_str());
@@ -151,20 +164,22 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         for (size_t d : sorted.needs[i]) needs[position[i]].push_back(position[d]);
     }
 
-    if (!script::engine().ready()) return;
-
     // 2a passada: cada mod, na mesma ordem. Por indice: o registro nao muda
     // durante a carga, mas uma referencia guardada atravessando o loadMod
     // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
-        if (!registry()[i].enabled) continue;
-        // Uma dependencia que lancou erro na carga derruba quem precisa dela.
-        const auto broken = std::find_if(needs[i].begin(), needs[i].end(),
-            [](size_t d) { return !registry()[d].loaded; });
-        if (broken != needs[i].end()) {
-            const LoadedMod& dep = registry()[*broken];
-            BL_ERROR("mod %s (%s) disabled: requires '%s', which failed to load",
-                registry()[i].displayName.c_str(), registry()[i].id.c_str(), dep.displayName.c_str());
+        if (!registry()[i].enabled || registry()[i].entry == "@native") continue;
+        if (registry()[i].entry.size() >= 3 &&
+            registry()[i].entry.compare(registry()[i].entry.size() - 3, 3, ".cs") == 0) {
+            if (!bl::csharp::loadCSharpSourceMod(registry()[i]))
+                registry()[i].enabled = false;
+            else
+                registry()[i].loaded = true;
+            continue;
+        }
+        if (!script::engine().ready() && !script::engine().init()) {
+            BL_WARN("mod %s: entrada JavaScript indisponivel; QuickJS nao pode ser inicializado",
+                    registry()[i].id.c_str());
             registry()[i].enabled = false;
             continue;
         }
@@ -214,7 +229,7 @@ const std::string& dirOf(const std::string& id) {
 }
 
 void loadBuiltins() {
-    if (!script::engine().ready()) {
+    if (!script::engine().ready() && !script::engine().init()) {
         BL_ERROR("mods embutidos: QuickJS nao esta pronto");
         return;
     }

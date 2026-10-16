@@ -2,6 +2,7 @@ package bunny;
 
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -38,6 +39,13 @@ import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import java.util.ArrayList;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -325,6 +333,7 @@ final class DevTools {
     private static final SpannableStringBuilder sOutput = new SpannableStringBuilder();
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
+    private static ArrayList<String> sCSharpHistory;
     private static Console sConsole;
     private static View sFloatIcon;
 
@@ -358,6 +367,13 @@ final class DevTools {
                 for (String s : all.split("\u0001", -1)) if (s.length() > 0) sHistory.add(s);
             }
         } catch (Throwable t) { /* sem historico */ }
+        sCSharpHistory = new ArrayList<String>();
+        try {
+            String all = prefs(act).getString("historyCSharp", "");
+            if (!all.isEmpty())
+                for (String value : all.split("\u0001", -1))
+                    if (!value.isEmpty()) sCSharpHistory.add(value);
+        } catch (Throwable ignored) { }
     }
 
     private static void saveHistory(Activity act) {
@@ -367,7 +383,15 @@ final class DevTools {
             if (i > 0) b.append('\u0001');
             b.append(sHistory.get(i));
         }
-        try { prefs(act).edit().putString("history", b.toString()).apply(); } catch (Throwable t) { }
+        StringBuilder cs = new StringBuilder();
+        if (sCSharpHistory != null)
+            for (String value : sCSharpHistory) {
+                if (cs.length() > 0) cs.append('\u0001');
+                cs.append(value);
+            }
+        try { prefs(act).edit().putString("history", b.toString())
+                    .putString("historyCSharp", cs.toString()).apply(); }
+        catch (Throwable ignored) { }
     }
 
     /** Uma entrada da saida: especie (o 1o caractere, como no nativo) e texto. */
@@ -419,8 +443,17 @@ final class DevTools {
         final View body;
         final TextView output;
         final ScrollView outputScroll;
+        final TextView hookCounters;
+        final TextView editorHelp;
         final EditText editor;
         final TextView fullButton;
+        final TextView title;
+        final TextView languageButton;
+        boolean csharpMode;
+        long lastHookCountersPoll;
+        String lastHookCountersText = "";
+        String jsDraft = "";
+        String csharpDraft = "";
         final Handler handler = new Handler(Looper.getMainLooper());
         KeyboardWatcher keyboard;
         int keyboardHeight;
@@ -435,6 +468,7 @@ final class DevTools {
         private final Runnable poll = new Runnable() {
             @Override public void run() {
                 pullOutput();
+                pullHookCounters();
                 if (showing) handler.postDelayed(this, POLL_MS);
             }
         };
@@ -458,10 +492,14 @@ final class DevTools {
             badge.setPadding(px(a, 6), 0, px(a, 6), 0);
             head.addView(badge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, px(a, 26)));
-            TextView title = text(a, tr("Editor"), 13, INK);
+            title = text(a, tr("Editor JS"), 13, INK);
             title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            languageButton = textButton(a, "JS", BUTTON, new Runnable() {
+                @Override public void run() { switchEditorLanguage(); }
+            });
+            head.addView(languageButton);
 
             head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
@@ -494,6 +532,19 @@ final class DevTools {
             inner.setOrientation(LinearLayout.VERTICAL);
             body = inner;
 
+            // Language-specific help stays separate from the shared log history.
+            editorHelp = new TextView(a);
+            applyTextSize(a, editorHelp, 8.5f);
+            editorHelp.setTextColor(INK_DIM);
+            editorHelp.setBackground(panel(a, PANEL_DARK, OUTLINE));
+            editorHelp.setMinLines(2);
+            editorHelp.setGravity(Gravity.CENTER_VERTICAL);
+            editorHelp.setPadding(px(a, 6), px(a, 4), px(a, 6), px(a, 4));
+            LinearLayout.LayoutParams helpLayout = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            helpLayout.topMargin = px(a, 5);
+            inner.addView(editorHelp, helpLayout);
+
             // ---- saida ----
             output = new TextView(a);
             output.setTypeface(Typeface.MONOSPACE);
@@ -509,6 +560,21 @@ final class DevTools {
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
             ol.topMargin = px(a, 5);
             inner.addView(outputScroll, ol);
+
+            hookCounters = new TextView(a);
+            hookCounters.setTypeface(Typeface.MONOSPACE);
+            applyTextSize(a, hookCounters, 7.5f);
+            hookCounters.setTextColor(INK);
+            hookCounters.setText("Hooks C#: aguardando evento de dano...");
+            hookCounters.setBackground(panel(a, PANEL_DARK, OUTLINE));
+            hookCounters.setPadding(px(a, 6), px(a, 6), px(a, 6), px(a, 6));
+            hookCounters.setGravity(Gravity.CENTER_VERTICAL);
+            hookCounters.setMinHeight(px(a, 44));
+            hookCounters.setVisibility(View.GONE);
+            LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            hl.topMargin = px(a, 5);
+            panel.addView(hookCounters, hl);
 
             // ---- editor + rodar ----
             LinearLayout editRow = new LinearLayout(a);
@@ -533,7 +599,18 @@ final class DevTools {
             editor.setMinLines(2);
             editor.setMaxLines(5);
             editor.setVerticalScrollBarEnabled(true);
-            editor.setText(prefs(a).getString("draft", ""));
+            jsDraft = prefs(a).getString("draft", "");
+            csharpDraft = prefs(a).getString("draftCSharp", "");
+            csharpMode = prefs(a).getBoolean("editorCsharpMode", true);
+            if (csharpMode) {
+                languageButton.setText("C#");
+                title.setText("Editor C#");
+                editor.setHint("Print(1 + 2);");
+                editor.setText(csharpDraft);
+            } else {
+                editor.setText(jsDraft);
+            }
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
             editor.setSelection(editor.getText().length());
             editor.addTextChangedListener(new CodeWatcher(editor));
             editor.setOnKeyListener(new View.OnKeyListener() {
@@ -576,9 +653,7 @@ final class DevTools {
             layout.bottomMargin = px(a, 8);
             a.addContentView(panel, layout);
 
-            if (sOutput.length() == 0) {
-                appendEntry('h', tr("O código roda na thread do jogo, como num hook. Main, ID e player (o seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log (que aparece aqui também). let/const valem só na execução; para guardar entre uma e outra, var ou globalThis.x."));
-            }
+            updateEditorHelp();
             output.setText(sOutput);
         }
 
@@ -588,6 +663,8 @@ final class DevTools {
             if (showing) return;
             showing = true;
             removeFloatIcon();
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            lastHookCountersPoll = 0;
             place(0, false);
             panel.setVisibility(View.VISIBLE);
             // A tela do jogo nao sobe com o teclado: quem sobe e o painel.
@@ -596,6 +673,7 @@ final class DevTools {
             act.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
                 | (savedSoftInput & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE));
             keyboard = new KeyboardWatcher(act, this);
+            if (csharpMode) pullHookCounters();
             handler.post(poll);
             // Sem foco nem teclado ao abrir: o teclado cobria metade da tela
             // antes de a pessoa decidir escrever. Ele abre no toque no editor.
@@ -707,6 +785,7 @@ final class DevTools {
         // ---- rodar, historico, saida ----
 
         void run() {
+            if (csharpMode) { runCSharp(); return; }
             String code = editor.getText().toString();
             if (code.trim().length() == 0) return;
             appendEntry('i', code);
@@ -726,33 +805,160 @@ final class DevTools {
             }
         }
 
+        void updateEditorHelp() {
+            editorHelp.setText(csharpMode
+                ? "C#: use Print(1 + 2); e toque no botao verde para executar.\nMods: salve o arquivo .cs e reinicie o jogo para aplicar."
+                : tr("JS: Main, ID e player já estão prontos. print(...) escreve no chat; bl.log(...), no log.\nlet/const valem só nesta execução; para guardar valores, use var ou globalThis.x."));
+        }
+
+        void switchEditorLanguage() {
+            saveDraft();
+            if (!csharpMode) {
+                jsDraft = editor.getText().toString();
+                csharpMode = true;
+                languageButton.setText("C#");
+                editor.setHint("Print(1 + 2);");
+                editor.setText(csharpDraft);
+                title.setText("Editor C#");
+            } else {
+                csharpDraft = editor.getText().toString();
+                csharpMode = false;
+                languageButton.setText("JS");
+                editor.setHint("player.statLife = 500");
+                editor.setText(jsDraft);
+                title.setText("Editor JS");
+            }
+            editor.setSelection(editor.getText().length());
+            hookCounters.setVisibility(csharpMode ? View.VISIBLE : View.GONE);
+            updateEditorHelp();
+            prefs(act).edit().putBoolean("editorCsharpMode", csharpMode).apply();
+            lastHookCountersPoll = 0;
+            if (csharpMode) pullHookCounters();
+            appendEntry('i', csharpMode
+                ? "C#: escreva Print(1 + 2); e toque no botao verde. Roslyn compila e MonoVM executa sem QuickJS."
+                : "JS: o botao verde executa o codigo no motor QuickJS.");
+            refreshOutput();
+        }
+
+        void runCSharp() {
+            String code = editor.getText().toString().trim();
+            if (code.length() == 0) return;
+            if (code.length() > 8192) {
+                appendEntry('x', "C#: limite de 8192 caracteres por execucao");
+                refreshOutput();
+                return;
+            }
+            String id = UUID.randomUUID().toString();
+            File work = new File(act.getFilesDir(), "bunny-csharp");
+            File root = new File(new File(work, "interactive"), id);
+            File content = new File(root, "content");
+            try {
+                if (!content.isDirectory() && !content.mkdirs())
+                    throw new java.io.IOException("Pasta temporaria indisponivel");
+                boolean expression = !code.contains(";") && !code.contains("\n")
+                        && !code.contains("{") && !code.contains("}");
+                String statements = expression ? "Print(" + code + ");" : code;
+                String source = "using System;\nusing System.Text;\n" +
+                    "namespace BunnyLoader.Interactive {\n" +
+                    "public static class ConsoleEntry {\n" +
+                    "private static readonly StringBuilder Buffer = new StringBuilder();\n" +
+                    "public static void Print(object value) { Buffer.AppendLine(value == null ? \"null\" : value.ToString()); }\n" +
+                    "public static void Log(object value) { Print(value); }\n" +
+                    "public static string Run() {\n" +
+                    "Buffer.Clear();\n" + statements + "\n" +
+                    "return Buffer.Length == 0 ? \"Executado\" : Buffer.ToString();\n" +
+                    "}\n}\n}\n";
+                Files.write(new File(content, "ConsoleEntry.cs").toPath(),
+                            source.getBytes(StandardCharsets.UTF_8));
+                String error = CheatBridge.nCSharpConsoleRun(id, root.getCanonicalPath(),
+                                                             work.getCanonicalPath());
+                if (error != null && !error.isEmpty()) {
+                    appendEntry('x', "C#: " + error);
+                    refreshOutput();
+                    return;
+                }
+                appendEntry('i', "C# > " + code);
+                if (sCSharpHistory == null) sCSharpHistory = new ArrayList<String>();
+                if (sCSharpHistory.isEmpty() ||
+                    !sCSharpHistory.get(sCSharpHistory.size() - 1).equals(code)) {
+                    sCSharpHistory.add(code);
+                    while (sCSharpHistory.size() > MAX_HISTORY) sCSharpHistory.remove(0);
+                    saveHistory(act);
+                }
+                csharpDraft = "";
+                historyIndex = -1;
+                scratch = "";
+                editor.setText("");
+                saveDraft();
+            } catch (Exception exception) {
+                appendEntry('x', "C# nao iniciado: " + exception.getMessage());
+            }
+            refreshOutput();
+        }
+
         void history(int step) {
-            if (sHistory.isEmpty()) return;
+            ArrayList<String> active = csharpMode ? sCSharpHistory : sHistory;
+            if (active == null || active.isEmpty()) return;
             if (historyIndex < 0) {
                 if (step > 0) return;
                 scratch = editor.getText().toString();
-                historyIndex = sHistory.size();
+                historyIndex = active.size();
             }
             historyIndex += step;
             if (historyIndex < 0) historyIndex = 0;
-            if (historyIndex >= sHistory.size()) {
+            if (historyIndex >= active.size()) {
                 historyIndex = -1;
                 editor.setText(scratch);
             } else {
-                editor.setText(sHistory.get(historyIndex));
+                editor.setText(active.get(historyIndex));
             }
             editor.setSelection(editor.getText().length());
         }
 
-        void pullOutput() {
-            String[] entries;
-            try { entries = CheatBridge.nConsoleTake(); } catch (Throwable t) { return; }
-            if (entries == null || entries.length == 0) return;
-            for (String e : entries) {
-                if (e == null || e.length() == 0) continue;
-                appendEntry(e.charAt(0), e.substring(1));
+        void pullHookCounters() {
+            if (!showing || !csharpMode) return;
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - lastHookCountersPoll < 850) return;
+            lastHookCountersPoll = now;
+            try {
+                String current = CheatBridge.nCSharpHookCounters();
+                if (current == null || current.isEmpty())
+                    current = "Hooks C#: aguardando MonoVM...";
+                if (!current.equals(lastHookCountersText)) {
+                    lastHookCountersText = current;
+                    hookCounters.setText(current);
+                }
+            } catch (Throwable error) {
+                String current = "Hooks C#: diagnostico indisponivel";
+                if (!current.equals(lastHookCountersText)) {
+                    lastHookCountersText = current;
+                    hookCounters.setText(current);
+                }
             }
-            refreshOutput();
+        }
+
+        void pullOutput() {
+            boolean changed = false;
+            try {
+                String[] js = CheatBridge.nConsoleTake();
+                if (js != null) for (String entry : js) {
+                    if (entry != null && !entry.isEmpty()) {
+                        appendEntry(entry.charAt(0), entry.substring(1));
+                        changed = true;
+                    }
+                }
+                String[] cs = CheatBridge.nCSharpConsoleTake();
+                if (cs != null) for (String entry : cs) {
+                    if (entry != null && !entry.isEmpty()) {
+                        appendEntry(entry.charAt(0), "[C#] " + entry.substring(1));
+                        changed = true;
+                    }
+                }
+            } catch (Throwable error) {
+                appendEntry('x', "C# console: " + error);
+                changed = true;
+            }
+            if (changed) refreshOutput();
         }
 
         void refreshOutput() {
@@ -778,7 +984,10 @@ final class DevTools {
         }
 
         void saveDraft() {
-            try { prefs(act).edit().putString("draft", editor.getText().toString()).apply(); } catch (Throwable t) { }
+            try {
+                if (csharpMode) prefs(act).edit().putString("draftCSharp", editor.getText().toString()).apply();
+                else prefs(act).edit().putString("draft", editor.getText().toString()).apply();
+            } catch (Throwable ignored) { }
         }
 
         private View iconButton(Activity a, View iconView, String description, final Runnable action) {

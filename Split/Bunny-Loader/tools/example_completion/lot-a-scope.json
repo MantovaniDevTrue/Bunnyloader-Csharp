@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "lot": "A",
+  "allExamplesRequired": true,
+  "count": 33,
+  "reference": "bc4f240082a589823536eff74462a11acbdba8ec",
+  "examples": [
+    {
+      "id": "Content/Items/Accessories/ExampleBeard.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleBoots.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs"
+      ],
+      "requiredApis": [
+        "CanAccessoryBeEquippedWith",
+        "ModItem",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateAccessory",
+        "bool DoBootsEffect_PlaceFlamesOnTile(int X, int Y)",
+        "void CancelAllBootRunVisualEffects()"
+      ],
+      "missingFeatures": [
+        "rocketBoots, waterWalk, iceSkate, desertBoots, fireWalk, noFallDmg, lavaRose/lavaMax do original.",
+        "Rastro em montarias permitidas pelo JS original; C# atual restringe a personagem sem montaria."
+      ]
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleShield.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs"
+      ],
+      "requiredApis": [
+        "CanAccessoryBeEquippedWith",
+        "ModItem",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "missingFeatures": [
+        "Dash e double-tap originais ainda nao portados.",
+        "Valores/efeitos originais do ExampleShield diferem dos atributos preservados do Guardian Shield."
+      ]
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleStatAccessory.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleStatBonusAccessory.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "missingFeatures": [
+        "Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente."
+      ]
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleWings.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AddRecipes",
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "VerticalWingSpeeds"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Accessories/WaspNest.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults",
+        "UpdateAccessory"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Ammo/ExampleBullet.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Armor/ExampleBreastplate.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AddRecipes",
+        "ModItem",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateEquip"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Armor/ExampleCostume.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "EquipTexture",
+        "IsVanitySet",
+        "Load",
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "UpdateAccessory",
+        "UpdateVanity",
+        "UpdateVanitySet",
+        "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para EquipTexture, ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Armor/ExampleHelmet.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AddArmorSets",
+        "AddRecipes",
+        "ModItem",
+        "SetDefaults",
+        "UpdateArmorSet"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Armor/ExampleLeggings.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AddRecipes",
+        "ModItem",
+        "ModifyTooltipLines",
+        "SetDefaults",
+        "UpdateEquip"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Armor/Vanity/ExampleBossMask.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleBossMask.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Armor/Vanity/ExampleRobe.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/Vanity/ExampleRobe.cs"
+      ],
+      "requiredApis": [
+        "Load",
+        "ModItem",
+        "SetDefaults",
+        "SetMatch",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBossBag.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "CanRightClick",
+        "ModItem",
+        "ModifyItemLoot",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBossSummonItem.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AddRecipes",
+        "CanUseItem",
+        "ModItem",
+        "SetDefaults",
+        "UseItem",
+        "void PlaySound(int type, Vector2 position, int style, float pitchOffset)",
+        "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBuffPotion.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+      ],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "DrinkParticleColors, som Item3, pilha/valor/raridade/duracao original e defaults de uso completos."
+      ]
+    },
+    {
+      "id": "Content/Items/ExampleGolfBall.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/ExampleItem.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
+      "requiredApis": [
+        "AddRecipes",
+        "CurrencyId",
+        "ModItem",
+        "SetDefaults",
+        "void .ctor(int coinItemID, long currencyCap)"
+      ],
+      "missingFeatures": [
+        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado."
+      ]
+    },
+    {
+      "id": "Content/Items/ExamplePickup.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "GrabRange",
+        "ModItem",
+        "OnPickup",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/ExampleTooltipItem.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ModItem",
+        "ModifyTooltips",
+        "PreDrawTooltipLine",
+        "SetDefaults",
+        "Vector2 MeasureString(string text)",
+        "void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Materials/ExampleSoul.js",
+      "status": "Validado por testes automatizados",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs"
+      ],
+      "requiredApis": [
+        "GetAlpha",
+        "ModItem",
+        "PostUpdate",
+        "SetDefaults",
+        "SetStaticDefaults",
+        "void AddLight(Vector2 position, float r, float g, float b)"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Quests/ExampleQuestFish.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "AnglerQuestChat",
+        "IsAnglerQuestAvailable",
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Tools/ExampleDrill.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Tools/ExampleFishingRod.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "HoldItem",
+        "ModItem",
+        "ModifyFishingLine",
+        "SetDefaults",
+        "SetStaticDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Tools/ExampleHamaxe.js",
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
+      ],
+      "requiredApis": [
+        "AddRecipes",
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Items/Tools/ExampleHookItem.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModItem"
+      ]
+    },
+    {
+      "id": "Content/Items/Tools/ExamplePickaxe.js",
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
+      ],
+      "requiredApis": [
+        "AddRecipes",
+        "ModItem",
+        "SetDefaults"
+      ],
+      "missingFeatures": []
+    },
+    {
+      "id": "Content/Prefixes/ExampleAccessoryPrefix.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleGuardedPrefix.cs"
+      ],
+      "requiredApis": [
+        "ApplyAccessoryEffects",
+        "Category",
+        "GetTooltipLines",
+        "ModPrefix",
+        "ModifyValue"
+      ],
+      "missingFeatures": [
+        "API publica GetTooltipLines modificavel como no original."
+      ]
+    },
+    {
+      "id": "Content/Prefixes/ExampleDerivedPrefix.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "ExamplePrefix",
+        "Power"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ExamplePrefix"
+      ]
+    },
+    {
+      "id": "Content/Prefixes/ExamplePrefix.js",
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs"
+      ],
+      "requiredApis": [
+        "Apply",
+        "CanRoll",
+        "Category",
+        "GetTooltipLines",
+        "ModPrefix",
+        "ModifyValue",
+        "Power",
+        "RollChance",
+        "SetStats"
+      ],
+      "missingFeatures": [
+        "Power sobrescrevivel, heranca do ExampleDerivedPrefix, GetTooltipLines e Apply genericos."
+      ]
+    },
+    {
+      "id": "Content/Rarities/ExampleHigherTierModRarity.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "GetPrefixedRarity",
+        "ModRarity",
+        "RarityColor"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModRarity"
+      ]
+    },
+    {
+      "id": "Content/Rarities/ExampleModRarity.js",
+      "status": "Não implementado",
+      "cSharp": [],
+      "requiredApis": [
+        "GetPrefixedRarity",
+        "ModRarity",
+        "RarityColor"
+      ],
+      "missingFeatures": [
+        "Sem contrato C# reutilizavel equivalente para ModRarity"
+      ]
+    }
+  ],
+  "deliveryGate": "All corresponding examples and applicable original behaviors implemented; independent tests and explicit Android validation states; no partial feature release"
+}
