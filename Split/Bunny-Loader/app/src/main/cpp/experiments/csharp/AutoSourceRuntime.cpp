@@ -13,6 +13,7 @@
 #include "hook/HookManager.h"
 
 #include "content/common/GameRefs.h"
+#include "content/npcs/ModNpcs.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Config.h"
 #include "core/Log.h"
@@ -784,7 +785,7 @@ void run() {
                 continue;
             }
         }
-        if (mod.projectiles > 0 &&
+        if ((mod.projectiles > 0 || mod.npcs > 0) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -835,6 +836,13 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+        if (mod.npcs > 0 || mod.projectiles > 0) {
+            const auto npcs = runtime::registeredNpcsForMod(mod.id);
+            const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
+            if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
+                BL_INFO("csharp source entities: mod=%s registered npc=%zu projectile=%zu",
+                        mod.id.c_str(), npcs.size(), projectiles.size());
+        }
         if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
         else g_compiledMods.fetch_add(1, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
@@ -1129,6 +1137,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
+    pauseManagedEntitySourceCallbacks();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
     g_worldMenuPollFrames.store(0, std::memory_order_relaxed);
     if (!g_preWorldBindingsArmed.load(std::memory_order_acquire))
@@ -1147,6 +1156,11 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    if (managedEntitySourceModsRegistered() &&
+        runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
+        installNpcAiHost();
+        installManagedEntityProjectileHook();
+    }
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
