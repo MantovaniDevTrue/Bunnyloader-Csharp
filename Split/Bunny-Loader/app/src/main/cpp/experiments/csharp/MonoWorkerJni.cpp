@@ -58,6 +58,9 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     const std::string status = "result=" + std::to_string(result.result) +
         "\nphase=" + result.phase +
         "\nexecutedTypes=" + std::to_string(result.executedTypes) +
+        "\nmonoProbeMs=" + std::to_string(result.monoProbeMs) +
+        "\nroslynInvokeMs=" + std::to_string(result.roslynInvokeMs) +
+        "\nverifyInvokeMs=" + std::to_string(result.verifyInvokeMs) +
         "\nerror=" + result.error;
     return env->NewStringUTF(status.c_str());
 }
