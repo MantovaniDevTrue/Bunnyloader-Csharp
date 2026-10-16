@@ -20,7 +20,7 @@ public sealed class ManagedProbeNpc : BunnyNPC
 
 public sealed class ManagedProbeProjectile : BunnyProjectile
 {
-    public static int Spawns, Despawns, Hits, Calls;
+    public static int Spawns, Despawns, Hits, Calls, Kills;
     public override void SetDefaults() { }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
@@ -32,6 +32,7 @@ public sealed class ManagedProbeProjectile : BunnyProjectile
     }
     public override void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)
         => Hits += npcIndex + damage;
+    public override void OnKill(ref BunnyProjectileAiState state) => Kills++;
     public override void OnDespawn(ref BunnyProjectileAiState state) => Despawns++;
 }
 
@@ -85,6 +86,13 @@ public static class Program
         Check(BunnyEntitySourceDispatcher.TickNpc(first, 697, 3, 2, 25, 25,
             100, 100, 0, 0, 130, 100) >= 0 && ManagedProbeNpc.Spawns == 2, "new generation spawn");
         Check(ManagedProbeNpc.Despawns == 1, "NPC generation despawn");
+        Check(BunnyEntitySourceDispatcher.KillNpc(first, 697, 3, 2),
+            "NPC native kill event");
+        Check(!BunnyEntitySourceDispatcher.KillNpc(first, 697, 3, 2),
+            "NPC OnKill once per generation");
+        Check(ManagedProbeNpc.Kills == 2, "NPC kill counter");
+        Check(BunnyEntitySourceDispatcher.TickNpc(first, 697, 3, 3, 25, 25,
+            100, 100, 0, 0, 130, 100) >= 0, "NPC recycled after native kill");
 
         long projectile = BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 0,
             100, 100, 4, 0, 120, 120);
@@ -95,10 +103,22 @@ public static class Program
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 1, 5, 7), "projectile owner isolation");
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 11, 0, 5, 7), "projectile generation isolation");
         Check(ManagedProbeProjectile.Hits == 12, "projectile hit payload");
+        Check(BunnyEntitySourceDispatcher.KillProjectile(first, 1136, 8, 12, 0),
+            "projectile native kill event");
+        Check(!BunnyEntitySourceDispatcher.KillProjectile(first, 1136, 8, 12, 0),
+            "projectile OnKill once per generation");
+        Check(ManagedProbeProjectile.Kills == 1, "projectile kill count");
+        Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 0, 5, 7),
+            "projectile hit after kill quarantined");
         Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 1,
             100, 100, 4, 0, 120, 120) >= 0 &&
             ManagedProbeProjectile.Spawns == 2 && ManagedProbeProjectile.Despawns == 1,
             "projectile owner slot reused");
+        Check(BunnyEntitySourceDispatcher.KillProjectile(first, 1136, 8, 12, 1) &&
+            ManagedProbeProjectile.Kills == 2,
+            "projectile new owner kill");
+        Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 13, 1,
+            100, 100, 4, 0, 120, 120) >= 0, "projectile next generation reactivates");
 
         Check(BunnyEntitySourceDispatcher.Bind(first, 0, 700, nameof(BrokenManagedNpc)), "faulty npc bind");
         Check(BunnyEntitySourceDispatcher.TickNpc(first, 700, 9, 2, 25, 25,
@@ -106,6 +126,9 @@ public static class Program
         Check(BunnyEntitySourceDispatcher.TickNpc(first, 700, 9, 2, 25, 25,
             100, 100, 0, 0, 130, 100) < 0 && BrokenManagedNpc.Calls == 1, "quarantine");
         Check(BunnyEntitySourceDispatcher.Status(first).Contains("faults=1"), "failure diagnostic");
+        Check(BunnyEntitySourceDispatcher.Status(first).Contains("npcKills=2") &&
+              BunnyEntitySourceDispatcher.Status(first).Contains("projectileKills=2"),
+              "combat counters exposed");
         BrokenManagedNpc.ShouldThrow = false;
         Check(DecodeX(BunnyEntitySourceDispatcher.TickNpc(first, 700, 9, 3, 25, 25,
             100, 100, 0, 0, 130, 100)) == 2, "quarantine resets on generation");
