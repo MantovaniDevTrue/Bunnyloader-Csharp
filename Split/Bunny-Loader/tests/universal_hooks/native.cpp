@@ -52,17 +52,22 @@ Method methods[] = {
     {reinterpret_cast<void*>(originalInt32), "WrongIntReturn", 1, false, false, "System.Void", "System.Int32"}
 };
 il2cpp::Api api;
-int install(const char* method, int slot, bool isStatic = false) {
+int install(const char* method, int slot, bool isStatic = false, bool int32Mode = false) {
     auto result = std::async(std::launch::async, [=] {
         csharp::universalCanInstall = true;
         csharp::universalLeaveMono = +[] {};
         csharp::universalResumeMono = +[] {};
-        return bunny_universal_hook_install("Terraria.Player", method, slot, isStatic);
+        return int32Mode ? bunny_universal_hook_install_i32("Terraria.Player", method, slot, isStatic)
+                         : bunny_universal_hook_install("Terraria.Player", method, slot, isStatic);
     });
     while (result.wait_for(1ms) != std::future_status::ready) csharp::pumpUniversalHookInstallsOnGameThread();
     return result.get();
 }
 void call() { reinterpret_cast<void(*)(void*, const MethodInfo*)>(replaced)(reinterpret_cast<void*>(123), reinterpret_cast<MethodInfo*>(&methods[0])); }
+int32_t callInt32(int32_t value) {
+    return reinterpret_cast<int32_t(*)(void*, int32_t, const MethodInfo*)>(replacedInt32)(
+        reinterpret_cast<void*>(123), value, reinterpret_cast<MethodInfo*>(&methods[5]));
+}
 }
 namespace bl::il2cpp {
 Api& api() { return ::api; }
@@ -75,6 +80,8 @@ namespace bl::hook {
 bool install(const MethodInfo* method, void* replacement, void** orig) {
     *orig = il2cpp::methodPointer(method);
     if (method == reinterpret_cast<MethodInfo*>(&methods[0])) replaced = replacement;
+    else if (method == reinterpret_cast<MethodInfo*>(&methods[6])) replacedInt32Static = replacement;
+    else if (method == reinterpret_cast<MethodInfo*>(&methods[5])) replacedInt32 = replacement;
     else replacedStatic = replacement;
     return true;
 }
@@ -95,6 +102,10 @@ int main() {
     api.method_get_param_count = +[](const MethodInfo* m) -> uint32_t { return reinterpret_cast<const Method*>(m)->count; };
     api.method_is_instance = +[](const MethodInfo* m) { return !reinterpret_cast<const Method*>(m)->isStatic; };
     api.method_is_generic = +[](const MethodInfo* m) { return reinterpret_cast<const Method*>(m)->generic; };
+    api.method_get_param = +[](const MethodInfo* m, uint32_t index) -> const Il2CppType* {
+        auto* method = reinterpret_cast<const Method*>(m);
+        return index == 0 && method->param ? reinterpret_cast<const Il2CppType*>(method->param) : nullptr;
+    };
     api.method_get_return_type = +[](const MethodInfo* m) { return reinterpret_cast<const Il2CppType*>(reinterpret_cast<const Method*>(m)->ret); };
     api.type_get_name = +[](const Il2CppType* type) { return strdup(reinterpret_cast<const char*>(type)); };
     api.il2cpp_free = free;
