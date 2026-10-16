@@ -1,5 +1,7 @@
 # Desenvolver mods C# no Bunny
 
+O núcleo experimental de hooks por classe e método `void()` da PR #37 está documentado em [UNIVERSAL-HOOKS.md](UNIVERSAL-HOOKS.md). O mecanismo ainda exige teste Android real e não dá suporte genérico a parâmetros ou retornos.
+
 Esta branch parte da .90.29.31, integra a .90.29.33 e acrescenta uma etapa
 experimental do SDK e do runtime. Os fontes do ExampleModBunny e do loader original sao a referencia.
 Os novos recursos ainda precisam de validacao no Android.
