@@ -24,6 +24,7 @@ using V=bl::csharp::AccessValue;
 using K=bl::csharp::AccessKind;
 using S=bl::csharp::AccessStatus;
 extern "C" void bunny_native_test_wait_ms(int);
+extern "C" void bunny_native_test_notify_observer(void(*)(int));
 extern "C" int64_t bunny_native_open();
 extern "C" void bunny_native_close(int64_t);
 extern "C" int bunny_native_bind(int64_t,int,int,int,int,const char*,const char*);
@@ -54,6 +55,26 @@ Player player{{&cPlayer,nullptr},100,30,1.25f,3.5,9000000000LL,{8.5f,4.25f},{255
 std::thread::id gameThread;
 std::mutex mono;
 std::atomic<bool> stop{false};
+std::atomic<bool> publicationReady{false},publicationAttempted{false},publicationHandled{false};
+template<class Dispatch> auto dispatchWhenIdle(Dispatch dispatch) {
+    const auto deadline=bl::csharp::UniversalHookMailbox::Clock::now()+std::chrono::seconds(2);
+    for(;;) {
+        auto result=dispatch();
+        if(result.accepted)return result;
+        assert(bl::csharp::UniversalHookMailbox::Clock::now()<deadline);
+        std::this_thread::yield();
+    }
+}
+std::atomic<int> publicationStatKey{1};
+std::atomic<int64_t> publicationExpected{0};
+thread_local int publicationPoint=0;
+bool pumpAtNotification() {
+    while(!publicationReady)std::this_thread::yield();
+    const bool handled=bl::csharp::pumpNativeAccessOnGameThread();
+    if(bl::csharp::nativeAccessStat(publicationStatKey.load())==publicationExpected.load())publicationHandled=true;
+    publicationAttempted=true;
+    return handled;
+}
 struct Handles { int64_t scope=0;int type=0,life=0,mana=0,position=0,color=0,box=0,day=0,prop=0,method=0,floating=0,throwing=0,timer=0,ticks=0,speed=0,other=0,prefix=0,small=0,wide=0; } h;
 V integer(int n) { return {K::Int32,0,static_cast<uint32_t>(n),0}; }
 int call(int member,int op,const bl::csharp::UniversalHookMailbox::Work& work,V input={},V* out=nullptr,int count=0) {
@@ -158,6 +179,24 @@ int main() {
                 universalHookMailbox().complete(work.ticket,true);mono.unlock();continue;
             }
             V result;
+            if(work.slot==8) {
+                publicationPoint=work.argument/2;
+                bunny_native_test_notify_observer(+[](int point) {
+                    if(point!=publicationPoint)return;
+                    publicationReady=true;
+                    while(!publicationAttempted)std::this_thread::yield();
+                    if(point==0)assert(publicationHandled&&"notified RPC must already be unlocked and serviceable");
+                    else assert(!publicationHandled&&"pump must retry without blocking a locked RPC");
+                });
+                if(work.argument%2==0)assert(call(h.life,2,work,{},&result)==0&&result.a==125);
+                else {
+                    int ids[]={h.life,h.day};V values[2]{};V arg=integer(9);
+                    assert(bunny_native_read_batch_invoke(h.scope,work.slot,work.ticket,work.self,
+                        ids,values,2,h.method,1,&arg,&result)==0&&values[0].a==125&&result.a==10);
+                }
+                bunny_native_test_notify_observer(nullptr);
+                universalHookMailbox().complete(work.ticket,true);mono.unlock();continue;
+            }
             if(work.slot==7) {
                 assert(work.int32Mode&&work.argument==9);
                 int ids[]={h.life,h.day};V values[2]{};
@@ -221,13 +260,20 @@ int main() {
     while(ready.wait_for(std::chrono::milliseconds(1))!=std::future_status::ready)pumpNativeAccessOnGameThread();
     int originals=0;
     bunny_native_test_wait_ms(5);
-    auto cancelled=universalHookMailbox().dispatch(6,reinterpret_cast<uintptr_t>(&player),[]{return true;},[]{},std::chrono::seconds(1));
+    auto cancelled=dispatchWhenIdle([&]{return universalHookMailbox().dispatch(6,reinterpret_cast<uintptr_t>(&player),[]{return true;},[]{},std::chrono::seconds(1));});
     assert(cancelled.accepted&&!cancelled.faulted&&!cancelled.originalRan&&player.life==100&&!pumpNativeAccessOnGameThread());
     bunny_native_test_wait_ms(1000);
-    auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);
+    auto result=dispatchWhenIdle([&]{return universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);});
     assert(result.accepted&&!result.faulted&&result.originalRan&&originals==1&&player.life==125&&!day&&player.color.r==1&&player.color.a==4&&player.prefix==255&&player.small==-32768&&player.canary==0x5a);
-    auto typed=universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},[]{},std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);
+    auto typed=dispatchWhenIdle([&]{return universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},[]{},std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);});
     assert(typed.accepted&&!typed.faulted&&typed.originalRan&&typed.value==52&&originals==2);
+    for(int i=0;i<64;++i) {
+        publicationReady=false;publicationAttempted=false;publicationHandled=false;
+        publicationStatKey=i%2==0?1:4;
+        publicationExpected=nativeAccessStat(publicationStatKey.load())+1;
+        auto published=dispatchWhenIdle([&]{return universalHookMailbox().dispatch(8,reinterpret_cast<uintptr_t>(&player),[]{return true;},[]{},std::chrono::seconds(5),i%4,false,pumpAtNotification);});
+        assert(published.accepted&&!published.faulted&&publicationHandled);
+    }
     stop=true;worker.join();
     auto recycled=std::async(std::launch::async,[&] {
         mono.lock();universalLeaveMono=+[]{mono.unlock();};universalResumeMono=+[]{mono.lock();};universalCanInstall=true;
@@ -240,5 +286,6 @@ int main() {
     });
     while(recycled.wait_for(std::chrono::milliseconds(1))!=std::future_status::ready)pumpNativeAccessOnGameThread();
     recycled.get();resetNativeAccessOnGameThread();
+    std::cout<<"Native access: RPC notification, relock retry and completion before worker wait PASS\n";
     std::cout<<"Native access: game-thread RPC, scoped self, fields/properties/methods, scalar/struct layouts, batch publish, expiry and exception PASS\n";
 }
