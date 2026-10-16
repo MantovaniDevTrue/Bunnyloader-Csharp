@@ -499,6 +499,10 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
 
 }
 
+void resetManagedSourceProjectileSlots() {
+    g_managedEntityProjectileSlots.fill({});
+}
+
 bool installManagedEntityProjectileHook() {
     if (g_installed.load(std::memory_order_acquire)) return true;
     if (!runtime::resolveGameRefs() || !runtime::game().proj.aiMethod) return false;
