@@ -543,8 +543,8 @@ int Count { get; }
 
 | Method | Execution |
 | --- | --- |
-| `void Read(BunnyValue[] destination, BunnyNativeObject target)` | experimental_game_thread_access |
 | `BunnyValue ReadAndInvoke(BunnyNativeMember method, BunnyValue[] destination, BunnyNativeObject target, BunnyValue arg0, BunnyValue arg1, BunnyValue arg2, BunnyValue arg3)` | experimental_game_thread_access |
+| `void Read(BunnyValue[] destination, BunnyNativeObject target)` | experimental_game_thread_access |
 
 ## BunnyLoader.Source.BunnyNativeMember
 
