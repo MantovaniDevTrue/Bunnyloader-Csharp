@@ -24,6 +24,9 @@ struct Entry {
     std::chrono::steady_clock::time_point retryAfter{};
     std::chrono::steady_clock::time_point timeoutWindow{};
     int timeoutsInWindow = 0;
+    int suspensionsInBurst = 0;
+    int lastSuspensionSeconds = 0;
+    std::chrono::steady_clock::time_point lastTimeout{};
     bool suspended = false;
 };
 std::array<Entry, MaxHooks> entries;
@@ -55,6 +58,37 @@ int32_t callOriginalInt32(Entry& entry, uintptr_t self, int32_t value, const Met
     return reinterpret_cast<int32_t(*)(void*, int32_t, const MethodInfo*)>(target)(
         reinterpret_cast<void*>(self), value, info);
 }
+constexpr int suspensionSecondsFor(int consecutive) {
+    return consecutive < 2 ? 5 : consecutive == 2 ? 10 : 15;
+}
+
+void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& result) {
+    if (!result.faulted) return;
+    if (!result.timedOut) {
+        counters[4].fetch_add(1, std::memory_order_relaxed);
+        entry.active.store(false, std::memory_order_release);
+        return;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (entry.lastTimeout == std::chrono::steady_clock::time_point{} ||
+        now - entry.lastTimeout > std::chrono::seconds(60))
+        entry.suspensionsInBurst = 0;
+    entry.lastTimeout = now;
+    if (now - entry.timeoutWindow > std::chrono::seconds(30)) {
+        entry.timeoutWindow = now;
+        entry.timeoutsInWindow = 0;
+    }
+    if (++entry.timeoutsInWindow < 3) {
+        entry.retryAfter = now + std::chrono::seconds(1);
+        counters[5].fetch_add(1, std::memory_order_relaxed);
+    } else {
+        entry.suspended = true;
+        entry.lastSuspensionSeconds = suspensionSecondsFor(++entry.suspensionsInBurst);
+        entry.retryAfter = now + std::chrono::seconds(entry.lastSuspensionSeconds);
+        counters[7].fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
 void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     Entry& entry = entries[index];
     if (!entry.active.load(std::memory_order_acquire) || inOriginal ||
@@ -86,29 +120,7 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
-    if (result.faulted) {
-        bool disable = true;
-        if (result.timedOut) {
-            const auto now = std::chrono::steady_clock::now();
-            if (now - entry.timeoutWindow > std::chrono::seconds(30)) {
-                entry.timeoutWindow = now;
-                entry.timeoutsInWindow = 0;
-            }
-            if (++entry.timeoutsInWindow < 3) {
-                entry.retryAfter = now + std::chrono::seconds(1);
-                counters[5].fetch_add(1, std::memory_order_relaxed);
-            } else {
-                entry.suspended = true;
-                entry.retryAfter = now + std::chrono::seconds(30);
-                counters[7].fetch_add(1, std::memory_order_relaxed);
-            }
-            disable = false;
-        }
-        if (disable) {
-            counters[4].fetch_add(1, std::memory_order_relaxed);
-            entry.active.store(false, std::memory_order_release);
-        }
-    }
+    applyUniversalHookFault(entry, result);
     if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);
 }
 int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo* info) {
@@ -140,29 +152,7 @@ int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo
     if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
-    if (result.faulted) {
-        bool disable = true;
-        if (result.timedOut) {
-            const auto moment = std::chrono::steady_clock::now();
-            if (moment - entry.timeoutWindow > std::chrono::seconds(30)) {
-                entry.timeoutWindow = moment;
-                entry.timeoutsInWindow = 0;
-            }
-            if (++entry.timeoutsInWindow < 3) {
-                entry.retryAfter = moment + std::chrono::seconds(1);
-                counters[5].fetch_add(1, std::memory_order_relaxed);
-            } else {
-                entry.suspended = true;
-                entry.retryAfter = moment + std::chrono::seconds(30);
-                counters[7].fetch_add(1, std::memory_order_relaxed);
-            }
-            disable = false;
-        }
-        if (disable) {
-            counters[4].fetch_add(1, std::memory_order_relaxed);
-            entry.active.store(false, std::memory_order_release);
-        }
-    }
+    applyUniversalHookFault(entry, result);
     if (!result.accepted || result.faulted)
         return result.originalRan ? originalValue : callOriginalInt32(entry, self, value, info);
     return result.value;
@@ -233,6 +223,9 @@ int installOnGameThread() {
         entry.retryAfter = {};
         entry.timeoutWindow = {};
         entry.timeoutsInWindow = 0;
+        entry.suspensionsInBurst = 0;
+        entry.lastSuspensionSeconds = 0;
+        entry.lastTimeout = {};
         entry.suspended = false;
         entry.active.store(true, std::memory_order_release);
         return i;
@@ -250,6 +243,9 @@ int installOnGameThread() {
     entry.retryAfter = {};
     entry.timeoutWindow = {};
     entry.timeoutsInWindow = 0;
+    entry.suspensionsInBurst = 0;
+    entry.lastSuspensionSeconds = 0;
+    entry.lastTimeout = {};
     entry.suspended = false;
     void* stub = entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
                                  : (entry.isStatic ? statics[used] : instances[used]);
@@ -326,6 +322,12 @@ extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_s
     return key >= 0 && key < 9 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
 #if defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
+extern "C" int bunny_universal_hook_test_backoff_seconds(int consecutive) {
+    return suspensionSecondsFor(consecutive);
+}
+extern "C" int bunny_universal_hook_test_last_suspend_seconds(int index) {
+    return index >= 0 && index < used ? entries[index].lastSuspensionSeconds : -1;
+}
 extern "C" void bunny_universal_hook_test_expire_suspend(int index) {
     if (index >= 0 && index < used) entries[index].retryAfter = {};
 }
