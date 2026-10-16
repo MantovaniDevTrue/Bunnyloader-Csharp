@@ -264,6 +264,7 @@ bool g_universalUnload = false;
 bool g_universalEnabled = true;
 void* g_universalRegister = nullptr;
 void* g_universalDispatch = nullptr;
+void* g_universalDispatchInt32 = nullptr;
 void* g_universalClear = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
@@ -1120,7 +1121,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalDispatch && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalDispatch && g_universalDispatchInt32 && g_universalClear && g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1135,8 +1136,9 @@ bool prepareUniversalHookSdk() {
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
+    g_universalDispatchInt32 = g_api.findMethod(hooks, "InvokeInt32", 6);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
-    return g_universalRegister && g_universalDispatch && g_universalClear && g_universalRemove;
+    return g_universalRegister && g_universalDispatch && g_universalDispatchInt32 && g_universalClear && g_universalRemove;
 }
 
 struct UniversalMonoContext {
@@ -1152,21 +1154,28 @@ bool pollUniversalHooksOnWorker() {
     UniversalHookMailbox::Work work{};
     if (universalHookMailbox().take(work)) {
         bool success = false;
+        int32_t returnedValue = 0;
         {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (prepareUniversalHookSdk()) {
                 int slot = work.slot;
                 int64_t ticket = static_cast<int64_t>(work.ticket);
                 uintptr_t self = work.self;
-                int value = 0;
-                void* args[] = {&slot, &ticket, &self, &value};
+                int result = 0;
                 void* exception = nullptr;
                 UniversalMonoContext context;
-                g_api.invoke(g_universalDispatch, nullptr, args, &exception);
-                success = !exception && value == 1;
+                if (work.int32Mode) {
+                    int32_t argument = work.argument;
+                    void* args[] = {&slot, &ticket, &self, &argument, &result, &returnedValue};
+                    g_api.invoke(g_universalDispatchInt32, nullptr, args, &exception);
+                } else {
+                    void* args[] = {&slot, &ticket, &self, &result};
+                    g_api.invoke(g_universalDispatch, nullptr, args, &exception);
+                }
+                success = !exception && result == 1;
             }
         }
-        const bool accepted = universalHookMailbox().complete(work.ticket, success);
+        const bool accepted = universalHookMailbox().complete(work.ticket, success, returnedValue);
         if (!accepted) noteUniversalHookLateCompletion();
         if (universalHookCallbackIsTerminal(accepted, success)) {
             std::lock_guard<std::mutex> guard(g_mutex);
