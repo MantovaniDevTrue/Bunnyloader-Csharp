@@ -1247,9 +1247,9 @@ void noteAutoGameUpdate() {
         const ActivationContext context = readActivationContext();
         if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();
-        requestBasicItemInstanceRefresh("WorldLoaded");
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
         retryWorldManagedPrefixesWhenReady();
