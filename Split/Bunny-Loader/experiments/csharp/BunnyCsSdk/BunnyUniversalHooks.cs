@@ -111,13 +111,14 @@ public static class BunnyHooks
     [ThreadStatic] private static nint currentSelf;
     public static long Calls { get; private set; }
     public static long Faults { get; private set; }
+    public static long TransientRetries { get; private set; }
     public static string LastError { get; private set; } = "";
 
     public static string GetStatus() => "Universal C# void()/int(int): chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
-        " callbacks=" + Calls + " excecoes=" + Faults +
+        " callbacks=" + Calls + " excecoes=" + Faults + " transitorias=" + TransientRetries + " ponteRecuperada=" + NativeStat(9) +
         (LastError.Length == 0 ? "" : " ultimo=" + LastError);
 
     public static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method,
@@ -219,6 +220,12 @@ public static class BunnyHooks
             Calls++;
             return 1;
         }
+        catch (BunnyAccessException error) when (error.Status == BunnyAccessStatus.Busy || error.Status == BunnyAccessStatus.TimedOut)
+        {
+            TransientRetries++;
+            LastError = error.GetType().Name + ": " + error.Message;
+            return 2;
+        }
         catch (Exception error)
         {
             Faults++;
@@ -244,6 +251,12 @@ public static class BunnyHooks
             returnedValue = callback(new BunnyOriginalInt32(slot, ticket), self, value);
             Calls++;
             success = 1;
+        }
+        catch (BunnyAccessException error) when (error.Status == BunnyAccessStatus.Busy || error.Status == BunnyAccessStatus.TimedOut)
+        {
+            TransientRetries++;
+            LastError = error.GetType().Name + ": " + error.Message;
+            success = 2;
         }
         catch (Exception error)
         {
