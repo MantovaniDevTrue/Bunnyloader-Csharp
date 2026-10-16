@@ -20,20 +20,36 @@ extern "C" void bunny_universal_hook_test_expire_suspend(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
-struct Method { void* pointer; const char* name; int count; bool isStatic; bool generic; const char* ret; };
+struct Method { void* pointer; const char* name; int count; bool isStatic; bool generic; const char* ret; const char* param = nullptr; };
 std::thread::id caller;
 int vanilla = 0;
 std::atomic<int> stage{0};
 void original(void* self, const MethodInfo*) { assert(self == reinterpret_cast<void*>(123)); assert(std::this_thread::get_id() == caller); ++vanilla; stage = 2; }
 void originalStatic(const MethodInfo*) { assert(std::this_thread::get_id() == caller); ++vanilla; }
+int32_t originalInt32(void* self, int32_t arg, const MethodInfo*) {
+    assert(self == reinterpret_cast<void*>(123) && std::this_thread::get_id() == caller);
+    ++vanilla;
+    return arg + 7;
+}
+int32_t originalInt32Static(int32_t arg, const MethodInfo*) {
+    assert(std::this_thread::get_id() == caller);
+    ++vanilla;
+    return arg - 2;
+}
 void* replaced = nullptr;
 void* replacedStatic = nullptr;
+void* replacedInt32 = nullptr;
+void* replacedInt32Static = nullptr;
 Method methods[] = {
     {reinterpret_cast<void*>(original), "ResetEffects", 0, false, false, "System.Void"},
     {reinterpret_cast<void*>(originalStatic), "Static", 0, true, false, "System.Void"},
     {reinterpret_cast<void*>(original), "Generic", 0, false, true, "System.Void"},
     {reinterpret_cast<void*>(original), "Update", 1, false, false, "System.Void"},
-    {reinterpret_cast<void*>(original), "WrongReturn", 0, false, false, "System.Int32"}
+    {reinterpret_cast<void*>(original), "WrongReturn", 0, false, false, "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32), "Int32Transform", 1, false, false, "System.Int32", "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32Static), "Int32Static", 1, true, false, "System.Int32", "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32), "WrongIntParam", 1, false, false, "System.Int32", "System.Single"},
+    {reinterpret_cast<void*>(originalInt32), "WrongIntReturn", 1, false, false, "System.Void", "System.Int32"}
 };
 il2cpp::Api api;
 int install(const char* method, int slot, bool isStatic = false) {
