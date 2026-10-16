@@ -325,8 +325,9 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     const int owner = runtime::field<int>(projectile, game.proj.owner);
     ManagedEntityProjectileSlot& state =
         g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
-    if (state.object != projectile || state.type != type ||
-        state.owner != owner || timeLeft > state.lastTimeLeft) {
+    const bool firstObserved = state.object != projectile || state.type != type ||
+        state.owner != owner || timeLeft > state.lastTimeLeft;
+    if (firstObserved) {
         if (g_managedEntityProjectileGeneration <= 0)
             g_managedEntityProjectileGeneration = 1;
         state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
@@ -342,7 +343,8 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     if (!tickManagedEntityProjectile(type, slot, state.generation, owner,
         reinterpret_cast<uintptr_t>(projectile),
         position.x + width * 0.5f, position.y + height * 0.5f,
-        before.x, before.y, target.player.x, target.player.y, &next)) return;
+        before.x, before.y, target.player.x, target.player.y, &next,
+        firstObserved)) return;
     if (!applyVelocity) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int>(projectile, game.proj.type) != type ||
@@ -356,6 +358,24 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
 }
 
 void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
+    if (projectile && managedEntitySourceModsRegistered()) {
+        const auto& game = runtime::game();
+        const int type = runtime::field<int32_t>(projectile, game.proj.type);
+        if (hasManagedEntityProjectileType(type) &&
+            runtime::field<uint8_t>(projectile, game.proj.active)) {
+            const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
+            if (slot >= 0 &&
+                static_cast<size_t>(slot) < g_managedEntityProjectileSlots.size()) {
+                const int owner = runtime::field<int>(projectile, game.proj.owner);
+                const int remaining = runtime::field<int>(projectile, game.proj.timeLeft);
+                const auto& known = g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+                if (remaining > 0 &&
+                    (known.object != projectile || known.type != type ||
+                     known.owner != owner || remaining > known.lastTimeLeft))
+                    runManagedEntityProjectile(projectile, game, type, false);
+            }
+        }
+    }
     AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
     if (original) original(projectile, method);
     if (!projectile) return;
