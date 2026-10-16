@@ -1,6 +1,6 @@
 # Acesso ao Terraria pelo SDK C#: lote A
 
-Núcleo experimental .69 com os hooks `int(int)` da .68 e a recuperação da .67. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
+Núcleo experimental .70 que integra o acesso nativo C# da PR #43 com os hooks `int(int)` da .68 e a recuperação adaptativa validada na .69. Mantém o worker MonoVM, o orçamento e as correções de recuperação dos hooks. A lógica do mod permanece em C# e a ponte usa o IL2CPP diretamente, sem executar JavaScript. Os fontes do Bunny Loader e os acessos a jogador do ExampleModBunny são a referência.
 
 ## O que entra neste lote
 
