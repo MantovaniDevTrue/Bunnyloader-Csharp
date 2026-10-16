@@ -1939,6 +1939,12 @@ jobs:
             --notes "$NOTES" \
             --prerelease
           echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-rpc-deadline-v90-29-71" ]; then
+            GH_TOKEN="${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}" gh issue comment 48 \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "APK CSharp .71 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
+              || echo "::warning::APK entregue, mas comentario de confirmacao na PR nao foi publicado"
+          fi
 
       - name: Verify and retain only source-only mod packages
         shell: bash
