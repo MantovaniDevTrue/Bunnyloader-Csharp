@@ -125,6 +125,7 @@ struct ManagedProjectileHookStatus {
     int lastState = 0;
 };
 
+void resetManagedSourceProjectileSlots();
 bool installManagedEntityProjectileHook();
 
 bool enableManagedProjectileCurve(const std::string& modId,
