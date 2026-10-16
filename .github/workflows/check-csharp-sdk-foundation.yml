@@ -33,6 +33,9 @@ jobs:
       - name: Verify pure CSharp NPC and projectile lifecycle registries
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/entity_lifecycle/EntityLifecycle.csproj -c Release
+      - name: Verify MonoVM source NPC/projectile AI dispatcher
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tests/entity_source/EntitySource.csproj -c Release
       - name: Recheck existing complete item package and native wire
         working-directory: Split/Bunny-Loader
         run: |
