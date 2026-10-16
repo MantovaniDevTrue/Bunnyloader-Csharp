@@ -6,7 +6,10 @@ import android.os.IBinder
 import android.os.Process
 import android.util.Log
 import java.io.File
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
 class ManagedProbeService : Service() {
@@ -92,7 +95,19 @@ class ManagedProbeService : Service() {
         }
     }
 
+
+    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String)
+    private class ResidentRuntime {
+        var assembly: String? = null
+        var cryptoReady = false
+        var compiled = 0
+    }
+
     private val running = AtomicBoolean(false)
+    private val workerGate = Any()
+    private val pending = LinkedBlockingQueue<CompileWork>(16)
+    private val healthGeneration = AtomicInteger(0)
+    private var workerThread: Thread? = null
     @Volatile private var frameworkInstallState = "Unknown"
 
     private external fun signalHandlerSnapshot(): String
@@ -105,13 +120,62 @@ class ManagedProbeService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!running.compareAndSet(false, true)) return START_NOT_STICKY
+        val sourceRoot = intent?.getStringExtra("sourceRoot")
+        val modId = intent?.getStringExtra("sourceModId") ?: ""
+        if (sourceRoot != null &&
+            (modId.isBlank() || modId.length > 128 ||
+             !modId.matches(Regex("[0-9a-fA-F-]+")))) {
+            File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
+                parentFile?.mkdirs()
+                writeText("state=failed\nmodId=" + modId + "\nerror=InvalidWorkerModIdentity\n")
+            }
+            return START_NOT_STICKY
+        }
+        synchronized(workerGate) {
+            if (!pending.offer(CompileWork(startId, sourceRoot, modId))) {
+                File(filesDir, "bunny-csharp/source-compile-status.txt").writeText(
+                    "state=failed\nmodId=" + modId + "\nerror=CompilerQueueFull\n")
+            } else if (workerThread == null) {
+                startResidentWorker()
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun startResidentWorker() {
+        running.set(true)
+        workerThread = thread(name = "BunnyMonoCompiler", isDaemon = true) {
+            val residency = ResidentRuntime()
+            var finalStartId = 0
+            try {
+                while (residency.compiled < 16) {
+                    val job = pending.poll(8, TimeUnit.SECONDS) ?: break
+                    finalStartId = job.startId
+                    executeJob(job, residency)
+                    residency.compiled++
+                }
+            } catch (error: Throwable) {
+                Log.e("BunnyCSharp", "Mono compiler worker failed", error)
+            } finally {
+                val hasPending: Boolean
+                synchronized(workerGate) {
+                    workerThread = null
+                    hasPending = pending.isNotEmpty()
+                    if (hasPending) startResidentWorker()
+                    else running.set(false)
+                }
+                if (!hasPending && finalStartId != 0) stopSelfResult(finalStartId)
+            }
+        }
+    }
+
+    private fun executeJob(job: CompileWork, resident: ResidentRuntime) {
         val dir = File(filesDir, "bunny-csharp")
+        dir.mkdirs()
         val checkpoint = File(dir, "last-isolated-probe.txt")
         val status = File(dir, "isolated-worker-status.txt")
         val log = File(dir, "isolated-worker-logcat.txt")
-        val compileRoot = intent?.getStringExtra("sourceRoot")
-        val compileModId = intent?.getStringExtra("sourceModId") ?: ""
+        val compileRoot = job.sourceRoot
         val compileStatus = File(dir, "source-compile-status.txt")
         val diagnostic = File(dir, "source-compile-diagnostics.txt")
         val health = File(dir, "source-compile-health.txt")
@@ -119,114 +183,97 @@ class ManagedProbeService : Service() {
         val nativeMaps = File(dir, "native-abort-maps.txt")
         val nativeThreads = File(dir, "native-abort-threads.txt")
         val abortWatch = File(dir, "native-abort-watch.txt")
-        dir.mkdirs()
-        checkpoint.delete()
-        log.delete()
-        if (compileRoot != null && (compileModId.isBlank() ||
-            compileModId.length > 128 ||
-            !compileModId.matches(Regex("[0-9a-fA-F-]+")))) {
-            running.set(false)
-            stopSelf(startId)
-            return START_NOT_STICKY
-        }
-        if (compileRoot == null) {
-            runCatching { status.writeText("state=starting\npid=${Process.myPid()}\n") }
-        } else {
-            runCatching {
+        val workerStartedMs = android.os.SystemClock.elapsedRealtime()
+        val reused = resident.assembly != null
+        val currentHealth = healthGeneration.incrementAndGet()
+        try {
+            checkpoint.delete()
+            if (compileRoot == null) {
+                log.delete()
+                status.writeText("state=starting\npid=" + Process.myPid() + "\n")
+                startLogCapture(log)
+            } else {
                 diagnostic.delete()
                 File(dir, "source-compile-diagnostics.txt.profile").delete()
-                File(dir, "source-runtime-values.txt").delete()
-                File(dir, "source-runtime-values.txt.tmp").delete()
-                File(dir, "source-ai-turns.txt").delete()
-                File(dir, "source-ai-turns.txt.tmp").delete()
-                File(dir, "source-spark-turns.txt").delete()
-                File(dir, "source-spark-turns.txt.tmp").delete()
-                File(dir, "source-projectile-turns.txt").delete()
-                File(dir, "source-projectile-turns.txt.tmp").delete()
-                File(dir, "source-homing-policy.txt").delete()
-                File(dir, "source-homing-policy.txt.tmp").delete()
-                File(dir, "source-onhit-policy.txt").delete()
-                File(dir, "source-onhit-policy.txt.tmp").delete()
-                File(dir, "source-onkill-policy.txt").delete()
-                File(dir, "source-onkill-policy.txt.tmp").delete()
+                for (name in listOf(
+                    "source-runtime-values.txt", "source-ai-turns.txt",
+                    "source-spark-turns.txt", "source-projectile-turns.txt",
+                    "source-homing-policy.txt", "source-onhit-policy.txt",
+                    "source-onkill-policy.txt"
+                )) {
+                    File(dir, name).delete()
+                    File(dir, name + ".tmp").delete()
+                }
                 health.delete()
                 nativeTrace.delete()
                 nativeMaps.delete()
                 nativeThreads.delete()
                 abortWatch.delete()
-                compileStatus.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
+                compileStatus.writeText("state=preparing-framework\nmodId=" +
+                    job.modId + "\npid=" + Process.myPid() + "\n")
+                startCompileHealthMonitor(health, currentHealth)
             }
-        }
-        if (compileRoot == null) startLogCapture(log)
-        else startCompileHealthMonitor(health)
-
-        thread(name = "BunnyMonoDiagnostic", isDaemon = true) {
-            val workerStartMs = android.os.SystemClock.elapsedRealtime()
-            try {
-                System.loadLibrary("bunnymonoprobe")
-                if (compileRoot != null) {
-                    compileStatus.writeText(
-                        "state=preparing-crypto-jni\npid=${Process.myPid()}\n"
-                    )
-                    Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
-                    System.loadLibrary("System.Security.Cryptography.Native.Android")
-                    Log.i("BunnyCSharp", "Mono Android Crypto JNI_OnLoad completed")
-                }
-                if (compileRoot == null)
-                    status.writeText("state=preparing-framework\npid=${Process.myPid()}\n")
-                val assembly = installManagedFramework(dir)
-                val frameworkSetupMs = android.os.SystemClock.elapsedRealtime() - workerStartMs
-                if (compileRoot == null)
-                    status.writeText("state=calling-mono\npid=${Process.myPid()}\n")
-                if (compileRoot != null) {
-                    val compiler = File(dir, "BunnySourceCompiler.dll")
-                    val outputDir = File(dir, "compiled")
-                    outputDir.mkdirs()
-                    val output = File(outputDir, "$compileModId.dll")
-                    compileStatus.writeText(
-                        "state=compiling\npid=${Process.myPid()}\nwatchers=memory-monitor\n"
-                    )
-                    val compilerStartMs = android.os.SystemClock.elapsedRealtime()
-                    val result = compileNative(
-                        assembly, compiler.absolutePath, compileRoot,
-                        output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
-                    )
-                    val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStartMs
-                    val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartMs
-                    val passed = result.contains("phase=compile-verified") &&
-                        (result.contains("result=1\n") || result.contains("result=2\n"))
-                    val roslynProfile = runCatching {
-                        File(dir, "source-compile-diagnostics.txt.profile")
-                            .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
-                    }.getOrNull() ?: "Unavailable"
-                    compileStatus.writeText(
-                        "state=${if (passed) "finished" else "failed"}\n" +
-                            "modId=$compileModId\n" +
-                            "pid=${Process.myPid()}\n$result\n" +
-                            "assemblyReady=${if (passed && output.isFile) 1 else 0}\n" +
-                            "frameworkCache=$frameworkInstallState\n" +
-                            "frameworkSetupMs=$frameworkSetupMs\n" +
-                            "managedCompileMs=$managedCompileMs\n" +
-                            "workerTotalMs=$workerTotalMs\n" +
-                            "roslynProfile=$roslynProfile\n"
-                    )
-                } else {
-                    val result = runNative(assembly, checkpoint.absolutePath)
-                    status.writeText("state=finished\npid=${Process.myPid()}\n$result\n")
-                }
-            } catch (error: Throwable) {
-                val detail = (error.javaClass.simpleName + ": " + (error.message ?: "")).take(512)
-                runCatching {
-                    val target = if (compileRoot == null) status else compileStatus
-                    target.writeText("state=failed\npid=${Process.myPid()}\nerror=$detail\n")
-                }
-                Log.e("BunnyCSharp", "mono worker failed", error)
-            } finally {
-                running.set(false)
-                stopSelf(startId)
+            System.loadLibrary("bunnymonoprobe")
+            if (compileRoot != null && !resident.cryptoReady) {
+                compileStatus.writeText("state=preparing-crypto-jni\nmodId=" +
+                    job.modId + "\npid=" + Process.myPid() + "\n")
+                Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
+                System.loadLibrary("System.Security.Cryptography.Native.Android")
+                resident.cryptoReady = true
             }
+            if (resident.assembly == null) resident.assembly = installManagedFramework(dir)
+            else frameworkInstallState = "ResidentVerified"
+            val assembly = checkNotNull(resident.assembly)
+            val frameworkSetupMs = android.os.SystemClock.elapsedRealtime() - workerStartedMs
+            if (compileRoot == null) {
+                status.writeText("state=calling-mono\npid=" + Process.myPid() + "\n")
+                val result = runNative(assembly, checkpoint.absolutePath)
+                status.writeText("state=finished\npid=" + Process.myPid() + "\n" + result + "\n")
+                return
+            }
+            val compiler = File(dir, "BunnySourceCompiler.dll")
+            val outputDir = File(dir, "compiled")
+            outputDir.mkdirs()
+            val output = File(outputDir, job.modId + ".dll")
+            compileStatus.writeText("state=compiling\nmodId=" + job.modId +
+                "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
+            val compilerStarted = android.os.SystemClock.elapsedRealtime()
+            val result = compileNative(
+                assembly, compiler.absolutePath, compileRoot,
+                output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
+            )
+            val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStarted
+            val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartedMs
+            val passed = result.contains("phase=compile-verified") &&
+                (result.contains("result=1\n") || result.contains("result=2\n"))
+            val roslynProfile = runCatching {
+                File(dir, "source-compile-diagnostics.txt.profile")
+                    .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
+            }.getOrNull() ?: "Unavailable"
+            compileStatus.writeText(
+                "state=" + (if (passed) "finished" else "failed") + "\n" +
+                "modId=" + job.modId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
+                "assemblyReady=" + (if (passed && output.isFile) 1 else 0) + "\n" +
+                "frameworkCache=" + frameworkInstallState + "\n" +
+                "frameworkSetupMs=" + frameworkSetupMs + "\n" +
+                "managedCompileMs=" + managedCompileMs + "\n" +
+                "workerTotalMs=" + workerTotalMs + "\n" +
+                "residentReuse=" + (if (reused) 1 else 0) + "\n" +
+                "residentBatchIndex=" + resident.compiled + "\n" +
+                "roslynProfile=" + roslynProfile + "\n"
+            )
+        } catch (error: Throwable) {
+            val detail = (error.javaClass.simpleName + ": " +
+                (error.message ?: "")).take(512)
+            runCatching {
+                val target = if (compileRoot == null) status else compileStatus
+                target.writeText("state=failed\nmodId=" + job.modId +
+                    "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
+            }
+            Log.e("BunnyCSharp", "Mono worker failed", error)
+        } finally {
+            healthGeneration.compareAndSet(currentHealth, currentHealth + 1)
         }
-        return START_NOT_STICKY
     }
 
     private fun installManagedFramework(dir: File): String {
@@ -302,10 +349,10 @@ class ManagedProbeService : Service() {
         }
     }
 
-    private fun startCompileHealthMonitor(destination: File) {
+    private fun startCompileHealthMonitor(destination: File, generation: Int) {
         thread(name = "BunnyMonoCompileHealth", isDaemon = true) {
             val started = android.os.SystemClock.elapsedRealtime()
-            while (running.get()) {
+            while (running.get() && healthGeneration.get() == generation) {
                 runCatching {
                     val status = File("/proc/self/status").useLines { lines ->
                         lines.filter { it.startsWith("VmRSS:") ||
