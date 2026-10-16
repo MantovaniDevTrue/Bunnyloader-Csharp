@@ -1,5 +1,7 @@
 # Desenvolver mods C# no Bunny
 
+
+O núcleo experimental de hooks por classe/método `void()` está descrito em [UNIVERSAL-HOOKS.md](UNIVERSAL-HOOKS.md). Essa etapa tem testes de host; não inclui validação Android nem suporte genérico a parâmetros/retornos.
 Contratos do [checkpoint atual](STATUS.md). Os fontes do loader e do
 ExampleModBunny são a referência. O [guia rápido](PRIMEIRO-MOD.md) mostra como
 criar e empacotar um mod independente. Validação é registrada por recurso.

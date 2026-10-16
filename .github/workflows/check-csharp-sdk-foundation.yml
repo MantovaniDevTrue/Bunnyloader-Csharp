@@ -51,6 +51,12 @@ jobs:
         run: |
           dotnet run --project tests/hooks/HookBatch.csproj -c Release
           python3 tests/test_csharp_hook_editor_counters.py
+      - name: Verify experimental universal hook CSharp API and original lifetime
+        working-directory: Split/Bunny-Loader
+        run: |
+          mkdir -p build/universal-hooks
+          g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
+          LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
       - name: Build optional desktop starter project
         working-directory: Split/Bunny-Loader
         run: |
@@ -78,6 +84,9 @@ jobs:
           python3 tests/run_csharp_independent_loading.py
           python3 tests/test_csharp_startup_visual_hotpath.py
           python3 tests/test_csharp_idle_tooltip_and_cache_io.py
+      - name: Verify universal void hooks and caller-thread original rendezvous
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/run_universal_hooks.py
       - name: Recheck callback lifecycle and fault isolation
         working-directory: Split/Bunny-Loader
         run: python3 tests/run_managed_lifecycle_regressions.py

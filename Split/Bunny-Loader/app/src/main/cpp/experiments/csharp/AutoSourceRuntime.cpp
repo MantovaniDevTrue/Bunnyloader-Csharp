@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
@@ -181,7 +182,7 @@ bool safeId(const std::string& id) {
 }
 
 bool hashSources(const std::string& dir, const std::string& relative,
-                 PortableSha256* hash, int* count, size_t* totalBytes, int depth) {
+                 PortableSha256* hash, int* count, size_t* totalBytes, int depth, bool* hasHooks = nullptr) {
     if (depth > kSourceMaxDepth || static_cast<size_t>(*count) > kSourceMaxFiles) return false;
     const std::string path = dir + (relative.empty() ? "" : "/" + relative);
     DIR* listing = opendir(path.c_str());
@@ -199,7 +200,7 @@ bool hashSources(const std::string& dir, const std::string& relative,
         struct stat metadata{};
         if (lstat(full.c_str(), &metadata) != 0) return false;
         if (S_ISDIR(metadata.st_mode)) {
-            if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1)) return false;
+            if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1, hasHooks)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
                    name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
             if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes) || static_cast<size_t>(++*count) > kSourceMaxFiles)
@@ -208,6 +209,7 @@ bool hashSources(const std::string& dir, const std::string& relative,
             if(*totalBytes>kSourceMaxTotalBytes)return false;
             std::string source = readText(full, kSourceMaxFileBytes);
             if (source.empty()) return false;
+            if (hasHooks && source.find("BunnyHookModule") != std::string::npos) *hasHooks = true;
             hash->field(rel);
             hash->field(source);
         }
@@ -216,7 +218,7 @@ bool hashSources(const std::string& dir, const std::string& relative,
 }
 
 std::string fingerprint(const std::string& id, const std::string& root,
-                        const std::string& runtime) {
+                        const std::string& runtime, bool* hasHooks = nullptr) {
     PortableSha256 hash;
     hash.field(auto_cache::envelope);
     hash.field(kCacheVersion);
@@ -224,7 +226,7 @@ std::string fingerprint(const std::string& id, const std::string& root,
     hash.field(id);
     int count = 0;
     size_t totalBytes=0;
-    if (!hashSources(root + "/content", "", &hash, &count, &totalBytes, 0) || count < 1)
+    if (!hashSources(root + "/content", "", &hash, &count, &totalBytes, 0, hasHooks) || count < 1)
         return {};
     return hash.finish();
 }
@@ -743,7 +745,8 @@ void run() {
             if(runtimeIdentity.empty())BL_WARN("csharp auto: framework incompleto; cache externo desativado neste carregamento");
         }
         const auto scanStarted = std::chrono::steady_clock::now();
-        std::string key = fingerprint(mod.id, root, runtimeIdentity);
+        bool hasUniversalHooks = false;
+        std::string key = fingerprint(mod.id, root, runtimeIdentity, &hasUniversalHooks);
         if (key.empty()) {
             note(&status, "failed", "Arquivos C# nao encontrados");
             continue;
@@ -785,7 +788,7 @@ void run() {
                 continue;
             }
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -836,6 +839,8 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+        if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
+            BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
         if (mod.npcs > 0 || mod.projectiles > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
@@ -1158,6 +1163,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
@@ -1220,6 +1226,8 @@ void noteAutoGameUpdate() {
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
+        disableUniversalHooks();
+        pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
@@ -1240,6 +1248,8 @@ void noteAutoGameUpdate() {
         if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
+        enableUniversalHooks();
+        resumeUniversalHookMods();
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
         refreshManagedPrefixEligibilityOnWorldReady();
         retryWorldManagedPrefixesWhenReady();
