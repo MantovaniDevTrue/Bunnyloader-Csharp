@@ -136,3 +136,36 @@ O renderer tambem verifica azul opaco (R=0) e vermelho transparente (A=0).
 O APK .56 (versionCode 216) inclui essa ponte e a validacao do marcador de
 layout no binario final. A confirmacao de cores e transparencia no Xiaomi
 continua sendo feita no aparelho; os testes do host nao substituem essa etapa.
+
+
+## Retorno da .56: luz e WorldItem.active
+
+O usuario confirmou os efeitos dentro do jogo na .56 e a sessao atual deixou
+de repetir o erro de Color. Restou ExampleSoul/Field=active/NativeFieldContract.
+A instalacao de animacao e cor ocorre antes da etapa de luz; ve-las em jogo
+nao significa que toda a policy ficou pronta.
+
+A [inspecao completa de campos e propriedades](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/38893907331)
+confirma WorldItem.get_active() como getter bool de instancia e WorldItem.inner
+como referencia a Item. position/width/height pertencem a Entity e sao
+resolvidos pela hierarquia. A inspecao anterior selecionava campos e por isso
+nao mostrou o getter: ela nao era suficiente para validar esse membro.
+
+A luz agora aceita o campo Boolean validado ou o getter nativo bool de
+instancia sem argumentos e com ponteiro valido. O getter e chamado diretamente,
+apos o UpdateItem original, somente para itens com policy de luz, sem boxing
+ou runtime_invoke por quadro. O tipo de inner e o layout X/Y de position tambem
+sao conferidos. Falhas de getter, escala, AddLight e hook informam a etapa.
+
+Os 21 modos de itens modelam geometria herdada, propriedade active e contrato
+alternativo com campo. Rejeitam getter estatico, retorno diferente de Boolean
+e ponteiro ausente e verificam recuperacao. O codigo da .56 reproduz exatamente
+Field=active/NativeFieldContract nesse cenario corrigido. O teste realiza
+10.000 updates de luz sem novas alocacoes IL2CPP e cobre item inativo,
+desativacao pelo update original, item vanilla e referencia inner nula.
+
+As filas transitórias durante o registro inicial vao para DEBUG, incluindo
+waiting-native-install sem erro. Falhas reais de policy continuam em WARN;
+gates, timeouts e aviso de entrada com assets ainda pendentes sao preservados.
+O APK .57 (versionCode 217) agrega as correcoes para validacao no Xiaomi,
+mantendo os mesmos pacotes de mods.

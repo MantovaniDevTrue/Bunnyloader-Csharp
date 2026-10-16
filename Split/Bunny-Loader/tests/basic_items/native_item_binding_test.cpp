@@ -11,7 +11,7 @@
 #include <map>
 #include <vector>
 
-struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; Il2CppClass* element=nullptr; int rank=0; };
+struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; Il2CppClass* element=nullptr; int rank=0; Il2CppClass* parent=nullptr; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
 struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; int8_t backSlot; unsigned char sentinel[3]; uint32_t color=0; void* clonedReference=nullptr; };
@@ -47,7 +47,7 @@ SoundValue soundValue{7,&pathObject};
 namespace bl::il2cpp {
 Api& api(){return apiInstance;}
 Il2CppClass* findClass(const TypeRef& type){if(additionalClass)if(auto* cls=additionalClass(type))return cls;return type.name=="Item"?&itemClass:type.name=="SoundID"?&idClass:type.name=="Player"?&playerClass:nullptr;}
-FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* f:cls->fields)if(name==f->name)return f;return nullptr;}
+FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto* c=cls;c;c=c->parent)for(auto* f:c->fields)if(name==f->name)return f;return nullptr;}
 Signature parseSignature(std::string_view text){Signature s;s.name=std::string(text);return s;}
 const MethodInfo* findMethodBySignature(Il2CppClass* cls,const Signature& s,bool*,const MethodInfo**) {
  if(additionalMethod)if(auto* method=additionalMethod(cls,s))return method;

@@ -10,7 +10,7 @@
 #include <memory>
 
 namespace {
-struct World {Il2CppObject object;FakeItem* inner=nullptr;bool active=true;float position[2]{10,20};int width=20,height=30;};
+struct World {Il2CppObject object;float position[2]{10,20};int width=20,height=30;bool active=true;FakeItem* inner=nullptr;};
 struct Match {int part,head,body,legs;bool male;};
 struct RenderPlayer {FakePlayer base;int who=0,width=20,height=42,direction=1;bool dead=false,invis=false;float rotation=0,position[2]{1010,1020};int frame[4]{0,112,40,56};Il2CppObject* mount=nullptr;};
 struct SourceRectangle {bool hasValue=false;int value[4]{};};
@@ -30,7 +30,8 @@ std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
 int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0,animationConstructors=0;
-bool android145=false,animationCtorFault=false;
+bool android145=false,animationCtorFault=false,worldActiveProperty=true,activeReturnWrong=false,stopWorldOnUpdate=false;
+int activeReads=0,worldUpdates=0;
 std::string colorNamespace="Microsoft.Xna.Framework.Graphics";
 Il2CppClass* alphaReturn=nullptr;Il2CppClass* alphaParameter=nullptr;
 int wrongColorLookups=0;
@@ -55,7 +56,8 @@ const MethodInfo* getMethod(const std::string& c,const std::string& signature){r
 template<class Fn>Fn hook(const std::string& c,const std::string& signature){return reinterpret_cast<Fn>(hooks.at(getMethod(c,signature)));}
 void originalMove(Il2CppObject*,const MethodInfo*){++movementCalls;}
 void originalVoid(const MethodInfo*){}
-void originalWorld(Il2CppObject*,int32_t,const MethodInfo*){}
+void originalWorld(Il2CppObject* world,int32_t,const MethodInfo*){++worldUpdates;if(stopWorldOnUpdate)reinterpret_cast<World*>(world)->active=false;}
+bool worldActive(Il2CppObject* world,const MethodInfo*){++activeReads;return reinterpret_cast<World*>(world)->active;}
 void originalLayer(void*,const MethodInfo*){}
 bool originalMounted(Il2CppObject*,const MethodInfo*){return true;}
 uint32_t expectedNativeColor(uint32_t argb) {
@@ -125,8 +127,11 @@ void configurePolicies() {
  auto* request=cls("Player/SetMatchRequest",true,sizeof(Match));
  for(const auto& pair:std::initializer_list<std::pair<const char*,size_t>>{{"ArmorSlotRequested",offsetof(Match,part)},{"Head",offsetof(Match,head)},{"Body",offsetof(Match,body)},{"Legs",offsetof(Match,legs)}})field(request,pair.first,&intClass,(rawOffsets?0:sizeof(Il2CppObject))+pair.second);
  field(request,"Male",&boolClass,(rawOffsets?0:sizeof(Il2CppObject))+offsetof(Match,male));
- auto* world=cls("WorldItem",false,sizeof(World));field(world,"inner",&itemClass,offsetof(World,inner));field(world,"active",&boolClass,offsetof(World,active));
- field(world,"position",vector,offsetof(World,position));field(world,"width",&intClass,offsetof(World,width));field(world,"height",&intClass,offsetof(World,height));
+ auto* entity=cls("Entity",false,offsetof(World,inner));
+ field(entity,"position",vector,offsetof(World,position));field(entity,"width",&intClass,offsetof(World,width));field(entity,"height",&intClass,offsetof(World,height));
+ auto* world=cls("WorldItem",false,sizeof(World));world->parent=entity;field(world,"inner",&itemClass,offsetof(World,inner));
+ if(worldActiveProperty){auto* active=addMethod(world,"bool get_active()",true);const_cast<MethodInfo*>(active)->pointer=reinterpret_cast<void*>(worldActive);}
+ else field(world,"active",&boolClass,offsetof(World,active));
  auto* array=cls("Array");
  addMethod(array,"void Copy(Array sourceArray, Array destinationArray, int length)",false);addMethod(array,"void SetValue(object value, int index)",true);
  addMethod(&itemClass,"void .ctor()",true);addMethod(&itemClass,"void SetDefaults(int Type, ItemVariant variant)",true);addMethod(&itemClass,"Color GetAlpha(Color newColor)",true);
@@ -160,11 +165,16 @@ void configurePolicies() {
    if(methods.contains(std::string(c->name)+":"+key)&&key.find(std::string(name)+"(")!=std::string::npos&&n==(propertySetter.at(m)?1:0))return m;}
   return nullptr;
  };
- apiInstance.method_get_param_count=[](const MethodInfo* m){return methodNames.at(m).first=="Color GetAlpha(Color newColor)"?1u:propertySetter.at(m)?1u:0u;};
+ apiInstance.method_get_param_count=[](const MethodInfo* m){
+  const auto& name=methodNames.at(m).first;
+  if(name=="bool get_active()")return 0u;
+  return name=="Color GetAlpha(Color newColor)"?1u:propertySetter.at(m)?1u:0u;
+ };
  apiInstance.method_get_param=[](const MethodInfo* m,uint32_t)->const Il2CppType* {
   return methodNames.at(m).first=="Color GetAlpha(Color newColor)"?type(alphaParameter):propertyFields.at(m)->type;
  };
  apiInstance.method_get_return_type=[](const MethodInfo* m)->const Il2CppType* {
+  if(methodNames.at(m).first=="bool get_active()")return activeReturnWrong?&intType:&boolType;
   if(methodNames.at(m).first=="Color GetAlpha(Color newColor)")return type(alphaReturn);
   return propertySetter.at(m)?type(cls("Void",true,0)):propertyFields.at(m)->type;
  };
@@ -285,6 +295,7 @@ int slot(int type,const std::string& kind) {
 int main(int argc,char** argv) {
  using namespace bl::csharp;assert(argc>=3);
  const auto mode=argc>3?std::string(argv[3]):"";
+ worldActiveProperty=mode!="--world-active-field";
  if(mode=="--framework-color")colorNamespace="Microsoft.Xna.Framework";
  android145=mode=="--android-145"||mode=="--android-145-boxed"||mode=="--animation-ctor-exception";
  animationCtorFault=mode=="--animation-ctor-exception";
@@ -304,6 +315,9 @@ int main(int argc,char** argv) {
  }
  if(mode=="--color-argument-mismatch")alphaParameter=cls("WrongColor",true,4);
  if(mode=="--color-return-mismatch")alphaReturn=cls("WideColor",true,8);
+ if(mode=="--world-active-static")methodNames.at(getMethod("WorldItem","bool get_active()")).second=false;
+ if(mode=="--world-active-type")activeReturnWrong=true;
+ if(mode=="--world-active-pointer")const_cast<MethodInfo*>(getMethod("WorldItem","bool get_active()"))->pointer=nullptr;
  testStaticIntegerWidths();
  getterFault=mode=="--getter-exception";
  if(mode=="--count-overflow") {auto* f=bl::il2cpp::findField(cls("Beard"),"Count");f->type=type(cls("SByte",true,1));constant<int8_t>(f,127);}
@@ -352,6 +366,15 @@ int main(int argc,char** argv) {
   alphaReturn=alphaParameter=cls("Color");
   for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
  }
+ if(mode=="--world-active-static"||mode=="--world-active-type"||mode=="--world-active-pointer") {
+  bool rejected=false;for(const auto& status:nativeItemPolicyStatus())if(status.name=="ExampleSoul"){
+   assert(!status.ready&&status.error=="Reason=WorldItemActiveGetterContract");rejected=true;
+  }
+  assert(rejected&&!hooks.contains(getMethod("WorldItem","void UpdateItem(int i)")));
+  auto* getter=getMethod("WorldItem","bool get_active()");methodNames.at(getter).second=true;activeReturnWrong=false;
+  const_cast<MethodInfo*>(getter)->pointer=reinterpret_cast<void*>(worldActive);
+  for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ }
  for(const auto& status:nativeItemPolicyStatus())if(!status.ready)std::cerr<<status.name<<" "<<status.error<<"\n";
  assert(pendingNativeItemPolicies()==0&&wrongColorLookups==0);
  auto find=[&](const std::string& name)->const BasicItemEntry& {for(const auto& e:all)if(e.name==name)return e;assert(false);return all[0];};
@@ -378,7 +401,14 @@ int main(int argc,char** argv) {
  FakeItem vanilla{};vanilla.type=1;assert(alpha(&vanilla.header,0x12345678u,nullptr)==0x12345678u);
  assert(allocations==alphaAllocations);
  World world;world.inner=&item;auto update=hook<void(*)(Il2CppObject*,int32_t,const MethodInfo*)>("WorldItem","void UpdateItem(int i)");update(&world.object,0,nullptr);
- assert(lightCalls==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f);
+ assert(lightCalls==1&&worldUpdates==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f);
+ const auto worldAllocations=allocations;for(int i=0;i<10000;++i)update(&world.object,0,nullptr);
+ assert(lightCalls==10001&&worldUpdates==10001&&allocations==worldAllocations);
+ world.active=false;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ world.active=true;stopWorldOnUpdate=true;update(&world.object,0,nullptr);assert(!world.active&&lightCalls==10001);stopWorldOnUpdate=false;
+ world.active=true;FakeItem ordinary{};ordinary.type=1;world.inner=&ordinary;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ world.inner=nullptr;update(&world.object,0,nullptr);assert(lightCalls==10001);
+ assert(!worldActiveProperty||activeReads>=10001);
  BasicItemPolicy soulPolicy;assert(item_policy_wire::read(soul,&soulPolicy,&error));
  assert(animations.contains(soul.type)&&animationConstructors>0);
  assert(animationParameters.at(animations.at(soul.type))==std::make_pair(soulPolicy.ticks,soulPolicy.frames));

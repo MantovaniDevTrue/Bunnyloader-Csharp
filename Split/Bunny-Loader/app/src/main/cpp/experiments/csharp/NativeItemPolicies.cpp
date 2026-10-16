@@ -369,16 +369,20 @@ bool prepareAlpha(std::string* error) {
     alphaHooked=true;return true;
 }
 struct Vec2 {float x,y;};
-struct LightRefs {int inner=-1,active=-1,position=-1,width=-1,height=-1;FieldInfo* essence=nullptr;const MethodInfo* add=nullptr;};
+struct LightRefs {int inner=-1,active=-1,position=-1,width=-1,height=-1;FieldInfo* essence=nullptr;const MethodInfo* add=nullptr;const MethodInfo* activeGetter=nullptr;};
 LightRefs lightRefs;
 using WorldFn=void (*)(Il2CppObject*,int32_t,const MethodInfo*);
 WorldFn originalWorld=nullptr;bool worldHooked=false;
 void hkWorld(Il2CppObject* world,int32_t index,const MethodInfo* m) {
     if(originalWorld)originalWorld(world,index,m);
-    if(!world||!read<uint8_t>(world,lightRefs.active))return;
+    if(!world)return;
     auto* item=read<Il2CppObject*>(world,lightRefs.inner);if(!item)return;
     const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);if(!view)return;
     const auto it=view->items.find(read<int32_t>(item,itemType));if(it==view->items.end()||!it->second->policy.lit)return;
+    using ActiveFn=bool (*)(Il2CppObject*,const MethodInfo*);
+    const bool active=lightRefs.activeGetter?
+        reinterpret_cast<ActiveFn>(methodPointer(lightRefs.activeGetter))(world,lightRefs.activeGetter):read<uint8_t>(world,lightRefs.active)!=0;
+    if(!active)return;
     const auto& policy=it->second->policy;float scale=1;if(policy.essence)api().field_static_get_value(lightRefs.essence,&scale);
     auto position=read<Vec2>(world,lightRefs.position);position.x+=read<int32_t>(world,lightRefs.width)*0.5f;position.y+=read<int32_t>(world,lightRefs.height)*0.5f;
     if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(scale)||scale<0||scale>10)return;
@@ -389,14 +393,43 @@ bool prepareLight(std::string* error) {
     if(worldHooked)return true;
     auto& a=api();auto* world=findClass({"Terraria","WorldItem",{}});Field inner,position;
     if(!bindField(world,"inner",&inner,error,false,nullptr,sizeof(void*))||inner.refs.size()!=1||
-        !scalar(world,"active","Boolean",1,&lightRefs.active,error)||!bindField(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
+        !bindField(world,"position",&position,error,false,nullptr,8)||!position.refs.empty()||
         !scalar(world,"width","Int32",4,&lightRefs.width,error)||!scalar(world,"height","Int32",4,&lightRefs.height,error))return false;
+    if(a.class_from_il2cpp_type(a.field_get_type(findField(world,"inner")))!=findClass({"Terraria","Item",{}})){
+        *error="Reason=WorldItemInnerTypeMismatch";return false;
+    }
+    // WorldItem.active is a bool instance getter on Android 1.4.5. Entity
+    // supplies position/width/height; there is no active field to offset-read.
+    if(findField(world,"active")) {
+        if(!scalar(world,"active","Boolean",1,&lightRefs.active,error))return false;
+        lightRefs.activeGetter=nullptr;
+    } else {
+        const auto* getter=method(world,"bool get_active()",true);
+        auto* result=getter&&a.method_get_return_type?a.class_from_il2cpp_type(a.method_get_return_type(getter)):nullptr;
+        if(!getter||!a.method_get_param_count||a.method_get_param_count(getter)!=0||
+           !primitive(result,"Boolean",1)||!methodPointer(getter)){
+            *error="Reason=WorldItemActiveGetterContract";return false;
+        }
+        lightRefs.activeGetter=getter;lightRefs.active=-1;
+    }
+    auto* vector=a.class_from_il2cpp_type(a.field_get_type(findField(world,"position")));ValueLayout layout;
+    if(!resolveValueLayout(vector,&layout,error)||layout.size!=8)return false;
+    for(const auto& [name,offset]:std::initializer_list<std::pair<const char*,size_t>>{{"X",0},{"Y",4}}) {
+        auto* f=findField(vector,name);size_t actual=0;
+        if(!f||!primitive(a.class_from_il2cpp_type(a.field_get_type(f)),"Single",4)||!layout.offset(a.field_get_offset(f),4,&actual)||actual!=offset){
+            *error="Reason=WorldItemPositionLayoutMismatch";return false;
+        }
+    }
     lightRefs.inner=inner.offset;lightRefs.position=position.offset;
     auto* main=findClass({"Terraria","Main",{}});lightRefs.essence=main?findField(main,"essScale"):nullptr;
-    if(!lightRefs.essence||!(a.field_get_flags(lightRefs.essence)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(lightRefs.essence)),"Single",4))return false;
+    if(!lightRefs.essence||!(a.field_get_flags(lightRefs.essence)&0x10u)||!primitive(a.class_from_il2cpp_type(a.field_get_type(lightRefs.essence)),"Single",4)){
+        *error="Reason=ItemLightEssenceScaleContract";return false;
+    }
     lightRefs.add=method(findClass({"Terraria","Lighting",{}}),"void AddLight(Vector2 position, float r, float g, float b)",false);
     const auto* update=method(world,"void UpdateItem(int i)",true);
-    if(!lightRefs.add||!methodPointer(lightRefs.add)||!update||!hook::install(update,hkWorld,&originalWorld))return false;
+    if(!lightRefs.add||!methodPointer(lightRefs.add)){*error="Reason=ItemLightMethodUnavailable";return false;}
+    if(!update){*error="Reason=WorldItemUpdateUnavailable";return false;}
+    if(!hook::install(update,hkWorld,&originalWorld)){*error="Reason=WorldItemUpdateHookRejected";return false;}
     worldHooked=true;return true;
 }
 using MatchFn=int32_t (*)(const void*,uint8_t*,const MethodInfo*);
