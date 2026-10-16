@@ -131,7 +131,7 @@ int delivered = BunnyPlayerHurtDispatcher.After(slot, 8, 13, 1, 0, 92, 0, -1, -1
 Check(delivered == 1 && HookFixturePlayer.AfterDamage == 8, "after hook from Mono dispatcher");
 string live = BunnyPlayerHurtDispatcher.GetHookSnapshot();
 Check(live.Contains("Before 3") && live.Contains("Dodge 2 (esquivas 1)") &&
-      live.Contains("After 1") && live.Contains("Cancel 1") &&
+      live.Contains("After 1") && live.Contains("Cancel 1") && live.Contains("Falhas 0") &&
       live.Contains("dano ref 6 -> 1") && live.Contains("HookFixturePlayer"),
     "Live snapshot must reflect actual managed delegate execution");
 Check(string.IsNullOrEmpty(BunnyPlayerHurtDispatcher.GetLastError(slot)),
