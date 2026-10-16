@@ -26,10 +26,11 @@ public static class BunnyPlayerHurtDispatcher
 
     public static string GetHookSnapshot()
     {
-        long before = 0, checks = 0, dodges = 0, after = 0, unhooks = 0, cancels = 0;
+        long before = 0, checks = 0, dodges = 0, after = 0, unhooks = 0, cancels = 0, faults = 0;
         int registered = 0, equipped = 0;
         int incoming = 0, outgoing = 0;
         string lastPlayer = "";
+        string lastFault = "";
         bool hasDamage = false;
         foreach (var context in Contexts)
         {
@@ -44,6 +45,9 @@ public static class BunnyPlayerHurtDispatcher
                 after += hook.AfterCalls;
                 unhooks += hook.UnhookCalls;
                 cancels += hook.CancelledByHook;
+                faults += hook.FaultedHooks;
+                if (hook.LastHookError.Length > 0)
+                    lastFault = hook.LastHookError;
                 if (hook.HasLastDamage)
                 {
                     incoming = hook.LastDamageBefore;
@@ -60,7 +64,8 @@ public static class BunnyPlayerHurtDispatcher
                "  |  Before " + before + "  |  Dodge " + checks +
                " (esquivas " + dodges + ")" +
                "\nAfter " + after + "  |  Unhook " + unhooks +
-               "  |  Cancel " + cancels + "  |  dano ref " + last;
+               "  |  Cancel " + cancels + "  |  Falhas " + faults + "  |  dano ref " + last +
+               (lastFault.Length == 0 ? "" : "\nÚltima falha: " + lastFault);
     }
 
     private static string Describe(string mod, string type, string hook, Exception error)
