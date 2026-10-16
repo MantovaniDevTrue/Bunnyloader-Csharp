@@ -44,7 +44,7 @@ struct Install {
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
-std::array<std::atomic<int64_t>, 9> counters{};
+std::array<std::atomic<int64_t>, 10> counters{};
 
 void callOriginal(Entry& entry, uintptr_t self, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
@@ -66,11 +66,12 @@ static_assert(suspensionSecondsFor(1) == 5 && suspensionSecondsFor(2) == 10 &&
 
 void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& result) {
     if (!result.faulted) return;
-    if (!result.timedOut) {
+    if (!result.timedOut && !result.retryable) {
         counters[4].fetch_add(1, std::memory_order_relaxed);
         entry.active.store(false, std::memory_order_release);
         return;
     }
+    if (result.retryable) counters[9].fetch_add(1, std::memory_order_relaxed);
     const auto now = std::chrono::steady_clock::now();
     if (entry.lastTimeout == std::chrono::steady_clock::time_point{} ||
         now - entry.lastTimeout > std::chrono::seconds(60))
@@ -321,7 +322,7 @@ extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remo
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
     if (key == 6) return universalHookLateCompletionCount();
-    return key >= 0 && key < 9 ? counters[key].load(std::memory_order_relaxed) : -1;
+    return key >= 0 && key < 10 ? counters[key].load(std::memory_order_relaxed) : -1;
 }
 #if defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
 extern "C" int bunny_universal_hook_test_backoff_seconds(int consecutive) {
