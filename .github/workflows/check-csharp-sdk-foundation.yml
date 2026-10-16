@@ -54,11 +54,6 @@ jobs:
           dotnet build samples/StarterModCSharp/StarterMod.csproj -c Release
           dotnet build samples/NativeAccessoryCSharp/NativeAccessory.csproj -c Release
           dotnet build samples/ArmorPoliciesCSharp/ArmorPolicies.csproj -c Release
-      - name: Show generated entity SDK reference delta
-        working-directory: Split/Bunny-Loader
-        run: |
-          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
-          git diff -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
       - name: Check generated public SDK reference
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
