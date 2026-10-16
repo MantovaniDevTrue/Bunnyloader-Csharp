@@ -607,8 +607,8 @@
       "properties": [
         "Int64 Calls { get; }",
         "Int64 Faults { get; }",
-        "Int64 NativeAccessRecoveries { get; }",
-        "string LastError { get; }"
+        "string LastError { get; }",
+        "Int64 NativeAccessRecoveries { get; }"
       ],
       "values": [],
       "methods": [
