@@ -1149,7 +1149,7 @@ jobs:
           assert 'now - entry.timeoutWindow > std::chrono::seconds(30)' in native
           assert '++entry.timeoutsInWindow < 3' in native
           assert 'if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);' in native
-          assert 'std::array<std::atomic<int64_t>, 7> counters' in native
+          assert 'std::array<std::atomic<int64_t>, 6> counters' in native
           assert 'NativeStat(5)' in sdk and 'bunny_universal_hook_stat(5)' in editor
           assert '3-timeout circuit breaker' in tests
           print("UNIVERSAL_HOOK_TIMEOUT_RECOVERY=PASS")
@@ -1173,8 +1173,9 @@ jobs:
           assert "return accepted && !success;" in mailbox
           assert "staleAccepted = box.complete(w.ticket, false);" in tests
           assert "assert(!staleAccepted);" in tests
-          assert "std::array<std::atomic<int64_t>, 7> counters" in native
+          assert "std::array<std::atomic<int64_t>, 6> counters" in native
           assert 'NativeStat(6)' in sdk
+          assert 'universalHookLateCompletionCount()' in native
           print("UNIVERSAL_LATE_COMPLETION_HOOK_RETENTION=PASS")
           PY
       - name: Verify experimental universal hooks and dedicated CSharp editor
