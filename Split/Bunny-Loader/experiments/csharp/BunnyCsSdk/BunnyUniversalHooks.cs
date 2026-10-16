@@ -147,7 +147,6 @@ public static class BunnyHooks
         {
             Faults++;
             LastError = error.GetType().Name + ": " + error.Message;
-            handle!.Dispose();
             return 0;
         }
         finally { currentTicket = 0; currentSlot = -1; }
