@@ -226,6 +226,19 @@ int main() {
     bunny_universal_hook_remove(staticHandle);
     assert(reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(replacedInt32Static)(
         40, reinterpret_cast<MethodInfo*>(&methods[6])) == 38);
+    std::thread retryableWorker([&] {
+        csharp::UniversalHookMailbox::Work work{};
+        while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
+        assert(work.slot == 21 && work.self == 123);
+        assert(csharp::universalHookMailbox().complete(work.ticket, false, 0, true));
+    });
+    const auto transient = csharp::universalHookMailbox().dispatch(
+        21, 123, [] { return true; }, [] {}, std::chrono::milliseconds(500));
+    retryableWorker.join();
+    assert(transient.accepted && transient.faulted && transient.retryable && !transient.timedOut);
+    assert(!csharp::universalHookCallbackIsTerminal(transient.accepted, false, transient.retryable));
+    assert(csharp::universalHookCallbackIsTerminal(true, false));
+    assert(!csharp::universalHookCallbackIsTerminal(false, false));
     std::cout << "native: typed Int32(int) ABI, validation, original and return override PASS\n";
     std::cout << "native: metadata, original affinity, adaptive 5/10/15s suspension, auto-rearm, protected original PASS\n";
 }
