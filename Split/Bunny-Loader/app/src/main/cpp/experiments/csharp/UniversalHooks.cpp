@@ -66,8 +66,10 @@ static_assert(suspensionSecondsFor(1) == 5 && suspensionSecondsFor(2) == 10 &&
 
 void applyUniversalHookFault(Entry& entry, const UniversalHookMailbox::Outcome& result) {
     if (!result.faulted) {
-        entry.timeoutsInWindow = 0;
-        entry.timeoutWindow = {};
+        if (result.accepted) {
+            entry.timeoutsInWindow = 0;
+            entry.timeoutWindow = {};
+        }
         return;
     }
     const auto now = std::chrono::steady_clock::now();
@@ -340,10 +342,10 @@ extern "C" int bunny_universal_hook_test_last_suspend_seconds(int index) {
     return index >= 0 && index < used ? entries[index].lastSuspensionSeconds : -1;
 }
 extern "C" int bunny_universal_hook_test_inject_outcome(int index, int kind) {
-    if (index < 0 || index >= used || kind < 0 || kind > 2) return -1;
+    if (index < 0 || index >= used || kind < 0 || kind > 3) return -1;
     UniversalHookMailbox::Outcome outcome{};
-    outcome.accepted = true;
-    outcome.faulted = kind != 0;
+    outcome.accepted = kind != 3;
+    outcome.faulted = kind != 0 && kind != 3;
     outcome.retryable = kind == 1;
     outcome.timedOut = kind == 2;
     applyUniversalHookFault(entries[index], outcome);
