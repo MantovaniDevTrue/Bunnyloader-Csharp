@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceProject": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
-  "warning": "Public SDK surface and execution contracts. Compilation is not Android validation. No general per-frame AI or multiplayer implied.",
+  "warning": "Public SDK surface and execution contracts. Compilation is not Android validation. Managed entity AI is experimental, asynchronous, and requires native Android validation. Multiplayer is not implied.",
   "types": [
     {
       "name": "BunnyLoader.Source.BunnyAccessory",
@@ -306,6 +306,50 @@
         {
           "signature": "void Invoke(int damage, out bool dodge)",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyEntitySourceDispatcher",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string LastRegistrationError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Bind(int modSlot, int kind, int type, string name)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static int Register(string modId, string assemblyPath)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static void ResetWorld()",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static string Status(int modSlot)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY)",
+          "execution": "worker_async_entity"
         }
       ]
     },
@@ -676,10 +720,39 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool AI(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnDespawn(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnHit(ref BunnyNpcAiState state, int damage)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnKill(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnSpawn(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNpcAiState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyPlayer",
@@ -853,6 +926,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool AI(ref BunnyProjectileAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "int OnHitNPC(int damage)",
           "execution": "compile_sampled_policy"
         },
@@ -865,10 +942,31 @@
           "execution": "compile_sampled_policy"
         },
         {
+          "signature": "void OnDespawn(ref BunnyProjectileAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnSpawn(ref BunnyProjectileAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyProjectileAiState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyRecipe",
