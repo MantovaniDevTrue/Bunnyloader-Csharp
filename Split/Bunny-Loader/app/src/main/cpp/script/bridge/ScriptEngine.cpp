@@ -1,5 +1,6 @@
 #include "script/bridge/ScriptEngine.h"
 #include "core/Log.h"
+#include "core/Config.h"
 #include "mods/ModLoader.h"
 #include "script/api/SystemHooks.h"
 
@@ -281,6 +282,21 @@ void releaseModLoader(JSContext* ctx);
 bool ScriptEngine::init() {
     if (ready_) return true;
     JsLock lock;
+    if (bl::config().disableQuickJs) {
+        bool javaScriptEnabled = false;
+        for (const auto& mod : bl::config().enabledMods) {
+            const auto& entry = mod.entry;
+            if (entry == "@texture" || entry == "@font" || entry == "@native") continue;
+            if (entry.size() >= 3 && entry.compare(entry.size() - 3, 3, ".cs") == 0) continue;
+            javaScriptEnabled = true;
+            break;
+        }
+        if (!javaScriptEnabled) {
+            BL_INFO("QuickJS desativado pelo usuario para esta sessao C#");
+            return false;
+        }
+        BL_INFO("QuickJS preservado: ha mods JavaScript habilitados na sessao");
+    }
 
     auto* rt = JS_NewRuntime();
     if (!rt) { BL_ERROR("JS_NewRuntime falhou"); return false; }

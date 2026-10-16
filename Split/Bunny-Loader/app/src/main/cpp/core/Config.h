@@ -36,6 +36,7 @@ struct Config {
     bool showErrors = true;
     // "Log detalhado" (Configuracoes): as linhas BL_DEBUG tambem no arquivo.
     bool verboseLog = false;
+    bool disableQuickJs = false;
     int64_t gameVersion = 0;
     // "Inicio rapido" (Configuracoes > Desenvolvedor): a sonda sobe assim que
     // o jogo termina de carregar, e o splash acaba ali, sem esperar o tempo

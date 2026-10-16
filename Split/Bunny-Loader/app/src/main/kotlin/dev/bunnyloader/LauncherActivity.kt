@@ -57,6 +57,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.bunnyloader.game.Eligibility
+import dev.bunnyloader.mods.PackType
+import dev.bunnyloader.mods.ScriptRuntimeModes
 import dev.bunnyloader.ui.Bl
 import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
@@ -70,6 +72,8 @@ import dev.bunnyloader.ui.PixelIcon
 import dev.bunnyloader.ui.UiLocalization
 import dev.bunnyloader.ui.tr
 import dev.bunnyloader.ui.PixelText
+import dev.bunnyloader.ui.PixelDialog
+import dev.bunnyloader.ui.PixelButton
 import dev.bunnyloader.ui.mix
 import dev.bunnyloader.ui.Shell
 import dev.bunnyloader.ui.Ts
@@ -137,6 +141,12 @@ private fun LauncherScreen(shell: Shell) {
     // se ela for a mesma na volta.
     var tab by rememberSaveable { mutableStateOf(Tab.INICIO) }
     var openMod by rememberSaveable { mutableStateOf<String?>(null) }
+    var showMixedRuntimeWarning by rememberSaveable { mutableStateOf(false) }
+    val runtimeMods = remember(shell.packages, shell.enabled) {
+        ScriptRuntimeModes.fromSpecs(shell.packages
+            .filter { it.uid in shell.enabled && !it.manifest.isOutdated && it.manifest.packType == PackType.MOD }
+            .map { "${it.uid}=${it.manifest.entry}" })
+    }
     val tabState = rememberSaveableStateHolder()
     var sceneryChoice by remember { mutableStateOf(prefs.scenery) }
     // Saveable: girar a tela recria a Activity, e no automático isso trocaria
@@ -259,12 +269,32 @@ private fun LauncherScreen(shell: Shell) {
                 NavBar(
                     current = tab,
                     onSelect = { tab = it; openMod = null },
-                    onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
+                    onStart = {
+                        if (runtimeMods.mixed) showMixedRuntimeWarning = true
+                        else ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                    },
                 )
             }
         }
         if (immersive) ImmersiveOverlay { immersive = false }
         ModUpdatesDialog(shell)
+        if (showMixedRuntimeWarning) {
+            PixelDialog(tr("Mods C# e JavaScript ativos"), onDismiss = { showMixedRuntimeWarning = false }) {
+                PixelText(tr("Executar os dois tipos de mods na mesma partida pode aumentar o consumo de memória e processamento. Recomendamos ativar apenas C# ou apenas JavaScript para melhor desempenho."),
+                    size = Ts.Body, color = Bl.TextDim)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PixelButton(tr("Ver pacotes"), {
+                        showMixedRuntimeWarning = false
+                        openMod = null
+                        tab = Tab.PACOTES
+                    }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
+                    PixelButton(tr("Jogar assim mesmo"), {
+                        showMixedRuntimeWarning = false
+                        ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                    }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
+                }
+            }
+        }
     }
     }
 }

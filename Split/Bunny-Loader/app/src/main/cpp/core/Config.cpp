@@ -57,6 +57,7 @@ bool loadConfigFromFile(const char* path) {
         else if (key == "logPath")     c.logPath = val;
         else if (key == "cmdPath")     c.cmdPath = val;
         else if (key == "showErrors")  c.showErrors = (val != "false" && val != "0");
+        else if (key == "disableQuickJs") c.disableQuickJs = (val == "true" || val == "1");
         else if (key == "gameVersion") c.gameVersion = strtoll(val.c_str(), nullptr, 10);
         else if (key == "enabledMods") splitCsv(val, c.enabledMods);
     }
