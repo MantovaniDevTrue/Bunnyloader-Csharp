@@ -19,6 +19,7 @@ public readonly struct BunnyOriginalInt32
     {
         if (!BunnyHooks.IsCurrent(slot, ticket) || BunnyHooks.NativeOriginalInt32(slot, ticket, out int result) == 0)
             throw new InvalidOperationException("Original Int32 expirado, repetido ou chamado fora do callback sincronizado");
+        BunnyHooks.NoteOriginalInt32(result);
         return result;
     }
 }
@@ -32,6 +33,7 @@ public readonly struct BunnyOriginalVoid
     {
         if (!BunnyHooks.IsCurrent(slot, ticket) || BunnyHooks.NativeOriginal(slot, ticket) == 0)
             throw new InvalidOperationException("Original expirado, repetido ou chamado fora do callback sincronizado");
+        BunnyHooks.NoteOriginal();
     }
 }
 
@@ -109,8 +111,11 @@ public static class BunnyHooks
     [ThreadStatic] private static int currentSlot;
     [ThreadStatic] private static long currentTicket;
     [ThreadStatic] private static nint currentSelf;
+    [ThreadStatic] private static bool currentOriginalRan;
+    [ThreadStatic] private static int currentOriginalValue;
     public static long Calls { get; private set; }
     public static long Faults { get; private set; }
+    public static long NativeAccessRecoveries { get; private set; }
     public static string LastError { get; private set; } = "";
 
     public static string GetStatus() => "Universal C# void()/int(int): chamadas=" + NativeStat(0) +
@@ -118,6 +123,7 @@ public static class BunnyHooks
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
         " callbacks=" + Calls + " excecoes=" + Faults +
+        " acessosNativosRecuperados=" + NativeAccessRecoveries +
         (LastError.Length == 0 ? "" : " ultimo=" + LastError);
 
     public static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method,
@@ -201,6 +207,11 @@ public static class BunnyHooks
     internal static void GetNativeContext(out int slot,out long ticket,out nint self) { slot=currentSlot;ticket=currentTicket;self=currentSelf; }
 
     internal static bool IsCurrent(int slot, long ticket) => ticket != 0 && currentTicket == ticket && currentSlot == slot;
+    internal static void NoteOriginal() => currentOriginalRan = true;
+    internal static void NoteOriginalInt32(int value) { currentOriginalValue = value; currentOriginalRan = true; }
+    private static bool IsTransientNativeAccess(BunnyAccessException error) =>
+        currentOriginalRan && (error.Status == BunnyAccessStatus.Busy ||
+                               error.Status == BunnyAccessStatus.TimedOut);
 
     public static void Invoke(int slot, long ticket, nint self, out int result) => result = Dispatch(slot, ticket, self);
 
@@ -213,9 +224,17 @@ public static class BunnyHooks
         currentSlot = slot;
         currentTicket = ticket;
         currentSelf = self;
+        currentOriginalRan = false;
+        currentOriginalValue = 0;
         try
         {
             callback(new BunnyOriginalVoid(slot, ticket), self);
+            Calls++;
+            return 1;
+        }
+        catch (BunnyAccessException error) when (IsTransientNativeAccess(error))
+        {
+            NativeAccessRecoveries++;
             Calls++;
             return 1;
         }
@@ -225,7 +244,7 @@ public static class BunnyHooks
             LastError = error.GetType().Name + ": " + error.Message;
             return 0;
         }
-        finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
+        finally { currentOriginalRan = false; currentOriginalValue = 0; currentTicket = 0; currentSlot = -1; currentSelf = 0; }
     }
 
     public static void InvokeInt32(int slot, long ticket, nint self, int value, out int success, out int returnedValue)
@@ -239,10 +258,19 @@ public static class BunnyHooks
         currentSlot = slot;
         currentTicket = ticket;
         currentSelf = self;
+        currentOriginalRan = false;
+        currentOriginalValue = 0;
         try
         {
             returnedValue = callback(new BunnyOriginalInt32(slot, ticket), self, value);
             Calls++;
+            success = 1;
+        }
+        catch (BunnyAccessException error) when (IsTransientNativeAccess(error))
+        {
+            NativeAccessRecoveries++;
+            Calls++;
+            returnedValue = currentOriginalValue;
             success = 1;
         }
         catch (Exception error)
@@ -250,7 +278,7 @@ public static class BunnyHooks
             Faults++;
             LastError = error.GetType().Name + ": " + error.Message;
         }
-        finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
+        finally { currentOriginalRan = false; currentOriginalValue = 0; currentTicket = 0; currentSlot = -1; currentSelf = 0; }
     }
 
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_stat", CallingConvention = CallingConvention.Cdecl)]
