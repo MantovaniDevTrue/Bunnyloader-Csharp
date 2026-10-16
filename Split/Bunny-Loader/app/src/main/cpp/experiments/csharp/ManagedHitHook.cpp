@@ -68,6 +68,7 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
     int owner = -1;
     bool legacy = false;
     bool additionalLive = false;
+    bool additionalSource = false;
     if (projectile) {
         const auto& game = runtime::game();
         type = runtime::field<int32_t>(projectile, game.proj.type);
@@ -84,10 +85,13 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         legacy = g_hitEnabled.load(std::memory_order_acquire) &&
             type == g_hitType.load(std::memory_order_relaxed);
         additionalLive = isManagedLiveProjectileBound(type);
-        if (legacy || autoSlot >= 0 || additionalLive)
+        additionalSource = hasManagedEntityProjectileType(type);
+        if (legacy || autoSlot >= 0 || additionalLive || additionalSource)
             damage = runtime::field<int32_t>(projectile, game.proj.damage);
     }
     if (g_originalHit) g_originalHit(projectile, index, method);
+    if (additionalSource && index >= 0 && index < 200)
+        queueManagedSourceProjectileCombat(4, projectile, index, damage);
     if ((!legacy && autoSlot < 0 && !additionalLive) || index < 0 || index >= 200 ||
         !g_addBuff || !g_npcs || !g_netMode) return;
 
@@ -195,6 +199,17 @@ void hkStatusNPC(Il2CppObject* projectile, int index, const MethodInfo* method) 
         g_hitApplied.fetch_add(1, std::memory_order_relaxed);
     queueManagedLiveHit(type, damage, index, snapshot, playerSnapshot);
 }
+}
+
+bool installManagedSourceEntityHitHook() {
+    if (g_hitInstalled.load(std::memory_order_acquire)) return true;
+    if (!runtime::resolveGameRefs()) return false;
+    const auto* hit=il2cpp::api().class_get_method_from_name(
+        runtime::game().proj.cls, "StatusNPC", 1);
+    if (!hit || !hook::install(hit, hkStatusNPC, &g_originalHit)) return false;
+    g_hitInstalled.store(true, std::memory_order_release);
+    BL_INFO("csharp source hit: Projectile.StatusNPC hook compartilhado instalado");
+    return true;
 }
 
 bool enableSourceBoltOnHit(const SourceBoltHitPolicy& policy, std::string* error) {
