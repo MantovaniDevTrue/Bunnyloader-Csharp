@@ -39,7 +39,9 @@ struct ManagedEntityVelocity
 };
 
 bool registerManagedEntitySourceMod(const std::string& modId,
-                                    const std::string& assemblyPath);
+                                    const std::string& assemblyPath,
+                                    const std::vector<std::pair<int, std::string>>& npcTypes,
+                                    const std::vector<std::pair<int, std::string>>& projectileTypes);
 bool hasManagedEntityNpcType(int type);
 bool hasManagedEntityProjectileType(int type);
 bool managedEntitySourceModsRegistered();
