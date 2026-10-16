@@ -1,6 +1,6 @@
 # Hooks C# por método: núcleo experimental void() e int(int)
 
-Esta etapa permite escolher uma classe `Terraria.*` com método `void()` sem parâmetros ou, na .68 experimental, método `int(int)` com exatamente um parâmetro `System.Int32` e retorno `System.Int32`. Não contém QuickJS nem código de tModLoader. A linha Android `.90.29.68` parte da `.67` e preserva a alternância QuickJS, o Editor C# independente e o sistema de recuperação de timeout. O teste de continuidade no dispositivo ainda é necessário.
+Esta etapa permite escolher uma classe `Terraria.*` com método `void()` sem parâmetros ou, na .68 experimental, método `int(int)` com exatamente um parâmetro `System.Int32` e retorno `System.Int32`. Não contém QuickJS nem código de tModLoader. A linha Android `.90.29.70` integra acesso nativo tipado da PR #43 e retomada adaptativa da PR #44 e preserva a alternância QuickJS, o Editor C# independente e o sistema de recuperação de timeout. O teste de continuidade no dispositivo ainda é necessário.
 
 ```csharp
 using BunnyLoader.Source;
