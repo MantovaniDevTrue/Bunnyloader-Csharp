@@ -32,6 +32,27 @@ struct ManagedHurtSchedulerStatus {
 
 ManagedHurtSchedulerStatus managedHurtSchedulerStatus();
 
+struct ManagedEntityVelocity
+{
+    float x = 0;
+    float y = 0;
+};
+
+bool registerManagedEntitySourceMod(const std::string& modId,
+                                    const std::string& assemblyPath);
+bool hasManagedEntityNpcType(int type);
+bool hasManagedEntityProjectileType(int type);
+bool managedEntitySourceModsRegistered();
+void pauseManagedEntitySourceCallbacks();
+bool tickManagedEntityNpc(int type, int slot, int generation,
+                          uintptr_t identity, int life, int lifeMax,
+                          float x, float y, float vx, float vy,
+                          float playerX, float playerY, ManagedEntityVelocity* result);
+bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
+                                 uintptr_t identity, float x, float y,
+                                 float vx, float vy, float playerX, float playerY,
+                                 ManagedEntityVelocity* result);
+
 bool registerManagedPlayerHurtMod(const std::string& modId,
                                   const std::string& assemblyPath);
 void pauseManagedPlayerHurtMods();
