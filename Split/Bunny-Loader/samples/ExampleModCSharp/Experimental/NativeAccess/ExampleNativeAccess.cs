@@ -24,11 +24,11 @@ public sealed class ExampleNativeAccess : BunnyHookModule
         {
             original.Invoke();
             BunnyNativeObject target=BunnyNativeObject.FromHook(self);
-            batch.Read(snapshot,target);
+            BunnyValue result=batch.ReadAndInvoke(buffIndex,snapshot,target,BunnyValue.FromInt32(24));
             LastLife=snapshot[0].AsInt32();
             LastPosition=snapshot[1].AsVector2();
             LastDayTime=snapshot[2].AsBoolean();
-            LastOnFireIndex=buffIndex.Invoke(target,BunnyValue.FromInt32(24)).AsInt32();
+            LastOnFireIndex=result.AsInt32();
         });
     }
 }
