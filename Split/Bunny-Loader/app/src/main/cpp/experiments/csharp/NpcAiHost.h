@@ -42,6 +42,7 @@ void pauseLiveNpcAi();
 LiveNpcAiStatus liveNpcAiStatus();
 
 bool takeNpcAttack(int slot, int type, HostNpcAttack* out);
+void resetManagedSourceNpcSlots();
 bool installNpcAiHost();
 bool installManagedNpcBuffDispatcher();
 void requestManagedNpcBuffDispatcher();
