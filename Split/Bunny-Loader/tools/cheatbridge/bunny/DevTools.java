@@ -534,11 +534,16 @@ final class DevTools {
 
             // Language-specific help stays separate from the shared log history.
             editorHelp = new TextView(a);
-            applyTextSize(a, editorHelp, 7.5f);
+            applyTextSize(a, editorHelp, 8.5f);
             editorHelp.setTextColor(INK_DIM);
+            editorHelp.setBackground(panel(a, PANEL_DARK, OUTLINE));
+            editorHelp.setMinLines(2);
+            editorHelp.setGravity(Gravity.CENTER_VERTICAL);
             editorHelp.setPadding(px(a, 6), px(a, 4), px(a, 6), px(a, 4));
-            inner.addView(editorHelp, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams helpLayout = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            helpLayout.topMargin = px(a, 5);
+            inner.addView(editorHelp, helpLayout);
 
             // ---- saida ----
             output = new TextView(a);
@@ -802,8 +807,8 @@ final class DevTools {
 
         void updateEditorHelp() {
             editorHelp.setText(csharpMode
-                ? "C#: use Print(1 + 2); e toque no botao verde para executar. Para editar fontes de um mod, abra e salve o arquivo .cs; reinicie o jogo para aplicar."
-                : tr("JS: Main, ID e player já estão prontos. print(...) escreve no chat; bl.log(...), no log. let/const valem só nesta execução; para guardar valores, use var ou globalThis.x."));
+                ? "C#: use Print(1 + 2); e toque no botao verde para executar.\nMods: salve o arquivo .cs e reinicie o jogo para aplicar."
+                : tr("JS: Main, ID e player já estão prontos. print(...) escreve no chat; bl.log(...), no log.\nlet/const valem só nesta execução; para guardar valores, use var ou globalThis.x."));
         }
 
         void switchEditorLanguage() {
