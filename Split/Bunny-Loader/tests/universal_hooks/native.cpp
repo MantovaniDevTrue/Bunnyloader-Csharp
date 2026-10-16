@@ -11,6 +11,8 @@
 #include <vector>
 
 extern "C" int bunny_universal_hook_install(const char*, const char*, int, int);
+extern "C" int bunny_universal_hook_install_i32(const char*, const char*, int, int);
+extern "C" int bunny_universal_hook_original_i32(int, int64_t, int32_t*);
 extern "C" void bunny_universal_hook_remove(int);
 extern "C" int bunny_universal_hook_original(int, int64_t);
 extern "C" int64_t bunny_universal_hook_stat(int);
