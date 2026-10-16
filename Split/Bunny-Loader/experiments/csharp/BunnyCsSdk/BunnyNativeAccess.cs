@@ -40,7 +40,7 @@ public sealed class BunnyNativeScope : IDisposable
         " escritas="+NativeAccess.Stat(2)+" metodos="+NativeAccess.Stat(3)+" lotes="+NativeAccess.Stat(4)+
         " falhas="+NativeAccess.Stat(5)+" esperasVencidas="+NativeAccess.Stat(6)+" ultimo="+NativeAccess.Stat(7)+" escopos="+NativeAccess.Stat(8)+" esperaTotalUs="+NativeAccess.Stat(9)+
         " jogoTotalUs="+NativeAccess.Stat(10)+" picoEsperaUs="+NativeAccess.Stat(11)+
-        " ocupadoRpc="+NativeAccess.Stat(12);
+        " ocupadoRpc="+NativeAccess.Stat(12)+" respostaRapida="+NativeAccess.Stat(13);
     public bool IsDisposed => Volatile.Read(ref disposed)!=0;
     internal void RequireLive() { if(IsDisposed)throw new ObjectDisposedException(nameof(BunnyNativeScope)); }
     public BunnyNativeType Type(string fullName)
