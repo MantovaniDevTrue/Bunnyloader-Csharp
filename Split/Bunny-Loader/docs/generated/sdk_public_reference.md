@@ -172,6 +172,25 @@ BunnyDodgeHook(Object object, IntPtr method)
 | `void EndInvoke(out bool dodge, IAsyncResult result)` | managed_helper |
 | `void Invoke(int damage, out bool dodge)` | managed_helper |
 
+## BunnyLoader.Source.BunnyEntitySourceDispatcher
+
+abstract class; base: `System.Object`.
+
+```csharp
+string LastRegistrationError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Bind(int modSlot, int kind, int type, string name)` | worker_async_entity |
+| `static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)` | worker_async_entity |
+| `static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)` | worker_async_entity |
+| `static int Register(string modId, string assemblyPath)` | worker_async_entity |
+| `static void ResetWorld()` | worker_async_entity |
+| `static string Status(int modSlot)` | worker_async_entity |
+| `static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
+| `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
+
 ## BunnyLoader.Source.BunnyEquipDrawFlags
 
 enum; base: `System.Enum`.
@@ -407,7 +426,16 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AI(ref BunnyNpcAiState state)` | worker_async_entity |
+| `void OnDespawn(ref BunnyNpcAiState state)` | worker_async_entity |
+| `void OnHit(ref BunnyNpcAiState state, int damage)` | worker_async_entity |
+| `void OnKill(ref BunnyNpcAiState state)` | worker_async_entity |
+| `void OnSpawn(ref BunnyNpcAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyNpcAiState
+
+struct; base: `System.ValueType`.
 
 ## BunnyLoader.Source.BunnyPlayer
 
@@ -488,10 +516,18 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AI(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `int OnHitNPC(int damage)` | compile_sampled_policy |
 | `int OnKill(int damage)` | compile_sampled_policy |
 | `int OnKillDuration(int damage)` | compile_sampled_policy |
+| `void OnDespawn(ref BunnyProjectileAiState state)` | worker_async_entity |
+| `void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)` | worker_async_entity |
+| `void OnSpawn(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyProjectileAiState
+
+struct; base: `System.ValueType`.
 
 ## BunnyLoader.Source.BunnyRecipe
 
