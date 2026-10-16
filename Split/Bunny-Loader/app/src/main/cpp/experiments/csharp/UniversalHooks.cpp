@@ -175,6 +175,7 @@ void disableUniversalHooks() {
     install.wake.notify_one();
 }
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
+void noteUniversalHookLateCompletion() { counters[6].fetch_add(1, std::memory_order_relaxed); }
 
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install(
     const char* type, const char* method, int slot, int isStatic) {
