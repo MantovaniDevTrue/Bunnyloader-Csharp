@@ -165,7 +165,7 @@ object BootLog {
         if (!file.isFile) return@runCatching "(sem telemetria de combate C# registrada nesta instalação)"
         val ageSeconds = ((System.currentTimeMillis() - file.lastModified()) / 1000L)
             .coerceAtLeast(0L)
-        "entity-combat-status.txt registrado há ${ageSeconds}s (pode ser de sessão anterior):\\n" +
+        "entity-combat-status.txt registrado há ${ageSeconds}s (pode ser de sessão anterior):\n" +
             file.readText().take(1800)
     }.getOrElse { "(erro ao ler telemetria: ${it.javaClass.simpleName})" }
 
