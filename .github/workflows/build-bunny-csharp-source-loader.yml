@@ -921,17 +921,6 @@ jobs:
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["entry"]=="main.cs"
               assert "content/main.cs" in names
-              for hook in (
-                  "ExampleNativeAccess",
-                  "ExampleHookInt32Zero",
-                  "ExampleHookVoidInt32",
-                  "ExampleHookVoidInt32Pair",
-                  "ExampleHookInt32Triple",
-                  "ExampleHookVoidInt32Triple",
-              ):
-                  source = "content/Common/Hooks/" + hook + ".cs"
-                  assert source in names
-                  assert b"EnableAtLoad = false" in z.read(source)
               assert "content/Content/Items/Weapons/SourceWand.cs" in names
               assert "content/Content/Items/Weapons/SourceStaff.cs" in names
               assert "content/Content/Projectiles/SourceSpark.cs" in names
@@ -1053,6 +1042,17 @@ jobs:
               for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
                   assert "content/Documentation/" + file in names
               assert "content/main.cs" in names
+              for hook in (
+                  "ExampleNativeAccess",
+                  "ExampleHookInt32Zero",
+                  "ExampleHookVoidInt32",
+                  "ExampleHookVoidInt32Pair",
+                  "ExampleHookInt32Triple",
+                  "ExampleHookVoidInt32Triple",
+              ):
+                  source = "content/Common/Hooks/" + hook + ".cs"
+                  assert source in names
+                  assert b"EnableAtLoad = false" in z.read(source)
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
               assert "content/Content/Buffs/ExampleDefenseBuff.cs" in names
