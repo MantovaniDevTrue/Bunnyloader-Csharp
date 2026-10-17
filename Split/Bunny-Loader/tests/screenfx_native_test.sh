@@ -35,4 +35,11 @@ build/screenfx/screenfx_registry_test
   tests/screenfx_native_identity_test.cpp \
   -o build/screenfx/screenfx_native_identity_test
 build/screenfx/screenfx_native_identity_test
+"${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror \
+  -Iapp/src/main/cpp \
+  app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+  tests/screenfx_source_parser_test.cpp \
+  -o build/screenfx/screenfx_source_parser_test
+build/screenfx/screenfx_source_parser_test
+
 echo "SCREENFX_NATIVE_TESTS_OK"
