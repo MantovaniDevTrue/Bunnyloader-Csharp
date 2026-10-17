@@ -1760,6 +1760,8 @@ jobs:
           curl -fLsS --compressed --retry 3 "$REF_CATALOG" -o "$REF_PACK.catalog.json"
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -I "$ROOT/app/src/main/cpp" "$ROOT/tests/compiler_reference_identity.cpp" -o /tmp/compiler-reference-identity
           /tmp/compiler-reference-identity
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I "$ROOT/app/src/main/cpp" "$ROOT/tests/world_entry_readiness.cpp" -o /tmp/world-entry-readiness
+          /tmp/world-entry-readiness
           python3 "$ROOT/tests/compiler_reference_stage.py"
           python3 "$ROOT/tools/stage_compiler_references.py" "$REF_PACK" \
             "$ROOT/experiments/csharp/BunnySourceSdk/obj/Release/net8.0/ref/BunnySourceSdk.dll" \

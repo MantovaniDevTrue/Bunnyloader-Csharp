@@ -1,3 +1,4 @@
+#include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
@@ -1369,7 +1370,11 @@ void flushDeferredWorldEntry() {
                     policy.type,policy.mod.c_str(),policy.name.c_str(),reason.c_str());
         }
     }
-    if (elapsed>=6&&(pendingCore==0||deferredNativePolicies)&&content.pendingPlacements==0&&
+    const bool worldAssetsOnly = worldDependentAssetsMayDefer(
+        pendingCore, content.pendingRecipes, content.pendingPlacements,
+        g_initialCSharpRegistrationFinished.load(std::memory_order_acquire),
+        g_preWorldBindingsArmed.load(std::memory_order_acquire),bl::runtime::modItemsSettled());
+    if ((worldAssetsOnly || (elapsed>=6&&(pendingCore==0||deferredNativePolicies)))&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
         g_preWorldBindingsArmed.load(std::memory_order_acquire)&&bl::runtime::modItemsSettled()) {
         BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredNativeAssets PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingVisuals=%zu",

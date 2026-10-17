@@ -59,6 +59,20 @@ prioridade de áudio/display nem compilação paralela adicional.
 controlador real para os dois ordenamentos, restauração, mod seguinte e erro de
 prioridade recuperável. A repercussão em latência/FPS exige medição Android.
 
+## Espera de assets após o conteúdo essencial
+
+A .83 impunha seis segundos antes de usar o caminho já existente para assets
+adiados. Agora, se o núcleo pendente é zero, receitas e colocações estão
+resolvidas, itens instalados e bindings Mono prontos, esse caminho pode continuar
+imediatamente. Não se considera isso uma compilação concluída mais rapidamente:
+é a remoção de uma espera fixa secundária. O fallback antigo de seis segundos
+para as demais políticas nativas e o timeout de segurança são preservados.
+
+`worldDependentAssetsMayDefer` é usado diretamente pelo gate e testado com núcleo,
+receita, colocação, registro, binding e instalação pendentes (todos bloqueiam).
+Assets continuam na fila original; requer validar aparecimento e efeitos no
+Android, incluindo asas, escudo e botas do ExampleMod.
+
 ## Validação
 
 `tests/compiler_references` compila **todos os fontes do ExampleMod atual** em
