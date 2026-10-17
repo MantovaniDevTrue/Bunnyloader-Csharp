@@ -110,13 +110,20 @@ class GameActivity : Activity() {
             return
         }
         BootLog.add(this, "runtime carregado")
-        listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll").forEach { assembly ->
-            runCatching { ensureVmBenchmarkAssembly(assembly) }
-                .onSuccess { BootLog.add(this, "csharp benchmark: $it") }
-                .onFailure {
-                    Log.w(TAG, "csharp benchmark assembly setup failed: $assembly", it)
-                    BootLog.add(this, "csharp benchmark $assembly: ${it.message ?: it.javaClass.simpleName}")
+        runCatching {
+            ManagedFrameworkAssets.withLock(File(filesDir, "bunny-csharp")) {
+                listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll").forEach { assembly ->
+                    runCatching { ensureVmBenchmarkAssembly(assembly) }
+                        .onSuccess { BootLog.add(this, "csharp benchmark: $it") }
+                        .onFailure {
+                            Log.w(TAG, "csharp benchmark assembly setup failed: $assembly", it)
+                            BootLog.add(this, "csharp benchmark $assembly: ${it.message ?: it.javaClass.simpleName}")
+                        }
                 }
+            }
+        }.onFailure { error ->
+            Log.w(TAG, "csharp benchmark framework lock unavailable", error)
+            BootLog.add(this, "csharp benchmark staging pendente")
         }
 
         val frameworkStarted = android.os.SystemClock.elapsedRealtime()

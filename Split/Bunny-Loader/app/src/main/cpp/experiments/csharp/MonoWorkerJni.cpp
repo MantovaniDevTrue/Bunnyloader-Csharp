@@ -32,10 +32,9 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_runNative(
     return env->NewStringUTF(status.c_str());
 }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
-    JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
-    jstring output, jstring diagnostic, jstring checkpoint) {
+static jstring compileWorkerNative(
+    JNIEnv* env, jstring probe, jstring compiler, jstring source,
+    jstring output, jstring diagnostic, jstring checkpoint, bool precompileOnly) {
     if (!probe || !compiler || !source || !output || !diagnostic || !checkpoint)
         return env->NewStringUTF("result=-1\nphase=missing-arguments\n");
     auto get = [env](jstring value) {
@@ -54,7 +53,7 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     if (slash != std::string::npos)
         bl::csharp::installNativeAbortProbe(diagnosticPath.substr(0, slash));
     const auto result = bl::csharp::compileManagedSource(
-        probePath, compilerPath, sourceRoot, outputPath, diagnosticPath);
+        probePath, compilerPath, sourceRoot, outputPath, diagnosticPath, precompileOnly);
     const std::string status = "result=" + std::to_string(result.result) +
         "\nphase=" + result.phase +
         "\nexecutedTypes=" + std::to_string(result.executedTypes) +
@@ -63,4 +62,20 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
         "\nverifyInvokeMs=" + std::to_string(result.verifyInvokeMs) +
         "\nerror=" + result.error;
     return env->NewStringUTF(status.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
+    JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
+    jstring output, jstring diagnostic, jstring checkpoint) {
+    return compileWorkerNative(env, probe, compiler, source,
+                               output, diagnostic, checkpoint, false);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_bunnyloader_csharp_ManagedProbeService_precompileNative(
+    JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
+    jstring output, jstring diagnostic, jstring checkpoint) {
+    return compileWorkerNative(env, probe, compiler, source,
+                               output, diagnostic, checkpoint, true);
 }

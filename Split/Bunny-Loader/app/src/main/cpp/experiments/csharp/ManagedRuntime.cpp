@@ -3225,7 +3225,8 @@ ManagedSourceCompileResult compileManagedSource(
     const std::string& compilerAssembly,
     const std::string& modRoot,
     const std::string& outputAssembly,
-    const std::string& diagnosticsPath) {
+    const std::string& diagnosticsPath,
+    bool precompileOnly) {
     ManagedSourceCompileResult out;
     if (modRoot.empty() || outputAssembly.empty() || diagnosticsPath.empty() ||
         modRoot.size() > 2048 || outputAssembly.size() > 2048 ||
@@ -3351,6 +3352,11 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
 
+    if (precompileOnly) {
+        out.phase = "compile-prefetched";
+        trace(out.phase.c_str());
+        return out;
+    }
     trace("compiled-assembly-execution-start");
     void* verifierClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "CompiledAssemblyProbe") : nullptr;
