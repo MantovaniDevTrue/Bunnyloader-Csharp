@@ -20,7 +20,7 @@ O relatório inclui `source-compiler-aot-status.txt`, com PID, módulos registra
 
 `tests/run_compiler_aot_loader.py` executa o carregador de produção com bibliotecas nativas de teste. Cobre sucesso e rejeição transacional de runtime, segunda dependência, formato, ABI, caminho e quantidade. Não simula execução Mono nem comprova tempo Android. O pipeline mantém regressões C#/nativas/JS, comparação executada dos defaults do ExampleMod com referências runtime/compactas, testes JVM, compilação Android e assinatura privada. `compiler-aot-build.json` registra tamanhos e tempos do build, nunca FPS ou tempo de compilação Android.
 
-Primeiro CI: os seis módulos ARM64 foram gerados e ligados com sucesso. A checagem do SDK identificou documentação gerada desatualizada dos dois métodos de diagnóstico de hooks integrados; a referência foi corrigida, mantendo a checagem obrigatória. A entrega privada exige oito workflows independentes aprovados no mesmo commit. Estado: contratos locais aprovados; regressões finais e APK pendentes; execução e desempenho Android pendentes. Não é conclusão do Lote A.
+Primeiro CI: os seis módulos ARM64 foram gerados e ligados com sucesso. A checagem do SDK identificou documentação gerada desatualizada dos dois métodos de diagnóstico de hooks integrados; a referência foi corrigida, mantendo a checagem obrigatória. A entrega privada exige oito workflows independentes aprovados no mesmo commit. Estado final do CI: oito workflows independentes aprovados, regressões da build principal aprovadas, APK Android compilado e assinado V3, identidade do runtime/bundle/assemblies dentro do APK confirmada e entrega experimental privada concluída. Execução e desempenho Android da .85 continuam pendentes. Não é conclusão do Lote A.
 
 ## Teste no Terraria com ExampleMod
 
@@ -31,3 +31,13 @@ Primeiro CI: os seis módulos ARM64 foram gerados e ligados com sucesso. A checa
 5. Feche e reabra sem modificar fontes para medir cache. Teste novamente salvar/sair/entrar.
 
 Meta <=5 s, ausência de regressões e FPS continuam aguardando medição real no Xiaomi. Se houver regressão, a .84 permanece disponível; não sobrescrevemos sua branch ou release.
+
+## Entrega e continuidade
+
+Código testado e empacotado: `a22bfc258159aa72ce1527bcad20c0a39d9504e7`. Build [39030923144](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39030923144), sucesso em 17/10/2026. PR de acompanhamento [66](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/66), em rascunho para validação Android. Este registro de resultado é uma alteração documental posterior ao commit do APK; não modifica os binários testados.
+
+Bunny Loader `0.1.10.16.90.29.85-csharp-compiler-aot`, versionCode 245; ExampleMod CSharp 0.1.45. Artefatos entregues pelo fluxo privado existente, tag `csharp-v3-run-39030923144-a1`: `BunnyLoader-CSharp-0.1.10.16.90.29.85-csharp-compiler-aot-SignedV3.apk` e `ExampleModCSharp-v0.1.45.bmod`. Os sources do mod permanecem editáveis; nenhuma DLL foi adicionada ao pacote do mod. O APK tem 241.360.697 bytes e o bundle AOT tem 51.409.424 bytes.
+
+Testes locais: nove casos do carregador AOT executado, seis casos de isolamento da entrega, 40 subprocessos RPC, identidade das referências e sintaxe C++ com `-fno-exceptions -fno-rtti`. CI: SDK/runtime, combate, lifecycle, auditoria do ExampleMod, filas visuais nativas/gerenciadas, sinais Mono e transições GC; comparação executada de compilação/defaults com referências runtime/compactas; contratos/registro nativos e receitas sem QuickJS; testes JVM; assinatura e empacotamento Android. Evidências adicionais nos artefatos `compiler-aot-build`, `compiler-reference-results` e resultados de combate da build.
+
+Próximo passo obrigatório: medir a primeira compilação real do ExampleMod no Xiaomi, conferir `registered=6`, `compilerMethodCode=AOT`, motivo de eventual fallback, `setupMs`, tempo total do worker e preparo C#. Se ainda ultrapassar 5 s, usar o novo perfil para investigar o custo restante sem baixar limites ou liberar mundos com conteúdo obrigatório incompleto. Validar depois cache, gameplay, saves e memória. Não avançar o estado de validação dos exemplos por causa destes testes do compilador. A otimização não altera a cobertura da matriz nem conclui o Lote A.
