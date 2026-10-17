@@ -368,7 +368,8 @@ ManagedSourceCompileResult compileManagedSource(
     const std::string& compilerAssembly,
     const std::string& modRoot,
     const std::string& outputAssembly,
-    const std::string& diagnosticsPath);
+    const std::string& diagnosticsPath,
+    bool precompileOnly = false);
 
 }
 
