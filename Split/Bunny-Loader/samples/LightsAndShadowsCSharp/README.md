@@ -1,4 +1,4 @@
-# Lights And Shadows C# — 0.4.2.1
+# Lights And Shadows C# — 0.4.2.2
 
 Port do Lights And Shadows de yiyang233 / AWEoghAwo, com formulas e assets originais do PC como referencia.
 
@@ -23,3 +23,7 @@ A fidelidade integral do mod de PC (todos os efeitos, biomas e opcoes) ainda est
 ## Hotfix 0.4.2.1
 
 O tokenizador antecipado da .88.3 nao reconhece literals C# com aspas simples, por isso `wire.Split('|')` foi alterado para `wire.Split("|".ToCharArray())`. A alteracao preserva a semantica, a matemática C#, os 9 passes e os 4 alvos; nao exige novo APK.
+
+## Night shadow polish 0.4.2.2
+
+A intensidade noturna dos raios agora acompanha `uSunStrength * uSunPower` e usa fator 0.24, preservando os 20 samples e as gradientes originais. O alongamento noturno foi suavizado (0.006 por sample), com maior suavidade no limiar da mascara (0.015). No shader de composicao, um piso de 22% da luz lunar e mantido somente no periodo noturno e quando a luz de superficie esta habilitada; isso evita sombras totalmente opacas sem desligar o efeito. O primeiro Kawase com distancia zero usa uma unica leitura exata da mesma amostra, mantendo os 4 passes e alvos. Requer teste Android nas diferentes fases da Lua e em combate; nenhuma melhoria de FPS foi medida ainda.
