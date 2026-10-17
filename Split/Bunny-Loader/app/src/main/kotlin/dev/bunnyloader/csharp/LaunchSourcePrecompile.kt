@@ -11,10 +11,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 object LaunchSourcePrecompile {
     private val scheduling = AtomicBoolean(false)
 
-    fun begin(context: Context, selectedSpecs: List<String>) {
+    fun begin(context: Context, selectedSpecs: List<String>, origin: String = "play") {
         if (!scheduling.compareAndSet(false, true)) return
         val app = context.applicationContext
         val started = android.os.SystemClock.elapsedRealtime()
+        val auto = origin == "launcher"
         var queued = 0
         var skipped = 0
         try {
@@ -55,7 +56,7 @@ object LaunchSourcePrecompile {
                     content.walkTopDown().filter { it.isFile && it.extension == "cs" }
                         .none { it.lastModified() > assembly.lastModified() }) {
                     skipped++
-                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileSkipExisting Mod=$uid")
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=${if (auto) "LauncherAutoSkipCached" else "LaunchPrecompileSkipExisting"} Mod=$uid")
                     continue
                 }
                 val intent = Intent(app, ManagedProbeService::class.java)
@@ -64,18 +65,19 @@ object LaunchSourcePrecompile {
                     .putExtra("sourcePrecompile", true)
                 if (runCatching { app.startService(intent) }.getOrNull() != null) {
                     queued++
-                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileQueued Mod=$uid")
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=${if (auto) "LauncherAutoQueued" else "LaunchPrecompileQueued"} Mod=$uid")
                 }
             }
-            Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileScheduled Mods=$queued Skipped=$skipped")
+            Log.i("BunnyCSharp", "[CSharp][Startup] Stage=${if (auto) "LauncherAutoScheduled" else "LaunchPrecompileScheduled"} Mods=$queued Skipped=$skipped")
         } catch (error: Exception) {
             Log.w("BunnyCSharp", "Launch CSharp precompile unavailable", error)
         } finally {
             val elapsed = android.os.SystemClock.elapsedRealtime() - started
             runCatching {
-                File(app.filesDir, "bunny-csharp/source-launch-startup.txt").apply {
+                File(app.filesDir, if (auto) "bunny-csharp/source-launch-auto.txt" else
+                    "bunny-csharp/source-launch-startup.txt").apply {
                     parentFile?.mkdirs()
-                    writeText("queued=$queued\nskipped=$skipped\nelapsedMs=$elapsed\n")
+                    writeText("origin=$origin\nqueued=$queued\nskipped=$skipped\nelapsedMs=$elapsed\n")
                 }
             }
             scheduling.set(false)
