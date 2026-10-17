@@ -29,6 +29,15 @@ object LaunchSourcePrecompile {
                     val content = File(root, "content").canonicalFile
                     val source = File(content, entry).canonicalFile
                     if (!source.isFile || !source.path.startsWith(content.path + File.separator)) continue
+                    val assembly = File(app.filesDir, "bunny-csharp/compiled/$uid.dll")
+                    val assemblyCache = File(assembly.absolutePath + ".sha256")
+                    if (assembly.isFile && assembly.length() > 0 && assemblyCache.isFile &&
+                        assemblyCache.length() in 1..256 &&
+                        content.walkTopDown().filter { it.isFile && it.extension == "cs" }
+                            .none { it.lastModified() > assembly.lastModified() }) {
+                        Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileSkipExisting Mod=$uid")
+                        continue
+                    }
                     val intent = Intent(app, ManagedProbeService::class.java)
                         .putExtra("sourceRoot", root.absolutePath)
                         .putExtra("sourceModId", uid)
