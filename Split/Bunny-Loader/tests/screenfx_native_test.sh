@@ -16,4 +16,10 @@ build/screenfx/frame_composer_test
   tests/screenfx_registry_test.cpp \
   -o build/screenfx/screenfx_registry_test
 build/screenfx/screenfx_registry_test
+
+"${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror \
+  -Iapp/src/main/cpp \
+  tests/screenfx_native_identity_test.cpp \
+  -o build/screenfx/screenfx_native_identity_test
+build/screenfx/screenfx_native_identity_test
 echo "SCREENFX_NATIVE_TESTS_OK"
