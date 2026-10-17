@@ -10,6 +10,7 @@ on:
       - codex/csharp-lights-sdk-settings-split
       - codex/csharp-lights-88-3-prewarm-scene-fidelity
       - integration/jonata-oct15-csharp-88-4-build
+      - hotfix/csharp-88-5-sigabrt-logcat-tail
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
