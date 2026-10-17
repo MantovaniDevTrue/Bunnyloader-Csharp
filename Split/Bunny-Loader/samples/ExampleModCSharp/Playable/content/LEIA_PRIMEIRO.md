@@ -1,16 +1,20 @@
-# Hooks CSharp 0.1.46
+# Hook QA 0.1.47
+
+A APK .85 comprovou os metadados dos candidatos H3/H4/H5. Observe o estado no relatorio Bunny Loader apos entrar e sair do mundo de teste. Nao utilizar este ExampleMod para jogatina habitual. Guia em `Documentation/HOOK_QA_ANDROID.md`.
+
+# Hooks CSharp 0.1.47
 
 Teste temporario para APK .84. Leia `Documentation/HOOK_QA_ANDROID.md`. A mensagem de entrada e apenas informativa; os resultados de callbacks reais e os metodos selecionados aparecem no relatorio do Bunny Loader.
 
-# Bunny CSharp .84 + QA de cinco hooks 0.1.46
+# Bunny CSharp .84 + QA de cinco hooks 0.1.47
 
 A mensagem OnEnterWorld e precomputada; nao utilize seus textos para medir callback MonoVM. Confira a secao `hooks universais C#` do relatorio do Bunny Loader. Consulte `Documentation/HOOK_QA_ANDROID.md`.
 
-# Android QA: ExampleMod CSharp 0.1.46 sobre Bunny .83
+# Android QA: ExampleMod CSharp 0.1.47 sobre Bunny .83
 
 **Esta e uma versao temporaria de validacao, nao a versao de jogatina.** Consulte `Documentation/HOOK_QA_ANDROID.md`.
 
-O ExampleMod testa cinco hooks C# no carregamento do mundo. Cada um chama original apenas uma vez por callback e se desativa automaticamente depois de duas chamadas aceitas. Nenhum efeito ou retorno original e alterado. `ExampleNativeAccess` permanece desativado. A entrada no mundo exibe `C# Hook QA 0.1.46: H1 ... | H2 ... | H3 ... | H4 ... | H5 ...`; envie print da mensagem e relatorio Bunny Loader. `ARMADO` nao prova callback funcionando e `E-7` significa candidato de metodo invalido/ausente no runtime.
+O ExampleMod testa cinco hooks C# no carregamento do mundo. Cada um chama original apenas uma vez por callback e se desativa automaticamente depois de duas chamadas aceitas. Nenhum efeito ou retorno original e alterado. `ExampleNativeAccess` permanece desativado. A entrada no mundo exibe `C# Hook QA 0.1.47: H1 ... | H2 ... | H3 ... | H4 ... | H5 ...`; envie print da mensagem e relatorio Bunny Loader. `ARMADO` nao prova callback funcionando e `E-7` significa candidato de metodo invalido/ausente no runtime.
 
 Ao terminar, reinstale ExampleMod CSharp 0.1.42 para retornar ao modo sem hooks. Os testes de assinatura e chamada no Android ainda nao foram validados.
 

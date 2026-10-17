@@ -8,8 +8,8 @@ public sealed class ExampleHookVoidInt32Pair : BunnyHookModule
 {
     public const bool EnableAtLoad = true;
     private const int SampleLimit = 2;
-    private static readonly string[] Types = { "Terraria.WorldGen", "Terraria.WorldGen", "Terraria.WorldGen" };
-    private static readonly string[] Methods = { "PlaceWire", "KillWire", "PlantCactus" };
+    private static readonly string[] Types = { "Terraria.Wiring", "Terraria.Wiring", "Terraria.Wiring" };
+    private static readonly string[] Methods = { "HitSwitch", "HitWireSingle", "PokeLogicGate" };
     private static readonly bool[] StaticFlags = { true, true, true };
     private static BunnyMethodHook? activeHook;
     private static int installed;
