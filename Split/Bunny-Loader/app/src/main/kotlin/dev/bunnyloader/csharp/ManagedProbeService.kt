@@ -399,10 +399,17 @@ class ManagedProbeService : Service() {
             } else if (!job.precompile) {
                 receipt.delete()
             }
+            val savedProfile = File(dir, "source-roslyn-profile-" + job.modId + ".txt")
+            val profileFile = File(diagnostic.absolutePath + ".profile")
+            if (!canReuse && passed && profileFile.isFile) {
+                runCatching { savedProfile.writeText(profileFile.readText().take(2048)) }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=${job.modId} Stage=SaveRoslynProfile Reason=ProfileWriteFailed", it) }
+            }
             val roslynProfile = runCatching {
-                File(diagnostic.absolutePath + ".profile")
-                    .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
+                (if (canReuse) savedProfile else profileFile)
+                    .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(1024)
             }.getOrNull() ?: "Unavailable"
+            Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=RoslynProfile PrefetchReused=${if (canReuse) 1 else 0} Detail=$roslynProfile")
             compileStatus.writeText(
                 "state=" + (if (passed) "finished" else "failed") + "\n" +
                 "modId=" + job.modId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
@@ -593,8 +600,10 @@ internal object ManagedFrameworkAssets {
 
     private fun ensureUnlocked(context: android.content.Context, dir: File, verifyCached: Boolean): Result {
         val assets = context.assets
-        val names = assets.list("managed").orEmpty()
-            .filter { it.endsWith(".dll") }.sorted()
+        val names = (assets.list("managed").orEmpty()
+            .filter { it.endsWith(".dll") } +
+            assets.list("managed/compiler-references").orEmpty()
+                .filter { it.endsWith(".dll") }.map { "compiler-references/$it" }).sorted()
         for (required in listOf("System.Private.CoreLib.dll", "System.Runtime.dll",
             "BunnyManagedProbe.dll", "BunnySourceCompiler.dll", "BunnySourceSdk.dll",
             "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll"))
@@ -639,6 +648,7 @@ internal object ManagedFrameworkAssets {
             if (name in valid) continue
             val target = File(dir, name)
             val temporary = File(dir, "$name.framework.tmp")
+            temporary.parentFile?.mkdirs()
             try {
                 assets.open("managed/$name").use { source ->
                     temporary.outputStream().use { output -> source.copyTo(output) }
