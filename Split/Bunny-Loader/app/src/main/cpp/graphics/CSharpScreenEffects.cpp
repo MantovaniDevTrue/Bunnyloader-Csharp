@@ -7,6 +7,7 @@
 #include "experiments/csharp/SourceLoader.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <fstream>
 #include <iterator>
@@ -35,6 +36,7 @@ struct Entry {
 
 std::mutex g_mutex;
 std::vector<Entry> g_entries;
+std::atomic<uint64_t> g_warmupRevision{1};
 
 bool fail(std::string* error, const char* reason) {
     if (error) *error = reason;
@@ -126,6 +128,7 @@ bool registerCSharpScreenEffects(const std::string& modId,
         graphTargets += static_cast<int>(entry.graph.targets.size());
     }
     for (auto& entry : additions) g_entries.push_back(std::move(entry));
+    g_warmupRevision.fetch_add(1, std::memory_order_release);
     if (graphPasses)
         BL_INFO("CSharp ScreenFx: grafo registrado mod=%s passes=%d alvos=%d",
                 modId.c_str(), graphPasses, graphTargets);
@@ -136,6 +139,10 @@ bool registerCSharpScreenEffects(const std::string& modId,
     return true;
 }
 
+
+uint64_t csharpScreenWarmupRevision() {
+    return g_warmupRevision.load(std::memory_order_acquire);
+}
 
 std::vector<TargetSpec> csharpScreenWarmupTargets() {
     std::vector<TargetSpec> targets;
