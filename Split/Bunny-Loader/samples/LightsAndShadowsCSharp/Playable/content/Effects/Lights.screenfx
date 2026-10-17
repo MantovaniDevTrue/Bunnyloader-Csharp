@@ -3,8 +3,8 @@ TARGET|shadowMask|0.333333
 TARGET|shadow|0.333333
 TARGET|bloomA|0.333333
 TARGET|bloomB|0.333333
-PASS|Effects/ShadowMask.frag|screen|shadowMask|uDayShadowThreshold=@param.DayShadowThreshold,uNightShadowThreshold=@param.NightShadowThreshold,uDayShadowSoftness=@param.DayShadowSoftness,uNightShadowSoftness=@param.NightShadowSoftness,uDayBlend=@dayblend,uSceneShadowThreshold=@threshold|-
-PASS|Effects/ShadowRays.frag|shadowMask|shadow|uSun=@sun,uDay=@day,uShadowStrength=@param.ShadowStrength,uSunStrength=@strength,uSunPower=@param.SunPower,uQuality=@param.RayQuality|-
+PASS|Effects/ShadowMask.frag|screen|shadowMask|uDayShadowThreshold=@param.DayShadowThreshold,uNightShadowThreshold=@param.NightShadowThreshold,uDayShadowSoftness=@param.DayShadowSoftness,uNightShadowSoftness=@param.NightShadowSoftness,uDayBlend=@dayblend,uSceneShadowThreshold=@threshold,uSunEnabled=@enabled|-
+PASS|Effects/ShadowRays.frag|shadowMask|shadow|uSun=@sun,uDay=@day,uShadowStrength=@param.ShadowStrength,uSunStrength=@strength,uSunPower=@param.SunPower,uQuality=@param.RayQuality,uSunEnabled=@enabled|-
 PASS|Effects/LightCompose.frag|screen|screen|uSun=@sun,uClock=@clock,uLightStrength=@strength,uSunEnabled=@enabled,uSunPower=@param.SunPower,uDayBlend=@dayblend|uRays=shadow,uGradientDay=Assets/ColorTex.png,uGradientNight=Assets/ColorTex2.png
 PASS|Effects/BloomThreshold.frag|screen|bloomA|uThreshold=@param.BloomThreshold|-
 PASS|Effects/KawaseBlur.frag|bloomA|bloomB|uDistance=0,uBlurGain=@param.BlurGain|-
