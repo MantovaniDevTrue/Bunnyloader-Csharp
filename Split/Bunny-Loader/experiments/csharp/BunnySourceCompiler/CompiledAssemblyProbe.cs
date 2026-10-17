@@ -148,8 +148,9 @@ public static class CompiledAssemblyProbe
             foreach (object effect in screenEffects)
             {
                 string shader = (string)effect.GetType().GetProperty("ShaderFile")!.GetValue(effect)!;
-                if (string.IsNullOrWhiteSpace(shader))
-                    throw new InvalidOperationException(effect.GetType().FullName + ": ShaderFile missing");
+                string pipeline = (string)effect.GetType().GetProperty("PipelineFile")!.GetValue(effect)!;
+                if (string.IsNullOrWhiteSpace(shader) == string.IsNullOrWhiteSpace(pipeline))
+                    throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
