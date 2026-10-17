@@ -1,0 +1,52 @@
+name: Export BunnyLoader CSharp 87.1 Source ZIP
+
+on:
+  push:
+    branches:
+      - delivery/bunnyloader-csharp-v87-1-source-organized
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source snapshot and packaging script
+        uses: actions/checkout@v4
+
+      - name: Assemble single organized archive
+        run: |
+          python3 tools/package_clean_source_v87_1.py
+          unzip -t dist/BunnyLoader-CSharp-0.1.10.16.90.29.87.1-Fontes-Organizadas.zip | tail -n 3
+
+      - name: Upload download artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BunnyLoader-CSharp-87.1-Fontes-Organizadas
+          path: dist/BunnyLoader-CSharp-0.1.10.16.90.29.87.1-Fontes-Organizadas.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish source-only release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="bunnyloader-csharp-v87.1-source-organized"
+          ZIP="dist/BunnyLoader-CSharp-0.1.10.16.90.29.87.1-Fontes-Organizadas.zip"
+          cat > "$RUNNER_TEMP/source-notes.md" <<'EOF'
+          Código-fonte do BunnyLoader C# 0.1.10.16.90.29.87.1, fixado no commit dc6243850c1d7ac83eb528bc2d56cf585066fc85.
+          Um único diretório BunnyLoader reúne os fontes do loader, integração nativa, SDK, compilador, samples, testes, documentação e índices de diretórios adicionais.
+          Pacote somente de código-fonte. Sem runtime proprietário de Terraria, bibliotecas Mono compiladas, assemblies produzidos no CI e segredos de assinatura. Consultar DEPENDENCIAS_EXTERNAS.md.
+          Reorganização de distribuição, não um APK novo ou build validado.
+          EOF
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "BunnyLoader CSharp .87.1 — Fonte organizada" --notes-file "$RUNNER_TEMP/source-notes.md" --prerelease
+          fi
+          echo "SOURCE_ZIP=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$(basename "$ZIP")"
