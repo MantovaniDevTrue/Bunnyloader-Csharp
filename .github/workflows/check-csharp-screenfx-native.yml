@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/csharp-screenfx-v90-29-86
+      - codex/csharp-screenfx-hooks-unified-v90-29-86-2
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
