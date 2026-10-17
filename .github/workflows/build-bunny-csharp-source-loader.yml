@@ -1053,7 +1053,13 @@ jobs:
               ):
                   source = "content/Common/Hooks/" + hook + ".cs"
                   assert source in names
-                  assert b"EnableAtLoad = false" in z.read(source)
+                  text = z.read(source)
+                  if hook == "ExampleNativeAccess":
+                      assert b"EnableAtLoad = false" in text
+                  else:
+                      assert b"EnableAtLoad = true" in text
+                      assert b"SampleLimit = 2" in text
+                      assert b"activeHook?.Dispose()" in text
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
               assert "content/Content/Buffs/ExampleDefenseBuff.cs" in names
@@ -1885,7 +1891,7 @@ jobs:
           keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
           unset BUNNY_KEYSTORE_B64
           echo 'BUNNY_V3_SECRET_KEYSTORE_VALIDATED=YES'
-          gradle :app:assembleDebug --stacktrace --no-daemon
+          gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace --no-daemon
 
       - name: Validate APK
         shell: bash

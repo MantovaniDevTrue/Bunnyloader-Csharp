@@ -186,6 +186,9 @@ class ManagedProbeService : Service() {
 
     private val running = AtomicBoolean(false)
     private val workerGate = Any()
+    private val compilerPriority = CompilerPriorityController { tid, value ->
+        Process.setThreadPriority(tid, value)
+    }
     private val pending = LinkedBlockingDeque<CompileWork>(16)
     private val healthGeneration = AtomicInteger(0)
     private var workerThread: Thread? = null
@@ -225,6 +228,13 @@ class ManagedProbeService : Service() {
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
+            if (!precompile && modId.isNotBlank()) {
+                runCatching { compilerPriority.promote(modId) }
+                    .onSuccess { promoted ->
+                        if (promoted) Log.i("BunnyCSharp", "[CSharp][Startup] Mod=$modId Stage=PrefetchPromoted Reason=OfficialCompileWaiting Priority=Normal")
+                    }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=$modId Stage=PrefetchPromotion Reason=ThreadPriorityChangeFailed Result=ContinueExistingCompile", it) }
+            }
             if (modId.isNotBlank()) {
                 pending.filter { it.precompile && it.modId == modId }
                     .forEach { pending.remove(it) }
@@ -300,10 +310,16 @@ class ManagedProbeService : Service() {
         val abortWatch = File(dir, "native-abort-watch.txt")
         val workerStartedMs = android.os.SystemClock.elapsedRealtime()
         val originalPriority = Process.getThreadPriority(Process.myTid())
-        if (job.precompile) Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT + 3)
         val reused = resident.assembly != null
         val currentHealth = healthGeneration.incrementAndGet()
         try {
+            synchronized(workerGate) {
+                val officialWaiting = pending.any { !it.precompile && it.modId == job.modId }
+                compilerPriority.begin(job.modId, Process.myTid(), originalPriority,
+                    job.precompile, officialWaiting)
+                if (job.precompile && officialWaiting)
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=PrefetchPromoted Reason=OfficialAlreadyQueued Priority=Normal")
+            }
             checkpoint.delete()
             if (compileRoot == null) {
                 log.delete()
@@ -434,7 +450,10 @@ class ManagedProbeService : Service() {
             }
             Log.e("BunnyCSharp", "Mono worker failed", error)
         } finally {
-            if (job.precompile) Process.setThreadPriority(originalPriority)
+            synchronized(workerGate) {
+                runCatching { compilerPriority.finish() }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=${job.modId} Stage=RestoreCompilerPriority Reason=ThreadPriorityChangeFailed", it) }
+            }
             healthGeneration.compareAndSet(currentHealth, currentHealth + 1)
         }
     }

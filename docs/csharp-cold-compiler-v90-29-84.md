@@ -45,6 +45,20 @@ A seleção compacta requer o conjunto completo. Uma subpasta incompleta causa
 rejeição explícita; instalações antigas sem subpasta preservam a seleção anterior
 como fallback. Não se expõem assemblies de referência ao carregador Mono.
 
+## Prioridade quando o jogo precisa do resultado
+
+O prefetch da .83 usa nice +3 durante a compilação inteira, mesmo depois de
+chegar um pedido oficial pelo mesmo mod. Agora esse pedido promove o worker
+ativo à prioridade original (normal). Se o pedido chegou antes da publicação
+do trabalho ativo, o prefetch já começa na prioridade normal. A compilação em
+andamento não é cancelada nem reiniciada. No fim, a prioridade é restaurada e o
+próximo trabalho especulativo recebe sua própria prioridade reduzida. Não há
+prioridade de áudio/display nem compilação paralela adicional.
+
+`Stage=PrefetchPromoted` evidencia a promoção. Quatro testes JVM executam o
+controlador real para os dois ordenamentos, restauração, mod seguinte e erro de
+prioridade recuperável. A repercussão em latência/FPS exige medição Android.
+
 ## Validação
 
 `tests/compiler_references` compila **todos os fontes do ExampleMod atual** em
