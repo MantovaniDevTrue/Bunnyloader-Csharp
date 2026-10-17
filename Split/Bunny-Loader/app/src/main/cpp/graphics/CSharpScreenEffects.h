@@ -19,5 +19,6 @@ bool registerCSharpScreenEffects(const std::string& modId,
                                  const std::vector<CSharpScreenEffectSpec>& effects,
                                  std::string* error);
 void pumpCSharpScreenEffects();
+void clearCSharpScreenEffects();
 
 }
