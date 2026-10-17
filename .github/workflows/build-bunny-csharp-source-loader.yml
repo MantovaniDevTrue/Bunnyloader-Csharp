@@ -2232,15 +2232,15 @@ jobs:
             for attempt in $(seq 1 40); do
               gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/integration-screenfx.json"
               if python3 - "$RUNNER_TEMP/integration-screenfx.json" "${GITHUB_SHA}" <<'PYSCREENFX_GATE'
-import json, sys
-runs = json.load(open(sys.argv[1]))["workflow_runs"]
-matching = [run for run in runs if run.get("head_sha") == sys.argv[2] and run.get("name") == "CSharp Native ScreenFx"]
-if not matching:
-    raise SystemExit(1)
-latest = max(matching, key=lambda run: run["id"])
-if latest.get("conclusion") != "success":
-    raise SystemExit(1)
-PYSCREENFX_GATE
+          import json, sys
+          runs = json.load(open(sys.argv[1]))["workflow_runs"]
+          matching = [run for run in runs if run.get("head_sha") == sys.argv[2] and run.get("name") == "CSharp Native ScreenFx"]
+          if not matching:
+              raise SystemExit(1)
+          latest = max(matching, key=lambda run: run["id"])
+          if latest.get("conclusion") != "success":
+              raise SystemExit(1)
+          PYSCREENFX_GATE
               then
                 echo "BUNNY_INTEGRATION_SCREENFX_GATE=PASS"
                 break
