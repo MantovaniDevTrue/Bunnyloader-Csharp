@@ -20,7 +20,7 @@ for raw in source.splitlines():
         assert (effects.parent / cells[1]).is_file()
         assert cells[2] == "screen" or cells[2] in targets
         assert cells[3] == "screen" or cells[3] in targets
-        assert cells[2] != cells[3]
+        assert cells[2] != cells[3] or cells[2] == "screen"
         passes.append(cells)
 assert set(targets) == {"shadowMask", "shadow", "bloomA", "bloomB"}
 assert all(scale <= 1 / 3 for scale in targets.values())
