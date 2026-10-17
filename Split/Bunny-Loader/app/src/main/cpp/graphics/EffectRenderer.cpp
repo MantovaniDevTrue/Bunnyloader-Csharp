@@ -391,6 +391,13 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
 
     const auto cpuNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - started).count();
+    static int reportedSpikes = 0;
+    if (cpuNs > 15000000 && reportedSpikes < 5) {
+        ++reportedSpikes;
+        BL_WARN("ScreenFx CPU spike: %lld us, passes=%d/%zu, viewport=%dx%d",
+                static_cast<long long>(cpuNs / 1000), drawn, frame.draws.size(),
+                target.viewport[2], target.viewport[3]);
+    }
     std::lock_guard<std::mutex> lock(g_statsMutex);
     g_local.draws += drawn;
     g_local.frames++;
