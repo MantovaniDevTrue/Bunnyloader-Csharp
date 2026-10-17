@@ -10,6 +10,8 @@ import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.CatalogProgress
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.ModOrder
+import dev.bunnyloader.mods.PackType
+import dev.bunnyloader.csharp.LaunchSourcePrecompile
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.mods.RemoteCatalog
 import dev.bunnyloader.mods.compareVersions
@@ -36,6 +38,9 @@ import kotlinx.coroutines.withContext
 class Shell(context: Context) {
     val catalog = Catalog(context)
     private val repo by lazy { ModRepository(context) }
+    private val appContext = context.applicationContext
+    private val csharpPrecompileLock = Mutex()
+    @Volatile private var csharpPrecompileGeneration = 0
 
     var installed by mutableStateOf(emptySet<String>())
         private set
@@ -377,6 +382,22 @@ class Shell(context: Context) {
         repo.setEnabled(uid, on)
         enabled = if (on) enabled + uid else enabled - uid
         publishOrder(ModOrder.enabledFirst(changed, enabled))
+        scheduleCSharpPrecompile()
+    }
+
+    private fun scheduleCSharpPrecompile() {
+        val generation = ++csharpPrecompileGeneration
+        val selected = packages.asSequence()
+            .filter { it.uid in enabled && !it.manifest.isOutdated &&
+                it.manifest.packType == PackType.MOD && it.manifest.entry.endsWith(".cs") }
+            .map { "${it.uid}=${it.manifest.entry}" }.toList()
+        if (selected.isEmpty()) return
+        scope.launch(Dispatchers.IO) {
+            csharpPrecompileLock.withLock {
+                if (generation == csharpPrecompileGeneration)
+                    LaunchSourcePrecompile.begin(appContext, selected, origin = "launcher")
+            }
+        }
     }
 
     fun moveMod(uid: String, direction: Int) {
@@ -442,6 +463,7 @@ class Shell(context: Context) {
                     if (remoteStatus == RemoteStatus.Ready || remoteStatus is RemoteStatus.Failed) {
                         offerUpdateNotices(remote)
                     }
+                    scheduleCSharpPrecompile()
                 }
             } catch (e: CancellationException) {
                 throw e
