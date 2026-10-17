@@ -69,7 +69,8 @@ inline bool screenSceneVectorContract(const Il2CppType* type, const char* member
 }
 inline FieldInfo* bindScreenSceneVectorField(FieldInfo* field, const char* member) {
     auto& api = il2cpp::api();
-    if (!field || !screenSceneVectorContract(api.field_get_type(field), member)) return nullptr;
+    if (!field || !api.field_get_type ||
+        !screenSceneVectorContract(api.field_get_type(field), member)) return nullptr;
     char* name = api.type_get_name(api.field_get_type(field));
     auto* bound = name ? bindScreenSceneField(field, name, 8, member) : nullptr;
     if (name) api.il2cpp_free(name);

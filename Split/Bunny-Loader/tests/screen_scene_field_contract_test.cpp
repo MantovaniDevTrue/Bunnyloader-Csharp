@@ -75,5 +75,9 @@ int main() {
     std::swap(x.offset, y.offset); x.type = &doubleType;
     assert(!bindScreenSceneVectorField(as<FieldInfo>(&field), "Main.screenPosition"));
     assert(copies == 1);
+    const auto typeReader = api.field_get_type;
+    api.field_get_type = nullptr;
+    assert(!bindScreenSceneVectorField(as<FieldInfo>(&field), "Main.screenPosition"));
+    api.field_get_type = typeReader;
     puts("SCREEN_SCENE_NATIVE_TYPE_SIZE_STORAGE_VECTOR_AND_CANARY=PASS");
 }

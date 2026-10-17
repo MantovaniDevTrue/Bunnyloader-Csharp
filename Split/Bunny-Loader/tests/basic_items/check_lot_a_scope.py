@@ -10,7 +10,14 @@ assert set(ids)==expected, f'missing={expected-set(ids)} unexpected={set(ids)-ex
 workflow=Path('../../.github/workflows/build-bunny-csharp-source-loader.yml').read_text()
 start=workflow.index('- name: Deliver signed APK to private Builds repository')
 end=workflow.index('\n        shell:',start)
-assert 'codex/lot-a-complete-v90-29' in workflow[start:end]
+assert "steps.build_policy.outputs.publish == 'true'" in workflow[start:end]
+import importlib.util
+policy_spec=importlib.util.spec_from_file_location('build_policy', 'tools/ci/csharp_build_policy.py')
+policy=importlib.util.module_from_spec(policy_spec)
+policy_spec.loader.exec_module(policy)
+repo='MantovaniDevTrue/Bunnyloader-Csharp'
+assert policy.classify('push', 'refs/heads/codex/lot-a-complete-v90-29', '', '', repo)['publish']
+assert not policy.classify('pull_request', 'refs/pull/1/merge', 'codex/lot-a-complete-v90-29', 'fork/repo', repo)['publish']
 assert 'TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"' in workflow
 assert 'EXPERIMENTAL — Lote A1 bancada C#' in workflow
 assert 'check_lot_a_delivery.py' in workflow
