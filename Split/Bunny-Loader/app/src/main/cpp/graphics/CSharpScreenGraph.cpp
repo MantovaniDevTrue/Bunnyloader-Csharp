@@ -176,7 +176,9 @@ bool loadCSharpScreenGraph(const std::string& modId, const std::string& classNam
             return fail(error, "screen graph: invalid uniforms or textures");
         for (const auto& [name, value] : uniforms) {
             if (!validUniform(value)) return fail(error, "screen graph: invalid uniform value");
-            pass.uniforms.push_back({name,value});
+            ScreenGraphUniform setting{name, value};
+            scalar(value, &setting.constant);
+            pass.uniforms.push_back(std::move(setting));
         }
         for (const auto& [name,value] : textures) {
             ScreenGraphTexture binding;
@@ -240,11 +242,7 @@ void buildCSharpScreenGraph(const ScreenGraph& graph, const ScreenSceneSnapshot&
             else if (expr == "@strength") value.v = {scene.strength * graph.intensity};
             else if (expr == "@threshold") value.v = {scene.shadowThreshold};
             else if (expr == "@enabled") value.v = {scene.sunEnabled ? 1.f : 0.f};
-            else {
-                float constant = 0.f;
-                if (!scalar(expr,&constant)) continue;
-                value.v = {constant};
-            }
+            else value.v = {uniform.constant};
             draw.uniforms.push_back(std::move(value));
         }
         for (const auto& texture : pass.textures)
