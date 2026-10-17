@@ -185,6 +185,79 @@ static class Program
             BunnyHooks.RemoveSlot(pairSlot);
             Check(failingPair.IsDisposed);
         }
+
+        using (var extended = new BunnyHookScope())
+        {
+            BunnyOriginalInt32 expiredZero = default;
+            var zero = extended.HookInt32Zero("Terraria.Utilities.UnifiedRandom", "Next", (original, self) =>
+            {
+                Check(self == (nint)123);
+                expiredZero = original;
+                return original.Invoke() + 2;
+            });
+            int extraSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(7);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 0, 0, 0, 1, out int ok, out int output);
+            Check(ok == 1 && output == 16 && test_originals() == 1);
+            Throws(() => expiredZero.Invoke());
+            zero.Dispose();
+            Check(zero.IsDisposed);
+            var single = extended.HookVoidInt32("Terraria.WorldGen", "QuickFindHome", (original, self, first) =>
+            {
+                Check(self == (nint)123 && first == 5);
+                original.Invoke();
+            }, isStatic: true);
+            extraSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 5, 0, 0, 2, out ok, out output);
+            Check(ok == 1 && test_originals() == 1);
+            single.Dispose();
+            var dual = extended.HookVoidInt32Pair("Terraria.WorldGen", "PlantCactus", (original, self, first, second) =>
+            {
+                Check(self == (nint)123 && first == 5 && second == 8);
+                original.Invoke();
+            }, isStatic: true);
+            extraSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 5, 8, 0, 3, out ok, out output);
+            Check(ok == 1 && test_originals() == 1);
+            dual.Dispose();
+            var triple = extended.HookInt32Triple("Terraria.WorldGen", "countWires", (original, self, first, second, third) =>
+            {
+                Check(self == (nint)123 && first == 5 && second == 8 && third == 3);
+                return original.Invoke() + first;
+            }, isStatic: true);
+            extraSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(10);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 5, 8, 3, 4, out ok, out output);
+            Check(ok == 1 && output == 22 && test_originals() == 1);
+            triple.Dispose();
+            var voidTriple = extended.HookVoidInt32Triple("Terraria.WorldGen", "ConvertTile", (original, self, first, second, third) =>
+            {
+                Check(self == (nint)123 && first == 5 && second == 8 && third == 3);
+                original.Invoke();
+            }, isStatic: true);
+            extraSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 5, 8, 3, 5, out ok, out output);
+            Check(ok == 1 && test_originals() == 1);
+            voidTriple.Dispose();
+            var busyExtended = extended.HookVoidInt32("Terraria.WorldGen", "QuickFindHome",
+                (_, _, _) => throw new BunnyAccessException(BunnyAccessStatus.TimedOut, "rpc"), isStatic: true);
+            extraSlot = test_slot();
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 3, 0, 0, 2, out ok, out output);
+            Check(ok == 2 && !busyExtended.IsDisposed);
+            busyExtended.Dispose();
+            var replace = extended.HookInt32Triple("Terraria.WorldGen", "countWires",
+                (_, _, first, second, third) => first * second * third, isStatic: true);
+            extraSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeExtended(extraSlot, ticket++, 123, 5, 8, 3, 4, out ok, out output);
+            Check(ok == 1 && output == 120 && test_originals() == 0);
+            replace.Dispose();
+        }
         Check(BunnyHooks.GetStatus().Contains("void()"));
         Console.WriteLine("C# SDK: delegate/original, deferred terminal disposal, stale timeout recovery, expired original, module auto-unload, slot reuse PASS");
     }

@@ -19,7 +19,7 @@ public:
 };
 class UniversalHookMailbox {
 public:
-    struct Work { int slot; uint64_t ticket; uintptr_t self; int32_t argument = 0; bool int32Mode = false; int32_t argument2 = 0; bool int32PairMode = false; };
+    struct Work { int slot; uint64_t ticket; uintptr_t self; int32_t argument = 0; bool int32Mode = false; int32_t argument2 = 0; bool int32PairMode = false; int32_t argument3 = 0; int extendedMode = 0; };
     struct Outcome { bool accepted = false; bool originalRan = false; bool faulted = false; bool timedOut = false; bool retryable = false; int32_t value = 0; };
     using Clock = std::chrono::steady_clock;
 
@@ -27,10 +27,10 @@ public:
     Outcome dispatch(int slot, uintptr_t self, Original original, Wake wake,
                      std::chrono::microseconds budget = std::chrono::milliseconds(3),
                      int32_t argument = 0, bool int32Mode = false, bool(*service)()=nullptr,
-                     int32_t argument2 = 0, bool int32PairMode = false) {
+                     int32_t argument2 = 0, bool int32PairMode = false, int32_t argument3 = 0, int extendedMode = 0) {
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock || state_ != State::Idle) return {};
-        work_ = {slot, ++ticket_, self, argument, int32Mode, argument2, int32PairMode};
+        work_ = {slot, ++ticket_, self, argument, int32Mode, argument2, int32PairMode, argument3, extendedMode};
         state_ = State::Pending;
         cancelled_ = false;
         originalRequested_ = originalDone_ = originalRan_ = failed_ = retryable_ = false;
@@ -131,7 +131,7 @@ public:
     bool originalInt32(int slot, uint64_t ticket, int32_t& result) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            if (!work_.int32Mode && !work_.int32PairMode) return false;
+            if (!work_.int32Mode && !work_.int32PairMode && work_.extendedMode != 1 && work_.extendedMode != 4) return false;
         }
         if (!original(slot, ticket)) return false;
         std::lock_guard<std::mutex> lock(mutex_);

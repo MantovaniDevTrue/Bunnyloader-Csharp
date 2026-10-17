@@ -1,3 +1,23 @@
+# Bunny Loader CSharp .83 / ExampleMod CSharp 0.1.42
+
+A interceptacao automatica de Terraria.Player.ResetEffects foi desativada. O codigo permanece em Common/Hooks/ExampleNativeAccess.cs como exemplo experimental, com EnableAtLoad=false; nenhum hook nativo desse modulo e instalado no gameplay normal.
+
+Este lote expoe cinco novas assinaturas tipadas da API BunnyHooks:
+
+| Exemplo | Assinatura | Alvo Terraria PC | Ativacao |
+| --- | --- | --- | --- |
+| ExampleHookInt32Zero | Int32Zero | `Terraria.Utilities.UnifiedRandom.Next` | `EnableAtLoad = true` |
+| ExampleHookVoidInt32 | VoidInt32 | `Terraria.WorldGen.QuickFindHome` | `EnableAtLoad = true` |
+| ExampleHookVoidInt32Pair | VoidInt32Pair | `Terraria.WorldGen.PlantCactus` | `EnableAtLoad = true` |
+| ExampleHookInt32Triple | Int32Triple | `Terraria.WorldGen.countWires` | `EnableAtLoad = true` |
+| ExampleHookVoidInt32Triple | VoidInt32Triple | `Terraria.WorldGen.ConvertTile` | `EnableAtLoad = true` |
+
+Cada um possui arquivo C# real com callback, passagem dos argumentos, chamada de original e contador. Nenhum hook e instalado automaticamente: para um teste controlado altere EnableAtLoad para true no **arquivo desejado**, recompile o .bmod no launcher e carregue um mundo de testes. Procure LastError e Calls da classe para avaliar se a assinatura exata foi aceita. O instalador rejeita assinaturas nao compativeis no Terraria Android; nomes foram escolhidos por fontes Terraria PC, nao confirmados no IL2CPP 1.4.5.8.6. Nao habilitar todos ao mesmo tempo.
+
+O ExampleIntPairHook da .82 tambem permanece desligado, assim como as cinco assinaturas adicionais. O exemplo dos hooks de retorno implementa OverrideReturn (false por padrao) para mostrar alteracao opcional em mundo descartavel, nunca no mundo principal. Os hooks void chamam o original uma unica vez.
+
+Os novos hooks suportam classes e metodos Terraria com correspondencia estrita: nao suportam ref/out, sobrecargas ambiguas, assinaturas genericas, outros tipos e chamadas fora da thread de instalacao. Worker recebe os parametros int32 por valor, e fallback native reexecuta o original no chamador no caso de timeout/recusa. O limite e 3ms por chamada e segue a politica de recuperacao nativa existente.
+
 # Bunny Loader .82 / ExampleMod CSharp 0.1.41
 
 O pacote integra as armaduras ArmorPolicies CSharp (ja presentes), NativeAccessProbe read-only e uma demonstração opt-in do hook universal `int(int,int)`. Acesso e probe nativo ficam em Common/Hooks/ExampleNativeAccess.cs; o hook de dois inteiros fica em Common/Hooks/ExampleIntPairHook.cs. Nao instale em paralelo ArmorPoliciesCSharp ou NativeAccessProbeCSharp; os conteudos ja estao aqui. O hook RNG fica desligado por padrao. Para testar em aparelho, ajuste EnableHookAtLoad=true no fonte ExampleIntPairHook.cs e recompile no launcher, depois chame Stop() ao terminar. Start() fora do Load pode ser recusado (-12) devido ao contexto do instalador nativo. A verificacao de assinatura Android sem instalar hook aparece em ExampleNativeAccess.PairMethodPresent / PairMethodError. Verifique Status(). O exemplo RNG nao foi validado em Android.

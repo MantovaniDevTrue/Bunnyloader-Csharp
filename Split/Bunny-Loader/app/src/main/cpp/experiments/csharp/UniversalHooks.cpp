@@ -20,6 +20,7 @@ struct Entry {
     bool isStatic = false;
     bool int32Mode = false;
     bool int32PairMode = false;
+    int extendedMode = 0;
     int managedSlot = -1;
     std::atomic<bool> active{false};
     std::chrono::steady_clock::time_point retryAfter{};
@@ -42,6 +43,7 @@ struct Install {
     std::string type, method;
     int slot = -1, result = -1;
     bool isStatic = false, int32Mode = false, int32PairMode = false;
+    int extendedMode = 0;
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
@@ -65,6 +67,30 @@ int32_t callOriginalInt32Pair(Entry& entry, uintptr_t self, int32_t first, int32
         return reinterpret_cast<int32_t(*)(int32_t, int32_t, const MethodInfo*)>(target)(first, second, info);
     return reinterpret_cast<int32_t(*)(void*, int32_t, int32_t, const MethodInfo*)>(target)(
         reinterpret_cast<void*>(self), first, second, info);
+}
+int32_t callOriginalExtended(Entry& entry, uintptr_t self, int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
+    switch (entry.extendedMode) {
+        case 1:
+            if (entry.isStatic) return reinterpret_cast<int32_t(*)(const MethodInfo*)>(target)(info);
+            return reinterpret_cast<int32_t(*)(void*, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), info);
+        case 2:
+            if (entry.isStatic) reinterpret_cast<void(*)(int32_t, const MethodInfo*)>(target)(a, info);
+            else reinterpret_cast<void(*)(void*, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, info);
+            return 0;
+        case 3:
+            if (entry.isStatic) reinterpret_cast<void(*)(int32_t, int32_t, const MethodInfo*)>(target)(a, b, info);
+            else reinterpret_cast<void(*)(void*, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, info);
+            return 0;
+        case 4:
+            if (entry.isStatic) return reinterpret_cast<int32_t(*)(int32_t, int32_t, int32_t, const MethodInfo*)>(target)(a, b, c, info);
+            return reinterpret_cast<int32_t(*)(void*, int32_t, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, c, info);
+        case 5:
+            if (entry.isStatic) reinterpret_cast<void(*)(int32_t, int32_t, int32_t, const MethodInfo*)>(target)(a, b, c, info);
+            else reinterpret_cast<void(*)(void*, int32_t, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, c, info);
+            return 0;
+        default: return 0;
+    }
 }
 constexpr int suspensionSecondsFor(int consecutive) {
     return consecutive < 2 ? 5 : consecutive == 2 ? 10 : 15;
@@ -184,6 +210,43 @@ int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo
         return result.originalRan ? originalValue : vanilla(entry);
     return result.value;
 }
+int32_t dispatchExtended(int index, uintptr_t self, int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    Entry& entry = entries[index];
+    auto vanilla = [&] { return callOriginalExtended(entry, self, a, b, c, info); };
+    if (!entry.active.load(std::memory_order_acquire) || inOriginal || universalNativeAccessInProgress ||
+        static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire))
+        return vanilla();
+    const auto now = std::chrono::steady_clock::now();
+    if (now < entry.retryAfter) return vanilla();
+    if (entry.suspended) {
+        entry.suspended = false;
+        entry.timeoutsInWindow = 0;
+        entry.timeoutWindow = now;
+        counters[8].fetch_add(1, std::memory_order_relaxed);
+    }
+    int32_t originalValue = 0;
+    auto original = [&] {
+        inOriginal = true;
+        auto body = [&] { originalValue = vanilla(); };
+        const bool ok = il2cpp::guarded(body);
+        inOriginal = false;
+        if (ok && (entry.extendedMode == 1 || entry.extendedMode == 4))
+            universalHookMailbox().setOriginalInt32Value(originalValue);
+        return ok;
+    };
+    counters[0].fetch_add(1, std::memory_order_relaxed);
+    const auto result = universalHookMailbox().dispatch(
+        entry.managedSlot, self, original, wakeUniversalHookWorker,
+        std::chrono::milliseconds(3), a, false,
+        universalNativeService.load(std::memory_order_acquire), b, false, c, entry.extendedMode);
+    if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
+    else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
+    if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
+    applyUniversalHookFault(entry, result);
+    if (!result.accepted || result.faulted)
+        return result.originalRan ? originalValue : vanilla();
+    return result.value;
+}
 template<size_t N> int32_t instanceInt32Stub(void* self, int32_t arg, const MethodInfo* info) {
     return dispatchInt32(N, reinterpret_cast<uintptr_t>(self), arg, info);
 }
@@ -209,6 +272,66 @@ template<size_t... N> auto staticInt32Stubs(std::index_sequence<N...>) {
     return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticInt32Stub<N>)...};
 }
 
+template<size_t N> int32_t instanceExtra1(void* self, const MethodInfo* info) {
+    return dispatchExtended(N, reinterpret_cast<uintptr_t>(self), 0, 0, 0, info);
+}
+template<size_t N> int32_t staticExtra1(const MethodInfo* info) {
+    return dispatchExtended(N, 0, 0, 0, 0, info);
+}
+template<size_t... N> auto instanceExtra1Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceExtra1<N>)...};
+}
+template<size_t... N> auto staticExtra1Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticExtra1<N>)...};
+}
+template<size_t N> void instanceExtra2(void* self, int32_t a, const MethodInfo* info) {
+    dispatchExtended(N, reinterpret_cast<uintptr_t>(self), a, 0, 0, info);
+}
+template<size_t N> void staticExtra2(int32_t a, const MethodInfo* info) {
+    dispatchExtended(N, 0, a, 0, 0, info);
+}
+template<size_t... N> auto instanceExtra2Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceExtra2<N>)...};
+}
+template<size_t... N> auto staticExtra2Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticExtra2<N>)...};
+}
+template<size_t N> void instanceExtra3(void* self, int32_t a, int32_t b, const MethodInfo* info) {
+    dispatchExtended(N, reinterpret_cast<uintptr_t>(self), a, b, 0, info);
+}
+template<size_t N> void staticExtra3(int32_t a, int32_t b, const MethodInfo* info) {
+    dispatchExtended(N, 0, a, b, 0, info);
+}
+template<size_t... N> auto instanceExtra3Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceExtra3<N>)...};
+}
+template<size_t... N> auto staticExtra3Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticExtra3<N>)...};
+}
+template<size_t N> int32_t instanceExtra4(void* self, int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    return dispatchExtended(N, reinterpret_cast<uintptr_t>(self), a, b, c, info);
+}
+template<size_t N> int32_t staticExtra4(int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    return dispatchExtended(N, 0, a, b, c, info);
+}
+template<size_t... N> auto instanceExtra4Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceExtra4<N>)...};
+}
+template<size_t... N> auto staticExtra4Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticExtra4<N>)...};
+}
+template<size_t N> void instanceExtra5(void* self, int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    dispatchExtended(N, reinterpret_cast<uintptr_t>(self), a, b, c, info);
+}
+template<size_t N> void staticExtra5(int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
+    dispatchExtended(N, 0, a, b, c, info);
+}
+template<size_t... N> auto instanceExtra5Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceExtra5<N>)...};
+}
+template<size_t... N> auto staticExtra5Stubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticExtra5<N>)...};
+}
 template<size_t N> void instanceStub(void* self, const MethodInfo* info) {
     dispatch(N, reinterpret_cast<uintptr_t>(self), info);
 }
@@ -231,31 +354,29 @@ int installOnGameThread() {
     if (!api.class_get_methods || !api.method_get_param_count || !api.method_get_name ||
         !api.method_get_return_type || !api.type_get_name || !api.il2cpp_free ||
         !api.class_is_valuetype || !api.method_is_instance || !api.method_is_generic || !api.class_is_generic ||
-        ((install.int32Mode || install.int32PairMode) && !api.method_get_param)) return -4;
+        ((install.int32Mode || install.int32PairMode || install.extendedMode > 0) && !api.method_get_param)) return -4;
     Il2CppClass* cls = il2cpp::findClassQuiet(install.type.substr(0, dot), install.type.substr(dot + 1));
     if (!cls || api.class_is_valuetype(cls) || api.class_is_generic(cls)) return -5;
     const MethodInfo* selected = nullptr;
+    const int expectedArgs = install.extendedMode > 0
+        ? (install.extendedMode == 1 ? 0 : install.extendedMode == 2 ? 1 : install.extendedMode == 3 ? 2 : 3)
+        : (install.int32PairMode ? 2 : install.int32Mode ? 1 : 0);
+    const bool returnsInt32 = install.int32Mode || install.int32PairMode ||
+                              install.extendedMode == 1 || install.extendedMode == 4;
     void* iter = nullptr;
     while (const MethodInfo* method = api.class_get_methods(cls, &iter)) {
         if (install.method != api.method_get_name(method) ||
-            api.method_get_param_count(method) != (install.int32PairMode ? 2u : install.int32Mode ? 1u : 0u) ||
+            api.method_get_param_count(method) != static_cast<uint32_t>(expectedArgs) ||
             api.method_is_instance(method) == install.isStatic) continue;
         char* name = api.type_get_name(api.method_get_return_type(method));
-        const bool rightReturn = name && std::strcmp(name,
-            (install.int32Mode || install.int32PairMode) ? "System.Int32" : "System.Void") == 0;
+        const bool rightReturn = name && std::strcmp(name, returnsInt32 ? "System.Int32" : "System.Void") == 0;
         if (name) api.il2cpp_free(name);
-        bool rightParam = !install.int32Mode && !install.int32PairMode;
-        if ((install.int32Mode || install.int32PairMode) && api.method_get_param) {
-            const Il2CppType* param = api.method_get_param(method, 0);
+        bool rightParam = true;
+        for (int index = 0; index < expectedArgs; ++index) {
+            const Il2CppType* param = api.method_get_param(method, static_cast<uint32_t>(index));
             char* paramName = param ? api.type_get_name(param) : nullptr;
-            rightParam = paramName && std::strcmp(paramName, "System.Int32") == 0;
+            rightParam &= paramName && std::strcmp(paramName, "System.Int32") == 0;
             if (paramName) api.il2cpp_free(paramName);
-            if (rightParam && install.int32PairMode) {
-                const Il2CppType* second = api.method_get_param(method, 1);
-                char* secondName = second ? api.type_get_name(second) : nullptr;
-                rightParam = secondName && std::strcmp(secondName, "System.Int32") == 0;
-                if (secondName) api.il2cpp_free(secondName);
-            }
         }
         if (!rightReturn || !rightParam || selected || api.method_is_generic(method)) return -6;
         selected = method;
@@ -264,7 +385,7 @@ int installOnGameThread() {
     for (int i = 0; i < used; ++i) {
         auto& entry = entries[i];
         if (il2cpp::methodPointer(entry.method) != il2cpp::methodPointer(selected)) continue;
-        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic || entry.int32Mode != install.int32Mode || entry.int32PairMode != install.int32PairMode) return -8;
+        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic || entry.int32Mode != install.int32Mode || entry.int32PairMode != install.int32PairMode || entry.extendedMode != install.extendedMode) return -8;
         entry.managedSlot = install.slot;
         entry.retryAfter = {};
         entry.timeoutWindow = {};
@@ -283,11 +404,26 @@ int installOnGameThread() {
     static const auto intStatics = staticInt32Stubs(std::make_index_sequence<MaxHooks>{});
     static const auto pairInstances = instanceInt32PairStubs(std::make_index_sequence<MaxHooks>{});
     static const auto pairStatics = staticInt32PairStubs(std::make_index_sequence<MaxHooks>{});
+    static const std::array<std::array<void*, MaxHooks>, 5> extraInstances = {
+        instanceExtra1Stubs(std::make_index_sequence<MaxHooks>{}),
+        instanceExtra2Stubs(std::make_index_sequence<MaxHooks>{}),
+        instanceExtra3Stubs(std::make_index_sequence<MaxHooks>{}),
+        instanceExtra4Stubs(std::make_index_sequence<MaxHooks>{}),
+        instanceExtra5Stubs(std::make_index_sequence<MaxHooks>{})
+    };
+    static const std::array<std::array<void*, MaxHooks>, 5> extraStatics = {
+        staticExtra1Stubs(std::make_index_sequence<MaxHooks>{}),
+        staticExtra2Stubs(std::make_index_sequence<MaxHooks>{}),
+        staticExtra3Stubs(std::make_index_sequence<MaxHooks>{}),
+        staticExtra4Stubs(std::make_index_sequence<MaxHooks>{}),
+        staticExtra5Stubs(std::make_index_sequence<MaxHooks>{})
+    };
     Entry& entry = entries[used];
     entry.method = selected;
     entry.isStatic = install.isStatic;
     entry.int32Mode = install.int32Mode;
     entry.int32PairMode = install.int32PairMode;
+    entry.extendedMode = install.extendedMode;
     entry.managedSlot = install.slot;
     entry.retryAfter = {};
     entry.timeoutWindow = {};
@@ -296,7 +432,8 @@ int installOnGameThread() {
     entry.lastSuspensionSeconds = 0;
     entry.lastTimeout = {};
     entry.suspended = false;
-    void* stub = entry.int32PairMode ? (entry.isStatic ? pairStatics[used] : pairInstances[used])
+    void* stub = entry.extendedMode > 0 ? (entry.isStatic ? extraStatics[entry.extendedMode - 1][used] : extraInstances[entry.extendedMode - 1][used])
+                 : entry.int32PairMode ? (entry.isStatic ? pairStatics[used] : pairInstances[used])
                  : entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
                  : (entry.isStatic ? statics[used] : instances[used]);
     if (!hook::install(selected, stub, &entry.original)) return -9;
@@ -328,9 +465,9 @@ void disableUniversalHooks() {
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
 
 int requestInstall(const char* type, const char* method, int slot, int isStatic,
-                   bool int32Mode, bool int32PairMode = false) {
+                   bool int32Mode, bool int32PairMode = false, int extendedMode = 0) {
     if (!accepting.load(std::memory_order_acquire) || !type || !method || strnlen(type, 257) > 256 || strnlen(method, 129) > 128 ||
-        slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1)) return -1;
+        slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1) || extendedMode < 0 || extendedMode > 5) return -1;
     if (!universalCanInstall || !universalLeaveMono || !universalResumeMono) return -12;
     UniversalHookWorkerYield yield;
     std::unique_lock<std::mutex> lock(install.mutex);
@@ -341,6 +478,7 @@ int requestInstall(const char* type, const char* method, int slot, int isStatic,
     install.isStatic = isStatic != 0;
     install.int32Mode = int32Mode;
     install.int32PairMode = int32PairMode;
+    install.extendedMode = extendedMode;
     install.epoch = epoch.load(std::memory_order_acquire);
     install.pending = true;
     install.done = false;
@@ -361,6 +499,11 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_insta
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_i32_pair(
     const char* type, const char* method, int slot, int isStatic) {
     return requestInstall(type, method, slot, isStatic, false, true);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_extended(
+    const char* type, const char* method, int slot, int isStatic, int extendedMode) {
+    if (extendedMode < 1 || extendedMode > 5) return -1;
+    return requestInstall(type, method, slot, isStatic, false, false, extendedMode);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original_i32(
     int slot, int64_t ticket, int32_t* result) {
