@@ -1,9 +1,12 @@
 #include "graphics/ScreenScene.h"
+#include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <string>
 
 namespace bl::graphics {
 namespace {
@@ -12,6 +15,7 @@ struct Vec2 { float x, y; };
 
 struct Fields {
     bool initialized = false;
+    bool resolved = false;
     FieldInfo* daytime = nullptr;
     FieldInfo* time = nullptr;
     FieldInfo* screenWidth = nullptr;
@@ -30,11 +34,29 @@ bool read(FieldInfo* field, T& out) {
     return true;
 }
 
+bool readDouble(FieldInfo* field, double& out) {
+    if (!field) return false;
+    auto& api = il2cpp::api();
+    const Il2CppType* type = api.field_get_type(field);
+    char* name = type ? api.type_get_name(type) : nullptr;
+    bool ok = false;
+    if (name && std::strcmp(name, "System.Single") == 0) {
+        float value = 0.f;
+        api.field_static_get_value(field, &value);
+        out = value;
+        ok = std::isfinite(value);
+    } else if (name && std::strcmp(name, "System.Double") == 0) {
+        api.field_static_get_value(field, &out);
+        ok = std::isfinite(out);
+    }
+    if (name) api.il2cpp_free(name);
+    return ok;
+}
+
 }
 
 ScreenSceneSnapshot sampleScreenScene() {
     if (!g_fields.initialized) {
-        g_fields.initialized = true;
         Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
         if (main) {
             g_fields.daytime = il2cpp::findField(main, "dayTime");
@@ -44,6 +66,8 @@ ScreenSceneSnapshot sampleScreenScene() {
             g_fields.screenPosition = il2cpp::findField(main, "screenPosition");
             g_fields.worldSurface = il2cpp::findField(main, "worldSurface");
             g_fields.moonPhase = il2cpp::findField(main, "moonPhase");
+            g_fields.initialized = true;
+            g_fields.resolved = true;
         }
     }
 
@@ -53,13 +77,29 @@ ScreenSceneSnapshot sampleScreenScene() {
     double surface = 0.0;
     int width = 0, height = 0, moonPhase = 0;
     Vec2 pos{};
-    if (!read(g_fields.daytime, day) || !read(g_fields.time, gameTime) ||
-        !read(g_fields.screenWidth, width) || !read(g_fields.screenHeight, height) ||
-        !read(g_fields.screenPosition, pos) || !read(g_fields.worldSurface, surface) ||
-        !std::isfinite(gameTime) || !std::isfinite(surface) ||
-        !std::isfinite(pos.y) || width <= 0 || height <= 0 || surface <= 0.0)
-        return s;
-
+    const bool dayReady = read(g_fields.daytime, day);
+    const bool timeReady = readDouble(g_fields.time, gameTime) && gameTime >= 0.0;
+    const bool widthReady = read(g_fields.screenWidth, width) && width > 0 && width < 32768;
+    const bool heightReady = read(g_fields.screenHeight, height) && height > 0 && height < 32768;
+    const bool posReady = read(g_fields.screenPosition, pos) &&
+                          std::isfinite(pos.x) && std::isfinite(pos.y);
+    const bool surfaceReady = readDouble(g_fields.worldSurface, surface) &&
+                              surface > 0.0 && surface < 100000.0;
+    if (!dayReady || !timeReady || !widthReady || !heightReady ||
+        !posReady || !surfaceReady) {
+        static bool notified = false;
+        if (!notified) {
+            notified = true;
+            BL_WARN("CSharp ScreenFx: dados parciais do Terraria (Main=%d day=%d time=%d size=%d/%d pos=%d surface=%d); grafo continua com valores seguros",
+                    g_fields.resolved, dayReady, timeReady, widthReady, heightReady,
+                    posReady, surfaceReady);
+        }
+    }
+    if (!timeReady) gameTime = 13500.0;
+    if (!widthReady) width = 1920;
+    if (!heightReady) height = 1080;
+    if (!posReady) pos = Vec2{};
+    if (!surfaceReady) surface = 250.0;
     read(g_fields.moonPhase, moonPhase);
     const float w = static_cast<float>(width);
     const float h = static_cast<float>(height);
