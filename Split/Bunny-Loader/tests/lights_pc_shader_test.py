@@ -73,9 +73,9 @@ assert "uSunStrength <= 0.0" in rays
 assert "fragColor = vec4(0.0, 0.0, 0.0, 1.0);" in rays
 assert "texture(uSource, vUV).rgb, 1.0" in compose
 assert (effects / "Lights.screenfx").read_text().count("PASS|") == 9
-renderer = (root.parent / "app/src/main/cpp/graphics/EffectRenderer.cpp").read_text()
-render_header = (root.parent / "app/src/main/cpp/graphics/RenderHook.h").read_text()
-screen_api = (root.parent / "app/src/main/cpp/script/api/Screen.cpp").read_text()
+renderer = (root.parent.parent / "app/src/main/cpp/graphics/EffectRenderer.cpp").read_text()
+render_header = (root.parent.parent / "app/src/main/cpp/graphics/RenderHook.h").read_text()
+screen_api = (root.parent.parent / "app/src/main/cpp/script/api/Screen.cpp").read_text()
 assert "screenCopyCalls" in renderer and "screenCopyPixels" in renderer
 assert "screenCopyCalls" in render_header and "screenCopyPixels" in render_header
 assert 'i64("screenCopyCalls", s.screenCopyCalls)' in screen_api
