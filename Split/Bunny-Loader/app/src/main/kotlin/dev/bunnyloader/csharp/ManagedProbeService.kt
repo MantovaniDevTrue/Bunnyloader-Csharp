@@ -210,6 +210,8 @@ class ManagedProbeService : Service() {
         val nativeThreads = File(dir, "native-abort-threads.txt")
         val abortWatch = File(dir, "native-abort-watch.txt")
         val workerStartedMs = android.os.SystemClock.elapsedRealtime()
+        val originalPriority = Process.getThreadPriority(Process.myTid())
+        if (job.precompile) Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT + 3)
         val reused = resident.assembly != null
         val currentHealth = healthGeneration.incrementAndGet()
         try {
@@ -307,6 +309,7 @@ class ManagedProbeService : Service() {
             }
             Log.e("BunnyCSharp", "Mono worker failed", error)
         } finally {
+            if (job.precompile) Process.setThreadPriority(originalPriority)
             healthGeneration.compareAndSet(currentHealth, currentHealth + 1)
         }
     }
