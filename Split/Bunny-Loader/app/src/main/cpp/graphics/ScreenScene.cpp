@@ -225,6 +225,15 @@ ScreenSceneSnapshot sampleScreenScene() {
                        (moonPhase == 3 || moonPhase == 5) ? .9f :
                        moonPhase == 4 ? .6f : 1.f;
 
+    s.raw.dayTime = day;
+    s.raw.gameTime = gameTime;
+    s.raw.worldSurface = surface;
+    s.raw.cameraX = pos.x;
+    s.raw.cameraY = pos.y;
+    s.raw.screenWidth = width;
+    s.raw.screenHeight = height;
+    s.raw.playerCenterY = pos.y + h * 0.5f;
+    s.raw.moonPhase = moonPhase;
     s.valid = true;
     s.daytime = day;
     s.sunVisibility = std::clamp((worldSurfacePixels + 800.f - (pos.y + h * 0.5f)) / 256.f, 0.f, 1.f);
