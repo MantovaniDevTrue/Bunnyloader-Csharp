@@ -1,5 +1,4 @@
 uniform float uDay;
-uniform float uShadowThreshold;
 uniform float uShadowStrength;
 uniform float uSunStrength;
 uniform float uQuality;
@@ -13,8 +12,7 @@ void main() {
         float scale = uDay >= 0.5
             ? 1.0 + j / max(uQuality, 1.0) * (0.014 + uQuality * 0.01)
             : 1.0 + j * 0.01;
-        float blue = texture(uSource, clamp(uSun + offset / scale, 0.0, 1.0)).b;
-        float mask = blue < uShadowThreshold ? pow(max(1.0 - blue, 0.0), 0.75) : 0.0;
+        float mask = texture(uSource, clamp(uSun + offset / scale, 0.0, 1.0)).a;
         float weight = uDay >= 0.5
             ? 0.55 * (30.0 - j) / 120.0 * (uShadowStrength + 0.1) * (uSunStrength * 0.5 - 0.1)
             : (20.0 - j) / 190.0;

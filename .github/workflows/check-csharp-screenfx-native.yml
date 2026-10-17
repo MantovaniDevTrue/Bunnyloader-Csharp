@@ -5,14 +5,18 @@ on:
     branches:
       - codex/csharp-screenfx-v90-29-86
       - codex/csharp-lights-native-graph-v90-29-87
+      - codex/csharp-lights-fidelity-v90-29-88
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.*'
       - 'Split/Bunny-Loader/tests/*screenfx*'
+      - 'Split/Bunny-Loader/tests/lights_pc_shader_test.py'
+      - 'Split/Bunny-Loader/samples/LightsAndShadowsCSharp/**'
       - 'Split/Bunny-Loader/tests/screenfx_stubs/**'
       - 'Split/Bunny-Loader/tests/screenfx_probe/**'
       - 'Split/Bunny-Loader/samples/ScreenFxProbeCSharp/**'
+      - 'Split/Bunny-Loader/samples/LightsAndShadowsCSharp/**'
       - '.github/workflows/check-csharp-screenfx-native.yml'
   workflow_dispatch:
 
@@ -22,7 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile and run native ScreenFx tests
-        run: bash Split/Bunny-Loader/tests/screenfx_native_test.sh
+        run: |
+          bash Split/Bunny-Loader/tests/screenfx_native_test.sh
+          python3 Split/Bunny-Loader/tests/lights_pc_shader_test.py
 
   screenfx-managed:
     runs-on: ubuntu-latest

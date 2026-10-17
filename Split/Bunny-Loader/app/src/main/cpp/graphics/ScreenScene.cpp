@@ -1,7 +1,9 @@
 #include "graphics/ScreenScene.h"
+#include "graphics/EffectRenderer.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 
 #include <algorithm>
 #include <cmath>
@@ -39,6 +41,7 @@ struct Fields {
     FieldInfo* screenPosition = nullptr;
     FieldInfo* worldSurface = nullptr;
     FieldInfo* moonPhase = nullptr;
+    const MethodInfo* screenPositionGetter = nullptr;
 };
 
 Fields g_fields;
@@ -75,6 +78,15 @@ ScreenSceneSnapshot sampleScreenScene() {
             g_fields.screenWidth = il2cpp::findField(main, "screenWidth");
             g_fields.screenHeight = il2cpp::findField(main, "screenHeight");
             g_fields.screenPosition = il2cpp::findField(main, "screenPosition");
+            if (!g_fields.screenPosition ||
+                !(il2cpp::api().field_get_flags(g_fields.screenPosition) & 0x10u)) {
+                g_fields.screenPosition = nullptr;
+                const auto* getter = il2cpp::findMethodBySignature(
+                    main, il2cpp::parseSignature("Vector2 get_screenPosition()"));
+                if (getter && !il2cpp::api().method_is_instance(getter) &&
+                    il2cpp::methodPointer(getter))
+                    g_fields.screenPositionGetter = getter;
+            }
             g_fields.worldSurface = il2cpp::findField(main, "worldSurface");
             g_fields.moonPhase = il2cpp::findField(main, "moonPhase");
             g_fields.clockType = numericType(g_fields.time);
@@ -92,10 +104,29 @@ ScreenSceneSnapshot sampleScreenScene() {
     Vec2 pos{};
     const bool dayReady = read(g_fields.daytime, day);
     const bool timeReady = readDouble(g_fields.time, g_fields.clockType, gameTime) && gameTime >= 0.0;
-    const bool widthReady = read(g_fields.screenWidth, width) && width > 0 && width < 32768;
-    const bool heightReady = read(g_fields.screenHeight, height) && height > 0 && height < 32768;
-    const bool posReady = read(g_fields.screenPosition, pos) &&
-                          std::isfinite(pos.x) && std::isfinite(pos.y);
+    bool widthReady = g_fields.screenWidth &&
+        (il2cpp::api().field_get_flags(g_fields.screenWidth) & 0x10u) &&
+        read(g_fields.screenWidth, width) && width > 0 && width < 32768;
+    bool heightReady = g_fields.screenHeight &&
+        (il2cpp::api().field_get_flags(g_fields.screenHeight) & 0x10u) &&
+        read(g_fields.screenHeight, height) && height > 0 && height < 32768;
+    int renderedWidth = 0, renderedHeight = 0;
+    EffectRenderer::LastViewportSize(&renderedWidth, &renderedHeight);
+    if (renderedWidth > 0 && renderedHeight > 0 &&
+        renderedWidth < 32768 && renderedHeight < 32768) {
+        width = renderedWidth;
+        height = renderedHeight;
+        widthReady = heightReady = true;
+    }
+    bool posReady = read(g_fields.screenPosition, pos);
+    if (!posReady && g_fields.screenPositionGetter) {
+        using Fn = Vec2 (*)(const MethodInfo*);
+        pos = reinterpret_cast<Fn>(
+            il2cpp::methodPointer(g_fields.screenPositionGetter))(
+                g_fields.screenPositionGetter);
+        posReady = true;
+    }
+    posReady = posReady && std::isfinite(pos.x) && std::isfinite(pos.y);
     const bool surfaceReady = readDouble(g_fields.worldSurface, g_fields.surfaceType, surface) &&
                               surface > 0.0 && surface < 100000.0;
     if (!dayReady || !timeReady || !widthReady || !heightReady ||
