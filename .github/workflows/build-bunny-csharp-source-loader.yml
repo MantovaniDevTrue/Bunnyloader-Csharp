@@ -1820,6 +1820,7 @@ jobs:
           set -euo pipefail
           ROOT="Split/Bunny-Loader"
           python3 "$ROOT/tests/run_compiler_aot_loader.py"
+          python3 "$ROOT/tests/compiler_delivery.py"
           PACKAGE_ID="microsoft.netcore.app.runtime.aot.linux-x64.cross.android-arm64"
           PACK="$RUNNER_TEMP/compiler-aot-cross.nupkg"
           BASE="https://api.nuget.org/v3-flatcontainer/$PACKAGE_ID/8.0.23/$PACKAGE_ID.8.0.23.nupkg"
@@ -1946,6 +1947,22 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.bunnyloader.csharptest'"
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | grep -F "application-label:'Bunny Loader C# Test'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libbunny.so"
+          python3 - "$APK" <<'PY'
+          import hashlib,json,sys,zipfile
+          from pathlib import Path
+          root=Path('Split/Bunny-Loader')
+          report=root/'build/compiler-aot/compiler-aot-build.json'
+          if report.is_file():
+              expected=json.loads(report.read_text())
+              with zipfile.ZipFile(sys.argv[1]) as package:
+                  for name in ('libmonosgen-2.0.so','libbunnycompileraot.so'):
+                      embedded=package.read('lib/arm64-v8a/'+name)
+                      assert embedded==(root/'app/src/main/jniLibs/arm64-v8a'/name).read_bytes(), name+' modified during packaging'
+                  for module in expected['modules']:
+                      data=package.read('assets/managed/'+module['assembly'])
+                      assert hashlib.sha256(data).hexdigest()==module['sha256'], module['assembly']
+              print('COMPILER_AOT_APK_BINARY_AND_ASSEMBLY_IDENTITY=PASS')
+          PY
           python3 - "$APK" <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
@@ -2085,6 +2102,19 @@ jobs:
             NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.45.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-compiler-aot-v90-29-85" ]; then
+            for attempt in $(seq 1 40); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/compiler-workflows.json"
+              set +e
+              python3 Split/Bunny-Loader/tools/check_compiler_delivery.py "$RUNNER_TEMP/compiler-workflows.json" "$GITHUB_SHA"
+              CHECK_STATUS=$?
+              set -e
+              if [ "$CHECK_STATUS" = "0" ]; then break; fi
+              if [ "$CHECK_STATUS" != "2" ] || [ "$attempt" = "40" ]; then
+                echo "::error::Compiler delivery refused: required independent regressions did not pass."
+                exit 1
+              fi
+              sleep 10
+            done
             TITLE="EXPERIMENTAL — CSharp compilador ARM64 mixed AOT | $VERSION"
             NOTES="Preserva compilador compacto .84, runtime Mono .72 e hooks QA 0.1.45. Partes do compilador Roslyn precompiladas em modo normal ARM64; mods continuam fontes editaveis compilados automaticamente. Hash do runtime e de todas as assemblies verificado antes do registro; fallback JIT. Inclui identificacao do codigo de Compiler.Compile no relatorio. Meta <=5 segundos e estabilidade Android ainda NAO comprovadas. Fonte ${GITHUB_SHA}; run https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
           fi

@@ -20,7 +20,7 @@ O relatório inclui `source-compiler-aot-status.txt`, com PID, módulos registra
 
 `tests/run_compiler_aot_loader.py` executa o carregador de produção com bibliotecas nativas de teste. Cobre sucesso e rejeição transacional de runtime, segunda dependência, formato, ABI, caminho e quantidade. Não simula execução Mono nem comprova tempo Android. O pipeline mantém regressões C#/nativas/JS, comparação executada dos defaults do ExampleMod com referências runtime/compactas, testes JVM, compilação Android e assinatura privada. `compiler-aot-build.json` registra tamanhos e tempos do build, nunca FPS ou tempo de compilação Android.
 
-Estado ao iniciar CI: código implementado; contratos locais aprovados; build ARM64 e regressões pendentes; execução e desempenho Android pendentes. Não é conclusão do Lote A.
+Primeiro CI: os seis módulos ARM64 foram gerados e ligados com sucesso. A checagem do SDK identificou documentação gerada desatualizada dos dois métodos de diagnóstico de hooks integrados; a referência foi corrigida, mantendo a checagem obrigatória. A entrega privada exige oito workflows independentes aprovados no mesmo commit. Estado: contratos locais aprovados; regressões finais e APK pendentes; execução e desempenho Android pendentes. Não é conclusão do Lote A.
 
 ## Teste no Terraria com ExampleMod
 

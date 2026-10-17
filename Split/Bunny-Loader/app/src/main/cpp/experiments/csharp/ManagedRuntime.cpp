@@ -3372,8 +3372,9 @@ ManagedSourceCompileResult compileManagedSource(
             std::strstr(origin.dli_fname, "libbunnycompileraot.so") ? "AOT" : "JITOrUnavailable";
     }
     const std::string aotStatus = "pid=" + std::to_string(getpid()) +
-        "\nmode=MixedJitAot\nregistered=" + std::to_string(g_compilerAot.registered) +
+        "\nrequestedMode=MixedJitAot\nregistered=" + std::to_string(g_compilerAot.registered) +
         "\nreason=" + g_compilerAot.reason + "\nsetupMs=" + std::to_string(g_compilerAotSetupMs) +
+        "\ndetail=" + g_compilerAot.detail +
         "\ncompilerMethodCode=" + g_compilerMethodCode +
         "\nmodSources=Editable\nfiveSecondTarget=Unmeasured\n";
     const auto diagnosticSlash = diagnosticsPath.find_last_of('/');
@@ -3386,8 +3387,9 @@ ManagedSourceCompileResult compileManagedSource(
     }
 #ifdef __ANDROID__
     __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
-        "[CSharp][CompilerAot] Registered=%d Reason=%s SetupMs=%lld CompilerMethodCode=%s",
-        g_compilerAot.registered, g_compilerAot.reason.c_str(), g_compilerAotSetupMs, g_compilerMethodCode.c_str());
+        "[CSharp][CompilerAot] Registered=%d Reason=%s SetupMs=%lld CompilerMethodCode=%s Detail=%s",
+        g_compilerAot.registered, g_compilerAot.reason.c_str(), g_compilerAotSetupMs,
+        g_compilerMethodCode.c_str(), g_compilerAot.detail.c_str());
 #endif
     void* preflightClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "Preflight") : nullptr;

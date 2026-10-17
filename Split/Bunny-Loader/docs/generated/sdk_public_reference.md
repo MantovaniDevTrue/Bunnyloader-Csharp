@@ -261,6 +261,7 @@ abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `string DiagnosticStatus()` | experimental_worker_sync_void0 |
 | `void Load(BunnyHookScope hooks)` | experimental_worker_sync_void0 |
 | `void Unload()` | experimental_worker_sync_void0 |
 
@@ -845,6 +846,7 @@ string LastError { get; }
 | Method | Execution |
 | --- | --- |
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
+| `static string GetStatusSnapshot(string id)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyValue

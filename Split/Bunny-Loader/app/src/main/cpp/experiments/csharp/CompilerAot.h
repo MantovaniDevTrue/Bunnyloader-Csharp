@@ -13,6 +13,7 @@ struct CompilerAotResult {
     void* handle = nullptr; // Keep registered code mapped for the entire Mono lifetime.
     int registered = 0;
     std::string reason;
+    std::string detail;
 };
 inline std::string compilerAotHashFile(const std::string& path) {
     FILE* file = std::fopen(path.c_str(), "rb");
@@ -35,7 +36,12 @@ inline CompilerAotResult installCompilerAot(
     CompilerAotResult result;
     if (!registerModule) { result.reason = "RegisterSymbolMissing"; return result; }
     void* bundle = dlopen(bundlePath, RTLD_NOW | RTLD_LOCAL);
-    if (!bundle) { result.reason = "BundleUnavailable"; return result; }
+    if (!bundle) {
+        result.reason = "BundleUnavailable";
+        const char* error = dlerror();
+        result.detail = error ? std::string(error).substr(0, 512) : "dlopen returned null";
+        return result;
+    }
     using Version = int (*)();
     using RuntimeHash = const char* (*)();
     using Module = const CompilerAotModule* (*)(int);
@@ -48,12 +54,18 @@ inline CompilerAotResult installCompilerAot(
         dlclose(bundle);
         return result;
     };
-    if (!version || !runtimeHash || !count || !module || version() != 1)
+    if (!version || !runtimeHash || !count || !module || version() != 1) {
+        result.detail = "Expected=BundleAbi1 Symbols=abi,runtime_hash,count,module";
         return reject("BundleAbiMismatch");
+    }
     const char* expectedRuntime = runtimeHash();
+    const std::string actualRuntime = compilerAotHashFile(monoPath);
     if (!expectedRuntime || std::strlen(expectedRuntime) != 64 ||
-        compilerAotHashFile(monoPath) != expectedRuntime)
+        actualRuntime != expectedRuntime) {
+        result.detail = "Path=" + monoPath + " Expected=" +
+            (expectedRuntime ? expectedRuntime : "Null") + " Actual=" + actualRuntime;
         return reject("RuntimeHashMismatch");
+    }
     const int size = count();
     if (size < 1 || size > 16) return reject("ModuleCountInvalid");
     std::vector<void*> infos;
@@ -68,10 +80,16 @@ inline CompilerAotResult installCompilerAot(
         // .NET 8.0.23 aot-runtime.h: version is the first uint32 in MonoAotFileInfo.
         uint32_t format = 0;
         std::memcpy(&format, item->info, sizeof(format));
-        if (format != 185) return reject("AotFormatMismatch:" + name);
+        if (format != 185) {
+            result.detail = "Expected=185 Actual=" + std::to_string(format);
+            return reject("AotFormatMismatch:" + name);
+        }
+        const std::string actual = compilerAotHashFile(frameworkDir + "/" + name);
         if (std::strlen(item->sha256) != 64 ||
-            compilerAotHashFile(frameworkDir + "/" + name) != item->sha256)
+            actual != item->sha256) {
+            result.detail = "Assembly=" + name + " Expected=" + item->sha256 + " Actual=" + actual;
             return reject("AssemblyHashMismatch:" + name);
+        }
         infos.push_back(item->info);
     }
     // Validate the complete set before the first irreversible runtime registration.
