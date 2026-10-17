@@ -11,8 +11,11 @@ struct ScreenSceneSnapshot {
     float clock = 0.5f;
     float strength = 0.6f;
     float shadowThreshold = 0.98f;
+    float dayBlend = 1.0f;
+    float sunVisibility = 1.0f;
 };
 
 ScreenSceneSnapshot sampleScreenScene();
+void resetScreenScene();
 
 }

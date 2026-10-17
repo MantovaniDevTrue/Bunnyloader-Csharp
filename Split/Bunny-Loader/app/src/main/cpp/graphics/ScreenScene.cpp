@@ -1,4 +1,5 @@
 #include "graphics/ScreenScene.h"
+#include "graphics/ScreenSceneTransition.h"
 #include "graphics/EffectRenderer.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -6,6 +7,7 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -45,6 +47,8 @@ struct Fields {
 };
 
 Fields g_fields;
+ScreenSceneTransition g_transition;
+std::chrono::steady_clock::time_point g_lastSample;
 
 template <typename T>
 bool read(FieldInfo* field, T& out) {
@@ -164,13 +168,24 @@ ScreenSceneSnapshot sampleScreenScene() {
 
     s.valid = true;
     s.daytime = day;
-    s.sunEnabled = pos.y + h * 0.5f < worldSurfacePixels + 800.f;
+    s.sunVisibility = std::clamp((worldSurfacePixels + 800.f - (pos.y + h * 0.5f)) / 256.f, 0.f, 1.f);
+    s.sunEnabled = s.sunVisibility > 0.f;
+    s.dayBlend = day ? 1.f : 0.f;
     s.sunX = std::clamp(sunX, -1.f, 2.f);
     s.sunY = std::clamp(sunY, -1.f, 2.f);
     s.clock = std::clamp(static_cast<float>(gameTime) / (day ? 54000.f : 32400.f), 0.f, 1.f);
     s.strength = 0.8f * (day ? 1.f : moon) * attenuation;
     s.shadowThreshold = day ? 0.98f : 0.02f;
-    return s;
+    const auto now = std::chrono::steady_clock::now();
+    const float elapsed = g_lastSample.time_since_epoch().count() == 0
+        ? 0.f : std::chrono::duration<float>(now - g_lastSample).count();
+    g_lastSample = now;
+    return g_transition.advance(s, elapsed);
+}
+
+void resetScreenScene() {
+    g_transition.reset();
+    g_lastSample = std::chrono::steady_clock::time_point{};
 }
 
 }

@@ -106,7 +106,7 @@ bool tokens(const std::string& list, std::vector<std::pair<std::string,std::stri
 bool validUniform(const std::string& value) {
     if (value == "@sun" || value == "@clock" || value == "@day" ||
         value == "@strength" || value == "@threshold" ||
-        value == "@enabled") return true;
+        value == "@enabled" || value == "@dayblend") return true;
     float v = 0.f;
     return scalar(value, &v) && v >= -100.f && v <= 100.f;
 }
@@ -238,10 +238,11 @@ void buildCSharpScreenGraph(const ScreenGraph& graph, const ScreenSceneSnapshot&
                 value.components = 2;
                 value.v = {scene.sunX, scene.sunY};
             } else if (expr == "@clock") value.v = {scene.clock};
-            else if (expr == "@day") value.v = {scene.daytime ? 1.f : 0.f};
+            else if (expr == "@day") value.v = {scene.dayBlend};
+            else if (expr == "@dayblend") value.v = {scene.dayBlend};
             else if (expr == "@strength") value.v = {scene.strength * graph.intensity};
             else if (expr == "@threshold") value.v = {scene.shadowThreshold};
-            else if (expr == "@enabled") value.v = {scene.sunEnabled ? 1.f : 0.f};
+            else if (expr == "@enabled") value.v = {scene.sunVisibility};
             else value.v = {uniform.constant};
             draw.uniforms.push_back(std::move(value));
         }

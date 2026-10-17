@@ -14,6 +14,12 @@ build/screenfx/frame_composer_test
   -Iapp/src/main/cpp \
   tests/screenfx_frame_hold_test.cpp \
   -o build/screenfx/screenfx_frame_hold_test
+
+"${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror \
+  -Iapp/src/main/cpp \
+  tests/screen_scene_transition_test.cpp \
+  -o build/screenfx/screen_scene_transition_test
+build/screenfx/screen_scene_transition_test
 build/screenfx/screenfx_frame_hold_test
 
 "${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror \

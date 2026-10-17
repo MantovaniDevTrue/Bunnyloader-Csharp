@@ -1,8 +1,8 @@
 # ExampleMod CSharp 0.1.45 — QA temporario
 
-## Teste de convivencia com ScreenFx C# .88
+## Teste de convivencia com ScreenFx C# .88 e hotfix .88.1
 
-O ExampleMod CSharp continua independente do Lights And Shadows. Para verificar que a API grafica .88 nao interfere nos hooks, armas, prefixos ou salvamento nativos, ative o ExampleMod junto de `LightsAndShadowsCSharp 0.3.0` com o APK experimental .88. A renderizacao dos sete passes e a camera sao responsabilidades do Bunny Loader, sem codigo JS nos mods C#. O teste de regressao do grafo fica em `tests/lights_pc_shader_test.py`.
+O ExampleMod CSharp continua independente do Lights And Shadows. A regressao .88.1 tambem cobre mudancas suaves de luz noturna, biomas e altura sem afetar os hooks do ExampleMod. Para verificar que a API grafica .88 nao interfere nos hooks, armas, prefixos ou salvamento nativos, ative o ExampleMod junto de `LightsAndShadowsCSharp 0.3.0` com o APK experimental .88. A renderizacao dos sete passes e a camera sao responsabilidades do Bunny Loader, sem codigo JS nos mods C#. O teste de regressao do grafo fica em `tests/lights_pc_shader_test.py`.
 
 Use com APK .84 para testar os cinco hooks. O OnEnterWorld e precomputado e nao exibe contadores ao vivo. Os resultados verdadeiros aparecem na secao `hooks universais C#` do relatorio Bunny Loader. Detalhes em `Playable/content/Documentation/HOOK_QA_ANDROID.md`.
 
