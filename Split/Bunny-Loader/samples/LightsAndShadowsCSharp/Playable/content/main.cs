@@ -27,7 +27,7 @@ public sealed class LightsAndShadows : BunnyScreenEffect
         Uniform_DayShadowThreshold = 0.98f;
         Uniform_NightShadowThreshold = 0.02f;
         Uniform_DayShadowSoftness = 0.012f;
-        Uniform_NightShadowSoftness = 0.008f;
+        Uniform_NightShadowSoftness = 0.015f;
         Uniform_ShadowStrength = 1f;
         Uniform_RayQuality = 3f;
         Uniform_BloomThreshold = 0.70f;
