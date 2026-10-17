@@ -16,7 +16,7 @@ static std::vector<bl::graphics::EffectFrame> frames;
 static int shaders = 0;
 
 namespace bl::csharp {
-bool sourceRuntimeApplied(const std::string& id) { return id == "probe"; }
+bool sourceRuntimeApplied(const std::string& id) { return id == "probe" || id == "probe_graph"; }
 }
 
 namespace bl::graphics {
@@ -83,7 +83,16 @@ int main() {
     graph.pipelineFile = "Effects/Light.screenfx";
     assert(bl::graphics::registerCSharpScreenEffects("probe_graph", path, {graph}, &error));
     assert(shaders == 3);
-    assert(!bl::graphics::registerCSharpScreenEffects("bad_graph", path, {graph, graph}, &error));
+    bl::graphics::pumpCSharpScreenEffects();
+    assert(frames.size() == 3);
+    assert(frames[2].targets.size() == 1);
+    assert(frames[2].draws.size() == 2);
+    assert(frames[2].draws[0].dest == 1);
+    assert(frames[2].draws[1].textures.size() == 2);
+    assert(frames[2].draws[1].textures[0].texture == 1);
+    assert(frames[2].draws[1].textures[1].texture <= -1000);
+    graph.pipelineFile = "../Light.screenfx";
+    assert(!bl::graphics::registerCSharpScreenEffects("bad_graph", path, {graph}, &error));
     fs::remove_all(path);
     return 0;
 }
