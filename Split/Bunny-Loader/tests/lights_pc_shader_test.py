@@ -50,7 +50,7 @@ assert "j * 0.006" in rays
 assert "uDistance < 0.5" in (effects / "KawaseBlur.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.4.2.2"
+assert manifest["version"] == "0.4.2.3"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
