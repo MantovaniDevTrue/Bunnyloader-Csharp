@@ -284,8 +284,9 @@ int main() {
     assert(reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(replacedInt32Static)(
         40, reinterpret_cast<MethodInfo*>(&methods[6])) == 38);
     assert(install("PairTransform", 22, false, true) == -7);
-    assert(install("PairTransform", 22, false, false, true) >= 0);
-    bunny_universal_hook_remove(install("PairTransform", 22, false, false, true));
+    const int firstPairHandle = install("PairTransform", 22, false, false, true);
+    assert(firstPairHandle >= 0);
+    bunny_universal_hook_remove(firstPairHandle);
     assert(install("WrongPairSecond", 22, false, false, true) == -6);
     assert(install("WrongPairReturn", 22, false, false, true) == -6);
     const int pairHandle = install("PairTransform", 22, false, false, true);
