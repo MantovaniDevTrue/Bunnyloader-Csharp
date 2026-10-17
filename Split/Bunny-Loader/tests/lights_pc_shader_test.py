@@ -46,6 +46,6 @@ assets = {
 }
 for name, expected in assets.items():
     raw = b64decode((root / "SourceAssets" / (name + ".b64")).read_text().strip(), validate=True)
-    assert raw.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+    assert raw[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
     assert sha256(raw).hexdigest() == expected, name
 print("LIGHTS_PC_GRAPH_FIDELITY=PASS passes=7 lowres_targets=4 assets=3")
