@@ -1,6 +1,3 @@
-// ExampleMod C# | Common/Players/ExampleWelcomePlayer.cs
-// BunnyPlayer: confira quais callbacks sao de preparacao e quais recebem contexto durante o jogo.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -17,7 +14,12 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
 
     public override string OnEnterWorld()
     {
-        return "Example C#: BunnyPlayer OnEnterWorld ativo!";
+        return "C# Hook QA 0.1.44: "
+            + "H1 " + ExampleHookInt32Zero.Result()
+            + " | H2 " + ExampleHookVoidInt32.Result()
+            + " | H3 " + ExampleHookVoidInt32Pair.Result()
+            + " | H4 " + ExampleHookInt32Triple.Result()
+            + " | H5 " + ExampleHookVoidInt32Triple.Result();
     }
 
     public override string OnRespawn()

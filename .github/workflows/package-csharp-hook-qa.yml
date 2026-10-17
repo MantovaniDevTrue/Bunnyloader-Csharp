@@ -1,0 +1,107 @@
+name: Package ExampleMod CSharp Android Hook QA
+
+on:
+  push:
+    branches:
+      - codex/csharp-five-hooks-device-qa-v90-29-83
+  workflow_dispatch:
+
+jobs:
+  examplemod-hook-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate CSharp source and existing SDK examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -I "$ROOT/app/src/main/cpp" \
+            "$ROOT/app/src/main/cpp/experiments/csharp/SourceParser.cpp" \
+            "$ROOT/tests/hook_qa_parser.cpp" -o "$RUNNER_TEMP/bunny-hook-qa-parser"
+          find "$ROOT/samples/ExampleModCSharp/Playable/content/Common/Hooks" \
+            -type f -name '*.cs' -print0 | xargs -0 -r "$RUNNER_TEMP/bunny-hook-qa-parser"
+          "$RUNNER_TEMP/bunny-hook-qa-parser" \
+            "$ROOT/samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs"
+          (cd "$ROOT" && dotnet run --project tests/basic_items/ItemBatch.csproj -c Release)
+          python3 "$ROOT/tests/combat_batch/check_package.py"
+          echo "CSHARP_HOOK_QA_PREPACK_CHECKS=PASS"
+
+      - name: Package and verify ExampleMod CSharp 0.1.44
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader"
+          PKG="$ROOT/samples/ExampleModCSharp/Playable"
+          python3 "$ROOT/tools/mods/pack.py" "$PKG"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.44.bl"
+          test -s "$SOURCE"
+          python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
+          mkdir -p "$RUNNER_TEMP/hook-qa"
+          cp "$SOURCE" "$RUNNER_TEMP/hook-qa/ExampleModCSharp-v0.1.44-Hook-QA.bmod"
+          python3 - "$RUNNER_TEMP/hook-qa/ExampleModCSharp-v0.1.44-Hook-QA.bmod" <<'PY'
+          import json, sys, zipfile
+          path=sys.argv[1]
+          with zipfile.ZipFile(path) as z:
+              m=json.loads(z.read("manifest.json"))
+              assert (m["id"],m["version"])==("examplemodcsharp","0.1.44")
+              assert m["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
+              names=z.namelist()
+              assert "content/Documentation/HOOK_QA_ANDROID.md" in names
+              assert "content/Common/Players/ExampleWelcomePlayer.cs" in names
+              assert b"C# Hook QA 0.1.44:" in z.read("content/Common/Players/ExampleWelcomePlayer.cs")
+              for name in ("ExampleHookInt32Zero", "ExampleHookVoidInt32",
+                           "ExampleHookVoidInt32Pair", "ExampleHookInt32Triple",
+                           "ExampleHookVoidInt32Triple"):
+                  contents=z.read(f"content/Common/Hooks/{name}.cs")
+                  assert b"EnableAtLoad = true" in contents, name
+                  assert b"TrimEnd(" not in contents, name
+                  assert b'Replace(")", "")' in contents, name
+                  assert b"SampleLimit = 2" in contents, name
+                  assert contents.count(b"original.Invoke();") == 1, name
+                  assert b"activeHook?.Dispose();" in contents, name
+              assert b"EnableAtLoad = false" in z.read("content/Common/Hooks/ExampleNativeAccess.cs")
+              assert b"EnableHookAtLoad = false" in z.read("content/Common/Hooks/ExampleIntPairHook.cs")
+              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")])==8
+              assert not any(n.endswith((".js",".so",".dll")) for n in names)
+              assert z.testzip() is None
+          print("CSHARP_FIVE_HOOKS_ANDROID_QA_PACKAGE=PASS")
+          PY
+          (cd "$RUNNER_TEMP/hook-qa" && sha256sum ExampleModCSharp-v0.1.44-Hook-QA.bmod > ExampleModCSharp-v0.1.44-Hook-QA.bmod.sha256)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExampleModCSharp-v0.1.44-Hook-QA
+          path: ${{ runner.temp }}/hook-qa/*
+          if-no-files-found: error
+
+      - name: Publish source-only QA mod in private Builds
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::BUNNY_PRIVATE_BUILD_TOKEN ausente"
+            exit 1
+          fi
+          REPO="MantovaniDevTrue/Bunnyloader-Csharp-Builds"
+          test "$(gh api "repos/$REPO" --jq .private)" = "true"
+          TAG="csharp-hooks-qa-0.1.44-run-${GITHUB_RUN_ID}"
+          gh release create "$TAG" \
+            "$RUNNER_TEMP/hook-qa/ExampleModCSharp-v0.1.44-Hook-QA.bmod" \
+            "$RUNNER_TEMP/hook-qa/ExampleModCSharp-v0.1.44-Hook-QA.bmod.sha256" \
+            --repo "$REPO" \
+            --title "ExampleMod CSharp 0.1.44 — cinco hooks Android QA" \
+            --notes "Apenas bmod, para usar com Bunny Loader CSharp .83 já instalado. Cinco hooks experimentais habilitados temporariamente (H1-H5) e desligamento apos duas chamadas. O probe ResetEffects segue desativado. Observe a mensagem de entrada H1-H5 e envie captura/log/FPS. Cada callback preserva o original. Testes reais de assinatura IL2CPP Android ainda pendentes. Fontes e CI: ${GITHUB_SHA}; https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Use mundo descartavel; retorne ao ExampleMod 0.1.42 após o teste." \
+            --prerelease
+          echo "CSHARP_HOOK_QA_PRIVATE_RELEASE=SUCCESS"

@@ -1,3 +1,11 @@
+# Android QA: ExampleMod CSharp 0.1.44 sobre Bunny .83
+
+**Esta e uma versao temporaria de validacao, nao a versao de jogatina.** Consulte `Documentation/HOOK_QA_ANDROID.md`.
+
+O ExampleMod testa cinco hooks C# no carregamento do mundo. Cada um chama original apenas uma vez por callback e se desativa automaticamente depois de duas chamadas aceitas. Nenhum efeito ou retorno original e alterado. `ExampleNativeAccess` permanece desativado. A entrada no mundo exibe `C# Hook QA 0.1.44: H1 ... | H2 ... | H3 ... | H4 ... | H5 ...`; envie print da mensagem e relatorio Bunny Loader. `ARMADO` nao prova callback funcionando e `E-7` significa candidato de metodo invalido/ausente no runtime.
+
+Ao terminar, reinstale ExampleMod CSharp 0.1.42 para retornar ao modo sem hooks. Os testes de assinatura e chamada no Android ainda nao foram validados.
+
 # Bunny Loader CSharp .83 / ExampleMod CSharp 0.1.42
 
 A interceptacao automatica de Terraria.Player.ResetEffects foi desativada. O codigo permanece em Common/Hooks/ExampleNativeAccess.cs como exemplo experimental, com EnableAtLoad=false; nenhum hook nativo desse modulo e instalado no gameplay normal.

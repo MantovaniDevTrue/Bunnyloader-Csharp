@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.42",
+  "version": "0.1.44",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "ExampleMod CSharp: equipamentos, cinco assinaturas adicionais de hooks universais com exemplos e probes nativos opt-in, sem interceptacao continua por padrao.",
+  "summary": "Android QA: cinco hooks tipados com limite de duas chamadas, status H1-H5 e diagnostico compatível com o parser nativo da APK .83.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
