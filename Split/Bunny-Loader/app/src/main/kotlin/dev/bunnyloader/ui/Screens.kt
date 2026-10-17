@@ -356,13 +356,6 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     val context = LocalContext.current
-    val prefs = remember(context) { Prefs(context) }
-    var quickJsOff by remember { mutableStateOf(prefs.disableQuickJsForCSharp) }
-    val runtimes = remember(shell.packages, shell.enabled) {
-        ScriptRuntimeModes.fromSpecs(shell.packages
-            .filter { it.uid in shell.enabled && !it.manifest.isOutdated && it.manifest.packType == PackType.MOD }
-            .map { "${it.uid}=${it.manifest.entry}" })
-    }
     var query by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
     val search = rememberPackageSearchIndex(shell.packages)
@@ -454,35 +447,6 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         }
         shell.packageError?.let {
             PixelText(it, size = Ts.Small, color = Bl.Bad, modifier = Modifier.padding(horizontal = EdgePad))
-        }
-        PixelCard(Modifier.fillMaxWidth().padding(start = EdgePad, end = EdgePad, top = 10.dp)) {
-            Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                        PixelText(tr("Desativar QuickJS (somente C#)"), size = Ts.Item)
-                        PixelText(tr("Evita iniciar o motor JavaScript nas partidas apenas com mods C#. Vale na próxima abertura do jogo."), size = Ts.Small, color = Bl.TextFaint)
-                    }
-                    SwitchSprite(runtimes.disableQuickJs(quickJsOff)) {
-                        if (runtimes.csharpCount > 0 && runtimes.javaScriptCount == 0) {
-                            quickJsOff = !quickJsOff
-                            prefs.disableQuickJsForCSharp = quickJsOff
-                        } else {
-                            aviso = (if (runtimes.javaScriptCount > 0)
-                                tr("Desative os mods JavaScript para usar o modo sem QuickJS.")
-                            else tr("Ative um mod C# para usar esta opção.")) to false
-                        }
-                    }
-                }
-                PixelText(tr("%1\$s C# · %2\$s JavaScript ativos", runtimes.csharpCount, runtimes.javaScriptCount),
-                    size = Ts.Small, color = Bl.TextDim)
-                if (runtimes.mixed) {
-                    PixelText(tr("Aviso: usar mods C# e JavaScript juntos pode aumentar o consumo de memória e processamento. Recomendamos usar apenas um dos dois tipos por vez."),
-                        size = Ts.Small, color = Bl.Bad, modifier = Modifier.padding(top = 7.dp))
-                } else if (runtimes.csharpCount > 0 && runtimes.javaScriptCount == 0 && quickJsOff) {
-                    PixelText(tr("Modo C# exclusivo ativo para a próxima partida."),
-                        size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 7.dp))
-                }
-            }
         }
         SearchField(query, { query = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
         PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
@@ -606,6 +570,9 @@ fun ConfigTab(
                 themeEffects,
                 onThemeEffects,
             )
+
+            SectionTitle(tr("Motores de mods"))
+            CSharpRuntimeSettings(shell, prefs)
 
             SectionTitle(tr("Mods"))
             Setting(
@@ -837,6 +804,84 @@ private fun QuickStartCard(prefs: Prefs) {
 }
 
 private fun saveLabel(save: SaveFiles.Save) = if (save.journey) tr("%1\$s (Jornada)", save.name) else save.name
+
+
+@Composable
+private fun CSharpRuntimeSettings(shell: Shell, prefs: Prefs) {
+    val runtimes = remember(shell.packages, shell.enabled) {
+        ScriptRuntimeModes.fromSpecs(shell.packages
+            .filter { it.uid in shell.enabled && !it.manifest.isOutdated &&
+                it.manifest.packType == PackType.MOD }
+            .map { "${it.uid}=${it.manifest.entry}" })
+    }
+    var onlyCSharp by remember(prefs) { mutableStateOf(prefs.disableQuickJsForCSharp) }
+    var warning by remember { mutableStateOf(false) }
+    val eligible = runtimes.csharpCount > 0 && runtimes.javaScriptCount == 0
+    val enabled = runtimes.disableQuickJs(onlyCSharp)
+
+    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            PixelText(tr("Execução dos mods"), size = Ts.Item)
+            PixelText(
+                tr("Controle quais motores serão iniciados ao abrir o Terraria."),
+                size = Ts.Small, color = Bl.TextFaint,
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(top = 9.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                PixelText(tr("C# ativos: %1\$s", runtimes.csharpCount),
+                    size = Ts.Body, color = Bl.TextDim, modifier = Modifier.weight(1f))
+                PixelText(tr("JavaScript ativos: %1\$s", runtimes.javaScriptCount),
+                    size = Ts.Body, color = Bl.TextDim, modifier = Modifier.weight(1f))
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    PixelText(tr("Modo somente C#"), size = Ts.Item)
+                    PixelText(
+                        tr("Não inicia o QuickJS quando apenas mods C# estão ligados. Vale na próxima abertura do jogo."),
+                        size = Ts.Small, color = Bl.TextFaint,
+                    )
+                }
+                SwitchSprite(enabled) {
+                    if (eligible) {
+                        onlyCSharp = !onlyCSharp
+                        prefs.disableQuickJsForCSharp = onlyCSharp
+                        warning = false
+                    } else {
+                        warning = true
+                    }
+                }
+            }
+            if (enabled) {
+                PixelText(
+                    tr("QuickJS desativado na próxima partida."),
+                    size = Ts.Small, color = Bl.TextDim,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            if (warning || onlyCSharp && !eligible) {
+                PixelText(
+                    if (runtimes.javaScriptCount > 0)
+                        tr("Para usar somente C#, desative todos os mods JavaScript na aba Pacotes.")
+                    else tr("Ative pelo menos um mod C# na aba Pacotes para usar este modo."),
+                    size = Ts.Small, color = Bl.Bad,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            if (runtimes.mixed) {
+                PixelText(
+                    tr("Aviso: usar mods C# e JavaScript juntos pode aumentar o consumo de memória e processamento. Recomendamos usar apenas um dos dois tipos por vez."),
+                    size = Ts.Small, color = Bl.Bad,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
 
 /** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
 @Composable

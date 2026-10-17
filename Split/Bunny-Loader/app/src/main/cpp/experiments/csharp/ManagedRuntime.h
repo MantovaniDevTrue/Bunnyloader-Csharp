@@ -8,7 +8,27 @@
 #include <cstdint>
 #include <vector>
 
+namespace bl::graphics { struct ScreenSceneRaw; }
+
 namespace bl::csharp {
+struct ManagedScreenLightResult {
+    float sunX = 0, sunY = 0, clock = 0, strength = 0;
+    float shadowThreshold = 0;
+    float baseSunX = 0, baseSunY = 0, baseClock = 0;
+    bool enabled = false;
+};
+bool registerManagedScreenSceneMod(const std::string& modId,
+                                   const std::string& assemblyPath,
+                                   const std::string& nameSpace,
+                                   const std::string& className,
+                                   const std::string& method);
+bool queueManagedScreenScene(const std::string& modId,
+                             const graphics::ScreenSceneRaw& raw,
+                             float baseSunX, float baseSunY, float baseClock);
+bool readManagedScreenScene(const std::string& modId,
+                            ManagedScreenLightResult* result);
+void pauseManagedScreenSceneCallbacks();
+
 
 struct ManagedHurtResult {
     int damage = 0;

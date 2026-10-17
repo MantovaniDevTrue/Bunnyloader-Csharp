@@ -5,8 +5,10 @@
 #include "graphics/RenderHook.h"
 #include "graphics/ShaderRegistry.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <fstream>
 #include <iterator>
@@ -35,6 +37,7 @@ struct Entry {
 
 std::mutex g_mutex;
 std::vector<Entry> g_entries;
+std::atomic<uint64_t> g_warmupRevision{1};
 
 bool fail(std::string* error, const char* reason) {
     if (error) *error = reason;
@@ -103,7 +106,7 @@ bool registerCSharpScreenEffects(const std::string& modId,
         if (entry.isGraph) {
             if (!loadCSharpScreenGraph(modId, effect.className, contentDirectory,
                 effect.pipelineFile, effect.layer == 1 ? EffectLayer::Screen : EffectLayer::World,
-                effect.intensity, &entry.graph, error)) return false;
+                effect.intensity, &entry.graph, error, effect.parameters)) return false;
         } else {
             std::string shader;
             if (!readShader(contentDirectory, effect.shaderFile, &shader))
@@ -126,6 +129,7 @@ bool registerCSharpScreenEffects(const std::string& modId,
         graphTargets += static_cast<int>(entry.graph.targets.size());
     }
     for (auto& entry : additions) g_entries.push_back(std::move(entry));
+    g_warmupRevision.fetch_add(1, std::memory_order_release);
     if (graphPasses)
         BL_INFO("CSharp ScreenFx: grafo registrado mod=%s passes=%d alvos=%d",
                 modId.c_str(), graphPasses, graphTargets);
@@ -136,6 +140,38 @@ bool registerCSharpScreenEffects(const std::string& modId,
     return true;
 }
 
+
+bool findCSharpScreenSceneCallback(const std::string& modId,
+                                    CSharpScreenSceneCallback* result) {
+    if (!result) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    for (const auto& entry : g_entries) {
+        if (entry.modId != modId || !entry.isGraph ||
+            entry.graph.sceneClass.empty()) continue;
+        *result = {entry.graph.sceneNamespace, entry.graph.sceneClass,
+                   entry.graph.sceneMethod};
+        return true;
+    }
+    return false;
+}
+
+uint64_t csharpScreenWarmupRevision() {
+    return g_warmupRevision.load(std::memory_order_acquire);
+}
+
+std::vector<TargetSpec> csharpScreenWarmupTargets() {
+    std::vector<TargetSpec> targets;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    for (const auto& entry : g_entries) {
+        if (!entry.isGraph) continue;
+        for (const auto& spec : entry.graph.targets) {
+            TargetSpec copy = spec;
+            copy.name = entry.modId + ":" + spec.name;
+            targets.push_back(std::move(copy));
+        }
+    }
+    return targets;
+}
 
 void clearCSharpScreenEffects() {
     std::lock_guard<std::mutex> guard(g_mutex);
@@ -160,7 +196,30 @@ void pumpCSharpScreenEffects() {
                 auto& frame = byMod[entry.modId];
                 const int offset = static_cast<int>(frame.targets.size()) * 16;
                 EffectFrame next;
-                buildCSharpScreenGraph(entry.graph, scene, &next);
+                ScreenSceneSnapshot managedScene = scene;
+                if (!entry.graph.sceneClass.empty()) {
+                    bl::csharp::queueManagedScreenScene(
+                        entry.modId, scene.raw, scene.sunX, scene.sunY, scene.clock);
+                    bl::csharp::ManagedScreenLightResult result;
+                    if (bl::csharp::readManagedScreenScene(entry.modId, &result)) {
+                        static bool reportedManagedScene = false;
+                        if (!reportedManagedScene) {
+                            reportedManagedScene = true;
+                            BL_INFO("CSharp ScreenFx: iluminacao C# ativa via MonoVM mod=%s, snapshot assíncrono", entry.modId.c_str());
+                        }
+                        managedScene.sunX = std::clamp(
+                            result.sunX + scene.sunX - result.baseSunX, -1.f, 2.f);
+                        managedScene.sunY = std::clamp(
+                            result.sunY + scene.sunY - result.baseSunY, -1.f, 2.f);
+                        managedScene.clock = std::clamp(
+                            result.clock + scene.clock - result.baseClock, 0.f, 1.f);
+                        managedScene.strength = std::clamp(result.strength, 0.f, 3.f);
+                        managedScene.shadowThreshold =
+                            std::clamp(result.shadowThreshold, 0.f, 1.f);
+                        if (!result.enabled) managedScene.sunVisibility = 0.f;
+                    }
+                }
+                buildCSharpScreenGraph(entry.graph, managedScene, &next);
                 for (auto& target : next.targets) target.id += offset;
                 for (auto& draw : next.draws) {
                     if (draw.source > 0) draw.source += offset;

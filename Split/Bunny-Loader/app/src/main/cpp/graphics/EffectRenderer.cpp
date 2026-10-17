@@ -1,4 +1,5 @@
 #include "graphics/EffectRenderer.h"
+#include "graphics/CSharpScreenEffects.h"
 #include "graphics/GlApi.h"
 #include "graphics/GlState.h"
 #include "graphics/GpuTimer.h"
@@ -74,6 +75,7 @@ bool init() {
 bool ensureSurface(Surface& s, GLint w, GLint h, const char* what, bool& fresh) {
     fresh = false;
     if (s.texture && s.w == w && s.h == h) return true;
+    const auto started = std::chrono::steady_clock::now();
     auto& g = gl();
     GlStateGuard saved;
     if (!s.texture) g.GenTextures(1, &s.texture);
@@ -93,7 +95,9 @@ bool ensureSurface(Surface& s, GLint w, GLint h, const char* what, bool& fresh) 
     s.w = w;
     s.h = h;
     fresh = true;
-    BL_DEBUG("efeitos de tela: %s em %dx%d", what, w, h);
+    BL_INFO("ScreenFx FBO: %s %dx%d em %lld us", what, w, h,
+            static_cast<long long>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - started).count()));
     return true;
 }
 
@@ -387,10 +391,44 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
 
     const auto cpuNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - started).count();
+    static int reportedSpikes = 0;
+    if (cpuNs > 15000000 && reportedSpikes < 5) {
+        ++reportedSpikes;
+        BL_WARN("ScreenFx CPU spike: %lld us, passes=%d/%zu, viewport=%dx%d",
+                static_cast<long long>(cpuNs / 1000), drawn, frame.draws.size(),
+                target.viewport[2], target.viewport[3]);
+    }
     std::lock_guard<std::mutex> lock(g_statsMutex);
     g_local.draws += drawn;
     g_local.frames++;
     g_local.renderCpuNs += cpuNs;
+}
+
+bool EffectRenderer::PrewarmOneTarget(int width, int height) {
+    static uint64_t completedRevision = 0;
+    static int completedWidth = 0, completedHeight = 0;
+    const uint64_t revision = csharpScreenWarmupRevision();
+    if (revision == 1 ||
+        (revision == completedRevision && width == completedWidth &&
+         height == completedHeight)) return false;
+    if (width < 320 || height < 200 || width > 8192 || height > 8192 ||
+        !gl().load() || gl().eglGetCurrentContext() == nullptr) return false;
+    if (!init()) return false;
+    bool fresh = false;
+    if (!g_res.copy.texture || g_res.copy.w != width || g_res.copy.h != height) {
+        return ensureSurface(g_res.copy, width, height, "copia da tela", fresh);
+    }
+    for (const auto& spec : csharpScreenWarmupTargets()) {
+        const int w = std::max(1, static_cast<int>(std::lround(width * spec.scale)));
+        const int h = std::max(1, static_cast<int>(std::lround(height * spec.scale)));
+        Surface& surface = g_res.targets[spec.name + "@" + std::to_string(spec.scale)];
+        if (!surface.texture || surface.w != w || surface.h != h)
+            return ensureSurface(surface, w, h, "alvo", fresh);
+    }
+    completedRevision = revision;
+    completedWidth = width;
+    completedHeight = height;
+    return false;
 }
 
 void EffectRenderer::LastViewportSize(int* width, int* height) {

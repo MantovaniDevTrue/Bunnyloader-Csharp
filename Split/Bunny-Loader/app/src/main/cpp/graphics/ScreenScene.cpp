@@ -44,6 +44,10 @@ struct Fields {
     FieldInfo* worldSurface = nullptr;
     FieldInfo* moonPhase = nullptr;
     const MethodInfo* screenPositionGetter = nullptr;
+    const MethodInfo* mainScreenWidthGetter = nullptr;
+    const MethodInfo* mainScreenHeightGetter = nullptr;
+    const MethodInfo* unityScreenWidthGetter = nullptr;
+    const MethodInfo* unityScreenHeightGetter = nullptr;
 };
 
 Fields g_fields;
@@ -93,6 +97,29 @@ ScreenSceneSnapshot sampleScreenScene() {
             }
             g_fields.worldSurface = il2cpp::findField(main, "worldSurface");
             g_fields.moonPhase = il2cpp::findField(main, "moonPhase");
+            const auto* mainWidthGetter = il2cpp::findMethodBySignature(
+                main, il2cpp::parseSignature("Int32 get_screenWidth()"));
+            const auto* mainHeightGetter = il2cpp::findMethodBySignature(
+                main, il2cpp::parseSignature("Int32 get_screenHeight()"));
+            if (mainWidthGetter && !il2cpp::api().method_is_instance(mainWidthGetter) &&
+                il2cpp::methodPointer(mainWidthGetter))
+                g_fields.mainScreenWidthGetter = mainWidthGetter;
+            if (mainHeightGetter && !il2cpp::api().method_is_instance(mainHeightGetter) &&
+                il2cpp::methodPointer(mainHeightGetter))
+                g_fields.mainScreenHeightGetter = mainHeightGetter;
+            Il2CppClass* unityScreen = il2cpp::findClass({"UnityEngine", "Screen", {}});
+            if (unityScreen) {
+                const auto* widthGetter = il2cpp::findMethodBySignature(
+                    unityScreen, il2cpp::parseSignature("Int32 get_width()"));
+                const auto* heightGetter = il2cpp::findMethodBySignature(
+                    unityScreen, il2cpp::parseSignature("Int32 get_height()"));
+                if (widthGetter && !il2cpp::api().method_is_instance(widthGetter) &&
+                    il2cpp::methodPointer(widthGetter))
+                    g_fields.unityScreenWidthGetter = widthGetter;
+                if (heightGetter && !il2cpp::api().method_is_instance(heightGetter) &&
+                    il2cpp::methodPointer(heightGetter))
+                    g_fields.unityScreenHeightGetter = heightGetter;
+            }
             g_fields.clockType = numericType(g_fields.time);
             g_fields.surfaceType = numericType(g_fields.worldSurface);
             g_fields.initialized = true;
@@ -121,6 +148,38 @@ ScreenSceneSnapshot sampleScreenScene() {
         width = renderedWidth;
         height = renderedHeight;
         widthReady = heightReady = true;
+    }
+    if ((!widthReady || !heightReady) &&
+        g_fields.mainScreenWidthGetter && g_fields.mainScreenHeightGetter) {
+        using ScreenDimensionFn = int (*)(const MethodInfo*);
+        const int mainWidth = reinterpret_cast<ScreenDimensionFn>(
+            il2cpp::methodPointer(g_fields.mainScreenWidthGetter))(
+            g_fields.mainScreenWidthGetter);
+        const int mainHeight = reinterpret_cast<ScreenDimensionFn>(
+            il2cpp::methodPointer(g_fields.mainScreenHeightGetter))(
+            g_fields.mainScreenHeightGetter);
+        if (mainWidth > 0 && mainHeight > 0 &&
+            mainWidth < 32768 && mainHeight < 32768) {
+            width = mainWidth;
+            height = mainHeight;
+            widthReady = heightReady = true;
+        }
+    }
+    if ((!widthReady || !heightReady) &&
+        g_fields.unityScreenWidthGetter && g_fields.unityScreenHeightGetter) {
+        using ScreenDimensionFn = int (*)(const MethodInfo*);
+        const int displayWidth = reinterpret_cast<ScreenDimensionFn>(
+            il2cpp::methodPointer(g_fields.unityScreenWidthGetter))(
+            g_fields.unityScreenWidthGetter);
+        const int displayHeight = reinterpret_cast<ScreenDimensionFn>(
+            il2cpp::methodPointer(g_fields.unityScreenHeightGetter))(
+            g_fields.unityScreenHeightGetter);
+        if (displayWidth > 0 && displayHeight > 0 &&
+            displayWidth < 32768 && displayHeight < 32768) {
+            width = displayWidth;
+            height = displayHeight;
+            widthReady = heightReady = true;
+        }
     }
     bool posReady = read(g_fields.screenPosition, pos);
     if (!posReady && g_fields.screenPositionGetter) {
@@ -166,6 +225,15 @@ ScreenSceneSnapshot sampleScreenScene() {
                        (moonPhase == 3 || moonPhase == 5) ? .9f :
                        moonPhase == 4 ? .6f : 1.f;
 
+    s.raw.dayTime = day;
+    s.raw.gameTime = gameTime;
+    s.raw.worldSurface = surface;
+    s.raw.cameraX = pos.x;
+    s.raw.cameraY = pos.y;
+    s.raw.screenWidth = width;
+    s.raw.screenHeight = height;
+    s.raw.playerCenterY = pos.y + h * 0.5f;
+    s.raw.moonPhase = moonPhase;
     s.valid = true;
     s.daytime = day;
     s.sunVisibility = std::clamp((worldSurfacePixels + 800.f - (pos.y + h * 0.5f)) / 256.f, 0.f, 1.f);

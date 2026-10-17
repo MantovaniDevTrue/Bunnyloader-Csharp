@@ -7,6 +7,8 @@ on:
       - codex/csharp-lights-native-graph-v90-29-87
       - codex/csharp-lights-fidelity-v90-29-88
       - codex/csharp-lights-night-hotfix
+      - codex/csharp-lights-sdk-settings-split
+      - codex/csharp-lights-88-3-prewarm-scene-fidelity
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
@@ -30,6 +32,7 @@ jobs:
         run: |
           bash Split/Bunny-Loader/tests/screenfx_native_test.sh
           python3 Split/Bunny-Loader/tests/lights_pc_shader_test.py
+          python3 Split/Bunny-Loader/tests/quickjs_settings_location_test.py
 
   screenfx-managed:
     runs-on: ubuntu-latest

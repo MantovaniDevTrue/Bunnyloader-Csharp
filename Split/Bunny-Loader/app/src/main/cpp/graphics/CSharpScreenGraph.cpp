@@ -120,7 +120,8 @@ bool pngPath(const std::string& path) {
 bool loadCSharpScreenGraph(const std::string& modId, const std::string& className,
                            const std::string& folder, const std::string& relative,
                            EffectLayer layer, float intensity, ScreenGraph* graph,
-                           std::string* error) {
+                           std::string* error,
+                           const std::map<std::string, float>& parameters) {
     if (!graph || modId.empty() || !identifier(className) ||
         !std::isfinite(intensity) || intensity < 0.f || intensity > 4.f)
         return fail(error, "screen graph: invalid identity or intensity");
@@ -140,7 +141,14 @@ bool loadCSharpScreenGraph(const std::string& modId, const std::string& classNam
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty()) continue;
         auto cells = split(line, '|');
-        if (cells.size() == 3 && cells[0] == "TARGET") {
+        if (cells.size() == 4 && cells[0] == "SCENE") {
+            if (!pending.sceneClass.empty() || !identifier(cells[1]) ||
+                !identifier(cells[2]) || !identifier(cells[3]))
+                return fail(error, "screen graph: invalid scene callback");
+            pending.sceneNamespace = cells[1];
+            pending.sceneClass = cells[2];
+            pending.sceneMethod = cells[3];
+        } else if (cells.size() == 3 && cells[0] == "TARGET") {
             float scale = 0.f;
             if (targets.size() >= 8 || !identifier(cells[1]) ||
                 !scalar(cells[2], &scale) || scale < .25f || scale > 1.f ||
@@ -175,9 +183,18 @@ bool loadCSharpScreenGraph(const std::string& modId, const std::string& classNam
             textures.size() > 6)
             return fail(error, "screen graph: invalid uniforms or textures");
         for (const auto& [name, value] : uniforms) {
-            if (!validUniform(value)) return fail(error, "screen graph: invalid uniform value");
             ScreenGraphUniform setting{name, value};
-            scalar(value, &setting.constant);
+            if (value.starts_with("@param.")) {
+                const std::string parameter = value.substr(7);
+                const auto it = parameters.find(parameter);
+                if (it == parameters.end())
+                    return fail(error, "screen graph: missing mod-owned C# uniform");
+                setting.value = "@constant";
+                setting.constant = it->second;
+            } else {
+                if (!validUniform(value)) return fail(error, "screen graph: invalid uniform value");
+                scalar(value, &setting.constant);
+            }
             pass.uniforms.push_back(std::move(setting));
         }
         for (const auto& [name,value] : textures) {

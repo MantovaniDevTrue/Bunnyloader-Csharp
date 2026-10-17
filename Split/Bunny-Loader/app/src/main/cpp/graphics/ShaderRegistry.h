@@ -34,6 +34,7 @@ public:
 
     // Thread de render: o programa pronto (compila na primeira vez), ou nullptr.
     static CompiledShader* Use(int id);
+    static bool PrewarmOne();
     static GLint Uniform(CompiledShader& shader, const std::string& name);
 };
 

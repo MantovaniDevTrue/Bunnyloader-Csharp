@@ -1,7 +1,7 @@
 name: Check CSharp combat batch
 on:
   push:
-    branches: [codex/lot-a-complete-v90-29, codex/combat-batch-v90-25, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix]
+    branches: [codex/lot-a-complete-v90-29, codex/combat-batch-v90-25, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix, codex/csharp-lights-sdk-settings-split]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/**'
