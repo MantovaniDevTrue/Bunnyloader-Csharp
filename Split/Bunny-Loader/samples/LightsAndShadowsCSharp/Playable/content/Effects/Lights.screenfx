@@ -1,3 +1,4 @@
+SCENE|LightsAndShadowsCSharp|LightingCalculator|ComputeSceneWire
 TARGET|shadowMask|0.333333
 TARGET|shadow|0.333333
 TARGET|bloomA|0.333333
