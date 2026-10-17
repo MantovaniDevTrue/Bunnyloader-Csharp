@@ -96,6 +96,7 @@ object BootLog {
         Thread {
             runCatching {
                 val pid = android.os.Process.myPid()
+                val session = out.useLines { it.firstOrNull().orEmpty() }
                 val p = Runtime.getRuntime().exec(
                     arrayOf("logcat", "-v", "brief", "--pid=$pid"),
                 )
@@ -111,8 +112,13 @@ object BootLog {
                         line.contains("Error") || line.contains("error") ||
                         line.contains("JNI") || line.contains("dlopen") ||
                         line.contains("art")
-                    // Limite de tamanho: interessa a causa, não o histórico todo.
-                    if (keep && out.length() < 60_000) out.appendText(line + "\n")
+                    if (keep) {
+                        if (out.length() >= 120_000L) {
+                            val tail = out.readText().takeLast(64_000).substringAfter('\n', "")
+                            out.writeText(session + "\nLOGCAT_TAIL_ROLLING\n" + tail + "\n")
+                        }
+                        out.appendText(line + "\n")
+                    }
                 }
             }
         }.apply { isDaemon = true }.start()
@@ -376,7 +382,8 @@ object BootLog {
      * por que o processo abortou sem ter adb no aparelho.
      */
     private fun tombstone(info: ApplicationExitInfo): String {
-        if (info.reason != ApplicationExitInfo.REASON_CRASH_NATIVE) return ""
+        if (info.reason != ApplicationExitInfo.REASON_CRASH_NATIVE &&
+            !(info.reason == ApplicationExitInfo.REASON_SIGNALED && info.status == 6)) return ""
         return runCatching {
             val text = info.traceInputStream?.bufferedReader()?.use { it.readText() }
                 ?: return "\n   (sem tombstone)"
