@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -461,6 +462,31 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 effect.intensity = parsed;
+                continue;
+            }
+            if (key.starts_with("Uniform_")) {
+                const std::string parameter = key.substr(8);
+                if (parameter.empty() || parameter.size() > 64 || effect.parameters.size() >= 24 ||
+                    !std::isalpha(static_cast<unsigned char>(parameter[0]))) {
+                    status->error = def.name + ": uniforme C# invalido";
+                    return false;
+                }
+                for (char ch : parameter) {
+                    if (!std::isalnum(static_cast<unsigned char>(ch)) && ch != '_') {
+                        status->error = def.name + ": nome de uniforme C# invalido";
+                        return false;
+                    }
+                }
+                char* end = nullptr;
+                errno = 0;
+                float parsed = std::strtof(value.c_str(), &end);
+                if (end && (*end == 'f' || *end == 'F')) ++end;
+                if (errno || !end || *end || !std::isfinite(parsed) ||
+                    parsed < -100.f || parsed > 100.f ||
+                    !effect.parameters.emplace(parameter, parsed).second) {
+                    status->error = def.name + ": uniforme C# requer valor literal unico entre -100 e 100";
+                    return false;
+                }
                 continue;
             }
             status->error = def.name + ": propriedade de BunnyScreenEffect nao suportada: " + key;
