@@ -32,7 +32,7 @@ object LaunchSourcePrecompile {
                     val assembly = File(app.filesDir, "bunny-csharp/compiled/$uid.dll")
                     val assemblyCache = File(assembly.absolutePath + ".sha256")
                     if (assembly.isFile && assembly.length() > 0 && assemblyCache.isFile &&
-                        assemblyCache.length() in 1..256 &&
+                        assemblyCache.length() in 1L..256L &&
                         content.walkTopDown().filter { it.isFile && it.extension == "cs" }
                             .none { it.lastModified() > assembly.lastModified() }) {
                         Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileSkipExisting Mod=$uid")
