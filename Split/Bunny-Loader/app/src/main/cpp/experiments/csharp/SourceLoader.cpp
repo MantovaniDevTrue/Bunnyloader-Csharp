@@ -433,6 +433,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                 effect.shaderFile = value;
                 continue;
             }
+            if (key == "PipelineFile") {
+                effect.pipelineFile = value;
+                continue;
+            }
             if (key == "Layer" || key == "Order") {
                 char* end = nullptr;
                 errno = 0;
@@ -462,8 +466,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->error = def.name + ": propriedade de BunnyScreenEffect nao suportada: " + key;
             return false;
         }
-        if (effect.shaderFile.empty()) {
-            status->error = def.name + ": ShaderFile obrigatorio";
+        if (effect.shaderFile.empty() == effect.pipelineFile.empty()) {
+            status->error = def.name + ": use ShaderFile ou PipelineFile, nunca ambos";
             return false;
         }
         screenEffects.push_back(std::move(effect));

@@ -29,7 +29,7 @@ void submitEffects(EffectFrame&& frame);
 
 // Game thread: one independent producer per C# mod, consumed on the next world frame.
 // The JS submit path remains unchanged. IDs are remapped during composition.
-bool submitModEffects(const std::string& modId, EffectFrame&& frame);
+bool submitModEffects(const std::string& modId, EffectFrame&& frame, bool continuous = false);
 
 // Thread de render (GlHooks.cpp): o quadro do marcador (depois do mundo) e o
 // do fim do quadro (por cima da interface). false se nao ha.

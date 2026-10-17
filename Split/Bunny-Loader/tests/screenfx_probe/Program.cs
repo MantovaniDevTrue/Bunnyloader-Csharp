@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using BunnyLoader.SourceCompiler;
 using ScreenFxProbeCSharp;
+using LightsAndShadowsCSharp;
 
 var first = new ProbeTint();
 first.SetDefaults();
@@ -13,18 +14,23 @@ second.SetDefaults();
 if (second.ShaderFile != "Effects/ProbeVignette.frag" || second.Order != 10)
     throw new InvalidOperationException("ProbeVignette settings mismatch");
 
+var lights = new LightsAndShadows();
+lights.SetDefaults();
+if (lights.PipelineFile != "Effects/Lights.screenfx" || lights.ShaderFile.Length != 0)
+    throw new InvalidOperationException("Lights And Shadows graph declaration mismatch");
+
 string root = Path.Combine(Path.GetTempPath(), "bunny_screenfx_verify_" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);
 try
 {
     string diagnostics = Path.Combine(root, "probe.txt");
     int result = CompiledAssemblyProbe.Verify(typeof(ProbeTint).Assembly.Location, diagnostics);
-    if (result != 2)
-        throw new InvalidOperationException("Expected two managed screen effect classes: actual=" + result +
+    if (result != 3)
+        throw new InvalidOperationException("Expected three managed screen effect classes: actual=" + result +
             " diagnostics=" + File.ReadAllText(diagnostics));
-    if (!File.ReadAllText(diagnostics).Contains("screenEffects=2"))
+    if (!File.ReadAllText(diagnostics).Contains("screenEffects=3"))
         throw new InvalidOperationException("Managed verification omitted the screen effects");
-    Console.WriteLine("SCREENFX_MANAGED_PROBE_OK count=2");
+    Console.WriteLine("SCREENFX_MANAGED_PROBE_OK count=3");
 }
 finally
 {

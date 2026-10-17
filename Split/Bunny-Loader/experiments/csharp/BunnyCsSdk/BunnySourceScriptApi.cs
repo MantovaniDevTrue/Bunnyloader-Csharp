@@ -290,6 +290,7 @@ public abstract class BunnyScreenEffect
 {
     public string DisplayName { get; set; } = "";
     public string ShaderFile { get; set; } = "";
+    public string PipelineFile { get; set; } = "";
     public int Layer { get; set; } = 0;
     public int Order { get; set; } = 0;
     public float Intensity { get; set; } = 1f;

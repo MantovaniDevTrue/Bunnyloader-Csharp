@@ -1,0 +1,25 @@
+{
+  "uid": "773249cb-219c-4f14-a49b-6991d575c777",
+  "id": "lightsandshadowscsharp",
+  "name": "Lights And Shadows — CSharp Native",
+  "version": "0.2.0",
+  "authors": [
+    {
+      "name": "yiyang233 / AWEoghAwo",
+      "role": "Original mod and visual assets"
+    },
+    {
+      "name": "Mantovani",
+      "role": "Bunny C# port"
+    }
+  ],
+  "category": "Visual",
+  "summary": "Native C# screen graph: sunlight, blue-channel shadow rays, day/night gradients and low-resolution bloom.",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

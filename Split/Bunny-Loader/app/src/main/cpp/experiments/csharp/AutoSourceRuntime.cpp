@@ -1241,6 +1241,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
+        graphics::clearCSharpScreenEffects();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);

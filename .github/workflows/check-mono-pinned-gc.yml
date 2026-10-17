@@ -1,7 +1,7 @@
 name: Check Mono pinned worker GC transitions
 on:
   push:
-    branches: [codex/lot-a-complete-v90-29, codex/csharp-screenfx-v90-29-86]
+    branches: [codex/lot-a-complete-v90-29, codex/csharp-screenfx-v90-29-86, codex/csharp-lights-native-graph-v90-29-87]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.*'

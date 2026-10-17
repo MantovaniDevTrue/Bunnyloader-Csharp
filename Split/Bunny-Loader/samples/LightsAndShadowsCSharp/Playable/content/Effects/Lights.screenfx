@@ -1,0 +1,9 @@
+TARGET|shadow|0.333333
+TARGET|bloomA|0.333333
+TARGET|bloomB|0.333333
+PASS|Effects/ShadowRays.frag|screen|shadow|uSun=@sun,uDay=@day,uShadowThreshold=@threshold,uShadowStrength=1,uSunStrength=@strength,uQuality=3|-
+PASS|Effects/LightCompose.frag|screen|screen|uSun=@sun,uClock=@clock,uLightStrength=@strength,uSunEnabled=@enabled|uRays=shadow,uGradient=Assets/ColorTex.png?Assets/ColorTex2.png
+PASS|Effects/BloomThreshold.frag|screen|bloomA|uThreshold=0.70|-
+PASS|Effects/KawaseBlur.frag|bloomA|bloomB|uDistance=1,uBlurGain=1.02|-
+PASS|Effects/KawaseBlur.frag|bloomB|bloomA|uDistance=2,uBlurGain=1.02|-
+PASS|Effects/BloomComposite.frag|screen|screen|uBloomStrength=0.55,uBloomPower=4.5|uBloom=bloomA
