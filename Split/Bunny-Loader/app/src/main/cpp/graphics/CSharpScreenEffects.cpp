@@ -79,6 +79,12 @@ bool registerCSharpScreenEffects(const std::string& modId,
     if (error) error->clear();
     if (modId.empty() || modId.size() > 128 || effects.empty() || effects.size() > 16)
         return fail(error, "screen effects: invalid count or mod identity");
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        for (const auto& entry : g_entries)
+            if (entry.modId == modId)
+                return fail(error, "screen effects: mod already registered");
+    }
     std::vector<Entry> additions;
     for (const auto& effect : effects) {
         if (effect.className.empty() || effect.className.size() > 100 ||
