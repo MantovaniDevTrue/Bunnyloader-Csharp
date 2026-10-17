@@ -125,7 +125,16 @@ bool dispatchMonoWorker(std::string& error, const std::string& sourceRoot,
                         contextClass, "startService",
                         "(Landroid/content/Intent;)Landroid/content/ComponentName;");
                     if (!checkException(env, error, "Context.startService indisponivel") && start) {
-                        jobject component = env->CallObjectMethod(g_context, start, intent);
+                        jobject component = nullptr;
+                        if (!sourceRoot.empty()) {
+                            jmethodID leasedStart = env->GetStaticMethodID(g_serviceClass,
+                                "startCompilerRequest",
+                                "(Landroid/content/Context;Landroid/content/Intent;)Landroid/content/ComponentName;");
+                            if (!checkException(env, error, "Compiler process lease API indisponivel") && leasedStart)
+                                component = env->CallStaticObjectMethod(g_serviceClass, leasedStart, g_context, intent);
+                        } else {
+                            component = env->CallObjectMethod(g_context, start, intent);
+                        }
                         if (!checkException(env, error, "startService lancou excecao") && component) {
                             success = true;
                             env->DeleteLocalRef(component);

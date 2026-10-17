@@ -59,6 +59,20 @@ prioridade de áudio/display nem compilação paralela adicional.
 controlador real para os dois ordenamentos, restauração, mod seguinte e erro de
 prioridade recuperável. A repercussão em latência/FPS exige medição Android.
 
+## Importância do processo compilador
+
+Pedidos oficiais usam um vínculo transitório `BIND_IMPORTANT` do cliente do jogo
+para o serviço isolado. Isso permite ao Android propagar a importância do cliente
+ativo ao compilador, além do nice da thread. Não usa prioridade de áudio/display
+nem serviço foreground com notificação permanente. O vínculo termina quando o
+status do próprio pedido chega a finished/failed, se o serviço desconectar ou
+após 180 segundos. Morte do cliente também encerra o binding pelo Android.
+
+Cada pedido tem nonce, propagado ao status. Um resultado antigo do mesmo mod não
+libera um vínculo novo. O controle dessa comparação é testado na JVM; binding,
+cpuset, proteção de memória e efeito em FPS/tempo precisam de teste Android.
+Sem assumir que a existência de um binding comprova cinco segundos.
+
 ## Espera de assets após o conteúdo essencial
 
 A .83 impunha seis segundos antes de usar o caminho já existente para assets
@@ -97,3 +111,14 @@ preparo. Conferir bancada/receitas, equipamento, combate, H1–H5 e reentrada.
 **Meta: primeira compilação/preparo em até 5.000 ms no aparelho de referência.
 Não considerar atingida até medir no Xiaomi.** Não trocar essa validação por
 apenas `PrefetchReused=1`, APK compilada ou teste de referência no host.
+
+## Medição preliminar no host (não Android)
+
+Run 39026676705, antes do ajuste de uma expectativa antiga do smoke da .44:
+ambas as modalidades compilaram 64 fontes, executaram 43 tipos e produziram
+protocolos iguais. Runtime: 1.429 ms, 5.149.240 bytes de referências, 2.832 tipos,
+36.461 métodos. Compacto: 1.278 ms, 1.260.336 bytes, 1.148 tipos, 13.958 métodos.
+`emitMs` foi 1.120/1.107; `fingerprintMs`, 170/41. O ganho no host concentra-se
+na leitura/hash e metadados, não comprova resolver sozinho o JIT frio no Mono.
+A promoção e o binding Android foram acrescentados para tratar a competição de
+CPU/importância enquanto o jogo espera; ainda exigem evidência no dispositivo.

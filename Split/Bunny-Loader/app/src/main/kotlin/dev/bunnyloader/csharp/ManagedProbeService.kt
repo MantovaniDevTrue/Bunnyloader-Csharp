@@ -95,6 +95,9 @@ private object CSharpPrefetchReceipt {
 
 class ManagedProbeService : Service() {
     companion object {
+        @JvmStatic
+        fun startCompilerRequest(context: android.content.Context, intent: Intent): android.content.ComponentName? =
+            CompilerProcessLease.start(context, intent)
 
         @JvmStatic
         fun historicalWorkerTrace(context: android.content.Context, pid: Int, minimumTimestampMs: Long): String {
@@ -177,7 +180,8 @@ class ManagedProbeService : Service() {
     }
 
 
-    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String, val precompile: Boolean)
+    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String,
+                                   val precompile: Boolean, val requestId: String)
     private class ResidentRuntime {
         var assembly: String? = null
         var cryptoReady = false
@@ -209,12 +213,13 @@ class ManagedProbeService : Service() {
         outputPath: String, diagnosticPath: String, checkpointPath: String
     ): String
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder = android.os.Binder()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val sourceRoot = intent?.getStringExtra("sourceRoot")
         val modId = intent?.getStringExtra("sourceModId") ?: ""
         val precompile = intent?.getBooleanExtra("sourcePrecompile", false) == true
+        val requestId = intent?.getStringExtra("sourceRequestId").orEmpty().take(64)
         if (sourceRoot != null &&
             (modId.isBlank() || modId.length > 128 ||
              !modId.matches(Regex("[0-9a-fA-F-]+")))) {
@@ -222,7 +227,7 @@ class ManagedProbeService : Service() {
                 if (!precompile) File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                     parentFile?.mkdirs()
                     writeText("state=failed\nmodId=" + modId +
-                        "\nerror=InvalidWorkerModIdentity\n")
+                        "\nrequestId=" + requestId + "\nerror=InvalidWorkerModIdentity\n")
                 }
             }
             return START_NOT_STICKY
@@ -239,7 +244,7 @@ class ManagedProbeService : Service() {
                 pending.filter { it.precompile && it.modId == modId }
                     .forEach { pending.remove(it) }
             }
-            val work = CompileWork(startId, sourceRoot, modId, precompile)
+            val work = CompileWork(startId, sourceRoot, modId, precompile, requestId)
             var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
             if (!accepted && !precompile) {
                 val displaced = pending.peekLast()
@@ -251,7 +256,7 @@ class ManagedProbeService : Service() {
                     File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                         parentFile?.mkdirs()
                         writeText("state=failed\nmodId=" + modId +
-                            "\nerror=CompilerQueueFull\n")
+                            "\nrequestId=" + requestId + "\nerror=CompilerQueueFull\n")
                     }
                 }
                 else Log.w("BunnyCSharp", "Launch precompile skipped: queue full, mod=$modId")
@@ -347,13 +352,13 @@ class ManagedProbeService : Service() {
                     abortWatch.delete()
                 }
                 compileStatus.writeText("state=preparing-framework\nmodId=" +
-                    job.modId + "\npid=" + Process.myPid() + "\n")
+                    job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 startCompileHealthMonitor(health, currentHealth)
             }
             System.loadLibrary("bunnymonoprobe")
             if (compileRoot != null && !resident.cryptoReady) {
                 compileStatus.writeText("state=preparing-crypto-jni\nmodId=" +
-                    job.modId + "\npid=" + Process.myPid() + "\n")
+                    job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
                 System.loadLibrary("System.Security.Cryptography.Native.Android")
                 resident.cryptoReady = true
@@ -428,7 +433,7 @@ class ManagedProbeService : Service() {
             Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=RoslynProfile PrefetchReused=${if (canReuse) 1 else 0} Detail=$roslynProfile")
             compileStatus.writeText(
                 "state=" + (if (passed) "finished" else "failed") + "\n" +
-                "modId=" + job.modId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
+                "modId=" + job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
                 "assemblyReady=" + (if (passed && output.isFile) 1 else 0) + "\n" +
                 "frameworkCache=" + frameworkInstallState + "\n" +
                 "frameworkSetupMs=" + frameworkSetupMs + "\n" +
@@ -446,7 +451,7 @@ class ManagedProbeService : Service() {
             runCatching {
                 val target = if (compileRoot == null) status else compileStatus
                 target.writeText("state=failed\nmodId=" + job.modId +
-                    "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
+                    "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
             }
             Log.e("BunnyCSharp", "Mono worker failed", error)
         } finally {
