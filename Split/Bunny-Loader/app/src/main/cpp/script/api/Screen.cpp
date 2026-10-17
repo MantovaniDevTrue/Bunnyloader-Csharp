@@ -245,6 +245,8 @@ JSValue screen_stats(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     i64("shadowChecks", s.shadowChecks);
     i64("shadowMismatches", s.shadowMismatches);
     i64("boxPixels", s.boxPixels);
+    i64("screenCopyCalls", s.screenCopyCalls);
+    i64("screenCopyPixels", s.screenCopyPixels);
     i64("drawFbo", s.drawFbo);
     i64("samples", s.samples);
     i64("blitError", s.blitError);
