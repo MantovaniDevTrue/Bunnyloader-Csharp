@@ -50,13 +50,17 @@ object LaunchSourcePrecompile {
                         candidate.isFile && candidate.name.startsWith("$uid-") &&
                             candidate.name.endsWith(".cache")
                     }.orEmpty().isNotEmpty()
-                if (frameworkUnchanged && nativeCachePresent &&
-                    assembly.isFile && assembly.length() > 0 && assemblyCache.isFile &&
-                    assemblyCache.length() in 1L..256L &&
+                val receipt = File(assembly.parentFile, "$uid.launch-ready")
+                val prefetchPresent = receipt.isFile && receipt.length() in 64L..512L &&
+                    receipt.lastModified() >= assembly.lastModified()
+                val compiledCurrent = assembly.isFile && assembly.length() > 0 &&
+                    assemblyCache.isFile && assemblyCache.length() in 1L..256L &&
                     content.walkTopDown().filter { it.isFile && it.extension == "cs" }
-                        .none { it.lastModified() > assembly.lastModified() }) {
+                        .none { it.lastModified() > assembly.lastModified() }
+                if (frameworkUnchanged && compiledCurrent &&
+                    (nativeCachePresent || prefetchPresent)) {
                     skipped++
-                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=${if (auto) "LauncherAutoSkipCached" else "LaunchPrecompileSkipExisting"} Mod=$uid")
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=${if (auto) "LauncherAutoSkipCached" else "LaunchPrecompileSkipExisting"} Mod=$uid PrefetchPresent=${if (prefetchPresent) 1 else 0}")
                     continue
                 }
                 val intent = Intent(app, ManagedProbeService::class.java)
