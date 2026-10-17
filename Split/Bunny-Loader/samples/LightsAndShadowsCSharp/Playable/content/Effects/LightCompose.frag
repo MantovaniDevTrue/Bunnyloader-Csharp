@@ -17,7 +17,11 @@ void main() {
     vec3 sunlight = mix(moonlight, daylight, clamp(uDayBlend, 0.0, 1.0));
     sunlight *= reach * uLightStrength * uSunPower * uSunEnabled;
     vec3 rays = texture(uRays, vUV).rgb;
-    float moonAmbient = (1.0 - clamp(uDayBlend, 0.0, 1.0)) * 0.22;
-    vec3 lit = max(sunlight - rays, sunlight * moonAmbient);
+    float day = clamp(uDayBlend, 0.0, 1.0);
+    float moonShadow = clamp(dot(rays, vec3(0.3333333)) * 0.85, 0.0, 0.42);
+    vec3 moonFill = moonlight * (0.055 * uLightStrength * uSunPower * uSunEnabled) * (0.65 + 0.35 * reach);
+    vec3 moonLit = sunlight * (1.0 - moonShadow) + moonFill;
+    vec3 dayLit = max(sunlight - rays, vec3(0.0));
+    vec3 lit = mix(moonLit, dayLit, smoothstep(0.0, 0.18, day));
     fragColor = vec4(clamp(scene + lit, 0.0, 1.0), 1.0);
 }
