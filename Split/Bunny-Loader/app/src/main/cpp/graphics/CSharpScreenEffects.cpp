@@ -1,4 +1,5 @@
 #include "graphics/CSharpScreenEffects.h"
+#include "core/Log.h"
 #include "graphics/CSharpScreenGraph.h"
 #include "graphics/EffectTypes.h"
 #include "graphics/RenderHook.h"
@@ -118,7 +119,16 @@ bool registerCSharpScreenEffects(const std::string& modId,
     for (const auto& entry : g_entries)
         if (entry.modId == modId)
             return fail(error, "screen effects: mod already registered");
+    int graphPasses = 0, graphTargets = 0;
+    for (const auto& entry : additions) {
+        if (!entry.isGraph) continue;
+        graphPasses += static_cast<int>(entry.graph.passes.size());
+        graphTargets += static_cast<int>(entry.graph.targets.size());
+    }
     for (auto& entry : additions) g_entries.push_back(std::move(entry));
+    if (graphPasses)
+        BL_INFO("CSharp ScreenFx: grafo registrado mod=%s passes=%d alvos=%d",
+                modId.c_str(), graphPasses, graphTargets);
     std::stable_sort(g_entries.begin(), g_entries.end(), [](const Entry& a, const Entry& b) {
         if (a.modId != b.modId) return a.modId < b.modId;
         return a.order < b.order;
@@ -158,8 +168,17 @@ void pumpCSharpScreenEffects() {
             byMod[entry.modId].draws.push_back(std::move(draw));
         }
     }
-    for (auto& [id, frame] : byMod)
-        submitModEffects(id, std::move(frame));
+    static bool loggedFirstGraphFrame = false;
+    for (auto& [id, frame] : byMod) {
+        if (!loggedFirstGraphFrame && !frame.targets.empty()) {
+            BL_INFO("CSharp ScreenFx: primeira entrega mod=%s passes=%zu alvos=%zu cena=%d dia=%d luz=%.2f",
+                    id.c_str(), frame.draws.size(), frame.targets.size(),
+                    scene.valid, scene.daytime, scene.strength);
+            loggedFirstGraphFrame = true;
+        }
+        if (!submitModEffects(id, std::move(frame)))
+            BL_WARN("CSharp ScreenFx: entrega recusada mod=%s", id.c_str());
+    }
 }
 
 }
