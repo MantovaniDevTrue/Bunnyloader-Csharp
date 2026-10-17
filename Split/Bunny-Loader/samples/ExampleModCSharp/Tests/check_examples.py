@@ -96,7 +96,7 @@ native_probe = (hook_dir / "ExampleNativeAccess.cs").read_text(encoding="utf-8")
 pair_probe = (hook_dir / "ExampleIntPairHook.cs").read_text(encoding="utf-8")
 assert 'hooks.HookVoid("Terraria.Player", "ResetEffects"' in native_probe
 assert 'ReadAndInvoke(' in native_probe
-assert 'hooks.HookInt32Pair("Terraria.Utilities.UnifiedRandom", "Next"' in pair_probe
+assert 'scope.HookInt32Pair("Terraria.Utilities.UnifiedRandom", "Next"' in pair_probe
 assert "original.Invoke()" in pair_probe
 assert "public static string Start()" in pair_probe and "public static string Stop()" in pair_probe
 assert "public static bool OverrideSmallRange" in pair_probe
