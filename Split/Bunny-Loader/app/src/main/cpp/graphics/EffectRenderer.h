@@ -28,6 +28,7 @@ public:
     // `state`: o estado da Unity naquele ponto (GlShadow.h), devolvido no fim.
     static void Execute(const EffectFrame& frame, const DrawTarget& target, const GlShadow& state);
     static void FillStats(RenderStats& stats);
+    static void LastViewportSize(int* width, int* height);
 };
 
 } // namespace bl::graphics
