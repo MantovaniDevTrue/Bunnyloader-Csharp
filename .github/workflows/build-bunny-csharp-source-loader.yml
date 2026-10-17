@@ -1407,8 +1407,11 @@ jobs:
           core=(base/'cpp/core/Config.h').read_text()
           engine=(base/'cpp/script/bridge/ScriptEngine.cpp').read_text()
           assert 'disableQuickJsForCSharp' in pref
-          assert 'Desativar QuickJS (somente C#)' in packages
+          assert 'SectionTitle(tr("Motores de mods"))' in packages
+          assert 'CSharpRuntimeSettings(shell, prefs)' in packages
+          assert 'prefs.disableQuickJsForCSharp = onlyCSharp' in packages
           assert 'runtimes.mixed' in packages and 'showMixedRuntimeWarning' in launcher
+          assert 'Aviso: usar mods C# e JavaScript juntos' in packages
           assert 'requested && csharpCount > 0 && javaScriptCount == 0' in mode
           assert 'disableQuickJs = disableQuickJs' in game
           assert '@JvmField val disableQuickJs: Boolean = false' in bridge
@@ -1416,7 +1419,7 @@ jobs:
           assert 'bool disableQuickJs = false;' in core
           assert 'if (bl::config().disableQuickJs)' in engine
           assert 'if (!javaScriptEnabled)' in engine
-          print('CSHARP_QUICKJS_PACKAGE_ISOLATION=PASS')
+          print('CSHARP_QUICKJS_SETTINGS_ISOLATION=PASS')
           PY
       - name: Verify early managed projectile registration and six-tick cadence
         shell: bash
