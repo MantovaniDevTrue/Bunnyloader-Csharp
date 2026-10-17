@@ -32,11 +32,11 @@ private object CSharpPrefetchReceipt {
     }
 
     fun sourceStamp(root: File, dir: File, modId: String): String? = runCatching {
-        if (!root.isDirectory || root.canonicalFile.name != modId) return null
+        if (!root.isDirectory || root.canonicalFile.name != modId) return@runCatching null
         val content = File(root, "content").canonicalFile
-        if (!content.isDirectory) return null
+        if (!content.isDirectory) return@runCatching null
         val frameworkMarker = File(dir, "framework-version.txt")
-        if (!frameworkMarker.isFile) return null
+        if (!frameworkMarker.isFile) return@runCatching null
         val digest = MessageDigest.getInstance("SHA-256")
         fun field(text: String) {
             val bytes = text.toByteArray(Charsets.UTF_8)
@@ -51,14 +51,14 @@ private object CSharpPrefetchReceipt {
         field(modId)
         val sources = content.walkTopDown().filter { it.isFile && it.extension == "cs" }
             .sortedBy { it.relativeTo(content).invariantSeparatorsPath }.toList()
-        if (sources.isEmpty() || sources.size > 512) return null
+        if (sources.isEmpty() || sources.size > 512) return@runCatching null
         var bytesTotal = 0L
         for (file in sources) {
             val canonical = file.canonicalFile
             if (!canonical.path.startsWith(content.path + File.separator) ||
-                file.length() !in 1L..262144L) return null
+                file.length() !in 1L..262144L) return@runCatching null
             bytesTotal += file.length()
-            if (bytesTotal > 8L * 1024 * 1024) return null
+            if (bytesTotal > 8L * 1024 * 1024) return@runCatching null
             field(file.relativeTo(content).invariantSeparatorsPath)
             field(hash(file))
         }
@@ -83,12 +83,12 @@ private object CSharpPrefetchReceipt {
 
     fun ready(receipt: File, root: File, dir: File, id: String, assembly: File): Boolean =
         runCatching {
-            if (!receipt.isFile || !assembly.isFile) return false
+            if (!receipt.isFile || !assembly.isFile) return@runCatching false
             val rows = receipt.readLines()
             if (rows.size != 4 || rows[0] != "BUNNY_PREFETCH_RECEIPT_V1" ||
                 rows[1] != sourceStamp(root, dir, id) ||
                 rows[2] != hash(assembly) ||
-                rows[3] != hash(File(assembly.absolutePath + ".sha256"))) return false
+                rows[3] != hash(File(assembly.absolutePath + ".sha256"))) return@runCatching false
             true
         }.getOrDefault(false)
 }
