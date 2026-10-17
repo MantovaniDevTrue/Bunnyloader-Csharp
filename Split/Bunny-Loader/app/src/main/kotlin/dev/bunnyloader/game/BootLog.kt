@@ -132,6 +132,7 @@ object BootLog {
             "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
             "\n--- hooks universais C# (registro real MonoVM) ---\n" + lastUniversalHookRegistration(ctx) +
+            "\n--- metodos IL2CPP candidatos C# (leitura leve) ---\n" + lastUniversalHookCandidates(ctx) +
             "\n--- último carregamento C# registrado (pode ser anterior) ---\n" + lastCSharpStartup(ctx) +
             "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
             "\n--- pré-compilação ao tocar Jogar ---\n" + lastLaunchPrecompile(ctx) +
@@ -141,6 +142,21 @@ object BootLog {
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    private fun lastUniversalHookCandidates(ctx: Context): String = runCatching {
+        val base = ctx.getExternalFilesDir(null)?.parentFile
+            ?: return@runCatching "(sem pasta de logs)"
+        val latest = File(base, "logs")
+            .listFiles { entry -> entry.name.startsWith("bunny_") && entry.name.endsWith(".txt") }
+            .orEmpty().maxByOrNull { it.name }
+            ?: return@runCatching "(sem arquivo da sessao)"
+        val lines = latest.useLines { stream ->
+            stream.filter { it.contains("[CSharp][HookScan]") }
+                .take(72).toList()
+        }
+        "arquivo=${latest.name}\n" +
+            lines.joinToString("\n").ifBlank { "(scan ainda nao realizado nesta sessao)" }
+    }.getOrElse { "(falha no scan: ${it.javaClass.simpleName})" }
 
     private fun lastUniversalHookRegistration(ctx: Context): String = runCatching {
         val file = File(ctx.filesDir, "bunny-csharp/universal-hooks-status.txt")
