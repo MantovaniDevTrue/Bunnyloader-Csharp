@@ -1284,7 +1284,7 @@ jobs:
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
           python3 - <<'PY'
           from pathlib import Path
-          root = Path("Split/Bunny-Loader")
+          root = Path(".")
           sdk = (root / "experiments/csharp/BunnyCsSdk/BunnyUniversalHooks.cs").read_text()
           hook = (root / "app/src/main/cpp/experiments/csharp/UniversalHooks.cpp").read_text()
           worker = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
