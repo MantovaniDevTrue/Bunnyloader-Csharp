@@ -24,6 +24,37 @@ if (lights.Uniform_DayShadowThreshold != .98f ||
     lights.Uniform_BloomStrength != .55f)
     throw new InvalidOperationException("Managed Lights C# scene settings mismatch");
 
+var settings = new LightingSettings();
+var frame = new LightingFrame
+{
+    DayTime = true, GameTime = 13500, WorldSurface = 250,
+    ScreenWidth = 2400, ScreenHeight = 1080,
+    PlayerCenterY = 1800, MoonPhase = 0,
+    SkyRed = 120, SkyGreen = 140, SkyBlue = 170
+};
+var day = LightingCalculator.Compute(in frame, settings);
+if (!day.DayTime || !day.SunEnabled || !float.IsFinite(day.SunX) ||
+    !float.IsFinite(day.SunY) || day.SunOrMoonIntensity <= 0f)
+    throw new InvalidOperationException("Managed PC lighting: daylight calculation failed");
+frame.InvertedGravity = true;
+var inverted = LightingCalculator.Compute(in frame, settings);
+if (Math.Abs(day.SunY + inverted.SunY - 1f) > .0001f)
+    throw new InvalidOperationException("Managed PC lighting: gravity inversion mismatch");
+frame.DayTime = false;
+frame.InvertedGravity = false;
+frame.GameTime = 8000;
+frame.MoonPhase = 4;
+var night = LightingCalculator.Compute(in frame, settings);
+if (night.DayTime || night.SunOrMoonIntensity <= 0 ||
+    night.ShadowThreshold != .02f)
+    throw new InvalidOperationException("Managed PC lighting: moon phase mismatch");
+frame.DayTime = true;
+frame.DesertBackground = 248;
+var desert = LightingCalculator.Compute(in frame, settings);
+if (desert.ShadowThreshold != 1f)
+    throw new InvalidOperationException("Managed PC lighting: desert threshold mismatch");
+Console.WriteLine("LIGHTS_MANAGED_PC_CALCULATOR=PASS day/night gravity desert");
+
 string root = Path.Combine(Path.GetTempPath(), "bunny_screenfx_verify_" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);
 try
