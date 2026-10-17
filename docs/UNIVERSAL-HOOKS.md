@@ -111,3 +111,21 @@ A classe real candidata `Terraria.Utilities.UnifiedRandom.Next(int,int)` foi ide
 `ExampleModCSharp/Playable/content/Common/Hooks/ExampleIntPairHook.cs` demonstra `HookInt32Pair`, `original.Invoke()`, retorno vanilla, substituicao opcional restrita e telemetria. O metodo e ativado manualmente por `Start()`, avaliado por `Status()` e desativado por `Stop()`; nunca instalar continuamente um hook sobre RNG, pois isso pode penalizar FPS e alteracao do valor muda mecanica de jogo. `OverrideSmallRange` deve permanecer falso fora de mundo descartavel. O probe nativo anterior esta consolidado no ExampleMod e usa um unico hook `ResetEffects`, com amostragem a cada 64 chamadas.
 
 A APK usa versionCode 242 / versionName 0.1.10.16.90.29.82-csharp-unified-example, preservando o appId `com.bunnyloader.csharptest`. A assinatura V3 privada deve coincidir com a instalada para permitir atualizacao sem reinstalar.
+
+## Lote cinco hooks tipados: Bunny .83 / ExampleMod 0.1.42
+
+A API C# suporta adicionalmente as assinaturas `int()`, `void(int)`, `void(int,int)`, `int(int,int,int)` e `void(int,int,int)` para metodos nao genericos em classes Terraria com ate tres parametros exatamente `System.Int32`. Suporta estatico e instancia, verifica parametros, retorno, integridade da ponte MonoVM e limite de 3ms. Usar apenas conforme a assinatura exata validada nos metadados da versao Android.
+
+O SDK `BunnyHookScope` expõe cinco APIs:
+
+- `HookInt32Zero(type, method, callback, isStatic)`
+- `HookVoidInt32(type, method, callback, isStatic)`
+- `HookVoidInt32Pair(type, method, callback, isStatic)`
+- `HookInt32Triple(type, method, callback, isStatic)`
+- `HookVoidInt32Triple(type, method, callback, isStatic)`
+
+Cada callback pode chamar `original.Invoke()` uma unica vez no chamador do jogo, e os hooks que retornam inteiro podem retornar o resultado original ou substitui-lo. Recusa, timeout ou erro protegido devolve o comportamento original, com a politica de cooldown existente. Ref/out, `float`, `bool`, structs, metodos genericos e sobrecargas ambiguas nao sao assinaturas permitidas. O SDK conserva compatibilidade com void(), int(int), int(int,int).
+
+As cinco classes em `samples/ExampleModCSharp/Playable/content/Common/Hooks/` usam metodos candidatos retirados de referencias de Terraria para PC: `UnifiedRandom.Next()`, `WorldGen.QuickFindHome(int)`, `WorldGen.PlantCactus(int,int)`, `WorldGen.countWires(int,int,int)` e `WorldGen.ConvertTile(int,int,int)`. Alvos nao validos no Terraria Android sao rejeitados em `Load` e expostos em `LastError`. Alguns sao destrutivos (WorldGen): somente em mundo de testes. Nao tratar o teste de host como confirmacao da ABI IL2CPP Android.
+
+`ExampleNativeAccess.EnableAtLoad` agora e false: o antigo `Player.ResetEffects` deixa de gerar callbacks sincronizados a cada tick. Os cinco novos exemplos tambem usam `EnableAtLoad=false` e nao adicionam custo de hook por quadro em uso normal. Alterar apenas o exemplo a testar, recompilar, reiniciar o mundo e conferir `Calls` e `LastError`. Foco de regressao: estabilidade e frame pacing 60 FPS, carregamento CSharp, itens, armaduras, slots e mundo/saves existentes.
