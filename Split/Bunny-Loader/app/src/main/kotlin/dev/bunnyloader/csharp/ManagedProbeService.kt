@@ -7,91 +7,12 @@ import android.os.Process
 import android.util.Log
 import java.io.File
 import java.io.RandomAccessFile
-import java.security.MessageDigest
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
-private object CSharpPrefetchReceipt {
-    private fun hex(digest: ByteArray): String =
-        digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
-
-    private fun hash(file: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { stream ->
-            val buffer = ByteArray(32768)
-            while (true) {
-                val n = stream.read(buffer)
-                if (n < 0) break
-                if (n > 0) digest.update(buffer, 0, n)
-            }
-        }
-        return hex(digest.digest())
-    }
-
-    fun sourceStamp(root: File, dir: File, modId: String): String? = runCatching {
-        if (!root.isDirectory || root.canonicalFile.name != modId) return@runCatching null
-        val content = File(root, "content").canonicalFile
-        if (!content.isDirectory) return@runCatching null
-        val frameworkMarker = File(dir, "framework-version.txt")
-        if (!frameworkMarker.isFile) return@runCatching null
-        val digest = MessageDigest.getInstance("SHA-256")
-        fun field(text: String) {
-            val bytes = text.toByteArray(Charsets.UTF_8)
-            digest.update(byteArrayOf((bytes.size and 0xff).toByte(),
-                ((bytes.size ushr 8) and 0xff).toByte(),
-                ((bytes.size ushr 16) and 0xff).toByte(),
-                ((bytes.size ushr 24) and 0xff).toByte()))
-            digest.update(bytes)
-        }
-        field("BUNNY_PREFETCH_RECEIPT_V1")
-        field(frameworkMarker.readText().trim())
-        field(modId)
-        val sources = content.walkTopDown().filter { it.isFile && it.extension == "cs" }
-            .sortedBy { it.relativeTo(content).invariantSeparatorsPath }.toList()
-        if (sources.isEmpty() || sources.size > 512) return@runCatching null
-        var bytesTotal = 0L
-        for (file in sources) {
-            val canonical = file.canonicalFile
-            if (!canonical.path.startsWith(content.path + File.separator) ||
-                file.length() !in 1L..262144L) return@runCatching null
-            bytesTotal += file.length()
-            if (bytesTotal > 8L * 1024 * 1024) return@runCatching null
-            field(file.relativeTo(content).invariantSeparatorsPath)
-            field(hash(file))
-        }
-        hex(digest.digest())
-    }.getOrNull()
-
-    fun save(receipt: File, root: File, dir: File, id: String,
-             before: String?, assembly: File): Boolean {
-        if (before == null || !assembly.isFile || assembly.length() <= 0) return false
-        val cache = File(assembly.absolutePath + ".sha256")
-        if (!cache.isFile || !cache.readText().startsWith("BUNNY_ASSEMBLY_CACHE_V1")) return false
-        if (sourceStamp(root, dir, id) != before) return false
-        val body = "BUNNY_PREFETCH_RECEIPT_V1\n" + before + "\n" +
-            hash(assembly) + "\n" + hash(cache) + "\n"
-        val temporary = File(receipt.absolutePath + ".tmp")
-        return runCatching {
-            temporary.writeText(body)
-            if (!temporary.renameTo(receipt)) error("prefetch receipt rename failed")
-            true
-        }.getOrDefault(false).also { temporary.delete() }
-    }
-
-    fun ready(receipt: File, root: File, dir: File, id: String, assembly: File): Boolean =
-        runCatching {
-            if (!receipt.isFile || !assembly.isFile) return@runCatching false
-            val rows = receipt.readLines()
-            if (rows.size != 4 || rows[0] != "BUNNY_PREFETCH_RECEIPT_V1" ||
-                rows[1] != sourceStamp(root, dir, id) ||
-                rows[2] != hash(assembly) ||
-                rows[3] != hash(File(assembly.absolutePath + ".sha256"))) return@runCatching false
-            true
-        }.getOrDefault(false)
-}
 
 class ManagedProbeService : Service() {
     companion object {
@@ -177,7 +98,10 @@ class ManagedProbeService : Service() {
     }
 
 
-    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String, val precompile: Boolean)
+    private data class CompileWork(
+        val startId: Int, val sourceRoot: String?, val modId: String, val precompile: Boolean,
+        val launchSpecs: List<String>? = null, val launchStartedMs: Long = 0
+    )
     private class ResidentRuntime {
         var assembly: String? = null
         var cryptoReady = false
@@ -209,6 +133,13 @@ class ManagedProbeService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val launchSpecs = intent?.getStringArrayExtra("sourceLaunchSpecs")
+        if (launchSpecs != null) {
+            enqueue(CompileWork(startId, null, "", true, launchSpecs.take(16),
+                intent?.getLongExtra("sourceLaunchStartedMs", android.os.SystemClock.elapsedRealtime())
+                    ?: android.os.SystemClock.elapsedRealtime()))
+            return START_NOT_STICKY
+        }
         val sourceRoot = intent?.getStringExtra("sourceRoot")
         val modId = intent?.getStringExtra("sourceModId") ?: ""
         val precompile = intent?.getBooleanExtra("sourcePrecompile", false) == true
@@ -224,12 +155,20 @@ class ManagedProbeService : Service() {
             }
             return START_NOT_STICKY
         }
+        enqueue(CompileWork(startId, sourceRoot, modId, precompile))
+        return START_NOT_STICKY
+    }
+
+    private fun enqueue(work: CompileWork): Boolean {
         synchronized(workerGate) {
+            val precompile = work.precompile
+            val modId = work.modId
+            if (precompile && modId.isNotBlank() && pending.any { it.modId == modId })
+                return false
             if (!precompile && modId.isNotBlank()) {
                 pending.filter { it.precompile && it.modId == modId }
                     .forEach { pending.remove(it) }
             }
-            val work = CompileWork(startId, sourceRoot, modId, precompile)
             var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
             if (!accepted && !precompile) {
                 val displaced = pending.peekLast()
@@ -248,8 +187,8 @@ class ManagedProbeService : Service() {
             } else if (workerThread == null) {
                 startResidentWorker()
             }
+            return accepted
         }
-        return START_NOT_STICKY
     }
 
     private fun startResidentWorker() {
@@ -262,7 +201,7 @@ class ManagedProbeService : Service() {
                     val job = pending.poll(8, TimeUnit.SECONDS) ?: break
                     finalStartId = job.startId
                     executeJob(job, residency)
-                    residency.compiled++
+                    if (job.launchSpecs == null) residency.compiled++
                 }
             } catch (error: Throwable) {
                 Log.e("BunnyCSharp", "Mono compiler worker failed", error)
@@ -280,6 +219,18 @@ class ManagedProbeService : Service() {
     }
 
     private fun executeJob(job: CompileWork, resident: ResidentRuntime) {
+        if (job.launchSpecs != null) {
+            val originalPriority = Process.getThreadPriority(Process.myTid())
+            try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT + 3)
+                LaunchSourcePrecompile.schedule(this, job.launchSpecs, job.launchStartedMs) { root, id ->
+                    enqueue(CompileWork(job.startId, root, id, true))
+                }
+            } finally {
+                Process.setThreadPriority(originalPriority)
+            }
+            return
+        }
         val dir = File(filesDir, "bunny-csharp")
         dir.mkdirs()
         val checkpoint = File(dir, if (job.precompile) "last-launch-precompile.txt"
