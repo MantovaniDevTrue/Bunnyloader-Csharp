@@ -8,7 +8,7 @@ jni = (root / "app/src/main/cpp/experiments/csharp/MonoWorkerJni.cpp").read_text
 runtime = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
 source = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
 
-assert launcher.count("LaunchSourcePrecompile.begin(ctx)") == 2
+assert launcher.count("LaunchSourcePrecompile.begin(ctx, csharpLaunchSpecs)") == 2
 assert 'fun begin(context: Context, selectedSpecs: List<String>)' in launch
 assert 'for (spec in selectedSpecs.take(16))' in launch
 assert 'source-launch-startup.txt' in launch
