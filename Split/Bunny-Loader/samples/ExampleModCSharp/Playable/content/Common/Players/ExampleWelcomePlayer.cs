@@ -14,7 +14,7 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
 
     public override string OnEnterWorld()
     {
-        return "C# Hook QA 0.1.43: "
+        return "C# Hook QA 0.1.44: "
             + "H1 " + ExampleHookInt32Zero.Result()
             + " | H2 " + ExampleHookVoidInt32.Result()
             + " | H3 " + ExampleHookVoidInt32Pair.Result()

@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.43"
+assert catalog["exampleModCSharpVersion"] == "0.1.44"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -88,7 +88,7 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.43"
+assert manifest2["version"] == "0.1.44"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert 0 < len(playable_files) <= 512
 hook_dir = playable / "content/Common/Hooks"
@@ -115,6 +115,8 @@ for name, (signature, target, method, is_static) in hook_examples.items():
     assert "if (!EnableAtLoad) return;" in example, name
     assert "activeHook?.Dispose()" in example, name
     assert "SampleLimit = 2" in example, name
+    assert "TrimEnd(" not in example, name
+    assert "LastError.Substring(index + 7).Replace(" in example, name
     assert "original.Invoke()" in example, name
     assert f'hooks.{signature}("{target}", "{method}"' in example, name
     assert f'isStatic: {str(is_static).lower()}' in example, name
@@ -170,7 +172,7 @@ assert "playerHealthPercent" in wave_events
 assert "return 1000000 + buffId * 1000 + durationTicks;" in wave_events
 assert "return 2000000 + direction * 100 + strengthTenths;" in wave_events
 welcome = (playable / "content/Common/Players/ExampleWelcomePlayer.cs").read_text(encoding="utf-8")
-assert "C# Hook QA 0.1.43:" in welcome
+assert "C# Hook QA 0.1.44:" in welcome
 for name in hook_examples:
     assert name + ".Result()" in welcome
 qa_doc = (playable / "content/Documentation/HOOK_QA_ANDROID.md").read_text(encoding="utf-8")

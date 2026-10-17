@@ -19,7 +19,7 @@ public sealed class ExampleHookInt32Zero : BunnyHookModule
         if (calls > 0) return "OK" + calls;
         if (Volatile.Read(ref installed) != 0) return "ARMADO";
         int index = LastError.IndexOf("codigo ", StringComparison.Ordinal);
-        if (index >= 0) return "E" + LastError.Substring(index + 7).TrimEnd(')');
+        if (index >= 0) return "E" + LastError.Substring(index + 7).Replace(")", "");
         return LastError.Length == 0 ? "AGUARDANDO" : "ERRO";
     }
 

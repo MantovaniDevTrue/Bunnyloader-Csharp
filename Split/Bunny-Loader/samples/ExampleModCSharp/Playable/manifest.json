@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.43",
+  "version": "0.1.44",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "QA Android temporario dos cinco hooks universais C#: instala candidatos ao iniciar, informa H1-H5 no chat e para cada hook apos duas chamadas; nao altera retorno nem mundo.",
+  "summary": "Android QA: cinco hooks tipados com limite de duas chamadas, status H1-H5 e diagnostico compatível com o parser nativo da APK .83.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
