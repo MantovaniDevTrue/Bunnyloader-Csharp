@@ -23,10 +23,33 @@ Shader handles and mod PNG texture handles are registry-global already; this
 system only remaps **positive frame-local render-target IDs**. No JS adapter or
 tModLoader code is used.
 
-The new seam does **not** yet execute managed C# callbacks, discover shaders
-from .bmod manifests, or collect Terraria time/biome snapshots. Those require
-a subsequent typed MonoVM-to-host service and integration with the Lights port.
-It is deliberately not advertised as working Lights And Shadows gameplay.
+The source SDK now includes `BunnyScreenEffect`, whose `SetDefaults` must provide
+literal properties and a `ShaderFile` path relative to the mod's `content/`
+directory. The native parser registers the shader with the renderer, while
+the managed compiler verifies and counts the classes. Visual-only mods are
+supported: no fake item registration or JavaScript adapter is required.
+
+```csharp
+using BunnyLoader.Source;
+
+public sealed class MyVignette : BunnyScreenEffect
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Vignette";
+        ShaderFile = "Effects/Vignette.frag";
+        Layer = 0;
+        Order = 0;
+        Intensity = 1f;
+    }
+}
+```
+
+This is a **static declarative shader path**, not yet a general managed
+per-frame rendering callback. Native multi-pass screen graph commands, Terraria
+time/biome snapshots and the Lights And Shadows dynamic lighting integration
+still require separate work and physical validation. Do not advertise the
+complete Lights And Shadows port as playable.
 
 ## Local unit test
 
