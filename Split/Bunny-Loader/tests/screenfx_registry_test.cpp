@@ -35,7 +35,7 @@ ScreenSceneSnapshot sampleScreenScene() {
     scene.sunY = .8f;
     return scene;
 }
-bool submitModEffects(const std::string&, EffectFrame&& frame) {
+bool submitModEffects(const std::string&, EffectFrame&& frame, bool) {
     frames.push_back(std::move(frame));
     return true;
 }
