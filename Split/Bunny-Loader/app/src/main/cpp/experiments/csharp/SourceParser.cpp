@@ -195,7 +195,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile") return true;
+        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
+        base != "BunnyScreenEffect") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -417,7 +418,7 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile")) {
+            base == "BunnyTile" || base == "BunnyScreenEffect")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

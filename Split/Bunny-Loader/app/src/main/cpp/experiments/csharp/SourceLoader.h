@@ -22,6 +22,7 @@ struct SourceModStatus {
     int players = 0;
     int npcs = 0;
     int prefixes = 0;
+    int screenEffects = 0;
     std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;
@@ -33,6 +34,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod);
 bool applyManagedSourceDefaults(const std::string& modId,
                                 const std::string& runtimeValues, std::string* error);
 std::vector<SourceModStatus> sourceModStatuses();
+bool sourceRuntimeApplied(const std::string& modId);
 
 }
 

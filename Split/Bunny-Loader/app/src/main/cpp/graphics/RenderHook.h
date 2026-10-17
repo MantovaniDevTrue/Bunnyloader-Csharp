@@ -1,6 +1,7 @@
 #pragma once
 #include "graphics/EffectTypes.h"
 #include <cstdint>
+#include <string>
 
 namespace bl::graphics {
 
@@ -25,6 +26,10 @@ constexpr int kMarkerHeight = 3;
 // Thread do jogo, a cada quadro (bl.screen.submit): os passos do quadro que
 // vai ser desenhado. Sem submit no quadro, nada desenha.
 void submitEffects(EffectFrame&& frame);
+
+// Game thread: one independent producer per C# mod, consumed on the next world frame.
+// The JS submit path remains unchanged. IDs are remapped during composition.
+bool submitModEffects(const std::string& modId, EffectFrame&& frame);
 
 // Thread de render (GlHooks.cpp): o quadro do marcador (depois do mundo) e o
 // do fim do quadro (por cima da interface). false se nao ha.
