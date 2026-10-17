@@ -399,6 +399,7 @@ class ManagedProbeService : Service() {
             compileStatus.writeText("state=compiling\nmodId=" + job.modId +
                 "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
             val compilerStarted = android.os.SystemClock.elapsedRealtime()
+            val compilerCpuStarted = Process.getElapsedCpuTime()
             val result = if (job.precompile) precompileNative(
                 assembly, compiler.absolutePath, compileRoot,
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
@@ -410,6 +411,7 @@ class ManagedProbeService : Service() {
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
             )
             val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStarted
+            val managedProcessCpuMs = (Process.getElapsedCpuTime() - compilerCpuStarted).coerceAtLeast(0L)
             val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartedMs
             val passed = result.contains(if (job.precompile)
                     "phase=compile-prefetched" else "phase=compile-verified") &&
@@ -423,7 +425,8 @@ class ManagedProbeService : Service() {
             val savedProfile = File(dir, "source-roslyn-profile-" + job.modId + ".txt")
             val profileFile = File(diagnostic.absolutePath + ".profile")
             if (!canReuse && passed && profileFile.isFile) {
-                runCatching { savedProfile.writeText(profileFile.readText().take(2048)) }
+                runCatching { savedProfile.writeText(profileFile.readText().take(1536) +
+                    " nativeWallMs=$managedCompileMs workerProcessCpuMs=$managedProcessCpuMs") }
                     .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=${job.modId} Stage=SaveRoslynProfile Reason=ProfileWriteFailed", it) }
             }
             val roslynProfile = runCatching {
@@ -438,6 +441,7 @@ class ManagedProbeService : Service() {
                 "frameworkCache=" + frameworkInstallState + "\n" +
                 "frameworkSetupMs=" + frameworkSetupMs + "\n" +
                 "managedCompileMs=" + managedCompileMs + "\n" +
+                "managedProcessCpuMs=" + managedProcessCpuMs + "\n" +
                 "workerTotalMs=" + workerTotalMs + "\n" +
                 "precompileOnly=" + (if (job.precompile) 1 else 0) + "\n" +
                 "prefetchReused=" + (if (canReuse) 1 else 0) + "\n" +

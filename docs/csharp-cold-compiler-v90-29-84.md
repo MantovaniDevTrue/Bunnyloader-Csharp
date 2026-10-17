@@ -122,3 +122,9 @@ protocolos iguais. Runtime: 1.429 ms, 5.149.240 bytes de referências, 2.832 tip
 na leitura/hash e metadados, não comprova resolver sozinho o JIT frio no Mono.
 A promoção e o binding Android foram acrescentados para tratar a competição de
 CPU/importância enquanto o jogo espera; ainda exigem evidência no dispositivo.
+
+O perfil preservado também inclui `nativeWallMs` e `workerProcessCpuMs`. Este
+último mede CPU do processo compilador durante a chamada nativa (inclui GC e
+threads auxiliares), não CPU do jogo. A comparação entre parede e CPU ajuda a
+distinguir custo real do compilador de espera/disputa de CPU no Android; CPU
+pode ultrapassar parede se várias threads trabalharem simultaneamente.
