@@ -103,3 +103,11 @@ O alvo `Terraria.ExampleType.ExampleMethod(int,int): int` **é ilustrativo**, n�
 ## Acesso tipado durante callbacks
 
 O [lote de acesso nativo](ACESSO-NATIVO.md) permite transformar o `self` opaco em `BunnyNativeObject.FromHook(self)` e consultar membros previamente vinculados por `hooks.Native`. O objeto é limitado à chamada atual; não autoriza dereferenciar o ponteiro nem reter um objeto do Terraria entre callbacks. Esse acesso é válido nos callbacks `void()` e `int(int)`.
+
+## Validacao Android da .82 — ExampleMod CSharp 0.1.41
+
+A classe real candidata `Terraria.Utilities.UnifiedRandom.Next(int,int)` foi identificada em fontes de Terraria PC e documentacao de API. Nao supomos que o metodo foi preservado com a mesma assinatura na build IL2CPP Android: o registro so e aceito com correspondencia exata, e recusas sao expostas por `ExampleIntPairHook.Start()`.
+
+`ExampleModCSharp/Playable/content/Common/Hooks/ExampleIntPairHook.cs` demonstra `HookInt32Pair`, `original.Invoke()`, retorno vanilla, substituicao opcional restrita e telemetria. O metodo e ativado manualmente por `Start()`, avaliado por `Status()` e desativado por `Stop()`; nunca instalar continuamente um hook sobre RNG, pois isso pode penalizar FPS e alteracao do valor muda mecanica de jogo. `OverrideSmallRange` deve permanecer falso fora de mundo descartavel. O probe nativo anterior esta consolidado no ExampleMod e usa um unico hook `ResetEffects`, com amostragem a cada 64 chamadas.
+
+A APK usa versionCode 242 / versionName 0.1.10.16.90.29.82-csharp-unified-example, preservando o appId `com.bunnyloader.csharptest`. A assinatura V3 privada deve coincidir com a instalada para permitir atualizacao sem reinstalar.

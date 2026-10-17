@@ -1,3 +1,11 @@
+# Exemplo unificado — Bunny CSharp .82 / ExampleMod 0.1.41
+
+O ExampleMod agora inclui as mesmas tres armaduras nativas e texturas de ArmorPoliciesCSharp (sem criar segundos itens), alem de uma implementacao integrada do NativeAccessProbe. Os pacotes separados continuam somente como fixtures de regressao e nao sao necessarios para jogar na .82. Desative os mods antigos antes de testar o pacote unificado.
+
+A fonte unica do teste read-only fica em `Playable/content/Common/Hooks/ExampleNativeAccess.cs`. Intercepta `Terraria.Player.ResetEffects` uma vez, chama o original e amostra os campos de vida, posicao, dia/noite e indice de On Fire a cada 64 chamadas, sem escrever. O teste da assinatura `int(int,int)` esta em `Playable/content/Common/Hooks/ExampleIntPairHook.cs`, inicialmente **desativado** por ser uma funcao de RNG muito chamada. O modulo pode ser ativado por CSharp chamando `ExampleModCSharp.ExampleIntPairHook.Start()` e parado com `Stop()`. `Status()` oferece contadores; `OverrideSmallRange` so deve ser habilitado em mundo descartavel, pois altera aleatoriedade.
+
+`Terraria.Utilities.UnifiedRandom.Next(int,int)` esta presente nas fontes publicas Terraria de PC. **A presenca exata nos metadados IL2CPP Android 1.4.5.8.6 ainda sera verificada no Xiaomi**; se o registro falhar, o metodo retorna diagnostico, sem instalar um hook incorreto. Nao habilitar o teste de RNG durante gameplay comum ou geracao de mundo.
+
 > Estado desta branch: consulte o [guia atual do SDK](../../../../docs/SDK-CSharp.md).
 > Efeitos de ExampleStatAccessory sao nativos; StrongBees de WaspNest tambem,
 > enquanto a textura Back continua no adaptador JS. Para um exemplo pequeno,

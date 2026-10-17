@@ -1,3 +1,7 @@
+# Bunny Loader .82 / ExampleMod CSharp 0.1.41
+
+O pacote integra as armaduras ArmorPolicies CSharp (ja presentes), NativeAccessProbe read-only e uma demonstração opt-in do hook universal `int(int,int)`. Acesso e probe nativo ficam em Common/Hooks/ExampleNativeAccess.cs; o hook de dois inteiros fica em Common/Hooks/ExampleIntPairHook.cs. Nao instale em paralelo ArmorPoliciesCSharp ou NativeAccessProbeCSharp; os conteudos ja estao aqui. O jogo so recebe o hook RNG quando o teste e iniciado manualmente, por exemplo por uma chamada C# a ExampleModCSharp.ExampleIntPairHook.Start(), com encerramento por Stop(). Verifique Status(). O exemplo RNG nao foi validado em Android.
+
 # Correcao de empacotamento 0.1.39
 
 As seis texturas antes copiadas apenas na build do APK agora acompanham o pacote.
