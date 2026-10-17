@@ -6,7 +6,7 @@ import android.os.IBinder
 import android.os.Process
 import android.util.Log
 import java.io.File
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -96,7 +96,7 @@ class ManagedProbeService : Service() {
     }
 
 
-    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String)
+    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String, val precompile: Boolean)
     private class ResidentRuntime {
         var assembly: String? = null
         var cryptoReady = false
@@ -105,7 +105,7 @@ class ManagedProbeService : Service() {
 
     private val running = AtomicBoolean(false)
     private val workerGate = Any()
-    private val pending = LinkedBlockingQueue<CompileWork>(16)
+    private val pending = LinkedBlockingDeque<CompileWork>(16)
     private val healthGeneration = AtomicInteger(0)
     private var workerThread: Thread? = null
     @Volatile private var frameworkInstallState = "Unknown"
@@ -116,17 +116,22 @@ class ManagedProbeService : Service() {
         probePath: String, compilerPath: String, sourceRoot: String,
         outputPath: String, diagnosticPath: String, checkpointPath: String
     ): String
+    private external fun precompileNative(
+        probePath: String, compilerPath: String, sourceRoot: String,
+        outputPath: String, diagnosticPath: String, checkpointPath: String
+    ): String
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val sourceRoot = intent?.getStringExtra("sourceRoot")
         val modId = intent?.getStringExtra("sourceModId") ?: ""
+        val precompile = intent?.getBooleanExtra("sourcePrecompile", false) == true
         if (sourceRoot != null &&
             (modId.isBlank() || modId.length > 128 ||
              !modId.matches(Regex("[0-9a-fA-F-]+")))) {
             runCatching {
-                File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
+                if (!precompile) File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                     parentFile?.mkdirs()
                     writeText("state=failed\nmodId=" + modId +
                         "\nerror=InvalidWorkerModIdentity\n")
@@ -135,14 +140,22 @@ class ManagedProbeService : Service() {
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
-            if (!pending.offer(CompileWork(startId, sourceRoot, modId))) {
-                runCatching {
+            val work = CompileWork(startId, sourceRoot, modId, precompile)
+            var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
+            if (!accepted && !precompile) {
+                val displaced = pending.peekLast()
+                if (displaced?.precompile == true && pending.removeLastOccurrence(displaced))
+                    accepted = pending.offerFirst(work)
+            }
+            if (!accepted) {
+                if (!precompile) runCatching {
                     File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                         parentFile?.mkdirs()
                         writeText("state=failed\nmodId=" + modId +
                             "\nerror=CompilerQueueFull\n")
                     }
                 }
+                else Log.w("BunnyCSharp", "Launch precompile skipped: queue full, mod=$modId")
             } else if (workerThread == null) {
                 startResidentWorker()
             }
@@ -180,13 +193,18 @@ class ManagedProbeService : Service() {
     private fun executeJob(job: CompileWork, resident: ResidentRuntime) {
         val dir = File(filesDir, "bunny-csharp")
         dir.mkdirs()
-        val checkpoint = File(dir, "last-isolated-probe.txt")
+        val checkpoint = File(dir, if (job.precompile) "last-launch-precompile.txt"
+            else "last-isolated-probe.txt")
         val status = File(dir, "isolated-worker-status.txt")
         val log = File(dir, "isolated-worker-logcat.txt")
         val compileRoot = job.sourceRoot
-        val compileStatus = File(dir, "source-compile-status.txt")
-        val diagnostic = File(dir, "source-compile-diagnostics.txt")
-        val health = File(dir, "source-compile-health.txt")
+        val compileStatus = File(dir, if (job.precompile)
+            "source-launch-precompile-" + job.modId + ".txt" else "source-compile-status.txt")
+        val diagnostic = File(dir, if (job.precompile)
+            "source-launch-precompile-diagnostics-" + job.modId + ".txt"
+            else "source-compile-diagnostics.txt")
+        val health = File(dir, if (job.precompile)
+            "source-launch-precompile-health.txt" else "source-compile-health.txt")
         val nativeTrace = File(dir, "native-abort-trace.txt")
         val nativeMaps = File(dir, "native-abort-maps.txt")
         val nativeThreads = File(dir, "native-abort-threads.txt")
@@ -202,18 +220,20 @@ class ManagedProbeService : Service() {
                 startLogCapture(log)
             } else {
                 diagnostic.delete()
-                File(dir, "source-compile-diagnostics.txt.profile").delete()
-                for (name in listOf(
-                    "source-runtime-values.txt", "source-ai-turns.txt",
-                    "source-spark-turns.txt", "source-projectile-turns.txt",
-                    "source-homing-policy.txt", "source-onhit-policy.txt",
-                    "source-onkill-policy.txt"
-                )) {
-                    File(dir, name).delete()
-                    File(dir, name + ".tmp").delete()
+                File(diagnostic.absolutePath + ".profile").delete()
+                if (!job.precompile) {
+                    for (name in listOf(
+                        "source-runtime-values.txt", "source-ai-turns.txt",
+                        "source-spark-turns.txt", "source-projectile-turns.txt",
+                        "source-homing-policy.txt", "source-onhit-policy.txt",
+                        "source-onkill-policy.txt"
+                    )) {
+                        File(dir, name).delete()
+                        File(dir, name + ".tmp").delete()
+                    }
                 }
                 health.delete()
-                if (!reused) {
+                if (!reused && !job.precompile) {
                     nativeTrace.delete()
                     nativeMaps.delete()
                     nativeThreads.delete()
@@ -248,16 +268,20 @@ class ManagedProbeService : Service() {
             compileStatus.writeText("state=compiling\nmodId=" + job.modId +
                 "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
             val compilerStarted = android.os.SystemClock.elapsedRealtime()
-            val result = compileNative(
+            val result = if (job.precompile) precompileNative(
+                assembly, compiler.absolutePath, compileRoot,
+                output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
+            ) else compileNative(
                 assembly, compiler.absolutePath, compileRoot,
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
             )
             val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStarted
             val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartedMs
-            val passed = result.contains("phase=compile-verified") &&
+            val passed = result.contains(if (job.precompile)
+                    "phase=compile-prefetched" else "phase=compile-verified") &&
                 (result.contains("result=1\n") || result.contains("result=2\n"))
             val roslynProfile = runCatching {
-                File(dir, "source-compile-diagnostics.txt.profile")
+                File(diagnostic.absolutePath + ".profile")
                     .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
             }.getOrNull() ?: "Unavailable"
             compileStatus.writeText(
@@ -268,6 +292,7 @@ class ManagedProbeService : Service() {
                 "frameworkSetupMs=" + frameworkSetupMs + "\n" +
                 "managedCompileMs=" + managedCompileMs + "\n" +
                 "workerTotalMs=" + workerTotalMs + "\n" +
+                "precompileOnly=" + (if (job.precompile) 1 else 0) + "\n" +
                 "residentReuse=" + (if (reused) 1 else 0) + "\n" +
                 "residentBatchIndex=" + resident.compiled + "\n" +
                 "roslynProfile=" + roslynProfile + "\n"
