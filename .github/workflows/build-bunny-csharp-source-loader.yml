@@ -353,6 +353,11 @@ jobs:
           assert "for (generation in 0..3)" in boot
           assert "native-game-abort-previous.txt" in boot
           assert "private fun gameCrashTraces(" in boot
+          assert 'out.length() >= 120_000L' in boot
+          assert 'takeLast(64_000)' in boot
+          assert 'LOGCAT_TAIL_ROLLING' in boot
+          assert 'out.length() < 60_000' not in boot
+          assert 'ApplicationExitInfo.REASON_SIGNALED && info.status == 6' in boot
           assert "emitAbortHeader();" in native
           assert "NATIVE_ABORT_SIGNAL pid=" in native
           print("CSHARP_CRASH_SESSION_RETENTION=PASS")
