@@ -13,7 +13,23 @@ namespace {
 
 struct Vec2 { float x, y; };
 
+enum class NumericType { Unknown, Single, Double };
+
+NumericType numericType(FieldInfo* field) {
+    if (!field) return NumericType::Unknown;
+    auto& api = il2cpp::api();
+    const Il2CppType* type = api.field_get_type(field);
+    char* name = type ? api.type_get_name(type) : nullptr;
+    const NumericType result = name && std::strcmp(name, "System.Single") == 0
+        ? NumericType::Single : name && std::strcmp(name, "System.Double") == 0
+        ? NumericType::Double : NumericType::Unknown;
+    if (name) api.il2cpp_free(name);
+    return result;
+}
+
 struct Fields {
+    NumericType clockType = NumericType::Unknown;
+    NumericType surfaceType = NumericType::Unknown;
     bool initialized = false;
     bool resolved = false;
     FieldInfo* daytime = nullptr;
@@ -34,23 +50,18 @@ bool read(FieldInfo* field, T& out) {
     return true;
 }
 
-bool readDouble(FieldInfo* field, double& out) {
+bool readDouble(FieldInfo* field, NumericType type, double& out) {
     if (!field) return false;
     auto& api = il2cpp::api();
-    const Il2CppType* type = api.field_get_type(field);
-    char* name = type ? api.type_get_name(type) : nullptr;
-    bool ok = false;
-    if (name && std::strcmp(name, "System.Single") == 0) {
+    if (type == NumericType::Single) {
         float value = 0.f;
         api.field_static_get_value(field, &value);
         out = value;
-        ok = std::isfinite(value);
-    } else if (name && std::strcmp(name, "System.Double") == 0) {
-        api.field_static_get_value(field, &out);
-        ok = std::isfinite(out);
+        return std::isfinite(value);
     }
-    if (name) api.il2cpp_free(name);
-    return ok;
+    if (type != NumericType::Double) return false;
+    api.field_static_get_value(field, &out);
+    return std::isfinite(out);
 }
 
 }
@@ -66,6 +77,8 @@ ScreenSceneSnapshot sampleScreenScene() {
             g_fields.screenPosition = il2cpp::findField(main, "screenPosition");
             g_fields.worldSurface = il2cpp::findField(main, "worldSurface");
             g_fields.moonPhase = il2cpp::findField(main, "moonPhase");
+            g_fields.clockType = numericType(g_fields.time);
+            g_fields.surfaceType = numericType(g_fields.worldSurface);
             g_fields.initialized = true;
             g_fields.resolved = true;
         }
@@ -78,12 +91,12 @@ ScreenSceneSnapshot sampleScreenScene() {
     int width = 0, height = 0, moonPhase = 0;
     Vec2 pos{};
     const bool dayReady = read(g_fields.daytime, day);
-    const bool timeReady = readDouble(g_fields.time, gameTime) && gameTime >= 0.0;
+    const bool timeReady = readDouble(g_fields.time, g_fields.clockType, gameTime) && gameTime >= 0.0;
     const bool widthReady = read(g_fields.screenWidth, width) && width > 0 && width < 32768;
     const bool heightReady = read(g_fields.screenHeight, height) && height > 0 && height < 32768;
     const bool posReady = read(g_fields.screenPosition, pos) &&
                           std::isfinite(pos.x) && std::isfinite(pos.y);
-    const bool surfaceReady = readDouble(g_fields.worldSurface, surface) &&
+    const bool surfaceReady = readDouble(g_fields.worldSurface, g_fields.surfaceType, surface) &&
                               surface > 0.0 && surface < 100000.0;
     if (!dayReady || !timeReady || !widthReady || !heightReady ||
         !posReady || !surfaceReady) {
