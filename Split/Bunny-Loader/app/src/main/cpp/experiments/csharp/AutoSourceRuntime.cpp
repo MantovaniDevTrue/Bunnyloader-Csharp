@@ -781,6 +781,20 @@ void run() {
             readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat, &cacheReason);
         std::string cacheWrite=status.cached?"NotNeeded":"Unavailable";
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
+        if (!status.cached) {
+            BL_INFO("[CSharp][Startup] Mod=%s Stage=EarlyCompile Reason=CacheMiss BeforeNativeContent=1",mod.id.c_str());
+        }
+        long long compileMs=0;
+        if (!status.cached) {
+            note(&status, "compiling");
+            const auto compileStarted=std::chrono::steady_clock::now();
+            const bool compiled=compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error);
+            compileMs=elapsedMilliseconds(compileStarted);
+            if (!compiled) {
+                note(&status, "failed", error);
+                continue;
+            }
+        }
         note(&status, "waiting-content");
         bool ready = false;
         const auto tablesStarted = std::chrono::steady_clock::now();
@@ -796,17 +810,6 @@ void run() {
         if (!ready) {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
-        }
-        long long compileMs=0;
-        if (!status.cached) {
-            note(&status, "compiling");
-            const auto compileStarted=std::chrono::steady_clock::now();
-            const bool compiled=compile(root, mod.id, mod, work, &defaults, &curves, &combat, &error);
-            compileMs=elapsedMilliseconds(compileStarted);
-            if (!compiled) {
-                note(&status, "failed", error);
-                continue;
-            }
         }
         if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
