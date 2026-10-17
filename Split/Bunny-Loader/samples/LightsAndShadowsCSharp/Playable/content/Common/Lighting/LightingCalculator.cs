@@ -39,7 +39,7 @@ public static class LightingCalculator
         };
         var result = Compute(in frame, new LightingSettings());
         return string.Join(";", result.SunX.ToString("R", culture),
-            result.SunY.ToString("R", culture),
+            (1f - result.SunY).ToString("R", culture),
             result.GradientClock.ToString("R", culture),
             result.SunOrMoonIntensity.ToString("R", culture),
             result.ShadowThreshold.ToString("R", culture),
