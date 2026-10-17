@@ -17,6 +17,11 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     return {};
 }
 
+
+inline bool sourceRequiresNativeRegistration(std::string_view base) {
+    return base != "BunnyPlayer" && base != "BunnyScreenEffect";
+}
+
 inline std::string_view sourceWireDomain(std::string_view kind) {
     if (kind == "WEAPON" || kind == "ACCESSORY" || kind == "POTION") return "ITEM";
     if (kind == "ITEM" || kind == "PROJECTILE" || kind == "BUFF" ||
