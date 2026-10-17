@@ -138,6 +138,53 @@ static class Program
             BunnyHooks.RemoveSlot(typedSlot);
             Check(invalid.IsDisposed);
         }
+        using (var pair = new BunnyHookScope())
+        {
+            int seen = 0;
+            BunnyOriginalInt32 expiredPair = default;
+            var active = pair.HookInt32Pair("Terraria.Player", "PairTransform",
+                (original, self, first, second) =>
+                {
+                    Check(self == (nint)123 && first == 4 && second == 9);
+                    expiredPair = original;
+                    seen++;
+                    return original.Invoke() + second * 2;
+                });
+            int pairSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(4);
+            BunnyHooks.InvokeInt32Pair(pairSlot, ticket++, 123, 4, 9, out int ok, out int output);
+            Check(ok == 1 && output == 29 && test_originals() == 1 && seen == 1);
+            Throws(() => expiredPair.Invoke());
+            active.Dispose();
+            var replacement = pair.HookInt32Pair("Terraria.Player", "PairTransform",
+                (_, _, first, second) => first - second);
+            pairSlot = test_slot();
+            test_begin(ticket);
+            BunnyHooks.InvokeInt32Pair(pairSlot, ticket++, 123, 4, 9, out ok, out output);
+            Check(ok == 1 && output == -5 && test_originals() == 0);
+            replacement.Dispose();
+            var busyPair = pair.HookInt32Pair("Terraria.Player", "PairTransform",
+                (_, _, _, _) => throw new BunnyAccessException(BunnyAccessStatus.Busy, "rpc"));
+            pairSlot = test_slot();
+            BunnyHooks.InvokeInt32Pair(pairSlot, ticket++, 123, 4, 9, out ok, out output);
+            Check(ok == 2 && !busyPair.IsDisposed);
+            busyPair.Dispose();
+            var failingPair = pair.HookInt32Pair("Terraria.Player", "PairTransform",
+                (original, _, _, _) =>
+                {
+                    original.Invoke();
+                    original.Invoke();
+                    return 0;
+                });
+            pairSlot = test_slot();
+            test_begin(ticket);
+            test_int_argument(4);
+            BunnyHooks.InvokeInt32Pair(pairSlot, ticket++, 123, 4, 9, out ok, out output);
+            Check(ok == 0 && test_originals() == 1 && !failingPair.IsDisposed);
+            BunnyHooks.RemoveSlot(pairSlot);
+            Check(failingPair.IsDisposed);
+        }
         Check(BunnyHooks.GetStatus().Contains("void()"));
         Console.WriteLine("C# SDK: delegate/original, deferred terminal disposal, stale timeout recovery, expired original, module auto-unload, slot reuse PASS");
     }
