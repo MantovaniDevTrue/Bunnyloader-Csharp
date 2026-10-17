@@ -137,6 +137,20 @@ bool registerCSharpScreenEffects(const std::string& modId,
 }
 
 
+std::vector<TargetSpec> csharpScreenWarmupTargets() {
+    std::vector<TargetSpec> targets;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    for (const auto& entry : g_entries) {
+        if (!entry.isGraph) continue;
+        for (const auto& spec : entry.graph.targets) {
+            TargetSpec copy = spec;
+            copy.name = entry.modId + ":" + spec.name;
+            targets.push_back(std::move(copy));
+        }
+    }
+    return targets;
+}
+
 void clearCSharpScreenEffects() {
     std::lock_guard<std::mutex> guard(g_mutex);
     std::string previous;
