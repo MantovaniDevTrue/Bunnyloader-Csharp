@@ -1,21 +1,17 @@
-# Hooks CSharp .84 — lote de candidatos Android 0.1.46
+# Hook QA CSharp 0.1.47 — alvos reais no Terraria Android
 
-Este pacote de testes usa a APK Bunny Loader CSharp **0.1.10.16.90.29.84**, sem atualizar o aplicativo. Nao deve ser usado como mod de jogatina permanente.
+Requer APK Bunny Loader CSharp .85 (Terraria 1.4.5.8.6, arm64-v8a). Os metodos abaixo foram encontrados pelo scanner nativo IL2CPP no aparelho em 17/10/2026. Estar presente nao e o mesmo que ter callback validado.
 
-O H1 `Terraria.Utilities.UnifiedRandom.Next()` foi validado no Android como `OK2` em 17/10/2026, com 60 FPS segundo o teste em aparelho. H2, H3 e H4 foram instalados, mas ainda nao tinham callbacks comprovados. H5 falhou na tentativa anterior com `E-7` em `Terraria.WorldGen.ConvertTile`.
-
-Em 0.1.46 o SDK CSharp tenta candidatos em sequencia *ate achar a primeira instalacao aceita*, sem chamar artificialmente os metodos do jogo. A compilacao nao prova se existem no Android; o relatorio `hooks universais C#` mostra o alvo instalado ao lado de `ARMADO@` ou `OK2@`. O modulo conserva `original.Invoke()` em cada callback e desativa o hook depois de duas chamadas, sem efeitos adicionais.
-
-| Hook | Candidatos na ordem |
+| Hook | Candidatos em ordem, todos com assinatura real conforme scanner |
 | --- | --- |
-| H1 `int()` | UnifiedRandom.Next (ja validado) |
-| H2 `void(int)` | WorldItem.UpdateItem (metodo localizado na fonte nativa Android), NPC.DelBuff, Player.DelBuff, WorldGen.QuickFindHome |
-| H3 `void(int,int)` | WorldGen.PlaceWire, WorldGen.KillWire, WorldGen.PlantCactus |
-| H4 `int(int,int,int)` | WorldGen.countWires (instalacao anteriormente confirmada) |
-| H5 `void(int,int,int)` | Lighting.AddLight, WorldGen.SlopeTile, WorldGen.ConvertWall, WorldGen.ConvertTile |
+| H1 int() | Utilities.UnifiedRandom.Next (callback ja validado anteriormente) |
+| H2 void(int) | WorldItem.UpdateItem e alternativas anteriores (callback OK2 anteriormente) |
+| H3 void(int,int) | Wiring.HitSwitch, Wiring.HitWireSingle, Wiring.PokeLogicGate, todos static |
+| H4 int(int,int,int) | Player.CalculateFrameFromMiscCounter (instancia), WorldGen.countWires (static) |
+| H5 void(int,int,int) | WorldGen.Check1x1, WorldGen.CheckLogicTiles, WorldGen.Check2x2 (static), WorldItem.SpawnShimmeredItem (instancia) |
 
-Metodos H3 e H5 sao candidatos nao confirmados contra IL2CPP Android; um metodo com nome igual pode ter argumentos diferentes e ser recusado com E-6/E-7. `ARMADO` nao comprova callback. Se todos forem recusados, o ultimo alvo testado e codigo retornam no relatorio. Se um for aceito, nao tenta outros nomes.
+Cada modulo tenta o proximo candidato somente se o anterior falhar na instalacao. Cada callback executa original.Invoke() uma vez, nao muda parametros ou resultados, e se desinstala apos duas chamadas.
 
-**Teste**: instale apenas o ExampleMod CSharp 0.1.46 sobre 0.1.45, mantenha APK .84. Entre em mundo descartavel. Para H2, deixe cair um item no chao. Para H3, coloque fios com uma chave inglesa ou remova-os com alicate. Para H4, ative um mecanismo com fios. Para H5, mantenha uma tocha proxima; nao ha garantia de o alvo selecionado disparar. Saia para o menu, abra o relatorio, copie a secao `hooks universais C#` e informe FPS. Nao gere mundo nem use efeitos de conversao/destruicao apenas para provocar hooks.
+**Teste em mundo descartavel**: instale somente ExampleMod CSharp 0.1.47 sobre 0.1.46 com a mesma APK .85. Ande e anime o personagem (H4), ative alavanca ou switch (H3), coloque/quebre um bloco comum (H5). Nao tente forcar Shimmer nem eventos de worldgen. Saia para o menu e envie os cinco estados da secao hooks universais CSharp e o FPS; pare se surgir travamento.
 
-Ao terminar a validacao, volte ao ExampleMod CSharp 0.1.42 para jogatina normal.
+No relatorio, ARMADO@metodo confirma instalacao, OK1/OK2@metodo confirma callbacks. OnEnterWorld mostra texto precomputado e nunca deve ser usado para verificar contadores. H3-H5 ainda aguardam teste real. Ao terminar restaure ExampleMod CSharp 0.1.42 fora do QA.

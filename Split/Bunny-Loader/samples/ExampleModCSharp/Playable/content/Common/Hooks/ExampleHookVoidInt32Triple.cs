@@ -8,9 +8,9 @@ public sealed class ExampleHookVoidInt32Triple : BunnyHookModule
 {
     public const bool EnableAtLoad = true;
     private const int SampleLimit = 2;
-    private static readonly string[] Types = { "Terraria.Lighting", "Terraria.WorldGen", "Terraria.WorldGen", "Terraria.WorldGen" };
-    private static readonly string[] Methods = { "AddLight", "SlopeTile", "ConvertWall", "ConvertTile" };
-    private static readonly bool[] StaticFlags = { true, true, true, true };
+    private static readonly string[] Types = { "Terraria.WorldGen", "Terraria.WorldGen", "Terraria.WorldGen", "Terraria.WorldItem" };
+    private static readonly string[] Methods = { "Check1x1", "CheckLogicTiles", "Check2x2", "SpawnShimmeredItem" };
+    private static readonly bool[] StaticFlags = { true, true, true, false };
     private static BunnyMethodHook? activeHook;
     private static int installed;
     public static long Calls;
