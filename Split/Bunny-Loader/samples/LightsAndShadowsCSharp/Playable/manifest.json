@@ -2,7 +2,7 @@
   "uid": "773249cb-219c-4f14-a49b-6991d575c777",
   "id": "lightsandshadowscsharp",
   "name": "Lights And Shadows — CSharp Native",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "authors": [
     {
       "name": "yiyang233 / AWEoghAwo",
@@ -14,7 +14,7 @@
     }
   ],
   "category": "Visual",
-  "summary": "Native PC-source screen light and shadow: real Terraria camera, low-resolution blue-mask rays, day/night gradients and bloom.",
+  "summary": "C# Lights And Shadows with managed 10 Hz screen-scene callback, four-pass Kawase, native camera interpolation and fallback. Requires experimental Bunny Loader C# .88.3+; phone FPS test pending.",
   "blVersion": 2,
   "gameVersion": [
     301720,
