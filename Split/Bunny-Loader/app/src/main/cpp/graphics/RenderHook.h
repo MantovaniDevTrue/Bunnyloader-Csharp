@@ -43,7 +43,8 @@ struct RenderStats {
     int64_t renderCpuNs = 0, markerCpuNs = 0, gpuNs = 0, gpuSamples = 0;   // somas desde o boot
     int64_t gpuFrameNs = 0, gpuFrameSamples = 0;                           // quadro inteiro, alternados
     int64_t shadowChecks = 0, shadowMismatches = 0;                        // espelho do estado GL
-    int64_t boxPixels = 0;                                                 // pixels copiados e desenhados
+    int64_t boxPixels = 0;
+    int64_t screenCopyCalls = 0, screenCopyPixels = 0;                                                 // pixels copiados e desenhados
     int32_t drawFbo = -1, readFbo = -1, viewport[4] = {0, 0, 0, 0};
     int32_t samples = -1, blitError = 0, copyFallbacks = 0;
     bool hookInstalled = false, hasContext = false, markerReady = false, gpuTimer = false;
