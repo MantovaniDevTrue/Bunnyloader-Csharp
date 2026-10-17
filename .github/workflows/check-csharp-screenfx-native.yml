@@ -1,6 +1,9 @@
 name: CSharp Native ScreenFx
 
 on:
+  push:
+    branches:
+      - codex/csharp-screenfx-v90-29-86
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
