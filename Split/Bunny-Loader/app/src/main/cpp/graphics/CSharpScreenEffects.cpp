@@ -103,7 +103,7 @@ bool registerCSharpScreenEffects(const std::string& modId,
         if (entry.isGraph) {
             if (!loadCSharpScreenGraph(modId, effect.className, contentDirectory,
                 effect.pipelineFile, effect.layer == 1 ? EffectLayer::Screen : EffectLayer::World,
-                effect.intensity, &entry.graph, error)) return false;
+                effect.intensity, &entry.graph, error, effect.parameters)) return false;
         } else {
             std::string shader;
             if (!readShader(contentDirectory, effect.shaderFile, &shader))
