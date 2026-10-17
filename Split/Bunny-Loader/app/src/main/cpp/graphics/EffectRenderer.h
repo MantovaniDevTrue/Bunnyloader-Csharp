@@ -29,6 +29,7 @@ public:
     static void Execute(const EffectFrame& frame, const DrawTarget& target, const GlShadow& state);
     static void FillStats(RenderStats& stats);
     static void LastViewportSize(int* width, int* height);
+    static bool PrewarmOneTarget(int width, int height);
 };
 
 } // namespace bl::graphics
