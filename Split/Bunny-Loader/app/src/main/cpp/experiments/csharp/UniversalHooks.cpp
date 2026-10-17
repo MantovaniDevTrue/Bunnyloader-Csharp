@@ -3,6 +3,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/GuardedCall.h"
+#include "core/Log.h"
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -342,6 +343,83 @@ template<size_t... N> auto instanceStubs(std::index_sequence<N...>) {
 template<size_t... N> auto staticStubs(std::index_sequence<N...>) {
     return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticStub<N>)...};
 }
+struct HookSignatureScan {
+    size_t classIndex = 0;
+    void* iterator = nullptr;
+    Il2CppClass* klass = nullptr;
+    std::array<int, 5> emitted{};
+    bool completed = false;
+};
+
+void scanHookSignaturesOnGameThread() {
+    static HookSignatureScan scan;
+    if (scan.completed) return;
+    auto& api = il2cpp::api();
+    if (!api.gameImage || !api.class_get_methods || !api.method_get_name ||
+        !api.method_get_param_count || !api.method_get_return_type ||
+        !api.method_get_param || !api.type_get_name || !api.il2cpp_free ||
+        !api.method_is_instance || !api.method_is_generic) return;
+    constexpr std::array<const char*, 8> classes = {
+        "WorldItem", "Wiring", "Lighting", "WorldGen",
+        "Player", "NPC", "Projectile", "Main"
+    };
+    constexpr std::array<int, 5> limits = { 0, 12, 20, 12, 20 };
+    int budget = 16;
+    while (budget-- > 0 && !scan.completed) {
+        if (scan.classIndex >= classes.size()) {
+            scan.completed = true;
+            BL_INFO("[CSharp][HookScan] concluido H2=%d H3=%d H4=%d H5=%d, somente metadados, sem instalar hooks",
+                scan.emitted[1], scan.emitted[2], scan.emitted[3], scan.emitted[4]);
+            break;
+        }
+        const char* className = classes[scan.classIndex];
+        if (!scan.klass) {
+            scan.klass = il2cpp::findClassQuiet("Terraria", className);
+            scan.iterator = nullptr;
+            if (!scan.klass) {
+                BL_INFO("[CSharp][HookScan] Terraria.%s ausente", className);
+                ++scan.classIndex;
+                continue;
+            }
+        }
+        const MethodInfo* method = api.class_get_methods(scan.klass, &scan.iterator);
+        if (!method) {
+            ++scan.classIndex;
+            scan.klass = nullptr;
+            scan.iterator = nullptr;
+            continue;
+        }
+        const uint32_t count = api.method_get_param_count(method);
+        if (count == 0 || count > 3 || api.method_is_generic(method) || !il2cpp::methodPointer(method))
+            continue;
+        const Il2CppType* returned = api.method_get_return_type(method);
+        char* typeName = returned ? api.type_get_name(returned) : nullptr;
+        const bool voidReturn = typeName && std::strcmp(typeName, "System.Void") == 0;
+        const bool intReturn = typeName && std::strcmp(typeName, "System.Int32") == 0;
+        if (typeName) api.il2cpp_free(typeName);
+        const int index = count == 1 && voidReturn ? 1 :
+            count == 2 && voidReturn ? 2 :
+            count == 3 && intReturn ? 3 :
+            count == 3 && voidReturn ? 4 : -1;
+        if (index < 0 || scan.emitted[index] >= limits[index]) continue;
+        bool allInt = true;
+        for (uint32_t i = 0; i < count; ++i) {
+            const Il2CppType* parameter = api.method_get_param(method, i);
+            char* parameterName = parameter ? api.type_get_name(parameter) : nullptr;
+            allInt = allInt && parameterName && std::strcmp(parameterName, "System.Int32") == 0;
+            if (parameterName) api.il2cpp_free(parameterName);
+            if (!allInt) break;
+        }
+        if (!allInt) continue;
+        const char* name = api.method_get_name(method);
+        if (!name || !*name || name[0] == '.') continue;
+        const char* mode = api.method_is_instance(method) ? "instancia" : "static";
+        BL_INFO("[CSharp][HookScan] H%d Terraria.%s.%s %s assinatura=%s(int x%d) ponteiro=sim",
+            index + 1, className, name, mode, intReturn ? "int" : "void", count);
+        ++scan.emitted[index];
+    }
+}
+
 int installOnGameThread() {
 #if !defined(__aarch64__) && !defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
     return -2;
@@ -444,6 +522,7 @@ int installOnGameThread() {
 }
 void pumpUniversalHookInstallsOnGameThread() {
     gameThread.store(static_cast<long>(syscall(__NR_gettid)), std::memory_order_release);
+    scanHookSignaturesOnGameThread();
     std::unique_lock<std::mutex> lock(install.mutex, std::try_to_lock);
     if (!lock || !install.pending) return;
     install.result = installOnGameThread();
