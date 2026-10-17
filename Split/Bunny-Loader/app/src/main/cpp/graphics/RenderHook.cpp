@@ -1,5 +1,6 @@
 #include "graphics/RenderHook.h"
 #include "graphics/FrameComposer.h"
+#include "graphics/FrameHold.h"
 #include "graphics/GlHooks.h"
 #include "graphics/EffectRenderer.h"
 #include "core/Log.h"
@@ -39,6 +40,8 @@ std::mutex g_queueMutex;
 EffectFrame g_pending;
 bool g_pendingSet = false;
 std::map<std::string, EffectFrame> g_modPending;
+FrameHold g_continuousFrames;
+uint64_t g_heldFrameReplays = 0;
 std::deque<EffectFrame> g_worldQueue, g_screenQueue;
 
 std::mutex g_statsMutex;
@@ -198,6 +201,7 @@ void splitPending(EffectFrame& world, EffectFrame& screen) {
         if (g_pendingSet) std::swap(pending, g_pending);
         g_pendingSet = false;
         contributions.swap(g_modPending);
+        g_heldFrameReplays += g_continuousFrames.replayMissing(contributions);
     }
     for (auto& [modId, frame] : contributions) {
         std::string error;
@@ -309,7 +313,8 @@ void submitEffects(EffectFrame&& frame) {
     g_pendingSet = true;
 }
 
-bool submitModEffects(const std::string& modId, EffectFrame&& frame) {
+bool submitModEffects(const std::string& modId, EffectFrame&& frame,
+                      bool continuous) {
     if (modId.empty() || modId.size() > 128 || modId.find('/') != std::string::npos ||
         modId.find('\\') != std::string::npos || modId.find("..") != std::string::npos)
         return false;
@@ -317,8 +322,14 @@ bool submitModEffects(const std::string& modId, EffectFrame&& frame) {
         frame.targets.size() > FrameComposeLimits::MaxTargets) return false;
     if (!frame.empty() && !g_marker.tried) setupMarker();
     std::lock_guard<std::mutex> lock(g_queueMutex);
-    if (frame.empty() && !frame.history) g_modPending.erase(modId);
-    else g_modPending[modId] = std::move(frame);
+    if (frame.empty() && !frame.history) {
+        g_modPending.erase(modId);
+        g_continuousFrames.remove(modId);
+    } else {
+        if (continuous) g_continuousFrames.record(modId, frame);
+        else g_continuousFrames.remove(modId);
+        g_modPending[modId] = std::move(frame);
+    }
     return true;
 }
 
