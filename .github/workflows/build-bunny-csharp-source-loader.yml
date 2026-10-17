@@ -11,6 +11,7 @@ on:
       - codex/csharp-lights-fidelity-v90-29-88
       - codex/csharp-lights-night-hotfix
       - codex/csharp-lights-sdk-settings-split
+      - codex/csharp-lights-88-3-prewarm-scene-fidelity
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - ".github/workflows/check-csharp-screenfx-native.yml"
