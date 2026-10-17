@@ -131,8 +131,10 @@ object BootLog {
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
             "\n--- última tentativa MonoVM ---\n" + lastMonoCheckpoint(ctx) +
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
+            "\n--- hooks universais C# (registro real MonoVM) ---\n" + lastUniversalHookRegistration(ctx) +
             "\n--- último carregamento C# registrado (pode ser anterior) ---\n" + lastCSharpStartup(ctx) +
             "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
+            "\n--- aceleracao do compilador C# (verifique o pid) ---\n" + compilerAotStatus(ctx) +
             "\n--- pré-compilação ao tocar Jogar ---\n" + lastLaunchPrecompile(ctx) +
             "\n--- combate de NPCs e projéteis C# (MonoVM) ---\n" + lastCSharpEntityCombat(ctx) +
             "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
@@ -140,6 +142,19 @@ object BootLog {
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    private fun compilerAotStatus(ctx: Context): String = runCatching {
+        val status = File(ctx.filesDir, "bunny-csharp/source-compiler-aot-status.txt")
+        if (!status.isFile) "(nenhuma compilacao nesta build ainda)"
+        else status.readText().take(2048)
+    }.getOrElse { "(status indisponivel: ${it.javaClass.simpleName})" }
+
+    private fun lastUniversalHookRegistration(ctx: Context): String = runCatching {
+        val file = File(ctx.filesDir, "bunny-csharp/universal-hooks-status.txt")
+        if (!file.isFile) return@runCatching "(sem registro; hooks ainda nao inicializados)"
+        val age = ((System.currentTimeMillis() - file.lastModified()) / 1000L).coerceAtLeast(0L)
+        "universal-hooks-status.txt registradoHa=${age}s (verifique o pid):\n" + file.readText().take(2300)
+    }.getOrElse { "(status indisponivel: ${it.javaClass.simpleName})" }
 
     private fun lastCSharpStartup(ctx: Context): String = runCatching {
         val base = ctx.getExternalFilesDir(null)?.parentFile

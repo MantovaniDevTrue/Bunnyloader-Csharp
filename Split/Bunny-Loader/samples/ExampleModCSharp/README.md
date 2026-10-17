@@ -1,4 +1,8 @@
-# Android QA .83 — ExampleMod CSharp 0.1.44 (TEMPORARIO)
+# ExampleMod CSharp 0.1.45 — QA temporario
+
+Use com APK .84 para testar os cinco hooks. O OnEnterWorld e precomputado e nao exibe contadores ao vivo. Os resultados verdadeiros aparecem na secao `hooks universais C#` do relatorio Bunny Loader. Detalhes em `Playable/content/Documentation/HOOK_QA_ANDROID.md`.
+
+# Android QA .83 — ExampleMod CSharp 0.1.45 (TEMPORARIO)
 
 Pacote preparado para validar em aparelho os cinco hooks tipados da API CSharp .83. Todos os cinco estao ligados automaticamente somente nesta versao de diagnostico e se desligam apos ate duas chamadas. A mensagem `ExampleWelcomePlayer.OnEnterWorld` resume H1-H5; nomes e erros em `Playable/content/Documentation/HOOK_QA_ANDROID.md`. Os cinco metodos de Terraria sao candidatos nao confirmados na build Android. Nao ha alteracao de retorno nem simulacao de eventos artificiais; assim `ARMADO` e diferente de `OK1/OK2`. O probe antigo `ResetEffects` permanece inativo.
 

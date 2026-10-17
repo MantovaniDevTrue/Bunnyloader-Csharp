@@ -56,8 +56,8 @@ android {
         applicationId = "com.bunnyloader.csharptest"
         minSdk = 24
         targetSdk = 34
-        versionCode = 244
-        versionName = "0.1.10.16.90.29.84-csharp-compact-compiler"
+        versionCode = 245
+        versionName = "0.1.10.16.90.29.85-csharp-compiler-aot"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
@@ -129,6 +129,8 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
+            // The compiler AOT gate checks the exact validated runtime, before registration.
+            keepDebugSymbols += setOf("**/libmonosgen-2.0.so", "**/libbunnycompileraot.so")
 
             // A outra metade do -Pbl.uiOnly=true: aqui saem as libs do jogo
             // (os assets saem lá em cima, não entrando no source set). Juntos

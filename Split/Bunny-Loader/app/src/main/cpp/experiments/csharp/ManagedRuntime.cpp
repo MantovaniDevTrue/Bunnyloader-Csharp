@@ -10,6 +10,7 @@
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
+#include "experiments/csharp/CompilerAot.h"
 
 #include <cstdio>
 #include <algorithm>
@@ -98,6 +99,10 @@ ManagedRuntimeStatus g_status;
 MonoApi g_api;
 void* g_library = nullptr;
 void* g_domain = nullptr;
+CompilerAotResult g_compilerAot;
+bool g_compilerAotAttempted = false;
+long long g_compilerAotSetupMs = 0;
+std::string g_compilerMethodCode = "NotChecked";
 std::string g_checkpointPath;
 void* g_liveAiMethod = nullptr;
 
@@ -270,6 +275,7 @@ void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
+void* g_universalSnapshot = nullptr;
 std::atomic<bool> g_universalPolling{false};
 
 std::mutex g_pinnedMutex;
@@ -1123,7 +1129,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1137,13 +1143,52 @@ bool prepareUniversalHookSdk() {
     g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
+    g_universalSnapshot = g_api.findMethod(dispatcher, "GetStatusSnapshot", 1);
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
     g_universalDispatchInt32 = g_api.findMethod(hooks, "InvokeInt32", 6);
     g_universalDispatchInt32Pair = g_api.findMethod(hooks, "InvokeInt32Pair", 7);
     g_universalDispatchExtended = g_api.findMethod(hooks, "InvokeExtended", 9);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
-    return g_universalRegister && g_universalDispatch && g_universalDispatchInt32 &&
+    return g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 &&
            g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove;
+}
+
+void writeUniversalRegistrationStatus(const std::string& id, const char* state, const std::string& detail) {
+    const size_t slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return;
+    const std::string path = g_checkpointPath.substr(0, slash + 1) + "universal-hooks-status.txt";
+    const std::string temp = path + ".tmp";
+    FILE* file = std::fopen(temp.c_str(), "wb");
+    if (!file) return;
+    const std::string value = "timestampUnix=" + std::to_string(static_cast<long long>(std::time(nullptr))) +
+        "\npid=" + std::to_string(static_cast<long long>(getpid())) +
+        "\nmodId=" + id + "\nstate=" + state +
+        "\ndetail=" + detail.substr(0, 1600) + "\n";
+    const bool saved = std::fwrite(value.data(), 1, value.size(), file) == value.size() &&
+        std::fflush(file) == 0;
+    std::fclose(file);
+    if (saved) std::rename(temp.c_str(), path.c_str());
+    else std::remove(temp.c_str());
+}
+
+std::string managedHookSnapshot(const std::string& id) {
+    if (!g_universalSnapshot || !g_api.invoke || !g_api.newString) return "snapshot indisponivel";
+    void* idString = g_api.newString(g_domain, id.c_str());
+    if (!idString) return "id mono indisponivel";
+    void* args[] = {idString};
+    void* exception = nullptr;
+    void* value = g_api.invoke(g_universalSnapshot, nullptr, args, &exception);
+    if (exception || !value) return "snapshot falhou";
+    using ToUtf8 = char* (*)(void*);
+    using Release = void (*)(void*);
+    auto convert = resolve<ToUtf8>("mono_string_to_utf8");
+    auto freeString = resolve<Release>("mono_free");
+    if (!convert || !freeString) return "conversor nao encontrado";
+    char* text = convert(value);
+    if (!text) return "snapshot vazio";
+    const std::string result(text, strnlen(text, 1600));
+    freeString(text);
+    return result;
 }
 
 struct UniversalMonoContext {
@@ -1234,6 +1279,13 @@ bool pollUniversalHooksOnWorker() {
     void* exception = nullptr;
     UniversalMonoContext context(!unload);
     if (unload) {
+        std::vector<std::string> ids;
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            for (const auto& mod : g_universalMods) ids.push_back(mod.id);
+        }
+        for (const std::string& id : ids)
+            writeUniversalRegistrationStatus(id, "paused", managedHookSnapshot(id));
         g_api.invoke(g_universalClear, nullptr, nullptr, &exception);
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
@@ -1244,7 +1296,14 @@ bool pollUniversalHooksOnWorker() {
         int count = -1;
         void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
         if (raw) std::memcpy(&count, raw, sizeof(count));
-        if (count < 0) {
+        if (count >= 0) {
+            writeUniversalRegistrationStatus(next.id, "registered",
+                "modules=" + std::to_string(count) + " " + managedHookSnapshot(next.id));
+        }
+        else {
+            writeUniversalRegistrationStatus(next.id, "failed",
+                "mono=" + std::to_string(exception != nullptr) +
+                " " + managedHookSnapshot(next.id));
             std::string line = "csharp universal hooks: registro recusado mod=" + next.id;
             using Utf8 = char* (*)(void*);
             using Free = void (*)(void*);
@@ -1718,6 +1777,7 @@ bool registerUniversalHookMod(const std::string& id, const std::string& assembly
     for (const auto& mod : g_universalMods) if (mod.id == id) return mod.path == assembly;
     if (g_universalMods.size() >= 16) return false;
     g_universalMods.push_back({id, assembly, false});
+    writeUniversalRegistrationStatus(id, "queued", "worker MonoVM aguardando registro");
     g_universalPolling.store(true, std::memory_order_release);
     g_pinnedWake.notify_one();
     return true;
@@ -3257,6 +3317,25 @@ ManagedSourceCompileResult compileManagedSource(
         return out;
     }
     const auto probeStarted = std::chrono::steady_clock::now();
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        if (!g_compilerAotAttempted) {
+            g_compilerAotAttempted = true;
+            const auto slash = compilerAssembly.find_last_of('/');
+            if (slash == std::string::npos) g_compilerAot.reason = "FrameworkPathInvalid";
+            else if (g_domain) g_compilerAot.reason = "RuntimeAlreadyInitialized";
+            else if (loadLibrary()) {
+                Dl_info runtime{};
+                const auto registerModule = resolve<void (*)(void**)>("mono_aot_register_module");
+                if (dladdr(reinterpret_cast<void*>(g_api.initialize), &runtime) && runtime.dli_fname)
+                    g_compilerAot = installCompilerAot("libbunnycompileraot.so",
+                        compilerAssembly.substr(0, slash), runtime.dli_fname, registerModule);
+                else g_compilerAot.reason = "RuntimePathUnavailable";
+            } else g_compilerAot.reason = "RuntimeLibraryUnavailable";
+            g_compilerAotSetupMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - probeStarted).count();
+        }
+    }
     const auto initialized = probeManagedRuntime(probeAssembly);
     out.monoProbeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - probeStarted).count();
@@ -3285,6 +3364,31 @@ ManagedSourceCompileResult compileManagedSource(
         trace("compile-method-missing", out.error.c_str());
         return out;
     }
+    if (g_compilerAot.registered && g_compilerMethodCode == "NotChecked") {
+        const auto compileMethod = resolve<void* (*)(void*)>("mono_compile_method");
+        void* code = compileMethod ? compileMethod(method) : nullptr;
+        Dl_info origin{};
+        g_compilerMethodCode = code && dladdr(code, &origin) && origin.dli_fname &&
+            std::strstr(origin.dli_fname, "libbunnycompileraot.so") ? "AOT" : "JITOrUnavailable";
+    }
+    const std::string aotStatus = "pid=" + std::to_string(getpid()) +
+        "\nmode=MixedJitAot\nregistered=" + std::to_string(g_compilerAot.registered) +
+        "\nreason=" + g_compilerAot.reason + "\nsetupMs=" + std::to_string(g_compilerAotSetupMs) +
+        "\ncompilerMethodCode=" + g_compilerMethodCode +
+        "\nmodSources=Editable\nfiveSecondTarget=Unmeasured\n";
+    const auto diagnosticSlash = diagnosticsPath.find_last_of('/');
+    if (diagnosticSlash != std::string::npos) {
+        const std::string path = diagnosticsPath.substr(0, diagnosticSlash + 1) + "source-compiler-aot-status.txt";
+        if (FILE* file = std::fopen(path.c_str(), "wb")) {
+            std::fwrite(aotStatus.data(), 1, aotStatus.size(), file);
+            std::fclose(file);
+        }
+    }
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+        "[CSharp][CompilerAot] Registered=%d Reason=%s SetupMs=%lld CompilerMethodCode=%s",
+        g_compilerAot.registered, g_compilerAot.reason.c_str(), g_compilerAotSetupMs, g_compilerMethodCode.c_str());
+#endif
     void* preflightClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "Preflight") : nullptr;
     void* ping = preflightClass ? g_api.findMethod(preflightClass, "Ping", 1) : nullptr;
