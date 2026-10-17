@@ -5,6 +5,7 @@
     <Compile Remove="placeable_fixture/**/*.cs" />
     <Compile Remove="wing_fixture/**/*.cs" />
     <Compile Remove="tile_fixture/**/*.cs" />
+    <Compile Remove="recipe_group_fixture/**/*.cs" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs" Link="Examples/ExampleItem.cs" />

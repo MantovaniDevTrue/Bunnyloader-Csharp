@@ -13,6 +13,30 @@ Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefau
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
 Check("recipe.reject-invalid",()=>{var item=new ExampleItem();item.SetDefaults();Reject(()=>item.CreateRecipe(0));Reject(()=>item.CreateRecipe().AddIngredient(0));Reject(()=>item.CreateRecipe().AddIngredient("bad,name"));Reject(()=>item.CreateRecipe().AddTile(754));Reject(()=>item.CreateRecipe().Register());Reject(()=>item.CreateRecipe().AddTile(18).AddTile(16));});
 Check("recipe.once-and-limits",()=>{var item=new ExampleItem();item.SetDefaults();var r=item.CreateRecipe().AddIngredient(2);r.Register();Reject(()=>r.Register());Reject(()=>r.AddIngredient(3));var many=item.CreateRecipe();for(int i=0;i<15;i++)many.AddIngredient(2);Reject(()=>many.AddIngredient(2));});
+Check("recipe.native-group-public-sdk",()=>{
+ var item=new ExampleItem();item.SetDefaults();
+ item.CreateRecipe().AddNativeRecipeGroup("Wood",10).AddNativeRecipeGroup("IronBar",2).AddIngredient<ExampleItem>().AddTile("ExampleWorkbench").Register();
+ Equal("1,mExampleWorkbench,gWood:10,gIronBar:2,mExampleItem:1",item.RecipeDefinitions.Single());
+ foreach(string bad in new[]{"","../Wood","Wood:1","Wood/Other","1Wood","Wood;IronBar",new string('x',73)})Reject(()=>item.CreateRecipe().AddNativeRecipeGroup(bad));
+ Reject(()=>item.CreateRecipe().AddNativeRecipeGroup("Wood",0));
+ Reject(()=>item.CreateRecipe().AddNativeRecipeGroup("Wood").AddNativeRecipeGroup("Wood"));
+ Reject(()=>item.CreateRecipe().AddIngredient<object>());Reject(()=>item.CreateRecipe().AddIngredient<BunnyItem>());
+ Reject(()=>item.CreateRecipe().AddTile<ExampleItem>());
+ var once=item.CreateRecipe().AddNativeRecipeGroup("Wood");once.Register();Reject(()=>once.AddNativeRecipeGroup("IronBar"));
+ var many=item.CreateRecipe();for(int i=0;i<15;i++)many.AddIngredient(2);Reject(()=>many.AddNativeRecipeGroup("Wood"));
+});
+Check("recipe.clone-isolation-and-removal",()=>{
+ var item=new ExampleItem();item.SetDefaults();
+ var original=item.CreateRecipe(3).AddIngredient(2,10).AddNativeRecipeGroup("Wood",5).AddIngredient<ExampleItem>().AddTile(18);original.Register();
+ var clone=original.Clone();Equal(true,clone.RemoveIngredient(2));Equal(false,clone.RemoveIngredient(2));
+ Equal(true,clone.RemoveIngredient<ExampleItem>());clone.AddIngredient(3);clone.Register();
+ Equal("3,18,v2:10,gWood:5,mExampleItem:1",item.RecipeDefinitions[0]);Equal("3,18,gWood:5,v3:1",item.RecipeDefinitions[1]);
+ Reject(()=>clone.RemoveIngredient(3));Reject(()=>clone.RemoveNativeRecipeGroup("Wood"));
+ var independent=clone.Clone();Equal(true,independent.RemoveNativeRecipeGroup("Wood"));Equal(false,independent.RemoveNativeRecipeGroup("Wood"));
+ independent.Register();Equal("3,18,v3:1",item.RecipeDefinitions[2]);Equal("3,18,gWood:5,v3:1",item.RecipeDefinitions[1]);
+ Reject(()=>independent.Clone().RemoveIngredient(0));Reject(()=>independent.Clone().RemoveIngredient("bad/key/again"));
+ var empty=item.CreateRecipe().AddIngredient(2);Equal(true,empty.RemoveIngredient(2));Reject(()=>empty.Register());
+});
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
  Equal(3,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
@@ -33,6 +57,13 @@ try {
  foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks"})
   File.Copy(Path.Combine(source,name+".dll"),Path.Combine(runtime,name+".dll"));
  File.Copy(typeof(BunnyItem).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
+ Check("recipe.groups-real-source-wire",()=>{
+  string root="tests/basic_items/recipe_group_fixture",output=Path.Combine(scratch,"groups.dll"),diag=Path.Combine(scratch,"groups.txt");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var lines=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));Equal(2,lines.Length);
+  Equal("1,mBench,gWood:10,gIronBar:2,mContractGroupedBench:3",lines[1].Split('\t')[19]);
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/group-source-runtime-values.txt",true);
+ });
  Check("roslyn.auto-items-only-package",()=>{
   string mod=Path.Combine(scratch,"mod");Directory.CreateDirectory(Path.Combine(mod,"content"));
   foreach(string path in new[]{"Content/Items/ExampleItem.cs","Content/Items/Tools/ExamplePickaxe.cs","Content/Items/Tools/ExampleHamaxe.cs"})

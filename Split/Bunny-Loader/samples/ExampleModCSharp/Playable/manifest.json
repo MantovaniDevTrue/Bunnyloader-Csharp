@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.47",
+  "version": "0.1.48",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Android Hook QA H3-H5: candidatos confirmados no scanner IL2CPP .85, diagnostico de callbacks real e limite de 2 chamadas.",
+  "summary": "Receitas por grupos nativos de ingredientes, referencias C# tipadas e diagnosticos de registro; preserva exemplos e hooks existentes.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

@@ -241,3 +241,14 @@ Retomada concreta: auditar os comportamentos e assets de materiais/itens/receita
 A primeira compilação em até 5 s, a estabilidade, a fidelidade visual completa e 60 FPS continuam dependendo de medição no Xiaomi. A validação local de GLSL em Mesa e o sucesso do CI não substituem execução Android.
 
 Evidência deste checkpoint: [Android CI 39077778658](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39077778658) aprovado, nove suítes independentes aprovadas no mesmo SHA, assinatura V3 e entrega privada experimental concluídas. ExampleMod permanece 0.1.47 e Lights permanece 0.4.2.3; não houve alteração funcional nos pacotes de fontes desses mods. O commit seguinte contém somente documentação/inventário e o teste reproduzível de GLSL para host.
+
+
+## Continuidade .90.29.89 — grupos nativos de receitas
+
+A autorizacao do usuario abrange novas APIs/classes/hooks/bridges reutilizaveis para portar toda a referencia oficial do tModLoader. Branch de desenvolvimento: feat/csharp-native-recipe-groups-v89, derivada integralmente da revisao .88.8. Versoes previstas: Bunny .90.29.89/code260 e ExampleMod 0.1.48; Lights permanece 0.4.2.3.
+
+Implementadas APIs de ingredientes por grupos nativos (AddNativeRecipeGroup), referencias genericas locais (AddIngredient<TItem>/AddTile<TTile>), Clone de receita declarada e remocao de ingredientes/grupos. A bridge chama Recipe.RequireGroup real, verifica metadata e boxing Int32 e preserva as receitas antigas. O ExampleWorkbench C# demonstra duas receitas adicionais e a copia independente; sua receita original permanece intacta.
+
+Os testes locais do servico e pump sem QuickJS passaram; CI precisa compilar/serializar o fixture C#, validar a referencia publica por reflection, executar regressao e compilar/assinar o APK antes da entrega experimental. Ver [contratos, evidencias e pendencias](csharp-native-recipe-groups-v89.md). Android continua pendente.
+
+Content/ExampleRecipes.cs oficial permanece Parcial: grupos customizados/merge/membros, multiplas estacoes, condicoes, callbacks, shimmer e alteracao global ainda faltam. Sua linha foi detalhada no inventario, sem remover os demais 449 fontes ativos/112 legados ou promover a matriz JavaScript. O lote A nao esta concluido e nenhum port oficial integral e anunciado por este checkpoint.

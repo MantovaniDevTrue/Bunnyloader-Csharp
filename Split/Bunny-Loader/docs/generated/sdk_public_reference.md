@@ -783,8 +783,16 @@ class; base: `System.Object`.
 | --- | --- |
 | `BunnyRecipe AddIngredient(int vanillaItemId, int count)` | managed_helper |
 | `BunnyRecipe AddIngredient(string modItemName, int count)` | managed_helper |
+| `BunnyRecipe AddIngredient<TItem>(int count)` | managed_helper |
+| `BunnyRecipe AddNativeRecipeGroup(string groupField, int count)` | managed_helper |
 | `BunnyRecipe AddTile(int vanillaTileId)` | managed_helper |
 | `BunnyRecipe AddTile(string modTileName)` | managed_helper |
+| `BunnyRecipe AddTile<TTile>()` | managed_helper |
+| `BunnyRecipe Clone()` | managed_helper |
+| `bool RemoveIngredient(int vanillaItemId)` | managed_helper |
+| `bool RemoveIngredient(string modItemName)` | managed_helper |
+| `bool RemoveIngredient<TItem>()` | managed_helper |
+| `bool RemoveNativeRecipeGroup(string groupField)` | managed_helper |
 | `void Register()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyRectangle

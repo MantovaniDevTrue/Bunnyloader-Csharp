@@ -9,3 +9,8 @@ Foram contabilizados **1.210 arquivos do ExampleMod**, incluindo **561 fontes C#
 Próxima etapa: ler os fontes de cada grupo e decompor propriedades, hooks, execução nativa e assets. Comparar primeiro materiais, itens e receitas com o Lote A atual, conferindo comportamentos existentes para não reimplementar sistemas estáveis. Para cada lacuna, ampliar a API pública reutilizável, integrar o runtime, portar o grupo completo e registrar testes de contrato, registro e comportamento. Usar compilação/CI e Android como evidências distintas. A base tModLoader 1.4.4 não é uma prova de disponibilidade de um campo, método ou ABI no Terraria Android 1.4.5.8.6.
 
 Não foram criados ports novos neste checkpoint: a revisão .88.8 corrigiu build e contratos de leitura do Lights, com validação Android ainda pendente. Este inventário impede omissões na expansão posterior, mas não oferece uma porcentagem artificial de implementação.
+
+
+## Primeiro grupo de infraestrutura: receitas .89
+
+A linha Content/ExampleRecipes.cs foi auditada e detalhada no JSON. Estado: **Parcial**, com grupos nativos, referencias tipadas, Clone de receitas Bunny e remocao implementados. O [relatorio](csharp-native-recipe-groups-v89.md) e o guia dentro do bmod registram os testes e todas as lacunas. Os demais arquivos conservam seu estado de auditoria; nenhum arquivo foi removido e nenhum port foi certificado integralmente.

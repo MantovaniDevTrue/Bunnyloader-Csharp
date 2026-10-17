@@ -23,14 +23,17 @@ struct Item {
  int width=0,height=0,value=0,rare=0,damage=0,crit=0,useTime=0,useAnimation=0,useStyle=0,pick=0,axe=0,hammer=0;
  bool flags[7]{};float knockBack=0;void* sound=nullptr; int16_t createTile=-1;uint16_t placementSentinel=0x5a5a;int16_t placeStyle=0;uint16_t styleSentinel=0xa5a5;
 };
-struct Recipe { Il2CppObject obj; Il2CppObject* result=nullptr; Il2CppArray* ingredients=nullptr; int station=-1; };
+struct Recipe { Il2CppObject obj; Il2CppObject* result=nullptr; Il2CppArray* ingredients=nullptr; int station=-1; std::vector<Il2CppObject*> groups; };
+struct NativeGroup { Il2CppObject obj; int placeholder=9; };
+struct BoxedInt { Il2CppObject obj; int value=0; };
 Il2CppClass intClass{"System","Int32",4,true},floatClass{"System","Single",4,true},
     shortClass{"System","Int16",2,true},boolClass{"System","Boolean",1,true},byteClass{"System","Byte",1,true},legacyClass{"Terraria.Audio","LegacySoundStyle"},
     itemClass{"Terraria","Item",sizeof(Item)},recipeClass{"Terraria","Recipe",sizeof(Recipe)},
     mainClass{"Terraria","Main"},itemArray{"Terraria","Item[]",0,false,&itemClass},
     recipeArray{"Terraria","Recipe[]",0,false,&recipeClass},variantClass{"Terraria","ItemVariant",4,true},
     shimmerClass{"Terraria.GameContent","ShimmerTransforms"},samplesClass{"Terraria.ID","ContentSamples"},
-    exceptionClass{"System","InvalidOperationException",sizeof(Il2CppObject)};
+    exceptionClass{"System","InvalidOperationException",sizeof(Il2CppObject)},
+    recipeGroupsClass{"Terraria.ID","RecipeGroups"},groupClass{"Terraria","RecipeGroup",sizeof(NativeGroup)};
 bl::il2cpp::Api apiInstance;
 std::vector<FieldInfo> fields;
 std::map<std::string,MethodInfo> methods;
@@ -38,6 +41,8 @@ std::map<unsigned,Il2CppObject*> roots;
 unsigned nextRoot=1;int numRecipes=0,maxRecipes=16,lookups=0,commits=0,barriers=0;
 Il2CppObject* current=nullptr;Il2CppArray* table=nullptr;
 bool failDefaults=false,failAdd=false,failLookup=false,wrongArray=false,failedAllocation=false;
+bool failGroup=false,failPlaceholder=false,wrongGroupReturn=false;
+Il2CppObject* wood=nullptr;Il2CppObject* iron=nullptr;
 Il2CppObject exception{&exceptionClass,nullptr};
 std::vector<void*> allocated;
 Il2CppArray* makeArray(Il2CppClass* cls,unsigned length){
@@ -52,7 +57,7 @@ Il2CppClass* findNested(Il2CppClass*,std::string_view){return nullptr;}
 Il2CppClass* findClassQuiet(const std::string&,const std::string&){return nullptr;}
 
 Api& api(){return apiInstance;}
-Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
+Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass,&recipeGroupsClass,&groupClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){const auto key=cls->name+"."+std::string(name);for(auto& f:fields)if(f.name==key)return &f;return nullptr;}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 Signature parseSignature(std::string_view s){Signature out;out.name=std::string(s);return out;}
@@ -78,7 +83,9 @@ void configure(){
   {"Recipe.maxRecipes",{&intClass},0,0x10,&maxRecipes},{"Main.recipe",{&recipeArray},0,0x10,&table},
   {"Recipe.createItem",{&itemClass},offsetof(Recipe,result),0},{"Recipe.requiredItem",{&itemArray},offsetof(Recipe,ingredients),0},
   {"Item.type",{&intClass},offsetof(Item,type),0},{"Item.stack",{&intClass},offsetof(Item,stack),0},
-  {"Item.maxStack",{&intClass},offsetof(Item,maxStack),0}};
+  {"Item.maxStack",{&intClass},offsetof(Item,maxStack),0},
+  {"RecipeGroups.Wood",{&groupClass},0,0x10,&wood},{"RecipeGroups.IronBar",{&groupClass},0,0x10,&iron},
+  {"Int32.m_value",{&intClass},offsetof(BoxedInt,value),0}};
  const std::pair<const char*,size_t> extra[]={
   {"width",offsetof(Item,width)},{"height",offsetof(Item,height)},{"value",offsetof(Item,value)},
   {"rare",offsetof(Item,rare)},{"damage",offsetof(Item,damage)},{"crit",offsetof(Item,crit)},
@@ -95,6 +102,8 @@ void configure(){
    "void AddRecipe()","void CreateRequiredItemQuickLookups()","void UpdateMaterialFieldForAllRecipes()",
    "void UpdateWhichItemsAreMaterials()","void UpdateWhichItemsAreCrafted()","void UpdateRecipeSets()","void FixItemsAfterRecipesAreAdded()"})
    methods.emplace(s,MethodInfo{s,std::string(s)=="void .ctor()"||std::string(s)=="void SetDefaults(int Type, ItemVariant variant)"||std::string(s)=="void SetCraftingStation(int tileType)"});
+ methods.emplace("int GetPlaceholderItemType()",MethodInfo{"int GetPlaceholderItemType()",true});
+ methods.emplace("void RequireGroup(RecipeGroup group)",MethodInfo{"void RequireGroup(RecipeGroup group)",true});
  apiInstance.class_get_name=[](Il2CppClass* c){return c->name.c_str();};
  apiInstance.class_get_namespace=[](Il2CppClass* c){return c->ns.c_str();};
  apiInstance.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};
@@ -105,11 +114,12 @@ void configure(){
   for(;i<fields.size();++i)if(fields[i].name.rfind(c->name+".",0)==0){*it=reinterpret_cast<void*>(i+1);return &fields[i];}
   return nullptr;
  };
- apiInstance.class_instance_size=[](Il2CppClass* c){return c->size;};
+ apiInstance.class_instance_size=[](Il2CppClass* c){return c==&intClass?static_cast<unsigned>(sizeof(BoxedInt)):c->size;};
  apiInstance.class_value_size=[](Il2CppClass* c,uint32_t* alignment){*alignment=4;return static_cast<int>(c->size);};
  apiInstance.field_get_type=[](FieldInfo* f){return static_cast<const Il2CppType*>(&f->type);};
  apiInstance.field_get_flags=[](FieldInfo* f){return f->flags;};
  apiInstance.field_get_offset=[](FieldInfo* f){return f->offset;};
+ apiInstance.class_get_field_from_name=[](Il2CppClass* c,const char* name){return bl::il2cpp::findField(c,name);};
  apiInstance.field_static_get_value=[](FieldInfo* f,void* out){assert(f->storage);std::memcpy(out,f->storage,f->type.cls==&intClass?4:sizeof(void*));};
  apiInstance.field_static_set_value=[](FieldInfo* f,void* in){
   assert(f->storage);
@@ -141,13 +151,23 @@ void configure(){
    if(item->type==3)item->maxStack=1;
    if(failDefaults)*ex=&exception;
   }else if(m->signature=="void SetCraftingStation(int tileType)")static_cast<Recipe*>(self)->station=*static_cast<int*>(args[0]);
-  else if(m->signature=="void AddRecipe()"){
+  else if(m->signature=="int GetPlaceholderItemType()"){
+   if(failPlaceholder){*ex=&exception;return nullptr;}
+   auto* boxed=new BoxedInt{{wrongGroupReturn?&floatClass:&intClass,nullptr},static_cast<NativeGroup*>(self)->placeholder};
+   allocated.push_back(boxed);return &boxed->obj;
+  }else if(m->signature=="void RequireGroup(RecipeGroup group)"){
+   assert(args[0]&&apiInstance.object_get_class(static_cast<Il2CppObject*>(args[0]))==&groupClass);
+   if(failGroup)*ex=&exception;
+   else static_cast<Recipe*>(self)->groups.push_back(static_cast<Il2CppObject*>(args[0]));
+  }else if(m->signature=="void AddRecipe()"){
    assert(!self);auto** slots=static_cast<Il2CppObject**>(arrayData(table));slots[numRecipes++]=current;commits++;
    current=&makeRecipe()->obj;if(failAdd)*ex=&exception;
   }else{lookups++;if(failLookup)*ex=&exception;}
   return nullptr;
  };
  table=makeArray(&recipeArray,16);current=&makeRecipe()->obj;
+ auto* w=new NativeGroup{{&groupClass,nullptr},9};allocated.push_back(w);wood=&w->obj;
+ auto* i=new NativeGroup{{&groupClass,nullptr},22};allocated.push_back(i);iron=&i->obj;
 }
 using namespace bl::runtime;
 NativeRecipeRequest request(const std::string& name){NativeRecipeRequest r;r.key="cs/"+name+"#0";r.mod="cs";r.name=name;r.source="content/"+name+".cs";r.result=kVanillaItemCount;r.station=18;r.ingredients={{2,10,{}}};return r;}
@@ -170,6 +190,50 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--group-wire") {
+  assert(argc==3);std::ifstream file(argv[2]);std::string line;
+  assert(std::getline(file,line)&&line=="BUNNY_MANAGED_DEFAULTS_V2"&&std::getline(file,line));
+  bl::csharp::BasicItemEntry entry;assert(bl::csharp::parseBasicItemWire(bl::csharp::basicSplit(line,'\t'),&entry,&error));
+  ModItemDef def;def.mod="groupwire";def.name=entry.name;def.texture="contract.png";entry.type=registerModItem(def);item_registry::g_installed.store(3);
+  assert(bl::csharp::registerBasicItemPlaceholder(entry.type,entry.name,&error));
+  const auto nativeBench=registerModTile({"groupwire","Bench","bench.png"});tile_registry::g_installed.store(3);
+  numRecipes=1;assert(bl::csharp::applyNativeBasicItemDefaults("groupwire",{entry},&error));bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(bl::csharp::pendingBasicRecipes().empty()&&numRecipes==2&&commits==1&&roots.empty());
+  auto** slots=static_cast<Recipe**>(arrayData(table));auto* recipe=slots[1];assert(recipe->station==nativeBench&&recipe->groups.size()==2&&recipe->groups[0]==wood&&recipe->groups[1]==iron);
+  auto** required=static_cast<Item**>(arrayData(recipe->ingredients));assert(required[0]->type==9&&required[0]->stack==10&&required[1]->type==22&&required[1]->stack==2&&required[2]->type==entry.type&&required[2]->stack==3);
+  std::cout<<"CSHARP_COMPILED_GROUP_WIRE_NATIVE_PUMP_WITHOUT_QUICKJS_PASS\n";return 0;
+ }
+ if(mode.rfind("--group",0)==0) {
+  numRecipes=1;
+  auto grouped=request("GroupBench");grouped.ingredients={{-1,10,{},"Wood"},{-1,2,{},"IronBar"},{-1,3,"Material"}};
+  if(mode=="--group-type")bl::il2cpp::findField(&recipeGroupsClass,"Wood")->type.cls=&intClass;
+  if(mode=="--group-method")methods.at("void RequireGroup(RecipeGroup group)").instance=false;
+  if(mode=="--group-return")wrongGroupReturn=true;
+  if(mode=="--group-size")intClass.size=8;
+  if(mode=="--group-export")apiInstance.class_get_fields=nullptr;
+  if(mode=="--groups-raw")bl::il2cpp::findField(&intClass,"m_value")->offset=0;
+  if(mode!="--groups"&&mode!="--groups-raw") {
+   const auto bad=installNativeRecipe(grouped);assert(bad.index<0&&commits==0&&numRecipes==1&&roots.empty());
+   assert(bad.error.find("Stage=ResolveRecipeGroup")!=std::string::npos&&bad.error.find("GroupBench")!=std::string::npos);
+   std::cout<<"NATIVE_RECIPE_GROUP_CONTRACT_REJECTION_PASS "<<mode<<'\n';return 0;
+  }
+  auto* originalWood=wood;wood=nullptr;
+  auto bad=installNativeRecipe(grouped);assert(bad.index<0&&bad.error.find("RecipeSetupNotReady")!=std::string::npos&&commits==0);
+  wood=originalWood;
+  assert(resolveNativeRecipe(grouped,&resolved,&error));assert(resolved.ingredients[0].type==9&&resolved.ingredients[1].type==22);
+  auto installed=installNativeRecipe(grouped);assert(installed.index==1&&commits==1&&current==saved&&roots.empty());
+  auto** slots=static_cast<Recipe**>(arrayData(table));assert(slots[1]->groups.size()==2&&slots[1]->groups[0]==wood&&slots[1]->groups[1]==iron);
+  auto** required=static_cast<Item**>(arrayData(slots[1]->ingredients));assert(required[0]->type==9&&required[0]->stack==10&&required[1]->type==22&&required[1]->stack==2);
+  grouped.key="cs/group-duplicate";grouped.ingredients.push_back({-1,1,{},"Wood"});
+  bad=installNativeRecipe(grouped);assert(bad.index<0&&bad.error.find("DuplicateRecipeGroup")!=std::string::npos&&commits==1);
+  grouped.ingredients.pop_back();grouped.key="cs/group-fail";failGroup=true;
+  bad=installNativeRecipe(grouped);assert(bad.index<0&&bad.error.find("Stage=RequireGroup")!=std::string::npos&&bad.error.find("System.InvalidOperationException")!=std::string::npos&&numRecipes==2&&current==saved&&roots.empty());failGroup=false;
+  failPlaceholder=true;bad=installNativeRecipe(grouped);assert(bad.index<0&&bad.error.find("GetPlaceholderItemType")!=std::string::npos&&numRecipes==2&&roots.empty());failPlaceholder=false;
+  grouped.ingredients[0].nativeGroup="NoSuchGroup";bad=installNativeRecipe(grouped);assert(bad.index<0&&bad.error.find("Field=NoSuchGroup")!=std::string::npos&&commits==1);
+  grouped.ingredients[0].nativeGroup="Wood";assert(installNativeRecipe(grouped).index==2&&numRecipes==3&&commits==2);
+  auto independent=request("GroupFailureIsolation");assert(installNativeRecipe(independent).index==3&&numRecipes==4&&roots.empty());
+  std::cout<<"NATIVE_RECIPE_GROUPS_WITHOUT_QUICKJS_PASS placeholders,real-require-group,amounts,late-init,retry,exceptions,isolation,roots\n";return 0;
+ }
  if(mode=="--probe-wire") {
   assert(argc==3);std::ifstream file(argv[2]);std::string line;
   assert(std::getline(file,line)&&line=="BUNNY_MANAGED_DEFAULTS_V2");
