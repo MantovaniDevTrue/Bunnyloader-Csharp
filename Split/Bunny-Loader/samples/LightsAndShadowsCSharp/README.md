@@ -14,6 +14,8 @@ Nenhuma chamada por quadro ao MonoVM e introduzida: os parametros C# sao vincula
 
 ## Empacotamento
 
-`python3 package_mod.py` gera o `.bmod` somente de arquivos fonte C#, GLSL e texturas originais. Requer Bunny Loader C# .88.2 ou mais recente.
+`python3 package_mod.py` gera o `.bmod` somente de arquivos fonte C#, GLSL e texturas originais. Requer Bunny Loader C# .88.3 ou mais recente. A .88.2 não reconhece a diretiva SCENE; mantenha a versão 0.4.1 com esse Loader.
 
-`content/Common/Lighting/` contem LightingSettings, LightingFrame e LightingCalculator.Compute com formulas extraidas do port PC. O calculo managed esta coberto pelos testes de referencia, mas nao recebe snapshots ao vivo do Terraria na atual API: o efeito em jogo ainda usa o host nativo. A fidelidade integral do mod de PC (todos os efeitos, biomas e opcoes) ainda esta em desenvolvimento. Primeiro validar com outro mod C# ativo, dia/noite, troca de biomas, subida ao espaco e FPS antes de mesclar.
+`content/Common/Lighting/` contem LightingSettings, LightingFrame e LightingCalculator.Compute com formulas extraidas do port PC. O calculo managed esta coberto pelos testes de referencia, mas nao recebe snapshots ao vivo do Terraria na atual API: o efeito em jogo ainda usa o host nativo. Agora o grafo declara SCENE|LightsAndShadowsCSharp|LightingCalculator|ComputeSceneWire e a thread MonoVM recebe instantâneos de tempo, superfície, posição da câmera e fase da Lua, até 10 vezes por segundo. Os resultados alimentam os uniforms com compensação nativa para o movimento entre amostras. Resultados atrasados são descartados e a iluminação nativa continua como fallback. Os dados opcionais de céu, bioma e gravidade ainda não têm todos os leitores IL2CPP implementados, portanto o port não tem fidelidade integral ao PC.
+
+A fidelidade integral do mod de PC (todos os efeitos, biomas e opcoes) ainda esta em desenvolvimento. Primeiro validar com outro mod C# ativo, dia/noite, troca de biomas, subida ao espaco e FPS antes de mesclar.
