@@ -1728,6 +1728,32 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldMapBenchmark",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Finish()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Progress()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Start()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Stop()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.PrefixCategory",
       "kind": "enum",
       "baseType": "System.Enum",

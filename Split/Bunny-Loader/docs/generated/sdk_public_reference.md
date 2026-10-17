@@ -918,6 +918,17 @@ string Texture { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyWorldMapBenchmark
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Finish()` | managed_helper |
+| `static string Progress()` | managed_helper |
+| `static string Start()` | managed_helper |
+| `static string Stop()` | managed_helper |
+
 ## BunnyLoader.Source.PrefixCategory
 
 enum; base: `System.Enum`.
