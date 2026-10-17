@@ -314,13 +314,13 @@ BunnyNativeScope Native { get; }
 | Method | Execution |
 | --- | --- |
 | `BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32(string type, string method, BunnyVoidInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32Pair(string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
-| `BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32Triple(string type, string method, BunnyVoidInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
-| `BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
-| `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyHooks
@@ -338,18 +338,18 @@ string LastError { get; }
 | --- | --- |
 | `static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookInt32(BunnyHookScope scope, string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `static BunnyMethodHook HookInt32Pair(BunnyHookScope scope, string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `static BunnyMethodHook HookInt32Triple(BunnyHookScope scope, string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookInt32Zero(BunnyHookScope scope, string type, string method, BunnyInt32ZeroHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookVoidInt32(BunnyHookScope scope, string type, string method, BunnyVoidInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookVoidInt32Pair(BunnyHookScope scope, string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
-| `static BunnyMethodHook HookInt32Triple(BunnyHookScope scope, string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookVoidInt32Triple(BunnyHookScope scope, string type, string method, BunnyVoidInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
-| `static BunnyMethodHook HookInt32Pair(BunnyHookScope scope, string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static int Dispatch(int slot, Int64 ticket, IntPtr self)` | experimental_worker_sync_void0 |
 | `static string GetStatus()` | experimental_worker_sync_void0 |
 | `static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)` | experimental_worker_sync_void0 |
+| `static void InvokeExtended(int slot, Int64 ticket, IntPtr self, int first, int second, int third, int mode, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void InvokeInt32Pair(int slot, Int64 ticket, IntPtr self, int first, int second, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
-| `static void InvokeExtended(int slot, Int64 ticket, IntPtr self, int first, int second, int third, int mode, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyHurtInfo
