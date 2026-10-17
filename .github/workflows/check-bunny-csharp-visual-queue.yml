@@ -8,6 +8,7 @@ on:
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
       - codex/csharp-lights-fidelity-v90-29-88
+      - codex/csharp-lights-night-hotfix
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
