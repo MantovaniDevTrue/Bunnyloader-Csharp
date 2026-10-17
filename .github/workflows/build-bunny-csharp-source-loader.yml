@@ -773,7 +773,7 @@ jobs:
               assert token in src, token
           assert src.index('runCatching { ensureVmBenchmarkAssembly(assembly) }') < src.index('startNativeCore() else')
           assert 'private fun installManagedFramework(dir: File)' in worker
-          assert 'LinkedBlockingQueue<CompileWork>(16)' in worker
+          assert 'LinkedBlockingDeque<CompileWork>(16)' in worker
           assert 'pending.poll(8, TimeUnit.SECONDS)' in worker
           assert 'if (workerThread == null)' in worker
           assert 'resident.assembly == null' in worker
@@ -786,7 +786,7 @@ jobs:
               assert metric in probe and metric in jni
           assert 'static bool compilerSignalTraceInstalled = false' in probe
           assert 'if (!compilerSignalTraceInstalled)' in probe
-          assert 'if (!reused) {' in worker
+          assert 'if (!reused && !job.precompile) {' in worker
           assert 'assets.list("managed")' in worker
           assert 'internal object ManagedFrameworkAssets' in worker
           assert 'if (name in valid) continue' in worker
