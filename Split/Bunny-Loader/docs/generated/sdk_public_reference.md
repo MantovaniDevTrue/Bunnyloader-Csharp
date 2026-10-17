@@ -314,6 +314,7 @@ BunnyNativeScope Native { get; }
 | Method | Execution |
 | --- | --- |
 | `BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
@@ -332,10 +333,12 @@ string LastError { get; }
 | --- | --- |
 | `static BunnyMethodHook Hook(BunnyHookScope scope, string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static BunnyMethodHook HookInt32(BunnyHookScope scope, string type, string method, BunnyInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `static BunnyMethodHook HookInt32Pair(BunnyHookScope scope, string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `static int Dispatch(int slot, Int64 ticket, IntPtr self)` | experimental_worker_sync_void0 |
 | `static string GetStatus()` | experimental_worker_sync_void0 |
 | `static void Invoke(int slot, Int64 ticket, IntPtr self, out int result)` | experimental_worker_sync_void0 |
 | `static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
+| `static void InvokeInt32Pair(int slot, Int64 ticket, IntPtr self, int first, int second, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
 
 ## BunnyLoader.Source.BunnyHurtInfo
@@ -420,6 +423,20 @@ BunnyInt32Hook(Object object, IntPtr method)
 | `IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int value, AsyncCallback callback, Object object)` | managed_helper |
 | `int EndInvoke(IAsyncResult result)` | managed_helper |
 | `int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInt32PairHook
+
+class; base: `System.MulticastDelegate`.
+
+```csharp
+BunnyInt32PairHook(Object object, IntPtr method)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int first, int second, AsyncCallback callback, Object object)` | managed_helper |
+| `int EndInvoke(IAsyncResult result)` | managed_helper |
+| `int Invoke(BunnyOriginalInt32 original, IntPtr self, int first, int second)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyItem
 

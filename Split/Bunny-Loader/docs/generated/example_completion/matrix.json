@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 57
+    "cSharpSourceFiles": 59
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -15911,6 +15911,24 @@
     }
   ],
   "additionalCSharp": [
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleIntPairHook.cs",
+      "classes": [
+        "ExampleIntPairHook"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleNativeAccess.cs",
+      "classes": [
+        "ExampleNativeAccess"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Live/BunnyLiveEvents.cs",
       "classes": [

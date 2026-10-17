@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.40"
+assert catalog["exampleModCSharpVersion"] == "0.1.41"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -88,9 +88,19 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.40"
+assert manifest2["version"] == "0.1.41"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert 0 < len(playable_files) <= 512
+hook_dir = playable / "content/Common/Hooks"
+native_probe = (hook_dir / "ExampleNativeAccess.cs").read_text(encoding="utf-8")
+pair_probe = (hook_dir / "ExampleIntPairHook.cs").read_text(encoding="utf-8")
+assert 'hooks.HookVoid("Terraria.Player", "ResetEffects"' in native_probe
+assert 'ReadAndInvoke(' in native_probe
+assert 'scope.HookInt32Pair("Terraria.Utilities.UnifiedRandom", "Next"' in pair_probe
+assert "original.Invoke()" in pair_probe
+assert "public static string Start()" in pair_probe and "public static string Stop()" in pair_probe
+assert "public static bool OverrideSmallRange" in pair_probe
+assert "ExampleNativeAccess.cs" not in str(EXAMPLE / "Experimental" / "NativeAccess" / "ExampleNativeAccess.cs") or not (EXAMPLE / "Experimental" / "NativeAccess" / "ExampleNativeAccess.cs").exists()
 source_text = "\\n".join(p.read_text(encoding="utf-8") for p in playable_files)
 for expected in ("ExampleWand", "ExampleBolt", "ExampleBoltMotion",
                  "ExampleWaveWand", "ExampleWaveBolt", "ExampleWaveBoltMotion",

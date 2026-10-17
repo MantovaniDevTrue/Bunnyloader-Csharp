@@ -16,7 +16,7 @@ def package_bytes():
     with tempfile.TemporaryDirectory(prefix='native-access-probe-') as temp:
         folder=Path(temp)/'mod'
         shutil.copytree(ROOT/'samples/NativeAccessProbe/Playable',folder)
-        source=ROOT/'samples/ExampleModCSharp/Experimental/NativeAccess/ExampleNativeAccess.cs'
+        source=ROOT/'samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleNativeAccess.cs'
         shutil.copyfile(source,folder/'content/ExampleNativeAccess.cs')
         data=pack.pack_bytes(folder)
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
