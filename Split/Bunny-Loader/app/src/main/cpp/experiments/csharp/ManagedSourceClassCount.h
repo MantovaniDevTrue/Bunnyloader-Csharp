@@ -7,7 +7,7 @@ namespace bl::csharp {
 
 inline int expectedManagedSourceTypes(const SourceModStatus& mod) {
     return mod.items + mod.tiles + mod.projectiles + mod.buffs +
-           mod.players + mod.npcs + mod.prefixes;
+           mod.players + mod.npcs + mod.prefixes + mod.screenEffects;
 }
 
 inline bool managedSourceCompileFinished(const std::string& status,
