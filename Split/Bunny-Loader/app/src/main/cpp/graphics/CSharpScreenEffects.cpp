@@ -202,6 +202,11 @@ void pumpCSharpScreenEffects() {
                         entry.modId, scene.raw, scene.sunX, scene.sunY, scene.clock);
                     bl::csharp::ManagedScreenLightResult result;
                     if (bl::csharp::readManagedScreenScene(entry.modId, &result)) {
+                        static bool reportedManagedScene = false;
+                        if (!reportedManagedScene) {
+                            reportedManagedScene = true;
+                            BL_INFO("CSharp ScreenFx: iluminacao C# ativa via MonoVM mod=%s, snapshot assíncrono", entry.modId.c_str());
+                        }
                         managedScene.sunX = std::clamp(
                             result.sunX + scene.sunX - result.baseSunX, -1.f, 2.f);
                         managedScene.sunY = std::clamp(
