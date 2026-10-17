@@ -9,6 +9,8 @@ public sealed class ExampleNativeAccess : BunnyHookModule
     private BunnyNativeBatch batch = null!;
     private BunnyNativeMember findBuffIndex = null!;
 
+    public static bool PairMethodPresent { get; private set; }
+    public static string PairMethodError { get; private set; } = "";
     public static long ResetCalls { get; private set; }
     public static long Samples { get; private set; }
     public static int LastLife { get; private set; }
@@ -29,6 +31,15 @@ public sealed class ExampleNativeAccess : BunnyHookModule
             var dayTime = main.Field("dayTime", BunnyValueKind.Boolean, isStatic: true);
             batch = access.Batch(life, position, dayTime);
             findBuffIndex = player.Method("FindBuffIndex", BunnyValueKind.Int32, false, "System.Int32");
+            try
+            {
+                access.Type("Terraria.Utilities.UnifiedRandom").Method("Next", BunnyValueKind.Int32, false, "System.Int32", "System.Int32");
+                PairMethodPresent = true;
+            }
+            catch (Exception error)
+            {
+                PairMethodError = error.GetType().Name + ": " + error.Message;
+            }
             hooks.HookVoid("Terraria.Player", "ResetEffects", (original, self) =>
             {
                 original.Invoke();
