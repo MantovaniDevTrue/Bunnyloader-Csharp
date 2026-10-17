@@ -1,11 +1,17 @@
-# Hooks CSharp .84 — diagnostico real Android
+# Hook QA CSharp 0.1.47 — alvos reais no Terraria Android
 
-ExampleMod CSharp **0.1.45** para Bunny Loader CSharp **0.1.10.16.90.29.84**.
+Requer APK Bunny Loader CSharp .85 (Terraria 1.4.5.8.6, arm64-v8a). Os metodos abaixo foram encontrados pelo scanner nativo IL2CPP no aparelho em 17/10/2026. Estar presente nao e o mesmo que ter callback validado.
 
-O BunnyPlayer.OnEnterWorld e avaliado na fase de preparacao e nao reflete estados vivos do MonoVM. Nesta versao a mensagem de entrada indica que os estados H1-H5 devem ser consultados na secao "hooks universais C# (registro real MonoVM)" do relatorio Bunny Loader.
+| Hook | Candidatos em ordem, todos com assinatura real conforme scanner |
+| --- | --- |
+| H1 int() | Utilities.UnifiedRandom.Next (callback ja validado anteriormente) |
+| H2 void(int) | WorldItem.UpdateItem e alternativas anteriores (callback OK2 anteriormente) |
+| H3 void(int,int) | Wiring.HitSwitch, Wiring.HitWireSingle, Wiring.PokeLogicGate, todos static |
+| H4 int(int,int,int) | Player.CalculateFrameFromMiscCounter (instancia), WorldGen.countWires (static) |
+| H5 void(int,int,int) | WorldGen.Check1x1, WorldGen.CheckLogicTiles, WorldGen.Check2x2 (static), WorldItem.SpawnShimmeredItem (instancia) |
 
-O runtime salva `universal-hooks-status.txt` quando solicita registro (queued), apos executar dispatcher (registered), ao sair do mundo (paused) ou apos falha (failed). Mostra o PID, horario, quantidade de modulos e diagnostico de cada modulo. `ARMADO` confirma apenas instalacao do hook; `OK1/OK2` confirma callback real; `E-5/E-6/E-7` indica alvo/sinatura invalida; `AGUARDANDO` sugere modulo nao inicializado.
+Cada modulo tenta o proximo candidato somente se o anterior falhar na instalacao. Cada callback executa original.Invoke() uma vez, nao muda parametros ou resultados, e se desinstala apos duas chamadas.
 
-H1 = int(): Terraria.Utilities.UnifiedRandom.Next(). H2 = void(int): Terraria.WorldGen.QuickFindHome(int). H3 = void(int,int): Terraria.WorldGen.PlantCactus(int,int). H4 = int(int,int,int): Terraria.WorldGen.countWires(int,int,int). H5 = void(int,int,int): Terraria.WorldGen.ConvertTile(int,int,int). Todos sao candidatos de PC, nao validados em Android.
+**Teste em mundo descartavel**: instale somente ExampleMod CSharp 0.1.47 sobre 0.1.46 com a mesma APK .85. Ande e anime o personagem (H4), ative alavanca ou switch (H3), coloque/quebre um bloco comum (H5). Nao tente forcar Shimmer nem eventos de worldgen. Saia para o menu e envie os cinco estados da secao hooks universais CSharp e o FPS; pare se surgir travamento.
 
-Use mundo descartavel. Instale APK .84 e ExampleMod .45, entre, aguarde alguns segundos, saia, gere o relatorio e envie o trecho "hooks universais C#", junto ao FPS. Cada callback preserva original e se desativa apos duas chamadas; ResetEffects continua desligado. Nao tente forcar efeitos de worldgen. Ao fim volte ExampleMod 0.1.42 para jogatina normal.
+No relatorio, ARMADO@metodo confirma instalacao, OK1/OK2@metodo confirma callbacks. OnEnterWorld mostra texto precomputado e nunca deve ser usado para verificar contadores. H3-H5 ainda aguardam teste real. Ao terminar restaure ExampleMod CSharp 0.1.42 fora do QA.

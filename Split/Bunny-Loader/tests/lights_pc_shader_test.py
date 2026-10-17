@@ -61,6 +61,25 @@ assert "@param.NightShadowThreshold" in source
 assert "@param.RayQuality" in source
 assert "@param.BloomStrength" in source
 assert "mix(uNightShadowThreshold, uDayShadowThreshold, day)" in mask
+for graph_name in ("Lights.screenfx", "Lights_Alternate.screenfx"):
+    graph_lines = (effects / graph_name).read_text().splitlines()
+    graph_passes = [line.split("|") for line in graph_lines if line.startswith("PASS|")]
+    assert len(graph_passes) == 9, graph_name
+    assert all("uSunEnabled=@enabled" in graph_passes[i][4] for i in (0, 1, 2)), graph_name
+for shader_text in (mask, rays, compose):
+    assert "if (uSunEnabled <= 0.0" in shader_text
+assert "fragColor = vec4(1.0, 1.0, 1.0, 0.0);" in mask
+assert "uSunStrength <= 0.0" in rays
+assert "fragColor = vec4(0.0, 0.0, 0.0, 1.0);" in rays
+assert "texture(uSource, vUV).rgb, 1.0" in compose
+assert (effects / "Lights.screenfx").read_text().count("PASS|") == 9
+renderer = (root.parent.parent / "app/src/main/cpp/graphics/EffectRenderer.cpp").read_text()
+render_header = (root.parent.parent / "app/src/main/cpp/graphics/RenderHook.h").read_text()
+screen_api = (root.parent.parent / "app/src/main/cpp/script/api/Screen.cpp").read_text()
+assert "screenCopyCalls" in renderer and "screenCopyPixels" in renderer
+assert "screenCopyCalls" in render_header and "screenCopyPixels" in render_header
+assert 'i64("screenCopyCalls", s.screenCopyCalls)' in screen_api
+assert 'i64("screenCopyPixels", s.screenCopyPixels)' in screen_api
 assert "uSceneShadowThreshold" in mask
 mod_source = (root / "Playable/content/main.cs").read_text()
 for name in ("SunPower", "DayShadowThreshold", "NightShadowThreshold", "ShadowStrength",
@@ -79,4 +98,4 @@ for name, expected in assets.items():
     assert raw[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
     assert sha256(raw).hexdigest() == expected, name
 print("LIGHTS_PC_GRAPH_FIDELITY=PASS passes=9 lowres_targets=4 assets=3")
-\n
+

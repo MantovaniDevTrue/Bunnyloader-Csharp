@@ -1,12 +1,16 @@
-# ExampleMod CSharp 0.1.45 — QA temporario
+# Android Hook QA 0.1.47
 
-## Teste de convivencia com ScreenFx C# .88 e hotfix .88.1
+Pacote temporario que usa o scanner IL2CPP .85 para H3 Wiring.HitSwitch, H4 Player.CalculateFrameFromMiscCounter e H5 WorldGen.Check1x1. Metodos presentes no Android, callbacks ainda em teste. Estado real no relatorio, nao na mensagem OnEnterWorld. Guia: `Playable/content/Documentation/HOOK_QA_ANDROID.md`.
 
-O ExampleMod CSharp continua independente do Lights And Shadows. A regressao .88.1 tambem cobre mudancas suaves de luz noturna, biomas e altura sem afetar os hooks do ExampleMod. Para verificar que a API grafica .88 nao interfere nos hooks, armas, prefixos ou salvamento nativos, ative o ExampleMod junto de `LightsAndShadowsCSharp 0.3.0` com o APK experimental .88. A renderizacao dos sete passes e a camera sao responsabilidades do Bunny Loader, sem codigo JS nos mods C#. O teste de regressao do grafo fica em `tests/lights_pc_shader_test.py`.
+# Android Hook QA 0.1.47
+
+ExampleMod temporario para a APK .84. H1 int() validado previamente; H2-H5 testam assinaturas IL2CPP com candidatos e diagnostico de qual metodo foi aceito. O resumo real aparece no relatorio Bunny Loader, nao na mensagem de OnEnterWorld. Leia `Playable/content/Documentation/HOOK_QA_ANDROID.md`.
+
+# ExampleMod CSharp 0.1.47 — QA temporario
 
 Use com APK .84 para testar os cinco hooks. O OnEnterWorld e precomputado e nao exibe contadores ao vivo. Os resultados verdadeiros aparecem na secao `hooks universais C#` do relatorio Bunny Loader. Detalhes em `Playable/content/Documentation/HOOK_QA_ANDROID.md`.
 
-# Android QA .83 — ExampleMod CSharp 0.1.45 (TEMPORARIO)
+# Android QA .83 — ExampleMod CSharp 0.1.47 (TEMPORARIO)
 
 Pacote preparado para validar em aparelho os cinco hooks tipados da API CSharp .83. Todos os cinco estao ligados automaticamente somente nesta versao de diagnostico e se desligam apos ate duas chamadas. A mensagem `ExampleWelcomePlayer.OnEnterWorld` resume H1-H5; nomes e erros em `Playable/content/Documentation/HOOK_QA_ANDROID.md`. Os cinco metodos de Terraria sao candidatos nao confirmados na build Android. Nao ha alteracao de retorno nem simulacao de eventos artificiais; assim `ARMADO` e diferente de `OK1/OK2`. O probe antigo `ResetEffects` permanece inativo.
 

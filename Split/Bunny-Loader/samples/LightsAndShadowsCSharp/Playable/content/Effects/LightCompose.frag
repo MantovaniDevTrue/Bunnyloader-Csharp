@@ -8,6 +8,10 @@ uniform float uLightStrength;
 uniform float uSunPower;
 uniform float uSunEnabled;
 void main() {
+    if (uSunEnabled <= 0.0 || uLightStrength <= 0.0) {
+        fragColor = vec4(texture(uSource, vUV).rgb, 1.0);
+        return;
+    }
     vec3 scene = texture(uSource, vUV).rgb;
     vec2 axis = (vUV - uSun) * vec2(uAspect, 1.0);
     float reach = max(1.0 - length(axis) / 3.0, 0.0);
