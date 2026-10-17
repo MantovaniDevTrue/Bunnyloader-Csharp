@@ -1290,14 +1290,18 @@ jobs:
           tests = (base/"tests/universal_hooks/native.cpp").read_text()
           assert 'bunny_universal_hook_install_i32' in native
           assert 'bunny_universal_hook_original_i32' in native
-          assert 'method_get_param(method, 0)' in native
+          assert 'api.method_get_param(method, static_cast<uint32_t>(index))' in native
           assert 'System.Int32' in native
           assert 'callOriginalInt32' in native
           assert 'int32Mode' in mailbox and 'originalInt32' in mailbox
           assert 'complete(work.ticket, success, returnedValue, retryable)' in worker
           assert 'g_universalDispatchInt32' in worker
           assert 'HookInt32' in sdk and 'InvokeInt32' in sdk
-          assert 'typed Int32(int) ABI' in tests
+          assert 'native: typed int/void 0..3 argument ABI' in tests
+          for api in ('HookInt32Zero', 'HookVoidInt32', 'HookVoidInt32Pair', 'HookInt32Triple', 'HookVoidInt32Triple'):
+              assert api in sdk, api
+          assert 'bunny_universal_hook_install_extended' in native
+          assert 'work.extendedMode' in worker
           print("UNIVERSAL_INT32_SIGNATURE_BRIDGE=PASS")
           PY
       - name: Verify experimental universal hooks and dedicated CSharp editor
