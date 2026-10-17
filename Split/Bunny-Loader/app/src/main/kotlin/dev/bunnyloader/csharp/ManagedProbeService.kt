@@ -6,6 +6,7 @@ import android.os.IBinder
 import android.os.Process
 import android.util.Log
 import java.io.File
+import java.io.RandomAccessFile
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -446,6 +447,16 @@ internal object ManagedFrameworkAssets {
     data class Result(val assemblyPath: String, val state: String,
                       val installed: Int, val retained: Int)
 
+    fun <T> withLock(dir: File, action: () -> T): T {
+        require(dir.isDirectory || dir.mkdirs()) { "CSharp framework directory unavailable" }
+        return RandomAccessFile(File(dir, "framework.install.lock"), "rw").use { file ->
+            file.channel.lock().use { action() }
+        }
+    }
+
+    fun ensure(context: android.content.Context, dir: File, verifyCached: Boolean): Result =
+        withLock(dir) { ensureUnlocked(context, dir, verifyCached) }
+
     private fun sha256(bytes: ByteArray): String =
         java.security.MessageDigest.getInstance("SHA-256")
             .digest(bytes).joinToString("") { "%02x".format(it.toInt() and 0xff) }
@@ -463,8 +474,7 @@ internal object ManagedFrameworkAssets {
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
-    fun ensure(context: android.content.Context, dir: File, verifyCached: Boolean): Result {
-        require(dir.isDirectory || dir.mkdirs()) { "CSharp framework directory unavailable" }
+    private fun ensureUnlocked(context: android.content.Context, dir: File, verifyCached: Boolean): Result {
         val assets = context.assets
         val names = assets.list("managed").orEmpty()
             .filter { it.endsWith(".dll") }.sorted()
