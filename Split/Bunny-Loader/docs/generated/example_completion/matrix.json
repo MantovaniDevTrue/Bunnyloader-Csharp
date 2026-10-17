@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 59
+    "cSharpSourceFiles": 64
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -15911,6 +15911,51 @@
     }
   ],
   "additionalCSharp": [
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookInt32Triple.cs",
+      "classes": [
+        "ExampleHookInt32Triple"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookInt32Zero.cs",
+      "classes": [
+        "ExampleHookInt32Zero"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookVoidInt32.cs",
+      "classes": [
+        "ExampleHookVoidInt32"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookVoidInt32Pair.cs",
+      "classes": [
+        "ExampleHookVoidInt32Pair"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookVoidInt32Triple.cs",
+      "classes": [
+        "ExampleHookVoidInt32Triple"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleIntPairHook.cs",
       "classes": [
