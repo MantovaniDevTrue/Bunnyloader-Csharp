@@ -1908,10 +1908,10 @@ jobs:
       - name: Deliver private signed Bunny CSharp 88.7 APK and CSharp mods
         shell: bash
         env:
-          GH_TOKEN: \${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -z "\${GH_TOKEN:-}" ]; then
+          if [ -z "${GH_TOKEN:-}" ]; then
             echo "::error::Private build delivery token is absent"
             exit 1
           fi
@@ -1922,7 +1922,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify "$APK"
           VERSION="$(sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' Split/Bunny-Loader/app/build.gradle.kts | head -n 1)"
           test "$VERSION" = "0.1.10.16.90.29.88.7-csharp-lights-perf"
-          FILE="BunnyLoader-CSharp-\${VERSION}-SignedV3.apk"
+          FILE="BunnyLoader-CSharp-${VERSION}-SignedV3.apk"
           cp "$APK" "$RUNNER_TEMP/$FILE"
           (cd "$RUNNER_TEMP" && sha256sum "$FILE" > "$FILE.sha256")
           ROOT="Split/Bunny-Loader"
@@ -1930,9 +1930,9 @@ jobs:
           test -s "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod.sha256"
           test -s "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
           test -s "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256"
-          SOURCE_SHA="\${{ github.event.pull_request.head.sha || github.sha }}"
+          SOURCE_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           for attempt in $(seq 1 40); do
-            gh api "repos/\${GITHUB_REPOSITORY}/actions/runs?head_sha=\${SOURCE_SHA}&per_page=100" > "$RUNNER_TEMP/screenfx-runs.json"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SOURCE_SHA}&per_page=100" > "$RUNNER_TEMP/screenfx-runs.json"
             if python3 - "$RUNNER_TEMP/screenfx-runs.json" "$SOURCE_SHA" <<'PYGATE'
           import json, sys
           runs = json.load(open(sys.argv[1]))["workflow_runs"]
@@ -1950,7 +1950,7 @@ jobs:
             fi
             sleep 15
           done
-          TAG="csharp-v3-run-\${GITHUB_RUN_ID}-a\${GITHUB_RUN_ATTEMPT}"
+          TAG="csharp-v3-run-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           gh release create "$TAG" \
             "$RUNNER_TEMP/$FILE" \
             "$RUNNER_TEMP/$FILE.sha256" \
@@ -1962,7 +1962,7 @@ jobs:
             "$ROOT/build/basic-items-results.json" \
             --repo "$PRIVATE_REPO" --target main \
             --title "Bunny Loader CSharp $VERSION | Lights 0.4.2.3 optimized" \
-            --notes "Signed V3 experimental Android APK. Preserves nine Lights passes, original shader assets and ExampleMod CSharp 0.1.47. Adds ScreenFx GPU invisible-light fast path and copy counters. FPS stability under four bosses and seven Guardians requires Android testing. Source: \${SOURCE_SHA}." \
+            --notes "Signed V3 experimental Android APK. Preserves nine Lights passes, original shader assets and ExampleMod CSharp 0.1.47. Adds ScreenFx GPU invisible-light fast path and copy counters. FPS stability under four bosses and seven Guardians requires Android testing. Source: ${SOURCE_SHA}." \
             --prerelease
           echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
 
