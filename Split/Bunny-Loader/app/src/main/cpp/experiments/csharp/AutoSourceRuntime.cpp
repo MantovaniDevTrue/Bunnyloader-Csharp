@@ -814,7 +814,7 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -865,6 +865,19 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+        if (mod.screenEffects > 0) {
+            graphics::CSharpScreenSceneCallback sceneCallback;
+            if (graphics::findCSharpScreenSceneCallback(mod.id, &sceneCallback)) {
+                if (registerManagedScreenSceneMod(mod.id, assembly,
+                      sceneCallback.nameSpace, sceneCallback.className,
+                      sceneCallback.methodName))
+                    BL_INFO("CSharp ScreenFx: managed scene callback registered mod=%s",
+                            mod.id.c_str());
+                else
+                    BL_WARN("CSharp ScreenFx: managed scene callback unavailable mod=%s, native fallback",
+                            mod.id.c_str());
+            }
+        }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
         if (mod.npcs > 0 || mod.projectiles > 0) {
@@ -1169,6 +1182,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
+    pauseManagedScreenSceneCallbacks();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1242,6 +1256,7 @@ void noteAutoGameUpdate() {
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
+        pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);

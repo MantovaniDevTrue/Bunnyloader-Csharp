@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
+#include "graphics/EffectTypes.h"
 
 namespace bl::graphics {
 
@@ -15,6 +17,16 @@ struct CSharpScreenEffectSpec {
     std::string pipelineFile;
     std::map<std::string, float> parameters;
 };
+
+struct CSharpScreenSceneCallback {
+    std::string nameSpace;
+    std::string className;
+    std::string methodName;
+};
+bool findCSharpScreenSceneCallback(const std::string& modId,
+                                    CSharpScreenSceneCallback* result);
+uint64_t csharpScreenWarmupRevision();
+std::vector<TargetSpec> csharpScreenWarmupTargets();
 
 bool registerCSharpScreenEffects(const std::string& modId,
                                  const std::string& contentDirectory,

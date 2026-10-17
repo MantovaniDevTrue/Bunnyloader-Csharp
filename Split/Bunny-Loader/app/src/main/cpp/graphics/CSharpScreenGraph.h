@@ -29,6 +29,9 @@ struct ScreenGraphPass {
 };
 
 struct ScreenGraph {
+    std::string sceneNamespace;
+    std::string sceneClass;
+    std::string sceneMethod;
     std::vector<TargetSpec> targets;
     std::vector<ScreenGraphPass> passes;
     EffectLayer layer = EffectLayer::World;
