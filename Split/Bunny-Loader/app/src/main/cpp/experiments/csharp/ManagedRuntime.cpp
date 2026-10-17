@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
@@ -281,6 +282,29 @@ std::atomic<bool> g_universalPolling{false};
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
+
+struct SceneLightBinding {
+    std::string modId, assemblyPath, nameSpace, className, methodName;
+    std::chrono::steady_clock::time_point nextSample{};
+    bool enabled = true;
+    int failures = 0;
+};
+struct SceneLightRequest {
+    int binding = -1;
+    bl::graphics::ScreenSceneRaw raw;
+    float baseSunX = 0, baseSunY = 0, baseClock = 0;
+    uint64_t generation = 0;
+};
+struct SceneLightReply {
+    ManagedScreenLightResult result;
+    std::chrono::steady_clock::time_point updated{};
+    uint64_t generation = 0;
+};
+std::vector<SceneLightBinding> g_sceneLightBindings;
+std::deque<SceneLightRequest> g_sceneLightQueue;
+std::map<std::string, SceneLightReply> g_sceneLightResults;
+uint64_t g_sceneLightGeneration = 1;
+std::map<std::string, void*> g_sceneLightMethods;
 struct ManagedHurtBinding {
     std::string modId;
     std::string assemblyPath;
@@ -1321,6 +1345,77 @@ bool pollUniversalHooksOnWorker() {
     return true;
 }
 
+bool executeManagedSceneOnWorker(const SceneLightRequest& request,
+                                ManagedScreenLightResult* result) {
+    if (!result) return false;
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.methodExecuted || !g_api.attach ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.newString || !g_api.invoke) return false;
+    if (!g_api.attach(g_domain)) return false;
+    SceneLightBinding binding;
+    {
+        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+        if (request.generation != g_sceneLightGeneration || request.binding < 0 ||
+            static_cast<size_t>(request.binding) >= g_sceneLightBindings.size()) return false;
+        binding = g_sceneLightBindings[static_cast<size_t>(request.binding)];
+    }
+    if (!binding.enabled || !validAssembly(binding.assemblyPath)) return false;
+    const std::string cacheKey = binding.assemblyPath + ":" + binding.nameSpace +
+                                 ":" + binding.className + ":" + binding.methodName;
+    void*& method = g_sceneLightMethods[cacheKey];
+    if (!method) {
+        void* assembly = g_api.openAssembly(g_domain, binding.assemblyPath.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, binding.nameSpace.c_str(),
+                                              binding.className.c_str()) : nullptr;
+        method = klass ? g_api.findMethod(klass, binding.methodName.c_str(), 1) : nullptr;
+        if (!method) return false;
+    }
+    char input[440]{};
+    const auto& raw = request.raw;
+    const int n = std::snprintf(input, sizeof input,
+        "%d|%.12g|%.12g|%.9g|%.9g|%d|%d|%.9g|%d|%d|%d|%d|%d|%d|%d|%d|%d|%.9g|%.9g|%d",
+        raw.dayTime ? 1 : 0, raw.gameTime, raw.worldSurface,
+        raw.cameraX, raw.cameraY, raw.screenWidth, raw.screenHeight,
+        raw.playerCenterY, raw.moonPhase, raw.invertedGravity ? 1 : 0,
+        raw.skyRed, raw.skyGreen, raw.skyBlue,
+        raw.snow ? 1 : 0, raw.crimson ? 1 : 0, raw.corrupt ? 1 : 0,
+        raw.snowBackground, raw.snowAlpha, raw.desertAlpha, raw.desertBackground);
+    if (n <= 0 || static_cast<size_t>(n) >= sizeof input) return false;
+    void* monoInput = g_api.newString(g_domain, input);
+    if (!monoInput) return false;
+    void* args[1] = {monoInput};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    if (exception || !boxed) return false;
+    using Utf8Fn = char* (*)(void*);
+    using ReleaseFn = void (*)(void*);
+    static auto utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+    static auto release = resolve<ReleaseFn>("mono_free");
+    if (!utf8 || !release) return false;
+    char* data = utf8(boxed);
+    if (!data) return false;
+    float sunX = 0, sunY = 0, clock = 0, strength = 0, threshold = 0;
+    int enabled = 0;
+    char extra = 0;
+    const bool parsed = strnlen(data, 256) < 256 &&
+        std::sscanf(data, "%f;%f;%f;%f;%f;%d%c",
+                    &sunX, &sunY, &clock, &strength, &threshold, &enabled,
+                    &extra) == 6;
+    release(data);
+    if (!parsed || !std::isfinite(sunX) || !std::isfinite(sunY) ||
+        !std::isfinite(clock) || !std::isfinite(strength) ||
+        !std::isfinite(threshold) || sunX < -2.f || sunX > 3.f ||
+        sunY < -2.f || sunY > 3.f || clock < 0.f || clock > 2.f ||
+        strength < 0.f || strength > 3.f || threshold < 0.f ||
+        threshold > 1.f || (enabled != 0 && enabled != 1)) return false;
+    *result = {sunX, sunY, clock, strength, threshold,
+               request.baseSunX, request.baseSunY, request.baseClock,
+               enabled == 1};
+    return true;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1711,6 +1806,33 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                if (!g_sceneLightQueue.empty()) {
+                    SceneLightRequest request = std::move(g_sceneLightQueue.front());
+                    g_sceneLightQueue.pop_front();
+                    lock.unlock();
+                    ManagedScreenLightResult computed;
+                    const bool ok = executeManagedSceneOnWorker(request, &computed);
+                    lock.lock();
+                    if (request.generation == g_sceneLightGeneration &&
+                        request.binding >= 0 &&
+                        static_cast<size_t>(request.binding) < g_sceneLightBindings.size()) {
+                        auto& binding = g_sceneLightBindings[static_cast<size_t>(request.binding)];
+                        if (ok) {
+                            g_sceneLightResults[binding.modId] = {
+                                computed, std::chrono::steady_clock::now(), request.generation
+                            };
+                            binding.failures = 0;
+                        } else if (++binding.failures >= 3 && binding.enabled) {
+                            binding.enabled = false;
+#ifdef __ANDROID__
+                            __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                                "ScreenFx managed callback disabled mod=%s; native fallback active",
+                                binding.modId.c_str());
+#endif
+                        }
+                    }
+                    continue;
+                }
                 if (!g_auditEnabled) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
@@ -1767,6 +1889,88 @@ void* pinnedMonoWorker(void*) {
     return nullptr;
 }
 
+}
+
+
+bool registerManagedScreenSceneMod(const std::string& id,
+                                   const std::string& assembly,
+                                   const std::string& nameSpace,
+                                   const std::string& className,
+                                   const std::string& method) {
+    auto identifier = [](const std::string& name) {
+        if (name.empty() || name.size() > 72) return false;
+        for (char c : name)
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                  (c >= '0' && c <= '9') || c == '_')) return false;
+        return true;
+    };
+    if (id.empty() || id.size() > 128 || !validAssembly(assembly) ||
+        !identifier(nameSpace) || !identifier(className) || !identifier(method))
+        return false;
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    for (auto& binding : g_sceneLightBindings) {
+        if (binding.modId != id) continue;
+        if (binding.assemblyPath != assembly || binding.nameSpace != nameSpace ||
+            binding.className != className || binding.methodName != method) return false;
+        binding.enabled = true;
+        binding.failures = 0;
+        return true;
+    }
+    if (g_sceneLightBindings.size() >= 4) return false;
+    g_sceneLightBindings.push_back({id, assembly, nameSpace, className, method});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool queueManagedScreenScene(const std::string& modId,
+                             const graphics::ScreenSceneRaw& raw,
+                             float baseSunX, float baseSunY, float baseClock) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted || g_pinnedBusy || g_pinnedPending)
+        return false;
+    const auto now = std::chrono::steady_clock::now();
+    for (size_t i = 0; i < g_sceneLightBindings.size(); ++i) {
+        auto& binding = g_sceneLightBindings[i];
+        if (binding.modId != modId || !binding.enabled || now < binding.nextSample)
+            continue;
+        binding.nextSample = now + std::chrono::milliseconds(100);
+        if (!g_sceneLightQueue.empty()) {
+            for (auto& job : g_sceneLightQueue)
+                if (job.binding == static_cast<int>(i)) {
+                    job = {static_cast<int>(i), raw, baseSunX, baseSunY,
+                           baseClock, g_sceneLightGeneration};
+                    return true;
+                }
+        }
+        if (g_sceneLightQueue.size() >= 4) return false;
+        g_sceneLightQueue.push_back({static_cast<int>(i), raw, baseSunX, baseSunY,
+                                      baseClock, g_sceneLightGeneration});
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool readManagedScreenScene(const std::string& modId, ManagedScreenLightResult* out) {
+    if (!out) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto it = g_sceneLightResults.find(modId);
+    if (it == g_sceneLightResults.end() ||
+        it->second.generation != g_sceneLightGeneration ||
+        std::chrono::steady_clock::now() - it->second.updated >
+            std::chrono::milliseconds(500)) return false;
+    *out = it->second.result;
+    return true;
+}
+
+void pauseManagedScreenSceneCallbacks() {
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    ++g_sceneLightGeneration;
+    g_sceneLightQueue.clear();
+    g_sceneLightResults.clear();
+    for (auto& binding : g_sceneLightBindings)
+        binding.nextSample = {};
 }
 
 void wakeUniversalHookWorker() { g_pinnedWake.notify_one(); }

@@ -1,8 +1,17 @@
-uniform float uShadowThreshold;
+uniform float uDayShadowThreshold;
+uniform float uNightShadowThreshold;
+uniform float uDayShadowSoftness;
+uniform float uNightShadowSoftness;
 uniform float uDayBlend;
+uniform float uSceneShadowThreshold;
 void main() {
     vec4 pixel = texture(uSource, vUV);
-    float softness = mix(0.008, 0.012, clamp(uDayBlend, 0.0, 1.0));
+    float day = clamp(uDayBlend, 0.0, 1.0);
+    float softness = mix(uNightShadowSoftness, uDayShadowSoftness, day);
+    float baseline = mix(0.02, 0.98, day);
+    float uShadowThreshold = clamp(
+        mix(uNightShadowThreshold, uDayShadowThreshold, day)
+        + uSceneShadowThreshold - baseline, 0.0, 1.0);
     float edge = 1.0 - smoothstep(
         max(uShadowThreshold - softness, 0.0),
         min(uShadowThreshold + softness, 1.0),

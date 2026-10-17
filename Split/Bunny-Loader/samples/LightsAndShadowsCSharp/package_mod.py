@@ -5,7 +5,7 @@ from hashlib import sha256
 import sys
 
 root = Path(__file__).resolve().parent
-output = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "LightsAndShadowsCSharp-0.3.1.bmod"
+output = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "LightsAndShadowsCSharp-0.4.2.bmod"
 with ZipFile(output, "w", ZIP_DEFLATED, compresslevel=8) as package:
     for path in sorted((root / "Playable").rglob("*")):
         if path.is_file():

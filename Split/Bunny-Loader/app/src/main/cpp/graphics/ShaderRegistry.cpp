@@ -3,6 +3,7 @@
 #include "graphics/ShaderLibrary.h"
 #include "core/Log.h"
 
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -57,6 +58,7 @@ void fail(Entry& e, const std::string& error) {
 }
 
 bool build(Entry& e) {
+    const auto started = std::chrono::steady_clock::now();
     auto& g = gl();
     std::string error;
     const std::string fragment = ShaderLibrary::BuildFragment(e.source, error);
@@ -99,6 +101,10 @@ bool build(Entry& e) {
 
     std::lock_guard<std::mutex> lock(g_mutex);
     e.state = ShaderState::Ready;
+    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - started).count();
+    BL_INFO("ScreenFx GLSL: compilado %s em %lld us", e.name.c_str(),
+            static_cast<long long>(elapsed));
     return true;
 }
 
@@ -134,6 +140,22 @@ CompiledShader* ShaderRegistry::Use(int id) {
         if (e->state == ShaderState::Ready) return &e->compiled;
     }
     return build(*e) ? &e->compiled : nullptr;
+}
+
+bool ShaderRegistry::PrewarmOne() {
+    int pendingId = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        for (size_t i = 0; i < g_entries.size(); ++i) {
+            if (g_entries[i]->state == ShaderState::Pending) {
+                pendingId = static_cast<int>(i + 1);
+                break;
+            }
+        }
+    }
+    if (!pendingId) return false;
+    Use(pendingId);
+    return true;
 }
 
 GLint ShaderRegistry::Uniform(CompiledShader& shader, const std::string& name) {

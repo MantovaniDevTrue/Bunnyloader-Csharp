@@ -1,4 +1,5 @@
 #include "graphics/CSharpScreenEffects.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "graphics/RenderHook.h"
 #include "graphics/ShaderRegistry.h"
 #include "graphics/ScreenScene.h"
@@ -17,6 +18,11 @@ static int shaders = 0;
 
 namespace bl::csharp {
 bool sourceRuntimeApplied(const std::string& id) { return id == "probe" || id == "probe_graph"; }
+bool queueManagedScreenScene(const std::string&, const graphics::ScreenSceneRaw&,
+                             float, float, float) { return false; }
+bool readManagedScreenScene(const std::string&, ManagedScreenLightResult*) {
+    return false;
+}
 }
 
 namespace bl::graphics {
@@ -51,7 +57,7 @@ int main() {
         std::ofstream file(fs::path(path) / "Effects" / "Ok.frag");
         file << "void main(){fragColor=vec4(1.0);}";
     }
-    bl::graphics::CSharpScreenEffectSpec spec{"Tint", "Effects/Ok.frag", 0, 0, 0.7f, ""};
+    bl::graphics::CSharpScreenEffectSpec spec{"Tint", "Effects/Ok.frag", 0, 0, 0.7f, "", {}};
     std::string error;
     assert(bl::graphics::registerCSharpScreenEffects("probe", path, {spec}, &error));
     assert(shaders == 1);
@@ -67,8 +73,9 @@ int main() {
     assert(shaders == 1);
     {
         std::ofstream file(fs::path(path) / "Effects" / "Light.screenfx");
-        file << "TARGET|shadow|0.333333\n"
-                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@threshold|-\n"
+        file << "SCENE|TestLight|LightingCalculator|ComputeSceneWire\n"
+                "TARGET|shadow|0.333333\n"
+                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@param.DayShadowThreshold|-\n"
                 "PASS|Effects/Ok.frag|screen|screen|uClock=@clock|uRays=shadow,uGradient=Effects/Day.png?Effects/Night.png\n";
     }
     {
@@ -82,13 +89,21 @@ int main() {
     bl::graphics::CSharpScreenEffectSpec graph;
     graph.className = "Light";
     graph.pipelineFile = "Effects/Light.screenfx";
+    graph.parameters["DayShadowThreshold"] = 0.98f;
     assert(bl::graphics::registerCSharpScreenEffects("probe_graph", path, {graph}, &error));
     assert(shaders == 3);
+    bl::graphics::CSharpScreenSceneCallback callback;
+    assert(bl::graphics::findCSharpScreenSceneCallback("probe_graph", &callback));
+    assert(callback.nameSpace == "TestLight" &&
+           callback.className == "LightingCalculator" &&
+           callback.methodName == "ComputeSceneWire");
     bl::graphics::pumpCSharpScreenEffects();
     assert(frames.size() == 3);
     assert(frames[2].targets.size() == 1);
     assert(frames[2].draws.size() == 2);
     assert(frames[2].draws[0].dest == 1);
+    assert(frames[2].draws[0].uniforms.size() == 2);
+    assert(frames[2].draws[0].uniforms[1].v[0] == 0.98f);
     assert(frames[2].draws[1].textures.size() == 2);
     assert(frames[2].draws[1].textures[0].texture == 1);
     assert(frames[2].draws[1].textures[1].texture <= -1000);
