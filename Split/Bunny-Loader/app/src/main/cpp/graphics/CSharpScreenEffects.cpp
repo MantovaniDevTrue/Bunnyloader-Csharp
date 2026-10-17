@@ -145,6 +145,7 @@ void clearCSharpScreenEffects() {
         previous = entry.modId;
         submitModEffects(previous, EffectFrame{}, true);
     }
+    resetScreenScene();
 }
 
 void pumpCSharpScreenEffects() {
