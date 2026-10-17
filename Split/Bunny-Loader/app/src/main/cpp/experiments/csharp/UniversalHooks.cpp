@@ -19,6 +19,7 @@ struct Entry {
     void* original = nullptr;
     bool isStatic = false;
     bool int32Mode = false;
+    bool int32PairMode = false;
     int managedSlot = -1;
     std::atomic<bool> active{false};
     std::chrono::steady_clock::time_point retryAfter{};
@@ -40,7 +41,7 @@ struct Install {
     uint64_t epoch = 0;
     std::string type, method;
     int slot = -1, result = -1;
-    bool isStatic = false, int32Mode = false;
+    bool isStatic = false, int32Mode = false, int32PairMode = false;
 } install;
 std::atomic<uint64_t> epoch{1};
 std::atomic<bool> accepting{true};
@@ -57,6 +58,13 @@ int32_t callOriginalInt32(Entry& entry, uintptr_t self, int32_t value, const Met
         return reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(target)(value, info);
     return reinterpret_cast<int32_t(*)(void*, int32_t, const MethodInfo*)>(target)(
         reinterpret_cast<void*>(self), value, info);
+}
+int32_t callOriginalInt32Pair(Entry& entry, uintptr_t self, int32_t first, int32_t second, const MethodInfo* info) {
+    void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
+    if (entry.isStatic)
+        return reinterpret_cast<int32_t(*)(int32_t, int32_t, const MethodInfo*)>(target)(first, second, info);
+    return reinterpret_cast<int32_t(*)(void*, int32_t, int32_t, const MethodInfo*)>(target)(
+        reinterpret_cast<void*>(self), first, second, info);
 }
 constexpr int suspensionSecondsFor(int consecutive) {
     return consecutive < 2 ? 5 : consecutive == 2 ? 10 : 15;
@@ -136,13 +144,18 @@ void dispatch(int index, uintptr_t self, const MethodInfo* info) {
     applyUniversalHookFault(entry, result);
     if ((!result.accepted || result.faulted) && !result.originalRan) callOriginal(entry, self, info);
 }
-int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo* info) {
+int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo* info,
+                      int32_t value2 = 0, bool pair = false) {
+    auto vanilla = [&](Entry& entry) {
+        return pair ? callOriginalInt32Pair(entry, self, value, value2, info)
+                    : callOriginalInt32(entry, self, value, info);
+    };
     Entry& entry = entries[index];
     if (!entry.active.load(std::memory_order_acquire) || inOriginal || universalNativeAccessInProgress ||
         static_cast<long>(syscall(__NR_gettid)) != gameThread.load(std::memory_order_acquire))
-        return callOriginalInt32(entry, self, value, info);
+        return vanilla(entry);
     const auto now = std::chrono::steady_clock::now();
-    if (now < entry.retryAfter) return callOriginalInt32(entry, self, value, info);
+    if (now < entry.retryAfter) return vanilla(entry);
     if (entry.suspended) {
         entry.suspended = false;
         entry.timeoutsInWindow = 0;
@@ -152,7 +165,7 @@ int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo
     int32_t originalValue = 0;
     auto original = [&] {
         inOriginal = true;
-        auto body = [&] { originalValue = callOriginalInt32(entry, self, value, info); };
+        auto body = [&] { originalValue = vanilla(entry); };
         const bool ok = il2cpp::guarded(body);
         inOriginal = false;
         if (ok) universalHookMailbox().setOriginalInt32Value(originalValue);
@@ -161,13 +174,14 @@ int32_t dispatchInt32(int index, uintptr_t self, int32_t value, const MethodInfo
     counters[0].fetch_add(1, std::memory_order_relaxed);
     const auto result = universalHookMailbox().dispatch(
         entry.managedSlot, self, original, wakeUniversalHookWorker,
-        std::chrono::milliseconds(3), value, true, universalNativeService.load(std::memory_order_acquire));
+        std::chrono::milliseconds(3), value, !pair,
+        universalNativeService.load(std::memory_order_acquire), value2, pair);
     if (!result.accepted) counters[2].fetch_add(1, std::memory_order_relaxed);
     else if (!result.faulted) counters[1].fetch_add(1, std::memory_order_relaxed);
     if (result.timedOut) counters[3].fetch_add(1, std::memory_order_relaxed);
     applyUniversalHookFault(entry, result);
     if (!result.accepted || result.faulted)
-        return result.originalRan ? originalValue : callOriginalInt32(entry, self, value, info);
+        return result.originalRan ? originalValue : vanilla(entry);
     return result.value;
 }
 template<size_t N> int32_t instanceInt32Stub(void* self, int32_t arg, const MethodInfo* info) {
@@ -175,6 +189,18 @@ template<size_t N> int32_t instanceInt32Stub(void* self, int32_t arg, const Meth
 }
 template<size_t N> int32_t staticInt32Stub(int32_t arg, const MethodInfo* info) {
     return dispatchInt32(N, 0, arg, info);
+}
+template<size_t N> int32_t instanceInt32PairStub(void* self, int32_t a, int32_t b, const MethodInfo* info) {
+    return dispatchInt32(N, reinterpret_cast<uintptr_t>(self), a, info, b, true);
+}
+template<size_t N> int32_t staticInt32PairStub(int32_t a, int32_t b, const MethodInfo* info) {
+    return dispatchInt32(N, 0, a, info, b, true);
+}
+template<size_t... N> auto instanceInt32PairStubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceInt32PairStub<N>)...};
+}
+template<size_t... N> auto staticInt32PairStubs(std::index_sequence<N...>) {
+    return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&staticInt32PairStub<N>)...};
 }
 template<size_t... N> auto instanceInt32Stubs(std::index_sequence<N...>) {
     return std::array<void*, sizeof...(N)>{reinterpret_cast<void*>(&instanceInt32Stub<N>)...};
@@ -205,24 +231,31 @@ int installOnGameThread() {
     if (!api.class_get_methods || !api.method_get_param_count || !api.method_get_name ||
         !api.method_get_return_type || !api.type_get_name || !api.il2cpp_free ||
         !api.class_is_valuetype || !api.method_is_instance || !api.method_is_generic || !api.class_is_generic ||
-        (install.int32Mode && !api.method_get_param)) return -4;
+        ((install.int32Mode || install.int32PairMode) && !api.method_get_param)) return -4;
     Il2CppClass* cls = il2cpp::findClassQuiet(install.type.substr(0, dot), install.type.substr(dot + 1));
     if (!cls || api.class_is_valuetype(cls) || api.class_is_generic(cls)) return -5;
     const MethodInfo* selected = nullptr;
     void* iter = nullptr;
     while (const MethodInfo* method = api.class_get_methods(cls, &iter)) {
         if (install.method != api.method_get_name(method) ||
-            api.method_get_param_count(method) != (install.int32Mode ? 1u : 0u) ||
+            api.method_get_param_count(method) != (install.int32PairMode ? 2u : install.int32Mode ? 1u : 0u) ||
             api.method_is_instance(method) == install.isStatic) continue;
         char* name = api.type_get_name(api.method_get_return_type(method));
-        const bool rightReturn = name && std::strcmp(name, install.int32Mode ? "System.Int32" : "System.Void") == 0;
+        const bool rightReturn = name && std::strcmp(name,
+            (install.int32Mode || install.int32PairMode) ? "System.Int32" : "System.Void") == 0;
         if (name) api.il2cpp_free(name);
-        bool rightParam = !install.int32Mode;
-        if (install.int32Mode && api.method_get_param) {
+        bool rightParam = !install.int32Mode && !install.int32PairMode;
+        if ((install.int32Mode || install.int32PairMode) && api.method_get_param) {
             const Il2CppType* param = api.method_get_param(method, 0);
             char* paramName = param ? api.type_get_name(param) : nullptr;
             rightParam = paramName && std::strcmp(paramName, "System.Int32") == 0;
             if (paramName) api.il2cpp_free(paramName);
+            if (rightParam && install.int32PairMode) {
+                const Il2CppType* second = api.method_get_param(method, 1);
+                char* secondName = second ? api.type_get_name(second) : nullptr;
+                rightParam = secondName && std::strcmp(secondName, "System.Int32") == 0;
+                if (secondName) api.il2cpp_free(secondName);
+            }
         }
         if (!rightReturn || !rightParam || selected || api.method_is_generic(method)) return -6;
         selected = method;
@@ -231,7 +264,7 @@ int installOnGameThread() {
     for (int i = 0; i < used; ++i) {
         auto& entry = entries[i];
         if (il2cpp::methodPointer(entry.method) != il2cpp::methodPointer(selected)) continue;
-        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic || entry.int32Mode != install.int32Mode) return -8;
+        if (entry.active.load(std::memory_order_acquire) || entry.method != selected || entry.isStatic != install.isStatic || entry.int32Mode != install.int32Mode || entry.int32PairMode != install.int32PairMode) return -8;
         entry.managedSlot = install.slot;
         entry.retryAfter = {};
         entry.timeoutWindow = {};
@@ -248,10 +281,13 @@ int installOnGameThread() {
     static const auto statics = staticStubs(std::make_index_sequence<MaxHooks>{});
     static const auto intInstances = instanceInt32Stubs(std::make_index_sequence<MaxHooks>{});
     static const auto intStatics = staticInt32Stubs(std::make_index_sequence<MaxHooks>{});
+    static const auto pairInstances = instanceInt32PairStubs(std::make_index_sequence<MaxHooks>{});
+    static const auto pairStatics = staticInt32PairStubs(std::make_index_sequence<MaxHooks>{});
     Entry& entry = entries[used];
     entry.method = selected;
     entry.isStatic = install.isStatic;
     entry.int32Mode = install.int32Mode;
+    entry.int32PairMode = install.int32PairMode;
     entry.managedSlot = install.slot;
     entry.retryAfter = {};
     entry.timeoutWindow = {};
@@ -260,8 +296,9 @@ int installOnGameThread() {
     entry.lastSuspensionSeconds = 0;
     entry.lastTimeout = {};
     entry.suspended = false;
-    void* stub = entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
-                                 : (entry.isStatic ? statics[used] : instances[used]);
+    void* stub = entry.int32PairMode ? (entry.isStatic ? pairStatics[used] : pairInstances[used])
+                 : entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
+                 : (entry.isStatic ? statics[used] : instances[used]);
     if (!hook::install(selected, stub, &entry.original)) return -9;
     entry.active.store(true, std::memory_order_release);
     return used++;
@@ -290,7 +327,8 @@ void disableUniversalHooks() {
 }
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
 
-int requestInstall(const char* type, const char* method, int slot, int isStatic, bool int32Mode) {
+int requestInstall(const char* type, const char* method, int slot, int isStatic,
+                   bool int32Mode, bool int32PairMode = false) {
     if (!accepting.load(std::memory_order_acquire) || !type || !method || strnlen(type, 257) > 256 || strnlen(method, 129) > 128 ||
         slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1)) return -1;
     if (!universalCanInstall || !universalLeaveMono || !universalResumeMono) return -12;
@@ -302,6 +340,7 @@ int requestInstall(const char* type, const char* method, int slot, int isStatic,
     install.slot = slot;
     install.isStatic = isStatic != 0;
     install.int32Mode = int32Mode;
+    install.int32PairMode = int32PairMode;
     install.epoch = epoch.load(std::memory_order_acquire);
     install.pending = true;
     install.done = false;
@@ -318,6 +357,10 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_insta
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_i32(
     const char* type, const char* method, int slot, int isStatic) {
     return requestInstall(type, method, slot, isStatic, true);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_i32_pair(
+    const char* type, const char* method, int slot, int isStatic) {
+    return requestInstall(type, method, slot, isStatic, false, true);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original_i32(
     int slot, int64_t ticket, int32_t* result) {
