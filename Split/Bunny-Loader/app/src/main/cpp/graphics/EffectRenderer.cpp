@@ -405,6 +405,12 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
 }
 
 bool EffectRenderer::PrewarmOneTarget(int width, int height) {
+    static uint64_t completedRevision = 0;
+    static int completedWidth = 0, completedHeight = 0;
+    const uint64_t revision = csharpScreenWarmupRevision();
+    if (revision == 1 ||
+        (revision == completedRevision && width == completedWidth &&
+         height == completedHeight)) return false;
     if (width < 320 || height < 200 || width > 8192 || height > 8192 ||
         !gl().load() || gl().eglGetCurrentContext() == nullptr) return false;
     if (!init()) return false;
@@ -419,6 +425,9 @@ bool EffectRenderer::PrewarmOneTarget(int width, int height) {
         if (!surface.texture || surface.w != w || surface.h != h)
             return ensureSurface(surface, w, h, "alvo", fresh);
     }
+    completedRevision = revision;
+    completedWidth = width;
+    completedHeight = height;
     return false;
 }
 
