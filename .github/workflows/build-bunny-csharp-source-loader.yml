@@ -56,6 +56,7 @@ on:
       - codex/csharp-screenfx-v90-29-86
       - codex/csharp-lights-native-graph-v90-29-87
       - codex/csharp-lights-fidelity-v90-29-88
+      - codex/csharp-lights-night-hotfix
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
