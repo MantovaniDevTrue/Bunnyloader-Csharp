@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -17,6 +18,7 @@ struct CSharpScreenEffectSpec {
     std::map<std::string, float> parameters;
 };
 
+uint64_t csharpScreenWarmupRevision();
 std::vector<TargetSpec> csharpScreenWarmupTargets();
 
 bool registerCSharpScreenEffects(const std::string& modId,
