@@ -82,6 +82,12 @@ assert 'PrefetchPresent=' in launch
 assert 'origin=$origin' in launch
 assert 'source-launch-auto.txt' in report
 assert 'pending.filter { it.precompile && it.modId == modId }' in worker
+assert 'Stage=LauncherPrecompileCacheHit' in worker
+assert 'phase=compile-prefetched-cache-hit' in worker
+assert 'prefetchCacheHit=1' in worker
+assert 'if (job.precompile &&' in worker
+assert worker.index('CSharpPrefetchReceipt.ready(receipt, File(compileRoot), dir, job.modId, output)') < worker.index('receipt.delete()\n                CSharpPrefetchReceipt.sourceStamp')
+
 assert '"source-launch-precompile-" + job.modId + ".txt"' in worker
 assert 'if (canReuse) verifyPrefetchedNative(' in worker
 assert 'note(&status, "waiting-content")' in source
