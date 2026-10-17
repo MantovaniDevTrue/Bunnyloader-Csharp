@@ -140,6 +140,20 @@ bool registerCSharpScreenEffects(const std::string& modId,
 }
 
 
+bool findCSharpScreenSceneCallback(const std::string& modId,
+                                    CSharpScreenSceneCallback* result) {
+    if (!result) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    for (const auto& entry : g_entries) {
+        if (entry.modId != modId || !entry.isGraph ||
+            entry.graph.sceneClass.empty()) continue;
+        *result = {entry.graph.sceneNamespace, entry.graph.sceneClass,
+                   entry.graph.sceneMethod};
+        return true;
+    }
+    return false;
+}
+
 uint64_t csharpScreenWarmupRevision() {
     return g_warmupRevision.load(std::memory_order_acquire);
 }
