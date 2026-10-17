@@ -8,7 +8,7 @@ public static class LightingCalculator
     public static string ComputeSceneWire(string wire)
     {
         if (string.IsNullOrEmpty(wire)) return "";
-        string[] fields = wire.Split('|');
+        string[] fields = wire.Split("|".ToCharArray());
         if (fields.Length != 20) return "";
         var culture = CultureInfo.InvariantCulture;
         static float F(string s) => float.Parse(s, CultureInfo.InvariantCulture);
