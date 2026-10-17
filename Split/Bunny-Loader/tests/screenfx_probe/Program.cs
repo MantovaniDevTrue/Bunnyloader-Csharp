@@ -53,6 +53,15 @@ frame.DesertBackground = 248;
 var desert = LightingCalculator.Compute(in frame, settings);
 if (desert.ShadowThreshold != 1f)
     throw new InvalidOperationException("Managed PC lighting: desert threshold mismatch");
+string wire = "1|13500|250|0|0|2400|1080|1800|0|0|120|140|170|0|0|0|0|0|0|0";
+string managedResult = LightingCalculator.ComputeSceneWire(wire);
+string[] values = managedResult.Split(';');
+if (values.Length != 6 ||
+    !float.TryParse(values[0], System.Globalization.NumberStyles.Float,
+        System.Globalization.CultureInfo.InvariantCulture, out float sx) ||
+    !float.IsFinite(sx) || values[5] != "1")
+    throw new InvalidOperationException("Managed scene Mono wire callback contract mismatch");
+Console.WriteLine("LIGHTS_MANAGED_SCENE_WIRE=PASS output=" + managedResult);
 Console.WriteLine("LIGHTS_MANAGED_PC_CALCULATOR=PASS day/night gravity desert");
 
 string root = Path.Combine(Path.GetTempPath(), "bunny_screenfx_verify_" + Guid.NewGuid().ToString("N"));
