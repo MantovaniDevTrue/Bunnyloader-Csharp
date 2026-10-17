@@ -371,6 +371,13 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
         for (const EffectDraw& e : frame.draws) drawn += run.Draw(e, now) ? 1 : 0;
         if (frame.history) run.SaveHistory();
     }
+    static bool firstGraphFrameReported = false;
+    if (!firstGraphFrameReported && !frame.targets.empty() && drawn > 0) {
+        firstGraphFrameReported = true;
+        BL_INFO("CSharp ScreenFx: GPU executou %d/%zu passes; alvos=%zu viewport=%dx%d",
+                drawn, frame.draws.size(), frame.targets.size(),
+                target.viewport[2], target.viewport[3]);
+    }
     GpuTimer::End(GpuChannel::Effect);
 
     const auto cpuNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
