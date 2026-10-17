@@ -253,7 +253,7 @@ try
         !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\tAtiva um efeito visual de sombra enquanto equipado\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tC# Hook QA 0.1.44: H1 AGUARDANDO | H2 AGUARDANDO | H3 AGUARDANDO | H4 AGUARDANDO | H5 AGUARDANDO\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
+        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tC# Hook QA 0.1.45: consulte os estados H1-H5 no relatorio do Bunny Loader.\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
         !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida; reducao adicional contra NPC e projetil; esquiva no quarto golpe\n", StringComparison.Ordinal) ||

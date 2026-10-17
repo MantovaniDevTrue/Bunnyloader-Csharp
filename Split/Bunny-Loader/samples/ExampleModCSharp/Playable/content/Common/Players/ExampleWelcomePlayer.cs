@@ -14,12 +14,7 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
 
     public override string OnEnterWorld()
     {
-        return "C# Hook QA 0.1.44: "
-            + "H1 " + ExampleHookInt32Zero.Result()
-            + " | H2 " + ExampleHookVoidInt32.Result()
-            + " | H3 " + ExampleHookVoidInt32Pair.Result()
-            + " | H4 " + ExampleHookInt32Triple.Result()
-            + " | H5 " + ExampleHookVoidInt32Triple.Result();
+        return "C# Hook QA 0.1.45: consulte os estados H1-H5 no relatorio do Bunny Loader.";
     }
 
     public override string OnRespawn()

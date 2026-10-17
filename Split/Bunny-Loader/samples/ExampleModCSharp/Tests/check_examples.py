@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.44"
+assert catalog["exampleModCSharpVersion"] == "0.1.45"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -88,7 +88,7 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.44"
+assert manifest2["version"] == "0.1.45"
 playable_files = list((playable / "content").rglob("*.cs"))
 assert 0 < len(playable_files) <= 512
 hook_dir = playable / "content/Common/Hooks"
@@ -172,9 +172,11 @@ assert "playerHealthPercent" in wave_events
 assert "return 1000000 + buffId * 1000 + durationTicks;" in wave_events
 assert "return 2000000 + direction * 100 + strengthTenths;" in wave_events
 welcome = (playable / "content/Common/Players/ExampleWelcomePlayer.cs").read_text(encoding="utf-8")
-assert "C# Hook QA 0.1.44:" in welcome
+assert "C# Hook QA 0.1.45:" in welcome
+assert "consulte os estados H1-H5 no relatorio" in welcome
 for name in hook_examples:
-    assert name + ".Result()" in welcome
+    example = (hook_dir / (name + ".cs")).read_text(encoding="utf-8")
+    assert "public override string DiagnosticStatus() => Result();" in example, name
 qa_doc = (playable / "content/Documentation/HOOK_QA_ANDROID.md").read_text(encoding="utf-8")
 assert "H1" in qa_doc and "H5" in qa_doc
 assert "SourceCSharpMod" not in source_text

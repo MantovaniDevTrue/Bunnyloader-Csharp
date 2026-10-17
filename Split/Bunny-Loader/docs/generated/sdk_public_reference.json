@@ -493,6 +493,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "string DiagnosticStatus()",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
           "signature": "void Load(BunnyHookScope hooks)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -1557,6 +1561,10 @@
       "methods": [
         {
           "signature": "static int Register(string id, string path)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static string GetStatusSnapshot(string id)",
           "execution": "experimental_worker_sync_void0"
         },
         {

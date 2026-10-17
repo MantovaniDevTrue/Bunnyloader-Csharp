@@ -23,6 +23,8 @@ public sealed class ExampleHookInt32Zero : BunnyHookModule
         return LastError.Length == 0 ? "AGUARDANDO" : "ERRO";
     }
 
+    public override string DiagnosticStatus() => Result();
+
     public override void Load(BunnyHookScope hooks)
     {
         if (!EnableAtLoad) return;

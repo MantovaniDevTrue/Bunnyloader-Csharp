@@ -215,3 +215,12 @@ registro paralelo nem voltar a chamar RecipeLoader JS. Portar ambos os arquivos
 ExampleWorkbench e as receitas originais das armaduras depois dos contratos
 funcionais, mantendo os demais 33 exemplos no escopo. Policies de equipamento
 e suporte de recipes alem do limite ainda precisam de desacoplamento.
+
+
+## Checkpoint 17/10/2026 — compilador experimental .90.29.85
+
+A prioridade imediata solicitada passou a ser a primeira compilação C# em até 5 s. A .84 medida no Xiaomi preparou cache em 576 ms, mas a primeira compilação consumiu 10.110 ms, dos quais 8.324 ms no Emit. A .85 adiciona AOT normal ARM64 de partes do compilador/framework, preserva o Mono corrigido, o carregamento automático editável, fallback JIT e os dois históricos .84, incluindo ExampleMod 0.1.45.
+
+Código testado: `a22bfc258159aa72ce1527bcad20c0a39d9504e7`; [CI 39030923144](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39030923144) aprovado, oito workflows independentes aprovados, APK assinado e entrega privada experimental concluída. O alvo de 5 s, memória, estabilidade e FPS da .85 aguardam Android. A alteração não adiciona ports nem altera os estados da matriz; os números de checkpoints anteriores deste plano são históricos, não uma nova auditoria.
+
+Relatório de implementação, contratos, artefatos e procedimento de teste com o ExampleMod: [csharp-cold-compiler-v90-29-85.md](csharp-cold-compiler-v90-29-85.md). Próxima ação deste grupo: colher o perfil cold/warm do Xiaomi e tratar o custo restante antes de afirmar a meta; os lotes e pendências funcionais continuam regidos pela matriz vigente.
