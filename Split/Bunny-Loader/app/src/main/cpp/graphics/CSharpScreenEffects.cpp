@@ -136,6 +136,17 @@ bool registerCSharpScreenEffects(const std::string& modId,
     return true;
 }
 
+
+void clearCSharpScreenEffects() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    std::string previous;
+    for (const auto& entry : g_entries) {
+        if (entry.modId == previous) continue;
+        previous = entry.modId;
+        submitModEffects(previous, EffectFrame{}, true);
+    }
+}
+
 void pumpCSharpScreenEffects() {
     std::map<std::string, EffectFrame> byMod;
     const ScreenSceneSnapshot scene = sampleScreenScene();
