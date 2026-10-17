@@ -808,6 +808,7 @@ float Intensity { get; set; }
 int Layer { get; set; }
 int Order { get; set; }
 string DisplayName { get; set; }
+string PipelineFile { get; set; }
 string ShaderFile { get; set; }
 ```
 
