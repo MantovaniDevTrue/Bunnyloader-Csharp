@@ -1406,6 +1406,32 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyTileScanBenchmark",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Finish()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Progress()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Start()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Stop()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyTileShape",
       "kind": "enum",
       "baseType": "System.Enum",

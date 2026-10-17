@@ -772,6 +772,17 @@ enum; base: `System.Enum`.
 
 Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable.
 
+## BunnyLoader.Source.BunnyTileScanBenchmark
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Finish()` | managed_helper |
+| `static string Progress()` | managed_helper |
+| `static string Start()` | managed_helper |
+| `static string Stop()` | managed_helper |
+
 ## BunnyLoader.Source.BunnyTileShape
 
 enum; base: `System.Enum`.
