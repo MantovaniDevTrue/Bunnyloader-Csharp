@@ -204,7 +204,7 @@ public static class BunnyHooks
     public static long TransientRetries { get; private set; }
     public static string LastError { get; private set; } = "";
 
-    public static string GetStatus() => "Universal C# assinatura int/void com 0..3 argumentos: chamadas=" + NativeStat(0) +
+    public static string GetStatus() => "Universal C# void()/int(int)/int(int,int) e mais 5 ABI: chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
