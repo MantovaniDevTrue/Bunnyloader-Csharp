@@ -225,7 +225,7 @@ class ManagedProbeService : Service() {
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
-            if (!precompile && modId.isNotBlank()) {
+            if (modId.isNotBlank()) {
                 pending.filter { it.precompile && it.modId == modId }
                     .forEach { pending.remove(it) }
             }
