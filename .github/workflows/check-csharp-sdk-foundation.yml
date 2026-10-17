@@ -1,7 +1,7 @@
 name: Check CSharp SDK and continuous runtime foundation
 on:
   push:
-    branches: [codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88]
+    branches: [codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/**'
