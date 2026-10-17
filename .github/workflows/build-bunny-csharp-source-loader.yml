@@ -202,6 +202,8 @@ on:
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - ".github/workflows/check-csharp-native-tile-compile.yml"
+      - ".github/workflows/check-mono-signal-ownership.yml"
+      - ".github/workflows/check-mono-pinned-gc.yml"
       - "Split/Bunny-Loader/**"
 
 permissions:
