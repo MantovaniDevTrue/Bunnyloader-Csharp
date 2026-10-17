@@ -37,6 +37,7 @@ on:
       - codex/csharp-early-compile-v90-29-75
       - codex/csharp-launch-precompile-v90-29-76
       - codex/csharp-prefetch-reuse-v90-29-77
+      - test/csharp-real-world-tile-scan-v90-29-78
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -2020,7 +2021,7 @@ jobs:
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-prefetch-reuse-v90-29-77" ]; then
             GH_TOKEN="${{ github.token }}" gh issue comment 54 \
               --repo "$GITHUB_REPOSITORY" \
-              --body "APK CSharp .77 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
+              --body "APK CSharp .78 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
               || echo "::warning::APK entregue, mas comentario de confirmacao na PR nao foi publicado"
           fi
 
