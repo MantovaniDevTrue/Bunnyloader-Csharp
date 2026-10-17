@@ -59,7 +59,10 @@ string[] values = managedResult.Split(';');
 if (values.Length != 6 ||
     !float.TryParse(values[0], System.Globalization.NumberStyles.Float,
         System.Globalization.CultureInfo.InvariantCulture, out float sx) ||
-    !float.IsFinite(sx) || values[5] != "1")
+    !float.TryParse(values[1], System.Globalization.NumberStyles.Float,
+        System.Globalization.CultureInfo.InvariantCulture, out float sy) ||
+    !float.IsFinite(sx) || !float.IsFinite(sy) ||
+    Math.Abs(sy + day.SunY - 1f) > .0001f || values[5] != "1")
     throw new InvalidOperationException("Managed scene Mono wire callback contract mismatch");
 Console.WriteLine("LIGHTS_MANAGED_SCENE_WIRE=PASS output=" + managedResult);
 Console.WriteLine("LIGHTS_MANAGED_PC_CALCULATOR=PASS day/night gravity desert");
