@@ -3,6 +3,7 @@
 #include "graphics/GlShadow.h"
 #include "graphics/GpuTimer.h"
 #include "graphics/EffectRenderer.h"
+#include "graphics/ShaderRegistry.h"
 #include "graphics/RenderHook.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -279,6 +280,14 @@ EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
         for (int i = 0; i < 4; ++i) target.viewport[i] = state.viewport[i];
         t_inside = true;
         EffectRenderer::Execute(effects, target, state);
+        t_inside = false;
+    }
+
+    if (gl().eglGetCurrentContext() != nullptr) {
+        t_inside = true;
+        const bool compiled = ShaderRegistry::PrewarmOne();
+        if (!compiled && g_shadow.viewport[2] > 0 && g_shadow.viewport[3] > 0)
+            EffectRenderer::PrewarmOneTarget(g_shadow.viewport[2], g_shadow.viewport[3]);
         t_inside = false;
     }
 

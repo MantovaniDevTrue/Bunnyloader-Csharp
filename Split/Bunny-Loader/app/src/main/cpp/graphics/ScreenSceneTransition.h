@@ -32,6 +32,7 @@ public:
         current_.shadowThreshold += (input.shadowThreshold - current_.shadowThreshold) * transitionRate;
         current_.dayBlend += (input.dayBlend - current_.dayBlend) * transitionRate;
         current_.sunVisibility += (input.sunVisibility - current_.sunVisibility) * lightingRate;
+        current_.raw = input.raw;
         current_.valid = true;
         current_.daytime = input.daytime;
         current_.sunEnabled = input.sunEnabled;

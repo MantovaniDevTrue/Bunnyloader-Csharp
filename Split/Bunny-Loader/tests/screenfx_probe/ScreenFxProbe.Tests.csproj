@@ -11,6 +11,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="../../samples/ScreenFxProbeCSharp/Playable/content/main.cs" Link="Probe.cs" />
     <Compile Include="../../samples/LightsAndShadowsCSharp/Playable/content/main.cs" Link="Lights.cs" />
+    <Compile Include="../../samples/LightsAndShadowsCSharp/Playable/content/Common/Lighting/LightingSettings.cs" Link="LightingSettings.cs" />
+    <Compile Include="../../samples/LightsAndShadowsCSharp/Playable/content/Common/Lighting/LightingFrame.cs" Link="LightingFrame.cs" />
+    <Compile Include="../../samples/LightsAndShadowsCSharp/Playable/content/Common/Lighting/LightingCalculator.cs" Link="LightingCalculator.cs" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs" Link="CompiledAssemblyProbe.cs" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/TileWriter.cs" Link="TileWriter.cs" />
     <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />

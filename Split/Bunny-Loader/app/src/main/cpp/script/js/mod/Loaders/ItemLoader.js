@@ -140,12 +140,20 @@ class ItemLoader {
         const type = item.type;
         Safe.Run(name + '.RightClick', () => m.RightClick(item, player));
         ItemLoader.DropFromItem(m, type, player);
+        Safe.Run(name + ' (conjunto de desenvolvedor)', () => ItemLoader.#DevArmor(type, player));
         return Safe.Run(name + '.ConsumeItem', () => m.ConsumeItem(item, player)) !== false;
     }
 
     // As regras do ItemLoot do tipo, pelo resolvedor do jogo (que segue as
     // encadeadas: LeadingConditionRule, Chains.OnSuccess...). O DropFromItem do
     // tModLoader.
+    static #DevArmor(type, player) {
+        const sets = Terraria.ID.ItemID.Sets;
+        if (!sets.BossBag[type] || sets.PreHardmodeLikeBossBag[type]) return;
+        const source = player['IEntitySource GetItemSource_OpenItem(int itemType)'](type);
+        player['void TryGettingDevArmor(IEntitySource source)'](source);
+    }
+
     static DropFromItem(m, type, player) {
         const rules = ItemLoot.For(m);
         if (!rules.length) return;
@@ -207,6 +215,42 @@ class ItemLoader {
 
     // O jogo zera as animações no InitializeItemAnimations, que roda depois do
     // SetStaticDefaults dos mods: reaplicadas a cada vez.
+    static #research = new Map();
+
+    static InstallResearch() {
+        bl.defineProperty(Terraria.Item, 'ResearchUnlockCount',
+            function () { return ItemLoader.ResearchUnlockCount(this.type); },
+            function (value) { ItemLoader.SetResearchUnlockCount(this.type, value); });
+    }
+
+    static #Sacrifices() {
+        return Terraria.GameContent.Creative.CreativeItemSacrificesCatalog.Instance.SacrificeCountNeededByItemId;
+    }
+
+    static ResearchUnlockCount(type) {
+        const result = new Ref(0);
+        return ItemLoader.#Sacrifices()['bool TryGetValue(int key, out int value)'](type, result) ? result.value : 0;
+    }
+
+    static SetResearchUnlockCount(type, value) {
+        const count = Math.trunc(Number(value)) || 0;
+        ItemLoader.#research.set(type, count);
+        ItemLoader.#ApplyResearch(type, count);
+        Hooks.Once('item.Research', () => {
+            Terraria.GameContent.Creative.CreativeItemSacrificesCatalog['void Initialize()'].hook((original, self) => {
+                original(self);
+                for (const [t, n] of ItemLoader.#research)
+                    Safe.Run('ResearchUnlockCount', () => ItemLoader.#ApplyResearch(t, n));
+            });
+        });
+    }
+
+    static #ApplyResearch(type, count) {
+        const table = ItemLoader.#Sacrifices();
+        if (count < 1) table['bool Remove(int key)'](type);
+        else table['void set_Item(int key, int value)'](type, count);
+    }
+
     static RegisterAnimation(type, animation) {
         const register = Terraria.Main['void RegisterItemAnimation(int index, DrawAnimation animation)'];
         ItemLoader.#animations.set(type, animation);

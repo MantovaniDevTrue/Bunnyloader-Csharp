@@ -10,6 +10,8 @@ on:
       - codex/csharp-lights-native-graph-v90-29-87
       - codex/csharp-lights-fidelity-v90-29-88
       - codex/csharp-lights-night-hotfix
+      - codex/csharp-lights-sdk-settings-split
+      - codex/csharp-lights-88-3-prewarm-scene-fidelity
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - ".github/workflows/check-csharp-screenfx-native.yml"
@@ -60,6 +62,9 @@ on:
       - codex/csharp-lights-fidelity-v90-29-88
       - codex/csharp-lights-night-hotfix
       - codex/csharp-lights-sdk-settings-split
+      - codex/csharp-lights-88-3-prewarm-scene-fidelity
+      - hotfix/csharp-88-5-sigabrt-logcat-tail
+      - perf/csharp-88-7-lights-invisible-ray-fastpath
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -222,7 +227,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.head.ref == 'codex/csharp-screenfx-v90-29-86' || github.event.pull_request.head.ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.event.pull_request.head.ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.event.pull_request.head.ref == 'codex/csharp-lights-night-hotfix' || github.event.pull_request.head.ref == 'codex/csharp-lights-sdk-settings-split')) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.head.ref == 'codex/csharp-screenfx-v90-29-86' || github.event.pull_request.head.ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.event.pull_request.head.ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.event.pull_request.head.ref == 'codex/csharp-lights-night-hotfix' || github.event.pull_request.head.ref == 'codex/csharp-lights-sdk-settings-split' || github.event.pull_request.head.ref == 'codex/csharp-lights-88-3-prewarm-scene-fidelity' || github.event.pull_request.head.ref == 'hotfix/csharp-88-5-sigabrt-logcat-tail' || github.event.pull_request.head.ref == 'perf/csharp-88-7-lights-invisible-ray-fastpath')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -349,6 +354,11 @@ jobs:
           assert "for (generation in 0..3)" in boot
           assert "native-game-abort-previous.txt" in boot
           assert "private fun gameCrashTraces(" in boot
+          assert 'out.length() >= 120_000L' in boot
+          assert 'takeLast(64_000)' in boot
+          assert 'LOGCAT_TAIL_ROLLING' in boot
+          assert 'out.length() < 60_000' not in boot
+          assert 'ApplicationExitInfo.REASON_SIGNALED && info.status == 6' in boot
           assert "emitAbortHeader();" in native
           assert "NATIVE_ABORT_SIGNAL pid=" in native
           print("CSHARP_CRASH_SESSION_RETENTION=PASS")
@@ -1033,7 +1043,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.45
+      - name: Package independent ExampleMod CSharp 0.1.47
         shell: bash
         run: |
           set -euo pipefail
@@ -1042,16 +1052,17 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.45.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.47.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
+              assert manifest["version"]=="0.1.47"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
@@ -1073,6 +1084,12 @@ jobs:
                   source = "content/Common/Hooks/" + hook + ".cs"
                   assert source in names
                   text = z.read(source)
+                  if hook == "ExampleHookVoidInt32Pair":
+                      assert b"Terraria.Wiring" in text and b"HitSwitch" in text
+                  if hook == "ExampleHookInt32Triple":
+                      assert b"Terraria.Player" in text and b"CalculateFrameFromMiscCounter" in text
+                  if hook == "ExampleHookVoidInt32Triple":
+                      assert b"Terraria.WorldGen" in text and b"Check1x1" in text
                   if hook == "ExampleNativeAccess":
                       assert b"EnableAtLoad = false" in text
                   else:
@@ -1133,8 +1150,33 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod.sha256"
+
+      - name: Package optimized Lights And Shadows CSharp 0.4.2.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] && [ "${GITHUB_HEAD_REF:-}" != "perf/csharp-88-7-lights-invisible-ray-fastpath" ] && [ "$GITHUB_REF" != "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] && [ "${GITHUB_HEAD_REF:-}" != "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then exit 0; fi
+          PACKAGE="$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
+          python3 Split/Bunny-Loader/tests/lights_pc_shader_test.py
+          python3 Split/Bunny-Loader/samples/LightsAndShadowsCSharp/package_mod.py "$PACKAGE"
+          python3 - "$PACKAGE" <<'PYLIGHTS'
+          import json, sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              names = z.namelist()
+              manifest = json.loads(z.read("manifest.json"))
+              assert manifest["id"] == "lightsandshadowscsharp"
+              assert manifest["version"] == "0.4.2.3"
+              assert len([line for line in z.read("content/Effects/Lights.screenfx").decode().splitlines() if line.startswith("PASS|")]) == 9
+              assert len([line for line in z.read("content/Effects/Lights_Alternate.screenfx").decode().splitlines() if line.startswith("PASS|")]) == 9
+              for shader in ("ShadowMask.frag", "ShadowRays.frag", "LightCompose.frag"):
+                  assert b"uSunEnabled <= 0.0" in z.read("content/Effects/" + shader)
+              assert all("content/Assets/" + name in names for name in ("ColorTex.png", "ColorTex2.png", "ColorTex_Alt.png"))
+              assert not any(n.endswith((".so", ".dll", ".js")) for n in names)
+          print("LIGHTS_CSHARP_0423_PRIVATE_PACKAGE=PASS")
+          PYLIGHTS
+          sha256sum "$PACKAGE" > "$PACKAGE.sha256"
 
       - name: Validate native-only CSharp runtime and package standalone armor sample
         shell: bash
@@ -1835,7 +1877,7 @@ jobs:
           echo "BUNNY_MONO_ARM64_RT_SIGNAL_LIBRARY_STAGED=YES"
 
       - name: Build normal ARM64 AOT compiler modules
-        if: github.ref == 'refs/heads/codex/csharp-compiler-aot-v90-29-85' || github.ref == 'refs/heads/codex/csharp-screenfx-v90-29-86' || github.ref == 'refs/heads/codex/csharp-lights-native-graph-v90-29-87' || github.ref == 'refs/heads/codex/csharp-lights-fidelity-v90-29-88' || github.ref == 'refs/heads/codex/csharp-lights-night-hotfix' || github.ref == 'refs/heads/codex/csharp-lights-sdk-settings-split' || (github.event_name == 'pull_request' && (github.head_ref == 'codex/csharp-screenfx-v90-29-86' || github.head_ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.head_ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.head_ref == 'codex/csharp-lights-night-hotfix' || github.head_ref == 'codex/csharp-lights-sdk-settings-split'))
+        if: github.ref == 'refs/heads/codex/csharp-compiler-aot-v90-29-85' || github.ref == 'refs/heads/codex/csharp-screenfx-v90-29-86' || github.ref == 'refs/heads/codex/csharp-lights-native-graph-v90-29-87' || github.ref == 'refs/heads/codex/csharp-lights-fidelity-v90-29-88' || github.ref == 'refs/heads/codex/csharp-lights-night-hotfix' || github.ref == 'refs/heads/codex/csharp-lights-sdk-settings-split' || github.ref == 'refs/heads/codex/csharp-lights-88-3-prewarm-scene-fidelity' || github.ref == 'refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail' || github.ref == 'refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath' || (github.event_name == 'pull_request' && (github.head_ref == 'codex/csharp-screenfx-v90-29-86' || github.head_ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.head_ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.head_ref == 'codex/csharp-lights-night-hotfix' || github.head_ref == 'codex/csharp-lights-sdk-settings-split' || github.head_ref == 'codex/csharp-lights-88-3-prewarm-scene-fidelity' || github.head_ref == 'hotfix/csharp-88-5-sigabrt-logcat-tail' || github.head_ref == 'perf/csharp-88-7-lights-invisible-ray-fastpath'))
         shell: bash
         run: |
           set -euo pipefail
@@ -2074,7 +2116,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'codex/csharp-screenfx-v90-29-86' || github.head_ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.head_ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.head_ref == 'codex/csharp-lights-night-hotfix' || github.head_ref == 'codex/csharp-lights-sdk-settings-split')) || github.ref == 'refs/heads/codex/csharp-lights-native-graph-v90-29-87' || github.ref == 'refs/heads/codex/csharp-lights-fidelity-v90-29-88' || github.ref == 'refs/heads/codex/csharp-lights-night-hotfix' || github.ref == 'refs/heads/codex/csharp-lights-sdk-settings-split' || github.ref == 'refs/heads/codex/csharp-screenfx-v90-29-86' || github.ref == 'refs/heads/codex/csharp-compiler-aot-v90-29-85' || github.ref == 'refs/heads/codex/csharp-compact-compiler-v90-29-84' || github.ref == 'refs/heads/codex/csharp-native-probe-optin-v90-29-83' || github.ref == 'refs/heads/codex/csharp-unified-example-v90-29-82' || github.ref == 'refs/heads/codex/csharp-universal-intpair-v90-29-79' || github.ref == 'refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78' || github.ref == 'refs/heads/codex/csharp-prefetch-reuse-v90-29-77' || github.ref == 'refs/heads/codex/csharp-launch-precompile-v90-29-76' || github.ref == 'refs/heads/codex/csharp-early-compile-v90-29-75' || github.ref == 'refs/heads/codex/csharp-resident-mono-compiler-v90-29-74' || github.ref == 'refs/heads/codex/csharp-fast-start-rpc-v90-29-73' || github.ref == 'refs/heads/codex/csharp-universal-soft-recovery-v90-29-72' || github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71' || github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') }}
+        if: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'codex/csharp-screenfx-v90-29-86' || github.head_ref == 'codex/csharp-lights-native-graph-v90-29-87' || github.head_ref == 'codex/csharp-lights-fidelity-v90-29-88' || github.head_ref == 'codex/csharp-lights-night-hotfix' || github.head_ref == 'codex/csharp-lights-sdk-settings-split' || github.head_ref == 'codex/csharp-lights-88-3-prewarm-scene-fidelity' || github.head_ref == 'hotfix/csharp-88-5-sigabrt-logcat-tail' || github.head_ref == 'perf/csharp-88-7-lights-invisible-ray-fastpath')) || github.ref == 'refs/heads/codex/csharp-lights-native-graph-v90-29-87' || github.ref == 'refs/heads/codex/csharp-lights-fidelity-v90-29-88' || github.ref == 'refs/heads/codex/csharp-lights-night-hotfix' || github.ref == 'refs/heads/codex/csharp-lights-sdk-settings-split' || github.ref == 'refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail' || github.ref == 'refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath' || github.ref == 'refs/heads/codex/csharp-screenfx-v90-29-86' || github.ref == 'refs/heads/codex/csharp-compiler-aot-v90-29-85' || github.ref == 'refs/heads/codex/csharp-compact-compiler-v90-29-84' || github.ref == 'refs/heads/codex/csharp-native-probe-optin-v90-29-83' || github.ref == 'refs/heads/codex/csharp-unified-example-v90-29-82' || github.ref == 'refs/heads/codex/csharp-universal-intpair-v90-29-79' || github.ref == 'refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78' || github.ref == 'refs/heads/codex/csharp-prefetch-reuse-v90-29-77' || github.ref == 'refs/heads/codex/csharp-launch-precompile-v90-29-76' || github.ref == 'refs/heads/codex/csharp-early-compile-v90-29-75' || github.ref == 'refs/heads/codex/csharp-resident-mono-compiler-v90-29-74' || github.ref == 'refs/heads/codex/csharp-fast-start-rpc-v90-29-73' || github.ref == 'refs/heads/codex/csharp-universal-soft-recovery-v90-29-72' || github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71' || github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
@@ -2120,7 +2162,7 @@ jobs:
             done
             TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
-            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.45.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.47.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-compiler-aot-v90-29-85" ] || [ "$GITHUB_REF" = "refs/heads/codex/csharp-screenfx-v90-29-86" ] || { [ "$GITHUB_REF" = "refs/heads/codex/csharp-lights-fidelity-v90-29-88" ] || { [ "$GITHUB_REF" = "refs/heads/codex/csharp-lights-night-hotfix" ] || [ "$GITHUB_REF" = "refs/heads/codex/csharp-lights-sdk-settings-split" ]; }; } || { [ "$GITHUB_EVENT_NAME" = "pull_request" ] && { [ "$GITHUB_HEAD_REF" = "codex/csharp-screenfx-v90-29-86" ] || { [ "$GITHUB_HEAD_REF" = "codex/csharp-lights-native-graph-v90-29-87" ] || { [ "$GITHUB_HEAD_REF" = "codex/csharp-lights-fidelity-v90-29-88" ] || { [ "$GITHUB_HEAD_REF" = "codex/csharp-lights-night-hotfix" ] || [ "$GITHUB_HEAD_REF" = "codex/csharp-lights-sdk-settings-split" ]; }; }; }; }; }; then
             for attempt in $(seq 1 40); do
@@ -2207,14 +2249,23 @@ jobs:
             TITLE="EXPERIMENTAL — Acesso nativo C# lote A | $VERSION"
             NOTES="Experimental .69: includes .68 typed Int32 hooks; typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
           fi
+          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "$GITHUB_REF" = "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "${GITHUB_HEAD_REF:-}" = "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then
+            NOTES="EXPERIMENTAL .88.7: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Adds framebuffer copy telemetry (screenCopyCalls/screenCopyPixels), render-stat batching, Android heavy boss stress test pending. ExampleMod CSharp 0.1.47 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
+          fi
           RELEASE_ASSETS=(
             "$RUNNER_TEMP/$FILE"
             "$RUNNER_TEMP/$FILE.sha256"
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod"
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.45.bmod.sha256"
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod"
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod.sha256"
             "Split/Bunny-Loader/build/combat-batch-results.json"
             "Split/Bunny-Loader/build/basic-items-results.json"
           )
+          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "$GITHUB_REF" = "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "${GITHUB_HEAD_REF:-}" = "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then
+            RELEASE_ASSETS+=(
+              "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
+              "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256"
+            )
+          fi
           if [ "$GITHUB_REF" != "refs/heads/codex/csharp-compact-compiler-v90-29-84" ] && [ "$GITHUB_REF" != "refs/heads/codex/csharp-native-probe-optin-v90-29-83" ] && [ "$GITHUB_REF" != "refs/heads/codex/csharp-unified-example-v90-29-82" ]; then
             RELEASE_ASSETS+=(
               "$RUNNER_TEMP/NativeAccessProbeCSharp-v0.1.0.bmod"
@@ -2224,6 +2275,31 @@ jobs:
               "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod"
               "$RUNNER_TEMP/NativePlacementProbe-v0.1.0.bmod.sha256"
             )
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "${GITHUB_HEAD_REF:-}" = "hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ]; then
+            SOURCE_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+            for attempt in $(seq 1 40); do
+              gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SOURCE_SHA}&per_page=100" > "$RUNNER_TEMP/integration-screenfx.json"
+              if python3 - "$RUNNER_TEMP/integration-screenfx.json" "${SOURCE_SHA}" <<'PYSCREENFX_GATE'
+          import json, sys
+          runs = json.load(open(sys.argv[1]))["workflow_runs"]
+          matching = [run for run in runs if run.get("head_sha") == sys.argv[2] and run.get("name") == "CSharp Native ScreenFx"]
+          if not matching:
+              raise SystemExit(1)
+          latest = max(matching, key=lambda run: run["id"])
+          if latest.get("conclusion") != "success":
+              raise SystemExit(1)
+          PYSCREENFX_GATE
+              then
+                echo "BUNNY_INTEGRATION_SCREENFX_GATE=PASS"
+                break
+              fi
+              if [ "$attempt" = 40 ]; then
+                echo "::error::ScreenFx regression not successful, private APK delivery stopped"
+                exit 1
+              fi
+              sleep 15
+            done
           fi
           gh release create "$TAG" "${RELEASE_ASSETS[@]}" \
             --repo "$PRIVATE_REPO" \
@@ -2249,7 +2325,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.45.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.47.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2274,14 +2350,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.45
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.47
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.45.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.45.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.47.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.47.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod

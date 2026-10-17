@@ -8,6 +8,10 @@ on:
       - codex/csharp-lights-fidelity-v90-29-88
       - codex/csharp-lights-night-hotfix
       - codex/csharp-lights-sdk-settings-split
+      - codex/csharp-lights-88-3-prewarm-scene-fidelity
+      - integration/jonata-oct15-csharp-88-4-build
+      - hotfix/csharp-88-5-sigabrt-logcat-tail
+      - perf/csharp-88-7-lights-invisible-ray-fastpath
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
@@ -27,11 +31,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate APK workflow YAML syntax
+        run: ruby -ryaml -e 'YAML.parse_file(ARGV.fetch(0)); puts "BUNNY_APK_WORKFLOW_YAML=PASS"' .github/workflows/build-bunny-csharp-source-loader.yml
       - name: Compile and run native ScreenFx tests
         run: |
           bash Split/Bunny-Loader/tests/screenfx_native_test.sh
           python3 Split/Bunny-Loader/tests/lights_pc_shader_test.py
           python3 Split/Bunny-Loader/tests/quickjs_settings_location_test.py
+      - name: Package optimized Lights CSharp source mod
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/samples/LightsAndShadowsCSharp/package_mod.py "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
+          python3 - "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod" <<'PYLIGHTS'
+          import json, sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              manifest = json.loads(z.read("manifest.json"))
+              assert manifest["version"] == "0.4.2.3"
+              assert manifest["id"] == "lightsandshadowscsharp"
+              for variant in ("Lights.screenfx", "Lights_Alternate.screenfx"):
+                  assert z.read("content/Effects/" + variant).count(b"PASS|") == 9
+              for shader in ("ShadowMask.frag", "ShadowRays.frag", "LightCompose.frag"):
+                  assert b"uSunEnabled <= 0.0" in z.read("content/Effects/" + shader)
+              assert all("content/Assets/" + n in z.namelist() for n in ("ColorTex.png", "ColorTex2.png", "ColorTex_Alt.png"))
+              assert not any(n.endswith((".dll", ".so", ".js")) for n in z.namelist())
+          print("LIGHTS_CSHARP_SOURCE_ONLY_0423=PASS")
+          PYLIGHTS
+      - name: Export optimized Lights CSharp package
+        uses: actions/upload-artifact@v4
+        with:
+          name: LightsAndShadowsCSharp-v0.4.2.3
+          path: ${{ runner.temp }}/LightsAndShadowsCSharp-v0.4.2.3.bmod
+          if-no-files-found: error
+          retention-days: 14
 
   screenfx-managed:
     runs-on: ubuntu-latest
