@@ -779,8 +779,11 @@ abstract class; base: `System.Object`.
 | Method | Execution |
 | --- | --- |
 | `static string Finish()` | managed_helper |
+| `static string FinishFull()` | managed_helper |
+| `static string FinishFull10()` | managed_helper |
 | `static string Progress()` | managed_helper |
 | `static string Start()` | managed_helper |
+| `static string StartFull()` | managed_helper |
 | `static string Stop()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape

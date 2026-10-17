@@ -1418,11 +1418,23 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "static string FinishFull()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string FinishFull10()",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "static string Progress()",
           "execution": "managed_helper"
         },
         {
           "signature": "static string Start()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string StartFull()",
           "execution": "managed_helper"
         },
         {
