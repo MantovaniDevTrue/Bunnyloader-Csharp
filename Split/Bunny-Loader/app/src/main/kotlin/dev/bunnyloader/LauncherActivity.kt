@@ -271,7 +271,10 @@ private fun LauncherScreen(shell: Shell) {
                     onSelect = { tab = it; openMod = null },
                     onStart = {
                         if (runtimeMods.mixed) showMixedRuntimeWarning = true
-                        else ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                        else {
+                            dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx)
+                            ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                        }
                     },
                 )
             }
@@ -290,6 +293,7 @@ private fun LauncherScreen(shell: Shell) {
                     }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
                     PixelButton(tr("Jogar assim mesmo"), {
                         showMixedRuntimeWarning = false
+                        dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx)
                         ctx.startActivity(Intent(ctx, GameActivity::class.java))
                     }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
                 }
