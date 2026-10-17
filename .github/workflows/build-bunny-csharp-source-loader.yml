@@ -6,6 +6,7 @@ on:
     branches:
       - codex/example-completion-v90-28
       - codex/integrate-csharp-sdk-lot-a-20261015
+      - hotfix/csharp-88-5-sigabrt-logcat-tail
       - codex/csharp-native-policies-android-v90-29-42
       - codex/csharp-native-visual-diagnostics-v90-29-43
       - codex/csharp-native-perf-visual-v90-29-44
