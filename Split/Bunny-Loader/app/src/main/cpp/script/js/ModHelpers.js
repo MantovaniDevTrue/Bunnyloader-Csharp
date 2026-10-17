@@ -258,6 +258,10 @@ const TypeSet = (fallback, init = {}) => new Proxy(Object.assign([], init), {
 
 const BoolSet = (...types) => TypeSet(false, Object.fromEntries(types.map((type) => [type, true])));
 
+const ItemSetsExtras = Object.freeze({
+    PreHardmodeLikeBossBag: BoolSet(3318, 3319, 3320, 3321, 3322, 3323, 3324, 4957, 5111),
+});
+
 const TileSetsExtras = Object.freeze({
     OpenDoorID: TypeSet(-1, { 10: 11 }),
     CloseDoorID: TypeSet(-1, { 11: 10 }),
@@ -612,6 +616,7 @@ globalThis.__blExtraStatics = Object.freeze({
     'Terraria.GameContent.UI.EmoteID': EmoteIDExtras,
     'Terraria.GameContent.ItemDropRules.ItemDropRule': ItemDropRuleExtras,
     'Terraria.ID.TileID.Sets': TileSetsExtras,
+    'Terraria.ID.ItemID.Sets': ItemSetsExtras,
     'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,
     'Terraria.ID.ArmorIDs.Head.Sets': ArmorHeadSetsExtras,
     'Terraria.ID.ArmorIDs.Body.Sets': ArmorBodySetsExtras,
