@@ -6,6 +6,7 @@ on:
       - codex/csharp-screenfx-v90-29-86
       - codex/csharp-lights-native-graph-v90-29-87
       - codex/csharp-lights-fidelity-v90-29-88
+      - codex/csharp-lights-night-hotfix
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
