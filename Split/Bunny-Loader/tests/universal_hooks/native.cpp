@@ -327,6 +327,6 @@ int main() {
     assert(!csharp::universalHookCallbackIsTerminal(transient.accepted, false, transient.retryable));
     assert(csharp::universalHookCallbackIsTerminal(true, false));
     assert(!csharp::universalHookCallbackIsTerminal(false, false));
-    std::cout << "native: typed Int32(int) and Int32(int,int) ABI, validation, original and return override PASS\n";
+    std::cout << "native: typed Int32(int) ABI, plus Int32(int,int) ABI, validation, original and return override PASS\n";
     std::cout << "native: metadata, original affinity, adaptive 5/10/15s suspension, auto-rearm, protected original PASS\n";
 }
