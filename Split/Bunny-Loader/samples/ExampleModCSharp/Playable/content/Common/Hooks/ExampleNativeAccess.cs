@@ -5,6 +5,7 @@ namespace ExampleModCSharp;
 
 public sealed class ExampleNativeAccess : BunnyHookModule
 {
+    public const bool EnableAtLoad = false;
     private readonly BunnyValue[] snapshot = new BunnyValue[3];
     private BunnyNativeBatch batch = null!;
     private BunnyNativeMember findBuffIndex = null!;
@@ -21,6 +22,7 @@ public sealed class ExampleNativeAccess : BunnyHookModule
 
     public override void Load(BunnyHookScope hooks)
     {
+        if (!EnableAtLoad) return;
         try
         {
             BunnyNativeScope access = hooks.Native;

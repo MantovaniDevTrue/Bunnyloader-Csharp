@@ -1,3 +1,14 @@
+# Batch de cinco assinaturas C# da .83
+
+ExampleMod CSharp 0.1.42 inclui cinco exemplos isolados dos hooks:
+1. `ExampleHookInt32Zero`: Gera inteiro aleatorio vanilla e preserva retorno; teste apenas em mundo descartavel; assinatura `Int32Zero`
+2. `ExampleHookVoidInt32`: Observa chamada de procura de casa de NPC; nao modifica parametro; assinatura `VoidInt32`
+3. `ExampleHookVoidInt32Pair`: Observa colocacao de cactos com coordenadas; metodo mexe em tiles; assinatura `VoidInt32Pair`
+4. `ExampleHookInt32Triple`: Conta fios na area e retorna inteiro original, opcionalmente pode substituir valor em teste; assinatura `Int32Triple`
+5. `ExampleHookVoidInt32Triple`: Observa conversao de tile no Terraria; metodo altera mundo e precisa teste em mundo descartavel; assinatura `VoidInt32Triple`
+
+O modo de jogatina instala zero hooks universais deste lote por padrao, inclusive o antigo Native Access Probe de ResetEffects. Todos os exemplos ficam em `Playable/content/Common/Hooks/`, com `EnableAtLoad = false` e status `Calls` / `LastError` por classe. O usuario pode habilitar apenas um para testar a ABI em mundo descartavel. Os exemplos reproduzem os conceitos a partir do SDK C# proprio, sem codigo JavaScript ou tModLoader.
+
 # Exemplo unificado — Bunny CSharp .82 / ExampleMod 0.1.41
 
 O ExampleMod agora inclui as mesmas tres armaduras nativas e texturas de ArmorPoliciesCSharp (sem criar segundos itens), alem de uma implementacao integrada do NativeAccessProbe. Os pacotes separados continuam somente como fixtures de regressao e nao sao necessarios para jogar na .82. Desative os mods antigos antes de testar o pacote unificado.
