@@ -176,7 +176,7 @@ void pumpCSharpScreenEffects() {
                     scene.valid, scene.daytime, scene.strength);
             loggedFirstGraphFrame = true;
         }
-        if (!submitModEffects(id, std::move(frame)))
+        if (!submitModEffects(id, std::move(frame), true))
             BL_WARN("CSharp ScreenFx: entrega recusada mod=%s", id.c_str());
     }
 }
