@@ -10,6 +10,9 @@ targets = {}
 passes = []
 for raw in source.splitlines():
     cells = raw.split("|")
+    if cells[0] == "SCENE":
+        assert cells == ["SCENE", "LightsAndShadowsCSharp", "LightingCalculator", "ComputeSceneWire"]
+        continue
     if cells[0] == "TARGET":
         assert len(cells) == 3
         assert cells[1] not in targets
@@ -24,10 +27,13 @@ for raw in source.splitlines():
         passes.append(cells)
 assert set(targets) == {"shadowMask", "shadow", "bloomA", "bloomB"}
 assert all(scale <= 1 / 3 for scale in targets.values())
-assert len(passes) == 7
+assert len(passes) == 9
 assert passes[0][1] == "Effects/ShadowMask.frag" and passes[0][3] == "shadowMask"
 assert passes[1][1] == "Effects/ShadowRays.frag" and passes[1][2] == "shadowMask"
 assert passes[1][3] == "shadow" and passes[1][5] == "-"
+assert [p[4].split(",")[0] for p in passes[4:8]] == [f"uDistance={i}" for i in range(4)]
+assert (effects / "Lights_Alternate.screenfx").is_file()
+assert (effects.parent / "Common/Lighting/LightingCalculator.cs").is_file()
 mask = (effects / "ShadowMask.frag").read_text()
 rays = (effects / "ShadowRays.frag").read_text()
 assert "uShadowThreshold - softness" in mask
@@ -39,17 +45,23 @@ assert "i < 30" in rays and "i >= 20" in rays
 assert "mix(nightWeight, dayWeight, dayFactor)" in rays
 assert "uQuality" in rays and "(30.0 - j) / 120.0" in rays
 assert "uBloom" in (effects / "BloomComposite.frag").read_text()
+assert "moonVisibility * 0.15 * nightFalloff" in rays
+assert "j * 0.0045" in rays
+assert "uDistance < 0.5" in (effects / "KawaseBlur.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.3.2"
+assert manifest["version"] == "0.4.2.3"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
+assert "moonLit" in compose and "moonFill" in compose and "dayLit" in compose
+assert "uSceneShadowThreshold=@threshold" in source
 assert "@param.DayShadowThreshold" in source
 assert "@param.NightShadowThreshold" in source
 assert "@param.RayQuality" in source
 assert "@param.BloomStrength" in source
 assert "mix(uNightShadowThreshold, uDayShadowThreshold, day)" in mask
+assert "uSceneShadowThreshold" in mask
 mod_source = (root / "Playable/content/main.cs").read_text()
 for name in ("SunPower", "DayShadowThreshold", "NightShadowThreshold", "ShadowStrength",
              "RayQuality", "BloomThreshold", "BloomStrength", "BloomPower", "BlurGain"):
@@ -66,4 +78,5 @@ for name, expected in assets.items():
     raw = b64decode((root / "SourceAssets" / (name + ".b64")).read_text().strip(), validate=True)
     assert raw[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
     assert sha256(raw).hexdigest() == expected, name
-print("LIGHTS_PC_GRAPH_FIDELITY=PASS passes=7 lowres_targets=4 assets=3")
+print("LIGHTS_PC_GRAPH_FIDELITY=PASS passes=9 lowres_targets=4 assets=3")
+\n

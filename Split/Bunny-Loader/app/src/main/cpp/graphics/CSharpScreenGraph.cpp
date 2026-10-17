@@ -141,7 +141,14 @@ bool loadCSharpScreenGraph(const std::string& modId, const std::string& classNam
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty()) continue;
         auto cells = split(line, '|');
-        if (cells.size() == 3 && cells[0] == "TARGET") {
+        if (cells.size() == 4 && cells[0] == "SCENE") {
+            if (!pending.sceneClass.empty() || !identifier(cells[1]) ||
+                !identifier(cells[2]) || !identifier(cells[3]))
+                return fail(error, "screen graph: invalid scene callback");
+            pending.sceneNamespace = cells[1];
+            pending.sceneClass = cells[2];
+            pending.sceneMethod = cells[3];
+        } else if (cells.size() == 3 && cells[0] == "TARGET") {
             float scale = 0.f;
             if (targets.size() >= 8 || !identifier(cells[1]) ||
                 !scalar(cells[2], &scale) || scale < .25f || scale > 1.f ||

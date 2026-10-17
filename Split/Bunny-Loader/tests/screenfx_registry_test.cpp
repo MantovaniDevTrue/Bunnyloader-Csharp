@@ -1,4 +1,5 @@
 #include "graphics/CSharpScreenEffects.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "graphics/RenderHook.h"
 #include "graphics/ShaderRegistry.h"
 #include "graphics/ScreenScene.h"
@@ -17,6 +18,11 @@ static int shaders = 0;
 
 namespace bl::csharp {
 bool sourceRuntimeApplied(const std::string& id) { return id == "probe" || id == "probe_graph"; }
+bool queueManagedScreenScene(const std::string&, const graphics::ScreenSceneRaw&,
+                             float, float, float) { return false; }
+bool readManagedScreenScene(const std::string&, ManagedScreenLightResult*) {
+    return false;
+}
 }
 
 namespace bl::graphics {
@@ -67,7 +73,8 @@ int main() {
     assert(shaders == 1);
     {
         std::ofstream file(fs::path(path) / "Effects" / "Light.screenfx");
-        file << "TARGET|shadow|0.333333\n"
+        file << "SCENE|TestLight|LightingCalculator|ComputeSceneWire\n"
+                "TARGET|shadow|0.333333\n"
                 "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@param.DayShadowThreshold|-\n"
                 "PASS|Effects/Ok.frag|screen|screen|uClock=@clock|uRays=shadow,uGradient=Effects/Day.png?Effects/Night.png\n";
     }
@@ -85,6 +92,11 @@ int main() {
     graph.parameters["DayShadowThreshold"] = 0.98f;
     assert(bl::graphics::registerCSharpScreenEffects("probe_graph", path, {graph}, &error));
     assert(shaders == 3);
+    bl::graphics::CSharpScreenSceneCallback callback;
+    assert(bl::graphics::findCSharpScreenSceneCallback("probe_graph", &callback));
+    assert(callback.nameSpace == "TestLight" &&
+           callback.className == "LightingCalculator" &&
+           callback.methodName == "ComputeSceneWire");
     bl::graphics::pumpCSharpScreenEffects();
     assert(frames.size() == 3);
     assert(frames[2].targets.size() == 1);
