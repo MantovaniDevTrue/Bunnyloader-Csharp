@@ -19,6 +19,20 @@ object LaunchSourcePrecompile {
         var skipped = 0
         try {
             val modsDir = ModRepository(app).modsDir
+            val expectedFramework = runCatching {
+                val manifest = app.assets.open("managed/framework.sha256").bufferedReader().use {
+                    it.readText()
+                }
+                java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(manifest.toByteArray(Charsets.UTF_8))
+                    .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            }.getOrDefault("")
+            val installedFramework = runCatching {
+                File(app.filesDir, "bunny-csharp/framework-version.txt").readText().trim()
+            }.getOrDefault("")
+            val frameworkUnchanged = expectedFramework.isNotEmpty() &&
+                (expectedFramework == installedFramework ||
+                    installedFramework.endsWith(":" + expectedFramework))
             for (spec in selectedSpecs.take(16)) {
                 val uid = spec.substringBefore('=')
                 val entry = spec.substringAfter('=', "")
@@ -30,7 +44,13 @@ object LaunchSourcePrecompile {
                 if (!source.isFile || !source.path.startsWith(content.path + File.separator)) continue
                 val assembly = File(app.filesDir, "bunny-csharp/compiled/$uid.dll")
                 val assemblyCache = File(assembly.absolutePath + ".sha256")
-                if (assembly.isFile && assembly.length() > 0 && assemblyCache.isFile &&
+                val nativeCachePresent = File(app.filesDir, "bunny-csharp/auto-source-cache")
+                    .listFiles { candidate ->
+                        candidate.isFile && candidate.name.startsWith("$uid-") &&
+                            candidate.name.endsWith(".cache")
+                    }.orEmpty().isNotEmpty()
+                if (frameworkUnchanged && nativeCachePresent &&
+                    assembly.isFile && assembly.length() > 0 && assemblyCache.isFile &&
                     assemblyCache.length() in 1L..256L &&
                     content.walkTopDown().filter { it.isFile && it.extension == "cs" }
                         .none { it.lastModified() > assembly.lastModified() }) {
