@@ -61,6 +61,18 @@ assert "@param.NightShadowThreshold" in source
 assert "@param.RayQuality" in source
 assert "@param.BloomStrength" in source
 assert "mix(uNightShadowThreshold, uDayShadowThreshold, day)" in mask
+for graph_name in ("Lights.screenfx", "Lights_Alternate.screenfx"):
+    graph_lines = (effects / graph_name).read_text().splitlines()
+    graph_passes = [line.split("|") for line in graph_lines if line.startswith("PASS|")]
+    assert len(graph_passes) == 9, graph_name
+    assert all("uSunEnabled=@enabled" in graph_passes[i][4] for i in (0, 1, 2)), graph_name
+for shader_text in (mask, rays, compose):
+    assert "if (uSunEnabled <= 0.0" in shader_text
+assert "fragColor = vec4(1.0, 1.0, 1.0, 0.0);" in mask
+assert "uSunStrength <= 0.0" in rays
+assert "fragColor = vec4(0.0, 0.0, 0.0, 1.0);" in rays
+assert "texture(uSource, vUV).rgb, 1.0" in compose
+assert (effects / "Lights.screenfx").read_text().count("PASS|") == 9
 assert "uSceneShadowThreshold" in mask
 mod_source = (root / "Playable/content/main.cs").read_text()
 for name in ("SunPower", "DayShadowThreshold", "NightShadowThreshold", "ShadowStrength",
