@@ -1157,7 +1157,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$GITHUB_REF" != "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] && [ "${GITHUB_HEAD_REF:-}" != "perf/csharp-88-7-lights-invisible-ray-fastpath" ]; then exit 0; fi
+          if [ "$GITHUB_REF" != "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] && [ "${GITHUB_HEAD_REF:-}" != "perf/csharp-88-7-lights-invisible-ray-fastpath" ] && [ "$GITHUB_REF" != "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] && [ "${GITHUB_HEAD_REF:-}" != "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then exit 0; fi
           PACKAGE="$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
           python3 Split/Bunny-Loader/tests/lights_pc_shader_test.py
           python3 Split/Bunny-Loader/samples/LightsAndShadowsCSharp/package_mod.py "$PACKAGE"
@@ -2249,7 +2249,7 @@ jobs:
             TITLE="EXPERIMENTAL — Acesso nativo C# lote A | $VERSION"
             NOTES="Experimental .69: includes .68 typed Int32 hooks; typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
           fi
-          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ]; then
+          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "$GITHUB_REF" = "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "${GITHUB_HEAD_REF:-}" = "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then
             NOTES="EXPERIMENTAL .88.7: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Adds framebuffer copy telemetry (screenCopyCalls/screenCopyPixels), render-stat batching, Android heavy boss stress test pending. ExampleMod CSharp 0.1.47 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
           fi
           RELEASE_ASSETS=(
@@ -2260,7 +2260,7 @@ jobs:
             "Split/Bunny-Loader/build/combat-batch-results.json"
             "Split/Bunny-Loader/build/basic-items-results.json"
           )
-          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ]; then
+          if [ "$GITHUB_REF" = "refs/heads/perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "${GITHUB_HEAD_REF:-}" = "perf/csharp-88-7-lights-invisible-ray-fastpath" ] || [ "$GITHUB_REF" = "refs/heads/hotfix/csharp-88-5-sigabrt-logcat-tail" ] || [ "${GITHUB_HEAD_REF:-}" = "hotfix/csharp-88-5-sigabrt-logcat-tail" ]; then
             RELEASE_ASSETS+=(
               "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"
               "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256"
