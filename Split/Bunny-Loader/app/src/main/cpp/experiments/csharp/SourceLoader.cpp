@@ -403,8 +403,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         }
         status->playerClasses.push_back(def.name);
     }
-    for (const auto& name : status->playerClasses)
-        typed.erase(sourceIdentityForBase("BunnyPlayer", name));
+    for (const auto& def : defs)
+        if (!sourceRequiresNativeRegistration(def.base))
+            typed.erase(sourceIdentityForBase(def.base, def.name));
     status->players = static_cast<int>(status->playerClasses.size());
     status->accessories = ctx.accessories;
     status->registeredKindTypes = typed;
