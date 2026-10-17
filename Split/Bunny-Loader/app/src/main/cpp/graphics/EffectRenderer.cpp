@@ -7,6 +7,7 @@
 #include "core/Log.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <mutex>
@@ -32,6 +33,8 @@ struct Resources {
 };
 
 Resources g_res;
+std::atomic<int> g_viewportWidth{0};
+std::atomic<int> g_viewportHeight{0};
 std::mutex g_statsMutex;
 RenderStats g_local;   // so os campos do lado GL
 bool g_loggedFirst = false;
@@ -340,6 +343,8 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
         for (int i = 0; i < 4; ++i) g_local.viewport[i] = target.viewport[i];
     }
     if (!context || target.viewport[2] <= 0 || target.viewport[3] <= 0) return;
+    g_viewportWidth.store(target.viewport[2], std::memory_order_relaxed);
+    g_viewportHeight.store(target.viewport[3], std::memory_order_relaxed);
     logFirst(target);
     if (!init()) return;
     GLint samples = 0;
@@ -386,6 +391,11 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
     g_local.draws += drawn;
     g_local.frames++;
     g_local.renderCpuNs += cpuNs;
+}
+
+void EffectRenderer::LastViewportSize(int* width, int* height) {
+    if (width) *width = g_viewportWidth.load(std::memory_order_relaxed);
+    if (height) *height = g_viewportHeight.load(std::memory_order_relaxed);
 }
 
 void EffectRenderer::FillStats(RenderStats& stats) {
