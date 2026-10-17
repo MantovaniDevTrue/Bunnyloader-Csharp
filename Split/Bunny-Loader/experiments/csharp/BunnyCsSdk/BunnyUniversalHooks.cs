@@ -9,6 +9,7 @@ namespace BunnyLoader.Source;
 
 public delegate void BunnyVoidHook(BunnyOriginalVoid original, nint self);
 public delegate int BunnyInt32Hook(BunnyOriginalInt32 original, nint self, int value);
+public delegate int BunnyInt32PairHook(BunnyOriginalInt32 original, nint self, int first, int second);
 
 public readonly struct BunnyOriginalInt32
 {
@@ -39,15 +40,19 @@ public sealed class BunnyMethodHook : IDisposable
 {
     internal BunnyVoidHook? Callback;
     internal BunnyInt32Hook? Int32Callback;
+    internal BunnyInt32PairHook? Int32PairCallback;
     internal int NativeHandle = -1;
     internal BunnyMethodHook(BunnyVoidHook callback) { Callback = callback; }
     internal BunnyMethodHook(BunnyInt32Hook callback) { Int32Callback = callback; }
-    public bool IsDisposed => Volatile.Read(ref Callback) is null && Volatile.Read(ref Int32Callback) is null;
+    internal BunnyMethodHook(BunnyInt32PairHook callback) { Int32PairCallback = callback; }
+    public bool IsDisposed => Volatile.Read(ref Callback) is null && Volatile.Read(ref Int32Callback) is null &&
+        Volatile.Read(ref Int32PairCallback) is null;
     public void Dispose()
     {
         var first = Interlocked.Exchange(ref Callback, null);
         var second = Interlocked.Exchange(ref Int32Callback, null);
-        if (first is null && second is null) return;
+        var third = Interlocked.Exchange(ref Int32PairCallback, null);
+        if (first is null && second is null && third is null) return;
         if (NativeHandle >= 0) BunnyHooks.NativeRemove(NativeHandle);
     }
 }
@@ -78,6 +83,16 @@ public sealed class BunnyHookScope : IDisposable
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
             BunnyMethodHook handle = BunnyHooks.RegisterInt32(type, method, callback, isStatic);
+            handles.Add(handle);
+            return handle;
+        }
+    }
+    public BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic = false)
+    {
+        lock (gate)
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
+            BunnyMethodHook handle = BunnyHooks.RegisterInt32Pair(type, method, callback, isStatic);
             handles.Add(handle);
             return handle;
         }
@@ -114,7 +129,7 @@ public static class BunnyHooks
     public static long TransientRetries { get; private set; }
     public static string LastError { get; private set; } = "";
 
-    public static string GetStatus() => "Universal C# void()/int(int): chamadas=" + NativeStat(0) +
+    public static string GetStatus() => "Universal C# void()/int(int)/int(int,int): chamadas=" + NativeStat(0) +
         " concluidas=" + NativeStat(1) + " ocupadas=" + NativeStat(2) + " timeouts=" + NativeStat(3) +
         " falhasNativas=" + NativeStat(4) + " recuperados=" + NativeStat(5) +
         " atrasadosDescartados=" + NativeStat(6) + " suspensoes=" + NativeStat(7) + " retomadas=" + NativeStat(8) +
@@ -132,6 +147,13 @@ public static class BunnyHooks
     {
         if (scope is null) throw new ArgumentNullException(nameof(scope));
         return scope.HookInt32(type, method, callback, isStatic);
+    }
+
+    public static BunnyMethodHook HookInt32Pair(BunnyHookScope scope, string type, string method,
+                                               BunnyInt32PairHook callback, bool isStatic = false)
+    {
+        if (scope is null) throw new ArgumentNullException(nameof(scope));
+        return scope.HookInt32Pair(type, method, callback, isStatic);
     }
 
     internal static BunnyMethodHook Register(string type, string method, BunnyVoidHook callback, bool isStatic)
@@ -183,6 +205,36 @@ public static class BunnyHooks
             {
                 int native = NativeInstallInt32(type, method, slot, isStatic ? 1 : 0);
                 if (native < 0) throw new NotSupportedException("Hook int(int) recusado pelo runtime (codigo " + native + ")");
+                handle.NativeHandle = native;
+                return handle;
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
+            }
+        }
+    }
+
+    internal static BunnyMethodHook RegisterInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)
+    {
+        if (string.IsNullOrEmpty(type) || !type.StartsWith("Terraria.", StringComparison.Ordinal) || type.Length > 256 || type.IndexOf('\0') >= 0)
+            throw new ArgumentException("Classe Terraria invalida", nameof(type));
+        if (string.IsNullOrWhiteSpace(method) || method.Length > 128 || method[0] == '.' || method.IndexOf('\0') >= 0)
+            throw new ArgumentException("Metodo invalido", nameof(method));
+        if (callback is null) throw new ArgumentNullException(nameof(callback));
+        lock (RegistrationLock)
+        {
+            int slot = -1;
+            for (int i = 0; i < Slots.Length; ++i)
+                if (Slots[i] is null || Slots[i]!.IsDisposed) { slot = i; break; }
+            if (slot < 0) throw new InvalidOperationException("Limite de 64 hooks ativos");
+            var handle = new BunnyMethodHook(callback);
+            Volatile.Write(ref Slots[slot], handle);
+            try
+            {
+                int native = NativeInstallInt32Pair(type, method, slot, isStatic ? 1 : 0);
+                if (native < 0) throw new NotSupportedException("Hook int(int,int) recusado pelo runtime (codigo " + native + ")");
                 handle.NativeHandle = native;
                 return handle;
             }
@@ -266,6 +318,37 @@ public static class BunnyHooks
         finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
     }
 
+    public static void InvokeInt32Pair(int slot, long ticket, nint self, int first, int second, out int success, out int returnedValue)
+    {
+        success = 0;
+        returnedValue = 0;
+        if (slot < 0 || slot >= Slots.Length || ticket <= 0 || currentTicket != 0) return;
+        BunnyMethodHook? handle = Volatile.Read(ref Slots[slot]);
+        BunnyInt32PairHook? callback = handle is null ? null : Volatile.Read(ref handle.Int32PairCallback);
+        if (callback is null) return;
+        currentSlot = slot;
+        currentTicket = ticket;
+        currentSelf = self;
+        try
+        {
+            returnedValue = callback(new BunnyOriginalInt32(slot, ticket), self, first, second);
+            Calls++;
+            success = 1;
+        }
+        catch (BunnyAccessException error) when (error.Status == BunnyAccessStatus.Busy || error.Status == BunnyAccessStatus.TimedOut)
+        {
+            TransientRetries++;
+            LastError = error.GetType().Name + ": " + error.Message;
+            success = 2;
+        }
+        catch (Exception error)
+        {
+            Faults++;
+            LastError = error.GetType().Name + ": " + error.Message;
+        }
+        finally { currentTicket = 0; currentSlot = -1; currentSelf = 0; }
+    }
+
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_stat", CallingConvention = CallingConvention.Cdecl)]
     private static extern long NativeStat(int key);
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_install", CallingConvention = CallingConvention.Cdecl)]
@@ -275,6 +358,9 @@ public static class BunnyHooks
     internal static extern void NativeRemove(int handle);
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_install_i32", CallingConvention = CallingConvention.Cdecl)]
     internal static extern int NativeInstallInt32([MarshalAs(UnmanagedType.LPUTF8Str)] string type,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string method, int slot, int isStatic);
+    [DllImport("bunny", EntryPoint = "bunny_universal_hook_install_i32_pair", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int NativeInstallInt32Pair([MarshalAs(UnmanagedType.LPUTF8Str)] string type,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string method, int slot, int isStatic);
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_original_i32", CallingConvention = CallingConvention.Cdecl)]
     internal static extern int NativeOriginalInt32(int slot, long ticket, out int returnedValue);
