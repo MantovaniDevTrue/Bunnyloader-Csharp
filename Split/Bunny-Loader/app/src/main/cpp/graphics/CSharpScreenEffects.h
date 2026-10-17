@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "graphics/EffectTypes.h"
 
 namespace bl::graphics {
 
@@ -15,6 +16,8 @@ struct CSharpScreenEffectSpec {
     std::string pipelineFile;
     std::map<std::string, float> parameters;
 };
+
+std::vector<TargetSpec> csharpScreenWarmupTargets();
 
 bool registerCSharpScreenEffects(const std::string& modId,
                                  const std::string& contentDirectory,
