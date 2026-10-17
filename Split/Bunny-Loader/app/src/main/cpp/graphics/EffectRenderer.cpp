@@ -262,8 +262,7 @@ public:
         g.DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         if (!dest) screenDirty_ = true;
 
-        std::lock_guard<std::mutex> lock(g_statsMutex);
-        g_local.boxPixels += static_cast<int64_t>(box.w) * box.h;
+        boxPixels_ += static_cast<int64_t>(box.w) * box.h;
         return true;
     }
 
@@ -271,10 +270,21 @@ public:
     void SaveHistory() {
         bool fresh = false;
         if (!ensureSurface(g_res.history, t_.viewport[2], t_.viewport[3], "quadro anterior", fresh)) return;
-        g_res.historyValid = copyScreen(t_, g_res.history, {0, 0, t_.viewport[2], t_.viewport[3]});
+        const Box full{0, 0, t_.viewport[2], t_.viewport[3]};
+        g_res.historyValid = copyScreen(t_, g_res.history, full);
+        if (g_res.historyValid) recordCopy(full);
     }
 
+    int64_t PixelCount() const { return boxPixels_; }
+    int64_t CopyCount() const { return screenCopies_; }
+    int64_t CopiedPixels() const { return copiedPixels_; }
+
 private:
+    void recordCopy(const Box& box) {
+        ++screenCopies_;
+        copiedPixels_ += static_cast<int64_t>(box.w) * box.h;
+    }
+
     Surface* find(int id) {
         auto it = byId_.find(id);
         return it == byId_.end() ? nullptr : it->second;
@@ -313,6 +323,7 @@ private:
     bool refreshCopy(const Box& box) {
         if (!screenDirty_ && copied_.contains(box)) return true;
         if (!copyScreen(t_, g_res.copy, box)) return false;
+        recordCopy(box);
         copied_ = box;
         screenDirty_ = false;
         return true;
@@ -331,6 +342,9 @@ private:
     std::unordered_map<int, Surface*> byId_;
     Box copied_;
     bool screenDirty_ = true;
+    int64_t boxPixels_ = 0;
+    int64_t screenCopies_ = 0;
+    int64_t copiedPixels_ = 0;
 };
 
 } // namespace
@@ -394,14 +408,19 @@ void EffectRenderer::Execute(const EffectFrame& frame, const DrawTarget& target,
     static int reportedSpikes = 0;
     if (cpuNs > 15000000 && reportedSpikes < 5) {
         ++reportedSpikes;
-        BL_WARN("ScreenFx CPU spike: %lld us, passes=%d/%zu, viewport=%dx%d",
+        BL_WARN("ScreenFx CPU spike: %lld us, passes=%d/%zu, copies=%lld, copiedPixels=%lld, viewport=%dx%d",
                 static_cast<long long>(cpuNs / 1000), drawn, frame.draws.size(),
+                static_cast<long long>(run.CopyCount()),
+                static_cast<long long>(run.CopiedPixels()),
                 target.viewport[2], target.viewport[3]);
     }
     std::lock_guard<std::mutex> lock(g_statsMutex);
     g_local.draws += drawn;
     g_local.frames++;
     g_local.renderCpuNs += cpuNs;
+    g_local.boxPixels += run.PixelCount();
+    g_local.screenCopyCalls += run.CopyCount();
+    g_local.screenCopyPixels += run.CopiedPixels();
 }
 
 bool EffectRenderer::PrewarmOneTarget(int width, int height) {
@@ -449,6 +468,8 @@ void EffectRenderer::FillStats(RenderStats& stats) {
     stats.hasContext = g_local.hasContext;
     stats.renderCpuNs = g_local.renderCpuNs;
     stats.boxPixels = g_local.boxPixels;
+    stats.screenCopyCalls = g_local.screenCopyCalls;
+    stats.screenCopyPixels = g_local.screenCopyPixels;
     GpuTimer::Totals(GpuChannel::Effect, stats.gpuNs, stats.gpuSamples);
     GpuTimer::Totals(GpuChannel::Frame, stats.gpuFrameNs, stats.gpuFrameSamples);
     stats.gpuTimer = GpuTimer::Available();
