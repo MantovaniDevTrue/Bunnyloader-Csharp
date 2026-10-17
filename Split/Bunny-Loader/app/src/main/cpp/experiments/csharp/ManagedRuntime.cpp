@@ -266,6 +266,7 @@ void* g_universalRegister = nullptr;
 void* g_universalDispatch = nullptr;
 void* g_universalDispatchInt32 = nullptr;
 void* g_universalDispatchInt32Pair = nullptr;
+void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
@@ -1122,7 +1123,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1139,9 +1140,10 @@ bool prepareUniversalHookSdk() {
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
     g_universalDispatchInt32 = g_api.findMethod(hooks, "InvokeInt32", 6);
     g_universalDispatchInt32Pair = g_api.findMethod(hooks, "InvokeInt32Pair", 7);
+    g_universalDispatchExtended = g_api.findMethod(hooks, "InvokeExtended", 9);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
     return g_universalRegister && g_universalDispatch && g_universalDispatchInt32 &&
-           g_universalDispatchInt32Pair && g_universalClear && g_universalRemove;
+           g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove;
 }
 
 struct UniversalMonoContext {
@@ -1168,7 +1170,14 @@ bool pollUniversalHooksOnWorker() {
                 int result = 0;
                 void* exception = nullptr;
                 UniversalMonoContext context;
-                if (work.int32PairMode) {
+                if (work.extendedMode > 0) {
+                    int32_t first = work.argument;
+                    int32_t second = work.argument2;
+                    int32_t third = work.argument3;
+                    int mode = work.extendedMode;
+                    void* args[] = {&slot, &ticket, &self, &first, &second, &third, &mode, &result, &returnedValue};
+                    g_api.invoke(g_universalDispatchExtended, nullptr, args, &exception);
+                } else if (work.int32PairMode) {
                     int32_t first = work.argument;
                     int32_t second = work.argument2;
                     void* args[] = {&slot, &ticket, &self, &first, &second, &result, &returnedValue};
