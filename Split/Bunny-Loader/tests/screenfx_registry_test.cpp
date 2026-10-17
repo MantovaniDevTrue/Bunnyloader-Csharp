@@ -68,7 +68,7 @@ int main() {
     {
         std::ofstream file(fs::path(path) / "Effects" / "Light.screenfx");
         file << "TARGET|shadow|0.333333\n"
-                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@threshold|-\n"
+                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@param.DayShadowThreshold|-\n"
                 "PASS|Effects/Ok.frag|screen|screen|uClock=@clock|uRays=shadow,uGradient=Effects/Day.png?Effects/Night.png\n";
     }
     {
@@ -82,6 +82,7 @@ int main() {
     bl::graphics::CSharpScreenEffectSpec graph;
     graph.className = "Light";
     graph.pipelineFile = "Effects/Light.screenfx";
+    graph.parameters["DayShadowThreshold"] = 0.98f;
     assert(bl::graphics::registerCSharpScreenEffects("probe_graph", path, {graph}, &error));
     assert(shaders == 3);
     bl::graphics::pumpCSharpScreenEffects();
@@ -89,6 +90,8 @@ int main() {
     assert(frames[2].targets.size() == 1);
     assert(frames[2].draws.size() == 2);
     assert(frames[2].draws[0].dest == 1);
+    assert(frames[2].draws[0].uniforms.size() == 2);
+    assert(frames[2].draws[0].uniforms[1].v[0] == 0.98f);
     assert(frames[2].draws[1].textures.size() == 2);
     assert(frames[2].draws[1].textures[0].texture == 1);
     assert(frames[2].draws[1].textures[1].texture <= -1000);
