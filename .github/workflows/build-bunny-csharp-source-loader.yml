@@ -1053,7 +1053,11 @@ jobs:
               ):
                   source = "content/Common/Hooks/" + hook + ".cs"
                   assert source in names
-                  assert b"EnableAtLoad = false" in z.read(source)
+                  expected = b"EnableAtLoad = false" if hook == "ExampleNativeAccess" else b"EnableAtLoad = true"
+                  assert expected in z.read(source)
+                  if hook != "ExampleNativeAccess":
+                      assert b"public override string DiagnosticStatus() => Result();" in z.read(source)
+                      assert b"SampleLimit = 2" in z.read(source)
               assert "content/Content/Items/Weapons/ExampleWand.cs" in names
               assert "content/ExampleBoltMotion.cs" in names
               assert "content/Content/Buffs/ExampleDefenseBuff.cs" in names
