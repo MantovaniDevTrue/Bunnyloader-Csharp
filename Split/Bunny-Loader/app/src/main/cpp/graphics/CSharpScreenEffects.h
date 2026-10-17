@@ -8,10 +8,10 @@ namespace bl::graphics {
 struct CSharpScreenEffectSpec {
     std::string className;
     std::string shaderFile;
-    std::string pipelineFile;
     int layer = 0;
     int order = 0;
     float intensity = 1.f;
+    std::string pipelineFile;
 };
 
 bool registerCSharpScreenEffects(const std::string& modId,
