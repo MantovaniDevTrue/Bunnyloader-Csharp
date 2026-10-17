@@ -1484,6 +1484,26 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyScreenEffect",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "float Intensity { get; set; }",
+        "int Layer { get; set; }",
+        "int Order { get; set; }",
+        "string DisplayName { get; set; }",
+        "string ShaderFile { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyTile",
       "kind": "abstract class",
       "baseType": "System.Object",
