@@ -142,6 +142,12 @@ private fun LauncherScreen(shell: Shell) {
     var tab by rememberSaveable { mutableStateOf(Tab.INICIO) }
     var openMod by rememberSaveable { mutableStateOf<String?>(null) }
     var showMixedRuntimeWarning by rememberSaveable { mutableStateOf(false) }
+    val csharpLaunchSpecs = remember(shell.packages, shell.enabled) {
+        shell.packages
+            .filter { it.uid in shell.enabled && !it.manifest.isOutdated &&
+                it.manifest.packType == PackType.MOD && it.manifest.entry.endsWith(".cs") }
+            .map { "${it.uid}=${it.manifest.entry}" }
+    }
     val runtimeMods = remember(shell.packages, shell.enabled) {
         ScriptRuntimeModes.fromSpecs(shell.packages
             .filter { it.uid in shell.enabled && !it.manifest.isOutdated && it.manifest.packType == PackType.MOD }
@@ -272,7 +278,7 @@ private fun LauncherScreen(shell: Shell) {
                     onStart = {
                         if (runtimeMods.mixed) showMixedRuntimeWarning = true
                         else {
-                            dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx)
+                            dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx, csharpLaunchSpecs)
                             ctx.startActivity(Intent(ctx, GameActivity::class.java))
                         }
                     },
@@ -293,7 +299,7 @@ private fun LauncherScreen(shell: Shell) {
                     }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
                     PixelButton(tr("Jogar assim mesmo"), {
                         showMixedRuntimeWarning = false
-                        dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx)
+                        dev.bunnyloader.csharp.LaunchSourcePrecompile.begin(ctx, csharpLaunchSpecs)
                         ctx.startActivity(Intent(ctx, GameActivity::class.java))
                     }, Modifier.weight(1f), fontSize = Ts.Small, shadow = false)
                 }
