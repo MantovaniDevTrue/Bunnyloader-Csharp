@@ -34,7 +34,8 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_runNative(
 
 static jstring compileWorkerNative(
     JNIEnv* env, jstring probe, jstring compiler, jstring source,
-    jstring output, jstring diagnostic, jstring checkpoint, bool precompileOnly) {
+    jstring output, jstring diagnostic, jstring checkpoint,
+    bool precompileOnly, bool verifyOnly) {
     if (!probe || !compiler || !source || !output || !diagnostic || !checkpoint)
         return env->NewStringUTF("result=-1\nphase=missing-arguments\n");
     auto get = [env](jstring value) {
@@ -53,7 +54,8 @@ static jstring compileWorkerNative(
     if (slash != std::string::npos)
         bl::csharp::installNativeAbortProbe(diagnosticPath.substr(0, slash));
     const auto result = bl::csharp::compileManagedSource(
-        probePath, compilerPath, sourceRoot, outputPath, diagnosticPath, precompileOnly);
+        probePath, compilerPath, sourceRoot, outputPath, diagnosticPath,
+        precompileOnly, verifyOnly);
     const std::string status = "result=" + std::to_string(result.result) +
         "\nphase=" + result.phase +
         "\nexecutedTypes=" + std::to_string(result.executedTypes) +
@@ -69,7 +71,7 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
     jstring output, jstring diagnostic, jstring checkpoint) {
     return compileWorkerNative(env, probe, compiler, source,
-                               output, diagnostic, checkpoint, false);
+                               output, diagnostic, checkpoint, false, false);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -77,5 +79,13 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_precompileNative(
     JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
     jstring output, jstring diagnostic, jstring checkpoint) {
     return compileWorkerNative(env, probe, compiler, source,
-                               output, diagnostic, checkpoint, true);
+                               output, diagnostic, checkpoint, true, false);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_bunnyloader_csharp_ManagedProbeService_verifyPrefetchedNative(
+    JNIEnv* env, jobject, jstring probe, jstring compiler, jstring source,
+    jstring output, jstring diagnostic, jstring checkpoint) {
+    return compileWorkerNative(env, probe, compiler, source,
+                               output, diagnostic, checkpoint, false, true);
 }
