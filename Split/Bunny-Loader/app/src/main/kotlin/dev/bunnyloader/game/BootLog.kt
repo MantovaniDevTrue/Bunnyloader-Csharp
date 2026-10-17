@@ -133,6 +133,7 @@ object BootLog {
             "\n--- worker MonoVM isolado ---\n" + lastIsolatedMonoWorker(ctx) +
             "\n--- último carregamento C# registrado (pode ser anterior) ---\n" + lastCSharpStartup(ctx) +
             "\n--- última compilação C# (pode ser anterior) ---\n" + lastCSharpCompilation(ctx) +
+            "\n--- pré-compilação ao tocar Jogar ---\n" + lastLaunchPrecompile(ctx) +
             "\n--- combate de NPCs e projéteis C# (MonoVM) ---\n" + lastCSharpEntityCombat(ctx) +
             "\n--- capturas nativas do processo do jogo ---\n" + gameCrashTraces(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
@@ -188,6 +189,40 @@ object BootLog {
             append(runCatching { profile.readText().take(1400) }
                 .getOrElse { "(erro ao ler: ${it.javaClass.simpleName})" })
             append('\n')
+        }
+    }
+
+    private fun lastLaunchPrecompile(ctx: Context): String = buildString {
+        val dir = File(ctx.filesDir, "bunny-csharp")
+        val entries = dir.listFiles { file ->
+            file.name.startsWith("source-launch-precompile-") &&
+                file.name.endsWith(".txt") &&
+                !file.name.contains("diagnostics")
+        }.orEmpty().sortedBy { it.name }.take(16)
+        if (entries.isEmpty()) append("(nenhum status antecipado registrado)\n")
+        for (file in entries) {
+            val age = ((System.currentTimeMillis() - file.lastModified()) / 1000L)
+                .coerceAtLeast(0L)
+            append(file.name).append(" há ").append(age).append("s\n")
+            append(runCatching {
+                file.readLines().filter { line ->
+                    listOf("state=", "modId=", "pid=", "phase=", "prefetchReused=",
+                        "precompileOnly=", "roslynInvokeMs=", "managedCompileMs=",
+                        "frameworkCache=", "error=").any(line::startsWith)
+                }.joinToString("\n").take(750)
+            }.getOrDefault("(status ilegível)")).append('\n')
+        }
+        val logDir = ctx.getExternalFilesDir(null)?.parentFile?.let { File(it, "logs") }
+        val latest = logDir?.listFiles { file ->
+            file.name.startsWith("bunny_") && file.name.endsWith(".txt")
+        }?.maxByOrNull { it.name }
+        if (latest != null) {
+            val launchLines = runCatching {
+                latest.useLines { lines ->
+                    lines.filter { it.contains("LaunchPrecompile") }.take(12).toList()
+                }
+            }.getOrDefault(emptyList())
+            if (launchLines.isNotEmpty()) append(launchLines.joinToString("\n")).append('\n')
         }
     }
 
