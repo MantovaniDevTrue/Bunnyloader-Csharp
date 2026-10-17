@@ -3,7 +3,11 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/GuardedCall.h"
+#if defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
+#define BL_INFO(...) ((void)0)
+#else
 #include "core/Log.h"
+#endif
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -414,6 +418,7 @@ void scanHookSignaturesOnGameThread() {
         const char* name = api.method_get_name(method);
         if (!name || !*name || name[0] == '.') continue;
         const char* mode = api.method_is_instance(method) ? "instancia" : "static";
+        (void)mode;
         BL_INFO("[CSharp][HookScan] H%d Terraria.%s.%s %s assinatura=%s(int x%d) ponteiro=sim",
             index + 1, className, name, mode, intReturn ? "int" : "void", count);
         ++scan.emitted[index];
