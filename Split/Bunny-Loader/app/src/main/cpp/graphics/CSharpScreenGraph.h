@@ -2,6 +2,7 @@
 #include "graphics/EffectTypes.h"
 #include "graphics/ScreenScene.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -37,7 +38,8 @@ struct ScreenGraph {
 bool loadCSharpScreenGraph(const std::string& modId, const std::string& className,
                            const std::string& contentDirectory, const std::string& relativePath,
                            EffectLayer layer, float intensity, ScreenGraph* graph,
-                           std::string* error);
+                           std::string* error,
+                           const std::map<std::string, float>& parameters = {});
 void buildCSharpScreenGraph(const ScreenGraph& graph, const ScreenSceneSnapshot& scene,
                            EffectFrame* frame);
 
