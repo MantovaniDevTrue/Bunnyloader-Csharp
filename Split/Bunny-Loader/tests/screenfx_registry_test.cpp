@@ -51,7 +51,7 @@ int main() {
         std::ofstream file(fs::path(path) / "Effects" / "Ok.frag");
         file << "void main(){fragColor=vec4(1.0);}";
     }
-    bl::graphics::CSharpScreenEffectSpec spec{"Tint", "Effects/Ok.frag", 0, 0, 0.7f, ""};
+    bl::graphics::CSharpScreenEffectSpec spec{"Tint", "Effects/Ok.frag", 0, 0, 0.7f, "", {}};
     std::string error;
     assert(bl::graphics::registerCSharpScreenEffects("probe", path, {spec}, &error));
     assert(shaders == 1);
