@@ -27,6 +27,7 @@ int TextureRegistry::Load(const std::string&, bool, bool, int* w, int* h) {
     static int number = -1000;
     return number--;
 }
+void resetScreenScene() {}
 ScreenSceneSnapshot sampleScreenScene() {
     ScreenSceneSnapshot scene;
     scene.valid = true;
