@@ -219,7 +219,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ -n "${GH_TOKEN:-}" ]; then
-            gh issue comment 58 --repo "$GITHUB_REPOSITORY" \
+            gh issue comment 59 --repo "$GITHUB_REPOSITORY" \
               --body "Compilacao APK .79 iniciada: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Commit ${GITHUB_SHA}. A publicacao privada sera confirmada somente apos assinatura e entrega." \
               || echo "::warning::Nao foi possivel avisar a PR sobre inicio da compilacao"
           fi
@@ -2047,7 +2047,7 @@ jobs:
             --prerelease
           echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-universal-intpair-v90-29-79" ]; then
-            GH_TOKEN="${{ github.token }}" gh issue comment 58 \
+            GH_TOKEN="${{ github.token }}" gh issue comment 59 \
               --repo "$GITHUB_REPOSITORY" \
               --body "APK CSharp .79 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
               || echo "::warning::APK entregue, mas comentario de confirmacao na PR nao foi publicado"
