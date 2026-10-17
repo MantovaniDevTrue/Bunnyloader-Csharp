@@ -10,6 +10,9 @@ targets = {}
 passes = []
 for raw in source.splitlines():
     cells = raw.split("|")
+    if cells[0] == "SCENE":
+        assert cells == ["SCENE", "LightsAndShadowsCSharp", "LightingCalculator", "ComputeSceneWire"]
+        continue
     if cells[0] == "TARGET":
         assert len(cells) == 3
         assert cells[1] not in targets
@@ -48,11 +51,13 @@ assert manifest["version"] == "0.4.1"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
+assert "uSceneShadowThreshold=@threshold" in source
 assert "@param.DayShadowThreshold" in source
 assert "@param.NightShadowThreshold" in source
 assert "@param.RayQuality" in source
 assert "@param.BloomStrength" in source
 assert "mix(uNightShadowThreshold, uDayShadowThreshold, day)" in mask
+assert "uSceneShadowThreshold" in mask
 mod_source = (root / "Playable/content/main.cs").read_text()
 for name in ("SunPower", "DayShadowThreshold", "NightShadowThreshold", "ShadowStrength",
              "RayQuality", "BloomThreshold", "BloomStrength", "BloomPower", "BlurGain"):
