@@ -4,7 +4,12 @@ uniform float uSunStrength;
 uniform float uSunPower;
 uniform float uQuality;
 uniform vec2 uSun;
+uniform float uSunEnabled;
 void main() {
+    if (uSunEnabled <= 0.0 || uSunStrength <= 0.0) {
+        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
     vec2 offset = vUV - uSun;
     float dayFactor = clamp(uDay, 0.0, 1.0);
     float ray = 0.0;
