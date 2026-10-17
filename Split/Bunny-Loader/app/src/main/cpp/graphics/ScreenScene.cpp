@@ -1,5 +1,6 @@
 #include "graphics/ScreenScene.h"
 #include "graphics/ScreenSceneTransition.h"
+#include "graphics/ScreenSceneFieldContract.h"
 #include "graphics/EffectRenderer.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -19,7 +20,7 @@ struct Vec2 { float x, y; };
 
 enum class NumericType { Unknown, Single, Double };
 
-NumericType numericType(FieldInfo* field) {
+NumericType numericType(FieldInfo* field, const char* member) {
     if (!field) return NumericType::Unknown;
     auto& api = il2cpp::api();
     const Il2CppType* type = api.field_get_type(field);
@@ -28,7 +29,11 @@ NumericType numericType(FieldInfo* field) {
         ? NumericType::Single : name && std::strcmp(name, "System.Double") == 0
         ? NumericType::Double : NumericType::Unknown;
     if (name) api.il2cpp_free(name);
-    return result;
+    if (result == NumericType::Single &&
+        bindScreenSceneField(field, "System.Single", sizeof(float), member)) return result;
+    if (result == NumericType::Double &&
+        bindScreenSceneField(field, "System.Double", sizeof(double), member)) return result;
+    return NumericType::Unknown;
 }
 
 struct Fields {
@@ -81,22 +86,28 @@ ScreenSceneSnapshot sampleScreenScene() {
     if (!g_fields.initialized) {
         Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
         if (main) {
-            g_fields.daytime = il2cpp::findField(main, "dayTime");
+            g_fields.daytime = bindScreenSceneField(il2cpp::findField(main, "dayTime"),
+                "System.Boolean", sizeof(bool), "Main.dayTime");
             g_fields.time = il2cpp::findField(main, "time");
-            g_fields.screenWidth = il2cpp::findField(main, "screenWidth");
-            g_fields.screenHeight = il2cpp::findField(main, "screenHeight");
-            g_fields.screenPosition = il2cpp::findField(main, "screenPosition");
+            g_fields.screenWidth = bindScreenSceneField(il2cpp::findField(main, "screenWidth"),
+                "System.Int32", sizeof(int), "Main.screenWidth");
+            g_fields.screenHeight = bindScreenSceneField(il2cpp::findField(main, "screenHeight"),
+                "System.Int32", sizeof(int), "Main.screenHeight");
+            g_fields.screenPosition = bindScreenSceneVectorField(
+                il2cpp::findField(main, "screenPosition"), "Main.screenPosition");
             if (!g_fields.screenPosition ||
                 !(il2cpp::api().field_get_flags(g_fields.screenPosition) & 0x10u)) {
                 g_fields.screenPosition = nullptr;
                 const auto* getter = il2cpp::findMethodBySignature(
                     main, il2cpp::parseSignature("Vector2 get_screenPosition()"));
                 if (getter && !il2cpp::api().method_is_instance(getter) &&
+                    screenSceneVectorContract(il2cpp::api().method_get_return_type(getter), "Main.get_screenPosition") &&
                     il2cpp::methodPointer(getter))
                     g_fields.screenPositionGetter = getter;
             }
             g_fields.worldSurface = il2cpp::findField(main, "worldSurface");
-            g_fields.moonPhase = il2cpp::findField(main, "moonPhase");
+            g_fields.moonPhase = bindScreenSceneField(il2cpp::findField(main, "moonPhase"),
+                "System.Int32", sizeof(int), "Main.moonPhase");
             const auto* mainWidthGetter = il2cpp::findMethodBySignature(
                 main, il2cpp::parseSignature("Int32 get_screenWidth()"));
             const auto* mainHeightGetter = il2cpp::findMethodBySignature(
@@ -120,8 +131,8 @@ ScreenSceneSnapshot sampleScreenScene() {
                     il2cpp::methodPointer(heightGetter))
                     g_fields.unityScreenHeightGetter = heightGetter;
             }
-            g_fields.clockType = numericType(g_fields.time);
-            g_fields.surfaceType = numericType(g_fields.worldSurface);
+            g_fields.clockType = numericType(g_fields.time, "Main.time");
+            g_fields.surfaceType = numericType(g_fields.worldSurface, "Main.worldSurface");
             g_fields.initialized = true;
             g_fields.resolved = true;
         }

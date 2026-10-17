@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
+    branches: [fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
   pull_request:
     paths:
