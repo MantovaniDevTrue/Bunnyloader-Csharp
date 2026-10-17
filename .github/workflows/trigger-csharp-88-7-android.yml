@@ -1,0 +1,24 @@
+name: Trigger Bunny CSharp 88.7 Android
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trigger-csharp-88-7-android.yml
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start verified private signed .88.7 Android build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/build-bunny-csharp-source-loader.yml/dispatches" \
+            -f ref="hotfix/csharp-88-5-sigabrt-logcat-tail"
+          echo "BUNNY_CSHARP_88_7_ANDROID_DISPATCH=SUCCESS"
