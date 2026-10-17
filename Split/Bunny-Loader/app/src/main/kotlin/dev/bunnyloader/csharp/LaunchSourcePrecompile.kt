@@ -12,7 +12,23 @@ object LaunchSourcePrecompile {
     private val scheduling = AtomicBoolean(false)
 
     fun begin(context: Context, selectedSpecs: List<String>) {
-        if (!scheduling.compareAndSet(false, true)) return
+        if (selectedSpecs.isEmpty() || !scheduling.compareAndSet(false, true)) return
+        val app = context.applicationContext
+        try {
+            // Start while the launcher is foreground; inspect packages only on the service worker.
+            val intent = Intent(app, ManagedProbeService::class.java)
+                .putExtra("sourceLaunchSpecs", selectedSpecs.take(16).distinct().toTypedArray())
+                .putExtra("sourceLaunchStartedMs", android.os.SystemClock.elapsedRealtime())
+            app.startService(intent)
+        } catch (error: Exception) {
+            Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Stage=LaunchDispatch Reason=ServiceStartFailed Result=OfficialCompileFallback", error)
+        } finally {
+            scheduling.set(false)
+        }
+    }
+
+    internal fun schedule(context: Context, selectedSpecs: List<String>, launchStartedMs: Long,
+                          enqueue: (String, String) -> Boolean) {
         val app = context.applicationContext
         val started = android.os.SystemClock.elapsedRealtime()
         var queued = 0
@@ -58,11 +74,7 @@ object LaunchSourcePrecompile {
                     Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileSkipExisting Mod=$uid")
                     continue
                 }
-                val intent = Intent(app, ManagedProbeService::class.java)
-                    .putExtra("sourceRoot", root.absolutePath)
-                    .putExtra("sourceModId", uid)
-                    .putExtra("sourcePrecompile", true)
-                if (runCatching { app.startService(intent) }.getOrNull() != null) {
+                if (enqueue(root.absolutePath, uid)) {
                     queued++
                     Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LaunchPrecompileQueued Mod=$uid")
                 }
@@ -75,10 +87,11 @@ object LaunchSourcePrecompile {
             runCatching {
                 File(app.filesDir, "bunny-csharp/source-launch-startup.txt").apply {
                     parentFile?.mkdirs()
-                    writeText("queued=$queued\nskipped=$skipped\nelapsedMs=$elapsed\n")
+                    val queueWait = (started - launchStartedMs).coerceAtLeast(0)
+                    writeText("queued=$queued\nskipped=$skipped\nelapsedMs=$elapsed\n" +
+                        "queueWaitMs=$queueWait\nscanThread=${Thread.currentThread().name}\n")
                 }
             }
-            scheduling.set(false)
         }
     }
 }
