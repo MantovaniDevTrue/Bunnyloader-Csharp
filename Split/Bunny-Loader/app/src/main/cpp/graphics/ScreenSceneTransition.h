@@ -27,7 +27,7 @@ public:
         const float transitionRate = 1.0f - std::exp(-dt / 0.36f);
         current_.sunX += (input.sunX - current_.sunX) * positionRate;
         current_.sunY += (input.sunY - current_.sunY) * positionRate;
-        current_.clock = input.clock;
+        current_.clock += (input.clock - current_.clock) * transitionRate;
         current_.strength += (input.strength - current_.strength) * lightingRate;
         current_.shadowThreshold += (input.shadowThreshold - current_.shadowThreshold) * transitionRate;
         current_.dayBlend += (input.dayBlend - current_.dayBlend) * transitionRate;
