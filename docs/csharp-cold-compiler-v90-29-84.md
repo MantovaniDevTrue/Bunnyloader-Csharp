@@ -128,3 +128,22 @@ O perfil preservado também inclui `nativeWallMs` e `workerProcessCpuMs`. Este
 threads auxiliares), não CPU do jogo. A comparação entre parede e CPU ajuda a
 distinguir custo real do compilador de espera/disputa de CPU no Android; CPU
 pode ultrapassar parede se várias threads trabalharem simultaneamente.
+
+## Corrida de RPC encontrada na regressão
+
+O host reproduziu timeout de leitura em `NativeAccess` apesar do pedido estar
+pendente. O produtor notificava o mailbox ainda segurando o mutex de RPC; o
+pump do jogo podia falhar no try-lock, consumir o despertar como ausência de
+trabalho e voltar a dormir até o prazo do hook. O estado agora é atômico: se o
+pump não conseguir o lock mas houver pedido pendente, informa trabalho pendente
+para o mailbox tentar novamente dentro do prazo original. O pump do jogo
+continua não bloqueante. O produtor Mono, já fora do lock Mono, não retorna Busy
+só por disputar com uma consulta ociosa do jogo.
+
+O fixture agora acorda o worker por trabalho e sincroniza sua ociosidade entre
+cenários; não disputa o mutex do mailbox em um loop ocioso. As asserções de
+valores, canário, tipo, original, expiração e cancelamento continuam intactas.
+A implementação anterior falhou com esse fixture (timeout de prefixo); a
+corrigida passou em 1.000 processos consecutivos no host. CI exige 40 execuções.
+Prazos de RPC/hook em produção não foram aumentados. Isto é evidência de host,
+não validação de FPS ou latência Android.

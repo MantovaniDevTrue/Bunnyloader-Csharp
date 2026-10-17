@@ -174,7 +174,8 @@ struct Rpc {
     std::mutex mutex;
     std::condition_variable changed;
     std::atomic<uint64_t> completed{0};
-    enum { Idle,Pending,Done } state=Idle;
+    enum State { Idle,Pending,Done };
+    std::atomic<State> state{Idle};
     Request request;
     Response response;
 } rpc;
@@ -372,8 +373,10 @@ Response submit(Request request) {
         hookRequest=true;
     }
     UniversalHookWorkerYield yield;
-    std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
-    if(!lock||rpc.state!=Rpc::Idle){
+    // This is the Mono worker, after yielding Mono. An idle game-thread poll must
+    // not reject a valid request; the game-thread pump keeps its nonblocking lock.
+    std::unique_lock<std::mutex> lock(rpc.mutex);
+    if(rpc.state!=Rpc::Idle){
         stats[12].fetch_add(1,std::memory_order_relaxed);
         fail.status=S::Busy;return fail;
     }
@@ -432,7 +435,10 @@ int64_t nativeAccessStat(int key) {
 extern "C" __attribute__((visibility("default"))) int64_t bunny_native_access_stat(int key) { return nativeAccessStat(key); }
 bool pumpNativeAccessOnGameThread() {
     std::unique_lock<std::mutex> lock(rpc.mutex,std::try_to_lock);
-    if(!lock||rpc.state!=Rpc::Pending)return false;
+    // A producer notifies while publishing under this mutex. Do not consume that
+    // wake as "idle" if it still owns the lock; the mailbox will retry within its deadline.
+    if(!lock)return rpc.state.load(std::memory_order_acquire)==Rpc::Pending;
+    if(rpc.state!=Rpc::Pending)return false;
     const bool previous=universalNativeAccessInProgress;
     universalNativeAccessInProgress=true;
     const auto begun=std::chrono::steady_clock::now();
