@@ -66,9 +66,9 @@ int main() {
     assert(shaders == 1);
     {
         std::ofstream file(fs::path(path) / "Effects" / "Light.screenfx");
-        file << "TARGET|shadow|0.333333\\n"
-                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@threshold|-\\n"
-                "PASS|Effects/Ok.frag|screen|screen|uClock=@clock|uRays=shadow,uGradient=Effects/Day.png?Effects/Night.png\\n";
+        file << "TARGET|shadow|0.333333\n"
+                "PASS|Effects/Ok.frag|screen|shadow|uSun=@sun,uShadowThreshold=@threshold|-\n"
+                "PASS|Effects/Ok.frag|screen|screen|uClock=@clock|uRays=shadow,uGradient=Effects/Day.png?Effects/Night.png\n";
     }
     {
         std::ofstream file(fs::path(path) / "Effects" / "Day.png", std::ios::binary);
