@@ -9,7 +9,12 @@ runtime = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read
 source = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
 
 assert launcher.count("LaunchSourcePrecompile.begin(ctx)") == 2
-assert launch.index('thread(name = "BunnyCSharpLaunchPrecompile"') < launch.index('repository.enabledSpecs()')
+assert 'fun begin(context: Context, selectedSpecs: List<String>)' in launch
+assert 'for (spec in selectedSpecs.take(16))' in launch
+assert 'source-launch-startup.txt' in launch
+assert 'thread(name = "BunnyCSharpLaunchPrecompile"' not in launch
+assert 'LaunchSourcePrecompile.begin(ctx, csharpLaunchSpecs)' in launcher
+assert 'sourcePrecompile' in launch
 assert 'entry.endsWith(".cs")' in launch
 assert "ModManifest.isValidUid(uid)" in launch
 assert 'source.path.startsWith(content.path + File.separator)' in launch
@@ -39,3 +44,20 @@ assert 'readCache(cacheFile, mod.id, key, assembly' in source
 assert 'applyManagedSourceDefaults(mod.id, defaults, &error)' in source
 
 print("CSHARP_PLAY_CLICK_PRECOMPILE_AND_CONTENT_GATE_PASS")
+
+assert 'CSharpPrefetchReceipt' in worker
+assert 'CSharpPrefetchReceipt.save(' in worker
+assert 'CSharpPrefetchReceipt.ready(' in worker
+assert 'verifyPrefetchedNative(' in worker
+assert 'prefetchReused=' in worker
+assert '"framework-version.txt"' in worker
+assert '"BUNNY_PREFETCH_RECEIPT_V1"' in worker
+assert 'sourceStamp(root, dir, id)' in worker
+assert 'hash(assembly)' in worker
+assert 'hash(File(assembly.absolutePath + ".sha256"))' in worker
+assert 'if (precompileOnly) {' in runtime
+assert 'if (!verifyOnly) {' in runtime
+assert 'out.result = 2;' in runtime
+assert 'Java_dev_bunnyloader_csharp_ManagedProbeService_verifyPrefetchedNative' in jni
+assert 'bool precompileOnly, bool verifyOnly' in jni
+print("CSHARP_PREFETCH_RECEIPT_VERIFIED_REUSE_PASS")
