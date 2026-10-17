@@ -195,7 +195,7 @@ object BootLog {
     private fun lastLaunchPrecompile(ctx: Context): String = buildString {
         val dir = File(ctx.filesDir, "bunny-csharp")
         val launcher = File(dir, "source-launch-startup.txt")
-        if (launcher.isFile) append("Clique Jogar: ").append(launcher.readText().replace("\n", " ")).append("\n")
+        if (launcher.isFile) append("Clique Jogar: ").append(runCatching { launcher.readText().replace("\n", " ") }.getOrDefault("(ilegível)")).append("\n")
         val entries = dir.listFiles { file ->
             file.name.startsWith("source-launch-precompile-") &&
                 file.name.endsWith(".txt") &&
@@ -210,7 +210,7 @@ object BootLog {
                 file.readLines().filter { line ->
                     listOf("state=", "modId=", "pid=", "phase=", "prefetchReused=",
                         "precompileOnly=", "roslynInvokeMs=", "managedCompileMs=",
-                        "frameworkCache=", "error=").any(line::startsWith)
+                        "frameworkCache=", "error=").any { prefix -> line.startsWith(prefix) }
                 }.joinToString("\n").take(750)
             }.getOrDefault("(status ilegível)")).append('\n')
         }
