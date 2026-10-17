@@ -45,12 +45,16 @@ assert "i < 30" in rays and "i >= 20" in rays
 assert "mix(nightWeight, dayWeight, dayFactor)" in rays
 assert "uQuality" in rays and "(30.0 - j) / 120.0" in rays
 assert "uBloom" in (effects / "BloomComposite.frag").read_text()
+assert "moonVisibility * 0.24" in rays
+assert "j * 0.006" in rays
+assert "uDistance < 0.5" in (effects / "KawaseBlur.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.4.2.1"
+assert manifest["version"] == "0.4.2.2"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
+assert "sunlight * moonAmbient" in compose
 assert "uSceneShadowThreshold=@threshold" in source
 assert "@param.DayShadowThreshold" in source
 assert "@param.NightShadowThreshold" in source
