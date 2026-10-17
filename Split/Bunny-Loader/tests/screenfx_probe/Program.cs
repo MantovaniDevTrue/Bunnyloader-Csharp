@@ -18,6 +18,11 @@ var lights = new LightsAndShadows();
 lights.SetDefaults();
 if (lights.PipelineFile != "Effects/Lights.screenfx" || lights.ShaderFile.Length != 0)
     throw new InvalidOperationException("Lights And Shadows graph declaration mismatch");
+if (lights.Uniform_DayShadowThreshold != .98f ||
+    lights.Uniform_NightShadowThreshold != .02f ||
+    lights.Uniform_RayQuality != 3f ||
+    lights.Uniform_BloomStrength != .55f)
+    throw new InvalidOperationException("Managed Lights C# scene settings mismatch");
 
 string root = Path.Combine(Path.GetTempPath(), "bunny_screenfx_verify_" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);

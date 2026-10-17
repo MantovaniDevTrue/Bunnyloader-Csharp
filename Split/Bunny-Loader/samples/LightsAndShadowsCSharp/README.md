@@ -1,11 +1,19 @@
-# Lights And Shadows — Bunny C# Native
+# Lights And Shadows C# — 0.3.2
 
-Port experimental do mod Lights de yiyang233/AWEoghAwo, com fidelidade baseada diretamente em Lights-master.zip e nos arquivos Effects/Light.fx, Shadow.fx, Bloom1.fx e KawaseBlur.fx.
+Port do Lights And Shadows de yiyang233 / AWEoghAwo, com formulas e assets originais do PC como referencia.
 
-A API BunnyScreenEffect.PipelineFile aponta para um arquivo .screenfx. O host nativo cria targets, registra os GLSL, amostra Main.dayTime, Main.time, Main.worldSurface e Main.screenPosition e alimenta os uniforms @sun, @clock, @day, @strength, @threshold e @enabled. Nao utiliza JavaScript.
+## Divisao de responsabilidades
 
-A segunda etapa contem mascara azul (Shadow.fx:GetShadow) calculada uma unica vez a 1/3 da resolucao, raios de sombra com 30 amostras dia e 20 noite sobre essa mascara, e iluminacao solar/lunar ligada a camera real do Terraria (screenPosition static getter + viewport do renderizador GL). Mantem as gradientes originais ColorTex.png e ColorTex2.png, bloom com extracao e dois passes Kawase (1/3). A opcao ColorTex_Alt.png tambem fica incluida para lote futuro.
+O `content/main.cs` agora e dono de onze parametros de visual e desempenho: forca solar, limites e suavidade das sombras durante dia/noite, intensidade e qualidade dos raios, extracao e composicao do bloom, e ganho do blur. Sao propriedades C# nomeadas `Uniform_*` atribuidas em `SetDefaults()`, compiladas com o mod e lidas apenas na etapa de registro.
 
-Ainda faltam modulacao completa de cor do ceu/bioma, gravidade invertida e configuracoes do PC. O novo mask-pass preserva o calculo pow(1-blue,0.75) do Shadow.fx sem recalcula-lo 30x por pixel. Os shaders PC e o compilador de efeitos tML nao sao copiados para execucao; apenas as formulas e as texturas originais fundamentam este port. Nenhuma alteracao no tModLoader e usada como codigo de execucao.
+O arquivo `content/Effects/Lights.screenfx` vincula `@param.Nome` aos shaders do mod. A GPU executa as formulas por pixel em arquivos GLSL `.frag`, incluindo mascara azul, raios 30/20 taps, iluminacao e bloom com dois passes Kawase. As texturas `ColorTex.png` e `ColorTex2.png` sao as originais. O `ColorTex_Alt.png` original fica preservado para um proximo lote.
 
-Empacotar: python3 package_mod.py [caminho-do-bmod]. O script decodifica assets originais de SourceAssets/*.b64 para content/Assets/*.png, sem gerar novos recursos. Exige API Bunny .88 ou posterior. Testes Android e FPS necessarios antes de mesclar.
+O Bunny Loader e o dono generico do registro de mod, criacao de render targets, compilacao GLSL, conexao de parametros `@param.*` e leitura de informacoes do Terraria. As variaveis herdadas `@sun`, `@strength`, `@clock`, `@dayblend` e `@enabled` ainda existem no host para compatibilidade com as builds validadas .88/.88.1; a separacao total dos calculos dinamicos exige uma API gerenciada de atualizacao de cena e nao deve ser simulada por metodos C# que nao sao chamados pelo runtime.
+
+Nenhuma chamada por quadro ao MonoVM e introduzida: os parametros C# sao vinculados uma vez ao registrar o efeito. Mantem a correcao de flicker de quadros e as transicoes suaves da versao .88.1.
+
+## Empacotamento
+
+`python3 package_mod.py` gera o `.bmod` somente de arquivos fonte C#, GLSL e texturas originais. Requer Bunny Loader C# .88.2 ou mais recente.
+
+A fidelidade integral do mod de PC (todos os efeitos, biomas e opcoes) ainda esta em desenvolvimento. Primeiro validar com outro mod C# ativo, dia/noite, troca de biomas, subida ao espaco e FPS antes de mesclar.

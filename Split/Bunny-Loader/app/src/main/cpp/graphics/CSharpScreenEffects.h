@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,7 @@ struct CSharpScreenEffectSpec {
     int order = 0;
     float intensity = 1.f;
     std::string pipelineFile;
+    std::map<std::string, float> parameters;
 };
 
 bool registerCSharpScreenEffects(const std::string& modId,

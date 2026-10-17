@@ -5,6 +5,7 @@ uniform float uDayBlend;
 uniform vec2 uSun;
 uniform float uClock;
 uniform float uLightStrength;
+uniform float uSunPower;
 uniform float uSunEnabled;
 void main() {
     vec3 scene = texture(uSource, vUV).rgb;
@@ -14,7 +15,7 @@ void main() {
     vec3 daylight = texture(uGradientDay, gradientUV).rgb;
     vec3 moonlight = texture(uGradientNight, gradientUV).rgb;
     vec3 sunlight = mix(moonlight, daylight, clamp(uDayBlend, 0.0, 1.0));
-    sunlight *= reach * uLightStrength * uSunEnabled;
+    sunlight *= reach * uLightStrength * uSunPower * uSunEnabled;
     vec3 rays = texture(uRays, vUV).rgb;
     fragColor = vec4(clamp(scene + max(sunlight - rays, 0.0), 0.0, 1.0), 1.0);
 }
