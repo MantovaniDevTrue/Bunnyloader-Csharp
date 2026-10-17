@@ -5,6 +5,7 @@
 #include "graphics/RenderHook.h"
 #include "graphics/ShaderRegistry.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedRuntime.h"
 
 #include <algorithm>
 #include <atomic>
@@ -195,7 +196,25 @@ void pumpCSharpScreenEffects() {
                 auto& frame = byMod[entry.modId];
                 const int offset = static_cast<int>(frame.targets.size()) * 16;
                 EffectFrame next;
-                buildCSharpScreenGraph(entry.graph, scene, &next);
+                ScreenSceneSnapshot managedScene = scene;
+                if (!entry.graph.sceneClass.empty()) {
+                    bl::csharp::queueManagedScreenScene(
+                        entry.modId, scene.raw, scene.sunX, scene.sunY, scene.clock);
+                    bl::csharp::ManagedScreenLightResult result;
+                    if (bl::csharp::readManagedScreenScene(entry.modId, &result)) {
+                        managedScene.sunX = std::clamp(
+                            result.sunX + scene.sunX - result.baseSunX, -1.f, 2.f);
+                        managedScene.sunY = std::clamp(
+                            result.sunY + scene.sunY - result.baseSunY, -1.f, 2.f);
+                        managedScene.clock = std::clamp(
+                            result.clock + scene.clock - result.baseClock, 0.f, 1.f);
+                        managedScene.strength = std::clamp(result.strength, 0.f, 3.f);
+                        managedScene.shadowThreshold =
+                            std::clamp(result.shadowThreshold, 0.f, 1.f);
+                        if (!result.enabled) managedScene.sunVisibility = 0.f;
+                    }
+                }
+                buildCSharpScreenGraph(entry.graph, managedScene, &next);
                 for (auto& target : next.targets) target.id += offset;
                 for (auto& draw : next.draws) {
                     if (draw.source > 0) draw.source += offset;
