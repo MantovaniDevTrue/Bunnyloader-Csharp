@@ -75,6 +75,10 @@ assert 'scheduleCSharpPrecompile()' in shell.split('fun rescan() {', 1)[1]
 assert 'Stage=${if (auto) "LauncherAutoScheduled" else "LaunchPrecompileScheduled"}' in launch
 assert '"bunny-csharp/source-launch-auto.txt"' in launch
 assert '"bunny-csharp/source-launch-startup.txt"' in launch
+assert 'val prefetchPresent = receipt.isFile' in launch
+assert '(nativeCachePresent || prefetchPresent)' in launch
+assert 'receipt.lastModified() >= assembly.lastModified()' in launch
+assert 'PrefetchPresent=' in launch
 assert 'origin=$origin' in launch
 assert 'source-launch-auto.txt' in report
 assert 'pending.filter { it.precompile && it.modId == modId }' in worker
