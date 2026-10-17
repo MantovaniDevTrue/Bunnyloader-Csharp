@@ -2,6 +2,7 @@
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
@@ -419,10 +420,62 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
     status->basicItems = ctx.basicItems;
-    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
+
+    std::vector<bl::graphics::CSharpScreenEffectSpec> screenEffects;
+    for (const auto& def : defs) {
+        if (def.base != "BunnyScreenEffect") continue;
+        bl::graphics::CSharpScreenEffectSpec effect;
+        effect.className = def.name;
+        for (const auto& [key, value] : def.properties) {
+            if (key == "DisplayName") continue;
+            if (key == "ShaderFile") {
+                effect.shaderFile = value;
+                continue;
+            }
+            if (key == "Layer" || key == "Order") {
+                char* end = nullptr;
+                errno = 0;
+                const long parsed = std::strtol(value.c_str(), &end, 10);
+                if (errno != 0 || !end || *end != '\0' ||
+                    parsed < -4096 || parsed > 4096) {
+                    status->error = def.name + ": " + key + " deve ser um inteiro literal valido";
+                    return false;
+                }
+                if (key == "Layer") effect.layer = static_cast<int>(parsed);
+                else effect.order = static_cast<int>(parsed);
+                continue;
+            }
+            if (key == "Intensity") {
+                char* end = nullptr;
+                errno = 0;
+                const float parsed = std::strtof(value.c_str(), &end);
+                if (end && (*end == 'f' || *end == 'F')) ++end;
+                if (errno != 0 || !end || *end != '\0' ||
+                    !std::isfinite(parsed) || parsed < 0.f || parsed > 4.f) {
+                    status->error = def.name + ": Intensity deve ser literal de 0 a 4";
+                    return false;
+                }
+                effect.intensity = parsed;
+                continue;
+            }
+            status->error = def.name + ": propriedade de BunnyScreenEffect nao suportada: " + key;
+            return false;
+        }
+        if (effect.shaderFile.empty()) {
+            status->error = def.name + ": ShaderFile obrigatorio";
+            return false;
+        }
+        screenEffects.push_back(std::move(effect));
+    }
+    status->screenEffects = static_cast<int>(screenEffects.size());
+    if (status->items+status->tiles+status->projectiles+status->buffs+
+        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
+    if (!screenEffects.empty() &&
+        !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
+        return false;
     return true;
 }
 
@@ -847,6 +900,12 @@ bool applyManagedSourceDefaults(
 }
 
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
+
+bool sourceRuntimeApplied(const std::string& modId) {
+    for (const auto& mod : g_statuses)
+        if (mod.id == modId && mod.loaded && mod.runtimeApplied) return true;
+    return false;
+}
 
 }
 
