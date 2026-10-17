@@ -590,6 +590,10 @@
           "execution": "experimental_worker_sync_void0"
         },
         {
+          "signature": "BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
           "signature": "BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -621,6 +625,10 @@
           "execution": "experimental_worker_sync_void0"
         },
         {
+          "signature": "static BunnyMethodHook HookInt32Pair(BunnyHookScope scope, string type, string method, BunnyInt32PairHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
           "signature": "static int Dispatch(int slot, Int64 ticket, IntPtr self)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -634,6 +642,10 @@
         },
         {
           "signature": "static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "static void InvokeInt32Pair(int slot, Int64 ticket, IntPtr self, int first, int second, out int success, out int returnedValue)",
           "execution": "experimental_worker_sync_void0"
         },
         {
@@ -747,6 +759,30 @@
         },
         {
           "signature": "int Invoke(BunnyOriginalInt32 original, IntPtr self, int value)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInt32PairHook",
+      "kind": "class",
+      "baseType": "System.MulticastDelegate",
+      "constructors": [
+        "BunnyInt32PairHook(Object object, IntPtr method)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IAsyncResult BeginInvoke(BunnyOriginalInt32 original, IntPtr self, int first, int second, AsyncCallback callback, Object object)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int EndInvoke(IAsyncResult result)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Invoke(BunnyOriginalInt32 original, IntPtr self, int first, int second)",
           "execution": "managed_helper"
         }
       ]
