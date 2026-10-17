@@ -30,15 +30,24 @@ assert passes[1][1] == "Effects/ShadowRays.frag" and passes[1][2] == "shadowMask
 assert passes[1][3] == "shadow" and passes[1][5] == "-"
 mask = (effects / "ShadowMask.frag").read_text()
 rays = (effects / "ShadowRays.frag").read_text()
-assert "pixel.b < uShadowThreshold" in mask
+assert "uShadowThreshold - softness" in mask
+assert "smoothstep(" in mask
+assert "uDayBlend" in mask
 assert "pow(max(1.0 - pixel.b, 0.0), 0.75)" in mask
 assert "texture(uSource, clamp(uSun + offset / scale, 0.0, 1.0)).a" in rays
 assert "i < 30" in rays and "i >= 20" in rays
+assert "mix(nightWeight, dayWeight, dayFactor)" in rays
 assert "uQuality" in rays and "(30.0 - j) / 120.0" in rays
 assert "uBloom" in (effects / "BloomComposite.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.3.0"
+assert manifest["version"] == "0.3.1"
+compose = (effects / "LightCompose.frag").read_text()
+assert "uGradientDay" in compose and "uGradientNight" in compose
+assert "mix(moonlight, daylight" in compose
+assert "uDayBlend=@dayblend" in source
+assert "uGradientDay=Assets/ColorTex.png" in source
+assert "uGradientNight=Assets/ColorTex2.png" in source
 assets = {
     "ColorTex.png": "f354236337a4a002f2ba2897be214032ab9dc82719ec56ad847b3f829fe0c59c",
     "ColorTex2.png": "4861ad63036f3bcf51664c84bea7ea4836c237c86b5d0fe3943b3e33c79f04d2",
