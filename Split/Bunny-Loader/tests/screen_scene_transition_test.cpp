@@ -45,6 +45,11 @@ int main() {
     const auto unchanged = transition.advance(night, 0.f);
     assert(unchanged.dayBlend == lastMix);
     assert(unchanged.shadowThreshold == lastThreshold);
+    for (int i = 0; i < 300; ++i) transition.advance(night, 1.f / 60.f);
+    const auto underground = transition.advance(night, 1.f / 60.f);
+    assert(underground.sunVisibility == 0.f);
+    const auto resurfaced = transition.advance(day, 1.f / 60.f);
+    assert(resurfaced.sunVisibility > 0.f && resurfaced.sunVisibility < 1.f);
     transition.reset();
     const auto reset = transition.advance(night, 1.f / 60.f);
     assert(reset.dayBlend == 0.f && reset.shadowThreshold == 0.02f);

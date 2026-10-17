@@ -1,4 +1,4 @@
-# Lights And Shadows C# — 0.4.2.2
+# Lights And Shadows C# — 0.4.2.3
 
 Port do Lights And Shadows de yiyang233 / AWEoghAwo, com formulas e assets originais do PC como referencia.
 
@@ -33,3 +33,9 @@ A intensidade noturna dos raios agora acompanha `uSunStrength * uSunPower` e usa
 O grafo original conserva nove passes de renderizacao e quatro alvos em um terco do viewport. Quando `uSunEnabled <= 0`, os shaders da mascara de sombra e dos raios deixam de executar as amostragens solares, enquanto a composicao copia a cor da cena. Para a iluminacao visivel, as formulas originais permanecem. O renderizador tambem agrupa os contadores por quadro e expõe `screenCopyCalls`/`screenCopyPixels` para identificar blits de tela.
 
 Ensaio Android pendente: comparar a .88.6 com Lights 0.4.2.2 contra a .88.7 com Lights 0.4.2.3 em quatro bosses e cerca de sete Dungeon Guardians; conferir o FPS, as sombras de bioma, dia/noite e a ausencia de crashes. O teste de CI nao garante 60 FPS no Xiaomi.
+
+## Revisão do host .88.8
+
+A .88.8 confere os tipos, tamanhos e armazenamento estático dos campos usados pelo snapshot de iluminação antes de chamar IL2CPP. Vector2 também precisa ter dois Single com layout suportado. Metadados incompatíveis usam getter/fallback com diagnóstico, sem copiar estruturas grandes para buffers menores. A transição do fallback nativo atinge zero após a contribuição residual ficar abaixo de 0,000001; assim os atalhos solares da .4.2.3 realmente podem executar. Os nove passes, os quatro alvos, os GLSL e as três texturas originais não foram removidos ou alterados nesta revisão.
+
+Testes de contrato e compilação não demonstram qualidade visual idêntica ao PC nem garantem 60 FPS. Permanecem os testes no Android de dia/noite, subsolo/superfície, rotação/viewport, troca de mundos, múltiplos mods e combate pesado. O carregamento da cena gerenciada continua assíncrono; campos opcionais de bioma ainda documentados acima permanecem pendentes.

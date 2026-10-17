@@ -3,6 +3,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/screenfx
 CXX="${CXX:-g++}"
+"${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
+  -Itests/screen_scene_stubs -Iapp/src/main/cpp \
+  tests/screen_scene_field_contract_test.cpp -o build/screenfx/screen_scene_field_contract_test
+build/screenfx/screen_scene_field_contract_test
 "${CXX}" -std=c++20 -O2 -Wall -Wextra -Werror \
   -Iapp/src/main/cpp \
   app/src/main/cpp/graphics/FrameComposer.cpp \

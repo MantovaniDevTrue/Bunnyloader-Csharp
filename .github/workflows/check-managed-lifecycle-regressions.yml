@@ -1,7 +1,7 @@
 name: Check managed callback lifecycle
 on:
   push:
-    branches: [codex/lot-a-complete-v90-29, csharp-managed-lifecycle-v79-1-experiment]
+    branches: [fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, csharp-managed-lifecycle-v79-1-experiment]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'

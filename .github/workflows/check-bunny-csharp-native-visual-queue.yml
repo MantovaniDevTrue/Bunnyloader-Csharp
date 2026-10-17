@@ -3,6 +3,7 @@ name: Check Bunny CSharp Native Visual Queue
 on:
   push:
     branches:
+      - fix/csharp-88-8-lights-review
       - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28
       - codex/native-equips-fix-v90-27-6

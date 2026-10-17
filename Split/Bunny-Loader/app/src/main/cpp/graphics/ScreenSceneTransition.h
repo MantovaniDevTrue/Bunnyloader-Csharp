@@ -32,6 +32,9 @@ public:
         current_.shadowThreshold += (input.shadowThreshold - current_.shadowThreshold) * transitionRate;
         current_.dayBlend += (input.dayBlend - current_.dayBlend) * transitionRate;
         current_.sunVisibility += (input.sunVisibility - current_.sunVisibility) * lightingRate;
+        // Exponential decay otherwise stays positive and never reaches shader <= 0 branches.
+        if (input.sunVisibility == 0.f && current_.sunVisibility < 0.000001f)
+            current_.sunVisibility = 0.f;
         current_.raw = input.raw;
         current_.valid = true;
         current_.daytime = input.daytime;
