@@ -27,3 +27,9 @@ O tokenizador antecipado da .88.3 nao reconhece literals C# com aspas simples, p
 ## Night shadow polish 0.4.2.2
 
 A intensidade noturna dos raios agora acompanha `uSunStrength * uSunPower` e usa fator 0.24, preservando os 20 samples e as gradientes originais. O alongamento noturno foi suavizado (0.006 por sample), com maior suavidade no limiar da mascara (0.015). No shader de composicao, um piso de 22% da luz lunar e mantido somente no periodo noturno e quando a luz de superficie esta habilitada; isso evita sombras totalmente opacas sem desligar o efeito. O primeiro Kawase com distancia zero usa uma unica leitura exata da mesma amostra, mantendo os 4 passes e alvos. Requer teste Android nas diferentes fases da Lua e em combate; nenhuma melhoria de FPS foi medida ainda.
+
+## Otimizacao 0.4.2.3 e Bunny CSharp .88.7
+
+O grafo original conserva nove passes de renderizacao e quatro alvos em um terco do viewport. Quando `uSunEnabled <= 0`, os shaders da mascara de sombra e dos raios deixam de executar as amostragens solares, enquanto a composicao copia a cor da cena. Para a iluminacao visivel, as formulas originais permanecem. O renderizador tambem agrupa os contadores por quadro e expõe `screenCopyCalls`/`screenCopyPixels` para identificar blits de tela.
+
+Ensaio Android pendente: comparar a .88.6 com Lights 0.4.2.2 contra a .88.7 com Lights 0.4.2.3 em quatro bosses e cerca de sete Dungeon Guardians; conferir o FPS, as sombras de bioma, dia/noite e a ausencia de crashes. O teste de CI nao garante 60 FPS no Xiaomi.
