@@ -190,6 +190,7 @@ public abstract class BunnyHookModule
 {
     public abstract void Load(BunnyHookScope hooks);
     public virtual void Unload() { }
+    public virtual string DiagnosticStatus() => "";
 }
 
 public static class BunnyHooks
@@ -597,6 +598,22 @@ public static class BunnyUniversalHookDispatcher
             return -1;
         }
     }
+    public static string GetStatusSnapshot(string id)
+    {
+        Context? context = Contexts.Find(entry => entry.Id == id);
+        if (context is null) return "nao registrado";
+        var statuses = new List<string>();
+        foreach (BunnyHookModule module in context.Modules)
+        {
+            string label = module.GetType().Name;
+            string result;
+            try { result = module.DiagnosticStatus(); }
+            catch (Exception error) { result = "FALHA:" + error.GetType().Name; }
+            if (!string.IsNullOrEmpty(result)) statuses.Add(label + "=" + result);
+        }
+        return statuses.Count == 0 ? "modulos=" + context.Modules.Count : string.Join(" | ", statuses);
+    }
+
     private static void Close(Context context)
     {
         context.Scope.Dispose();
