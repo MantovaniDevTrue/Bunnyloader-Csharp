@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="Program.cs" />
+    <Compile Include="../../samples/ScreenFxProbeCSharp/Playable/content/main.cs" Link="Probe.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs" Link="CompiledAssemblyProbe.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/TileWriter.cs" Link="TileWriter.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />
+  </ItemGroup>
+</Project>

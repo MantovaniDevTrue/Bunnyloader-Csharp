@@ -285,3 +285,13 @@ public abstract class BunnyPrefix
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
 }
 
+
+public abstract class BunnyScreenEffect
+{
+    public string DisplayName { get; set; } = "";
+    public string ShaderFile { get; set; } = "";
+    public int Layer { get; set; } = 0;
+    public int Order { get; set; } = 0;
+    public float Intensity { get; set; } = 1f;
+    public abstract void SetDefaults();
+}
