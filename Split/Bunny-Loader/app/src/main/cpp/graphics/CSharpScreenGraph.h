@@ -10,6 +10,7 @@ namespace bl::graphics {
 struct ScreenGraphUniform {
     std::string name;
     std::string value;
+    float constant = 0.f;
 };
 
 struct ScreenGraphTexture {
