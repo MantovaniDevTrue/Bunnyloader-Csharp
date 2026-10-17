@@ -286,7 +286,7 @@ try
             " Expected=" + expectedDefault.TrimEnd('\n') + " Actual=" + actualDefault);
     }
     string[] benchDefaults = defaultRows.Single(row => row.StartsWith("ITEM\tExampleWorkbench\t", StringComparison.Ordinal)).Split('\t');
-    const string expectedBenchRecipes = "1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,gIronBar:2,mExampleItem:10";
+    const string expectedBenchRecipes = "1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2";
     if (benchDefaults[19] != expectedBenchRecipes)
         throw new InvalidOperationException("Independent ExampleWorkbench recipes mismatch: Expected=" + expectedBenchRecipes + " Actual=" + benchDefaults[19]);
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));

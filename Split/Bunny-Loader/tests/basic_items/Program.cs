@@ -91,6 +91,8 @@ try {
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
+  var benchRecipes=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t",StringComparison.Ordinal)).Split('\t')[19];
+  Equal("1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2",benchRecipes);
   var assets=new List<object>();
   foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
       domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {
