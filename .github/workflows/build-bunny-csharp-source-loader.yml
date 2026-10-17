@@ -38,6 +38,7 @@ on:
       - codex/csharp-launch-precompile-v90-29-76
       - codex/csharp-prefetch-reuse-v90-29-77
       - codex/csharp-launcher-auto-precompile-v90-29-78
+      - codex/csharp-universal-intpair-v90-29-79
       - codex/csharp-universal-int32-signature-v90-29-68
       - codex/native-equips-fix-v90-27-6
       - csharp-visual-effects-v90-27-wip
@@ -212,14 +213,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Announce experimental .71 APK build
-        if: github.ref == 'refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78'
+        if: github.ref == 'refs/heads/codex/csharp-universal-intpair-v90-29-79'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ -n "${GH_TOKEN:-}" ]; then
-            gh issue comment 57 --repo "$GITHUB_REPOSITORY" \
-              --body "Compilacao APK .78 iniciada: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Commit ${GITHUB_SHA}. A publicacao privada sera confirmada somente apos assinatura e entrega." \
+            gh issue comment 58 --repo "$GITHUB_REPOSITORY" \
+              --body "Compilacao APK .79 iniciada: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Commit ${GITHUB_SHA}. A publicacao privada sera confirmada somente apos assinatura e entrega." \
               || echo "::warning::Nao foi possivel avisar a PR sobre inicio da compilacao"
           fi
 
@@ -1281,6 +1282,25 @@ jobs:
           mkdir -p build/universal-hooks
           g++ -std=c++20 -shared -fPIC tests/universal_hooks/sdk_native_mock.cpp -o build/universal-hooks/libbunny.so
           LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universal_hooks/UniversalHooks.csproj -c Release
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader")
+          sdk = (root / "experiments/csharp/BunnyCsSdk/BunnyUniversalHooks.cs").read_text()
+          hook = (root / "app/src/main/cpp/experiments/csharp/UniversalHooks.cpp").read_text()
+          worker = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+          mailbox = (root / "app/src/main/cpp/experiments/csharp/UniversalHookMailbox.h").read_text()
+          for token in ('HookInt32Pair(', 'RegisterInt32Pair(', 'InvokeInt32Pair(', 'NativeInstallInt32Pair'):
+              assert token in sdk
+          assert 'System.Int32' in hook and 'int32PairMode' in hook
+          assert 'staticInt32PairStubs' in hook and 'instanceInt32PairStubs' in hook
+          assert 'bunny_universal_hook_install_i32_pair' in hook
+          assert 'g_universalDispatchInt32Pair' in worker
+          assert 'work.argument2' in worker and 'work.int32PairMode' in worker
+          assert 'int32PairMode = false' in mailbox
+          assert 'originalInt32(' in mailbox
+          assert 'std::chrono::milliseconds(3)' in hook
+          print('CSHARP_UNIVERSAL_INT_PAIR_CONTRACT_PASS')
+          PY
       - name: Verify fused native access and fast hook recovery in .70 and .71
         shell: bash
         run: |
@@ -1917,7 +1937,7 @@ jobs:
           PY
 
       - name: Deliver signed APK to private Builds repository
-        if: ${{ (github.ref == 'refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78' || github.ref == 'refs/heads/codex/csharp-prefetch-reuse-v90-29-77' || github.ref == 'refs/heads/codex/csharp-launch-precompile-v90-29-76' || github.ref == 'refs/heads/codex/csharp-early-compile-v90-29-75' || github.ref == 'refs/heads/codex/csharp-resident-mono-compiler-v90-29-74' || github.ref == 'refs/heads/codex/csharp-fast-start-rpc-v90-29-73' || github.ref == 'refs/heads/codex/csharp-universal-soft-recovery-v90-29-72' || github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71' || github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
+        if: ${{ (github.ref == 'refs/heads/codex/csharp-universal-intpair-v90-29-79' || github.ref == 'refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78' || github.ref == 'refs/heads/codex/csharp-prefetch-reuse-v90-29-77' || github.ref == 'refs/heads/codex/csharp-launch-precompile-v90-29-76' || github.ref == 'refs/heads/codex/csharp-early-compile-v90-29-75' || github.ref == 'refs/heads/codex/csharp-resident-mono-compiler-v90-29-74' || github.ref == 'refs/heads/codex/csharp-fast-start-rpc-v90-29-73' || github.ref == 'refs/heads/codex/csharp-universal-soft-recovery-v90-29-72' || github.ref == 'refs/heads/codex/csharp-native-rpc-deadline-v90-29-71' || github.ref == 'refs/heads/codex/csharp-native-access-adaptive-v90-29-70' || github.ref == 'refs/heads/codex/csharp-native-access-lot-a' || github.ref == 'refs/heads/codex/integrate-csharp-sdk-lot-a-20261015' || github.ref == 'refs/heads/codex/csharp-native-policies-android-v90-29-42' || github.ref == 'refs/heads/codex/csharp-native-visual-diagnostics-v90-29-43' || github.ref == 'refs/heads/codex/csharp-native-perf-visual-v90-29-44' || github.ref == 'refs/heads/codex/csharp-preworld-rehydration-v90-29-45' || github.ref == 'refs/heads/codex/csharp-preworld-policy-deferred-v90-29-46' || github.ref == 'refs/heads/codex/csharp-wing-editor-native-v90-29-47' || github.ref == 'refs/heads/codex/csharp-wing-policy-diagnostics-v90-29-48' || github.ref == 'refs/heads/codex/csharp-interactive-console-v90-29-49' || github.ref == 'refs/heads/codex/csharp-managed-hurt-hooks-v90-29-50' || github.ref == 'refs/heads/codex/csharp-hook-telemetry-editor-v90-29-51' || github.ref == 'refs/heads/codex/csharp-hook-counters-visible-v90-29-52' || github.ref == 'refs/heads/codex/csharp-hook-fault-isolation-v90-29-53' || github.ref == 'refs/heads/codex/csharp-entity-lifecycle-lot-v90-29-55' || github.ref == 'refs/heads/codex/csharp-entity-combat-callbacks-v90-29-59' || github.ref == 'refs/heads/codex/csharp-entity-combat-telemetry-v90-29-60' || github.ref == 'refs/heads/codex/csharp-projectile-native-curve-bridge-v90-29-61' || github.ref == 'refs/heads/codex/csharp-projectile-initial-tick-v90-29-62' || github.ref == 'refs/heads/codex/csharp-quickjs-package-mode-v90-29-63' || github.ref == 'refs/heads/codex/csharp-universal-hooks-editor-telemetry-v90-29-64' || github.ref == 'refs/heads/codex/csharp-universal-timeout-recovery-v90-29-65' || github.ref == 'refs/heads/codex/csharp-universal-late-callback-fix-v90-29-66' || github.ref == 'refs/heads/codex/csharp-universal-circuit-rearm-v90-29-67' || github.ref == 'refs/heads/codex/csharp-universal-int32-signature-v90-29-68' || github.ref == 'refs/heads/codex/lot-a-complete-v90-29' || github.ref == 'refs/heads/codex/example-completion-v90-28' || github.ref == 'refs/heads/codex/native-equips-fix-v90-27-6' || github.ref == 'refs/heads/csharp-visual-effects-v90-27-wip' || github.ref == 'refs/heads/csharp-composite-accessories-v90-26' || github.ref == 'refs/heads/codex/combat-batch-v90-25' || github.ref == 'refs/heads/csharp-hurt-spatial-context-v90-24' || github.ref == 'refs/heads/csharp-hurt-attacker-array-fix-v90-23-1' || github.ref == 'refs/heads/csharp-hurt-attacker-context-v90-23' || github.ref == 'refs/heads/csharp-player-modify-hit-source-v90-22' || github.ref == 'refs/heads/csharp-player-hit-source-layout-v90-21-2' || github.ref == 'refs/heads/csharp-player-hit-source-diagnostics-v90-21-1' || github.ref == 'refs/heads/csharp-player-hit-source-v90-21' || github.ref == 'refs/heads/csharp-free-dodge-immunity-v90-20-1' || github.ref == 'refs/heads/csharp-player-free-dodge-v90-20' || github.ref == 'refs/heads/csharp-player-hurt-events-v90-19' || github.ref == 'refs/heads/csharp-player-regeneration-lifecycle-v90-18' || github.ref == 'refs/heads/csharp-respawn-local-player-v90-17-2' || github.ref == 'refs/heads/csharp-respawn-enum-hotfix-v90-17-1' || github.ref == 'refs/heads/csharp-global-player-respawn-v90-17' || github.ref == 'refs/heads/csharp-shadow-tooltip-v90-16-2' || github.ref == 'refs/heads/csharp-accessory-tooltips-v90-16-1' || github.ref == 'refs/heads/csharp-bunnyplayer-hooks-v90-16' || github.ref == 'refs/heads/csharp-late-prefix-restore-v90-15' || github.ref == 'refs/heads/csharp-swift-sdk-verify-v90-14' || github.ref == 'refs/heads/csharp-player-movespeed-v90-13' || github.ref == 'refs/heads/csharp-prefix-tooltip-v90-12' || github.ref == 'refs/heads/codex/prefix-restore-fix' || github.ref == 'refs/heads/csharp-prefix-rehydrate-v90-10' || github.ref == 'refs/heads/csharp-prefix-overload-v90-9' || github.ref == 'refs/heads/csharp-prefix-forced-roll-v90-8' || github.ref == 'refs/heads/csharp-prefix-restoration-v90-7' || github.ref == 'refs/heads/csharp-prefix-firstlaunch-v90-6' || github.ref == 'refs/heads/csharp-prefix-eligibility-v90-5' || github.ref == 'refs/heads/csharp-prefix-persistence-v90-4' || github.ref == 'refs/heads/csharp-prefix-accessory-tooltip-v90-3' || github.ref == 'refs/heads/csharp-private-apk-delivery-v3' || github.ref == 'refs/heads/csharp-public-release-cleanup-v1') && github.event_name != 'pull_request' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
@@ -1964,6 +1984,10 @@ jobs:
             TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
             NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.40.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-universal-intpair-v90-29-79" ]; then
+            TITLE="EXPERIMENTAL — Bunny C# hooks int(int,int) | $VERSION"
+            NOTES="Bunny CSharp .79: novos callbacks universais tipados int(int,int) para classes Terraria, validação estrita de ABI ARM64 com parâmetros System.Int32, retorno Int32, stub instancia e estatico, ticket do original, fallback vanilla, deadline 3ms e cooldown recuperavel existentes. SDK HookInt32Pair e testes host de assinatura, original, substituicao, expiracao e unload. Preserva as otimizações .78 de precompilação no launcher. Teste controlado com alvo real necessario; nenhum mod padrao instala hook novo automaticamente. Commit ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
           fi
           if [ "$GITHUB_REF" = "refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78" ]; then
             TITLE="EXPERIMENTAL — compilacao CSharp automatica no launcher | $VERSION"
@@ -2022,10 +2046,10 @@ jobs:
             --notes "$NOTES" \
             --prerelease
           echo "BUNNY_PRIVATE_APK_DELIVERY=SUCCESS"
-          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-launcher-auto-precompile-v90-29-78" ]; then
-            GH_TOKEN="${{ github.token }}" gh issue comment 57 \
+          if [ "$GITHUB_REF" = "refs/heads/codex/csharp-universal-intpair-v90-29-79" ]; then
+            GH_TOKEN="${{ github.token }}" gh issue comment 58 \
               --repo "$GITHUB_REPOSITORY" \
-              --body "APK CSharp .78 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
+              --body "APK CSharp .79 gerado e assinado (V3), entregue ao repositorio privado Builds. GitHub Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Release privada: MantovaniDevTrue/Bunnyloader-Csharp-Builds, tag ${TAG}, arquivo ${FILE}. Commit: ${GITHUB_SHA}." \
               || echo "::warning::APK entregue, mas comentario de confirmacao na PR nao foi publicado"
           fi
 
