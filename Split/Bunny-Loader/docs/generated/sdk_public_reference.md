@@ -799,6 +799,22 @@ BunnyRectangle(int x, int y, int width, int height)
 | --- | --- |
 | `bool Contains(int x, int y)` | managed_helper |
 
+## BunnyLoader.Source.BunnyScreenEffect
+
+abstract class; base: `System.Object`.
+
+```csharp
+float Intensity { get; set; }
+int Layer { get; set; }
+int Order { get; set; }
+string DisplayName { get; set; }
+string ShaderFile { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyTile
 
 abstract class; base: `System.Object`.
