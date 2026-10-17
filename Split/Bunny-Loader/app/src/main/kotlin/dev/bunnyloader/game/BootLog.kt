@@ -194,6 +194,8 @@ object BootLog {
 
     private fun lastLaunchPrecompile(ctx: Context): String = buildString {
         val dir = File(ctx.filesDir, "bunny-csharp")
+        val launcher = File(dir, "source-launch-startup.txt")
+        if (launcher.isFile) append("Clique Jogar: ").append(launcher.readText().replace("\n", " ")).append("\n")
         val entries = dir.listFiles { file ->
             file.name.startsWith("source-launch-precompile-") &&
                 file.name.endsWith(".txt") &&
