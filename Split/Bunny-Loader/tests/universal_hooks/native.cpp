@@ -12,6 +12,7 @@
 
 extern "C" int bunny_universal_hook_install(const char*, const char*, int, int);
 extern "C" int bunny_universal_hook_install_i32(const char*, const char*, int, int);
+extern "C" int bunny_universal_hook_install_i32_pair(const char*, const char*, int, int);
 extern "C" int bunny_universal_hook_original_i32(int, int64_t, int32_t*);
 extern "C" void bunny_universal_hook_remove(int);
 extern "C" int bunny_universal_hook_original(int, int64_t);
@@ -25,7 +26,7 @@ extern "C" int bunny_universal_hook_test_retry_delay_ms(int);
 using namespace bl;
 using namespace std::chrono_literals;
 namespace {
-struct Method { void* pointer; const char* name; int count; bool isStatic; bool generic; const char* ret; const char* param = nullptr; };
+struct Method { void* pointer; const char* name; int count; bool isStatic; bool generic; const char* ret; const char* param = nullptr; const char* param2 = nullptr; };
 std::thread::id caller;
 int vanilla = 0;
 std::atomic<int> stage{0};
@@ -41,10 +42,22 @@ int32_t originalInt32Static(int32_t arg, const MethodInfo*) {
     ++vanilla;
     return arg - 2;
 }
+int32_t originalInt32Pair(void* self, int32_t first, int32_t second, const MethodInfo*) {
+    assert(self == reinterpret_cast<void*>(123) && std::this_thread::get_id() == caller);
+    ++vanilla;
+    return first + second * 2;
+}
+int32_t originalInt32PairStatic(int32_t first, int32_t second, const MethodInfo*) {
+    assert(std::this_thread::get_id() == caller);
+    ++vanilla;
+    return first - second;
+}
 void* replaced = nullptr;
 void* replacedStatic = nullptr;
 void* replacedInt32 = nullptr;
 void* replacedInt32Static = nullptr;
+void* replacedInt32Pair = nullptr;
+void* replacedInt32PairStatic = nullptr;
 Method methods[] = {
     {reinterpret_cast<void*>(original), "ResetEffects", 0, false, false, "System.Void"},
     {reinterpret_cast<void*>(originalStatic), "Static", 0, true, false, "System.Void"},
@@ -54,16 +67,21 @@ Method methods[] = {
     {reinterpret_cast<void*>(originalInt32), "Int32Transform", 1, false, false, "System.Int32", "System.Int32"},
     {reinterpret_cast<void*>(originalInt32Static), "Int32Static", 1, true, false, "System.Int32", "System.Int32"},
     {reinterpret_cast<void*>(originalInt32), "WrongIntParam", 1, false, false, "System.Int32", "System.Single"},
-    {reinterpret_cast<void*>(originalInt32), "WrongIntReturn", 1, false, false, "System.Void", "System.Int32"}
+    {reinterpret_cast<void*>(originalInt32), "WrongIntReturn", 1, false, false, "System.Void", "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32Pair), "PairTransform", 2, false, false, "System.Int32", "System.Int32", "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32PairStatic), "PairStatic", 2, true, false, "System.Int32", "System.Int32", "System.Int32"},
+    {reinterpret_cast<void*>(originalInt32Pair), "WrongPairSecond", 2, false, false, "System.Int32", "System.Int32", "System.Single"},
+    {reinterpret_cast<void*>(originalInt32Pair), "WrongPairReturn", 2, false, false, "System.Void", "System.Int32", "System.Int32"}
 };
 il2cpp::Api api;
-int install(const char* method, int slot, bool isStatic = false, bool int32Mode = false) {
+int install(const char* method, int slot, bool isStatic = false, bool int32Mode = false, bool pairMode = false) {
     auto result = std::async(std::launch::async, [=] {
         csharp::universalCanInstall = true;
         csharp::universalLeaveMono = +[] {};
         csharp::universalResumeMono = +[] {};
-        return int32Mode ? bunny_universal_hook_install_i32("Terraria.Player", method, slot, isStatic)
-                         : bunny_universal_hook_install("Terraria.Player", method, slot, isStatic);
+        return pairMode ? bunny_universal_hook_install_i32_pair("Terraria.Player", method, slot, isStatic)
+                        : int32Mode ? bunny_universal_hook_install_i32("Terraria.Player", method, slot, isStatic)
+                        : bunny_universal_hook_install("Terraria.Player", method, slot, isStatic);
     });
     while (result.wait_for(1ms) != std::future_status::ready) csharp::pumpUniversalHookInstallsOnGameThread();
     return result.get();
@@ -72,6 +90,11 @@ void call() { reinterpret_cast<void(*)(void*, const MethodInfo*)>(replaced)(rein
 int32_t callInt32(int32_t value) {
     return reinterpret_cast<int32_t(*)(void*, int32_t, const MethodInfo*)>(replacedInt32)(
         reinterpret_cast<void*>(123), value, reinterpret_cast<MethodInfo*>(&methods[5]));
+}
+int32_t callInt32Pair(int32_t first, int32_t second) {
+    return reinterpret_cast<int32_t(*)(void*, int32_t, int32_t, const MethodInfo*)>(
+        replacedInt32Pair)(reinterpret_cast<void*>(123), first, second,
+                           reinterpret_cast<MethodInfo*>(&methods[9]));
 }
 }
 namespace bl::il2cpp {
@@ -87,6 +110,8 @@ bool install(const MethodInfo* method, void* replacement, void** orig) {
     if (method == reinterpret_cast<MethodInfo*>(&methods[0])) replaced = replacement;
     else if (method == reinterpret_cast<MethodInfo*>(&methods[6])) replacedInt32Static = replacement;
     else if (method == reinterpret_cast<MethodInfo*>(&methods[5])) replacedInt32 = replacement;
+    else if (method == reinterpret_cast<MethodInfo*>(&methods[9])) replacedInt32Pair = replacement;
+    else if (method == reinterpret_cast<MethodInfo*>(&methods[10])) replacedInt32PairStatic = replacement;
     else replacedStatic = replacement;
     return true;
 }
@@ -109,7 +134,8 @@ int main() {
     api.method_is_generic = +[](const MethodInfo* m) { return reinterpret_cast<const Method*>(m)->generic; };
     api.method_get_param = +[](const MethodInfo* m, uint32_t index) -> const Il2CppType* {
         auto* method = reinterpret_cast<const Method*>(m);
-        return index == 0 && method->param ? reinterpret_cast<const Il2CppType*>(method->param) : nullptr;
+        return index == 0 && method->param ? reinterpret_cast<const Il2CppType*>(method->param)
+            : index == 1 && method->param2 ? reinterpret_cast<const Il2CppType*>(method->param2) : nullptr;
     };
     api.method_get_return_type = +[](const MethodInfo* m) { return reinterpret_cast<const Il2CppType*>(reinterpret_cast<const Method*>(m)->ret); };
     api.type_get_name = +[](const Il2CppType* type) { return strdup(reinterpret_cast<const char*>(type)); };
@@ -257,6 +283,37 @@ int main() {
     bunny_universal_hook_remove(staticHandle);
     assert(reinterpret_cast<int32_t(*)(int32_t, const MethodInfo*)>(replacedInt32Static)(
         40, reinterpret_cast<MethodInfo*>(&methods[6])) == 38);
+    assert(install("PairTransform", 22, false, true) == -7);
+    const int firstPairHandle = install("PairTransform", 22, false, false, true);
+    assert(firstPairHandle >= 0);
+    bunny_universal_hook_remove(firstPairHandle);
+    assert(install("WrongPairSecond", 22, false, false, true) == -6);
+    assert(install("WrongPairReturn", 22, false, false, true) == -6);
+    const int pairHandle = install("PairTransform", 22, false, false, true);
+    assert(pairHandle >= 0 && replacedInt32Pair);
+    assert(install("PairTransform", 23, false, false, true) == -8);
+    int pairBaseline = vanilla;
+    std::thread pairWorker([&] {
+        csharp::UniversalHookMailbox::Work work{};
+        while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
+        assert(work.slot == 22 && work.int32PairMode && !work.int32Mode);
+        assert(work.argument == 4 && work.argument2 == 9 && work.self == 123);
+        int32_t originalResult = -1;
+        assert(bunny_universal_hook_original_i32(work.slot, work.ticket, &originalResult));
+        assert(originalResult == 22);
+        assert(!bunny_universal_hook_original_i32(work.slot, work.ticket, &originalResult));
+        assert(csharp::universalHookMailbox().complete(work.ticket, true, originalResult + 5));
+    });
+    assert(callInt32Pair(4, 9) == 27);
+    pairWorker.join();
+    assert(vanilla == pairBaseline + 1);
+    bunny_universal_hook_remove(pairHandle);
+    assert(callInt32Pair(4, 9) == 22);
+    int pairStaticHandle = install("PairStatic", 24, true, false, true);
+    assert(pairStaticHandle >= 0 && replacedInt32PairStatic);
+    bunny_universal_hook_remove(pairStaticHandle);
+    assert(reinterpret_cast<int32_t(*)(int32_t, int32_t, const MethodInfo*)>(replacedInt32PairStatic)(
+        12, 5, reinterpret_cast<MethodInfo*>(&methods[10])) == 7);
     std::thread retryableWorker([&] {
         csharp::UniversalHookMailbox::Work work{};
         while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
@@ -270,6 +327,6 @@ int main() {
     assert(!csharp::universalHookCallbackIsTerminal(transient.accepted, false, transient.retryable));
     assert(csharp::universalHookCallbackIsTerminal(true, false));
     assert(!csharp::universalHookCallbackIsTerminal(false, false));
-    std::cout << "native: typed Int32(int) ABI, validation, original and return override PASS\n";
+    std::cout << "native: typed Int32(int) ABI, plus Int32(int,int) ABI, validation, original and return override PASS\n";
     std::cout << "native: metadata, original affinity, adaptive 5/10/15s suspension, auto-rearm, protected original PASS\n";
 }

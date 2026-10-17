@@ -4,6 +4,7 @@ static int64_t activeTicket = 0;
 extern "C" {
 int bunny_universal_hook_install(const char*, const char*, int slot, int) { lastSlot = slot; return slot; }
 int bunny_universal_hook_install_i32(const char*, const char*, int slot, int) { lastSlot = slot; return slot; }
+int bunny_universal_hook_install_i32_pair(const char*, const char*, int slot, int) { lastSlot = slot; return slot; }
 void bunny_universal_hook_remove(int) { ++removes; }
 int bunny_universal_hook_original(int slot, int64_t ticket) {
     if (slot != lastSlot || ticket != activeTicket || originals != 0) return 0;

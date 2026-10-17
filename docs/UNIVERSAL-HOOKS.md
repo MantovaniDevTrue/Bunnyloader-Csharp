@@ -77,6 +77,29 @@ LD_LIBRARY_PATH="$PWD/build/universal-hooks" dotnet run --project tests/universa
 
 Essas verificações não substituem uma build Android, integração com o MonoVM real, coleta de GC e medição de FPS/latência no Xiaomi. O exemplo `ResetEffects` já foi testado no Xiaomi com a .67: chamadas crescentes durante sessão prolongada e recuperações sem falhas terminais. A ABI `int(int)` da .68 e o acesso tipado da .69 ainda requerem verificação no Terraria Android antes de produção; a seguir estão `ref/out`, outros tipos, múltiplos parâmetros e encadeamento de mods no mesmo alvo.
 
+## Assinatura C# int(int,int) — lote .79
+
+A assinatura adicional `int(int,int)` possui dois parâmetros `System.Int32` e retorno `System.Int32`. Ela usa `BunnyHookScope.HookInt32Pair`, mantém o mesmo `BunnyOriginalInt32.Invoke()` para chamar a implementação original uma única vez e respeita os mesmos tickets de validade, prazo compartilhado de 3 ms, recuperação de timeouts, fallback vanilla, 64 slots e descarregamento dos módulos. Ambos os argumentos são somente leitura. O código não expõe ponteiros IL2CPP nem usa QuickJS ou tModLoader.
+
+```csharp
+using BunnyLoader.Source;
+
+public sealed class TwoArguments : BunnyHookModule
+{
+    public override void Load(BunnyHookScope hooks)
+    {
+        hooks.HookInt32Pair("Terraria.ExampleType", "ExampleMethod",
+            (original, self, first, second) =>
+            {
+                int vanilla = original.Invoke();
+                return vanilla;
+            });
+    }
+}
+```
+
+O alvo `Terraria.ExampleType.ExampleMethod(int,int): int` **é ilustrativo**, não corresponde a um método confirmado do Terraria. Para uso real, é obrigatório verificar o nome e a assinatura nos metadados da versão Android utilizada. O registro recusa métodos com `ref/out`, `bool`, `float`, retorno diferente de `System.Int32`, parâmetros extras e métodos estáticos declarados como instância (ou vice-versa). A extensão possui testes host para as variantes estática e de instância, dois parâmetros, troca de retorno, original uma vez, fallback, assinatura inválida e remoção. Esses testes não substituem validação da ABI ARM64 com um alvo real no dispositivo. Não ativar o exemplo ilustrativo em `Playable`.
+
 ## Acesso tipado durante callbacks
 
 O [lote de acesso nativo](ACESSO-NATIVO.md) permite transformar o `self` opaco em `BunnyNativeObject.FromHook(self)` e consultar membros previamente vinculados por `hooks.Native`. O objeto é limitado à chamada atual; não autoriza dereferenciar o ponteiro nem reter um objeto do Terraria entre callbacks. Esse acesso é válido nos callbacks `void()` e `int(int)`.
