@@ -13,12 +13,15 @@ public sealed class ExampleIntPairHook : BunnyHookModule
     public static long Calls;
     public static long Modified;
     public static bool OverrideSmallRange;
+    public const bool EnableHookAtLoad = false;
     public static string LastError { get; private set; } = "";
 
     public override void Load(BunnyHookScope hooks)
     {
         lock (gate)
             scope = hooks;
+        if (EnableHookAtLoad)
+            Start();
     }
 
     public static string Start()
