@@ -197,11 +197,14 @@ void splitPending(EffectFrame& world, EffectFrame& screen) {
     std::map<std::string, EffectFrame> contributions;
     {
         std::lock_guard<std::mutex> lock(g_queueMutex);
-        if (!g_pendingSet && g_modPending.empty()) return;
+        if (!g_pendingSet && g_modPending.empty() && g_continuousFrames.empty()) return;
         if (g_pendingSet) std::swap(pending, g_pending);
         g_pendingSet = false;
         contributions.swap(g_modPending);
-        g_heldFrameReplays += g_continuousFrames.replayMissing(contributions);
+        const unsigned replayed = g_continuousFrames.replayMissing(contributions);
+        if (replayed && g_heldFrameReplays == 0)
+            BL_INFO("CSharp ScreenFx: continuidade grafica ativa, quadros sem tick C# compensados");
+        g_heldFrameReplays += replayed;
     }
     for (auto& [modId, frame] : contributions) {
         std::string error;
