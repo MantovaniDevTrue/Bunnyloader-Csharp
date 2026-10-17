@@ -1,9 +1,51 @@
 using System;
+using System.Globalization;
 
 namespace LightsAndShadowsCSharp;
 
 public static class LightingCalculator
 {
+    public static string ComputeSceneWire(string wire)
+    {
+        if (string.IsNullOrEmpty(wire)) return "";
+        string[] fields = wire.Split('|');
+        if (fields.Length != 20) return "";
+        var culture = CultureInfo.InvariantCulture;
+        static float F(string s) => float.Parse(s, CultureInfo.InvariantCulture);
+        static double D(string s) => double.Parse(s, CultureInfo.InvariantCulture);
+        static int I(string s) => int.Parse(s, CultureInfo.InvariantCulture);
+        var frame = new LightingFrame
+        {
+            DayTime = I(fields[0]) != 0,
+            GameTime = D(fields[1]),
+            WorldSurface = D(fields[2]),
+            ScreenX = F(fields[3]),
+            ScreenY = F(fields[4]),
+            ScreenWidth = I(fields[5]),
+            ScreenHeight = I(fields[6]),
+            PlayerCenterY = F(fields[7]),
+            MoonPhase = I(fields[8]),
+            InvertedGravity = I(fields[9]) != 0,
+            SkyRed = (byte)Math.Clamp(I(fields[10]), 0, 255),
+            SkyGreen = (byte)Math.Clamp(I(fields[11]), 0, 255),
+            SkyBlue = (byte)Math.Clamp(I(fields[12]), 0, 255),
+            Snow = I(fields[13]) != 0,
+            Crimson = I(fields[14]) != 0,
+            Corrupt = I(fields[15]) != 0,
+            SnowBackground = I(fields[16]),
+            SnowBackgroundAlpha = F(fields[17]),
+            DesertBackgroundAlpha = F(fields[18]),
+            DesertBackground = I(fields[19])
+        };
+        var result = Compute(in frame, new LightingSettings());
+        return string.Join(";", result.SunX.ToString("R", culture),
+            result.SunY.ToString("R", culture),
+            result.GradientClock.ToString("R", culture),
+            result.SunOrMoonIntensity.ToString("R", culture),
+            result.ShadowThreshold.ToString("R", culture),
+            result.SunEnabled ? "1" : "0");
+    }
+
     public static LightingResult Compute(in LightingFrame frame, LightingSettings settings)
     {
         settings.Validate();
