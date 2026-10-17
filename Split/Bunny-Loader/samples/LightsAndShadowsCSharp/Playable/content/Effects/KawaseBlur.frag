@@ -1,6 +1,10 @@
 uniform float uDistance;
 uniform float uBlurGain;
 void main() {
+    if (uDistance < 0.5) {
+        fragColor = vec4(texture(uSource, vUV).rgb * uBlurGain, 1.0);
+        return;
+    }
     vec2 d = uSourceTexel * uDistance;
     vec3 c = texture(uSource, vUV + vec2( d.x,  d.y)).rgb;
     c += texture(uSource, vUV + vec2(-d.x,  d.y)).rgb;
