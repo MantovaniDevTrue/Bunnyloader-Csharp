@@ -372,7 +372,6 @@ int main() {
         std::thread worker([&] {
             csharp::UniversalHookMailbox::Work work{};
             while (!csharp::universalHookMailbox().take(work)) std::this_thread::yield();
-            assert(work.extraMode == 0 || work.extendedMode == mode);
             assert(work.extendedMode == mode && work.slot == 30 + mode);
             assert(work.self == (mode == 1 ? 123u : 0u));
             if (mode != 1) assert(work.argument == 5);
