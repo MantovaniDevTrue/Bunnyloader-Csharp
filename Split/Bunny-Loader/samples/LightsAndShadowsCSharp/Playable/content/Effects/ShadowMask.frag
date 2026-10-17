@@ -4,7 +4,12 @@ uniform float uDayShadowSoftness;
 uniform float uNightShadowSoftness;
 uniform float uDayBlend;
 uniform float uSceneShadowThreshold;
+uniform float uSunEnabled;
 void main() {
+    if (uSunEnabled <= 0.0) {
+        fragColor = vec4(1.0, 1.0, 1.0, 0.0);
+        return;
+    }
     vec4 pixel = texture(uSource, vUV);
     float day = clamp(uDayBlend, 0.0, 1.0);
     float softness = mix(uNightShadowSoftness, uDayShadowSoftness, day);
