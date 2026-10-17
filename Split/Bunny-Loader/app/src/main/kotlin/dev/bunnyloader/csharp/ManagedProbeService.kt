@@ -225,6 +225,10 @@ class ManagedProbeService : Service() {
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
+            if (!precompile && modId.isNotBlank()) {
+                pending.filter { it.precompile && it.modId == modId }
+                    .forEach { pending.remove(it) }
+            }
             val work = CompileWork(startId, sourceRoot, modId, precompile)
             var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
             if (!accepted && !precompile) {
