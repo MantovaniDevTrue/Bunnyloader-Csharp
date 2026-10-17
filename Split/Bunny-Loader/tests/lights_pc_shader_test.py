@@ -47,7 +47,7 @@ assert "uQuality" in rays and "(30.0 - j) / 120.0" in rays
 assert "uBloom" in (effects / "BloomComposite.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.4.2"
+assert manifest["version"] == "0.4.2.1"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
@@ -75,3 +75,4 @@ for name, expected in assets.items():
     assert raw[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10))
     assert sha256(raw).hexdigest() == expected, name
 print("LIGHTS_PC_GRAPH_FIDELITY=PASS passes=9 lowres_targets=4 assets=3")
+\n
