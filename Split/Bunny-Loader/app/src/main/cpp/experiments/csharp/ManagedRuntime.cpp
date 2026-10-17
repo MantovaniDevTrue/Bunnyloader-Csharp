@@ -3226,7 +3226,8 @@ ManagedSourceCompileResult compileManagedSource(
     const std::string& modRoot,
     const std::string& outputAssembly,
     const std::string& diagnosticsPath,
-    bool precompileOnly) {
+    bool precompileOnly,
+    bool verifyOnly) {
     ManagedSourceCompileResult out;
     if (modRoot.empty() || outputAssembly.empty() || diagnosticsPath.empty() ||
         modRoot.size() > 2048 || outputAssembly.size() > 2048 ||
@@ -3301,6 +3302,7 @@ ManagedSourceCompileResult compileManagedSource(
     }
     trace("compile-preflight-verified");
 
+    if (!verifyOnly) {
     const auto slash = compilerAssembly.find_last_of('/');
     if (slash == std::string::npos) {
         out.phase = "compile-framework-invalid";
@@ -3356,6 +3358,10 @@ ManagedSourceCompileResult compileManagedSource(
         out.phase = "compile-prefetched";
         trace(out.phase.c_str());
         return out;
+    }
+    } else {
+        out.result = 2;
+        trace("compile-prefetch-reuse-validating");
     }
     trace("compiled-assembly-execution-start");
     void* verifierClass = image ? g_api.findClass(

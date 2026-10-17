@@ -7,11 +7,91 @@ import android.os.Process
 import android.util.Log
 import java.io.File
 import java.io.RandomAccessFile
+import java.security.MessageDigest
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
+
+private object CSharpPrefetchReceipt {
+    private fun hex(digest: ByteArray): String =
+        digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
+    private fun hash(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { stream ->
+            val buffer = ByteArray(32768)
+            while (true) {
+                val n = stream.read(buffer)
+                if (n < 0) break
+                if (n > 0) digest.update(buffer, 0, n)
+            }
+        }
+        return hex(digest.digest())
+    }
+
+    fun sourceStamp(root: File, dir: File, modId: String): String? = runCatching {
+        if (!root.isDirectory || root.canonicalFile.name != modId) return@runCatching null
+        val content = File(root, "content").canonicalFile
+        if (!content.isDirectory) return@runCatching null
+        val frameworkMarker = File(dir, "framework-version.txt")
+        if (!frameworkMarker.isFile) return@runCatching null
+        val digest = MessageDigest.getInstance("SHA-256")
+        fun field(text: String) {
+            val bytes = text.toByteArray(Charsets.UTF_8)
+            digest.update(byteArrayOf((bytes.size and 0xff).toByte(),
+                ((bytes.size ushr 8) and 0xff).toByte(),
+                ((bytes.size ushr 16) and 0xff).toByte(),
+                ((bytes.size ushr 24) and 0xff).toByte()))
+            digest.update(bytes)
+        }
+        field("BUNNY_PREFETCH_RECEIPT_V1")
+        field(frameworkMarker.readText().trim())
+        field(modId)
+        val sources = content.walkTopDown().filter { it.isFile && it.extension == "cs" }
+            .sortedBy { it.relativeTo(content).invariantSeparatorsPath }.toList()
+        if (sources.isEmpty() || sources.size > 512) return@runCatching null
+        var bytesTotal = 0L
+        for (file in sources) {
+            val canonical = file.canonicalFile
+            if (!canonical.path.startsWith(content.path + File.separator) ||
+                file.length() !in 1L..262144L) return@runCatching null
+            bytesTotal += file.length()
+            if (bytesTotal > 8L * 1024 * 1024) return@runCatching null
+            field(file.relativeTo(content).invariantSeparatorsPath)
+            field(hash(file))
+        }
+        hex(digest.digest())
+    }.getOrNull()
+
+    fun save(receipt: File, root: File, dir: File, id: String,
+             before: String?, assembly: File): Boolean {
+        if (before == null || !assembly.isFile || assembly.length() <= 0) return false
+        val cache = File(assembly.absolutePath + ".sha256")
+        if (!cache.isFile || !cache.readText().startsWith("BUNNY_ASSEMBLY_CACHE_V1")) return false
+        if (sourceStamp(root, dir, id) != before) return false
+        val body = "BUNNY_PREFETCH_RECEIPT_V1\n" + before + "\n" +
+            hash(assembly) + "\n" + hash(cache) + "\n"
+        val temporary = File(receipt.absolutePath + ".tmp")
+        return runCatching {
+            temporary.writeText(body)
+            if (!temporary.renameTo(receipt)) error("prefetch receipt rename failed")
+            true
+        }.getOrDefault(false).also { temporary.delete() }
+    }
+
+    fun ready(receipt: File, root: File, dir: File, id: String, assembly: File): Boolean =
+        runCatching {
+            if (!receipt.isFile || !assembly.isFile) return@runCatching false
+            val rows = receipt.readLines()
+            if (rows.size != 4 || rows[0] != "BUNNY_PREFETCH_RECEIPT_V1" ||
+                rows[1] != sourceStamp(root, dir, id) ||
+                rows[2] != hash(assembly) ||
+                rows[3] != hash(File(assembly.absolutePath + ".sha256"))) return@runCatching false
+            true
+        }.getOrDefault(false)
+}
 
 class ManagedProbeService : Service() {
     companion object {
@@ -121,6 +201,10 @@ class ManagedProbeService : Service() {
         probePath: String, compilerPath: String, sourceRoot: String,
         outputPath: String, diagnosticPath: String, checkpointPath: String
     ): String
+    private external fun verifyPrefetchedNative(
+        probePath: String, compilerPath: String, sourceRoot: String,
+        outputPath: String, diagnosticPath: String, checkpointPath: String
+    ): String
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -141,6 +225,10 @@ class ManagedProbeService : Service() {
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
+            if (!precompile && modId.isNotBlank()) {
+                pending.filter { it.precompile && it.modId == modId }
+                    .forEach { pending.remove(it) }
+            }
             val work = CompileWork(startId, sourceRoot, modId, precompile)
             var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
             if (!accepted && !precompile) {
@@ -268,10 +356,20 @@ class ManagedProbeService : Service() {
             val outputDir = File(dir, "compiled")
             outputDir.mkdirs()
             val output = File(outputDir, job.modId + ".dll")
+            val receipt = File(outputDir, job.modId + ".launch-ready")
+            val precompileStamp = if (job.precompile) {
+                receipt.delete()
+                CSharpPrefetchReceipt.sourceStamp(File(compileRoot), dir, job.modId)
+            } else null
+            val canReuse = !job.precompile &&
+                CSharpPrefetchReceipt.ready(receipt, File(compileRoot), dir, job.modId, output)
             compileStatus.writeText("state=compiling\nmodId=" + job.modId +
                 "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
             val compilerStarted = android.os.SystemClock.elapsedRealtime()
             val result = if (job.precompile) precompileNative(
+                assembly, compiler.absolutePath, compileRoot,
+                output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
+            ) else if (canReuse) verifyPrefetchedNative(
                 assembly, compiler.absolutePath, compileRoot,
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
             ) else compileNative(
@@ -283,6 +381,12 @@ class ManagedProbeService : Service() {
             val passed = result.contains(if (job.precompile)
                     "phase=compile-prefetched" else "phase=compile-verified") &&
                 (result.contains("result=1\n") || result.contains("result=2\n"))
+            if (job.precompile && passed) {
+                CSharpPrefetchReceipt.save(receipt, File(compileRoot), dir, job.modId,
+                    precompileStamp, output)
+            } else if (!job.precompile) {
+                receipt.delete()
+            }
             val roslynProfile = runCatching {
                 File(diagnostic.absolutePath + ".profile")
                     .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
@@ -296,6 +400,7 @@ class ManagedProbeService : Service() {
                 "managedCompileMs=" + managedCompileMs + "\n" +
                 "workerTotalMs=" + workerTotalMs + "\n" +
                 "precompileOnly=" + (if (job.precompile) 1 else 0) + "\n" +
+                "prefetchReused=" + (if (canReuse) 1 else 0) + "\n" +
                 "residentReuse=" + (if (reused) 1 else 0) + "\n" +
                 "residentBatchIndex=" + resident.compiled + "\n" +
                 "roslynProfile=" + roslynProfile + "\n"
