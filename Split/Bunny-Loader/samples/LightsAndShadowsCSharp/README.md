@@ -1,4 +1,4 @@
-# Lights And Shadows C# — 0.4.2.2
+# Lights And Shadows C# — 0.4.2.3
 
 Port do Lights And Shadows de yiyang233 / AWEoghAwo, com formulas e assets originais do PC como referencia.
 
@@ -27,3 +27,7 @@ O tokenizador antecipado da .88.3 nao reconhece literals C# com aspas simples, p
 ## Night shadow polish 0.4.2.2
 
 A intensidade noturna dos raios agora acompanha `uSunStrength * uSunPower` e usa fator 0.24, preservando os 20 samples e as gradientes originais. O alongamento noturno foi suavizado (0.006 por sample), com maior suavidade no limiar da mascara (0.015). No shader de composicao, um piso de 22% da luz lunar e mantido somente no periodo noturno e quando a luz de superficie esta habilitada; isso evita sombras totalmente opacas sem desligar o efeito. O primeiro Kawase com distancia zero usa uma unica leitura exata da mesma amostra, mantendo os 4 passes e alvos. Requer teste Android nas diferentes fases da Lua e em combate; nenhuma melhoria de FPS foi medida ainda.
+
+## Natural Moonlight 0.4.2.3
+
+A intensidade das sombras noturnas passa de 0.24 para 0.15, com raios mais curtos (0.006 para 0.0045), atenuacao pela distancia ao foco lunar e limiar suave 0.024. A cor lunar ganha um preenchimento muito discreto, sem alterar a composicao diurna. Os nove passes, quatro alvos e imagens originais estao mantidos. Testar FPS e biomas no Xiaomi com .88.3.
