@@ -357,6 +357,18 @@ class ManagedProbeService : Service() {
             outputDir.mkdirs()
             val output = File(outputDir, job.modId + ".dll")
             val receipt = File(outputDir, job.modId + ".launch-ready")
+            if (job.precompile &&
+                CSharpPrefetchReceipt.ready(receipt, File(compileRoot), dir, job.modId, output)) {
+                compileStatus.writeText(
+                    "state=finished\nmodId=" + job.modId +
+                    "\npid=" + Process.myPid() +
+                    "\nphase=compile-prefetched-cache-hit\nassemblyReady=1" +
+                    "\nprefetchCacheHit=1\nprecompileOnly=1" +
+                    "\nframeworkCache=" + frameworkInstallState + "\n"
+                )
+                Log.i("BunnyCSharp", "[CSharp][Startup] Stage=LauncherPrecompileCacheHit Mod=" + job.modId)
+                return
+            }
             val precompileStamp = if (job.precompile) {
                 receipt.delete()
                 CSharpPrefetchReceipt.sourceStamp(File(compileRoot), dir, job.modId)
