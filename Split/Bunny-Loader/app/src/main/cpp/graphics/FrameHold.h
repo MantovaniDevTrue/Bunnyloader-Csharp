@@ -12,6 +12,8 @@ class FrameHold {
 public:
     static constexpr unsigned MaxMissedWorldFrames = 4;
 
+    bool empty() const { return held_.empty(); }
+
     void record(const std::string& modId, const EffectFrame& frame) {
         if (frame.empty()) {
             held_.erase(modId);
