@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Android QA: cinco hooks tipados com limite de duas chamadas, status H1-H5 e diagnostico compatível com o parser nativo da APK .83.",
+  "summary": "QA temporario de hooks tipados H1-H5, status reais reportados pelo worker MonoVM na APK CSharp .84 e sem interceptacao continua.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
