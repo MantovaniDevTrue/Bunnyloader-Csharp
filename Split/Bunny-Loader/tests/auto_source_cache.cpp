@@ -35,6 +35,14 @@ int main(int argc,char** argv) {
     fs::remove(runtime+"/System.Linq.dll");assert(auto_cache::runtimeIdentity(runtime)==identity);
     fs::create_symlink(runtime+"/BunnySourceSdk.dll",runtime+"/Extra.dll");assert(auto_cache::runtimeIdentity(runtime).empty());
     fs::remove(runtime+"/Extra.dll");
+    fs::create_directories(runtime+"/compiler-references");
+    assert(writeText(runtime+"/compiler-references/System.Runtime.dll","compile-reference"));
+    const auto compactIdentity=auto_cache::runtimeIdentity(runtime);
+    assert(compactIdentity!=identity);
+    assert(writeText(runtime+"/compiler-references/System.Runtime.dll","compile-referencf"));
+    assert(auto_cache::runtimeIdentity(runtime)!=compactIdentity);
+    fs::remove_all(runtime+"/compiler-references");
+    assert(auto_cache::runtimeIdentity(runtime)==identity);
     const auto source=(root/"content/main.cs").string();assert(writeText(source,"class Material {}"));
     const auto key=fingerprint("mod",root.string(),identity);assert(auto_cache::digest(key));
     assert(fingerprint("other",root.string(),identity)!=key);

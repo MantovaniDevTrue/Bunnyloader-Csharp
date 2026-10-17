@@ -37,13 +37,15 @@ public static class Compiler
     public static int Compile(
         string modRoot, string outputFile, string runtimeDir, string diagnosticsFile)
     {
+        long invocationStarted = Environment.TickCount64;
         try
         {
             Stage(diagnosticsFile, "compiler-entered");
             int result = CompileCore(modRoot, outputFile, runtimeDir, diagnosticsFile);
             if (result > 0 && File.Exists(diagnosticsFile))
                 File.WriteAllText(diagnosticsFile + ".profile",
-                    File.ReadAllText(diagnosticsFile).Trim().Replace('\n', ' '));
+                    File.ReadAllText(diagnosticsFile).Trim().Replace('\n', ' ') +
+                    " invocationMs=" + (Environment.TickCount64 - invocationStarted));
             return result;
         }
         catch (Exception exception)
@@ -125,26 +127,25 @@ public static class Compiler
             return -6;
         }
         Stage(diagnosticsFile, "listing-framework-assemblies");
-        string[] framework = ReferenceNames.Select(name => Path.Combine(runtimeDir, name))
+        string referenceDir = Path.Combine(runtimeDir, "compiler-references");
+        bool compactReferences = Directory.Exists(referenceDir);
+        string[] framework = ReferenceNames
+            .Where(name => !compactReferences || name != "System.Private.CoreLib.dll")
+            .Select(name => Path.Combine(compactReferences ? referenceDir : runtimeDir, name))
             .Where(File.Exists).ToArray();
-        if (!framework.Contains(sdkFile) ||
-            !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
-            !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll")))
+        int expectedReferences = ReferenceNames.Length - (compactReferences ? 1 : 0);
+        if ((compactReferences && framework.Length != expectedReferences) ||
+            (!compactReferences && (!framework.Contains(sdkFile) ||
+                !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
+                !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll")))))
         {
-            WriteDiagnostic(diagnosticsFile, "FRAMEWORK_REFERENCES_INCOMPLETE " +
-                framework.Length);
+            WriteDiagnostic(diagnosticsFile, "FRAMEWORK_REFERENCES_INCOMPLETE Expected=" +
+                expectedReferences + " Actual=" + framework.Length + " Directory=" +
+                (compactReferences ? referenceDir : runtimeDir));
             return -7;
         }
-        foreach (string reference in framework)
-        {
-            AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(Path.GetFileName(reference)));
-            using var referenceFile = File.OpenRead(reference);
-            using var pe = new PEReader(referenceFile);
-            var metadata = pe.GetMetadataReader();
-            var module = metadata.GetModuleDefinition();
-            AppendFingerprint(fingerprint, metadata.GetGuid(module.Mvid).ToByteArray());
-        }
-        AppendFingerprint(fingerprint, File.ReadAllBytes(sdkFile));
+        var referenceSnapshot = new CompilerReferences(framework);
+        AppendFingerprint(fingerprint, Encoding.UTF8.GetBytes(referenceSnapshot.Key));
         Stage(diagnosticsFile, "calculating-fingerprint");
         string hash = Convert.ToHexString(fingerprint.GetHashAndReset());
         string cache = outputFile + ".sha256";
@@ -177,7 +178,7 @@ public static class Compiler
         long parsingMs = Environment.TickCount64 - parsingStarted;
         long metadataStarted = Environment.TickCount64;
         Stage(diagnosticsFile, "creating-metadata-references-" + framework.Length);
-        var references = framework.Select(path => MetadataReference.CreateFromFile(path)).ToArray();
+        var references = referenceSnapshot.Metadata(out bool metadataReused);
         long metadataMs = Environment.TickCount64 - metadataStarted;
         Stage(diagnosticsFile, "metadata-references-created-" + references.Length);
         bool extendedDiagnostics =
@@ -266,7 +267,8 @@ public static class Compiler
             " bytes=" + new FileInfo(outputFile).Length + " parsed=" + trees.Count +
             " sourcesMs=" + sourcesMs + " fingerprintMs=" + fingerprintMs +
             " parsingMs=" + parsingMs + " referencesMs=" + metadataMs +
-            " emitMs=" + emitMs + " totalMs=" +
+            " emitMs=" + emitMs + " referenceMode=" + (compactReferences ? "Compact" : "Runtime") +
+            " referenceBytes=" + referenceSnapshot.Bytes + " metadataReused=" + (metadataReused ? 1 : 0) + " totalMs=" +
             (Environment.TickCount64 - compilationStarted));
         return 1;
     }

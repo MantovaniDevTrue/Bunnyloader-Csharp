@@ -124,6 +124,14 @@ int main() {
     assert(bunny_native_open()==static_cast<int>(S::WrongThread));
     std::promise<void> registered;
     auto ready=registered.get_future();
+    std::atomic<bool> workWaiting{false}, workerIdle{true};
+    auto wakeWorker=[&]{ workerIdle.store(false,std::memory_order_release);workWaiting.store(true,std::memory_order_release); };
+    auto waitWorkerIdle=[&]{
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+        while(!workerIdle.load(std::memory_order_acquire)&&std::chrono::steady_clock::now()<deadline)
+            std::this_thread::yield();
+        assert(workerIdle.load(std::memory_order_acquire));
+    };
     std::thread worker([&]{
         mono.lock();universalLeaveMono=+[]{mono.unlock();};universalResumeMono=+[]{mono.lock();};universalCanInstall=true;
         h.scope=bunny_native_open();assert(h.scope>0);
@@ -150,14 +158,15 @@ int main() {
         assert(bunny_native_call(h.scope,h.life,2,-1,0,0,0,nullptr,&initialDay)==static_cast<int>(S::Expired));
         universalCanInstall=false;mono.unlock();registered.set_value();
         while(!stop) {
+            if(!workWaiting.exchange(false,std::memory_order_acq_rel)){std::this_thread::yield();continue;}
             UniversalHookMailbox::Work work{};
-            if(!universalHookMailbox().take(work)){std::this_thread::yield();continue;}
+            assert(universalHookMailbox().take(work));
             mono.lock();
             if(work.slot==6) {
                 assert(call(h.life,3,work,integer(999),nullptr,1)==static_cast<int>(S::TimedOut));
-                universalHookMailbox().complete(work.ticket,true);mono.unlock();continue;
+                universalHookMailbox().complete(work.ticket,true);mono.unlock();workerIdle.store(true,std::memory_order_release);continue;
             }
-            V result;
+            V result{};
             if(work.slot==7) {
                 assert(work.int32Mode&&work.argument==9);
                 int ids[]={h.life,h.day};V values[2]{};
@@ -167,9 +176,13 @@ int main() {
                 int32_t originalValue=0;
                 assert(universalHookMailbox().originalInt32(work.slot,work.ticket,originalValue)&&originalValue==42);
                 universalHookMailbox().complete(work.ticket,true,originalValue+static_cast<int>(result.a));
-                mono.unlock();continue;
+                mono.unlock();workerIdle.store(true,std::memory_order_release);continue;
             }
-            assert(call(h.prefix,2,work,{},&result)==0&&result.a==7);
+            const int prefixStatus=call(h.prefix,2,work,{},&result);
+            if(prefixStatus!=0||result.a!=7)
+                std::cerr<<"prefix read: status="<<prefixStatus<<" expectedStatus=0 actual="<<result.a
+                         <<" expected=7 slot="<<work.slot<<" ticket="<<work.ticket<<"\n";
+            assert(prefixStatus==0&&result.a==7);
             assert(call(h.prefix,3,work,{K::UInt32,0,255,0},nullptr,1)==0);
             assert(call(h.prefix,3,work,{K::UInt32,0,256,0},nullptr,1)==static_cast<int>(S::TypeMismatch));
             assert(call(h.small,2,work,{},&result)==0&&static_cast<int32_t>(result.a)==-123);
@@ -215,19 +228,26 @@ int main() {
             universalHookMailbox().complete(work.ticket,true);
             assert(call(h.life,2,work)==static_cast<int>(S::Expired));
             mono.unlock();
+            workerIdle.store(true,std::memory_order_release);
         }
         universalLeaveMono=universalResumeMono=nullptr;
     });
     while(ready.wait_for(std::chrono::milliseconds(1))!=std::future_status::ready)pumpNativeAccessOnGameThread();
     int originals=0;
     bunny_native_test_wait_ms(5);
-    auto cancelled=universalHookMailbox().dispatch(6,reinterpret_cast<uintptr_t>(&player),[]{return true;},[]{},std::chrono::seconds(1));
+    auto cancelled=universalHookMailbox().dispatch(6,reinterpret_cast<uintptr_t>(&player),[]{return true;},wakeWorker,std::chrono::seconds(1));
     assert(cancelled.accepted&&!cancelled.faulted&&!cancelled.originalRan&&player.life==100&&!pumpNativeAccessOnGameThread());
+    waitWorkerIdle();
     bunny_native_test_wait_ms(1000);
-    auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},[]{},std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);
+    auto result=universalHookMailbox().dispatch(5,reinterpret_cast<uintptr_t>(&player),[&]{++originals;return true;},wakeWorker,std::chrono::seconds(5),0,false,pumpNativeAccessOnGameThread);
+    if(!result.accepted||result.faulted||!result.originalRan)
+        std::cerr<<"positive RPC dispatch: accepted="<<result.accepted<<" faulted="<<result.faulted
+                 <<" timedOut="<<result.timedOut<<" originalRan="<<result.originalRan<<"\n";
     assert(result.accepted&&!result.faulted&&result.originalRan&&originals==1&&player.life==125&&!day&&player.color.r==1&&player.color.a==4&&player.prefix==255&&player.small==-32768&&player.canary==0x5a);
-    auto typed=universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},[]{},std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);
+    waitWorkerIdle();
+    auto typed=universalHookMailbox().dispatch(7,reinterpret_cast<uintptr_t>(&player),[&]{++originals;universalHookMailbox().setOriginalInt32Value(42);return true;},wakeWorker,std::chrono::seconds(5),9,true,pumpNativeAccessOnGameThread);
     assert(typed.accepted&&!typed.faulted&&typed.originalRan&&typed.value==52&&originals==2);
+    waitWorkerIdle();
     stop=true;worker.join();
     auto recycled=std::async(std::launch::async,[&] {
         mono.lock();universalLeaveMono=+[]{mono.unlock();};universalResumeMono=+[]{mono.lock();};universalCanInstall=true;

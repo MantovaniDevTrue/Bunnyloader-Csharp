@@ -95,6 +95,9 @@ private object CSharpPrefetchReceipt {
 
 class ManagedProbeService : Service() {
     companion object {
+        @JvmStatic
+        fun startCompilerRequest(context: android.content.Context, intent: Intent): android.content.ComponentName? =
+            CompilerProcessLease.start(context, intent)
 
         @JvmStatic
         fun historicalWorkerTrace(context: android.content.Context, pid: Int, minimumTimestampMs: Long): String {
@@ -177,7 +180,8 @@ class ManagedProbeService : Service() {
     }
 
 
-    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String, val precompile: Boolean)
+    private data class CompileWork(val startId: Int, val sourceRoot: String?, val modId: String,
+                                   val precompile: Boolean, val requestId: String)
     private class ResidentRuntime {
         var assembly: String? = null
         var cryptoReady = false
@@ -186,6 +190,9 @@ class ManagedProbeService : Service() {
 
     private val running = AtomicBoolean(false)
     private val workerGate = Any()
+    private val compilerPriority = CompilerPriorityController { tid, value ->
+        Process.setThreadPriority(tid, value)
+    }
     private val pending = LinkedBlockingDeque<CompileWork>(16)
     private val healthGeneration = AtomicInteger(0)
     private var workerThread: Thread? = null
@@ -206,12 +213,13 @@ class ManagedProbeService : Service() {
         outputPath: String, diagnosticPath: String, checkpointPath: String
     ): String
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder = android.os.Binder()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val sourceRoot = intent?.getStringExtra("sourceRoot")
         val modId = intent?.getStringExtra("sourceModId") ?: ""
         val precompile = intent?.getBooleanExtra("sourcePrecompile", false) == true
+        val requestId = intent?.getStringExtra("sourceRequestId").orEmpty().take(64)
         if (sourceRoot != null &&
             (modId.isBlank() || modId.length > 128 ||
              !modId.matches(Regex("[0-9a-fA-F-]+")))) {
@@ -219,17 +227,24 @@ class ManagedProbeService : Service() {
                 if (!precompile) File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                     parentFile?.mkdirs()
                     writeText("state=failed\nmodId=" + modId +
-                        "\nerror=InvalidWorkerModIdentity\n")
+                        "\nrequestId=" + requestId + "\nerror=InvalidWorkerModIdentity\n")
                 }
             }
             return START_NOT_STICKY
         }
         synchronized(workerGate) {
+            if (!precompile && modId.isNotBlank()) {
+                runCatching { compilerPriority.promote(modId) }
+                    .onSuccess { promoted ->
+                        if (promoted) Log.i("BunnyCSharp", "[CSharp][Startup] Mod=$modId Stage=PrefetchPromoted Reason=OfficialCompileWaiting Priority=Normal")
+                    }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=$modId Stage=PrefetchPromotion Reason=ThreadPriorityChangeFailed Result=ContinueExistingCompile", it) }
+            }
             if (modId.isNotBlank()) {
                 pending.filter { it.precompile && it.modId == modId }
                     .forEach { pending.remove(it) }
             }
-            val work = CompileWork(startId, sourceRoot, modId, precompile)
+            val work = CompileWork(startId, sourceRoot, modId, precompile, requestId)
             var accepted = if (precompile) pending.offerLast(work) else pending.offerFirst(work)
             if (!accepted && !precompile) {
                 val displaced = pending.peekLast()
@@ -241,7 +256,7 @@ class ManagedProbeService : Service() {
                     File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
                         parentFile?.mkdirs()
                         writeText("state=failed\nmodId=" + modId +
-                            "\nerror=CompilerQueueFull\n")
+                            "\nrequestId=" + requestId + "\nerror=CompilerQueueFull\n")
                     }
                 }
                 else Log.w("BunnyCSharp", "Launch precompile skipped: queue full, mod=$modId")
@@ -300,10 +315,16 @@ class ManagedProbeService : Service() {
         val abortWatch = File(dir, "native-abort-watch.txt")
         val workerStartedMs = android.os.SystemClock.elapsedRealtime()
         val originalPriority = Process.getThreadPriority(Process.myTid())
-        if (job.precompile) Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT + 3)
         val reused = resident.assembly != null
         val currentHealth = healthGeneration.incrementAndGet()
         try {
+            synchronized(workerGate) {
+                val officialWaiting = pending.any { !it.precompile && it.modId == job.modId }
+                compilerPriority.begin(job.modId, Process.myTid(), originalPriority,
+                    job.precompile, officialWaiting)
+                if (job.precompile && officialWaiting)
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=PrefetchPromoted Reason=OfficialAlreadyQueued Priority=Normal")
+            }
             checkpoint.delete()
             if (compileRoot == null) {
                 log.delete()
@@ -331,13 +352,13 @@ class ManagedProbeService : Service() {
                     abortWatch.delete()
                 }
                 compileStatus.writeText("state=preparing-framework\nmodId=" +
-                    job.modId + "\npid=" + Process.myPid() + "\n")
+                    job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 startCompileHealthMonitor(health, currentHealth)
             }
             System.loadLibrary("bunnymonoprobe")
             if (compileRoot != null && !resident.cryptoReady) {
                 compileStatus.writeText("state=preparing-crypto-jni\nmodId=" +
-                    job.modId + "\npid=" + Process.myPid() + "\n")
+                    job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
                 System.loadLibrary("System.Security.Cryptography.Native.Android")
                 resident.cryptoReady = true
@@ -378,6 +399,7 @@ class ManagedProbeService : Service() {
             compileStatus.writeText("state=compiling\nmodId=" + job.modId +
                 "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
             val compilerStarted = android.os.SystemClock.elapsedRealtime()
+            val compilerCpuStarted = Process.getElapsedCpuTime()
             val result = if (job.precompile) precompileNative(
                 assembly, compiler.absolutePath, compileRoot,
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
@@ -389,6 +411,7 @@ class ManagedProbeService : Service() {
                 output.absolutePath, diagnostic.absolutePath, checkpoint.absolutePath
             )
             val managedCompileMs = android.os.SystemClock.elapsedRealtime() - compilerStarted
+            val managedProcessCpuMs = (Process.getElapsedCpuTime() - compilerCpuStarted).coerceAtLeast(0L)
             val workerTotalMs = android.os.SystemClock.elapsedRealtime() - workerStartedMs
             val passed = result.contains(if (job.precompile)
                     "phase=compile-prefetched" else "phase=compile-verified") &&
@@ -399,17 +422,26 @@ class ManagedProbeService : Service() {
             } else if (!job.precompile) {
                 receipt.delete()
             }
+            val savedProfile = File(dir, "source-roslyn-profile-" + job.modId + ".txt")
+            val profileFile = File(diagnostic.absolutePath + ".profile")
+            if (!canReuse && passed && profileFile.isFile) {
+                runCatching { savedProfile.writeText(profileFile.readText().take(1536) +
+                    " nativeWallMs=$managedCompileMs workerProcessCpuMs=$managedProcessCpuMs") }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=${job.modId} Stage=SaveRoslynProfile Reason=ProfileWriteFailed", it) }
+            }
             val roslynProfile = runCatching {
-                File(diagnostic.absolutePath + ".profile")
-                    .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(480)
+                (if (canReuse) savedProfile else profileFile)
+                    .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(1024)
             }.getOrNull() ?: "Unavailable"
+            Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=RoslynProfile PrefetchReused=${if (canReuse) 1 else 0} Detail=$roslynProfile")
             compileStatus.writeText(
                 "state=" + (if (passed) "finished" else "failed") + "\n" +
-                "modId=" + job.modId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
+                "modId=" + job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
                 "assemblyReady=" + (if (passed && output.isFile) 1 else 0) + "\n" +
                 "frameworkCache=" + frameworkInstallState + "\n" +
                 "frameworkSetupMs=" + frameworkSetupMs + "\n" +
                 "managedCompileMs=" + managedCompileMs + "\n" +
+                "managedProcessCpuMs=" + managedProcessCpuMs + "\n" +
                 "workerTotalMs=" + workerTotalMs + "\n" +
                 "precompileOnly=" + (if (job.precompile) 1 else 0) + "\n" +
                 "prefetchReused=" + (if (canReuse) 1 else 0) + "\n" +
@@ -423,11 +455,14 @@ class ManagedProbeService : Service() {
             runCatching {
                 val target = if (compileRoot == null) status else compileStatus
                 target.writeText("state=failed\nmodId=" + job.modId +
-                    "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
+                    "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
             }
             Log.e("BunnyCSharp", "Mono worker failed", error)
         } finally {
-            if (job.precompile) Process.setThreadPriority(originalPriority)
+            synchronized(workerGate) {
+                runCatching { compilerPriority.finish() }
+                    .onFailure { Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Mod=${job.modId} Stage=RestoreCompilerPriority Reason=ThreadPriorityChangeFailed", it) }
+            }
             healthGeneration.compareAndSet(currentHealth, currentHealth + 1)
         }
     }
@@ -593,8 +628,10 @@ internal object ManagedFrameworkAssets {
 
     private fun ensureUnlocked(context: android.content.Context, dir: File, verifyCached: Boolean): Result {
         val assets = context.assets
-        val names = assets.list("managed").orEmpty()
-            .filter { it.endsWith(".dll") }.sorted()
+        val names = (assets.list("managed").orEmpty()
+            .filter { it.endsWith(".dll") } +
+            assets.list("managed/compiler-references").orEmpty()
+                .filter { it.endsWith(".dll") }.map { "compiler-references/$it" }).sorted()
         for (required in listOf("System.Private.CoreLib.dll", "System.Runtime.dll",
             "BunnyManagedProbe.dll", "BunnySourceCompiler.dll", "BunnySourceSdk.dll",
             "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll"))
@@ -639,6 +676,7 @@ internal object ManagedFrameworkAssets {
             if (name in valid) continue
             val target = File(dir, name)
             val temporary = File(dir, "$name.framework.tmp")
+            temporary.parentFile?.mkdirs()
             try {
                 assets.open("managed/$name").use { source ->
                     temporary.outputStream().use { output -> source.copyTo(output) }

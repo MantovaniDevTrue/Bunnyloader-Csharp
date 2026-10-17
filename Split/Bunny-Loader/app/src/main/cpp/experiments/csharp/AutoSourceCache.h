@@ -37,7 +37,15 @@ inline std::string runtimeIdentity(const std::string& directory) {
         const std::string name=item->d_name;
         if(name.size()>4&&name.ends_with(".dll"))names.push_back(name);
     }
-    closedir(listing);std::sort(names.begin(),names.end());
+    closedir(listing);
+    if (DIR* refs=opendir((directory+"/compiler-references").c_str())) {
+        while(auto* item=readdir(refs)) {
+            const std::string name=item->d_name;
+            if(name.size()>4&&name.ends_with(".dll"))names.push_back("compiler-references/"+name);
+        }
+        closedir(refs);
+    }
+    std::sort(names.begin(),names.end());
     if(names.size()>512)return {};
     for(const char* required:{"BunnySourceSdk.dll","BunnySourceCompiler.dll","BunnyManagedProbe.dll",
                              "Microsoft.CodeAnalysis.dll","Microsoft.CodeAnalysis.CSharp.dll",
