@@ -41,10 +41,19 @@ assert "uQuality" in rays and "(30.0 - j) / 120.0" in rays
 assert "uBloom" in (effects / "BloomComposite.frag").read_text()
 assert (root / "Playable/content/main.cs").read_text().count("BunnyScreenEffect") == 1
 manifest = loads((root / "Playable/manifest.json").read_text())
-assert manifest["version"] == "0.3.1"
+assert manifest["version"] == "0.3.2"
 compose = (effects / "LightCompose.frag").read_text()
 assert "uGradientDay" in compose and "uGradientNight" in compose
 assert "mix(moonlight, daylight" in compose
+assert "@param.DayShadowThreshold" in source
+assert "@param.NightShadowThreshold" in source
+assert "@param.RayQuality" in source
+assert "@param.BloomStrength" in source
+assert "mix(uNightShadowThreshold, uDayShadowThreshold, day)" in mask
+mod_source = (root / "Playable/content/main.cs").read_text()
+for name in ("SunPower", "DayShadowThreshold", "NightShadowThreshold", "ShadowStrength",
+             "RayQuality", "BloomThreshold", "BloomStrength", "BloomPower", "BlurGain"):
+    assert "Uniform_" + name in mod_source
 assert "uDayBlend=@dayblend" in source
 assert "uGradientDay=Assets/ColorTex.png" in source
 assert "uGradientNight=Assets/ColorTex2.png" in source
