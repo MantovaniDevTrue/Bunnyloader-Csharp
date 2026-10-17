@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.42",
+  "version": "0.1.43",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "ExampleMod CSharp: equipamentos, cinco assinaturas adicionais de hooks universais com exemplos e probes nativos opt-in, sem interceptacao continua por padrao.",
+  "summary": "QA Android temporario dos cinco hooks universais C#: instala candidatos ao iniciar, informa H1-H5 no chat e para cada hook apos duas chamadas; nao altera retorno nem mundo.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
