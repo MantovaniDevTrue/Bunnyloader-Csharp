@@ -9,7 +9,7 @@ runtime = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read
 source = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
 
 assert launcher.count("LaunchSourcePrecompile.begin(ctx, csharpLaunchSpecs)") == 2
-assert 'fun begin(context: Context, selectedSpecs: List<String>)' in launch
+assert 'fun begin(context: Context, selectedSpecs: List<String>, origin: String = "play")' in launch
 assert 'for (spec in selectedSpecs.take(16))' in launch
 assert 'source-launch-startup.txt' in launch
 assert 'thread(name = "BunnyCSharpLaunchPrecompile"' not in launch
@@ -61,3 +61,24 @@ assert 'out.result = 2;' in runtime
 assert 'Java_dev_bunnyloader_csharp_ManagedProbeService_verifyPrefetchedNative' in jni
 assert 'bool precompileOnly, bool verifyOnly' in jni
 print("CSHARP_PREFETCH_RECEIPT_VERIFIED_REUSE_PASS")
+
+shell = (root / "app/src/main/kotlin/dev/bunnyloader/ui/Shell.kt").read_text()
+report = (root / "app/src/main/kotlin/dev/bunnyloader/game/BootLog.kt").read_text()
+assert 'private fun scheduleCSharpPrecompile()' in shell
+assert 'LaunchSourcePrecompile.begin(appContext, selected, origin = "launcher")' in shell
+assert 'scope.launch(Dispatchers.IO)' in shell
+assert 'csharpPrecompileLock.withLock' in shell
+assert 'generation == csharpPrecompileGeneration' in shell
+assert 'it.uid in enabled' in shell and 'it.manifest.entry.endsWith(".cs")' in shell
+assert 'scheduleCSharpPrecompile()' in shell.split('fun setEnabled(uid: String, on: Boolean) {', 1)[1].split('fun moveMod(', 1)[0]
+assert 'scheduleCSharpPrecompile()' in shell.split('fun rescan() {', 1)[1]
+assert 'Stage=${if (auto) "LauncherAutoScheduled" else "LaunchPrecompileScheduled"}' in launch
+assert '"bunny-csharp/source-launch-auto.txt"' in launch
+assert '"bunny-csharp/source-launch-startup.txt"' in launch
+assert 'origin=$origin' in launch
+assert 'source-launch-auto.txt' in report
+assert 'pending.filter { it.precompile && it.modId == modId }' in worker
+assert '"source-launch-precompile-" + job.modId + ".txt"' in worker
+assert 'if (canReuse) verifyPrefetchedNative(' in worker
+assert 'note(&status, "waiting-content")' in source
+print("CSHARP_LAUNCHER_AUTO_COMPILE_ENABLED_IMPORT_UPDATE_PASS")
