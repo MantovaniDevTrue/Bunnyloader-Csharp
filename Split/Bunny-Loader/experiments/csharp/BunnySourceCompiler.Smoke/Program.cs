@@ -59,6 +59,66 @@ try
         !managedDefaults.Contains("WEAPON\tSourceWand\t22\t18\t13\tSourceBolt\n", StringComparison.Ordinal) ||
         managedDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 5)
         throw new InvalidOperationException("Unexpected managed Terraria defaults payload: " + managedDefaults);
+    string minionRoot = Path.Combine(scratch, "native-minion");
+    string minionContent = Path.Combine(minionRoot, "content");
+    Directory.CreateDirectory(minionContent);
+    File.WriteAllText(Path.Combine(minionContent, "Minion.cs"), """
+using BunnyLoader.Source;
+namespace NativeMinionSmoke;
+public sealed class MinionProjectile : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Native C# Minion";
+        Width = 16;
+        Height = 16;
+        AiStyle = 1;
+        Friendly = true;
+        Minion = true;
+        MinionSlots = 1f;
+        TileCollide = false;
+        IgnoreWater = true;
+        Penetrate = -1;
+        TimeLeft = 1800;
+    }
+}
+public sealed class MinionBuff : BunnyBuff
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Native Minion Buff";
+        MinionProjectile = nameof(MinionProjectile);
+    }
+}
+public sealed class MinionStaff : BunnyWeapon
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Native Summon Staff";
+        Damage = 20;
+        UseTime = 20;
+        ShootSpeed = 10f;
+        Shoot = nameof(MinionProjectile);
+        Summon = true;
+        MinionBuff = nameof(MinionBuff);
+        MinionBuffTime = 2;
+    }
+}
+""");
+    string minionArtifacts = Path.Combine(scratch, "native-minion-artifacts");
+    Directory.CreateDirectory(minionArtifacts);
+    string minionOutput = Path.Combine(minionArtifacts, "NativeMinion.dll");
+    string minionDiag = Path.Combine(minionArtifacts, "native-minion-diagnostics.txt");
+    if (Compiler.Compile(minionRoot, minionOutput, framework, minionDiag) != 1 ||
+        CompiledAssemblyProbe.Verify(minionOutput, minionDiag) != 3)
+        throw new InvalidOperationException("Managed minion smoke failed: " + File.ReadAllText(minionDiag));
+    string minionWire = File.ReadAllText(Path.Combine(minionArtifacts, "source-runtime-values.txt"));
+    if (!minionWire.Contains("PROJECTILE\tMinionProjectile\t16\t16\t1\t-1\t1800\t1\t1\t1\t0\t1\n", StringComparison.Ordinal) ||
+        !minionWire.Contains("WEAPON\tMinionStaff\t20\t20\t10\tMinionProjectile\t1\tMinionBuff\t2\n", StringComparison.Ordinal) ||
+        !minionWire.Contains("BUFF\tMinionBuff\t0\tMinionProjectile\t0\t-\t100\n", StringComparison.Ordinal))
+        throw new InvalidOperationException("Native minion C# wire was not preserved: " + minionWire);
+    Console.WriteLine("BUNNY_NATIVE_CSHARP_MINION_SMOKE=PASS");
+
     string motionBuffer = File.ReadAllText(Path.Combine(scratch, "source-ai-turns.txt"));
     string[] motionLines = motionBuffer.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     if (motionLines.Length != 3 ||

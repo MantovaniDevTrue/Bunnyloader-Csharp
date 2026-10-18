@@ -7,6 +7,7 @@
     "codex/csharp-lights-night-hotfix",
     "codex/csharp-lights-sdk-settings-split",
     "codex/csharp-screenfx-v90-29-86",
+    "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
@@ -115,6 +116,7 @@
     "csharp-shadow-tooltip-v90-16-2",
     "csharp-swift-sdk-verify-v90-14",
     "csharp-visual-effects-v90-27-wip",
+    "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
@@ -157,6 +159,7 @@
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
   "lights": [
+    "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",

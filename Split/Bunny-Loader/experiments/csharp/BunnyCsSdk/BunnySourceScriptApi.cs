@@ -39,6 +39,10 @@ public abstract class BunnyProjectile
     public int Height { get; set; } = 8;
     public int AiStyle { get; set; } = 1;
     public bool Friendly { get; set; } = true;
+    public bool Minion { get; set; }
+    public float MinionSlots { get; set; }
+    public bool TileCollide { get; set; } = true;
+    public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
     public abstract void SetDefaults();
@@ -60,6 +64,9 @@ public abstract class BunnyWeapon
     public int UseTime { get; set; } = 18;
     public float ShootSpeed { get; set; } = 12f;
     public string Shoot { get; set; } = "";
+    public bool Summon { get; set; }
+    public string MinionBuff { get; set; } = "";
+    public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
 }
 

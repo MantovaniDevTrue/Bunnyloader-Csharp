@@ -139,6 +139,9 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-buff-recipes-v90" ]; then
   TITLE="EXPERIMENTAL WIP — CSharp buffs and recipe callbacks | $VERSION"
   NOTES="EXPERIMENTAL INFRASTRUCTURE CHECKPOINT, NOT THE COMPLETE REQUESTED LOT. Integrates PR86 with preserved NativeAOT ABI, executed managed buff flags/description, all-slot buff iteration, real DelBuff, nurse immunity and defense multiplier. Native custom recipe groups, managed conditions/consume/on-craft callbacks use the existing bounded Mono worker and a language-neutral native provider. ExampleMod 0.1.49 includes a real ExampleWorkbench recipe and defense debuff/potion. Host and Android compilation/signing gates passed. Actual Android gameplay is NOT yet validated. Minion AI/staff/text counter, Blocky/costume, mounts/minecart and original firework callbacks remain explicitly pending. Preserve validated .89, Lights 0.4.2.3 and JavaScript. Source ${GITHUB_SHA}; see docs/csharp-buffs-recipes-v90.md."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-4-projectile-minion-contract" ]; then
+  NOTES="EXPERIMENTAL native CSharp minion/summon SDK .90.4: own MonoVM source API, IL2CPP minion flags, weapon buff and managed follow AI. Standalone NativeMinionCSharpProbe 0.1.0 included. Legacy ExampleMod CSharp 0.1.49 and Lights 0.4.2.3 unchanged. Device and FPS validation pending. SHA ${GITHUB_SHA}; CI https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
@@ -147,6 +150,12 @@ RELEASE_ASSETS=(
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-4-projectile-minion-contract" ]; then
+  RELEASE_ASSETS+=(
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod"
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod.sha256"
+  )
+fi
 if [ "$BUNNY_POLICY_LIGHTS" = "true" ]; then
   RELEASE_ASSETS+=(
     "$RUNNER_TEMP/LightsAndShadowsCSharp-v0.4.2.3.bmod"

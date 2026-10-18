@@ -216,7 +216,45 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
         if (weapon && key == "Shoot") { *shoot = value; continue; }
+        if (weapon && key == "Summon") {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": Summon invalido";
+                return false;
+            }
+            continue;
+        }
+        if (weapon && key == "MinionBuff") {
+            if (value.empty() || value.size() > 72 ||
+                value.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+                *error = type.name + ": MinionBuff invalido";
+                return false;
+            }
+            continue;
+        }
+        if (weapon && key == "MinionBuffTime") {
+            int ticks = 0;
+            if (!integer(value, &ticks) || ticks < 1 || ticks > 36000) {
+                *error = type.name + ": MinionBuffTime invalido";
+                return false;
+            }
+            continue;
+        }
         if (potion && key == "Buff") { *shoot = value; continue; }
+        if (projectile && (key == "Minion" || key == "TileCollide" || key == "IgnoreWater")) {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": valor booleano invalido em " + key;
+                return false;
+            }
+            continue;
+        }
+        if (projectile && key == "MinionSlots") {
+            float slots = 0.f;
+            if (!real(value, &slots) || slots < 0.f || slots > 10.f) {
+                *error = type.name + ": MinionSlots fora dos limites";
+                return false;
+            }
+            continue;
+        }
         if (key == "Friendly" && projectile) {
             if (value != "true") {
                 *error = "somente projeteis Friendly=true nesta etapa";
@@ -736,7 +774,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && fields.size() == 8) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -751,9 +789,27 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             record.values.friendly = true;
+            if (fields.size() == 12) {
+                int minion = -1, collide = -1, ignoreWater = -1;
+                if (!integer(fields[8], &minion) ||
+                    !real(fields[9], &record.values.minionSlots) ||
+                    !integer(fields[10], &collide) ||
+                    !integer(fields[11], &ignoreWater) ||
+                    (minion != 0 && minion != 1) ||
+                    (collide != 0 && collide != 1) ||
+                    (ignoreWater != 0 && ignoreWater != 1) ||
+                    (minion == 1 && (record.values.minionSlots <= 0.f || record.values.minionSlots > 10.f)) ||
+                    (minion == 0 && record.values.minionSlots != 0.f)) {
+                    *error = "Contrato C# de minion/projetil invalido: " + record.name;
+                    return false;
+                }
+                record.values.minion = minion == 1;
+                record.values.tileCollide = collide == 1;
+                record.values.ignoreWater = ignoreWater == 1;
+            }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
-        } else if (fields[0] == "WEAPON" && fields.size() == 6) {
+        } else if (fields[0] == "WEAPON" && (fields.size() == 6 || fields.size() == 9)) {
             ManagedWeaponEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -763,6 +819,18 @@ bool applyManagedSourceDefaults(
                 fields[5].empty()) {
                 *error = "Valores invalidos de arma C#: " + record.name;
                 return false;
+            }
+            if (fields.size() == 9) {
+                int summon = -1;
+                if (!integer(fields[6], &summon) || summon != 1 ||
+                    fields[7].empty() || fields[7] == "-" || fields[7].size() > 72 ||
+                    !integer(fields[8], &record.minionBuffTime) ||
+                    record.minionBuffTime < 1 || record.minionBuffTime > 36000) {
+                    *error = "Contrato de arma summon invalido: " + record.name;
+                    return false;
+                }
+                record.summon = true;
+                record.minionBuffName = fields[7];
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
@@ -943,6 +1011,25 @@ bool applyManagedSourceDefaults(
             return false;
         }
         weapons[i].shootType = projectile->second;
+        if (weapons[i].summon) {
+            const auto buff = buffsByName.find(weapons[i].minionBuffName);
+            const auto minion = std::find_if(projectiles.begin(), projectiles.end(),
+                [&](const ManagedProjectileEntry& candidate) {
+                    return candidate.type == weapons[i].shootType && candidate.values.minion;
+                });
+            if (buff == buffsByName.end() || minion == projectiles.end()) {
+                *error = "Summon requer buff e projetil minion do proprio mod: " + weapons[i].name;
+                return false;
+            }
+            weapons[i].minionBuffType = buff->second;
+            const auto buffDefinition = std::find_if(buffs.begin(), buffs.end(),
+                [&](const ManagedBuffEntry& candidate) { return candidate.type == buff->second; });
+            if (buffDefinition == buffs.end() ||
+                buffDefinition->minionProjectileType != weapons[i].shootType) {
+                *error = "Summon buff deve referenciar o mesmo projetil: " + weapons[i].name;
+                return false;
+            }
+        }
     }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";

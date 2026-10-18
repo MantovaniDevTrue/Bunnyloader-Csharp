@@ -560,13 +560,25 @@ public static class CompiledAssemblyProbe
             if (!names.Add("PROJECTILE:" + name))
                 throw new InvalidOperationException("Duplicate content class: " + name);
             projectileNames.Add(name);
-            lines.Add(string.Join("\t", "PROJECTILE", name,
+            bool minion = Value<bool>(projectile, "Minion");
+            float minionSlots = Value<float>(projectile, "MinionSlots");
+            bool tileCollide = Value<bool>(projectile, "TileCollide");
+            bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
+            if (!float.IsFinite(minionSlots) || (minion && (minionSlots <= 0 || minionSlots > 10)) ||
+                (!minion && minionSlots != 0))
+                throw new InvalidOperationException("Invalid C# minion slot contract: " + name);
+            string entry = string.Join("\t", "PROJECTILE", name,
                 Value<int>(projectile, "Width").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Height").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "AiStyle").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
-                Value<bool>(projectile, "Friendly") ? "1" : "0"));
+                Value<bool>(projectile, "Friendly") ? "1" : "0");
+            if (minion || !tileCollide || !ignoreWater)
+                entry += "\t" + (minion ? "1" : "0") + "\t" +
+                    minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
+                    (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
+            lines.Add(entry);
         }
         foreach (object weapon in weapons)
         {
@@ -578,11 +590,21 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate content class: " + name);
             if (!projectileNames.Contains(shootName))
                 throw new InvalidOperationException("Weapon target projectile not found: " + shootName);
-            lines.Add(string.Join("\t", "WEAPON", name,
+            bool summon = Value<bool>(weapon, "Summon");
+            string minionBuff = Value<string>(weapon, "MinionBuff");
+            int minionBuffTime = Value<int>(weapon, "MinionBuffTime");
+            if ((summon && (string.IsNullOrEmpty(minionBuff) || minionBuffTime < 1 || minionBuffTime > 36000)) ||
+                (!summon && !string.IsNullOrEmpty(minionBuff)))
+                throw new InvalidOperationException("Invalid C# summon weapon contract: " + name);
+            if (summon) CheckName(minionBuff);
+            string weaponEntry = string.Join("\t", "WEAPON", name,
                 Value<int>(weapon, "Damage").ToString(CultureInfo.InvariantCulture),
                 Value<int>(weapon, "UseTime").ToString(CultureInfo.InvariantCulture),
                 Value<float>(weapon, "ShootSpeed").ToString("R", CultureInfo.InvariantCulture),
-                shootName));
+                shootName);
+            if (summon)
+                weaponEntry += "\t1\t" + minionBuff + "\t" + minionBuffTime.ToString(CultureInfo.InvariantCulture);
+            lines.Add(weaponEntry);
         }
         foreach (object buff in buffs)
         {

@@ -82,6 +82,10 @@ struct ManagedProjectileDefaults {
     int penetrate = 0;
     int timeLeft = 0;
     bool friendly = true;
+    bool minion = false;
+    float minionSlots = 0.f;
+    bool tileCollide = true;
+    bool ignoreWater = true;
 };
 
 struct ManagedWeaponDefaults {
@@ -105,6 +109,10 @@ struct ManagedWeaponEntry {
     std::string name;
     int type = -1;
     int shootType = -1;
+    bool summon = false;
+    std::string minionBuffName;
+    int minionBuffType = -1;
+    int minionBuffTime = 0;
     ManagedWeaponDefaults values;
 };
 

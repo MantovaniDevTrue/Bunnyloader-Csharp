@@ -54,6 +54,7 @@ struct NativeRefs {
     int itemShootSpeed = -1;
     int itemKnockBack = -1;
     int itemRanged = -1;
+    int itemSummon = -1;
     int itemNoMelee = -1;
     int itemAutoReuse = -1;
     int itemRare = -1;
@@ -62,6 +63,8 @@ struct NativeRefs {
     int projFriendly = -1;
     int projHostile = -1;
     int projRanged = -1;
+    int projMinion = -1;
+    int projMinionSlots = -1;
     int projPenetrate = -1;
     int projTimeLeft = -1;
     int projIgnoreWater = -1;
@@ -126,6 +129,9 @@ struct NativeWeaponDefaults {
     int useTime;
     float shootSpeed;
     int shootType;
+    bool summon = false;
+    int minionBuffType = -1;
+    int minionBuffTime = 0;
 };
 
 struct NativeAccessoryDefaults {
@@ -177,6 +183,10 @@ struct NativeProjectileDefaults {
     int timeLeft;
     bool friendly;
     bool hostile;
+    bool minion = false;
+    float minionSlots = 0.f;
+    bool tileCollide = true;
+    bool ignoreWater = true;
 };
 
 struct ManagedHurtBinding {
@@ -366,7 +376,12 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemShoot) = d.shootType;
     bl::runtime::field<float>(self, r.itemShootSpeed) = d.shootSpeed;
     bl::runtime::field<float>(self, r.itemKnockBack) = 2.0f;
-    bl::runtime::field<uint8_t>(self, r.itemRanged) = 1;
+    bl::runtime::field<uint8_t>(self, r.itemRanged) = d.summon ? 0 : 1;
+    if (d.summon) {
+        bl::runtime::field<uint8_t>(self, r.itemSummon) = 1;
+        bl::runtime::field<int32_t>(self, r.itemBuffType) = d.minionBuffType;
+        bl::runtime::field<int32_t>(self, r.itemBuffTime) = d.minionBuffTime;
+    }
     bl::runtime::field<uint8_t>(self, r.itemNoMelee) = 1;
     bl::runtime::field<uint8_t>(self, r.itemAutoReuse) = 1;
     bl::runtime::field<int32_t>(self, r.itemRare) = 2;
@@ -384,11 +399,15 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<int32_t>(self, r.projAiStyle) = d.aiStyle;
     bl::runtime::field<uint8_t>(self, r.projFriendly) = d.friendly ? 1 : 0;
     bl::runtime::field<uint8_t>(self, r.projHostile) = d.hostile ? 1 : 0;
-    bl::runtime::field<uint8_t>(self, r.projRanged) = 1;
+    bl::runtime::field<uint8_t>(self, r.projRanged) = d.minion ? 0 : 1;
+    if (d.minion && r.projMinion >= 0 && r.projMinionSlots >= 0) {
+        bl::runtime::field<uint8_t>(self, r.projMinion) = 1;
+        bl::runtime::field<float>(self, r.projMinionSlots) = d.minionSlots;
+    }
     bl::runtime::field<int32_t>(self, r.projPenetrate) = d.penetrate;
     bl::runtime::field<int32_t>(self, r.projTimeLeft) = d.timeLeft;
-    bl::runtime::field<uint8_t>(self, r.projIgnoreWater) = 1;
-    bl::runtime::field<uint8_t>(self, r.projTileCollide) = 1;
+    bl::runtime::field<uint8_t>(self, r.projIgnoreWater) = d.ignoreWater ? 1 : 0;
+    bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
     bl::runtime::finishModProjectile(self, type);
@@ -1179,6 +1198,7 @@ bool prepareNativeContent() {
     r.itemShootSpeed = fieldOffset(item, "shootSpeed");
     r.itemKnockBack = fieldOffset(item, "knockBack");
     r.itemRanged = fieldOffset(item, "ranged");
+    r.itemSummon = fieldOffset(item, "summon");
     r.itemNoMelee = fieldOffset(item, "noMelee");
     r.itemAutoReuse = fieldOffset(item, "autoReuse");
     r.itemRare = fieldOffset(item, "rare");
@@ -1187,6 +1207,8 @@ bool prepareNativeContent() {
     r.projFriendly = fieldOffset(projectile, "friendly");
     r.projHostile = fieldOffset(projectile, "hostile");
     r.projRanged = fieldOffset(projectile, "ranged");
+    r.projMinion = fieldOffset(projectile, "minion");
+    r.projMinionSlots = fieldOffset(projectile, "minionSlots");
     r.projPenetrate = fieldOffset(projectile, "penetrate");
     r.projTimeLeft = fieldOffset(projectile, "timeLeft");
     r.projIgnoreWater = fieldOffset(projectile, "ignoreWater");
@@ -1484,9 +1506,14 @@ bool applyManagedNativeDefaultsBatch(
         if (entry.type < 0 ||
             bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
             g_projectiles.count(entry.type) != 1 ||
+            (data.minion && (g_refs.projMinion < 0 || g_refs.projMinionSlots < 0)) ||
+            !std::isfinite(data.minionSlots) ||
+            (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
+            (!data.minion && data.minionSlots != 0.f) ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
-                data.timeLeft, true, false}).second ||
+                data.timeLeft, true, false,
+                data.minion, data.minionSlots, data.tileCollide, data.ignoreWater}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||
@@ -1501,8 +1528,13 @@ bool applyManagedNativeDefaultsBatch(
             bl::runtime::modItemTypeByKey(modId + "/" + entry.name) != entry.type ||
             g_weapons.count(entry.type) != 1 ||
             stagedProjectiles.count(entry.shootType) != 1 ||
+            (entry.summon && (g_refs.itemSummon < 0 ||
+                              entry.minionBuffType < 0 ||
+                              !stagedProjectiles.at(entry.shootType).minion ||
+                              entry.minionBuffTime < 1 || entry.minionBuffTime > 36000)) ||
             !stagedWeapons.emplace(entry.type, NativeWeaponDefaults{
-                data.damage, data.useTime, data.shootSpeed, entry.shootType}).second ||
+                data.damage, data.useTime, data.shootSpeed, entry.shootType,
+                entry.summon, entry.minionBuffType, entry.minionBuffTime}).second ||
             data.damage < 1 || data.damage > 1000 ||
             data.useTime < 2 || data.useTime > 120 ||
             !std::isfinite(data.shootSpeed) ||
