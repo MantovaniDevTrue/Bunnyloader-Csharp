@@ -132,6 +132,8 @@ jobs:
           /tmp/native-recipes-test --type
           /tmp/native-recipes-test --bounds
           /tmp/native-recipes-test --method
+          /tmp/native-recipes-test --custom-groups
+          /tmp/native-recipes-test --custom-missing-register
           python3 tests/native_recipes/delivery_gate_test.py
           g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
           /tmp/shared-registry-test
