@@ -12,6 +12,8 @@ spec = importlib.util.spec_from_file_location("build_policy", path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 repo = "MantovaniDevTrue/Bunnyloader-Csharp"
+assert module.classify("push", "refs/heads/fix/csharp-90-1-static-recipegroup-register", "", repo, repo)["publish"]
+assert module.classify("push", "refs/heads/fix/csharp-90-1-static-recipegroup-register", "", repo, repo)["aot"]
 for event in ("push", "workflow_dispatch", "pull_request"):
     for branch in set().union(*map(set, module.POLICY.values())) | {"unknown", "main"}:
         result = module.classify(event, "refs/heads/" + branch, branch, repo, repo)

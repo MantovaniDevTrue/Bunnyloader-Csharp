@@ -1,7 +1,7 @@
 name: Build Bunny CSharp 90 buffs and recipes
 on:
   push:
-    branches: [feat/csharp-buff-recipes-v90]
+    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-1-static-recipegroup-register]
     paths:
       - '.github/workflows/**'
       - 'Split/Bunny-Loader/**'

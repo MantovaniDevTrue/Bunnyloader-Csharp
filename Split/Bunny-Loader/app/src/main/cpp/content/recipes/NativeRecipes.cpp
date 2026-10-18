@@ -279,29 +279,31 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     if(!group||!integer){*detail="Group="+key+" Reason=MissingClass";return false;}
     a.runtime_class_init(group);uint32_t alignment=0;
     if(!a.class_is_valuetype(integer)||a.class_value_size(integer,&alignment)!=4){*detail="Group="+key+" Expected=System.Int32:4 Reason=InvalidIntegerLayout";return false;}
-    const auto* ctor=method(group,"void .ctor(string groupDescriptorKey, int[] validItems)",true,detail);
-    const auto* reg=method(group,"void Register()",true,detail);
+    const auto* reg=method(group,"RecipeGroup Register(string, string, int[])",false,detail);
     const auto* sort=method(group,"void SortDecraftingEntries()",true,detail);
     GroupContract binding;binding.groupClass=group;
     binding.placeholder=method(group,"int GetPlaceholderItemType()",true,detail);
     binding.require=method(contract.recipe,"void RequireGroup(RecipeGroup group)",true,detail);
-    if(!ctor||!reg||!sort||!binding.placeholder||!binding.require)return false;
-    auto* created=a.object_new(group);Root groupRoot(created);
+    if(!reg||!sort||!binding.placeholder||!binding.require)return false;
     auto* array=a.array_new(integer,members.size());Root membersRoot(array?&array->obj:nullptr);
+    auto* identity=a.string_new(key.c_str());Root identityRoot(reinterpret_cast<Il2CppObject*>(identity));
     auto* description=a.string_new(ingredient.groupDescription.c_str());Root textRoot(reinterpret_cast<Il2CppObject*>(description));
-    if(!groupRoot.handle||!membersRoot.handle||!textRoot.handle||!array||
+    if(!membersRoot.handle||!identityRoot.handle||!textRoot.handle||!array||
        a.class_get_rank(array->obj.klass)!=1||a.class_get_element_class(array->obj.klass)!=integer||array->length!=members.size()) {
         *detail="Group="+key+" Reason=AllocationOrArrayLayoutFailed";return false;
     }
     std::memcpy(arrayData(array),members.data(),members.size()*sizeof(int));
-    void* args[]={description,array};
-    if(!invoke(ctor,created,args,detail))return false;
-    // Retain before Register, which adds this object to Terraria's global registry.
+    void* args[]={identity,description,array};
+    Il2CppObject* created=nullptr;
+    if(!invoke(reg,nullptr,args,detail,&created))return false;
+    Root groupRoot(created);
+    if(!created||!groupRoot.handle||a.object_get_class(created)!=group) {
+        *detail="Group="+key+" Method=RecipeGroup.Register Expected=Terraria.RecipeGroup Actual="+
+            (created?typeName(a.object_get_class(created)):"Null");return false;
+    }
     const auto handle=a.gchandle_new(created,false);
     if(!handle){*detail="Group="+key+" Reason=AllocationFailed";return false;}
-    if(!invoke(reg,created,nullptr,detail)){a.gchandle_free(handle);return false;}
     auto entry=customGroups.emplace(key,CustomGroup{ingredient.groupDescription,members,handle,binding,sort,false}).first;
-    // If sorting throws, retain the identity and never register the same group twice.
     if(!invoke(sort,created,nullptr,detail))return false;
     entry->second.sorted=true;
     *object=created;return readGroupObject(key,object,binding,require,placeholder,detail);

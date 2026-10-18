@@ -103,8 +103,7 @@ void configure(){
    "void AddRecipe()","void CreateRequiredItemQuickLookups()","void UpdateMaterialFieldForAllRecipes()",
    "void UpdateWhichItemsAreMaterials()","void UpdateWhichItemsAreCrafted()","void UpdateRecipeSets()","void FixItemsAfterRecipesAreAdded()"})
    methods.emplace(s,MethodInfo{s,std::string(s)=="void .ctor()"||std::string(s)=="void SetDefaults(int Type, ItemVariant variant)"||std::string(s)=="void SetCraftingStation(int tileType)"});
- methods.emplace("void .ctor(string groupDescriptorKey, int[] validItems)",MethodInfo{"void .ctor(string groupDescriptorKey, int[] validItems)",true});
- methods.emplace("void Register()",MethodInfo{"void Register()",true});
+ methods.emplace("RecipeGroup Register(string, string, int[])",MethodInfo{"RecipeGroup Register(string, string, int[])",false});
  methods.emplace("void SortDecraftingEntries()",MethodInfo{"void SortDecraftingEntries()",true});
  methods.emplace("int GetPlaceholderItemType()",MethodInfo{"int GetPlaceholderItemType()",true});
  methods.emplace("void RequireGroup(RecipeGroup group)",MethodInfo{"void RequireGroup(RecipeGroup group)",true});
@@ -151,14 +150,13 @@ void configure(){
  apiInstance.gc_wbarrier_set_field=[](Il2CppObject*,void** field,void* value){*field=value;barriers++;};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** ex)->Il2CppObject*{
   *ex=nullptr;
-  if(m->signature=="void .ctor(string groupDescriptorKey, int[] validItems)") {
-   auto* group=static_cast<NativeGroup*>(self);auto* array=static_cast<Il2CppArray*>(args[1]);
+  if(m->signature=="RecipeGroup Register(string, string, int[])") {
+   auto* array=static_cast<Il2CppArray*>(args[2]);auto* group=new NativeGroup{{&groupClass,nullptr},0,{}};allocated.push_back(group);
    assert(array&&array->obj.klass==&intArray&&array->length>0);auto* values=static_cast<int*>(arrayData(array));
-   group->members.assign(values,values+array->length);group->placeholder=values[0];
-  }else if(m->signature=="void Register()"||m->signature=="void SortDecraftingEntries()"){
+   group->members.assign(values,values+array->length);group->placeholder=values[0];++customRegistrations;return &group->obj;
+  }else if(m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
-   if(m->signature=="void Register()")++customRegistrations;
-   else {++customSorts;if(failCustomSort)*ex=&exception;}
+   ++customSorts;if(failCustomSort)*ex=&exception;
   }else if(m->signature=="void .ctor()"){
    auto* r=static_cast<Recipe*>(self);r->result=&makeItem()->obj;r->ingredients=makeArray(wrongArray?&recipeArray:&itemArray,15);
    auto** slots=static_cast<Il2CppObject**>(arrayData(r->ingredients));for(int i=0;i<15;i++)slots[i]=&makeItem()->obj;
@@ -207,6 +205,16 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--custom-missing-register") {
+  methods.erase("RecipeGroup Register(string, string, int[])");
+  numRecipes=1;auto grouped=request("CustomBench");
+  RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
+  ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
+  const auto rejected=installNativeRecipe(grouped);
+  assert(rejected.index<0&&rejected.error.find("MissingOrIncompatibleSignature")!=std::string::npos);
+  assert(rejected.error.find("Stage=ResolveRecipeGroup")!=std::string::npos&&roots.empty()&&numRecipes==1&&commits==0);
+  std::cout<<"CUSTOM_GROUP_MISSING_STATIC_REGISTER_FAIL_CLOSED_PASS\n";return 0;
+ }
  if(mode=="--custom-groups") {
   numRecipes=1;auto grouped=request("CustomBench");
   RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
