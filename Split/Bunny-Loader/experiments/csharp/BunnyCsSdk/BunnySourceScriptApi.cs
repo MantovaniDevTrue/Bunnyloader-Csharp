@@ -50,7 +50,7 @@ public static class BunnyMinionSteering
             state.VelocityY *= 0.82f;
             return true;
         }
-        float distance = MathF.Sqrt(squared);
+        float distance = System.MathF.Sqrt(squared);
         float speed = state.HasTarget ? 10f : squared > 600f * 600f ? 12f : 6f;
         float inertia = state.HasTarget ? 12f : 18f;
         float vx = (state.VelocityX * (inertia - 1f) + dx * (speed / distance)) / inertia;
