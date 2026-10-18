@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/SummonDamageRules.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
 #include "il2cpp/FieldContract.h"
@@ -404,10 +405,10 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
 int applyRegisteredMinionDamage(Il2CppObject* projectile, int type) {
     if (!projectile || g_refs.projectileDamage < 0) return 0;
     auto& damage = bl::runtime::field<int32_t>(projectile, g_refs.projectileDamage);
-    if (damage > 0) return damage;
     const int replacement = nativeManagedMinionConfiguredDamage(type);
-    if (replacement < 1 || replacement > 1000) return 0;
-    damage = replacement;
+    const auto decision = resolveNativeSummonDamage(damage, replacement);
+    if (!decision.recovered) return decision.damage;
+    damage = decision.damage;
     const int sample = g_nativeMinionRestoreSamples.fetch_add(1, std::memory_order_relaxed);
     if (sample < 8)
         BL_INFO("csharp summon: restored zero damage at native combat type=%d configured=%d", type, damage);

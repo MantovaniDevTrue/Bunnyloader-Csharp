@@ -349,6 +349,17 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
         state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
         nativeManagedProjectileFields(type,&state.gameplay);
+        if (state.policy.minion) {
+            int& damage = runtime::field<int32_t>(projectile, game.proj.damage);
+            if (damage <= 0) {
+                const int configured = nativeManagedMinionConfiguredDamage(type);
+                if (configured > 0 && configured <= 1000) {
+                    damage = configured;
+                    BL_INFO("csharp summon: initial projectile zero damage restored type=%d damage=%d",
+                            type, damage);
+                }
+            }
+        }
     }
     state.lastTimeLeft = timeLeft;
     if (firstObserved) {
