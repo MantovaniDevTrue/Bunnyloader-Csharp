@@ -355,6 +355,7 @@ struct ManagedEntityProjectileSlot {
     int lastTimeLeft = 0;
     int generation = 0;
     bool killQueued = false;
+    bool spawnPending = false;
     int identity=-1;
     SummonMovement movement{};
     Slot targetCache{};
@@ -395,7 +396,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         if (g_managedEntityProjectileGeneration <= 0 || g_managedEntityProjectileGeneration==INT32_MAX)
             g_managedEntityProjectileGeneration = 1;
         state={};state.object=projectile;state.type=type;state.owner=owner;state.lastTimeLeft=timeLeft;
-        state.generation=g_managedEntityProjectileGeneration++;state.identity=identity;
+        state.generation=g_managedEntityProjectileGeneration++;state.identity=identity;state.spawnPending=true;
         state.movement=nativeManagedMinionMovement(type);
         state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
         nativeManagedProjectileFields(type,&state.gameplay);
@@ -488,10 +489,11 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     }
     ManagedEntityVelocity next{};
     const auto aiVelocity=runtime::field<Vector2>(projectile,game.entity.velocity);
+    const bool firstTicket=state.spawnPending;state.spawnPending=false;
     if (!tickManagedEntityProjectile(type, slot, state.generation, owner,
         reinterpret_cast<uintptr_t>(projectile), cx, cy,
         aiVelocity.x, aiVelocity.y, ownerCenter.x, ownerCenter.y, &next,
-        firstObserved, npcTarget, npcX, npcY)) return;
+        firstTicket, npcTarget, npcX, npcY)) return;
     if (!applyVelocity || state.movement.enabled) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int>(projectile, game.proj.type) != type ||

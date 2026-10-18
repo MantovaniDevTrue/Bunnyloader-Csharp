@@ -25,7 +25,7 @@ Objects players{{{&playersClass,nullptr},nullptr,2}},projectiles{{{&projectilesC
 FieldInfo playersField{1},projectilesField{2},npcsField{3},netField{4};
 MethodInfo addBuff{1},kill{2},chase{3},sight{4};
 struct BoolBox {Il2CppObject obj;uint8_t value=1;} yes{{&boolClass,nullptr}},no{{&boolClass,nullptr},0};
-int adds=0,kills=0,killCallbacks=0,workerTicks=0,vanillaCalls=0;bool visible=true;bl::csharp::SummonMovement configured;float seenOwnerX=0;
+int adds=0,kills=0,killCallbacks=0,workerTicks=0,vanillaCalls=0,spawnTickets=0;bool visible=true;bl::csharp::SummonMovement configured;float seenOwnerX=0;
 namespace bl::il2cpp {
 Api& api(){return fakeApi;}
 Il2CppClass* findClass(const TypeRef&){return nullptr;}
@@ -46,7 +46,7 @@ bool nativeManagedProjectileFields(int,ProjectileGameplayFields* fields){fields-
 std::string nativeManagedProjectileKey(int){return "fixture/IndependentMinion";}
 int nativeManagedMinionBuff(int){return 403;}
 TerrariaSnapshot captureTerrariaSnapshot(bool,bool){assert(false&&"A minion must never follow LocalPlayer");return {};}
-bool tickManagedEntityProjectile(int,int,int,int,uintptr_t,float,float,float,float,float px,float,ManagedEntityVelocity*,bool,int,float,float){++workerTicks;seenOwnerX=px;return false;}
+bool tickManagedEntityProjectile(int,int,int,int,uintptr_t,float,float,float,float,float px,float,ManagedEntityVelocity*,bool initial,int,float,float){++workerTicks;if(initial)++spawnTickets;seenOwnerX=px;return false;}
 bool queueManagedEntityCombatEvent(int kind,int,int,int,int,uintptr_t,int,int){if(kind==5)++killCallbacks;return true;}
 void noteManagedLivePerfProjectileCurveUpdate(){}
 void noteManagedLivePerfProjectileVelocityWrite(){}
@@ -80,14 +80,14 @@ int main() {
  projectiles.header.length=1; // Real length matches actual allocated fixture.
  std::string error;assert(parseSummonMovement("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",&configured,&error));
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
- assert(adds==1&&kills==0&&projectile.time==2&&projectile.damage==45);
+ assert(adds==1&&kills==0&&projectile.time==2&&projectile.damage==45&&spawnTickets==1);
  types.data[0]=0;times.data[0]=0;
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
  assert(kills==1&&killCallbacks==1&&adds==1&&!projectile.active);
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(kills==1&&killCallbacks==1);
  // Same object and same slot, new identity: resummon exactly once, independent of refreshed timeLeft.
  projectile.active=true;++projectile.identity;projectile.time=2;
- runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(adds==2&&projectile.active);
+ runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(adds==2&&projectile.active&&spawnTickets==2);
  owner.dead=true;runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(kills==2&&killCallbacks==2);owner.dead=false;
  projectile.active=true;++projectile.identity;projectile.owner=1;otherOwner.position={500,100};
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(seenOwnerX==510&&projectile.active);
