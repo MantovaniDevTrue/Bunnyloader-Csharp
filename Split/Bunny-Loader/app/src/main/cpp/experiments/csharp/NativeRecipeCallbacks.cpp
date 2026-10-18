@@ -113,7 +113,7 @@ bool call(const Policy& policy,int kind,Il2CppObject* player,int type,int amount
     if(assembly.empty()||!player){diagnose(policy,kind,"AssemblyOrPlayerNotReady");return false;}
     if(!csharp::invokeManagedRecipe(policy.request.mod,assembly,policy.request.name,policy.index,kind,
         snapshot(player,policy.request.result,type,amount,quick,available),output,budget)) {diagnose(policy,kind,output->empty()?"Stage=Invoke Reason=EmptyTransportResponse":*output);return false;}
-    if(output->rfind("ERROR|",0)==0){diagnose(policy,kind,*output);return false;}return true;
+    if(output->rfind("ERROR|",0)==0||output->rfind("PENDING|",0)==0){diagnose(policy,kind,*output);return false;}return true;
 }
 void hkFind(bool delay,const MethodInfo* info){
     if(originalFind)originalFind(delay,info);
@@ -280,6 +280,7 @@ runtime::RecipeCallbackReadiness prepareNativeRecipeCallbackProvider(const Nativ
         *error=output.empty()?"Stage=PrepareManagedHandlers Reason=EmptyTransportResponse":output;
         return output.rfind("ERROR|",0)==0?Ready::Rejected:Ready::Pending;
     }
+    if(output.rfind("PENDING|",0)==0){*error=output;return Ready::Pending;}
     if(output!="READY"){*error="Stage=PrepareManagedHandlers Expected=READY Actual="+output;return Ready::Rejected;}
     return Ready::Ready;
 }

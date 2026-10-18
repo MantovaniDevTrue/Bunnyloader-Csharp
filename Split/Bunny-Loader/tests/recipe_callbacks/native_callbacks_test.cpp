@@ -149,6 +149,7 @@ int main(int argc,char** argv){
  auto find=reinterpret_cast<void(*)(bool,const MethodInfo*)>(hooks.at("void FindRecipes(bool canDelayCheck)"));
  resetAvailable();find(false,nullptr);assert(findCalls==1&&availableCount==3&&static_cast<int*>(arrayData(available))[1]==12);
  assert(lastSnapshot=="100,200,2,6196,0,0,0,0,0");
+ conditionReply="PENDING|Stage=Invoke Reason=FixturePending";resetAvailable();find(false,nullptr);assert(availableCount==3);
  conditionReply="1";resetAvailable();find(false,nullptr);assert(availableCount==4);
  static_cast<uint8_t*>(arrayData(player.adjacent))[1]=1;resetAvailable();find(false,nullptr);assert(lastSnapshot=="100,200,6,6196,0,0,0,0,0");static_cast<uint8_t*>(arrayData(player.adjacent))[1]=0;
  rpcReady=false;resetAvailable();find(false,nullptr);assert(availableCount==3);rpcReady=true;
