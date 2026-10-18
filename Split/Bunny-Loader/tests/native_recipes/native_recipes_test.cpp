@@ -156,6 +156,9 @@ void configure(){
    auto* array=static_cast<Il2CppArray*>(args[1]);auto* group=static_cast<NativeGroup*>(self);
    assert(array&&array->obj.klass==&intArray&&array->length>0);auto* values=static_cast<int*>(arrayData(array));
    group->members.assign(values,values+array->length);group->placeholder=values[0];
+  }else if(m->signature=="int Register()"){
+   assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
+   ++customRegistrations;
   }else if(m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
    ++customSorts;if(failCustomSort)*ex=&exception;
