@@ -422,6 +422,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY, int targetNpc, float targetX, float targetY)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static bool Bind(int modSlot, int kind, int type, string name)",
           "execution": "worker_async_entity"
         },
