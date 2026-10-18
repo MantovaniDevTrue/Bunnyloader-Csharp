@@ -1529,7 +1529,7 @@ bool applyManagedNativeDefaultsBatch(
     const std::vector<ManagedProjectileEntry>& projectiles,
     const std::vector<ManagedWeaponEntry>& weapons,std::string* error) {
     if(error)error->clear();
-    if (!g_ready || projectiles.empty() || weapons.empty() ||
+    if (!g_ready ||
         projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory) return false;
 
     std::map<int, NativeProjectileDefaults> stagedProjectiles;
