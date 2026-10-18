@@ -7,6 +7,7 @@ on:
       - 'Split/Bunny-Loader/**'
   workflow_dispatch:
 permissions:
+  actions: read
   contents: read
   issues: write
   pull-requests: write

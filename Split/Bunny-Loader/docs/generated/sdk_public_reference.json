@@ -43,7 +43,7 @@
     {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
@@ -224,7 +224,7 @@
     {
       "name": "BunnyLoader.Source.BunnyBuffPotion",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "int Duration { get; set; }",
@@ -353,6 +353,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "BunnyRecipeStage Stage { get; }",
         "bool InDesert { get; }",
         "bool InSnow { get; }",
         "bool IsDay { get; }",
@@ -367,15 +368,15 @@
       "methods": [
         {
           "signature": "void GiveItem(int vanillaItemId, int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         },
         {
           "signature": "void GiveItem(string modItemName, int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         },
         {
           "signature": "void GiveItem\u003CTItem\u003E(int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         }
       ]
     },
@@ -929,12 +930,11 @@
     {
       "name": "BunnyLoader.Source.BunnyItem",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "BunnyItemBehavior Behavior { get; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -968,14 +968,6 @@
       ],
       "values": [],
       "methods": [
-        {
-          "signature": "BunnyRecipe CreateRecipe(int stack)",
-          "execution": "managed_helper"
-        },
-        {
-          "signature": "void AddRecipes()",
-          "execution": "compile_policy"
-        },
         {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
           "execution": "managed_helper"
@@ -1066,6 +1058,29 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyMinionMovement",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping)"
+      ],
+      "properties": [
+        "BunnyMinionMovement Default { get; }",
+        "float AttackInertia { get; }",
+        "float AttackSpeed { get; }",
+        "float CatchUpDistance { get; }",
+        "float CatchUpSpeed { get; }",
+        "float FollowInertia { get; }",
+        "float FollowOffsetX { get; }",
+        "float FollowOffsetY { get; }",
+        "float FollowSpeed { get; }",
+        "float IdleDamping { get; }",
+        "float IdleDistance { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyMinionSteering",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1075,6 +1090,10 @@
       "methods": [
         {
           "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state, BunnyMinionMovement movement)",
           "execution": "managed_helper"
         }
       ]
@@ -1441,9 +1460,12 @@
         "bool Minion { get; set; }",
         "bool TileCollide { get; set; }",
         "float MinionSlots { get; set; }",
+        "float MinionTargetRange { get; set; }",
         "int AiStyle { get; set; }",
+        "int AnimationFrameTicks { get; set; }",
         "int Frames { get; set; }",
         "int Height { get; set; }",
+        "int MinionScanTicks { get; set; }",
         "int Penetrate { get; set; }",
         "int TimeLeft { get; set; }",
         "int Width { get; set; }",
@@ -1510,6 +1532,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipe AddCondition(BunnyRecipeCondition condition)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
           "execution": "managed_helper"
         },
@@ -1558,6 +1588,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool RemoveCondition(BunnyRecipeCondition condition)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool RemoveIngredient(int vanillaItemId)",
           "execution": "managed_helper"
         },
@@ -1580,6 +1614,65 @@
         {
           "signature": "void Register()",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeBehavior",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string ConditionDescription { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool IsAvailable(BunnyCraftContext context)",
+          "execution": "worker_sync_recipe_snapshot"
+        },
+        {
+          "signature": "int ConsumeIngredient(BunnyCraftContext context, int ingredientType, int amount)",
+          "execution": "worker_sync_recipe_snapshot"
+        },
+        {
+          "signature": "void OnCraft(BunnyCraftContext context)",
+          "execution": "worker_sync_recipe_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeCondition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
+      ],
+      "properties": [
+        "BunnyRecipeCondition Day { get; }",
+        "BunnyRecipeCondition InDesert { get; }",
+        "BunnyRecipeCondition InSnow { get; }",
+        "BunnyRecipeCondition NearWater { get; }",
+        "BunnyRecipeCondition Night { get; }",
+        "string Description { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyRecipeCondition Not(string description)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "bool Evaluate(BunnyCraftContext context)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "static BunnyRecipeCondition All(string description, BunnyRecipeCondition[] conditions)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "static BunnyRecipeCondition Any(string description, BunnyRecipeCondition[] conditions)",
+          "execution": "managed_predicate_composition"
         }
       ]
     },
@@ -1611,6 +1704,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyRecipeLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_sync_recipe_snapshot"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyRecipeRuntime",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1620,9 +1727,42 @@
       "methods": [
         {
           "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
-          "execution": "managed_helper"
+          "execution": "worker_sync_recipe_snapshot"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeSource",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyRecipe CreateRecipe(int stack)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void AddRecipes()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeStage",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Availability",
+        "Consumption",
+        "Craft"
+      ],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyRectangle",
@@ -2057,7 +2197,7 @@
     {
       "name": "BunnyLoader.Source.BunnyWeapon",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "bool Summon { get; set; }",

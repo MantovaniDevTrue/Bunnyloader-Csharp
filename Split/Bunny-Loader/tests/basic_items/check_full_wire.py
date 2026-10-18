@@ -4,10 +4,11 @@ import pathlib
 import sys
 
 expected = {
+    "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26},
     "TILE": {13},
-    "PROJECTILE": {8},
-    "WEAPON": {6},
+    "PROJECTILE": {8, 12, 13, 16},
+    "WEAPON": {6, 9},
     "BUFF": {3, 4, 6, 7},
     "POTION": {4},
     "ACCESSORY": {3, 4, 9},
@@ -48,3 +49,10 @@ assert 'continue;' in item_branch.split('basicItems.push_back(std::move(record))
 )
 print("BUNNY_MANAGED_ITEM_V2_DISPATCH_GUARD=PASS", sorted(item_names))
 print("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_PASS", dict(sorted(counts.items())))
+
+owned = [row.split("\t") for row in rows if row.startswith("RECIPES\t")]
+assert {(f[1], f[2]) for f in owned} == {
+    ("ExampleWand", "WEAPON"), ("ExampleFocusAccessory", "ACCESSORY"),
+    ("ExampleBuffPotion", "POTION"), ("ExampleMinionItem", "WEAPON")}
+assert all(f[3] == ("1,mExampleWorkbench,mExampleItem:1" if f[1]=="ExampleMinionItem" else "1,mExampleWorkbench,mExampleItem:10@4") for f in owned)
+print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")

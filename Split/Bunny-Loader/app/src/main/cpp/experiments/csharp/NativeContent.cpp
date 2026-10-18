@@ -188,6 +188,8 @@ struct NativeProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    int animationFrameTicks=6,minionScanTicks=8;
+    float minionTargetRange=700.f;
 };
 
 struct ManagedHurtBinding {
@@ -411,15 +413,6 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
-    if (d.frames > 1) {
-        auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
-        FieldInfo* framesField = mainClass ? il2cpp::findField(mainClass, "projFrames") : nullptr;
-        Il2CppArray* frames = nullptr;
-        if (framesField) il2cpp::api().field_static_get_value(framesField, &frames);
-        if (frames && type >= 0 && type < static_cast<int>(frames->length) &&
-            frames->length > 0 && frames->length <= 32768)
-            static_cast<int32_t*>(arrayData(frames))[type] = d.frames;
-    }
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -1190,6 +1183,17 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
 
 }
 
+namespace { std::map<int,ProjectileGameplayFields> g_projectileGameplayFields; }
+ProjectilePolicy nativeManagedProjectilePolicy(int type) {
+    const auto found=g_projectiles.find(type);if(found==g_projectiles.end())return {};
+    const auto& d=found->second;
+    return {d.frames,d.animationFrameTicks,d.minionScanTicks,d.minionTargetRange,d.minion};
+}
+bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields) {
+    const auto found=g_projectileGameplayFields.find(type);if(found==g_projectileGameplayFields.end())return false;
+    *fields=found->second;return true;
+}
+
 int nativeManagedProjectileFrames(int type) {
     const auto it = g_projectiles.find(type);
     return it == g_projectiles.end() ? 1 : it->second.frames;
@@ -1515,17 +1519,38 @@ bool applyManagedNativeDefaults(
     return true;
 }
 
+bool applyManagedNativeDefaultsBatch(const std::string& modId,
+    const std::vector<ManagedProjectileEntry>& projectiles,const std::vector<ManagedWeaponEntry>& weapons) {
+    return applyManagedNativeDefaultsBatch(modId,projectiles,weapons,nullptr);
+}
+
 bool applyManagedNativeDefaultsBatch(
     const std::string& modId,
     const std::vector<ManagedProjectileEntry>& projectiles,
-    const std::vector<ManagedWeaponEntry>& weapons) {
-    if (!g_ready || projectiles.empty() || weapons.empty() ||
+    const std::vector<ManagedWeaponEntry>& weapons,std::string* error) {
+    if(error)error->clear();
+    if (!g_ready ||
         projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory) return false;
 
     std::map<int, NativeProjectileDefaults> stagedProjectiles;
+    std::map<int,ProjectileGameplayFields> stagedFields;
     std::map<int, NativeWeaponDefaults> stagedWeapons;
     for (const auto& entry : projectiles) {
         const auto& data = entry.values;
+        ProjectilePolicy policy{data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange,data.minion};
+        ProjectileGameplayFields fields;std::string detail;
+        if(!validateProjectilePolicy(policy,&detail)||
+           !bindProjectileGameplayFields(il2cpp::findClass({"Terraria","Projectile",{}}),data.minion,data.frames>1,&fields,&detail)) {
+            const auto diagnostic="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+entry.name+" ContentId="+std::to_string(entry.type)+" Stage=BindGameplayFields Result=Rejected Detail="+detail;
+            if(error)*error=diagnostic;
+            BL_ERROR("%s",diagnostic.c_str());return false;
+        }
+        if(!bindProjectileFrameTable(il2cpp::findClass({"Terraria","Main",{}}),entry.type,&detail)) {
+            const auto diagnostic="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+entry.name+" Stage=BindFrames Result=Rejected Detail="+detail;
+            if(error)*error=diagnostic;
+            BL_ERROR("%s",diagnostic.c_str());return false;
+        }
+        stagedFields.emplace(entry.type,fields);
         if (entry.type < 0 ||
             bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
             g_projectiles.count(entry.type) != 1 ||
@@ -1538,7 +1563,7 @@ bool applyManagedNativeDefaultsBatch(
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
                 data.minion, data.minionSlots, data.tileCollide, data.ignoreWater,
-                data.frames}).second ||
+                data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||
@@ -1549,6 +1574,14 @@ bool applyManagedNativeDefaultsBatch(
     }
     for (const auto& entry : weapons) {
         const auto& data = entry.values;
+        if(entry.summon) {
+            int offset=-1;std::string detail;
+            if(!nativeFieldContract(il2cpp::findClass({"Terraria","Item",{}}),"summon","System.Boolean",false,1,nullptr,&offset,&detail)||offset!=g_refs.itemSummon) {
+                const auto diagnostic="[CSharp][ERROR][NativeWeapon] Mod="+modId+" Class="+entry.name+" Field=summon Stage=BindFields Result=Rejected Detail="+detail;
+                if(error)*error=diagnostic;
+            BL_ERROR("%s",diagnostic.c_str());return false;
+            }
+        }
         if (entry.type < 0 ||
             bl::runtime::modItemTypeByKey(modId + "/" + entry.name) != entry.type ||
             g_weapons.count(entry.type) != 1 ||
@@ -1566,8 +1599,13 @@ bool applyManagedNativeDefaultsBatch(
             data.shootSpeed < 1.f || data.shootSpeed > 40.f)
             return false;
     }
-    for (const auto& item : stagedProjectiles)
+    for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;
+        // Update the shared texture/frame registry too: finishModProjectile restores
+        // geometry from it, and table growth must preserve the same frame count.
+        bl::runtime::setModProjectileFrames(item.first,item.second.frames);
+    }
+    for(const auto& item:stagedFields)g_projectileGameplayFields[item.first]=item.second;
     for (const auto& item : stagedWeapons) {
         g_weapons[item.first] = item.second;
         enableManagedPrefixEligibility(item.first);

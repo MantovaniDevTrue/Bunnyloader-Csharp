@@ -1,5 +1,27 @@
 # Independencia C# — auditoria e checkpoint .90.29.1
 
+## Continuidade .90.29.92 — loaders próprios
+
+As seções abaixo são o histórico da auditoria, não o estado atual da bancada.
+`BunnyTile`, `NativeTileGameplay` e a bancada C# já existem na base preservada;
+esta execução não os reimplementa. Ver `csharp-loaders-v92.md` para o checkpoint.
+
+| Sistema revisado nesta execução | Classificação atual | Evidência e limite |
+| --- | --- | --- |
+| Receitas de BunnyItem, BunnyWeapon, BunnyAccessory, BunnyBuffPotion | API C# original usando serviço nativo independente compartilhado | BunnyRecipeSource → compilador/SourceLoader → enqueueOwnedSourceRecipes → NativeRecipes. Sem importação/invocação de QuickJS nesse percurso. |
+| Callbacks de receita | API C# original com bridge nativa própria | BunnyRecipeLoader reconstrói handlers no worker MonoVM; BunnyRecipeRuntime mantém o endpoint compatível. Hooks de crafting usam RecipeCallbackProvider, metadados validados e comandos limitados. |
+| Dependências entre categorias e mods | Serviço nativo independente compartilhado | ItemRegistry/TileRegistry, chaves mod/conteúdo. O teste de produção adia estações ausentes sem impedir a receita independente; não executa mods JS. Teste misto no Android continua necessário. |
+| Equipamentos/policies legadas e demais módulos | Desacoplamento ainda não certificado por esta execução | Não inferir independência do SDK inteiro a partir do teste de receitas. Preservar sistemas existentes, revisar dependência por dependência. |
+
+O teste novo compila realmente três donos em um mod independente. O teste C++
+consome esse arquivo e executa fila, resolução, Recipe e ACK de produção com
+QuickJS desabilitado, metadados IL2CPP e provider de callbacks controlados.
+Os callbacks gerenciados são executados separadamente no host .NET8. Nenhum
+resultado é anunciado como execução em Terraria Android. Não há dependência de
+assemblies/runtime tModLoader nesta expansão; equivalência integral de APIs não
+é afirmada. As 88 entradas do inventário de loaders continuam contabilizadas.
+
+
 Branch: `codex/lot-a-complete-v90-29`. Base preservada: .90.28.7;
 referencia Android anterior .90.28.4. Nao e entrega completa do Lote A.
 

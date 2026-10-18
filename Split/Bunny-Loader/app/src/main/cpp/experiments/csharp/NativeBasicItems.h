@@ -1,10 +1,12 @@
 #pragma once
 #include "experiments/csharp/BasicItemDefaults.h"
+#include "experiments/csharp/SourceRecipeRecord.h"
 #include "il2cpp/Types.h"
 namespace bl::csharp {
 bool checkBasicItemContract(std::string* error);
 bool registerBasicItemPlaceholder(int type,const std::string& name,std::string* error,const std::string& modDir="",const std::string& sourceFile="");
 bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<BasicItemEntry>& entries,std::string* error);
+bool enqueueOwnedSourceRecipes(const std::string& modId,const std::vector<SourceRecipeOwner>& entries,std::string* error);
 bool applyBasicItemToObject(Il2CppObject* item,int type);
 bool isBasicItem(int type);
 bool basicItemPolicyReady(int type);

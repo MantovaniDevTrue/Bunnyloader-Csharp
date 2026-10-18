@@ -1,7 +1,7 @@
 name: Check CSharp SDK and continuous runtime foundation
 on:
   push:
-    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix, codex/csharp-lights-sdk-settings-split]
+    branches: [feat/csharp-owned-loaders-v93, feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix, codex/csharp-lights-sdk-settings-split]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/**'
@@ -40,6 +40,7 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: |
           dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          bash tests/projectile_policy/run.sh
           python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
           python3 tests/test_csharp_native_defense_policy.py
           python3 tests/run_native_equip_effects.py build/basic-items/full-source-runtime-values.txt build/sdk-foundation/native-accessory-wire.txt

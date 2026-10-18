@@ -100,3 +100,10 @@ de trás para frente para não pular buffs deslocados.
 Nenhuma dessas pendências é declarada limitação comprovada do Android. Elas são
 trabalho de implementação ainda necessário. Não usar o sucesso do CI como prova
 de funcionamento ou de 60 FPS no dispositivo.
+
+## Continuidade .91
+
+O ExampleMod 0.1.50 demonstra os mesmos hooks numa classe de comportamento.
+Consulte `RECIPE_LOADER_V91.md` para a API, os estágios e o teste da bancada C#.
+As pendências deste documento continuam no escopo; não representam limitação
+comprovada do Android.

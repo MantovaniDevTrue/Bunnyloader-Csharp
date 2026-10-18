@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "experiments/csharp/ProjectilePolicy.h"
 #include <string>
 #include <vector>
 
@@ -87,6 +88,8 @@ struct ManagedProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    int animationFrameTicks=6, minionScanTicks=8;
+    float minionTargetRange=700.f;
 };
 
 struct ManagedWeaponDefaults {
@@ -120,7 +123,12 @@ struct ManagedWeaponEntry {
 bool applyManagedNativeDefaultsBatch(const std::string& modId,
                                      const std::vector<ManagedProjectileEntry>& projectiles,
                                      const std::vector<ManagedWeaponEntry>& weapons);
+bool applyManagedNativeDefaultsBatch(const std::string& modId,
+                                     const std::vector<ManagedProjectileEntry>& projectiles,
+                                     const std::vector<ManagedWeaponEntry>& weapons,std::string* error);
 int nativeManagedProjectileFrames(int type);
+ProjectilePolicy nativeManagedProjectilePolicy(int type);
+bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields);
 int nativeManagedMinionBuff(int projectileType);
 
 struct ManagedBuffEntry {

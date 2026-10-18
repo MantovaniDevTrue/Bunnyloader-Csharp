@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3126971483569438060020cd26d1f691f018b46c",
+  "baseCommit": "77be9001c2e0328324bb9b60db0fd3a7a64ad23a",
+  "bunnyVersion": "0.1.10.16.90.29.91-csharp-recipe-loader-classes",
+  "versionCode": 266,
+  "exampleModVersion": "0.1.50",
+  "pullRequest": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/92",
+  "host": {
+    "managedChecks": 29,
+    "managedFailures": 0,
+    "sdkTypes": 80,
+    "editableSources": 67,
+    "sourceOnlyPackageSha256": "0023bd9754045b2e5e25f608acbefce13c7a39316560075480c044b9237bac09",
+    "packageSourceMatch": "All 67 published CSharp sources match the repository",
+    "limits": "Controlled IL2CPP host tests and real Roslyn; no Android gameplay certification"
+  },
+  "ci": [
+    {
+      "name": "Build Bunny CSharp Source Files Prototype",
+      "runId": 39136870790,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870790",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "CSharp Native ScreenFx",
+      "runId": 39136870768,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870768",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "runId": 39136870723,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870723",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check Bunny CSharp Visual Queue",
+      "runId": 39136870750,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870750",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "runId": 39136870753,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870753",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check CSharp combat batch",
+      "runId": 39136871036,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136871036",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check Mono Android signal ownership",
+      "runId": 39136870744,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870744",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check Mono pinned worker GC transitions",
+      "runId": 39136870761,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870761",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check complete ExampleMod audit",
+      "runId": 39136870728,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870728",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    },
+    {
+      "name": "Check managed callback lifecycle",
+      "runId": 39136870751,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870751",
+      "sha": "3126971483569438060020cd26d1f691f018b46c",
+      "conclusion": "success"
+    }
+  ],
+  "androidJobs": [
+    {
+      "name": "build",
+      "jobId": 117703045139,
+      "conclusion": "success"
+    },
+    {
+      "name": "report-private-csharp-apk",
+      "jobId": 117704870945,
+      "conclusion": "success"
+    }
+  ],
+  "release": {
+    "tag": "csharp-v3-run-39136870790-a1",
+    "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39136870790-a1",
+    "prerelease": true,
+    "assets": [
+      {
+        "name": "BunnyLoader-CSharp-0.1.10.16.90.29.91-csharp-recipe-loader-classes-SignedV3.apk",
+        "size": 241468065
+      },
+      {
+        "name": "BunnyLoader-CSharp-0.1.10.16.90.29.91-csharp-recipe-loader-classes-SignedV3.apk.sha256",
+        "size": 146
+      },
+      {
+        "name": "ExampleModCSharp-v0.1.50.bmod",
+        "size": 176170
+      },
+      {
+        "name": "ExampleModCSharp-v0.1.50.bmod.sha256",
+        "size": 120
+      }
+    ]
+  },
+  "android": {
+    "state": "Aguardando validação",
+    "gameplay": false,
+    "fpsMeasured": false,
+    "coldCompileFiveSecondsMeasured": false
+  },
+  "scope": {
+    "originalLoaderDirectoryModules": 88,
+    "fullyVerifiedLoaderParity": 0,
+    "allLoadersComplete": false,
+    "lotAComplete": false,
+    "canonicalJavaScriptExamples": 206,
+    "officialReferenceFiles": 1221
+  }
+}

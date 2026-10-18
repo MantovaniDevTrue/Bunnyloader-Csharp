@@ -15,9 +15,12 @@
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeGroup.cs" Link="BunnyRecipeGroup.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeCallbacks.cs" Link="BunnyRecipeCallbacks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyRecipeSource.cs" Link="BunnyRecipeSource.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />

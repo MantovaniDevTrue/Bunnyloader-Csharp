@@ -17,8 +17,10 @@ inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
     "Width","Height","MaxStack","Value","Rare","Damage","Crit","UseTime",
     "UseAnimation","UseStyle","Pick","Axe","Hammer","Flags"};
 struct BasicRecipeIngredient { std::string key; int count=1; int type=-1;
-    std::string customGroup{}, groupDescription{}; std::vector<std::string> groupMembers{}; };
-struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; int callbacks=0; };
+    std::string customGroup{}, groupDescription{}; std::vector<std::string> groupMembers{};
+    bool operator==(const BasicRecipeIngredient&) const = default; };
+struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; int callbacks=0;
+    bool operator==(const BasicRecipe&) const = default; };
 struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
     std::string name; int type=-1; int defense=0;

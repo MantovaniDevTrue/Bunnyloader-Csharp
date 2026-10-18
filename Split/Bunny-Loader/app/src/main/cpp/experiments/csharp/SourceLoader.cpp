@@ -202,6 +202,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
 
+        if(projectile&&(key=="AnimationFrameTicks"||key=="MinionScanTicks"||key=="MinionTargetRange"))continue;
         if (buff && (key == "MinionProjectile" || key == "DefenseMultiplierPercent")) continue;  // validado na linha V2 apos o Mono
         if (buff && (key == "Description" || key == "IsDebuff" ||
                      key == "NoSave" || key == "NoTimeDisplay" || key == "NurseCannotRemove")) {
@@ -479,6 +480,11 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->players = static_cast<int>(status->playerClasses.size());
     status->accessories = ctx.accessories;
     status->registeredKindTypes = typed;
+    for(const auto& def:defs) {
+        const auto identity=sourceIdentityForBase(def.base,def.name);
+        status->registeredBases[identity]=def.base;
+        status->sourcePaths[identity]="content/"+sourcePaths[identity];
+    }
     for (const auto& [key, type] : typed) {
         const auto colon = key.find(':');
         if (colon != std::string::npos && type >= 0)
@@ -635,6 +641,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
+    std::vector<SourceRecipeOwner> recipeOwners;
+    std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
     std::vector<std::string> shootNames;
     std::string line;
@@ -644,6 +652,27 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if(!fields.empty()&&fields[0]=="RECIPES") {
+            SourceRecipeOwner owner;
+            if(!parseSourceRecipeOwner(fields,modId,&owner,error))return false;
+            const auto identity=sourceIdentityForWire(owner.kind,owner.name);
+            const auto type=mod->registeredKindTypes.find(identity);
+            const auto base=mod->registeredBases.find(identity);
+            const auto source=mod->sourcePaths.find(identity);
+            if(type==mod->registeredKindTypes.end()||base==mod->registeredBases.end()||
+               base->second!=recipeOwnerBase(owner.kind)||source==mod->sourcePaths.end()||
+               runtime::modItemTypeByKey(modId+"/"+owner.name)!=type->second||
+               !seenRecipeOwners.emplace(identity,true).second) {
+                *error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Class="+owner.name+
+                    " Stage=ResolveOwner Expected=UniqueRegistered:"+recipeOwnerBase(owner.kind)+
+                    " Actual="+(base==mod->registeredBases.end()?"Missing":base->second)+
+                    " Result=Rejected Reason=OwnerIdentityMismatch";return false;
+            }
+            owner.type=type->second;owner.source=source->second;
+            recipeOwners.push_back(std::move(owner));
+            if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
+            continue;
+        }
         const std::string identity = fields.size() >= 2
             ? sourceIdentityForWire(fields[0], fields[1]) : "";
         if (identity.empty() || !seen.emplace(identity, true).second) {
@@ -782,7 +811,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13)) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 16)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -814,13 +843,19 @@ bool applyManagedSourceDefaults(
                 record.values.minion = minion == 1;
                 record.values.tileCollide = collide == 1;
                 record.values.ignoreWater = ignoreWater == 1;
-                if (fields.size() == 13 &&
+                if (fields.size() >= 13 &&
                     (!integer(fields[12], &record.values.frames) ||
                      record.values.frames < 1 || record.values.frames > 32)) {
                     *error = "Frames invalidos do projetil: " + record.name;
                     return false;
                 }
             }
+            ProjectilePolicy policy{record.values.frames,record.values.animationFrameTicks,record.values.minionScanTicks,record.values.minionTargetRange,record.values.minion};
+            std::string detail;
+            if((fields.size()==16&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
+                *error="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+record.name+" "+detail;return false;
+            }
+            record.values.animationFrameTicks=policy.animationFrameTicks;record.values.minionScanTicks=policy.minionScanTicks;record.values.minionTargetRange=policy.minionTargetRange;
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
         } else if (fields[0] == "WEAPON" && (fields.size() == 6 || fields.size() == 9)) {
@@ -1050,8 +1085,8 @@ bool applyManagedSourceDefaults(
         return false;
     }
     if ((!projectiles.empty() || !weapons.empty()) &&
-        !applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
-        *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
+        !applyManagedNativeDefaultsBatch(modId, projectiles, weapons,error)) {
+        if(error->empty())*error = "[CSharp][ERROR][NativeContent] Mod="+modId+" API=BunnyProjectile/BunnyWeapon Stage=ApplyDefaults Result=Rejected Reason=BatchIdentityOrValueContractMismatch";
         return false;
     }
     if (!applyManagedNativePlayerDefaultsBatch(modId, accessories, players)) {
@@ -1073,6 +1108,7 @@ bool applyManagedSourceDefaults(
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
+    if(!enqueueOwnedSourceRecipes(modId,recipeOwners,error))return false;
     mod->runtimeApplied = true;
     return true;
 }
