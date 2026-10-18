@@ -16,7 +16,7 @@ em evolução. [Versões, evidências e limites](docs/STATUS.md).
 
 | Quero… | Caminho |
 | --- | --- |
-| Criar meu primeiro mod | [Guia rápido](docs/PRIMEIRO-MOD.md) |
+| **Integrar o C# ao Bunny original (Potato)** | **[Guia passo a passo, caminhos exatos e auditoria](docs/INTEGRACAO-BUNNY-ORIGINAL.md)** |
 | Encontrar exemplos para adaptar | [Catálogo C#](examples/README.md) |
 | Entender hooks, policies e threads | [Contratos do SDK](docs/SDK-CSharp.md) |
 | Consultar classes e assinaturas | [Referência gerada](Split/Bunny-Loader/docs/generated/sdk_public_reference.md) |

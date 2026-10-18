@@ -19,6 +19,10 @@ e `tests/` na raiz oferecem navegação; não são outras implementações.
 | Referências geradas | [docs/generated](../Split/Bunny-Loader/docs/generated/) | Regenerar com a ferramenta correspondente; não editar números manualmente |
 | Documentação do loader base | [docs do Bunny](../Split/Bunny-Loader/docs/README.md) | Contratos JS e histórico upstream identificados |
 
+## Para integrar no Bunny original
+
+O caminho `Split/Bunny-Loader/` é uma **raiz completa do Android original**, não uma pasta a copiar como `Split/` no repositório do Potato. Os arquivos a adicionar, os arquivos a mesclar manualmente, o CMake, os dois processos Mono e os artefatos de build estão detalhados em [Integração ao Bunny original](INTEGRACAO-BUNNY-ORIGINAL.md). O script [potato_integration_audit.py](../tools/potato_integration_audit.py) audita dois clones e só copia novos arquivos com `--apply-additions`; arquivos que já existem continuam sujeitos a merge manual.
+
 ## Regras de organização
 
 1. Edite a fonte canônica. Não crie espelhos do SDK, compilador ou ponte JS.
