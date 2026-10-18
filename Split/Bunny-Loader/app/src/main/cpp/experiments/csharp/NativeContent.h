@@ -82,6 +82,10 @@ struct ManagedProjectileDefaults {
     int penetrate = 0;
     int timeLeft = 0;
     bool friendly = true;
+    bool minion = false;
+    float minionSlots = 0.f;
+    bool tileCollide = true;
+    bool ignoreWater = true;
 };
 
 struct ManagedWeaponDefaults {
