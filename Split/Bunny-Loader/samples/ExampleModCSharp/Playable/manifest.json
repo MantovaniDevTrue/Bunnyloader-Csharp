@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Buffs e debuffs com flags e atributos nativos; bancada C# com grupos personalizados, condições e callbacks gerenciados. Infraestrutura experimental.",
+  "summary": "Minion C# nativo: dano por contato, buff Android, perseguição e animação com políticas do SDK, além das receitas e hooks existentes.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [
