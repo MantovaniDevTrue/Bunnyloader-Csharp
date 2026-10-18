@@ -228,7 +228,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath"]'), github.head_ref)) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath"]'), github.head_ref)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
