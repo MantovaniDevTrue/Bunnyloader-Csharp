@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [feat/csharp-buff-recipes-v90, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
+    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
   pull_request:
     paths:
@@ -134,6 +134,7 @@ jobs:
           /tmp/native-recipes-test --method
           /tmp/native-recipes-test --custom-groups
           /tmp/native-recipes-test --custom-missing-register
+          /tmp/native-recipes-test --custom-void-register
           python3 tests/native_recipes/delivery_gate_test.py
           g++ -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/native_recipes/registry_regression_test.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp -o /tmp/shared-registry-test
           /tmp/shared-registry-test
