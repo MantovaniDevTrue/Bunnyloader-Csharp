@@ -21,6 +21,7 @@ for event in ("push", "workflow_dispatch", "pull_request"):
             assert result[key] == (branch in module.POLICY[key + ("_pr" if event == "pull_request" else "_push")])
         assert result["lights"] == (branch in module.POLICY["lights"])
         assert not any(module.classify("pull_request", "refs/pull/81/merge", branch, "fork/repo", repo).values())
+assert all(module.classify("push", "refs/heads/feat/csharp-loader-foundation-v91", "", "", repo).values())
 assert not any(module.classify("push", "refs/tags/fix/csharp-88-8-lights-review", "", "", repo).values())
 assert not any(module.classify("pull_request", "refs/pull/81/merge", "fix/csharp-88-8-lights-review", "", repo).values())
 with tempfile.TemporaryDirectory() as directory:

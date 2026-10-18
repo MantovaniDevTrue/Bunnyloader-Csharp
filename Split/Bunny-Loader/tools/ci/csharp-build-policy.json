@@ -14,7 +14,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ],
   "aot_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -30,7 +31,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ],
   "publish_push": [
     "codex/combat-batch-v90-25",
@@ -122,7 +124,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ],
   "publish_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -138,7 +141,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ],
   "android_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -154,7 +158,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ],
   "lights": [
     "feat/csharp-buff-recipes-v90",
@@ -164,6 +169,7 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-loader-foundation-v91"
   ]
 }

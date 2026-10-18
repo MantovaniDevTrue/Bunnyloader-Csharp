@@ -35,6 +35,24 @@ Check("recipe.custom-group-builder-snapshot",()=>{
  Reject(()=>item.CreateRecipe().AddRecipeGroup(new BunnyRecipeGroup("Empty","Text")));
  Reject(()=>recipe.AddCondition("test",c=>true));Reject(()=>recipe.AddOnCraftCallback(c=>{}));
 });
+Check("recipe.behavior-validation-atomicity",()=>{
+ var item=new ExampleItem();item.SetDefaults();
+ Reject(()=>item.CreateRecipe().AddBehavior(new EmptyBehavior()));
+ Reject(()=>item.CreateRecipe().AddBehavior(new HiddenBehavior()));
+ Reject(()=>new BunnyRecipeCondition("bad\nlabel",c=>true));
+ Reject(()=>BunnyRecipeCondition.All("Empty"));
+ var recipe=item.CreateRecipe().AddIngredient(9);
+ for(int i=0;i<16;i++)recipe.AddOnCraftCallback(c=>{});
+ Reject(()=>recipe.AddBehavior(new FullBehavior()));recipe.Register();
+ if(!item.RecipeDefinitions[0].EndsWith("@4"))throw new Exception("Failed binding partially changed callbacks");
+});
+Check("recipe.condition-clone-removal",()=>{
+ var item=new ExampleItem();item.SetDefaults();var night=BunnyRecipeCondition.Night;
+ var original=item.CreateRecipe().AddIngredient(9).AddCondition(night);original.Register();
+ var clone=original.Clone();Equal(true,clone.RemoveCondition(night));Equal(false,clone.RemoveCondition(night));clone.Register();
+ Equal(true,item.RecipeDefinitions[0].EndsWith("@1"));Equal(false,item.RecipeDefinitions[1].Contains('@'));
+ Reject(()=>original.RemoveCondition(night));
+});
 Check("recipe.clone-isolation-and-removal",()=>{
  var item=new ExampleItem();item.SetDefaults();
  var original=item.CreateRecipe(3).AddIngredient(2,10).AddNativeRecipeGroup("Wood",5).AddIngredient<ExampleItem>().AddTile(18);original.Register();
@@ -81,6 +99,32 @@ try {
   if(!error.Contains("Fixture callback failure")||!error.Contains("ContractRecipeItem")||!error.Contains("Stage=Invoke"))throw new Exception(error);
   var invalid=BunnyRecipeRuntime.Dispatch("contract",output,"ContractRecipeItem",99,0,"10,100,0,3,9,3,0,0,0");
   if(!invalid.StartsWith("ERROR|"))throw new Exception("Unregistered handler accepted");
+ });
+ Check("recipe.class-hooks-isolation-and-stage",()=>{
+  string output=Path.Combine(scratch,"behavior.dll"),diag=Path.Combine(scratch,"behavior.txt");
+  Equal(1,Compiler.Compile("tests/basic_items/recipe_behavior_fixture",output,runtime,diag));
+  string Call(string mod,string owner,int index,int kind,string state)=>BunnyRecipeRuntime.Dispatch(mod,output,owner,index,kind,state);
+  const string state="10,100,4,3,9,2,10,0,0";
+  Equal("READY",Call("behavior","BehaviorItem",0,3,""));
+  Equal("1",Call("behavior","BehaviorItem",0,0,state));
+  Equal("0",Call("behavior","BehaviorItem",0,0,"10,100,5,3,9,2,10,0,0"));
+  Equal("0",Call("behavior","BehaviorItem",0,0,"10,100,0,3,9,2,10,0,0"));
+  Equal("0",Call("behavior","BehaviorItem",0,1,state));
+  Equal("2",Call("behavior","BehaviorItem",0,1,"10,100,4,3,22,2,10,0,0"));
+  Equal("OK|mBehaviorItem:1",Call("behavior","BehaviorItem",0,2,state));
+  Equal("OK|mBehaviorItem:1;mBehaviorItem:2",Call("behavior","BehaviorItem",1,2,state));
+  Equal("1",Call("behavior","BehaviorItem",4,0,"10,100,0,3,9,2,10,0,0"));
+  Equal("0",Call("behavior","BehaviorItem",4,0,"10,100,1,3,9,2,10,0,0"));
+  Equal("0",Call("behavior","BehaviorItem",4,0,state));
+  var broken=Call("behavior-first-broken","UnrelatedBrokenItem",0,3,"");
+  if(!broken.Contains("UnrelatedOwnerFailure"))throw new Exception(broken);
+  Equal("READY",Call("behavior-first-broken","BehaviorItem",0,3,""));
+  foreach(var c in new[]{(2,0),(3,1)}){
+   var error=Call("behavior","BehaviorItem",c.Item1,c.Item2,state);
+   if(!error.Contains("OperationNotAllowed")||!error.Contains("GiveItem"))throw new Exception(error);
+  }
+  foreach(string bad in new[]{"10,100,4,0,9,2,10,0,0","10,100,4,3,9,2,-1,0,0","10,100,4,3,9,2,10,1,0"})
+   if(!Call("behavior","BehaviorItem",0,0,bad).Contains("Snapshot outside native contract"))throw new Exception("Invalid snapshot accepted");
  });
  Check("buff.managed-flags-calculated-defaults",()=>{
   string output=Path.Combine(scratch,"buffs.dll"),diag=Path.Combine(scratch,"buffs.txt");
@@ -305,3 +349,15 @@ try {
  });
 } finally {if(Directory.Exists(scratch))Directory.Delete(scratch,true);}
 Directory.CreateDirectory("build");string json=JsonSerializer.Serialize(new{schemaVersion=1,failures,results},new JsonSerializerOptions{WriteIndented=true});File.WriteAllText("build/basic-items-results.json",json);Console.WriteLine(json);return failures==0?0:1;
+
+sealed class EmptyBehavior : BunnyRecipeBehavior { }
+sealed class HiddenBehavior : BunnyRecipeBehavior
+{
+ public new bool IsAvailable(BunnyCraftContext context)=>false;
+}
+sealed class FullBehavior : BunnyRecipeBehavior
+{
+ public override bool IsAvailable(BunnyCraftContext context)=>true;
+ public override int ConsumeIngredient(BunnyCraftContext context,int type,int amount)=>amount;
+ public override void OnCraft(BunnyCraftContext context) { }
+}

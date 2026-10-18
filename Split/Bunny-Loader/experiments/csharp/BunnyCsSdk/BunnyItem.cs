@@ -84,20 +84,38 @@ public sealed class BunnyRecipe
     private string station = "-1";
     private bool registered;
     private readonly List<string> ingredients = new();
-    private readonly List<(string Description,Func<BunnyCraftContext,bool> Predicate)> conditions=new();
+    private readonly List<BunnyRecipeCondition> conditions=new();
     private readonly List<Func<BunnyCraftContext,int,int,int>> consume=new();
     private readonly List<Action<BunnyCraftContext>> crafted=new();
     public BunnyRecipe AddCondition(string description,Func<BunnyCraftContext,bool> predicate)
+        => AddCondition(new BunnyRecipeCondition(description,predicate));
+    public BunnyRecipe AddCondition(BunnyRecipeCondition condition)
     {
-        Mutable();ArgumentNullException.ThrowIfNull(predicate);
-        if(string.IsNullOrWhiteSpace(description)||description.Length>256||conditions.Count>=32)throw new ArgumentException("Expected condition description and at most 32 predicates",nameof(description));
-        conditions.Add((description,predicate));return this;
+        Mutable();ArgumentNullException.ThrowIfNull(condition);
+        if(conditions.Count>=32)throw new InvalidOperationException("Condition limit 32");
+        conditions.Add(condition);return this;
+    }
+    public bool RemoveCondition(BunnyRecipeCondition condition)
+    { Mutable();ArgumentNullException.ThrowIfNull(condition);return conditions.Remove(condition); }
+    /// <summary>Binds actual virtual overrides to the same native hooks as delegate callbacks.</summary>
+    public BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)
+    {
+        Mutable();ArgumentNullException.ThrowIfNull(behavior);int mask=behavior.CallbackMask();
+        // Validate every part before changing this recipe; failed bindings leave no partial callbacks.
+        BunnyRecipeCondition? condition=(mask&1)!=0?new(behavior.ConditionDescription,behavior.IsAvailable):null;
+        if((condition!=null&&conditions.Count>=32)||((mask&2)!=0&&consume.Count>=16)||((mask&4)!=0&&crafted.Count>=16))
+            throw new InvalidOperationException("[CSharp][ERROR][RecipeBehavior] Class="+behavior.GetType().FullName+" Stage=Bind Reason=CallbackCapacityExceeded");
+        if(condition!=null)conditions.Add(condition);
+        if((mask&2)!=0)consume.Add(behavior.ConsumeIngredient);
+        if((mask&4)!=0)crafted.Add(behavior.OnCraft);
+        return this;
     }
     public BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext,int,int,int> callback)
     { Mutable();ArgumentNullException.ThrowIfNull(callback);if(consume.Count>=16)throw new InvalidOperationException("Callback limit 16");consume.Add(callback);return this; }
     public BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)
     { Mutable();ArgumentNullException.ThrowIfNull(callback);if(crafted.Count>=16)throw new InvalidOperationException("Callback limit 16");crafted.Add(callback);return this; }
-    internal bool IsAvailable(BunnyCraftContext context) => conditions.All(c=>c.Predicate(context));
+    internal bool IsAvailable(BunnyCraftContext context)
+    { foreach(var condition in conditions)if(!condition.Evaluate(context))return false;return true; }
     internal int Consume(BunnyCraftContext context,int type,int amount)
     { int limit=Math.Max(amount,context.AvailableIngredientCount);foreach(var callback in consume)amount=Math.Clamp(callback(context,type,amount),0,limit);return amount; }
     internal void Crafted(BunnyCraftContext context) { foreach(var callback in crafted)callback(context); }

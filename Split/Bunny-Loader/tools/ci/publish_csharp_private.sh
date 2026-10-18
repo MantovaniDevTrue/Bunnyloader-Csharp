@@ -41,7 +41,7 @@ if [ "$GITHUB_REF" = "refs/heads/codex/lot-a-complete-v90-29" ]; then
   done
   TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
   TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
-  NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.49.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+  NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.50.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
 fi
 if [ "$BUNNY_POLICY_AOT" = "true" ]; then
   for attempt in $(seq 1 40); do
@@ -129,21 +129,38 @@ if [ "$GITHUB_REF" = "refs/heads/codex/csharp-native-access-lot-a" ]; then
   NOTES="Experimental .69: includes .68 typed Int32 hooks; typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
 fi
 if [ "$BUNNY_POLICY_LIGHTS" = "true" ]; then
-  NOTES="EXPERIMENTAL ${VERSION}: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Includes typed/sized IL2CPP scene read contracts, exact-zero underground transition, bounded workflow expressions, framebuffer copy telemetry and render-stat batching. Android heavy boss stress test pending. ExampleMod CSharp 0.1.49 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
+  NOTES="EXPERIMENTAL ${VERSION}: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Includes typed/sized IL2CPP scene read contracts, exact-zero underground transition, bounded workflow expressions, framebuffer copy telemetry and render-stat batching. Android heavy boss stress test pending. ExampleMod CSharp 0.1.50 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
 fi
 if [ "$GITHUB_REF" = "refs/heads/feat/csharp-native-recipe-groups-v89" ]; then
   TITLE="EXPERIMENTAL — CSharp native recipe groups | $VERSION"
-  NOTES="EXPERIMENTAL ${VERSION}: reusable native RecipeGroup ingredients resolved by IL2CPP field identity, typed CSharp ingredient/station references, independent recipe cloning/removal and detailed contract diagnostics. ExampleMod CSharp 0.1.49 adds alternate group recipes for its actual CSharp ExampleWorkbench; original recipes and content IDs preserved. Includes Lights 0.4.2.3 and the .88.8 scene fixes. Host contract/integration checks and Android build passed; crafting, alternate-material consumption, save/re-entry, FPS and <=5-second cold compilation still require Xiaomi testing. Source ${GITHUB_SHA}."
+  NOTES="EXPERIMENTAL ${VERSION}: reusable native RecipeGroup ingredients resolved by IL2CPP field identity, typed CSharp ingredient/station references, independent recipe cloning/removal and detailed contract diagnostics. ExampleMod CSharp 0.1.50 adds alternate group recipes for its actual CSharp ExampleWorkbench; original recipes and content IDs preserved. Includes Lights 0.4.2.3 and the .88.8 scene fixes. Host contract/integration checks and Android build passed; crafting, alternate-material consumption, save/re-entry, FPS and <=5-second cold compilation still require Xiaomi testing. Source ${GITHUB_SHA}."
 fi
 if [ "$GITHUB_REF" = "refs/heads/feat/csharp-buff-recipes-v90" ]; then
   TITLE="EXPERIMENTAL WIP — CSharp buffs and recipe callbacks | $VERSION"
-  NOTES="EXPERIMENTAL INFRASTRUCTURE CHECKPOINT, NOT THE COMPLETE REQUESTED LOT. Integrates PR86 with preserved NativeAOT ABI, executed managed buff flags/description, all-slot buff iteration, real DelBuff, nurse immunity and defense multiplier. Native custom recipe groups, managed conditions/consume/on-craft callbacks use the existing bounded Mono worker and a language-neutral native provider. ExampleMod 0.1.49 includes a real ExampleWorkbench recipe and defense debuff/potion. Host and Android compilation/signing gates passed. Actual Android gameplay is NOT yet validated. Minion AI/staff/text counter, Blocky/costume, mounts/minecart and original firework callbacks remain explicitly pending. Preserve validated .89, Lights 0.4.2.3 and JavaScript. Source ${GITHUB_SHA}; see docs/csharp-buffs-recipes-v90.md."
+  NOTES="EXPERIMENTAL INFRASTRUCTURE CHECKPOINT, NOT THE COMPLETE REQUESTED LOT. Integrates PR86 with preserved NativeAOT ABI, executed managed buff flags/description, all-slot buff iteration, real DelBuff, nurse immunity and defense multiplier. Native custom recipe groups, managed conditions/consume/on-craft callbacks use the existing bounded Mono worker and a language-neutral native provider. ExampleMod 0.1.50 includes a real ExampleWorkbench recipe and defense debuff/potion. Host and Android compilation/signing gates passed. Actual Android gameplay is NOT yet validated. Minion AI/staff/text counter, Blocky/costume, mounts/minecart and original firework callbacks remain explicitly pending. Preserve validated .89, Lights 0.4.2.3 and JavaScript. Source ${GITHUB_SHA}; see docs/csharp-buffs-recipes-v90.md."
+fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-loader-foundation-v91" ]; then
+  for attempt in $(seq 1 40); do
+    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/v91-workflows.json"
+    set +e
+    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v91-workflows.json" "$GITHUB_SHA" --current
+    DELIVERY_STATUS=$?
+    set -e
+    if [ "$DELIVERY_STATUS" = 0 ]; then break; fi
+    if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 40 ]; then
+      echo "::error::Independent same-commit regressions not approved; delivery refused"
+      exit 1
+    fi
+    sleep 15
+  done
+  TITLE="EXPERIMENTAL — CSharp recipe loader classes | $VERSION"
+  NOTES="Experimental .91 / ExampleMod 0.1.50. Preserves .90.3.1 RecipeGroup and native craft-source ABI fixes. Adds reusable class-based recipe hooks, composable conditions, owner-level callback reconstruction isolation and explicit callback stages. ExampleWorkbench uses the public APIs. All 88 original loader modules inventoried; this is NOT completion of all loaders or Lot A. Native groups/conditions/callbacks remain connected to real Terraria hooks. Nine independent same-SHA checks and Android build/signing passed. Gameplay and FPS require Android testing. Source ${GITHUB_SHA}. See docs/csharp-loaders-v91.md."
 fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod.sha256"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.50.bmod"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.50.bmod.sha256"
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )

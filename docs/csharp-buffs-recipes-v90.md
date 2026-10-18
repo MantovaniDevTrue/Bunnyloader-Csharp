@@ -106,3 +106,7 @@ ExampleItem no OnCraft. Os testes manuais se referem à bancada C# real.
 Continuar a partir desta branch e de docs/csharp-completion-plan.md. Nenhum item
 pendente pode ser removido do escopo ou marcado como bloqueio técnico sem prova.
 Não publicar a conclusão do conjunto com base apenas em compilação/registro.
+
+## Continuidade posterior
+
+O usuário corrigiu contratos nativos em PR88/89/90; a .91 parte da .90.3.1 e preserva essas correções. A auditoria dos 88 módulos, novas APIs de receitas e a entrega experimental atual estão no [relatório .91](csharp-loaders-v91.md). As pendências desta seção histórica não devem provocar uma reimplementação da bancada ou perda dos commits posteriores.
