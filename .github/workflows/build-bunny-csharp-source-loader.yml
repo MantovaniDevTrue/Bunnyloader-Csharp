@@ -1524,10 +1524,10 @@ jobs:
           call = source.index('runManagedEntityProjectile(projectile, game, type, false);', prewarm)
           native = source.index('if (original) original(projectile, method);', prewarm)
           assert call < native, 'first registration must precede native AI'
-          assert 'firstObserved)) return;' in source
+          assert 'firstObserved, npcTarget, npcX, npcY)) return;' in source, 'target payload must preserve early projectile AI cadence'
           assert 'result, bool immediateFirstTick' in header
           assert 'if ((!immediateFirstTick && ticks % 6 != 0) || pending)' in dispatcher
-          assert 'result, false);' in dispatcher
+          assert 'result, false, -1, 0.f, 0.f);' in dispatcher, 'NPC dispatch must preserve six-tick, non-first-tick scheduling'
           print('PROJECTILE_EARLY_FIRST_TICK=PASS')
           PY
       - name: Validate generic C# projectile policy integration
