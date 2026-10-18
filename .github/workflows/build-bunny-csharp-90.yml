@@ -1,7 +1,7 @@
 name: Build Bunny CSharp 90 buffs and recipes
 on:
   push:
-    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-1-static-recipegroup-register, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract]
+    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-1-static-recipegroup-register, fix/csharp-90-2-recipegroup-real-instance-abi]
     paths:
       - '.github/workflows/**'
       - 'Split/Bunny-Loader/**'
@@ -14,46 +14,3 @@ jobs:
   android:
     uses: ./.github/workflows/build-bunny-csharp-source-loader.yml
     secrets: inherit
-  verify-private-apk:
-    needs: android
-    if: ${{ always() && github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Verify signed private release and post build result
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUNNY_BUILD_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
-          ANDROID_RESULT: ${{ needs.android.result }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TAG: csharp-v3-run-${{ github.run_id }}-a${{ github.run_attempt }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          STATUS=FAILED
-          APK_NAME=
-          if [ "$ANDROID_RESULT" = success ] && [ -n "$BUNNY_BUILD_TOKEN" ]; then
-            if GH_TOKEN="$BUNNY_BUILD_TOKEN" gh api "repos/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tags/$TAG" > "$RUNNER_TEMP/bunny-private-release.json"; then
-              if APK_NAME="$(python3 - "$RUNNER_TEMP/bunny-private-release.json" <<'PYAPK'
-          import json, sys
-          payload = json.load(open(sys.argv[1]))
-          apks = [asset for asset in payload.get("assets", [])
-                  if asset.get("name", "").endswith("-SignedV3.apk") and asset.get("size", 0) > 0]
-          if len(apks) != 1 or ".90.3.1-" not in apks[0]["name"]:
-              raise SystemExit("Missing .90.3.1 signed APK in private release")
-          print(apks[0]["name"])
-          PYAPK
-              )"; then
-                STATUS=SUCCESS
-              fi
-            fi
-          fi
-          if [ "$STATUS" = SUCCESS ]; then
-            BODY="Bunny Loader C# .90.3.1 APK assinado V3 publicado e confirmado no repositório privado. Arquivo: `$APK_NAME`. Tag: `$TAG`. Build: $RUN_URL"
-          else
-            BODY="Bunny Loader C# .90.3.1: APK privado ainda NÃO confirmado. Resultado do job Android: `$ANDROID_RESULT`. Verificar a etapa que falhou em $RUN_URL. Tag esperada: `$TAG`."
-          fi
-          gh issue comment 90 --repo "${{ github.repository }}" --body "$BODY"
-          test "$STATUS" = SUCCESS
