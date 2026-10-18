@@ -786,7 +786,7 @@ bool applyManagedSourceDefaults(
             }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
-        } else if (fields[0] == "WEAPON" && fields.size() == 6) {
+        } else if (fields[0] == "WEAPON" && (fields.size() == 6 || fields.size() == 9)) {
             ManagedWeaponEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -796,6 +796,18 @@ bool applyManagedSourceDefaults(
                 fields[5].empty()) {
                 *error = "Valores invalidos de arma C#: " + record.name;
                 return false;
+            }
+            if (fields.size() == 9) {
+                int summon = -1;
+                if (!integer(fields[6], &summon) || summon != 1 ||
+                    fields[7].empty() || fields[7] == "-" || fields[7].size() > 72 ||
+                    !integer(fields[8], &record.minionBuffTime) ||
+                    record.minionBuffTime < 1 || record.minionBuffTime > 36000) {
+                    *error = "Contrato de arma summon invalido: " + record.name;
+                    return false;
+                }
+                record.summon = true;
+                record.minionBuffName = fields[7];
             }
             shootNames.push_back(fields[5]);
             weapons.push_back(std::move(record));
@@ -976,6 +988,25 @@ bool applyManagedSourceDefaults(
             return false;
         }
         weapons[i].shootType = projectile->second;
+        if (weapons[i].summon) {
+            const auto buff = buffsByName.find(weapons[i].minionBuffName);
+            const auto minion = std::find_if(projectiles.begin(), projectiles.end(),
+                [&](const ManagedProjectileEntry& candidate) {
+                    return candidate.type == weapons[i].shootType && candidate.values.minion;
+                });
+            if (buff == buffsByName.end() || minion == projectiles.end()) {
+                *error = "Summon requer buff e projetil minion do proprio mod: " + weapons[i].name;
+                return false;
+            }
+            weapons[i].minionBuffType = buff->second;
+            const auto buffDefinition = std::find_if(buffs.begin(), buffs.end(),
+                [&](const ManagedBuffEntry& candidate) { return candidate.type == buff->second; });
+            if (buffDefinition == buffs.end() ||
+                buffDefinition->minionProjectileType != weapons[i].shootType) {
+                *error = "Summon buff deve referenciar o mesmo projetil: " + weapons[i].name;
+                return false;
+            }
+        }
     }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
