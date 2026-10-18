@@ -1623,7 +1623,9 @@ jobs:
           assert "mod.items + mod.tiles + mod.projectiles + mod.buffs" in count_contract
           assert "mod.players + mod.npcs + mod.prefixes" in count_contract
           assert "BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS" in smoke
-          assert "g_buffs.find(typeValues[slot])" in nativeContent
+          assert "visitManagedBuffSlots(typeValues,timeValues,count" in nativeContent
+          assert "buffs->find(typeValues[slot])" in nativeContent
+          assert "std::atomic_load_explicit(&g_buffView" in nativeContent
           assert "BUNNY_CSHARP_MANAGED_PLAYER_ACCESSORY=PASS" in smoke
           assert "BunnyPlayer" in sdk and "BunnyAccessory" in sdk
           assert "applyManagedNativePlayerDefaultsBatch" in source
