@@ -105,12 +105,14 @@ public sealed class MinionStaff : BunnyWeapon
     }
 }
 """);
-    string minionOutput = Path.Combine(scratch, "NativeMinion.dll");
-    string minionDiag = Path.Combine(scratch, "native-minion-diagnostics.txt");
+    string minionArtifacts = Path.Combine(scratch, "native-minion-artifacts");
+    Directory.CreateDirectory(minionArtifacts);
+    string minionOutput = Path.Combine(minionArtifacts, "NativeMinion.dll");
+    string minionDiag = Path.Combine(minionArtifacts, "native-minion-diagnostics.txt");
     if (Compiler.Compile(minionRoot, minionOutput, framework, minionDiag) != 1 ||
         CompiledAssemblyProbe.Verify(minionOutput, minionDiag) != 3)
         throw new InvalidOperationException("Managed minion smoke failed: " + File.ReadAllText(minionDiag));
-    string minionWire = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
+    string minionWire = File.ReadAllText(Path.Combine(minionArtifacts, "source-runtime-values.txt"));
     if (!minionWire.Contains("PROJECTILE\\tMinionProjectile\\t16\\t16\\t1\\t-1\\t1800\\t1\\t1\\t1\\t0\\t1\\n", StringComparison.Ordinal) ||
         !minionWire.Contains("WEAPON\\tMinionStaff\\t20\\t20\\t10\\tMinionProjectile\\t1\\tMinionBuff\\t2\\n", StringComparison.Ordinal) ||
         !minionWire.Contains("BUFF\\tMinionBuff\\t0\\tMinionProjectile\\t0\\t-\\t100\\n", StringComparison.Ordinal))
