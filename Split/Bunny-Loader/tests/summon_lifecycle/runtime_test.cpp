@@ -25,7 +25,7 @@ Objects players{{{&playersClass,nullptr},nullptr,2}},projectiles{{{&projectilesC
 FieldInfo playersField{1},projectilesField{2},npcsField{3},netField{4};
 MethodInfo addBuff{1},kill{2},chase{3},sight{4};
 struct BoolBox {Il2CppObject obj;uint8_t value=1;} yes{{&boolClass,nullptr}},no{{&boolClass,nullptr},0};
-int adds=0,kills=0,killCallbacks=0,workerTicks=0;bool visible=true;bl::csharp::SummonMovement configured;float seenOwnerX=0;
+int adds=0,kills=0,killCallbacks=0,workerTicks=0,vanillaCalls=0;bool visible=true;bl::csharp::SummonMovement configured;float seenOwnerX=0;
 namespace bl::il2cpp {
 Api& api(){return fakeApi;}
 Il2CppClass* findClass(const TypeRef&){return nullptr;}
@@ -106,5 +106,16 @@ int main() {
  visible=true;enemy.position={10000,100};otherOwner.manual=0;runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(!projectile.friendly);
  otherOwner.active=false;runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(kills==3&&killCallbacks==3);
  assert(workerTicks>600);
- std::cout<<"SUMMON_PRODUCTION_HOOK_BUFF_CANCEL_DEATH_RESUMMON_OWNER_FOLLOW_TELEPORT_TARGET_LOS_LEASH_AND_DAMAGE_PRESERVATION_PASS\n";
+ // Existing native curve motion still runs alongside managed lifecycle/combat.
+ configured.enabled=false;otherOwner.active=true;otherOwner.manual=-1;enemy.active=false;
+ projectile.active=true;++projectile.identity;projectile.velocity={2,0};projectile.time=18000;
+ g_curveNetMode=&netField;g_curveCount.store(1);g_curveStates[0].type=1136;
+ g_curveStates[0].enabled.store(true);g_curveStates[0].turns.fill(20);g_curveByType[1136].store(1);
+ g_original=[](Il2CppObject*,const MethodInfo*){++vanillaCalls;};
+ const int previousTicks=workerTicks;hkAi(&projectile.obj,nullptr);
+ assert(vanillaCalls==1&&workerTicks==previousTicks+1&&projectile.velocity.y>0.03f);
+ assert(queueManagedSourceProjectileCombat(4,&projectile.obj,0,12));
+ assert(queueManagedSourceProjectileCombat(5,&projectile.obj,-1,0));
+ assert(!queueManagedSourceProjectileCombat(5,&projectile.obj,-1,0));
+ std::cout<<"SUMMON_PRODUCTION_HOOK_BUFF_CANCEL_DEATH_RESUMMON_OWNER_FOLLOW_TELEPORT_TARGET_LOS_LEASH_AND_DAMAGE_PRESERVATION_LEGACY_CURVE_CALLBACKS_PASS\n";
 }

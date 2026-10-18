@@ -1,6 +1,6 @@
 # .95 — ciclo de vida e combate de summons
 
-Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando os commits `.90.6`. Bunny `.90.29.95-summon-lifecycle`, code270; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
+Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando as correções funcionais da `.90.6` contidas na `.94` (a branch `.90.6` não é ancestral desta linha). Bunny `.90.29.95-summon-lifecycle`, code270; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
 
 ## Correções sistêmicas
 

@@ -1083,12 +1083,6 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Execute native summon lifecycle, source damage and typed Android contracts
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 Split/Bunny-Loader/tests/csharp_native_summon_damage_test.py
-
       - name: Package independent ExampleMod CSharp 0.1.54
         shell: bash
         run: |
@@ -1360,19 +1354,10 @@ jobs:
           print("BUNNY_CSHARP_MULTIMOD_ROUTING_GUARDS=PASS")
           PY
 
-      - name: Verify source projectile lifecycle with native motion
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
-          assert 'runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);' in source
-          assert 'if (!applyVelocity) return;' in source
-          assert 'const bool nativeMotion = coveredByCurve ||' in source
-          assert 'queueManagedSourceProjectileCombat(4,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp').read_text()
-          assert 'queueManagedSourceProjectileCombat(5,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedKillHook.cpp').read_text()
-          print('PROJECTILE_NATIVE_CURVE_LIFECYCLE=PASS')
-          PY
+      - name: Execute production summon lifecycle, source damage and legacy curve callbacks
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/csharp_native_summon_damage_test.py
+
       - name: Verify universal hook timeout recovery circuit breaker
         shell: bash
         run: |
