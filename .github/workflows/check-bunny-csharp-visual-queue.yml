@@ -6,6 +6,7 @@ on:
       - feat/csharp-native-recipe-groups-v89
       - feat/csharp-buff-recipes-v90
       - fix/csharp-90-2-recipegroup-real-instance-abi
+      - fix/csharp-90-3-recipegroup-return-contract
       - fix/csharp-88-8-lights-review
       - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28
