@@ -52,6 +52,18 @@ const MethodInfo* method(Il2CppClass* cls,const char* signature,bool instance,st
     if(!m||il2cpp::api().method_is_instance(m)!=instance){*error="Method="+std::string(signature)+" Reason=NativeSignatureMismatch";return nullptr;}
     return m;
 }
+const MethodInfo* nativeGrantMethod(Il2CppClass* cls,const char* signature,std::string* error) {
+    const auto expected=il2cpp::parseSignature(signature);
+    bool ambiguous=false;
+    const MethodInfo* renamed=nullptr;
+    const MethodInfo* found=cls?il2cpp::findMethodBySignature(cls,expected,&ambiguous,&renamed):nullptr;
+    if(!found&&!ambiguous)found=renamed;
+    if(found&&il2cpp::api().method_is_instance(found))return found;
+    *error="Method="+std::string(signature)+" Reason="+(ambiguous?"AmbiguousNativeMethod":"NativeSignatureMismatch");
+    const auto actual=il2cpp::listOverloads(cls,expected.name);
+    for(size_t i=0;i<actual.size()&&i<4;++i)*error+=" Candidate="+actual[i];
+    return nullptr;
+}
 bool field(Il2CppClass* cls,const char* name,const char* type,bool stat,size_t bytes,FieldInfo** f,int* offset,std::string* error) {
     return il2cpp::nativeFieldContract(cls,name,type,stat,bytes,f,offset,error);
 }
@@ -259,10 +271,14 @@ bool prepareNativeRecipeCallbacks(int mask,std::string* error){
         if(!installed){*error="Hook=GetIngredientCraftingDiscount Reason=HookInstallFailed";return false;}refs.consume=true;
     }
     if((mask&4)&&!refs.craft){
-        refs.source=method(refs.player,"IEntitySource GetItemSource_Misc(int context)",true,error);
-        refs.grant=method(refs.player,"void QuickSpawnItem(IEntitySource source, int item, int stack)",true,error);
+        refs.source=nativeGrantMethod(refs.player,"IEntitySource GetItemSource_Misc(int context)",error);
+        if(!refs.source)return false;
+        refs.grant=nativeGrantMethod(refs.player,"void QuickSpawnItem(IEntitySource source, int item, int stack)",error);
+        if(!refs.grant)return false;
         const auto* craft=method(main,"void CraftItem_GrantItem(Recipe recipe, Item result, bool quickCraft)",false,error);
-        if(!refs.source||!refs.grant||!craft||!hook::install(craft,hkCraft,&originalCraft)){*error+=" Hook=CraftItem_GrantItem Reason=HookInstallFailed";return false;}refs.craft=true;
+        if(!craft)return false;
+        if(!hook::install(craft,hkCraft,&originalCraft)){*error="Hook=CraftItem_GrantItem Reason=HookInstallFailed";return false;}
+        refs.craft=true;
     }
     return true;
 }
