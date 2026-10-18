@@ -211,12 +211,12 @@ int main(int argc,char** argv){
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
  if(mode=="--custom-missing-register") {
-  methods.erase("RecipeGroup Register(string, string, int[])");
+  methods.erase("int Register()");
   numRecipes=1;auto grouped=request("CustomBench");
   RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
   ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
   const auto rejected=installNativeRecipe(grouped);
-  assert(rejected.index<0&&rejected.error.find("MissingOrIncompatibleSignature")!=std::string::npos);
+  assert(rejected.index<0&&rejected.error.find("Candidates=None")!=std::string::npos);
   assert(rejected.error.find("Stage=ResolveRecipeGroup")!=std::string::npos&&roots.empty()&&numRecipes==1&&commits==0);
   std::cout<<"CUSTOM_GROUP_MISSING_STATIC_REGISTER_FAIL_CLOSED_PASS\n";return 0;
  }
