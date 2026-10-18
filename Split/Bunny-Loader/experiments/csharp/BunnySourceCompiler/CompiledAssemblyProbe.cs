@@ -590,11 +590,21 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate content class: " + name);
             if (!projectileNames.Contains(shootName))
                 throw new InvalidOperationException("Weapon target projectile not found: " + shootName);
-            lines.Add(string.Join("\t", "WEAPON", name,
+            bool summon = Value<bool>(weapon, "Summon");
+            string minionBuff = Value<string>(weapon, "MinionBuff");
+            int minionBuffTime = Value<int>(weapon, "MinionBuffTime");
+            if ((summon && (string.IsNullOrEmpty(minionBuff) || minionBuffTime < 1 || minionBuffTime > 36000)) ||
+                (!summon && !string.IsNullOrEmpty(minionBuff)))
+                throw new InvalidOperationException("Invalid C# summon weapon contract: " + name);
+            if (summon) CheckName(minionBuff);
+            string weaponEntry = string.Join("\t", "WEAPON", name,
                 Value<int>(weapon, "Damage").ToString(CultureInfo.InvariantCulture),
                 Value<int>(weapon, "UseTime").ToString(CultureInfo.InvariantCulture),
                 Value<float>(weapon, "ShootSpeed").ToString("R", CultureInfo.InvariantCulture),
-                shootName));
+                shootName);
+            if (summon)
+                weaponEntry += "\t1\t" + minionBuff + "\t" + minionBuffTime.ToString(CultureInfo.InvariantCulture);
+            lines.Add(weaponEntry);
         }
         foreach (object buff in buffs)
         {
