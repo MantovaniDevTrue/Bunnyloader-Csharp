@@ -3,13 +3,14 @@
 #include <cassert>
 #include <cstdarg>
 #include <iostream>
+#include <thread>
 
 struct Il2CppClass {const char* ns;const char* name;int size;Il2CppClass* element=nullptr;};
 struct FieldInfo {int id;};
 struct MethodInfo {int id;};
 struct ArrayInts {Il2CppArray header;int32_t data[8]{};};
 struct Owner {Il2CppObject obj;bool active=true,dead=false;Il2CppArray* types;Il2CppArray* times;bl::csharp::Vector2 position{};int width=20,height=40,direction=1,manual=-1;};
-struct Proj {Il2CppObject obj;int slot=0;bl::csharp::Vector2 position{},velocity{};int width=18,height=28;bool active=true;float rotation=0;int type=1136,owner=0,time=18000,damage=45,identity=1;bool friendly=true;int sprite=1,original=30;bool minion=true;};
+struct Proj {Il2CppObject obj;int slot=0;bl::csharp::Vector2 position{},velocity{};int width=18,height=28;bool active=true;float rotation=0;int type=1136,owner=0,time=18000,damage=45;bool friendly=true;int sprite=1,original=30;bool minion=true;};
 struct Npc {Il2CppObject obj;int slot=0;bl::csharp::Vector2 position{},velocity{};int width=20,height=20;bool active=true,friendly=false,invulnerable=false;int life=100;};
 struct Objects {Il2CppArray header;Il2CppObject* entries[200]{};};
 bl::il2cpp::Api fakeApi;bl::runtime::GameRefs fakeGame;
@@ -73,7 +74,7 @@ int main() {
  auto& p=fakeGame.proj;p.active=offsetof(Proj,active);p.type=offsetof(Proj,type);p.owner=offsetof(Proj,owner);p.timeLeft=offsetof(Proj,time);p.rotation=offsetof(Proj,rotation);p.damage=offsetof(Proj,damage);
  g_summon.ready=true;g_summon.netMode=&netField;g_summon.players=&playersField;g_summon.projectiles=&projectilesField;g_summon.playerClass=&ownerClass;g_summon.projectileClass=&projClass;
  g_summon.owner={offsetof(Owner,active),offsetof(Owner,dead),offsetof(Owner,types),offsetof(Owner,times),offsetof(Owner,position),offsetof(Owner,width),offsetof(Owner,height),offsetof(Owner,direction),offsetof(Owner,manual)};
- g_summon.identity=offsetof(Proj,identity);g_summon.friendly=offsetof(Proj,friendly);g_summon.spriteDirection=offsetof(Proj,sprite);g_summon.originalDamage=offsetof(Proj,original);
+ g_summon.friendly=offsetof(Proj,friendly);g_summon.spriteDirection=offsetof(Proj,sprite);g_summon.originalDamage=offsetof(Proj,original);
  g_summon.addBuff=&addBuff;g_summon.kill=&kill;g_summon.canChase=&chase;g_summon.canHit=&sight;
  g_targets.ready=true;g_targets.npcArray=&npcsField;g_targets.npcClass=&npcClass;g_targets.active=offsetof(Npc,active);g_targets.friendly=offsetof(Npc,friendly);g_targets.dontTakeDamage=offsetof(Npc,invulnerable);g_targets.life=offsetof(Npc,life);
  g_managedEntityNetMode=&netField;players.entries[0]=&owner.obj;players.entries[1]=&otherOwner.obj;projectiles.entries[0]=&projectile.obj;
@@ -81,15 +82,24 @@ int main() {
  std::string error;assert(parseSummonMovement("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",&configured,&error));
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
  assert(adds==1&&kills==0&&projectile.time==2&&projectile.damage==45&&spawnTickets==1);
- types.data[0]=0;times.data[0]=0;
+ const int firstGeneration=g_managedEntityProjectileSlots[0].generation;
+ // A temporary sample using the same slot cannot reset a live projectile.
+ Proj sample=projectile;notifyManagedSourceProjectileDefaults(&sample.obj);
+ assert(g_managedEntityProjectileSlots[0].generation==firstGeneration);
+ std::thread contentWorker([]{notifyManagedSourceProjectileDefaults(&projectile.obj);});contentWorker.join();
+ assert(g_managedEntityProjectileSlots[0].generation==firstGeneration);
+ projectile.time=18000;
+ runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
+ assert(adds==1&&spawnTickets==1&&g_managedEntityProjectileSlots[0].generation==firstGeneration);
+ types.data[0]=0;times.data[0]=0;projectile.time=18000;
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
  assert(kills==1&&killCallbacks==1&&adds==1&&!projectile.active);
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(kills==1&&killCallbacks==1);
- // Same object and same slot, new identity: resummon exactly once, independent of refreshed timeLeft.
- projectile.active=true;++projectile.identity;projectile.time=2;
- runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(adds==2&&projectile.active&&spawnTickets==2);
+ // Actual native pool reuse: same object, slot, type, owner and timeLeft. No identity field.
+ projectile.active=true;notifyManagedSourceProjectileDefaults(&projectile.obj);projectile.time=2;
+ runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(adds==2&&projectile.active&&spawnTickets==2&&g_managedEntityProjectileSlots[0].generation!=firstGeneration);
  owner.dead=true;runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(kills==2&&killCallbacks==2);owner.dead=false;
- projectile.active=true;++projectile.identity;projectile.owner=1;otherOwner.position={500,100};
+ projectile.active=true;notifyManagedSourceProjectileDefaults(&projectile.obj);projectile.owner=1;otherOwner.position={500,100};
  runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);assert(seenOwnerX==510&&projectile.active);
  // Far from owner: recover position, never chase a cached target indefinitely.
  projectile.position={-5000,-5000};runManagedEntityProjectile(&projectile.obj,fakeGame,1136,true);
@@ -108,7 +118,7 @@ int main() {
  assert(workerTicks>600);
  // Existing native curve motion still runs alongside managed lifecycle/combat.
  configured.enabled=false;otherOwner.active=true;otherOwner.manual=-1;enemy.active=false;
- projectile.active=true;++projectile.identity;projectile.velocity={2,0};projectile.time=18000;
+ projectile.active=true;notifyManagedSourceProjectileDefaults(&projectile.obj);projectile.velocity={2,0};projectile.time=18000;
  g_curveNetMode=&netField;g_curveCount.store(1);g_curveStates[0].type=1136;
  g_curveStates[0].enabled.store(true);g_curveStates[0].turns.fill(20);g_curveByType[1136].store(1);
  g_original=[](Il2CppObject*,const MethodInfo*){++vanillaCalls;};
@@ -117,5 +127,5 @@ int main() {
  assert(queueManagedSourceProjectileCombat(4,&projectile.obj,0,12));
  assert(queueManagedSourceProjectileCombat(5,&projectile.obj,-1,0));
  assert(!queueManagedSourceProjectileCombat(5,&projectile.obj,-1,0));
- std::cout<<"SUMMON_PRODUCTION_HOOK_BUFF_CANCEL_DEATH_RESUMMON_OWNER_FOLLOW_TELEPORT_TARGET_LOS_LEASH_AND_DAMAGE_PRESERVATION_LEGACY_CURVE_CALLBACKS_PASS\n";
+ std::cout<<"SUMMON_NO_IDENTITY_NATIVE_POOL_REUSE_TIMELEFT_REFRESH_SAMPLE_ISOLATION_PRODUCTION_HOOK_BUFF_CANCEL_DEATH_RESUMMON_OWNER_FOLLOW_TELEPORT_TARGET_LOS_LEASH_AND_DAMAGE_PRESERVATION_LEGACY_CURVE_CALLBACKS_PASS\n";
 }

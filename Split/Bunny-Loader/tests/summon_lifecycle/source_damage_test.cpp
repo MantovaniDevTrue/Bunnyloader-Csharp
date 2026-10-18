@@ -18,6 +18,9 @@ Signature parseSignature(std::string_view){return {};}
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature&,bool*,const MethodInfo**){return nullptr;}
 std::string describeException(Il2CppObject*){return "FixtureException";}
 }
+int defaultsNotifications=0,originalDefaultsCalls=0;
+namespace bl::csharp {void notifyManagedSourceProjectileDefaults(Il2CppObject*){++defaultsNotifications;assert(originalDefaultsCalls<defaultsNotifications);}}
+namespace bl::runtime {void finishModProjectile(Il2CppObject*,int){}}
 namespace bl::log {void write(int,const char*,...) {}}
 int main() {
  using namespace bl::csharp;
@@ -40,6 +43,11 @@ int main() {
  projectile.original=0;projectile.damage=0;hkProjectileStatsFromSource(&projectile.obj,nullptr,nullptr);assert(projectile.original==0&&projectile.damage==0);
  projectile.original=99;projectile.damage=0;hkProjectileStatsFromSource(&projectile.obj,&source.obj,nullptr);assert(projectile.original==99&&projectile.damage==0);
  projectile.original=0;projectile.damage=55;projectile.type=1;hkProjectileStatsFromSource(&projectile.obj,&source.obj,nullptr);assert(projectile.original==0&&projectile.damage==55);
+ // Execute the actual native SetDefaults hook: notify before the engine can reset whoAmI,
+ // including transitions from a managed projectile to an unregistered type.
+ g_originalProjectile=[](Il2CppObject*,int32_t,const MethodInfo*){++originalDefaultsCalls;assert(defaultsNotifications==originalDefaultsCalls);};
+ hkProjectileDefaults(&projectile.obj,1,nullptr);
+ assert(defaultsNotifications==1&&originalDefaultsCalls==1);
  // The real publisher must expose one coherent immutable revision to game readers.
  NativeProjectileDefaults initial{};initial.width=1;initial.frames=1;
  publishProjectileDefinition(1136,initial,"fixture/0");

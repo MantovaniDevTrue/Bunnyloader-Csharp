@@ -1,11 +1,19 @@
-# .95.1 — ciclo de vida e combate de summons
+# .95.2 — ciclo de vida e combate de summons
 
-Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando as correções funcionais da `.90.6` contidas na `.94` (a branch `.90.6` não é ancestral desta linha). Bunny `.90.29.95.1-summon-snapshots`, code271; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
+Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando as correções funcionais da `.90.6` contidas na `.94` (a branch `.90.6` não é ancestral desta linha). Bunny `.90.29.95.2-summon-native-lifecycle`, code272; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
+
+## Correção Android .95.2
+
+O relatório do usuário da `.95.1`, gerado em 2026-10-18 19:14, pid4956, demonstrou `Field=identity Expected=Instance:System.Int32 Actual=Missing`. O contrato introduzido na .95 exigia um campo ausente nessa versão Android, recusando o ExampleMod no BindLifecycle. MonoVM foi verificado, mas receitas/tiles/callbacks do mod não terminaram de carregar; os relatórios de hooks e combate pertenciam a outro PID. Isso não valida o ciclo de vida no dispositivo.
+
+A .95.2 elimina toda leitura/resolução de identity. O hook de SetDefaults já instalado no serviço nativo informa a reutilização antes de chamar o original. A identificação usa o slot tipado e validado, a referência do objeto e uma geração própria do runtime. A notificação só acessa o armazenamento na thread que executa a IA, não nas threads de amostras/carregamento. Renovar timeLeft não permite reaplicar o buff. Preserva o dano por origem, os snapshots imutáveis e o protocolo/cache v27. ExampleMod0.1.54 mantém as mesmas fontes C#; não há migração de saves nem mudança de IDs.
+
+Testes novos executam o binder de produção sem identity (e também com um campo identity de outro tipo, que não é utilizado), recusam whoAmI com tipo/storage/offset/limites incorretos e verificam que originalDamage continua obrigatório. Os hooks de produção cobrem a notificação antes do original, reutilização do mesmo objeto/slot/tipo/dono/timeLeft, cancelamento após renovar timeLeft, amostra diferente no mesmo slot e notificação de outra thread. São testes controlados, não execução do Terraria.
 
 ## Correções sistêmicas
 
-- Minions verificam o **dono real** e o buff antes da IA nativa: cancelamento, morte ou dono inativo chamam Projectile.Kill e os hooks existentes; buff só é aplicado na primeira observação de uma nova identity.
-- `timeLeft=2` é renovado com buff ativo; renovar não cria geração nova. Reutilizar slot/objeto com nova identity permite reinvocação.
+- Minions verificam o **dono real** e o buff antes da IA nativa: cancelamento, morte ou dono inativo chamam Projectile.Kill e os hooks existentes; buff só é aplicado na primeira observação de uma instância após SetDefaults nativo.
+- `timeLeft=2` é renovado com buff ativo; renovar não cria geração nova. SetDefaults invalida o estado anterior antes de o motor sobrescrever o slot; reutilizar o mesmo objeto/tipo/dono permite reinvocação. Amostras de conteúdo em outra thread não acessam o estado de gameplay.
 - `BunnyProjectile.MinionMovement` usa BunnyMinionMovement configurável a cada update nativo, corrigindo a inércia originalmente calculada a cada seis updates do worker. Seguir/atacar/retornar, posição relativa ao dono/direção, formação/separação, teleporte, rotação e spriteDirection.
 - CanBeChasedBy/CanHitLine, alvo manual quando campo disponível, limite de afastamento do dono e atualização de posições de alvo entre scans. Friendly apenas quando há alvo no controlador nativo.
 - ApplyStatsFromSource inicializa originalDamage pelo item real; preserva dano escalado e baseline existente. Eliminado fallback que usava o maior dano entre cajados registrados e mascarava a causa do zero.
@@ -33,8 +41,15 @@ Os avisos RecipeCallback de deadline e ScreenFx CPU do relatório `.94` são ár
 3. Expandir armas/projéteis por mecanismos compartilhados (classes de dano, munição/mana, imunidade/colisão, minions/sentries e IA), não por hotfix de item.
 4. Seguir matrizes completas sem perder arquivos; Bunny JS como mecanismo Android, PC/tModLoader como referência comportamental, C# independente como implementação. Sem nova dependência de tModLoader, QuickJS ou shaders neste lote.
 
-## Entrega verificada
+## Histórico da entrega .95.1 — falha de vínculo constatada no Android
 
 Fonte testada: `ea35b7b130487480ae8993d4f7ad3189d83e50af`. [CI39165749967](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749967) e nove suites independentes no mesmo SHA aprovados; assinatura V3 verificada no pipeline. [Release privada .95.1](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39165749967-a1): APK241518449bytes e ExampleMod0.1.54. Checksum do bmod conferido e todas as71fontes C# comparadas byte a byte com o repositorio. Recibo: [csharp-v95-1-ci-2026-10-18.json](validation/csharp-v95-1-ci-2026-10-18.json).
 
-Para o teste de combate, gere **Example Slime** (`ExampleSlimeNPC`) pelo catalogo do ExampleMod. Use ExampleMinionItem, seu buff e a bancada C#. Android/gameplay/ABI real/FPS continuam aguardando validacao do usuario. A .95 anterior permanece como historico experimental; a recomendacao desta entrega e .95.1. O conjunto completo de armas/projeteis permanece aberto.
+Para o teste de combate, gere **Example Slime** (`ExampleSlimeNPC`) pelo catalogo do ExampleMod. Use ExampleMinionItem, seu buff e a bancada C#. Android/gameplay/ABI real/FPS continuam aguardando validacao do usuario. A .95 e a .95.1 permanecem históricas; a .95.1 foi recusada no Android pelo contrato de identity descrito acima. Usar a .95.2 ou posterior para a próxima validação. O conjunto completo de armas/projeteis permanece aberto.
+
+## Como validar a correção no ExampleMod
+
+1. Instalar o APK .95.2 por atualização e manter ExampleMod0.1.54; não apagar saves nem dados.
+2. Abrir o relatório e confirmar `Stage=BindLifecycle Result=Ready InstanceTracking=NativeSetDefaults`, carregamento completo do ExampleMod e ausência do erro identity. Conferir a bancada C#, sua receita do cajado e os conteúdos do mod.
+3. Executar `Documentation/SUMMON_LOADER_V95.md`: ExampleMinionItem, cancelar o buff com uma e várias invocações, reinvocar, acompanhar o jogador, atacar Example Slime, morte/respawn e salvar/sair/reentrar.
+4. Registrar relatório da sessão e resultado de cada passo; os relatórios de hooks/combate só são evidência se o PID corresponder ao jogo atual. FPS permanece sem medição nova.

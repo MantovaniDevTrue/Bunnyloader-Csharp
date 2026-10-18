@@ -126,6 +126,8 @@ struct ManagedProjectileHookStatus {
 };
 
 bool prepareManagedSummonRuntime(std::string* error);
+// Called before native SetDefaults can overwrite a pooled projectile's slot.
+void notifyManagedSourceProjectileDefaults(Il2CppObject* projectile);
 void resetManagedSourceProjectileSlots();
 bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
                                         int npcIndex, int damage);

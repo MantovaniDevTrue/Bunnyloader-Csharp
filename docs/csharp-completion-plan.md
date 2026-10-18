@@ -1,3 +1,5 @@
+> Correção atual .95.2: relatório Android da .95.1 comprovou ausência de Projectile.identity e carga parcial do ExampleMod. Contrato corrigido com ciclo nativo SetDefaults e testes sem esse campo; validar novamente o conjunto no Android. Ver [relatório](csharp-summon-v95.md). Não promove exemplos a completos.
+
 ## Continuidade .95 — summons por mecanismos compartilhados
 
 Ver [csharp-summon-v95.md](csharp-summon-v95.md). .93/.94/.90.6 integradas, cancelamento e dono tratados nativamente, controlador de movimento por update e originalDamage pela origem real. Não conclui Lote 1 nem muda pendências para validadas Android. Guia no ExampleMod0.1.54. Manter os 192 históricos e 206 canônicos.

@@ -15,7 +15,7 @@ struct SummonRuntime {
     Il2CppClass* playerClass=nullptr;
     Il2CppClass* projectileClass=nullptr;
     SummonOwnerFields owner{};
-    int identity=-1, friendly=-1, spriteDirection=-1, originalDamage=-1;
+    int friendly=-1, spriteDirection=-1, originalDamage=-1;
     const MethodInfo* addBuff=nullptr;
     const MethodInfo* kill=nullptr;
     const MethodInfo* canChase=nullptr;
@@ -42,7 +42,6 @@ inline bool prepareSummon(std::string* error) {
        !bindSummonOwnerFields(staged.playerClass,&staged.owner,error)||
        !il2cpp::nativeFieldContract(main,"player","Terraria.Player[]",true,sizeof(void*),&staged.players,nullptr,error)||
        !il2cpp::nativeFieldContract(main,"projectile","Terraria.Projectile[]",true,sizeof(void*),&staged.projectiles,nullptr,error)||
-       !il2cpp::nativeFieldContract(staged.projectileClass,"identity","System.Int32",false,4,nullptr,&staged.identity,error)||
        !il2cpp::nativeFieldContract(staged.projectileClass,"friendly","System.Boolean",false,1,nullptr,&staged.friendly,error)||
        !il2cpp::nativeFieldContract(staged.projectileClass,"spriteDirection","System.Int32",false,4,nullptr,&staged.spriteDirection,error)||
        !il2cpp::nativeFieldContract(staged.projectileClass,"originalDamage","System.Int32",false,4,nullptr,&staged.originalDamage,error))return false;
@@ -70,7 +69,9 @@ inline bool prepareSummon(std::string* error) {
             std::string(staged.addBuff?"AddBuff:Present":"AddBuff:MissingOrWrongSignature")+","+(staged.kill?"Kill:Present":"Kill:MissingOrWrongSignature")+","+
             (staged.canChase?"CanBeChasedBy:Present":"CanBeChasedBy:MissingOrWrongSignature")+","+(staged.canHit?"CanHitLine:Present":"CanHitLine:MissingOrWrongSignature")+" Result=Rejected";return false;
     }
-    staged.ready=true;g_summon=staged;return true;
+    staged.ready=true;g_summon=staged;
+    BL_INFO("[CSharp][Summon] API=BunnyProjectile.Minion Stage=BindLifecycle Result=Ready InstanceTracking=NativeSetDefaults");
+    return true;
 }
 inline Il2CppArray* summonObjects(FieldInfo* field,Il2CppClass* element,size_t maximum) {
     Il2CppArray* array=nullptr;il2cpp::api().field_static_get_value(field,&array);auto& api=il2cpp::api();

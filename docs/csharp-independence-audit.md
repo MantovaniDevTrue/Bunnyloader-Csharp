@@ -1,6 +1,8 @@
+> .95.2: removido contrato incorreto de identity constatado no Android .95.1. A geração é rastreada no hook nativo SetDefaults compartilhado, sem QuickJS. Binding e reutilização testados com providers controlados; Android da correção pendente.
+
 ## Continuidade .95 — ciclo de vida e movimento de summons
 
-`BunnyProjectile.MinionMovement`, buff/dono/identity e ApplyStatsFromSource seguem C# → descritores/MonoVM → núcleo C++ → Terraria, sem executar QuickJS. Tests/summon_lifecycle executa os hooks de produção com providers IL2CPP controlados e BL_HAVE_QUICKJS=0; não comprova a ABI real no Android. C# custom AI continua alternativa explícita ao controlador nativo. Nenhuma independência global nova é inferida para os módulos legados. Ver [csharp-summon-v95.md](csharp-summon-v95.md).
+`BunnyProjectile.MinionMovement`, buff/dono/geração própria por SetDefaults e ApplyStatsFromSource seguem C# → descritores/MonoVM → núcleo C++ → Terraria, sem executar QuickJS. Tests/summon_lifecycle executa os hooks de produção com providers IL2CPP controlados e BL_HAVE_QUICKJS=0; não comprova a ABI real no Android. C# custom AI continua alternativa explícita ao controlador nativo. Nenhuma independência global nova é inferida para os módulos legados. Ver [csharp-summon-v95.md](csharp-summon-v95.md).
 
 # Independencia C# — auditoria e checkpoint .90.29.1
 

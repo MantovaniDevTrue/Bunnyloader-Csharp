@@ -356,7 +356,6 @@ struct ManagedEntityProjectileSlot {
     int generation = 0;
     bool killQueued = false;
     bool spawnPending = false;
-    int identity=-1;
     SummonMovement movement{};
     Slot targetCache{};
     unsigned targetScanTicks = 0;
@@ -367,6 +366,7 @@ struct ManagedEntityProjectileSlot {
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
 FieldInfo* g_managedEntityNetMode = nullptr;
+thread_local bool g_managedProjectileSlotThread = false;
 
 void runManagedEntityProjectile(Il2CppObject* projectile,
                                 const runtime::GameRefs& game, int type,
@@ -381,6 +381,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     int mode = -1;
     il2cpp::api().field_static_get_value(g_managedEntityNetMode, &mode);
     if (mode != 0) return;
+    g_managedProjectileSlotThread = true;
     const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
     const int timeLeft = runtime::field<int>(projectile, game.proj.timeLeft);
     if (slot < 0 || slot >= static_cast<int>(g_managedEntityProjectileSlots.size()) ||
@@ -389,14 +390,13 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     ManagedEntityProjectileSlot& state =
         g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
     const auto policy=nativeManagedProjectilePolicy(type);
-    const int identity=policy.minion&&g_summon.ready?runtime::field<int>(projectile,g_summon.identity):-1;
     const bool firstObserved = state.object != projectile || state.type != type ||
-        state.owner != owner || (policy.minion?identity!=state.identity:timeLeft > state.lastTimeLeft);
+        state.owner != owner || (!policy.minion&&timeLeft > state.lastTimeLeft);
     if (firstObserved) {
         if (g_managedEntityProjectileGeneration <= 0 || g_managedEntityProjectileGeneration==INT32_MAX)
             g_managedEntityProjectileGeneration = 1;
         state={};state.object=projectile;state.type=type;state.owner=owner;state.lastTimeLeft=timeLeft;
-        state.generation=g_managedEntityProjectileGeneration++;state.identity=identity;state.spawnPending=true;
+        state.generation=g_managedEntityProjectileGeneration++;state.spawnPending=true;
         state.movement=nativeManagedMinionMovement(type);
         state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
         nativeManagedProjectileFields(type,&state.gameplay);
@@ -694,6 +694,20 @@ bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
 }
 
 bool prepareManagedSummonRuntime(std::string* error) {return prepareSummon(error)&&prepareHomingTargetRefs(error);}
+
+void notifyManagedSourceProjectileDefaults(Il2CppObject* projectile) {
+    // SetDefaults is the native pool-reuse boundary. Read the previous slot
+    // before the engine resets it; inventory/content samples must not reset it.
+    // Off-thread content samples must not touch gameplay-thread slot storage.
+    // Before the first managed AI there is no tracked instance to invalidate.
+    if(!g_managedProjectileSlotThread)return;
+    const int offset=runtime::game().entity.whoAmI;
+    if(!projectile||offset<static_cast<int>(sizeof(Il2CppObject)))return;
+    const int slot=runtime::field<int>(projectile,offset);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    if(state.object==projectile)state={};
+}
 
 void resetManagedSourceProjectileSlots() {
     g_managedEntityProjectileSlots.fill({});

@@ -2975,7 +2975,8 @@
       ],
       "automatedEvidence": [
         "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
-        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
       ],
       "preservedFeatures": [
         "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
@@ -2996,7 +2997,8 @@
         "tests/projectile_policy/native_policy_test.cpp",
         "tests/summon_lifecycle/runtime_test.cpp",
         "tests/summon_lifecycle/source_damage_test.cpp",
-        "tests/summon_lifecycle/contracts_test.cpp"
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
@@ -3004,7 +3006,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -9742,7 +9746,8 @@
       ],
       "automatedEvidence": [
         "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
-        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
       ],
       "preservedFeatures": [
         "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
@@ -9764,7 +9769,8 @@
         "tests/projectile_policy/native_policy_test.cpp",
         "tests/summon_lifecycle/runtime_test.cpp",
         "tests/summon_lifecycle/source_damage_test.cpp",
-        "tests/summon_lifecycle/contracts_test.cpp"
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
@@ -9772,7 +9778,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -12069,7 +12077,8 @@
       ],
       "automatedEvidence": [
         "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
-        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
       ],
       "preservedFeatures": [
         "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
@@ -12094,7 +12103,8 @@
         "tests/projectile_policy/native_policy_test.cpp",
         "tests/summon_lifecycle/runtime_test.cpp",
         "tests/summon_lifecycle/source_damage_test.cpp",
-        "tests/summon_lifecycle/contracts_test.cpp"
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
@@ -12102,7 +12112,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {

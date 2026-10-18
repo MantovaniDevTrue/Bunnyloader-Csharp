@@ -1,0 +1,21 @@
+{
+  "loaderObserved": "0.1.10.16.90.29.95.1-summon-snapshots",
+  "exampleMod": "0.1.54",
+  "reportedAt": "2026-10-18 19:14 (device time)",
+  "pid": 4956,
+  "device": "Xiaomi 2109119DG Android 14 arm64-v8a",
+  "terraria": "1.4.5.8.6 (301720)",
+  "stage": "BindLifecycle",
+  "class": "ExampleMinion",
+  "field": "identity",
+  "expected": "Instance:System.Int32",
+  "actual": "Missing",
+  "result": "ExampleMod partial load; summon behavior not validated",
+  "mono": "verified result=42",
+  "staleStatusPids": [
+    10452
+  ],
+  "fix": "0.1.10.16.90.29.95.2-summon-native-lifecycle",
+  "fixAndroidValidation": "pending",
+  "fps": "unmeasured"
+}
