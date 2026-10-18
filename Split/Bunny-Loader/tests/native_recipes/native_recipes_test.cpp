@@ -157,8 +157,7 @@ void configure(){
    group->members.assign(values,values+array->length);group->placeholder=values[0];++customRegistrations;return &group->obj;
   }else if(m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
-   if(m->signature=="void Register()")++customRegistrations;
-   else {++customSorts;if(failCustomSort)*ex=&exception;}
+   ++customSorts;if(failCustomSort)*ex=&exception;
   }else if(m->signature=="void .ctor()"){
    auto* r=static_cast<Recipe*>(self);r->result=&makeItem()->obj;r->ingredients=makeArray(wrongArray?&recipeArray:&itemArray,15);
    auto** slots=static_cast<Il2CppObject**>(arrayData(r->ingredients));for(int i=0;i<15;i++)slots[i]=&makeItem()->obj;
