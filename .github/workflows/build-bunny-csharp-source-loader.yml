@@ -16,6 +16,7 @@ on:
     paths:
       - ".github/workflows/build-bunny-csharp-source-loader.yml"
       - ".github/workflows/check-csharp-screenfx-native.yml"
+      - ".github/workflows/check-example-completion.yml"
       - "Split/Bunny-Loader/**"
   push:
     branches:
