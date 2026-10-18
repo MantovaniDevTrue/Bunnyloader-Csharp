@@ -1190,6 +1190,19 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
 
 }
 
+int nativeManagedProjectileFrames(int type) {
+    const auto it = g_projectiles.find(type);
+    return it == g_projectiles.end() ? 1 : it->second.frames;
+}
+
+int nativeManagedMinionBuff(int projectileType) {
+    for (const auto& [type, weapon] : g_weapons) {
+        if (weapon.summon && weapon.shootType == projectileType)
+            return weapon.minionBuffType;
+    }
+    return -1;
+}
+
 bool prepareNativeContent() {
     if (g_ready) return true;
     using namespace bl::il2cpp;

@@ -4,6 +4,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "core/Log.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
@@ -302,6 +303,7 @@ struct ManagedEntityProjectileSlot {
     bool killQueued = false;
     Slot targetCache{};
     unsigned targetScanTicks = 0;
+    int frames = 1;
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
@@ -333,8 +335,61 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         if (g_managedEntityProjectileGeneration <= 0)
             g_managedEntityProjectileGeneration = 1;
         state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
+        state.frames = nativeManagedProjectileFrames(type);
     }
     state.lastTimeLeft = timeLeft;
+    if (firstObserved) {
+        const int minionBuff = nativeManagedMinionBuff(type);
+        if (minionBuff > 0 && owner >= 0 && owner < 255) {
+            static FieldInfo* playerArrayField = nullptr;
+            static const MethodInfo* addBuff = nullptr;
+            static bool attempted = false;
+            if (!attempted) {
+                attempted = true;
+                auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
+                auto* playerClass = il2cpp::findClass({"Terraria", "Player", {}});
+                playerArrayField = mainClass ? il2cpp::findField(mainClass, "player") : nullptr;
+                addBuff = playerClass ? il2cpp::findMethodBySignature(
+                    playerClass, il2cpp::parseSignature("void AddBuff(int type, int time, bool quiet)")) : nullptr;
+                if (addBuff && !il2cpp::api().method_is_instance(addBuff)) addBuff = nullptr;
+                if (!playerArrayField || !addBuff)
+                    BL_WARN("csharp minion: native Player.AddBuff contract unavailable");
+            }
+            Il2CppArray* players = nullptr;
+            if (playerArrayField && addBuff)
+                il2cpp::api().field_static_get_value(playerArrayField, &players);
+            if (players && players->length <= 256 &&
+                static_cast<size_t>(owner) < players->length) {
+                auto* player = static_cast<Il2CppObject**>(arrayData(players))[owner];
+                if (player) {
+                    int32_t buff = minionBuff;
+                    int32_t duration = 2;
+                    uint8_t quiet = 0;
+                    void* arguments[] = {&buff, &duration, &quiet};
+                    Il2CppObject* error = nullptr;
+                    il2cpp::api().runtime_invoke(addBuff, player, arguments, &error);
+                    if (error) BL_WARN("csharp minion: AddBuff threw for buff=%d", buff);
+                }
+            }
+        }
+    }
+    if (applyVelocity && state.frames > 1 && state.frames <= 32) {
+        static int frameOffset = -2;
+        static int frameCounterOffset = -2;
+        if (frameOffset == -2 || frameCounterOffset == -2) {
+            auto* projectileClass = il2cpp::findClass({"Terraria", "Projectile", {}});
+            frameOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "frame") : -1;
+            frameCounterOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "frameCounter") : -1;
+        }
+        if (frameOffset >= 0 && frameCounterOffset >= 0) {
+            int& counter = runtime::field<int32_t>(projectile, frameCounterOffset);
+            if (++counter >= 6) {
+                counter = 0;
+                int& frame = runtime::field<int32_t>(projectile, frameOffset);
+                frame = frame < 0 ? 0 : (frame + 1) % state.frames;
+            }
+        }
+    }
     const TerrariaSnapshot target = captureTerrariaSnapshot(false, false);
     if (!target.ready || target.player.life <= 0) return;
     const Vector2 position = runtime::field<Vector2>(projectile, game.entity.position);

@@ -120,6 +120,8 @@ struct ManagedWeaponEntry {
 bool applyManagedNativeDefaultsBatch(const std::string& modId,
                                      const std::vector<ManagedProjectileEntry>& projectiles,
                                      const std::vector<ManagedWeaponEntry>& weapons);
+int nativeManagedProjectileFrames(int type);
+int nativeManagedMinionBuff(int projectileType);
 
 struct ManagedBuffEntry {
     std::string name;
