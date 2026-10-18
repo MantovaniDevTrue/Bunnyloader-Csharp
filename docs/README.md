@@ -1,47 +1,80 @@
-# Documentacao atual do SDK C#
+# Bunny Loader documentation
 
-- [Comecar e entender a execucao](SDK-CSharp.md)
-- [Plano completo e criterios de conclusao](SDK-ROADMAP.md)
-- [Testes desta etapa e roteiro Android](SDK-VALIDACAO.md)
-- [Referencia publica gerada do SDK compilado](../Split/Bunny-Loader/docs/generated/sdk_public_reference.md)
+Bunny Loader is a mod loader for **Terraria Mobile**: an Android app that
+boots the game and runs mods written in JavaScript inside it, in the
+tModLoader style.
 
-Os documentos abaixo preservam o historico por versao. Menus, limites e
-catalogos antigos podem descrever estados anteriores; para esta branch, consulte
-primeiro os contratos atuais acima. Nao promover uma validacao antiga a todas
-as funcionalidades de um SDK mais recente.
+The documentation has three parts, for three kinds of readers:
 
----
+## For mod makers
 
-# Documentação — Bunny Loader C#
+[**Mod guides**](mods/README.md): from the first hook to a boss with music, in
+reading order.
 
-Esta pasta reúne a documentação **da extensão experimental C#**, sem substituir os [documentos do Bunny Loader base](../Split/Bunny-Loader/docs/README.md).
+0. [How it works: from TL Pro to Bunny Loader](mods/00-como-funciona.md)
+1. [Hooks: changing what the game already has](mods/01-hooks-do-zero.md)
+2. [`ref` and `out`](mods/02-ref-e-out.md)
+3. [Cost and performance](mods/03-custo-e-desempenho.md)
+4. [New content: the ideas](mods/04-conteudo-novo.md)
+5. [Items](mods/05-itens.md)
+6. [Projectiles](mods/06-projeteis.md)
+7. [NPCs: enemies, town NPCs and bosses](mods/07-npcs.md)
+8. [Player and buffs](mods/08-jogador-e-buffs.md)
+9. [Tiles](mods/09-blocos.md)
+10. [Sounds and music](mods/10-sons-e-musica.md)
+11. [Talking between mods](mods/11-conversa-entre-mods.md)
+12. [Globals and the world](mods/12-globais-e-mundo.md)
+13. [The package page](mods/13-pagina-do-pacote.md)
+14. [Mod options](mods/14-opcoes-do-mod.md)
+15. [Damage classes](mods/15-classes-de-dano.md)
+16. [Hits](mods/16-golpes.md)
+17. [Screen effects](mods/17-efeitos-de-tela.md)
+18. [Touch buttons](mods/18-botoes-de-toque.md)
 
-| Documento | Finalidade |
-| --- | --- |
-| [STATUS.md](STATUS.md) | O que realmente foi validado, por versão, e o que está pendente |
-| [Relatório de callbacks por projétil .73](multi-live-projectiles-v73.md) | Android: 985/985 eventos, 879/879 secundários, 0 perdas/falhas; FPS não informado |
-| [Managed Default .74](csharp-managed-default-v74.md) | Roslyn/MonoVM como runtime primário, sem protótipo NativeAOT no boot, legado externo preservado; teste Android pendente |
-| [ExampleModCSharp 0.1.9](../Split/Bunny-Loader/samples/ExampleModCSharp/README.md) | Exemplos reais de 2 armas, 2 projéteis e 2 classes de callbacks; guia atualizado |
-| [managed-live-benchmark-v64.md](managed-live-benchmark-v64.md) | Teste opt-in de 25 mil callbacks reais do MonoVM (.64) |
-| [gameplay-perf-v65.md](gameplay-perf-v65.md) | Medir latência, contagem de callbacks e ritmo de atualização durante gameplay (.65) |
-| [vm-parity-v66.md](vm-parity-v66.md) | Histórico: .66 compilou, mas a chamada do método MonoVM falhou no Android |
-| [vm-parity-v67.md](vm-parity-v67.md) | .67: DLL específica validada no build, mas ausente na pasta do processo Android |
-| [vm-parity-v68.md](vm-parity-v68.md) | .68: paridade matemática confirmada, incluindo repetições no Android |
-| [vm-ai-parity-v69.md](vm-ai-parity-v69.md) | .69: simulações equivalentes de IA de 64 projéteis/NPCs, teste de CPU QuickJS × MonoVM |
-| [gameplay-perf-v70.md](gameplay-perf-v70.md) | .70: percentis de callbacks C# reais, CPU da thread e curvas de projéteis no jogo |
-| [ARQUITETURA.md](ARQUITETURA.md) | MonoVM, Roslyn, host nativo e limites de execução |
-| [mono-auto-live-world-signal-v62.md](mono-auto-live-world-signal-v62.md) | **Teste Android validado .62**: 512 callbacks, 0 falhas, limite controlado |
-| [TESTE-ANDROID-v60.md](TESTE-ANDROID-v60.md) | Protocolo histórico da versão .60 |
-| [ROADMAP.md](ROADMAP.md) | Próximas etapas, sem promessas de compatibilidade não comprovada |
-| [HISTORICO.md](HISTORICO.md) | Linha do tempo das mudanças importantes e referências dos builds |
+[Texture packs](mods/14-pacotes-de-textura.md): replacing sprites with PNGs, no scripts.
 
-### Fontes e documentação técnica já existentes
+## Reference
 
-- [Protótipo de eventos automáticos .60](bunny-csharp-auto-managed-events-v0.1.10.16.60.md)
-- [Teste gerenciado OnHitNPC .59](mono-live-hit-onhit-0.1.10.16.59.md)
-- [Correção do GC da thread Mono](mono-pinned-gc-wait-fix.md)
-- [Compilação Roslyn em worker](bunny-csharp-roslyn-worker-0.1.10.16.md)
-- [Guia Android / Mono ARM64](mono-arm64-build-runbook.md)
-- [ExampleMod C#: início](../Split/Bunny-Loader/samples/ExampleModCSharp/Docs/GettingStarted.md)
+- [Methods by class](referencia/metodos.md): the complete generated index of
+  the JavaScript API, with signatures, inheritance, the base implementation's
+  return value and limits. The [Excel spreadsheet](referencia/metodos.xlsx)
+  and the [CSV](referencia/metodos.csv) let you filter the same records by
+  class and method.
+- [What each class has today](referencia/classes.md): `ModItem`, `ModNPC`,
+  `ModProjectile`, `ModPlayer`, `ModBuff`, `ModTile`... field by field, with
+  the game method behind each one and what is still missing compared to
+  tModLoader.
+- [ModPlayer hooks](referencia/modplayer-hooks.md): contracts for combat,
+  items, jumps, drawing, inventory, saving and networking.
+- [PlayerDrawLayer](referencia/playerdrawlayers.md): custom layers and inserting into the draw cache.
+- [ModSystem hooks](referencia/modsystem-hooks.md): world generation, GenPass steps, updates, lighting and networking.
+- [ModItem use and ammo](referencia/moditem-uso-municao.md): animation, frames, selection, consumption and how the mobile game differs.
+- [ModItem healing](referencia/moditem-cura.md): normal and quick heal, refs, potion delay and composition with ModPlayer.
+- [ModItem combat](referencia/moditem-combate.md): modifiers, permissions,
+  hitbox, PvP, ordering between classes and native filters.
+- [The bridge and `bl`](referencia/ponte-e-bl.md): the syntax for talking to
+  the game and every `bl.*` function.
 
-Em toda a documentação, **implementado**, **CI aprovado** e **confirmado no celular** são estados distintos.
+## For people working on Bunny Loader
+
+[**The native core**](nucleo/README.md): the C++ that runs inside the game.
+
+- [Overview and boot](nucleo/README.md)
+- [Hooks under the hood](nucleo/hooks.md): ShadowHook, the chain, the slots,
+  the dispatcher.
+- [Threads and the JS engine](nucleo/threads-e-motor-js.md): the engine lock,
+  the per-thread stack, `ifBusy`.
+- [The JS ↔ game bridge](nucleo/ponte.md): names, types, structs, objects
+  pinned against the garbage collector.
+- [New content under the hood](nucleo/conteudo.md): per-type tables, compiled
+  limits, saves.
+- [Joining a server](nucleo/multijogador.md): syncing mods and textures from
+  the Host screen, the handshake on join and the automatic return.
+- [Shader research](nucleo/pesquisa-shaders.md): internal investigation notes,
+  with evidence, limitations and next experiments; support not validated yet.
+
+[**History**](historico/README.md): the architecture decisions, the crash
+investigations and the optimization rounds, with the measured data.
+
+The PC tools (fast build, game dump, tests, benchmark) are in
+[`tools/`](../tools/README.md).
