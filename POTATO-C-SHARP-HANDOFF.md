@@ -40,7 +40,7 @@ Comparamos todos os blobs Git da raiz deste projeto exportado (equivalente à pa
 | Acrescentados pelo port (inclui fontes, testes e docs) | 737 |
 | **Arquivos originais faltando em nossa árvore** | **0** |
 
-Os sete arquivos inicialmente faltantes foram copiados de modo byte-idêntico do original: `_icons/launcher/titulo.png` e os arquivos de `tools/tests/research/` e `tools/tests/devarmor/`. A prova caminho-por-caminho está no arquivo [inventário completo](docs/POTATO-UPSTREAM-FILE-MAP.json). Cada arquivo modificado registra SHA do original e do nosso lado. Esse mapa é um diff **de conteúdo**, não uma afirmação de compatibilidade em execução.
+Os sete arquivos inicialmente faltantes foram copiados de modo byte-idêntico do original: `_icons/launcher/titulo.png` e os arquivos de `tools/tests/research/` e `tools/tests/devarmor/`. A prova caminho-por-caminho está no arquivo [inventário completo](docs/POTATO-UPSTREAM-FILE-MAP.json). As contagens representam a árvore Android sem contabilizar o próprio JSON do inventário, que é gerado posteriormente; assim a lista pode ser reproduzida sem autorreferência. Cada arquivo modificado registra SHA do original e do nosso lado. Esse mapa é um diff **de conteúdo**, não uma afirmação de compatibilidade em execução.
 
 ## 4. Locais EXATOS no GitHub do Potato
 
