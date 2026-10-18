@@ -1,5 +1,8 @@
 # Bunny Loader C#
 
+> **Entrega para o Potato / integração no Bunny original:** [POTATO-C-SHARP-HANDOFF.md](Split/Bunny-Loader/POTATO-C-SHARP-HANDOFF.md) — fonte Android completa em [Split/Bunny-Loader](Split/Bunny-Loader/), comparação exata com upstream em [POTATO-UPSTREAM-FILE-MAP.json](docs/POTATO-UPSTREAM-FILE-MAP.json). Esta branch usa o código C# .95.2 (CI Android concluído, teste de gameplay no aparelho ainda pendente). A `main` do repositório representa um checkpoint anterior e **não é a referência desta entrega**.
+
+
 Suporte experimental a mods C# para Terraria Mobile, baseado no
 [Bunny Loader de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader).
 Os mods-fonte usam `.cs`, Roslyn e MonoVM, com integracao nativa C++/IL2CPP.
