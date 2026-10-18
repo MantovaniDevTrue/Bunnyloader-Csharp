@@ -35,33 +35,6 @@ public struct BunnyProjectileAiState
     public bool HasTarget => TargetNpc >= 0;
 }
 
-public static class BunnyMinionSteering
-{
-    public static bool FollowOrAttack(ref BunnyProjectileAiState state)
-    {
-        float dx = (state.HasTarget ? state.TargetX : state.PlayerX - 42f) - state.X;
-        float dy = (state.HasTarget ? state.TargetY : state.PlayerY - 46f) - state.Y;
-        float squared = dx * dx + dy * dy;
-        if (!float.IsFinite(squared) || squared < 0.01f)
-            return false;
-        if (!state.HasTarget && squared < 20f * 20f)
-        {
-            state.VelocityX *= 0.82f;
-            state.VelocityY *= 0.82f;
-            return true;
-        }
-        float distance = System.MathF.Sqrt(squared);
-        float speed = state.HasTarget ? 10f : squared > 600f * 600f ? 12f : 6f;
-        float inertia = state.HasTarget ? 12f : 18f;
-        float vx = (state.VelocityX * (inertia - 1f) + dx * (speed / distance)) / inertia;
-        float vy = (state.VelocityY * (inertia - 1f) + dy * (speed / distance)) / inertia;
-        if (!float.IsFinite(vx) || !float.IsFinite(vy)) return false;
-        state.VelocityX = vx;
-        state.VelocityY = vy;
-        return true;
-    }
-}
-
 public abstract class BunnyProjectile
 {
     public string DisplayName { get; set; } = "";
@@ -70,6 +43,12 @@ public abstract class BunnyProjectile
     public int Height { get; set; } = 8;
     public int AiStyle { get; set; } = 1;
     public int Frames { get; set; } = 1;
+    /// <summary>Game update ticks per sprite frame; native animation, no Mono call per frame.</summary>
+    public int AnimationFrameTicks { get; set; } = 6;
+    /// <summary>Native nearest-hostile search radius, in pixels, 1..4000; only used by minions.</summary>
+    public float MinionTargetRange { get; set; } = 700f;
+    /// <summary>Native updates between target scans, 1..120. Cached targets are refreshed at this cadence.</summary>
+    public int MinionScanTicks { get; set; } = 8;
     public bool Friendly { get; set; } = true;
     public bool Minion { get; set; }
     public float MinionSlots { get; set; }

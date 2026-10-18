@@ -22,6 +22,7 @@ on:
       - codex/example-completion-v90-28
       - feat/csharp-loader-foundation-v91
       - feat/csharp-owned-recipe-loader-v92
+      - feat/csharp-owned-loaders-v93
       - fix/csharp-90-3-recipegroup-return-contract
       - feat/csharp-90-4-projectile-minion-contract
       - feat/csharp-90-5-native-minion-targeting-lot
@@ -234,7 +235,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath","feat/csharp-loader-foundation-v91","feat/csharp-owned-recipe-loader-v92"]'), github.head_ref)) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath","feat/csharp-loader-foundation-v91","feat/csharp-owned-recipe-loader-v92","feat/csharp-owned-loaders-v93"]'), github.head_ref)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -1017,6 +1018,7 @@ jobs:
         run: |
           set -euo pipefail
           dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          bash tests/projectile_policy/run.sh
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_wire_test.cpp -o "$RUNNER_TEMP/basic-wire-test"
           "$RUNNER_TEMP/basic-wire-test" build/basic-items/source-runtime-values.txt
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_source_parser_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o "$RUNNER_TEMP/basic-parser-test"
@@ -1077,7 +1079,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.51
+      - name: Package independent ExampleMod CSharp 0.1.52
         shell: bash
         run: |
           set -euo pipefail
@@ -1086,17 +1088,17 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.51.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.52.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
-              assert manifest["version"]=="0.1.51"
+              assert manifest["version"]=="0.1.52"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
@@ -1106,6 +1108,10 @@ jobs:
               assert "content/Documentation/RECIPE_LOADER_V91.md" in names
               assert "content/Documentation/OWNED_RECIPE_LOADER_V92.md" in names
               assert "content/Content/Recipes/ExampleCraftingReward.cs" in names
+              assert "content/Content/Projectiles/ExampleMinion.cs" in names
+              assert "content/Content/Buffs/ExampleMinionBuff.cs" in names
+              assert "content/Content/Items/Weapons/Summon/ExampleMinionItem.cs" in names
+              assert "content/Documentation/PROJECTILE_LOADER_V93.md" in names
               for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
                   assert "content/Content/Items/" + file in names
               for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
@@ -1188,8 +1194,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod.sha256"
 
       - name: Package standalone native minion CSharp probe
         shell: bash
@@ -2195,7 +2201,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.51.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.52.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2230,14 +2236,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.51
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.52
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.51.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.51.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.52.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.52.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
@@ -2248,7 +2254,7 @@ jobs:
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
   report-private-csharp-apk:
     needs: build
-    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' || github.ref == 'refs/heads/feat/csharp-loader-foundation-v91' || github.ref == 'refs/heads/feat/csharp-owned-recipe-loader-v92') }}
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' || github.ref == 'refs/heads/feat/csharp-loader-foundation-v91' || github.ref == 'refs/heads/feat/csharp-owned-recipe-loader-v92' || github.ref == 'refs/heads/feat/csharp-owned-loaders-v93') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

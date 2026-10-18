@@ -1058,6 +1058,29 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyMinionMovement",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping)"
+      ],
+      "properties": [
+        "BunnyMinionMovement Default { get; }",
+        "float AttackInertia { get; }",
+        "float AttackSpeed { get; }",
+        "float CatchUpDistance { get; }",
+        "float CatchUpSpeed { get; }",
+        "float FollowInertia { get; }",
+        "float FollowOffsetX { get; }",
+        "float FollowOffsetY { get; }",
+        "float FollowSpeed { get; }",
+        "float IdleDamping { get; }",
+        "float IdleDistance { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyMinionSteering",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1067,6 +1090,10 @@
       "methods": [
         {
           "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state, BunnyMinionMovement movement)",
           "execution": "managed_helper"
         }
       ]
@@ -1433,9 +1460,12 @@
         "bool Minion { get; set; }",
         "bool TileCollide { get; set; }",
         "float MinionSlots { get; set; }",
+        "float MinionTargetRange { get; set; }",
         "int AiStyle { get; set; }",
+        "int AnimationFrameTicks { get; set; }",
         "int Frames { get; set; }",
         "int Height { get; set; }",
+        "int MinionScanTicks { get; set; }",
         "int Penetrate { get; set; }",
         "int TimeLeft { get; set; }",
         "int Width { get; set; }",

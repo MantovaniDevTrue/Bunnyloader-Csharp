@@ -844,21 +844,33 @@
       "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
     },
     "Content/Buffs/ExampleMinionBuff.js": {
-      "status": "Não implementado",
-      "cSharp": [],
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs"
+      ],
       "missingFeatures": [
-        "Arquivo C# do buff e contador no tooltip.",
-        "Minion/cajado com IA, alvo manual, colisão, animação, iluminação, summon slots e ciclo de vida."
+        "CachedProjectileCounterBuffTextHandler (texto de contagem) ainda pendente."
       ],
-      "preservedFeatures": [],
+      "preservedFeatures": [
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+      ],
       "nativeDependencies": [
-        "Implementar sobre o serviço nativo de conteúdo; as flags de BunnyBuff já estão disponíveis."
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
       ],
-      "automatedTests": [],
-      "terrariaTests": [
-        "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/entity_source/Program.cs",
+        "tests/projectile_policy/native_policy_test.cpp"
       ],
-      "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
+      "manualTests": [
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+      ],
+      "automatedEvidence": [
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+      ],
+      "deviceEvidence": []
     },
     "Content/Buffs/ExampleMountBuff.js": {
       "status": "Não implementado",
@@ -891,6 +903,66 @@
         "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
       ],
       "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
+    },
+    "Content/Projectiles/ExampleMinion.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs"
+      ],
+      "missingFeatures": [
+        "Teleporte, separacao entre minions, alvo manual, linha de visao e iluminacao originais ainda pendentes.",
+        "Rotacao e movimento dependentes da direcao do dono ainda diferem do original."
+      ],
+      "preservedFeatures": [
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/entity_source/Program.cs",
+        "tests/projectile_policy/native_policy_test.cpp"
+      ],
+      "manualTests": [
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+      ],
+      "automatedEvidence": [
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+      ],
+      "deviceEvidence": []
+    },
+    "Content/Items/Weapons/Summon/ExampleMinionItem.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs"
+      ],
+      "missingFeatures": [
+        "Mana, knockback, raridade, valor e SoundID.Item44 originais ainda precisam de API/bridge.",
+        "Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod."
+      ],
+      "preservedFeatures": [
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/entity_source/Program.cs",
+        "tests/projectile_policy/native_policy_test.cpp"
+      ],
+      "manualTests": [
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+      ],
+      "automatedEvidence": [
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+      ],
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {

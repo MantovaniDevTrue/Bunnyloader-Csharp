@@ -47,6 +47,7 @@ struct NpcTargetRefs {
     int32_t friendly = -1;
     int32_t dontTakeDamage = -1;
     int32_t life = -1;
+    Il2CppClass* npcClass=nullptr;
     bool ready = false;
 };
 
@@ -69,17 +70,23 @@ bool prepareHomingTargetRefs(std::string* error) {
         return false;
     }
     NpcTargetRefs refs{};
-    refs.npcArray = il2cpp::findField(main, "npc");
+    std::string contract;
+    if(!il2cpp::nativeFieldContract(main,"npc","Terraria.NPC[]",true,sizeof(void*),&refs.npcArray,nullptr,&contract)||
+       !il2cpp::nativeFieldContract(npc,"active","System.Boolean",false,1,nullptr,&refs.active,&contract)||
+       !il2cpp::nativeFieldContract(npc,"friendly","System.Boolean",false,1,nullptr,&refs.friendly,&contract)||
+       !il2cpp::nativeFieldContract(npc,"life","System.Int32",false,4,nullptr,&refs.life,&contract)) {
+        *error="API=BunnyProjectile.MinionTargetRange Stage=BindTargetFields Result=Disabled "+contract;return false;
+    }
+    if(il2cpp::findField(npc,"dontTakeDamage")&&
+       !il2cpp::nativeFieldContract(npc,"dontTakeDamage","System.Boolean",false,1,nullptr,&refs.dontTakeDamage,&contract)) {
+        *error="API=BunnyProjectile.MinionTargetRange Stage=BindOptionalTargetField Result=Disabled "+contract;return false;
+    }
+    auto& api=il2cpp::api();
+    if(!api.class_get_rank||!api.class_get_element_class){*error="API=BunnyProjectile.MinionTargetRange Stage=BindTargetArray Reason=RequiredExportMissing";return false;}
     refs.myPlayer = il2cpp::findField(main, "myPlayer");
     refs.netMode = il2cpp::findField(main, "netMode");
-    refs.localPlayerGetter = il2cpp::api().class_get_method_from_name(main, "get_LocalPlayer", 0);
+    refs.localPlayerGetter = api.class_get_method_from_name(main, "get_LocalPlayer", 0);
     refs.gameMenu = il2cpp::findField(main, "gameMenu");
-    refs.active = il2cpp::fieldOffset(npc, "active");
-    refs.friendly = il2cpp::fieldOffset(npc, "friendly");
-    refs.life = il2cpp::fieldOffset(npc, "life");
-    if (FieldInfo* damageFlag = il2cpp::findField(npc, "dontTakeDamage"))
-        refs.dontTakeDamage = static_cast<int32_t>(
-            il2cpp::api().field_get_offset(damageFlag));
 
     std::string missing;
     auto require = [&missing](bool present, const char* field) {
@@ -99,7 +106,7 @@ bool prepareHomingTargetRefs(std::string* error) {
         BL_ERROR("csharp homing: %s", error->c_str());
         return false;
     }
-    refs.ready = true;
+    refs.npcClass=npc;refs.ready = true;
     BL_INFO("csharp homing: refs NPC ok; dontTakeDamage=%s myPlayer=%s LocalPlayer=%s netMode=%s",
             refs.dontTakeDamage >= 0 ? "presente" : "ausente",
             refs.myPlayer ? "presente" : "ausente",
@@ -114,7 +121,9 @@ bool refreshTarget(Slot& entry, const Vector2& position, float maxDistanceSquare
     entry.target = -1;
     Il2CppArray* npcs = nullptr;
     il2cpp::api().field_static_get_value(g_targets.npcArray, &npcs);
-    if (!npcs || npcs->length < 1 || npcs->length > 1024) return false;
+    if (!npcs || npcs->length < 1 || npcs->length > 1024 ||
+        il2cpp::api().class_get_rank(npcs->obj.klass)!=1 ||
+        il2cpp::api().class_get_element_class(npcs->obj.klass)!=g_targets.npcClass)return false;
     auto** contents = static_cast<Il2CppObject**>(arrayData(npcs));
     float bestDistance = maxDistanceSquared;
     const size_t limit = std::min(static_cast<size_t>(npcs->length), size_t{200});
@@ -305,6 +314,8 @@ struct ManagedEntityProjectileSlot {
     Slot targetCache{};
     unsigned targetScanTicks = 0;
     int frames = 1;
+    ProjectilePolicy policy{};
+    ProjectileGameplayFields gameplay{};
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
@@ -336,7 +347,8 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         if (g_managedEntityProjectileGeneration <= 0)
             g_managedEntityProjectileGeneration = 1;
         state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
-        state.frames = nativeManagedProjectileFrames(type);
+        state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
+        nativeManagedProjectileFields(type,&state.gameplay);
     }
     state.lastTimeLeft = timeLeft;
     if (firstObserved) {
@@ -375,21 +387,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         }
     }
     if (applyVelocity && state.frames > 1 && state.frames <= 32) {
-        static int frameOffset = -2;
-        static int frameCounterOffset = -2;
-        if (frameOffset == -2 || frameCounterOffset == -2) {
-            auto* projectileClass = il2cpp::findClass({"Terraria", "Projectile", {}});
-            frameOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "frame") : -1;
-            frameCounterOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "frameCounter") : -1;
-        }
-        if (frameOffset >= 0 && frameCounterOffset >= 0) {
-            int& counter = runtime::field<int32_t>(projectile, frameCounterOffset);
-            if (++counter >= 6) {
-                counter = 0;
-                int& frame = runtime::field<int32_t>(projectile, frameOffset);
-                frame = frame < 0 ? 0 : (frame + 1) % state.frames;
-            }
-        }
+        advanceProjectileFrame(projectile,state.gameplay,state.policy);
     }
     const TerrariaSnapshot target = captureTerrariaSnapshot(false, false);
     if (!target.ready || target.player.life <= 0) return;
@@ -402,12 +400,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     int npcTarget = -1;
     float npcX = 0.f;
     float npcY = 0.f;
-    static int minionOffset = -2;
-    if (minionOffset == -2) {
-        auto* projectileClass = il2cpp::findClass({"Terraria", "Projectile", {}});
-        minionOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "minion") : -1;
-    }
-    if (minionOffset >= 0 && runtime::field<uint8_t>(projectile, minionOffset)) {
+    if(state.policy.minion&&state.gameplay.minion>=0) {
         static bool scanUnavailable = false;
         if (!g_targets.ready && !scanUnavailable) {
             std::string reason;
@@ -417,9 +410,9 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
             }
         }
         if (g_targets.ready) {
-            if (firstObserved || ++state.targetScanTicks >= 8) {
+            if (firstObserved || ++state.targetScanTicks >= static_cast<unsigned>(state.policy.minionScanTicks)) {
                 state.targetScanTicks = 0;
-                refreshTarget(state.targetCache, {cx, cy}, 700.f * 700.f);
+                refreshTarget(state.targetCache, {cx, cy}, state.policy.minionTargetRange*state.policy.minionTargetRange);
             }
             npcTarget = state.targetCache.target;
             if (npcTarget >= 0) {

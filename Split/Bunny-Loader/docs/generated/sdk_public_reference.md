@@ -593,6 +593,25 @@ bool IsDisposed { get; }
 | --- | --- |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
+## BunnyLoader.Source.BunnyMinionMovement
+
+class; base: `System.Object`.
+
+```csharp
+BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping)
+BunnyMinionMovement Default { get; }
+float AttackInertia { get; }
+float AttackSpeed { get; }
+float CatchUpDistance { get; }
+float CatchUpSpeed { get; }
+float FollowInertia { get; }
+float FollowOffsetX { get; }
+float FollowOffsetY { get; }
+float FollowSpeed { get; }
+float IdleDamping { get; }
+float IdleDistance { get; }
+```
+
 ## BunnyLoader.Source.BunnyMinionSteering
 
 abstract class; base: `System.Object`.
@@ -600,6 +619,7 @@ abstract class; base: `System.Object`.
 | Method | Execution |
 | --- | --- |
 | `static bool FollowOrAttack(ref BunnyProjectileAiState state)` | managed_helper |
+| `static bool FollowOrAttack(ref BunnyProjectileAiState state, BunnyMinionMovement movement)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyNPC
 
@@ -790,9 +810,12 @@ bool IgnoreWater { get; set; }
 bool Minion { get; set; }
 bool TileCollide { get; set; }
 float MinionSlots { get; set; }
+float MinionTargetRange { get; set; }
 int AiStyle { get; set; }
+int AnimationFrameTicks { get; set; }
 int Frames { get; set; }
 int Height { get; set; }
+int MinionScanTicks { get; set; }
 int Penetrate { get; set; }
 int TimeLeft { get; set; }
 int Width { get; set; }

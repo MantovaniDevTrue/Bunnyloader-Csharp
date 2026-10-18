@@ -58,7 +58,7 @@ As APIs indicadas já possuem caminhos reais, mas ainda precisam de comparação
 | `PlayerUpdateHooks` | BunnyPlayer | Parcial |
 | `PlayerWorldHooks` | — | Auditoria pendente |
 | `PrefixLoader` | BunnyPrefix | Parcial |
-| `ProjectileLoader` | BunnyProjectile | Parcial |
+| `ProjectileLoader` | BunnyProjectile, BunnyMinionSteering, BunnyMinionMovement | Parcial |
 | `PvpItemNetwork` | — | Auditoria pendente |
 | `PylonLoader` | — | Auditoria pendente |
 | `RarityLoader` | — | Auditoria pendente |

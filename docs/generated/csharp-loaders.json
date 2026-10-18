@@ -908,11 +908,14 @@
         "SendExtraAI"
       ],
       "publicApis": [
-        "BunnyProjectile"
+        "BunnyProjectile",
+        "BunnyMinionSteering",
+        "BunnyMinionMovement"
       ],
       "nativeEvidence": [
         "experiments/csharp/NativeContent.cpp",
-        "experiments/csharp/ManagedRuntime.cpp"
+        "experiments/csharp/ManagedRuntime.cpp",
+        "experiments/csharp/ProjectilePolicy.h"
       ],
       "state": "Parcial",
       "verifiedParity": false,

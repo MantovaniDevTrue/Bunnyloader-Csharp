@@ -11,6 +11,16 @@ void Reject(Action f) {try{f();}catch(ArgumentException){return;}catch(InvalidOp
 Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
+Check("minion.configurable-movement-and-finite-state",()=>{
+ var custom=new BunnyMinionMovement(attackSpeed:16f,attackInertia:1f,followOffsetX:0f,followOffsetY:0f);
+ var state=new BunnyProjectileAiState{TargetNpc=7,TargetX=100f,TargetY=0f};
+ Equal(true,BunnyMinionSteering.FollowOrAttack(ref state,custom));Equal(16f,state.VelocityX);Equal(0f,state.VelocityY);
+ state=new BunnyProjectileAiState{TargetNpc=-1,VelocityX=10f,VelocityY=-10f};
+ Equal(true,BunnyMinionSteering.FollowOrAttack(ref state,custom));Equal(8.2f,state.VelocityX);Equal(-8.2f,state.VelocityY);
+ state.TargetNpc=7;state.TargetX=float.NaN;var previous=state;Equal(false,BunnyMinionSteering.FollowOrAttack(ref state,custom));Equal(previous.VelocityX,state.VelocityX);
+ Reject(()=>new BunnyMinionMovement(attackSpeed:float.NaN));Reject(()=>new BunnyMinionMovement(followInertia:0));
+ Reject(()=>new BunnyMinionMovement(idleDistance:700,catchUpDistance:600));Reject(()=>new BunnyMinionMovement(idleDamping:2));
+});
 Check("recipe.reject-invalid",()=>{var item=new ExampleItem();item.SetDefaults();Reject(()=>item.CreateRecipe(0));Reject(()=>item.CreateRecipe().AddIngredient(0));Reject(()=>item.CreateRecipe().AddIngredient("bad,name"));Reject(()=>item.CreateRecipe().AddTile(754));Reject(()=>item.CreateRecipe().Register());Reject(()=>item.CreateRecipe().AddTile(18).AddTile(16));});
 Check("recipe.once-and-limits",()=>{var item=new ExampleItem();item.SetDefaults();var r=item.CreateRecipe().AddIngredient(2);r.Register();Reject(()=>r.Register());Reject(()=>r.AddIngredient(3));var many=item.CreateRecipe();for(int i=0;i<15;i++)many.AddIngredient(2);Reject(()=>many.AddIngredient(2));});
 Check("recipe.native-group-public-sdk",()=>{
@@ -85,6 +95,18 @@ try {
  foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks"})
   File.Copy(Path.Combine(source,name+".dll"),Path.Combine(runtime,name+".dll"));
  File.Copy(typeof(BunnyItem).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
+ Check("projectile.native-tuning-real-compiler-wire-and-invalid-values",()=>{
+  string root=Path.Combine(scratch,"projectile-policy");Directory.CreateDirectory(Path.Combine(root,"content"));
+  string file=Path.Combine(root,"content","Policy.cs"),output=Path.Combine(scratch,"policy.dll"),diag=Path.Combine(scratch,"policy.txt");
+  string source="using BunnyLoader.Source;public sealed class PolicyProjectile:BunnyProjectile{public override void SetDefaults(){DisplayName=\"Policy\";Texture=\"policy.png\";Frames=4;AnimationFrameTicks=5;MinionScanTicks=3;MinionTargetRange=950f;}}";
+  File.WriteAllText(file,source);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var row=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t');Equal(16,row.Length);Equal("950",row[15]);
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/projectile-policy-values.txt",true);
+  foreach(var mutation in new[]{("AnimationFrameTicks=5","AnimationFrameTicks=0"),("MinionScanTicks=3","MinionScanTicks=121"),("MinionTargetRange=950f","MinionTargetRange=float.NaN")}) {
+   File.WriteAllText(file,source.Replace(mutation.Item1,mutation.Item2));Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+   string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=PolicyProjectile")||!error.Contains("Reason=OutOfRange"))throw new Exception(error);
+  }
+ });
  Check("recipe.owned-loader-independent-source-and-callbacks",()=>{
   string output=Path.Combine(scratch,"owned.dll"),diag=Path.Combine(scratch,"owned.txt");
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
@@ -186,6 +208,13 @@ try {
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
+  var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
+  Equal(16,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);
+  Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  foreach(var invalid in new[]{0,121}) {
+   Reject(()=>new BunnyMinionMovement(attackSpeed:invalid));
+  }
   var benchRecipes=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t",StringComparison.Ordinal)).Split('\t')[19];
   Equal("1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2;1,-1,hExampleMaterials~416E79204578616D706C65206D6174657269616C~mExampleItem+mExampleSoul:10,gWood:10@7",benchRecipes);
   var assets=new List<object>();

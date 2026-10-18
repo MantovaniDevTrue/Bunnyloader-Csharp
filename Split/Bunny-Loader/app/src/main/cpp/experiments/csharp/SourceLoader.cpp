@@ -202,6 +202,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
 
+        if(projectile&&(key=="AnimationFrameTicks"||key=="MinionScanTicks"||key=="MinionTargetRange"))continue;
         if (buff && (key == "MinionProjectile" || key == "DefenseMultiplierPercent")) continue;  // validado na linha V2 apos o Mono
         if (buff && (key == "Description" || key == "IsDebuff" ||
                      key == "NoSave" || key == "NoTimeDisplay" || key == "NurseCannotRemove")) {
@@ -810,7 +811,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13)) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 16)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -842,13 +843,19 @@ bool applyManagedSourceDefaults(
                 record.values.minion = minion == 1;
                 record.values.tileCollide = collide == 1;
                 record.values.ignoreWater = ignoreWater == 1;
-                if (fields.size() == 13 &&
+                if (fields.size() >= 13 &&
                     (!integer(fields[12], &record.values.frames) ||
                      record.values.frames < 1 || record.values.frames > 32)) {
                     *error = "Frames invalidos do projetil: " + record.name;
                     return false;
                 }
             }
+            ProjectilePolicy policy{record.values.frames,record.values.animationFrameTicks,record.values.minionScanTicks,record.values.minionTargetRange,record.values.minion};
+            std::string detail;
+            if((fields.size()==16&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
+                *error="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+record.name+" "+detail;return false;
+            }
+            record.values.animationFrameTicks=policy.animationFrameTicks;record.values.minionScanTicks=policy.minionScanTicks;record.values.minionTargetRange=policy.minionTargetRange;
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
         } else if (fields[0] == "WEAPON" && (fields.size() == 6 || fields.size() == 9)) {
@@ -1078,8 +1085,8 @@ bool applyManagedSourceDefaults(
         return false;
     }
     if ((!projectiles.empty() || !weapons.empty()) &&
-        !applyManagedNativeDefaultsBatch(modId, projectiles, weapons)) {
-        *error = "Falha ao validar ou aplicar lote SetDefaults ao Terraria";
+        !applyManagedNativeDefaultsBatch(modId, projectiles, weapons,error)) {
+        if(error->empty())*error = "[CSharp][ERROR][NativeContent] Mod="+modId+" API=BunnyProjectile/BunnyWeapon Stage=ApplyDefaults Result=Rejected Reason=BatchIdentityOrValueContractMismatch";
         return false;
     }
     if (!applyManagedNativePlayerDefaultsBatch(modId, accessories, players)) {

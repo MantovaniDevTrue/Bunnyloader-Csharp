@@ -1,3 +1,5 @@
+> Atualização .93: veja PROJECTILE_LOADER_V93.md para testar minion, buff, cajado, políticas e regressão das receitas, todos no ExampleMod principal.
+
 > Novos testes .92: [receitas de arma/acessório/poção na bancada C#](OWNED_RECIPE_LOADER_V92.md).
 
 # Lote .90.28 — roteiro Terraria Android

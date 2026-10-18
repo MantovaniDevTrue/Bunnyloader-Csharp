@@ -564,6 +564,12 @@ public static class CompiledAssemblyProbe
             int frames = Value<int>(projectile, "Frames");
             if (frames < 1 || frames > 32)
                 throw new InvalidOperationException("Invalid C# projectile sprite frame count: " + name);
+            int frameTicks=Value<int>(projectile,"AnimationFrameTicks");
+            int scanTicks=Value<int>(projectile,"MinionScanTicks");
+            float range=Value<float>(projectile,"MinionTargetRange");
+            bool customPolicy=frameTicks!=6||scanTicks!=8||range!=700f;
+            if(frameTicks<1||frameTicks>120||scanTicks<1||scanTicks>120||!float.IsFinite(range)||range<1||range>4000)
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" Stage=SetDefaults Expected=AnimationFrameTicks1..120,MinionScanTicks1..120,MinionTargetRange1..4000 Actual="+frameTicks+","+scanTicks+","+range+" Reason=OutOfRange");
             float minionSlots = Value<float>(projectile, "MinionSlots");
             bool tileCollide = Value<bool>(projectile, "TileCollide");
             bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
@@ -577,12 +583,13 @@ public static class CompiledAssemblyProbe
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
                 Value<bool>(projectile, "Friendly") ? "1" : "0");
-            if (minion || !tileCollide || !ignoreWater || frames > 1)
+            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy)
             {
                 entry += "\t" + (minion ? "1" : "0") + "\t" +
                     minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
                     (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
-                if (frames > 1) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+                if (frames > 1 || customPolicy) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+                if(customPolicy)entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
             }
             lines.Add(entry);
         }

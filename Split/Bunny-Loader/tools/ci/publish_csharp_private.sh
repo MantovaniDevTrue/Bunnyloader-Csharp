@@ -173,6 +173,23 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-owned-recipe-loader-v92" ]; then
   TITLE="EXPERIMENTAL — Bunny loaders próprios C# | $VERSION"
   NOTES="Loader de receitas próprio para BunnyItem, BunnyWeapon, BunnyAccessory e BunnyBuffPotion. ExampleMod 0.1.51 com três receitas na bancada CSharp e callback de recompensa compartilhado. Serviço nativo independente de QuickJS; contratos host e nove regressões exigidos no mesmo SHA. Gameplay, desempenho e compatibilidade IL2CPP no Android ainda aguardam validação. O conjunto de loaders e o Lote A NÃO estão concluídos. Source ${GITHUB_SHA}; run https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-owned-loaders-v93" ]; then
+  for attempt in $(seq 1 40); do
+    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/v93-workflows.json"
+    set +e
+    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v93-workflows.json" "$GITHUB_SHA" --current
+    DELIVERY_STATUS=$?
+    set -e
+    if [ "$DELIVERY_STATUS" = 0 ]; then break; fi
+    if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 40 ]; then
+      echo "::error::Independent same-commit regressions not approved; delivery refused"
+      exit 1
+    fi
+    sleep 15
+  done
+  TITLE="EXPERIMENTAL — Bunny CSharp recipes + projectile policies | $VERSION"
+  NOTES="Integra a build .90.5 (alvos/combate minion) com os loaders proprios de receitas .92, preservando os dois historicos. .93 / ExampleMod 0.1.52: cajado, buff e minion no pacote principal, receita na bancada CSharp; animacao, alcance/frequencia de busca e movimento configuraveis; contratos nativos de tipo/tamanho/offset. Nove regressoes no mesmo SHA exigidas. Port de minion ainda parcial: faltam LOS, alvo manual, teleporte, separacao, luz e atributos originais do cajado. Gameplay/FPS Android ainda nao validados. Source ${GITHUB_SHA}; run https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+fi
 if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-4-projectile-minion-contract" ]; then
   NOTES="EXPERIMENTAL native CSharp minion/summon SDK .90.4: own MonoVM source API, IL2CPP minion flags, weapon buff and managed follow AI. Standalone NativeMinionCSharpProbe 0.1.0 included. Legacy ExampleMod CSharp 0.1.49 and Lights 0.4.2.3 unchanged. Device and FPS validation pending. SHA ${GITHUB_SHA}; CI https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
@@ -183,8 +200,8 @@ fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod.sha256"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.52.bmod.sha256"
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )
