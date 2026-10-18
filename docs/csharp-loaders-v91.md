@@ -68,8 +68,43 @@ capacidade de 192 conteúdos, assets e 33 exemplos do escopo A.
 A verificação privada possui sete cenários de execução com CLI controlada,
 incluindo origem errada, assets ausentes/duplicados, destino público e falha do
 build. O audit de loaders só comprova inventário, não comportamento no Terraria.
-CI Android/nove suítes: registrar resultado e SHA após execução. Android .91,
+CI Android, assinatura/entrega e nove suítes aprovaram o SHA
+`3126971483569438060020cd26d1f691f018b46c`, no [run 39136870790](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870790).
+O novo job de verificação privada também passou. [Evidência estruturada](validation/csharp-v91-ci-2026-10-18.json).
+APK e bmod: [release privada experimental](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39136870790-a1).
+O bmod publicado foi baixado: SHA-256 e todos os 67 fontes correspondem ao repositório.
+Android .91,
 multiplayer, cold compile <=5s, desempenho e FPS ainda aguardam medição real.
 
 Guia do aparelho: `Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Documentation/RECIPE_LOADER_V91.md`.
 Não afirmar que todos os loaders ou o Lote A estão concluídos.
+
+## Revisão do PR91 encontrado durante a execução
+
+O PR91 (`feat/csharp-90-4-projectile-minion-contract`, snapshot
+`d34bd4a9074e29ebd6bdb640ac6780f770078199`) amplia propriedades de summon/minion
+e preserva o formato legado. Ainda não foi consolidado nesta branch. A revisão
+estática encontrou dois pontos para tratar na integração, sem atribuir sucesso
+Android aos testes Roslyn:
+
+1. Em `SourceLoader.cpp`, `fields()` reconhece os novos campos do projétil,
+   mas não trata os literais de arma `Summon`, `MinionBuff` e `MinionBuffTime`.
+   O caminho padrão recusa propriedades desconhecidas antes da aplicação V2.
+   Adicionar teste do percurso fonte → reserva → defaults; o smoke do probe não
+   exercita sozinho esse pré-registro nativo.
+2. Em `NativeContent.cpp`, os offsets novos `summon`, `minion` e `minionSlots`
+   são obtidos por `fieldOffset` e utilizados para escritas de uint8/float.
+   Conferir metadata, armazenamento, largura e bounds por FieldContract antes
+   de publicar os defaults. Offset não negativo não comprova contrato de memória.
+
+Também permanecem pendentes IA original, alvo/LOS, separação/retorno, contador,
+flags de contato/sacrifício, animação/luz e exemplo editável de minion/cajado.
+Reutilizar o trabalho do PR91 após os contratos; não recriar essas propriedades
+nem apresentá-las como um minion completo apenas por registrar os defaults.
+
+Outra lacuna confirmada no SDK atual: CreateRecipe/AddRecipes pertencem a
+BunnyItem. BunnyWeapon, BunnyAccessory e BunnyBuffPotion ainda precisam de um
+contrato compartilhado de dono de receitas e do transporte nativo correspondente.
+Não documentar os novos hooks como disponíveis nesses tipos sem essa integração.
+A futura extração deve preservar wire legado, ID/índice por dono, validação da
+pilha real e fila nativa independente, com teste de produção dos tipos especializados.

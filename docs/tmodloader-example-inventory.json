@@ -2341,7 +2341,7 @@
         "ci": "Aprovado: build 39080974810 e nove suites no SHA b22962178a6beafa34301caa89a0bced46a598bb; fixture C# compilado executado no pump sem QuickJS",
         "android": "Validacao do fluxo entregue relatada pelo usuario em 18/10/2026, .89 / ExampleMod 0.1.48, pid4488; variantes/consumos e reentrada nao discriminados individualmente",
         "v90": "26 verificações gerenciadas e contratos nativos no host; CI e Android pendentes; arquivo continua Parcial",
-        "v91": "29 verificações gerenciadas no host; contratos nativos preservados; CI/Android pendentes; arquivo permanece Parcial"
+        "v91": "29 verificações gerenciadas e contratos nativos no host; build 39136870790 e nove suítes aprovados no SHA 3126971483569438060020cd26d1f691f018b46c; Android pendente, arquivo Parcial"
       },
       "evidence": [
         "docs/csharp-native-recipe-groups-v89.md",

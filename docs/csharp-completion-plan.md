@@ -1,5 +1,12 @@
 # Plano global de conclusao do ExampleMod C#
 
+> Retomada atual: branch `feat/csharp-loader-foundation-v91`, PR92, derivada da
+> .90.3.1/PR90. Runtime `.90.29.91`, ExampleMod 0.1.50. Ver
+> [relatório atual](csharp-loaders-v91.md) e [evidência CI](validation/csharp-v91-ci-2026-10-18.json).
+> As seções anteriores de progresso abaixo são histórico; bancada, armaduras,
+> equipamentos e receitas já existentes devem ser preservados. Todos os loaders
+> continuam no escopo; .91 é experimental e ainda aguarda gameplay Android.
+
 ## Referencias e regra de conclusao
 
 Base estavel atual: Bunny .90.28.4 / ExampleMod 0.1.34, relatada pelo usuario
@@ -293,3 +300,5 @@ ExampleMod 0.1.50 mostra a bancada C# com o comportamento separado e fonte edit�
 A .91 ainda é experimental e requer Android; o conjunto inteiro permanece aberto.
 Prosseguir nas pendências explícitas de buffs/minions/Blocky/montarias/receitas e
 nas dependências dos demais loaders, sem recriar sistemas estáveis.
+
+Checkpoint de entrega .91: runtime `3126971483569438060020cd26d1f691f018b46c`, Android [39136870790](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870790), nove suítes do mesmo SHA, assinatura e verificação de entrega privada aprovadas. [Registro](validation/csharp-v91-ci-2026-10-18.json). O .bmod remoto possui os mesmos 67 fontes editáveis e SHA-256 conferido. A validação de gameplay Android e a conclusão dos loaders continuam pendentes. O commit seguinte de documentação não modifica o APK nem o pacote.
