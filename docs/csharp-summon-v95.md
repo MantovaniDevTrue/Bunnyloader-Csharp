@@ -53,3 +53,7 @@ Para o teste de combate, gere **Example Slime** (`ExampleSlimeNPC`) pelo catalog
 2. Abrir o relatório e confirmar `Stage=BindLifecycle Result=Ready InstanceTracking=NativeSetDefaults`, carregamento completo do ExampleMod e ausência do erro identity. Conferir a bancada C#, sua receita do cajado e os conteúdos do mod.
 3. Executar `Documentation/SUMMON_LOADER_V95.md`: ExampleMinionItem, cancelar o buff com uma e várias invocações, reinvocar, acompanhar o jogador, atacar Example Slime, morte/respawn e salvar/sair/reentrar.
 4. Registrar relatório da sessão e resultado de cada passo; os relatórios de hooks/combate só são evidência se o PID corresponder ao jogo atual. FPS permanece sem medição nova.
+
+## Entrega .95.2 verificada
+
+Fonte `018b477a5a90115f399aed57ff84811c020d7a3f`; [run39171952411](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39171952411) e nove suítes independentes push no mesmo SHA aprovados. Build Android, assinatura V3 e job de verificação da publicação privada aprovados. [Release experimental .95.2](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39171952411-a1): APK241516501bytes; ExampleMod0.1.54, 190649bytes. Hash do bmod conferido e todas as71fontes comparadas byte a byte. O fixture de runtime passou também com ASan/UBSan no host. [Recibo](validation/csharp-v95-2-ci-2026-10-18.json). Aguardando novo relatório Android, sem certificação de gameplay/FPS.
