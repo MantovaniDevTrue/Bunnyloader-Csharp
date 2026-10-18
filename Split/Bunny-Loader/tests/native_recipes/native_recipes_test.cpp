@@ -154,7 +154,7 @@ void configure(){
   if(m->signature=="RecipeGroup Register(string, string, int[])") {
    auto* array=static_cast<Il2CppArray*>(args[2]);auto* group=new NativeGroup{{&groupClass,nullptr},0,{}};allocated.push_back(group);
    assert(array&&array->obj.klass==&intArray&&array->length>0);auto* values=static_cast<int*>(arrayData(array));
-   group->members.assign(values,values+array->length);group->placeholder=values[0];
+   group->members.assign(values,values+array->length);group->placeholder=values[0];++customRegistrations;return &group->obj;
   }else if(m->signature=="void Register()"||m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
    if(m->signature=="void Register()")++customRegistrations;
