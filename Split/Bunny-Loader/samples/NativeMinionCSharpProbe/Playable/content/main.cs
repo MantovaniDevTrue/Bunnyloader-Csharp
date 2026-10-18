@@ -15,6 +15,7 @@ public sealed class NativeMinionProjectile : BunnyProjectile
         AiStyle = 0;
         Friendly = true;
         Minion = true;
+        MinionContactDamage = true;
         MinionSlots = 1f;
         TileCollide = false;
         IgnoreWater = true;

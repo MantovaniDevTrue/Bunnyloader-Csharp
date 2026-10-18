@@ -808,6 +808,7 @@ abstract class; base: `System.Object`.
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }
+bool MinionContactDamage { get; set; }
 bool TileCollide { get; set; }
 float MinionSlots { get; set; }
 float MinionTargetRange { get; set; }

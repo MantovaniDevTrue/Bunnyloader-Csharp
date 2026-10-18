@@ -84,6 +84,7 @@ struct ManagedProjectileDefaults {
     int timeLeft = 0;
     bool friendly = true;
     bool minion = false;
+    bool minionContactDamage = false;
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
@@ -130,6 +131,8 @@ int nativeManagedProjectileFrames(int type);
 ProjectilePolicy nativeManagedProjectilePolicy(int type);
 bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields);
 int nativeManagedMinionBuff(int projectileType);
+int nativeManagedMinionConfiguredDamage(int projectileType);
+bool nativeManagedMinionContactEnabled(int projectileType);
 
 struct ManagedBuffEntry {
     std::string name;

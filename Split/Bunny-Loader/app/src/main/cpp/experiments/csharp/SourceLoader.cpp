@@ -241,7 +241,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
         if (potion && key == "Buff") { *shoot = value; continue; }
-        if (projectile && (key == "Minion" || key == "TileCollide" || key == "IgnoreWater")) {
+        if (projectile && (key == "Minion" || key == "MinionContactDamage" || key == "TileCollide" || key == "IgnoreWater")) {
             if (value != "true" && value != "false") {
                 *error = type.name + ": valor booleano invalido em " + key;
                 return false;
@@ -811,7 +811,8 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 16)) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
+                 fields.size() == 16 || fields.size() == 17)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -852,10 +853,19 @@ bool applyManagedSourceDefaults(
             }
             ProjectilePolicy policy{record.values.frames,record.values.animationFrameTicks,record.values.minionScanTicks,record.values.minionTargetRange,record.values.minion};
             std::string detail;
-            if((fields.size()==16&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
+            if(((fields.size()==16||fields.size()==17)&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
                 *error="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+record.name+" "+detail;return false;
             }
             record.values.animationFrameTicks=policy.animationFrameTicks;record.values.minionScanTicks=policy.minionScanTicks;record.values.minionTargetRange=policy.minionTargetRange;
+            if (fields.size() == 14 || fields.size() == 17) {
+                int contact = 0;
+                const auto& value = fields.back();
+                if (!integer(value, &contact) || contact != 1 || !record.values.minion) {
+                    *error = "MinionContactDamage invalido: " + record.name;
+                    return false;
+                }
+                record.values.minionContactDamage = true;
+            }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
         } else if (fields[0] == "WEAPON" && (fields.size() == 6 || fields.size() == 9)) {
