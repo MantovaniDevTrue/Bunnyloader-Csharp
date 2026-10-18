@@ -104,7 +104,7 @@ void configure(){
    "void UpdateWhichItemsAreMaterials()","void UpdateWhichItemsAreCrafted()","void UpdateRecipeSets()","void FixItemsAfterRecipesAreAdded()"})
    methods.emplace(s,MethodInfo{s,std::string(s)=="void .ctor()"||std::string(s)=="void SetDefaults(int Type, ItemVariant variant)"||std::string(s)=="void SetCraftingStation(int tileType)"});
  methods.emplace("void .ctor(string groupDescriptorKey, int[] validItems)",MethodInfo{"void .ctor(string groupDescriptorKey, int[] validItems)",true});
- methods.emplace("void Register()",MethodInfo{"void Register()",true});
+ methods.emplace("RecipeGroup Register(string, string, int[])",MethodInfo{"RecipeGroup Register(string, string, int[])",false});
  methods.emplace("void SortDecraftingEntries()",MethodInfo{"void SortDecraftingEntries()",true});
  methods.emplace("int GetPlaceholderItemType()",MethodInfo{"int GetPlaceholderItemType()",true});
  methods.emplace("void RequireGroup(RecipeGroup group)",MethodInfo{"void RequireGroup(RecipeGroup group)",true});
