@@ -146,6 +146,10 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]
   TITLE="EXPERIMENTAL — CSharp minion native combat and animated summon | $VERSION"
   NOTES="Native CSharp summon .90.5 (MonoVM) with player/minion buff spawn, hostile-target packet, four-frame minion sprites, own C# steering class and real ExampleMinion visual assets. ExampleMod CSharp 0.1.49, recipe tests and Lights 0.4.2.3 preserved. Source-only NativeMinionCSharpProbe v0.1.1. Android gameplay, damage and 60 FPS REQUIRE testing. Source ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-6-minion-contact-buff-fix" ]; then
+  TITLE="EXPERIMENTAL — Native CSharp summon contact damage and Android buff | $VERSION"
+  NOTES="Native CSharp summon .90.6: fixed the Terraria Android Player.AddBuff 3rd parameter fromNetPvP; added independent BunnyProjectile.MinionContactDamage SDK property, compiled wire, native projectile contact gateway (projPet), minion slot registration and diagnostics; example minion probe 0.1.2. Existing ExampleMod CSharp 0.1.49, recipes and Lights 0.4.2.3 preserved. Android gameplay/damage/FPS still require testing on device. Source ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
@@ -164,6 +168,12 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]
   RELEASE_ASSETS+=(
     "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod"
     "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod.sha256"
+  )
+fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-6-minion-contact-buff-fix" ]; then
+  RELEASE_ASSETS+=(
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.2.bmod"
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.2.bmod.sha256"
   )
 fi
 if [ "$BUNNY_POLICY_LIGHTS" = "true" ]; then
