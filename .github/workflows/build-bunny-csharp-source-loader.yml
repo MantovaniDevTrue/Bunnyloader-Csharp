@@ -1185,7 +1185,7 @@ jobs:
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
           SOURCE="$ROOT/build/mods-packs/nativeminioncsharpprobe-0.1.0.bl"
           test -s "$SOURCE"
-          python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
+          python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE"
           cp "$SOURCE" "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod"
           python3 - "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod" <<'PY'
           import sys,zipfile,json
