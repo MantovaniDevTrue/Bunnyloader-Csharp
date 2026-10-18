@@ -220,6 +220,17 @@ int main(int argc,char** argv){
   assert(rejected.error.find("Stage=ResolveRecipeGroup")!=std::string::npos&&roots.empty()&&numRecipes==1&&commits==0);
   std::cout<<"CUSTOM_GROUP_MISSING_STATIC_REGISTER_FAIL_CLOSED_PASS\n";return 0;
  }
+ if(mode=="--custom-void-register") {
+  methods.erase("int Register()");
+  methods.emplace("void Register()",MethodInfo{"void Register()",true});
+  numRecipes=1;auto grouped=request("CustomBench");
+  RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
+  ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
+  auto result=installNativeRecipe(grouped);
+  assert(result.index==1&&customRegistrations==1&&customSorts==1&&commits==1);
+  assert(roots.size()==1&&numRecipes==2);
+  std::cout<<"CUSTOM_GROUP_INSTANCE_VOID_REGISTER_PASS\n";return 0;
+ }
  if(mode=="--custom-groups") {
   numRecipes=1;auto grouped=request("CustomBench");
   RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
