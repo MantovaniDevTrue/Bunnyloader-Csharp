@@ -351,9 +351,7 @@
       "name": "BunnyLoader.Source.BunnyCraftContext",
       "kind": "class",
       "baseType": "System.Object",
-      "constructors": [
-        "BunnyCraftContext()"
-      ],
+      "constructors": [],
       "properties": [
         "bool InDesert { get; }",
         "bool InSnow { get; }",

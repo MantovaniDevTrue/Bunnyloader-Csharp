@@ -198,7 +198,6 @@ Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC
 class; base: `System.Object`.
 
 ```csharp
-BunnyCraftContext()
 bool InDesert { get; }
 bool InSnow { get; }
 bool IsDay { get; }

@@ -96,14 +96,17 @@ std::string snapshot(Il2CppObject* player,int result,int type,int amount,bool qu
         std::to_string(result)+","+std::to_string(type)+","+std::to_string(amount)+","+std::to_string(available)+",0,0";
 }
 void diagnose(const Policy& p,int kind,const std::string& reason) {
-    static std::map<std::string,std::chrono::steady_clock::time_point> next;
+    struct Repeated {std::chrono::steady_clock::time_point next{};uint64_t suppressed=0;};
+    static std::map<std::string,Repeated> repeated;
     const auto key=p.request.key+":"+std::to_string(kind);const auto now=std::chrono::steady_clock::now();
-    if(now<next[key])return;
-    next[key]=now+std::chrono::seconds(5);
+    auto& state=repeated[key];
+    if(now<state.next){++state.suppressed;return;}
+    const auto suppressed=state.suppressed;state.suppressed=0;state.next=now+std::chrono::seconds(5);
     const bool failure=reason.rfind("ERROR|",0)==0||reason.rfind("Invalid",0)==0||reason.rfind("GrantDependencyMissing",0)==0;
     bl::log::write(failure?ANDROID_LOG_ERROR:ANDROID_LOG_WARN,
-        "[CSharp][%s][RecipeCallback] Mod=%s Class=%s File=%s Recipe=%s Stage=Invoke Kind=%d Result=Fallback Detail=%s",
-        failure?"ERROR":"WARN",p.request.mod.c_str(),p.request.name.c_str(),p.request.source.c_str(),p.request.key.c_str(),kind,reason.c_str());
+        "[CSharp][%s][RecipeCallback] Mod=%s Class=%s File=%s Recipe=%s Stage=Invoke Kind=%d Result=Fallback SuppressedSinceLast=%llu Detail=%s",
+        failure?"ERROR":"WARN",p.request.mod.c_str(),p.request.name.c_str(),p.request.source.c_str(),p.request.key.c_str(),kind,
+        static_cast<unsigned long long>(suppressed),reason.c_str());
 }
 bool call(const Policy& policy,int kind,Il2CppObject* player,int type,int amount,bool quick,std::string* output,int budget=3000,int available=0) {
     std::string assembly;{std::lock_guard lock(assemblyMutex);auto it=assemblies.find(policy.request.mod);if(it!=assemblies.end())assembly=it->second;}
@@ -138,7 +141,7 @@ int discount(Il2CppObject* recipe,Il2CppObject* player,void* entry,int original)
         type=reinterpret_cast<int(*)(Il2CppObject*,const MethodInfo*)>(il2cpp::methodPointer(refs.placeholder))(group,refs.placeholder);}
     int owned=0;
     if(!refs.entryValue)owned=reinterpret_cast<int(*)(void*,const MethodInfo*)>(il2cpp::methodPointer(refs.owned))(entry,refs.owned);
-    else if(refs.entrySize==8){Entry8 value{};std::memcpy(&value,entry,8);owned=reinterpret_cast<int(*)(Entry8,const MethodInfo*)>(il2cpp::methodPointer(refs.owned))(value,refs.owned);}
+    else if(refs.entrySize<=8){Entry8 value{};std::memcpy(&value,entry,8);owned=reinterpret_cast<int(*)(Entry8,const MethodInfo*)>(il2cpp::methodPointer(refs.owned))(value,refs.owned);}
     else {Entry16 value{};std::memcpy(&value,entry,16);owned=reinterpret_cast<int(*)(Entry16,const MethodInfo*)>(il2cpp::methodPointer(refs.owned))(value,refs.owned);}
     const int amount=static_cast<int>(std::clamp<int64_t>(static_cast<int64_t>(stack)-original,0,stack)),limit=std::max(stack,owned);std::string output;
     if(!call(it->second,1,player,type,amount,false,&output,3000,limit))return original;
@@ -216,8 +219,24 @@ bool prepareNativeRecipeCallbacks(int mask,std::string* error){
         refs.entrySize=refs.entryValue?static_cast<size_t>(a.class_value_size(refs.entry,&alignment)):a.class_instance_size(refs.entry);
         if(refs.entryValue){
             il2cpp::ValueLayout layout;
-            if((refs.entrySize!=8&&refs.entrySize!=16)||alignment>8||!il2cpp::resolveValueLayout(refs.entry,&layout,error)){
-                *error="Type=RequiredItemEntry Expected=ReferenceOrIntegerAggregate8Or16 ActualBytes="+std::to_string(refs.entrySize)+" Reason=UnsupportedAbi";return false;}
+            if((refs.entrySize!=8&&refs.entrySize!=12&&refs.entrySize!=16)||alignment>8||!il2cpp::resolveValueLayout(refs.entry,&layout,error)){
+                *error="Type=RequiredItemEntry Expected=ReferenceOrIntegerAggregate8Or12Or16 ActualBytes="+std::to_string(refs.entrySize)+" Reason=UnsupportedAbi";return false;}
+            // Integer aggregates use general-purpose registers. Reject floating/HFA layouts.
+            void* cursor=nullptr;
+            while(auto* f=a.class_get_fields(refs.entry,&cursor)) {
+                if(a.field_get_flags(f)&0x10u)continue;
+                auto* cls=a.class_from_il2cpp_type(a.field_get_type(f));
+                if(!cls){*error="Type=RequiredItemEntry Reason=MissingFieldType";return false;}
+                if(a.class_is_valuetype(cls)) {
+                    const char* ns=a.class_get_namespace(cls),*name=a.class_get_name(cls);
+                    if(!ns||!name||std::strcmp(ns,"System")||
+                       (std::strcmp(name,"Int32")&&std::strcmp(name,"UInt32")&&std::strcmp(name,"Int16")&&std::strcmp(name,"UInt16")&&
+                        std::strcmp(name,"Byte")&&std::strcmp(name,"SByte")&&std::strcmp(name,"Boolean")&&std::strcmp(name,"Int64")&&std::strcmp(name,"UInt64")&&
+                        std::strcmp(name,"IntPtr")&&std::strcmp(name,"UIntPtr"))) {
+                        *error="Type=RequiredItemEntry Expected=IntegerAggregate ActualFieldType="+std::string(name?name:"Missing")+" Reason=UnsupportedAggregateAbi";return false;
+                    }
+                }
+            }
             for(const auto& member: {std::pair{"stack",&refs.entryStack},std::pair{"itemIdOrRecipeGroup",&refs.entryType}}){
                 auto* f=il2cpp::findField(refs.entry,member.first);auto* cls=f?a.class_from_il2cpp_type(a.field_get_type(f)):nullptr;size_t offset=0;
                 if(!f||(a.field_get_flags(f)&0x10u)||!cls||std::strcmp(a.class_get_name(cls),"Int32")||
@@ -235,7 +254,7 @@ bool prepareNativeRecipeCallbacks(int mask,std::string* error){
         if(!refs.isGroup||!refs.group||!refs.placeholder||!refs.owned||!consume)return false;
         bool installed=false;
         if(!refs.entryValue)installed=hook::install(consume,hkConsumeRef,&originalConsumeRef);
-        else if(refs.entrySize==8)installed=hook::install(consume,hkConsume8,&originalConsume8);
+        else if(refs.entrySize<=8)installed=hook::install(consume,hkConsume8,&originalConsume8);
         else installed=hook::install(consume,hkConsume16,&originalConsume16);
         if(!installed){*error="Hook=GetIngredientCraftingDiscount Reason=HookInstallFailed";return false;}refs.consume=true;
     }

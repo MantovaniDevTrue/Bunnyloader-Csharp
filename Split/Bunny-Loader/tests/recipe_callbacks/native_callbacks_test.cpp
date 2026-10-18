@@ -14,7 +14,10 @@ struct FieldInfo {std::string name;Il2CppType type;size_t offset=0;uint32_t flag
 struct MethodInfo {void* pointer=nullptr;std::string signature;bool instance=false;};
 struct Player {Il2CppObject obj;int life=100,max=200;bool desert=true,water=false,snow=false;Il2CppArray* adjacent=nullptr;};
 struct Entry {Il2CppObject obj;int type=22,stack=20;};
-Il2CppClass ushortClass{"System","UInt16",2,true},integer{"System","Int32",4,true},booleanClass{"System","Boolean",1,true},
+struct RawEntry8{int type=22,stack=20;};
+struct RawEntry12{int type=22,stack=20,tail=123;};
+struct RawEntry16{int type=22,stack=20,tail=123,pad=456;};
+Il2CppClass floatClass{"System","Single",4,true},ushortClass{"System","UInt16",2,true},integer{"System","Int32",4,true},booleanClass{"System","Boolean",1,true},
     mainClass{"Terraria","Main"},recipeClass{"Terraria","Recipe",sizeof(Il2CppObject)},
     playerClass{"Terraria","Player",sizeof(Player)},itemClass{"Terraria","Item",sizeof(Il2CppObject)},
     entryClass{"Terraria","RequiredItemEntry",sizeof(Entry)},groupClass{"Terraria","RecipeGroup",sizeof(Il2CppObject)},
@@ -54,6 +57,12 @@ bool invokeManagedRecipe(const std::string& mod,const std::string&,const std::st
 void originalFind(bool,const MethodInfo*){++findCalls;}
 void originalCraft(Il2CppObject*,Il2CppObject*,bool,const MethodInfo*){++craftCalls;}
 int originalDiscount(Il2CppObject*,Il2CppObject*,void*,const MethodInfo*){return 5;}
+int originalDiscount8(Il2CppObject*,Il2CppObject*,RawEntry8 e,const MethodInfo*){assert(e.type==22&&e.stack==20);return 5;}
+int originalDiscount12(Il2CppObject*,Il2CppObject*,RawEntry12 e,const MethodInfo*){assert(e.type==22&&e.stack==20&&e.tail==123);return 5;}
+int originalDiscount16(Il2CppObject*,Il2CppObject*,RawEntry16 e,const MethodInfo*){assert(e.type==22&&e.stack==20&&e.tail==123&&e.pad==456);return 5;}
+int owned8(RawEntry8 e,const MethodInfo*){assert(e.stack==20);return 64;}
+int owned12(RawEntry12 e,const MethodInfo*){assert(e.tail==123);return 64;}
+int owned16(RawEntry16 e,const MethodInfo*){assert(e.pad==456);return 64;}
 bool isGroup(void*,const MethodInfo*){return false;}
 Il2CppObject* group(void*,const MethodInfo*){return nullptr;}
 int placeholder(Il2CppObject*,const MethodInfo*){return 9;}
@@ -83,7 +92,12 @@ void setup(){
  instance.class_get_name=[](Il2CppClass* cls){return cls->name.c_str();};instance.class_get_namespace=[](Il2CppClass* cls){return cls->ns.c_str();};
  instance.field_get_flags=[](FieldInfo* f){return f->flags;};instance.field_get_offset=[](FieldInfo* f){return f->offset;};
  instance.class_is_valuetype=[](const Il2CppClass* c){return c->value;};instance.class_value_size=[](Il2CppClass* c,uint32_t* align){*align=4;return static_cast<int>(c->size);};
- instance.class_instance_size=[](Il2CppClass* c){return c->size;};
+ instance.class_instance_size=[](Il2CppClass* c){return c->value?static_cast<uint32_t>(sizeof(Il2CppObject))+c->size:c->size;};
+ instance.class_get_fields=[](Il2CppClass* cls,void** cursor)->FieldInfo* {
+    size_t index=reinterpret_cast<uintptr_t>(*cursor);
+    for(;index<fields.size();++index)if(fields[index].name.rfind(cls->name+".",0)==0){*cursor=reinterpret_cast<void*>(index+1);return &fields[index];}
+    return nullptr;
+ };
  instance.class_get_rank=[](const Il2CppClass* c){return c->element?1:0;};instance.class_get_element_class=[](Il2CppClass* c){return c->element;};
  instance.object_get_class=[](Il2CppObject* o){return o->klass;};
  instance.method_is_instance=[](const MethodInfo* m){return m->instance;};
@@ -99,6 +113,31 @@ void setup(){
 void resetAvailable(){availableCount=4;int data[]={10,11,12,13};std::memcpy(arrayData(available),data,sizeof data);}
 int main(int argc,char** argv){
  setup();std::string error;const std::string mode=argc>1?argv[1]:"--callbacks";
+ if(mode.rfind("--value",0)==0||mode=="--bad-aggregate") {
+    const bool boxed=mode.find("boxed")!=std::string::npos;
+    const int size=mode.find("12")!=std::string::npos?12:mode.find("16")!=std::string::npos||mode=="--bad-aggregate"?16:8;
+    entryClass.value=true;entryClass.size=size;
+    for(auto& f:fields)if(f.name=="RequiredItemEntry.stack")f.offset=4+(boxed?sizeof(Il2CppObject):0);
+      else if(f.name=="RequiredItemEntry.itemIdOrRecipeGroup")f.offset=boxed?sizeof(Il2CppObject):0;
+    if(size>=12)fields.push_back({"RequiredItemEntry.tail",{mode=="--bad-aggregate"?&floatClass:&integer},8+(boxed?sizeof(Il2CppObject):0)});
+    if(size==16)fields.push_back({"RequiredItemEntry.pad",{&integer},12+(boxed?sizeof(Il2CppObject):0)});
+    methods.at("int GetIngredientCraftingDiscount(Player player, Recipe.RequiredItemEntry req)").pointer=
+        size==8?reinterpret_cast<void*>(originalDiscount8):size==12?reinterpret_cast<void*>(originalDiscount12):reinterpret_cast<void*>(originalDiscount16);
+    methods.at("int GetAvailableItemCount(Recipe.RequiredItemEntry item)").pointer=
+        size==8?reinterpret_cast<void*>(owned8):size==12?reinterpret_cast<void*>(owned12):reinterpret_cast<void*>(owned16);
+    if(mode=="--bad-aggregate") {
+        assert(!bl::csharp::prepareNativeRecipeCallbacks(2,&error)&&error.find("UnsupportedAggregateAbi")!=std::string::npos&&hooks.empty());
+        std::cout<<"NATIVE_RECIPE_FLOATING_AGGREGATE_REJECTION_PASS\n";return 0;
+    }
+    assert(bl::csharp::prepareNativeRecipeCallbacks(2,&error));
+    bl::runtime::NativeRecipeRequest policy;policy.key="mod/Bench#0";policy.mod="mod";policy.name="Bench";policy.result=6196;policy.callbacks=2;
+    bl::csharp::bindNativeRecipeAssembly("mod","test.dll");bl::csharp::trackNativeRecipeCallbacks(policy,&recipe,11);
+    auto* hook=hooks.at("int GetIngredientCraftingDiscount(Player player, Recipe.RequiredItemEntry req)");
+    if(size==8)assert((reinterpret_cast<int(*)(Il2CppObject*,Il2CppObject*,RawEntry8,const MethodInfo*)>(hook)(&recipe,&player.obj,RawEntry8{},nullptr)==20));
+    else if(size==12)assert((reinterpret_cast<int(*)(Il2CppObject*,Il2CppObject*,RawEntry12,const MethodInfo*)>(hook)(&recipe,&player.obj,RawEntry12{},nullptr)==20));
+    else assert((reinterpret_cast<int(*)(Il2CppObject*,Il2CppObject*,RawEntry16,const MethodInfo*)>(hook)(&recipe,&player.obj,RawEntry16{},nullptr)==20));
+    std::cout<<"NATIVE_RECIPE_REQUIRED_ENTRY_VALUE_ABI_PASS "<<mode<<'\n';return 0;
+ }
  if(mode=="--wrong-type"){fields[6].type.cls=&booleanClass;assert(!bl::csharp::prepareNativeRecipeCallbacks(7,&error)&&error.find("NativeTypeOrStorageMismatch")!=std::string::npos&&hooks.empty());std::cout<<"RECIPE_CALLBACK_WRONG_TYPE_REJECTED_PASS\n";return 0;}
  if(mode=="--wrong-offset"){fields[5].offset=sizeof(Player)+4;assert(!bl::csharp::prepareNativeRecipeCallbacks(7,&error)&&error.find("InvalidFieldBounds")!=std::string::npos&&hooks.empty());std::cout<<"RECIPE_CALLBACK_WRONG_OFFSET_REJECTED_PASS\n";return 0;}
  bl::runtime::NativeRecipeRequest waiting;waiting.callbacks=7;

@@ -11,6 +11,7 @@ namespace BunnyLoader.Source;
 /// <summary>Snapshot copied on the Terraria thread; no live native pointers escape to MonoVM.</summary>
 public sealed class BunnyCraftContext
 {
+    internal BunnyCraftContext() { }
     public int CurrentLife { get; internal set; }
     public int MaxLife { get; internal set; }
     public bool IsDay { get; internal set; }
