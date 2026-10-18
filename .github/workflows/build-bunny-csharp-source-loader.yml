@@ -2211,7 +2211,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.52.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.53.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2253,8 +2253,8 @@ jobs:
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.52.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.52.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.53.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.53.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
