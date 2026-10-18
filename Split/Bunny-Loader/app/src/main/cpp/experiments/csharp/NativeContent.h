@@ -109,6 +109,10 @@ struct ManagedWeaponEntry {
     std::string name;
     int type = -1;
     int shootType = -1;
+    bool summon = false;
+    std::string minionBuffName;
+    int minionBuffType = -1;
+    int minionBuffTime = 0;
     ManagedWeaponDefaults values;
 };
 
