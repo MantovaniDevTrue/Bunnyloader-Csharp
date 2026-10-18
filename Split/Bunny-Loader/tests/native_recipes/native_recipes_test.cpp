@@ -41,7 +41,8 @@ std::map<unsigned,Il2CppObject*> roots;
 unsigned nextRoot=1;int numRecipes=0,maxRecipes=16,lookups=0,commits=0,barriers=0;
 Il2CppObject* current=nullptr;Il2CppArray* table=nullptr;
 bool failDefaults=false,failAdd=false,failLookup=false,wrongArray=false,failedAllocation=false;
-bool failGroup=false,failPlaceholder=false,wrongGroupReturn=false;
+bool failGroup=false,failPlaceholder=false,wrongGroupReturn=false,failCustomSort=false;
+int customRegistrations=0,customSorts=0;
 Il2CppObject* wood=nullptr;Il2CppObject* iron=nullptr;
 Il2CppObject exception{&exceptionClass,nullptr};
 std::vector<void*> allocated;
@@ -156,6 +157,8 @@ void configure(){
    group->members.assign(values,values+array->length);group->placeholder=values[0];
   }else if(m->signature=="void Register()"||m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
+   if(m->signature=="void Register()")++customRegistrations;
+   else {++customSorts;if(failCustomSort)*ex=&exception;}
   }else if(m->signature=="void .ctor()"){
    auto* r=static_cast<Recipe*>(self);r->result=&makeItem()->obj;r->ingredients=makeArray(wrongArray?&recipeArray:&itemArray,15);
    auto** slots=static_cast<Il2CppObject**>(arrayData(r->ingredients));for(int i=0;i<15;i++)slots[i]=&makeItem()->obj;
@@ -208,7 +211,12 @@ int main(int argc,char** argv){
   numRecipes=1;auto grouped=request("CustomBench");
   RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
   ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
-  auto result=installNativeRecipe(grouped);assert(result.index==1&&numRecipes==2&&commits==1&&roots.size()==1);
+  numRecipes=0;auto waiting=installNativeRecipe(grouped);
+  assert(waiting.index<0&&waiting.error.find("RecipeSetupNotReady")!=std::string::npos&&customRegistrations==0&&roots.empty());
+  numRecipes=1;failCustomSort=true;auto sorting=installNativeRecipe(grouped);
+  assert(sorting.index<0&&customRegistrations==1&&customSorts==1&&roots.size()==1&&numRecipes==1&&commits==0);
+  failCustomSort=false;
+  auto result=installNativeRecipe(grouped);assert(result.index==1&&numRecipes==2&&commits==1&&roots.size()==1&&customRegistrations==1&&customSorts==2);
   auto** recipes=static_cast<Recipe**>(arrayData(table));auto* group=static_cast<NativeGroup*>(static_cast<void*>(recipes[1]->groups.at(0)));
   assert(group->members.size()==2&&group->members[0]==9&&group->members[1]==kVanillaItemCount);
   auto** items=static_cast<Item**>(arrayData(recipes[1]->ingredients));assert(items[0]->type==9&&items[0]->stack==3);

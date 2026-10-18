@@ -225,6 +225,8 @@ struct CustomGroup {
     std::vector<int> members;
     uint32_t root=0;
     GroupContract binding;
+    const MethodInfo* sort=nullptr;
+    bool sorted=false;
 };
 std::map<std::string,CustomGroup> customGroups;
 bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& ingredient,
@@ -259,7 +261,17 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
         if(it->second.members!=members||it->second.description!=ingredient.groupDescription){*detail="Group="+key+" Reason=ConflictingGroupDefinition";return false;}
         *object=a.gchandle_get_target(it->second.root);
         if(!*object){*detail="Group="+key+" Reason=LostGroupRoot";return false;}
+        if(!it->second.sorted){
+            if(!invoke(it->second.sort,*object,nullptr,detail))return false;
+            it->second.sorted=true;
+        }
         return readGroupObject(key,object,it->second.binding,require,placeholder,detail);
+    }
+    int recipeCount=0;Il2CppObject* current=nullptr;
+    a.field_static_get_value(contract.count.field,&recipeCount);a.field_static_get_value(contract.current.field,&current);
+    if(recipeCount<=0||!current){
+        if(notReady)*notReady=true;
+        *detail="Group="+key+" Reason=RecipeSetupNotReady NumRecipes="+std::to_string(recipeCount);return false;
     }
     if(!a.array_new||!a.string_new||!a.gchandle_get_target){*detail="Group="+key+" Reason=RequiredExportMissing";return false;}
     auto* group=il2cpp::findClass({"Terraria","RecipeGroup",{}});
@@ -288,9 +300,10 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     const auto handle=a.gchandle_new(created,false);
     if(!handle){*detail="Group="+key+" Reason=AllocationFailed";return false;}
     if(!invoke(reg,created,nullptr,detail)){a.gchandle_free(handle);return false;}
-    customGroups.emplace(key,CustomGroup{ingredient.groupDescription,members,handle,binding});
+    auto entry=customGroups.emplace(key,CustomGroup{ingredient.groupDescription,members,handle,binding,sort,false}).first;
     // If sorting throws, retain the identity and never register the same group twice.
     if(!invoke(sort,created,nullptr,detail))return false;
+    entry->second.sorted=true;
     *object=created;return readGroupObject(key,object,binding,require,placeholder,detail);
 }
 
@@ -346,7 +359,7 @@ bool resolveNativeRecipe(const NativeRecipeRequest& r,NativeRecipeRequest* out,s
             if(!groups.insert("custom:"+key).second)return fail("ResolveRecipeGroup","DuplicateRecipeGroup","OneIngredientPerGroup",key);
             std::string detail;Il2CppObject* object=nullptr;const MethodInfo* require=nullptr;bool notReady=false;
             if(!prepare(&detail)||!readCustomGroup(r,ingredient,&object,&require,&ingredient.type,&detail,&notReady))
-                return fail("ResolveRecipeGroup",notReady?"MissingDependency":"CustomGroupContractMismatch","InitializedCustomRecipeGroup",key+":"+detail);
+                return fail("ResolveRecipeGroup",notReady?(detail.find("RecipeSetupNotReady")!=std::string::npos?"RecipeSetupNotReady":"MissingDependency"):"CustomGroupContractMismatch","InitializedCustomRecipeGroup",key+":"+detail);
         } else if(!ingredient.nativeGroup.empty()) {
             const auto& group=ingredient.nativeGroup;
             bool valid=group.size()<=72&&((group.front()>='A'&&group.front()<='Z')||(group.front()>='a'&&group.front()<='z'));
