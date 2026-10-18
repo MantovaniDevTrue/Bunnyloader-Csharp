@@ -37,6 +37,7 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Execute typed projectile policy integration
+        working-directory: Split/Bunny-Loader
         run: bash tests/projectile_policy/run.sh
       - name: Guard Android auto-source V2 cache recovery
         working-directory: Split/Bunny-Loader
