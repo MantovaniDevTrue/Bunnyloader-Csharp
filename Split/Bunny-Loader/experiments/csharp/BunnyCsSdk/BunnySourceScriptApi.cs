@@ -64,6 +64,9 @@ public abstract class BunnyWeapon
     public int UseTime { get; set; } = 18;
     public float ShootSpeed { get; set; } = 12f;
     public string Shoot { get; set; } = "";
+    public bool Summon { get; set; }
+    public string MinionBuff { get; set; } = "";
+    public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
 }
 
