@@ -817,6 +817,10 @@ string Texture { get; set; }
 
 struct; base: `System.ValueType`.
 
+```csharp
+bool HasTarget { get; }
+```
+
 ## BunnyLoader.Source.BunnyRecipe
 
 class; base: `System.Object`.
