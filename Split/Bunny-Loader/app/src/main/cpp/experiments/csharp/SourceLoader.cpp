@@ -216,6 +216,29 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
         if (weapon && key == "Shoot") { *shoot = value; continue; }
+        if (weapon && key == "Summon") {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": Summon invalido";
+                return false;
+            }
+            continue;
+        }
+        if (weapon && key == "MinionBuff") {
+            if (value.empty() || value.size() > 72 ||
+                value.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+                *error = type.name + ": MinionBuff invalido";
+                return false;
+            }
+            continue;
+        }
+        if (weapon && key == "MinionBuffTime") {
+            int ticks = 0;
+            if (!integer(value, &ticks) || ticks < 1 || ticks > 36000) {
+                *error = type.name + ": MinionBuffTime invalido";
+                return false;
+            }
+            continue;
+        }
         if (potion && key == "Buff") { *shoot = value; continue; }
         if (projectile && (key == "Minion" || key == "TileCollide" || key == "IgnoreWater")) {
             if (value != "true" && value != "false") {
