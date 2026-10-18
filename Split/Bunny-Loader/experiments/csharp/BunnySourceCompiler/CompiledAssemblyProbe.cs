@@ -561,6 +561,9 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate content class: " + name);
             projectileNames.Add(name);
             bool minion = Value<bool>(projectile, "Minion");
+            bool contactDamage = Value<bool>(projectile, "MinionContactDamage");
+            if (contactDamage && !minion)
+                throw new InvalidOperationException("MinionContactDamage requires Minion=true: " + name);
             int frames = Value<int>(projectile, "Frames");
             if (frames < 1 || frames > 32)
                 throw new InvalidOperationException("Invalid C# projectile sprite frame count: " + name);
@@ -583,13 +586,15 @@ public static class CompiledAssemblyProbe
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
                 Value<bool>(projectile, "Friendly") ? "1" : "0");
-            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy)
+            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy || contactDamage)
             {
                 entry += "\t" + (minion ? "1" : "0") + "\t" +
                     minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
                     (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
-                if (frames > 1 || customPolicy) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
-                if(customPolicy)entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
+                if (frames > 1 || customPolicy || contactDamage) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+                if(customPolicy || contactDamage)
+                    entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
+                if (contactDamage) entry += "\t1";
             }
             lines.Add(entry);
         }

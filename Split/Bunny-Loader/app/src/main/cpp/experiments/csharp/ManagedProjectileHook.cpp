@@ -349,6 +349,17 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
         state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
         nativeManagedProjectileFields(type,&state.gameplay);
+        if (state.policy.minion) {
+            int& damage = runtime::field<int32_t>(projectile, game.proj.damage);
+            if (damage <= 0) {
+                const int configured = nativeManagedMinionConfiguredDamage(type);
+                if (configured > 0 && configured <= 1000) {
+                    damage = configured;
+                    BL_INFO("csharp summon: initial projectile zero damage restored type=%d damage=%d",
+                            type, damage);
+                }
+            }
+        }
     }
     state.lastTimeLeft = timeLeft;
     if (firstObserved) {
@@ -363,7 +374,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
                 auto* playerClass = il2cpp::findClass({"Terraria", "Player", {}});
                 playerArrayField = mainClass ? il2cpp::findField(mainClass, "player") : nullptr;
                 addBuff = playerClass ? il2cpp::findMethodBySignature(
-                    playerClass, il2cpp::parseSignature("void AddBuff(int type, int time, bool quiet)")) : nullptr;
+                    playerClass, il2cpp::parseSignature("void AddBuff(int type, int time, bool fromNetPvP)")) : nullptr;
                 if (addBuff && !il2cpp::api().method_is_instance(addBuff)) addBuff = nullptr;
                 if (!playerArrayField || !addBuff)
                     BL_WARN("csharp minion: native Player.AddBuff contract unavailable");
@@ -377,8 +388,8 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
                 if (player) {
                     int32_t buff = minionBuff;
                     int32_t duration = 2;
-                    uint8_t quiet = 0;
-                    void* arguments[] = {&buff, &duration, &quiet};
+                    uint8_t fromNetPvP = 0;
+                    void* arguments[] = {&buff, &duration, &fromNetPvP};
                     Il2CppObject* error = nullptr;
                     il2cpp::api().runtime_invoke(addBuff, player, arguments, &error);
                     if (error) BL_WARN("csharp minion: AddBuff threw for buff=%d", buff);

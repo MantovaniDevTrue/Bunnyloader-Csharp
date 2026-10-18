@@ -7,7 +7,7 @@ expected = {
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26},
     "TILE": {13},
-    "PROJECTILE": {8, 12, 13, 16},
+    "PROJECTILE": {8, 12, 13, 14, 16, 17},
     "WEAPON": {6, 9},
     "BUFF": {3, 4, 6, 7},
     "POTION": {4},
