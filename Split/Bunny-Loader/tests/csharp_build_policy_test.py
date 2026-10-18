@@ -12,7 +12,7 @@ spec = importlib.util.spec_from_file_location("build_policy", path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 repo = "MantovaniDevTrue/Bunnyloader-Csharp"
-native_branch = "feat/csharp-90-5-native-minion-targeting-lot"
+native_branch = "feat/csharp-90-6-minion-contact-buff-fix"
 for key in ("aot_push", "publish_push", "lights"):
     assert native_branch in module.POLICY[key], f".90.4 missing trusted {key} policy"
 for workflow_name in ("check-mono-pinned-gc.yml", "check-mono-signal-ownership.yml"):

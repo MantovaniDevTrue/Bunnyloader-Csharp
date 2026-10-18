@@ -75,6 +75,7 @@ public sealed class MinionProjectile : BunnyProjectile
         AiStyle = 1;
         Friendly = true;
         Minion = true;
+        MinionContactDamage = true;
         MinionSlots = 1f;
         Frames = 4;
         TileCollide = false;
@@ -114,7 +115,7 @@ public sealed class MinionStaff : BunnyWeapon
         CompiledAssemblyProbe.Verify(minionOutput, minionDiag) != 3)
         throw new InvalidOperationException("Managed minion smoke failed: " + File.ReadAllText(minionDiag));
     string minionWire = File.ReadAllText(Path.Combine(minionArtifacts, "source-runtime-values.txt"));
-    if (!minionWire.Contains("PROJECTILE\tMinionProjectile\t16\t16\t1\t-1\t1800\t1\t1\t1\t0\t1\t4\n", StringComparison.Ordinal) ||
+    if (!minionWire.Contains("PROJECTILE\tMinionProjectile\t16\t16\t1\t-1\t1800\t1\t1\t1\t0\t1\t4\t1\n", StringComparison.Ordinal) ||
         !minionWire.Contains("WEAPON\tMinionStaff\t20\t20\t10\tMinionProjectile\t1\tMinionBuff\t2\n", StringComparison.Ordinal) ||
         !minionWire.Contains("BUFF\tMinionBuff\t0\tMinionProjectile\t0\t-\t100\n", StringComparison.Ordinal))
         throw new InvalidOperationException("Native minion C# wire was not preserved: " + minionWire);

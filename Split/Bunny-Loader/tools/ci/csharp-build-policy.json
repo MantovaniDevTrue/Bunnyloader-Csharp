@@ -9,6 +9,7 @@
     "codex/csharp-screenfx-v90-29-86",
     "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-90-5-native-minion-targeting-lot",
+    "feat/csharp-90-6-minion-contact-buff-fix",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
@@ -119,6 +120,7 @@
     "csharp-visual-effects-v90-27-wip",
     "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-90-5-native-minion-targeting-lot",
+    "feat/csharp-90-6-minion-contact-buff-fix",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
@@ -163,6 +165,7 @@
   "lights": [
     "feat/csharp-90-4-projectile-minion-contract",
     "feat/csharp-90-5-native-minion-targeting-lot",
+    "feat/csharp-90-6-minion-contact-buff-fix",
     "feat/csharp-buff-recipes-v90",
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",

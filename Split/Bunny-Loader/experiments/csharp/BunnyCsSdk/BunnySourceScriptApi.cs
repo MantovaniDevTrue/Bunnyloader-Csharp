@@ -72,6 +72,7 @@ public abstract class BunnyProjectile
     public int Frames { get; set; } = 1;
     public bool Friendly { get; set; } = true;
     public bool Minion { get; set; }
+    public bool MinionContactDamage { get; set; }
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
     public bool IgnoreWater { get; set; } = true;

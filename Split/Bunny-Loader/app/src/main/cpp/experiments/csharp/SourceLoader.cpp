@@ -240,7 +240,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
         if (potion && key == "Buff") { *shoot = value; continue; }
-        if (projectile && (key == "Minion" || key == "TileCollide" || key == "IgnoreWater")) {
+        if (projectile && (key == "Minion" || key == "MinionContactDamage" || key == "TileCollide" || key == "IgnoreWater")) {
             if (value != "true" && value != "false") {
                 *error = type.name + ": valor booleano invalido em " + key;
                 return false;
@@ -782,7 +782,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13)) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -814,11 +814,19 @@ bool applyManagedSourceDefaults(
                 record.values.minion = minion == 1;
                 record.values.tileCollide = collide == 1;
                 record.values.ignoreWater = ignoreWater == 1;
-                if (fields.size() == 13 &&
+                if (fields.size() >= 13 &&
                     (!integer(fields[12], &record.values.frames) ||
                      record.values.frames < 1 || record.values.frames > 32)) {
                     *error = "Frames invalidos do projetil: " + record.name;
                     return false;
+                }
+                if (fields.size() == 14) {
+                    int contact = -1;
+                    if (!integer(fields[13], &contact) || contact != 1 || !record.values.minion) {
+                        *error = "Contrato MinionContactDamage invalido: " + record.name;
+                        return false;
+                    }
+                    record.values.minionContactDamage = true;
                 }
             }
             projectilesByName.emplace(record.name, record.type);

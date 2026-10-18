@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
@@ -188,6 +189,7 @@ struct NativeProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    bool minionContactDamage = false;
 };
 
 struct ManagedHurtBinding {
@@ -202,6 +204,7 @@ std::map<std::string, ManagedHurtBinding> g_hurtBindings;
 
 using ItemDefaultsFn = void (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
 using ProjectileDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+using ProjectileDamageFn = void (*)(Il2CppObject*, const MethodInfo*);
 using NpcDefaultsPtrFn = void (*)(Il2CppObject*, int32_t, const void*, const MethodInfo*);
 using ApplyEquipFn = void (*)(Il2CppObject*, int32_t, Il2CppObject*, const MethodInfo*);
 using UpdateBuffsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
@@ -238,6 +241,10 @@ void publishBuffDefaults(){std::atomic_store_explicit(&g_buffView,std::make_shar
 std::map<int, NativePotionDefaults> g_potions;
 ItemDefaultsFn g_originalItem = nullptr;
 ProjectileDefaultsFn g_originalProjectile = nullptr;
+ProjectileDamageFn g_originalProjectileDamage = nullptr;
+FieldInfo* g_nativeMinionProjPet = nullptr;
+FieldInfo* g_nativeMinionSacrificable = nullptr;
+std::atomic<int> g_nativeMinionContactCalls{0};
 NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 ApplyEquipFn g_originalEquipVanity = nullptr;
@@ -391,6 +398,36 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::finishModItem(self, type);
 }
 
+void hkNativeMinionDamage(Il2CppObject* self, const MethodInfo* method) {
+    ProjectileDamageFn original = g_originalProjectileDamage;
+    if (!original || !self || g_refs.projectileType < 0) {
+        if (original) original(self, method);
+        return;
+    }
+    const int type = bl::runtime::field<int32_t>(self, g_refs.projectileType);
+    const auto it = g_projectiles.find(type);
+    if (it == g_projectiles.end() || !it->second.minionContactDamage || !g_nativeMinionProjPet) {
+        original(self, method);
+        return;
+    }
+    Il2CppArray* flags = nullptr;
+    bl::il2cpp::api().field_static_get_value(g_nativeMinionProjPet, &flags);
+    if (!bl::il2cpp::nativeArrayContract(flags, "Boolean", 1, 65536) ||
+        type < 0 || static_cast<uintptr_t>(type) >= flags->length) {
+        original(self, method);
+        return;
+    }
+    auto* values = static_cast<uint8_t*>(arrayData(flags));
+    const uint8_t wasPet = values[type];
+    values[type] = 0;
+    const int sample = g_nativeMinionContactCalls.fetch_add(1, std::memory_order_relaxed);
+    if (sample < 4)
+        BL_INFO("csharp summon: native minion contact Damage invoked type=%d damage=%d pet=%d",
+            type, bl::runtime::field<int32_t>(self, g_refs.projectileDamage), wasPet);
+    original(self, method);
+    values[type] = wasPet;
+}
+
 void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
     if (g_originalProjectile) g_originalProjectile(self, type, method);
     auto it = g_projectiles.find(type);
@@ -411,6 +448,20 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
+    if (d.minion) {
+        Il2CppArray* pets = nullptr;
+        if (g_nativeMinionProjPet)
+            il2cpp::api().field_static_get_value(g_nativeMinionProjPet, &pets);
+        if (il2cpp::nativeArrayContract(pets, "Boolean", 1, 65536) &&
+            type >= 0 && static_cast<uintptr_t>(type) < pets->length)
+            static_cast<uint8_t*>(arrayData(pets))[type] = 1;
+        Il2CppArray* sacrifice = nullptr;
+        if (g_nativeMinionSacrificable)
+            il2cpp::api().field_static_get_value(g_nativeMinionSacrificable, &sacrifice);
+        if (il2cpp::nativeArrayContract(sacrifice, "Boolean", 1, 65536) &&
+            type >= 0 && static_cast<uintptr_t>(type) < sacrifice->length)
+            static_cast<uint8_t*>(arrayData(sacrifice))[type] = 1;
+    }
     if (d.frames > 1) {
         auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
         FieldInfo* framesField = mainClass ? il2cpp::findField(mainClass, "projFrames") : nullptr;
@@ -1308,10 +1359,24 @@ bool prepareNativeContent() {
         projectile, parseSignature("void SetDefaults(int Type)"));
     if (!itemMethod || !projectileMethod) return false;
 
+    auto* main = findClass({"Terraria", "Main", {}});
+    auto* projectileSets = findClass({"Terraria.ID", "ProjectileID", "Sets"});
+    g_nativeMinionProjPet = main ? findField(main, "projPet") : nullptr;
+    g_nativeMinionSacrificable = projectileSets
+        ? findField(projectileSets, "MinionSacrificable") : nullptr;
+    const MethodInfo* damageMethod = findMethodBySignature(
+        projectile, parseSignature("void Damage()"));
+    if (!g_nativeMinionProjPet || !damageMethod || r.projectileType < 0 ||
+        r.projectileDamage < 0) {
+        BL_ERROR("csharp summon: native Projectile.Damage/projPet contract unavailable");
+        return false;
+    }
     g_refs = r;
     if (!bl::hook::install(itemMethod, hkItemDefaults, &g_originalItem)) return false;
     if (!bl::hook::install(projectileMethod, hkProjectileDefaults, &g_originalProjectile)) return false;
- 
+    if (!bl::hook::install(damageMethod, hkNativeMinionDamage, &g_originalProjectileDamage))
+        return false;
+
     g_ready = true;
     BL_INFO("csharp native content: hooks C++ de item e projetil instalados");
     return true;
@@ -1533,12 +1598,15 @@ bool applyManagedNativeDefaultsBatch(
             !std::isfinite(data.minionSlots) ||
             (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
             (!data.minion && data.minionSlots != 0.f) ||
+            (data.minionContactDamage && !data.minion) ||
+            (data.minionContactDamage && (!g_nativeMinionProjPet ||
+                                          !g_originalProjectileDamage)) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
                 data.minion, data.minionSlots, data.tileCollide, data.ignoreWater,
-                data.frames}).second ||
+                data.frames, data.minionContactDamage}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||
