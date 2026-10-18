@@ -100,7 +100,12 @@ abstract class; base: `System.Object`.
 
 ```csharp
 int DefenseBonus { get; set; }
+string Description { get; set; }
 string DisplayName { get; set; }
+bool IsDebuff { get; set; }
+string MinionProjectile { get; set; }
+bool NoSave { get; set; }
+bool NoTimeDisplay { get; set; }
 string Texture { get; set; }
 ```
 

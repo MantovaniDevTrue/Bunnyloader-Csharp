@@ -2,6 +2,7 @@
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedMinionBuff.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
@@ -109,6 +110,7 @@ struct NativeRefs {
     int playerImmune = -1;
     int playerImmuneTime = -1;
     int playerHurtCooldowns = -1;
+    int playerOwnedProjectileCounts = -1;   // opcional: so buffs de minion
     int sourceNpcOffset = -1;
     int sourceProjectileOffset = -1;
     int sourceSize = 0;
@@ -139,6 +141,7 @@ struct NativeAccessoryDefaults {
 
 struct NativeBuffDefaults {
     int defenseBonus;
+    int minionProjectileType = -1;
 };
 
 struct NativePotionDefaults {
@@ -1108,9 +1111,28 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) 
     const auto slot = static_cast<uintptr_t>(index);
     if (timeValues[slot] <= 0) return;
     const auto it = g_buffs.find(typeValues[slot]);
-    if (it != g_buffs.end())
-        bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) +=
-            it->second.defenseBonus;
+    if (it == g_buffs.end()) return;
+    bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) +=
+        it->second.defenseBonus;
+    if (it->second.minionProjectileType < 0 || g_refs.playerOwnedProjectileCounts < 0) return;
+    int32_t owned = -1;
+    if (auto* counts = bl::runtime::field<Il2CppArray*>(self, g_refs.playerOwnedProjectileCounts)) {
+        const auto minionType = static_cast<uintptr_t>(it->second.minionProjectileType);
+        if (minionType < counts->length)
+            owned = reinterpret_cast<const int32_t*>(arrayData(counts))[minionType];
+    }
+    auto* writableTimes = reinterpret_cast<int32_t*>(arrayData(times));
+    switch (bl::csharp::decideMinionBuff(owned, timeValues[slot])) {
+        case bl::csharp::MinionBuffAction::Refresh:
+            writableTimes[slot] = bl::csharp::kMinionBuffTicks;
+            break;
+        case bl::csharp::MinionBuffAction::Remove:
+            // O proprio jogo remove o buff quando o tempo chega a zero.
+            writableTimes[slot] = 1;
+            break;
+        case bl::csharp::MinionBuffAction::Keep:
+            break;
+    }
 }
 
 }
@@ -1195,6 +1217,7 @@ bool prepareNativeContent() {
     if (r.playerLifeMax < 0) r.playerLifeMax = fieldOffset(player, "statLifeMax");
     r.playerBuffType = fieldOffset(player, "buffType");
     r.playerBuffTime = fieldOffset(player, "buffTime");
+    r.playerOwnedProjectileCounts = fieldOffset(player, "ownedProjectileCounts");
 
     const int* all = &r.itemDamage;
     for (size_t i = 0; i < offsetof(NativeRefs, itemAccessory) / sizeof(int); ++i) {
@@ -1476,7 +1499,9 @@ bool applyManagedNativeBuffDefaultsBatch(
         const auto it = g_buffs.find(buff.type);
         if (it == g_buffs.end() ||
             bl::runtime::modBuffTypeByName(modId, buff.name) != buff.type ||
-            buff.defenseBonus < -50 || buff.defenseBonus > 100)
+            buff.defenseBonus < -50 || buff.defenseBonus > 100 ||
+            (buff.minionProjectileType >= 0 &&
+             !bl::runtime::isModProjectile(buff.minionProjectileType)))
             return false;
     }
     for (const auto& potion : potions) {
@@ -1487,8 +1512,10 @@ bool applyManagedNativeBuffDefaultsBatch(
             potion.duration < 1 || potion.duration > 216000)
             return false;
     }
-    for (const auto& buff : buffs)
+    for (const auto& buff : buffs) {
         g_buffs[buff.type].defenseBonus = buff.defenseBonus;
+        g_buffs[buff.type].minionProjectileType = buff.minionProjectileType;
+    }
     for (const auto& potion : potions)
         g_potions[potion.type].duration = potion.duration;
     BL_INFO("csharp native: managed buffs applied for %s (%zu buffs, %zu potions)",
@@ -2145,6 +2172,11 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.name = spec->name;
         def.texture = path;
         def.names.push_back({"", display});
+        if (spec->description && spec->description[0])
+            def.descriptions.push_back({"", spec->description});
+        def.debuff = (spec->flags & kNativeBuffDebuff) != 0;
+        def.noSave = (spec->flags & kNativeBuffNoSave) != 0;
+        def.noTimeDisplay = (spec->flags & kNativeBuffNoTimeDisplay) != 0;
         const int type = bl::runtime::registerModBuff(std::move(def));
         if (type >= 0) {
             g_buffs[type] = {spec->damage};

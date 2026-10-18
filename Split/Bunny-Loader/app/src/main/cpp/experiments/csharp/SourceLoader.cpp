@@ -200,6 +200,19 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
 
+        if (buff && key == "MinionProjectile") continue;  // validado na linha V2 apos o Mono
+        if (buff && (key == "Description" || key == "IsDebuff" ||
+                     key == "NoSave" || key == "NoTimeDisplay")) {
+            const bool text = key == "Description";
+            const bool badText = text && (value.size() > 180 ||
+                std::any_of(value.begin(), value.end(),
+                    [](unsigned char c) { return c < 32 || c == 127; }));
+            if ((!text && value != "true" && value != "false") || badText) {
+                *error = type.name + ": valor invalido em " + key;
+                return false;
+            }
+            continue;
+        }
         if (weapon && key == "Shoot") { *shoot = value; continue; }
         if (potion && key == "Buff") { *shoot = value; continue; }
         if (key == "Friendly" && projectile) {
@@ -349,6 +362,24 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 spec.shootType = it->second;
+            }
+            std::string buffDescription;
+            if (base == "BunnyBuff") {
+                auto flag = [&](const char* key) {
+                    const auto it = def.properties.find(key);
+                    return it != def.properties.end() && it->second == "true";
+                };
+                spec.flags = (flag("IsDebuff") ? kNativeBuffDebuff : 0) |
+                             (flag("NoSave") ? kNativeBuffNoSave : 0) |
+                             (flag("NoTimeDisplay") ? kNativeBuffNoTimeDisplay : 0);
+                const auto it = def.properties.find("Description");
+                if (it != def.properties.end()) {
+                    buffDescription = it->second;
+                    const size_t at = buffDescription.find("{0}");
+                    if (at != std::string::npos)
+                        buffDescription.replace(at, 3, std::to_string(spec.damage));
+                }
+                spec.description = buffDescription.c_str();
             }
             spec.name = def.name.c_str();
             spec.texture = texture.c_str();
@@ -748,7 +779,7 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             npcs.push_back(std::move(record));
-        } else if (fields[0] == "BUFF" && fields.size() == 3) {
+        } else if (fields[0] == "BUFF" && (fields.size() == 3 || fields.size() == 4)) {
             ManagedBuffEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -757,6 +788,14 @@ bool applyManagedSourceDefaults(
                 runtime::modBuffTypeByName(modId, record.name) != record.type) {
                 *error = "Valores invalidos de buff C#: " + record.name;
                 return false;
+            }
+            if (fields.size() == 4 && fields[3] != "-") {
+                const auto minion = projectilesByName.find(fields[3]);
+                if (minion == projectilesByName.end()) {
+                    *error = "Projetil minion do buff C# inexistente: " + fields[3];
+                    return false;
+                }
+                record.minionProjectileType = minion->second;
             }
             buffsByName[record.name] = record.type;
             buffs.push_back(std::move(record));

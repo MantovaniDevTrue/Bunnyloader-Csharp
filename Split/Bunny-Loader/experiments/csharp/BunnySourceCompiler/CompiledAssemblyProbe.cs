@@ -582,8 +582,16 @@ public static class CompiledAssemblyProbe
             int defense = Value<int>(buff, "DefenseBonus");
             if (defense < -50 || defense > 100)
                 throw new InvalidOperationException("Invalid C# buff defense bonus");
+            string minion = Value<string>(buff, "MinionProjectile") ?? "";
+            if (minion.Length > 0)
+            {
+                CheckName(minion);
+                if (!projectileNames.Contains(minion))
+                    throw new InvalidOperationException("Buff minion projectile not found: " + minion);
+            }
             lines.Add(string.Join("\t", "BUFF", name,
-                defense.ToString(CultureInfo.InvariantCulture)));
+                defense.ToString(CultureInfo.InvariantCulture),
+                minion.Length > 0 ? minion : "-"));
         }
         foreach (object potion in potions)
         {
