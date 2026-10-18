@@ -217,6 +217,21 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
         }
         if (weapon && key == "Shoot") { *shoot = value; continue; }
         if (potion && key == "Buff") { *shoot = value; continue; }
+        if (projectile && (key == "Minion" || key == "TileCollide" || key == "IgnoreWater")) {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": valor booleano invalido em " + key;
+                return false;
+            }
+            continue;
+        }
+        if (projectile && key == "MinionSlots") {
+            float slots = 0.f;
+            if (!real(value, &slots) || slots < 0.f || slots > 10.f) {
+                *error = type.name + ": MinionSlots fora dos limites";
+                return false;
+            }
+            continue;
+        }
         if (key == "Friendly" && projectile) {
             if (value != "true") {
                 *error = "somente projeteis Friendly=true nesta etapa";
@@ -736,7 +751,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && fields.size() == 8) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -751,6 +766,24 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             record.values.friendly = true;
+            if (fields.size() == 12) {
+                int minion = -1, collide = -1, ignoreWater = -1;
+                if (!integer(fields[8], &minion) ||
+                    !real(fields[9], &record.values.minionSlots) ||
+                    !integer(fields[10], &collide) ||
+                    !integer(fields[11], &ignoreWater) ||
+                    (minion != 0 && minion != 1) ||
+                    (collide != 0 && collide != 1) ||
+                    (ignoreWater != 0 && ignoreWater != 1) ||
+                    (minion == 1 && (record.values.minionSlots <= 0.f || record.values.minionSlots > 10.f)) ||
+                    (minion == 0 && record.values.minionSlots != 0.f)) {
+                    *error = "Contrato C# de minion/projetil invalido: " + record.name;
+                    return false;
+                }
+                record.values.minion = minion == 1;
+                record.values.tileCollide = collide == 1;
+                record.values.ignoreWater = ignoreWater == 1;
+            }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
         } else if (fields[0] == "WEAPON" && fields.size() == 6) {
