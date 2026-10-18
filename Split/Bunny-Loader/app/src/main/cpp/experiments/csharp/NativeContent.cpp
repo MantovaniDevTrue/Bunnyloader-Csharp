@@ -414,7 +414,7 @@ void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,c
     if(!g_projectiles.count(type))return;
     auto& baseline=runtime::field<int32_t>(projectile,g_originalDamageField);
     if(baseline>0)return; // Preserve native/other-mod initialization and the incoming scaled damage.
-    int itemDamage=0;
+    int itemDamage=-1;
     if(source) {
         auto found=g_projectileSourceItems.find(source->klass);
         if(found==g_projectileSourceItems.end()) {
@@ -1425,11 +1425,14 @@ bool prepareNativeContent() {
     }
 
     auto* statsMethod=findMethodBySignature(projectile,parseSignature("void ApplyStatsFromSource(IEntitySource spawnSource)"));
-    std::string damageContract;
+    std::string damageContract;FieldInfo* originalDamageField=nullptr;
     if(!statsMethod||!api().method_is_instance(statsMethod)||
-       !nativeFieldContract(projectile,"originalDamage","System.Int32",false,4,nullptr,&g_originalDamageField,&damageContract)||
+       !nativeFieldContract(projectile,"originalDamage","System.Int32",false,4,&originalDamageField,&g_originalDamageField,&damageContract)||
        !nativeFieldContract(item,"damage","System.Int32",false,4,nullptr,&r.itemDamage,&damageContract)) {
         BL_ERROR("[CSharp][ERROR][ProjectileSource] API=BunnyProjectile Stage=BindStatsSource Expected=InstanceApplyStatsFromSourceAndInt32DamageFields Result=Rejected Detail=%s",damageContract.c_str());return false;
+    }
+    if(api().field_get_flags(originalDamageField)&0x20u) {
+        BL_ERROR("[CSharp][ERROR][ProjectileSource] Field=originalDamage Stage=BindStatsSource Expected=WritableInstanceInt32 Actual=InitOnly Result=Rejected");return false;
     }
     g_refs = r;
     if(!g_originalApplyProjectileStats&&!bl::hook::install(statsMethod,hkProjectileStatsFromSource,&g_originalApplyProjectileStats))return false;

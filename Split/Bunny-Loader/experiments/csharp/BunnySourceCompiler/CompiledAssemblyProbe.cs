@@ -563,6 +563,8 @@ public static class CompiledAssemblyProbe
             bool minion = Value<bool>(projectile, "Minion");
             bool contactDamage = Value<bool>(projectile, "MinionContactDamage");
             object? motion = projectile.GetType().GetProperty("MinionMovement")!.GetValue(projectile);
+            if(motion!=null&&projectile.GetType().Assembly.GetType(projectile.GetType().FullName+"Motion")!=null)
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Reason=ConflictingMotionCurve Result=Rejected");
             if(motion!=null&&Value<int>(projectile,"AiStyle")!=0)
                 throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Expected=AiStyle0 Reason=ConflictingVanillaAI Result=Rejected");
             if(motion!=null && projectile.GetType().GetMethod("AI")!.DeclaringType!.FullName!="BunnyLoader.Source.BunnyProjectile")

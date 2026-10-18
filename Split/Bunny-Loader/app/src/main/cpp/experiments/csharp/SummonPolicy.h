@@ -71,7 +71,7 @@ inline SummonVector steerSummon(const SummonMovement& p,SummonVector position,Su
 }
 inline int summonSourceDamage(int existing,int itemDamage,int projectileDamage) {
     if(existing>0)return existing;
-    if(itemDamage>0&&itemDamage<=1000000)return itemDamage;
+    if(itemDamage>=0&&itemDamage<=1000000)return itemDamage;
     return projectileDamage>0&&projectileDamage<=1000000?projectileDamage:0;
 }
 }

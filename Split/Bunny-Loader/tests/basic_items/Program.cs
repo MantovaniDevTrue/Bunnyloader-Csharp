@@ -113,7 +113,7 @@ try {
   string source="using BunnyLoader.Source;public sealed class IndependentSummon:BunnyProjectile{public override void SetDefaults(){DisplayName=\"Summon\";Texture=\"summon.png\";AiStyle=0;Minion=true;MinionSlots=1;MinionMovement=new BunnyMinionMovement();}}";
   File.WriteAllText(file,source);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
   Equal(18,File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t').Length);
-  foreach(var mutation in new[]{("AiStyle=0;","AiStyle=1;"),("public override void SetDefaults()","public override bool AI(ref BunnyProjectileAiState state)=>true; public override void SetDefaults()")}) {
+  foreach(var mutation in new[]{("AiStyle=0;","AiStyle=1;"),("public sealed class IndependentSummon:","public static class IndependentSummonMotion{public static float TurnAtTick(int t)=>0;} public sealed class IndependentSummon:"),("public override void SetDefaults()","public override bool AI(ref BunnyProjectileAiState state)=>true; public override void SetDefaults()")}) {
    File.WriteAllText(file,source.Replace(mutation.Item1,mutation.Item2));Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
    string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=IndependentSummon")||!error.Contains("Reason=Conflicting"))throw new Exception(error);
   }

@@ -34,6 +34,6 @@ int main(int argc,char** argv) {
  for(const auto& bad:{payload+",",payload+",9",std::string("NaN,")+payload.substr(2),std::string("41,")+payload.substr(2)}) {
    assert(!parseSummonMovement(bad,&policy,&error));assert(policy.ownerLeash==valid.ownerLeash&&policy.followSpeed==valid.followSpeed);
  }
- assert(summonSourceDamage(90,30,45)==90&&summonSourceDamage(0,30,45)==30&&summonSourceDamage(0,0,45)==45&&summonSourceDamage(0,0,0)==0);
+ assert(summonSourceDamage(90,30,45)==90&&summonSourceDamage(0,30,45)==30&&summonSourceDamage(0,-1,45)==45&&summonSourceDamage(0,0,45)==0&&summonSourceDamage(0,0,0)==0);
  std::cout<<"SUMMON_TYPED_OWNER_BINDINGS_TRANSACTIONAL_REJECTION_REAL_COMPILED_MOVEMENT_DESCRIPTOR_PASS\n";
 }

@@ -30,6 +30,8 @@ int main() {
  item.damage=90;hkProjectileStatsFromSource(&projectile.obj,&source.obj,nullptr);assert(projectile.original==30&&projectile.damage==45);
  projectile.original=0;projectile.damage=75;hkProjectileStatsFromSource(&projectile.obj,nullptr,nullptr);
  assert(projectile.original==75&&projectile.damage==75);
+ item.damage=0;projectile.original=0;projectile.damage=45;
+ hkProjectileStatsFromSource(&projectile.obj,&source.obj,nullptr);assert(projectile.original==0&&projectile.damage==45);
  // Zero damage without a source remains zero; never steal another registered weapon's damage.
  projectile.original=0;projectile.damage=0;hkProjectileStatsFromSource(&projectile.obj,nullptr,nullptr);assert(projectile.original==0&&projectile.damage==0);
  projectile.original=99;projectile.damage=0;hkProjectileStatsFromSource(&projectile.obj,&source.obj,nullptr);assert(projectile.original==99&&projectile.damage==0);

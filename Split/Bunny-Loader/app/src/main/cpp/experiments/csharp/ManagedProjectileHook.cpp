@@ -534,12 +534,13 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
             coveredByCurve = g_curveStates[static_cast<size_t>(curveIndex)]
                 .enabled.load(std::memory_order_acquire);
     }
-    const bool nativeMotion = coveredByCurve ||
+    const bool nativeMotion = !controlled && (coveredByCurve ||
         (g_sparkEnabled.load(std::memory_order_acquire) &&
          projectileType == g_sparkType.load(std::memory_order_relaxed)) ||
         (g_enabled.load(std::memory_order_acquire) &&
-         projectileType == g_type.load(std::memory_order_relaxed));
+         projectileType == g_type.load(std::memory_order_relaxed)));
     runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);
+    if(controlled)return;
     if (projectileType >= 0 &&
         static_cast<size_t>(projectileType) < g_curveByType.size()) {
         const int slot = g_curveByType[static_cast<size_t>(projectileType)]
@@ -690,7 +691,7 @@ bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
         std::clamp(damage, 0, 1000000), npcIndex);
 }
 
-bool prepareManagedSummonRuntime(std::string* error) {return prepareSummon(error);}
+bool prepareManagedSummonRuntime(std::string* error) {return prepareSummon(error)&&prepareHomingTargetRefs(error);}
 
 void resetManagedSourceProjectileSlots() {
     g_managedEntityProjectileSlots.fill({});
