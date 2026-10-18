@@ -560,13 +560,25 @@ public static class CompiledAssemblyProbe
             if (!names.Add("PROJECTILE:" + name))
                 throw new InvalidOperationException("Duplicate content class: " + name);
             projectileNames.Add(name);
-            lines.Add(string.Join("\t", "PROJECTILE", name,
+            bool minion = Value<bool>(projectile, "Minion");
+            float minionSlots = Value<float>(projectile, "MinionSlots");
+            bool tileCollide = Value<bool>(projectile, "TileCollide");
+            bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
+            if (!float.IsFinite(minionSlots) || (minion && (minionSlots <= 0 || minionSlots > 10)) ||
+                (!minion && minionSlots != 0))
+                throw new InvalidOperationException("Invalid C# minion slot contract: " + name);
+            string entry = string.Join("\t", "PROJECTILE", name,
                 Value<int>(projectile, "Width").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Height").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "AiStyle").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
-                Value<bool>(projectile, "Friendly") ? "1" : "0"));
+                Value<bool>(projectile, "Friendly") ? "1" : "0");
+            if (minion || !tileCollide || !ignoreWater)
+                entry += "\t" + (minion ? "1" : "0") + "\t" +
+                    minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
+                    (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
+            lines.Add(entry);
         }
         foreach (object weapon in weapons)
         {
