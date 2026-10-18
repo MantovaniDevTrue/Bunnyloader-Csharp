@@ -202,7 +202,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
 
-        if(projectile&&(key=="AnimationFrameTicks"||key=="MinionScanTicks"||key=="MinionTargetRange"))continue;
+        if(projectile&&(key=="MinionMovement"||key=="AnimationFrameTicks"||key=="MinionScanTicks"||key=="MinionTargetRange"))continue;
         if (buff && (key == "MinionProjectile" || key == "DefenseMultiplierPercent")) continue;  // validado na linha V2 apos o Mono
         if (buff && (key == "Description" || key == "IsDebuff" ||
                      key == "NoSave" || key == "NoTimeDisplay" || key == "NurseCannotRemove")) {

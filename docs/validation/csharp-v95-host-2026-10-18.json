@@ -10,7 +10,8 @@
     "summon_lifecycle/source_damage_test.cpp",
     "summon_lifecycle/contracts_test.cpp",
     "projectile_policy/native_policy_test.cpp",
-    "recipe_callbacks/run.sh"
+    "recipe_callbacks/run.sh",
+    "summon_lifecycle/source_registration_test.cpp"
   ],
   "nativeProvider": "controlled IL2CPP objects/metadata, BL_HAVE_QUICKJS=0",
   "androidGameplay": "awaiting validation",

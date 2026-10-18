@@ -227,7 +227,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         *error = name + ": corpo SetDefaults sem fechamento";
                         return false;
                     }
-                    if (base == "BunnyItem" || base == "BunnyTile") {
+                    if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyProjectile") {
                         // So recursos/nomes sao necessarios ANTES do Mono. Todos
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.

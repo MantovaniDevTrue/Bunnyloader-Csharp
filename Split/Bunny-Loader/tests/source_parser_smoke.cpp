@@ -38,13 +38,13 @@ int main(int argc, char** argv) {
     const auto& spark = definitions[2];
     const auto& staff = definitions[3];
     if (bolt.name != "SourceBolt" || bolt.base != "BunnyProjectile" ||
-        bolt.properties.at("Width") != "10" ||
-        bolt.properties.at("Friendly") != "true" ||
+        bolt.properties.count("Width") != 0 ||
+        bolt.properties.count("Friendly") != 0 ||
         wand.name != "SourceWand" || wand.base != "BunnyWeapon" ||
         wand.properties.at("Shoot") != "SourceBolt" ||
         wand.properties.at("ShootSpeed") != "13f" ||
         spark.name != "SourceSpark" || spark.base != "BunnyProjectile" ||
-        spark.properties.at("Width") != "14" ||
+        spark.properties.count("Width") != 0 ||
         spark.properties.at("Texture") != "Content/Projectiles/SourceBolt.png" ||
         staff.name != "SourceStaff" || staff.base != "BunnyWeapon" ||
         staff.properties.at("Shoot") != "SourceSpark" ||
@@ -68,14 +68,14 @@ int main(int argc, char** argv) {
         return 11;
     }
     if (statefulFields.size() != 1 ||
-        statefulFields[0].properties.at("Width") != "10")
+        !statefulFields[0].properties.empty())
         return 18;
     std::vector<bl::csharp::ParsedSourceType> methods;
     error.clear();
     if (!bl::csharp::parseCSharpSource(
         "class Safe : BunnyProjectile { public override void SetDefaults() { Width = 10; } public int OnHitBuffId() => 24; public override int OnHitNPC(int dmg) { return dmg + 1; } }",
         &methods, &error)) return 12;
-    if (methods.size() != 1 || methods[0].properties.at("Width") != "10")
+    if (methods.size() != 1 || !methods[0].properties.empty())
         return 13;
     std::vector<bl::csharp::ParsedSourceType> invalidField;
     error.clear();

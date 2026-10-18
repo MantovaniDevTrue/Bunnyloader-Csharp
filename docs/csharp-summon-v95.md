@@ -9,6 +9,7 @@ Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.9
 - `BunnyProjectile.MinionMovement` usa BunnyMinionMovement configurável a cada update nativo, corrigindo a inércia originalmente calculada a cada seis updates do worker. Seguir/atacar/retornar, posição relativa ao dono/direção, formação/separação, teleporte, rotação e spriteDirection.
 - CanBeChasedBy/CanHitLine, alvo manual quando campo disponível, limite de afastamento do dono e atualização de posições de alvo entre scans. Friendly apenas quando há alvo no controlador nativo.
 - ApplyStatsFromSource inicializa originalDamage pelo item real; preserva dano escalado e baseline existente. Eliminado fallback que usava o maior dano entre cajados registrados e mascarava a causa do zero.
+- Registro antecipado de BunnyProjectile extrai apenas nomes/assets; defaults calculados e MinionMovement sao executados pelo Roslyn/MonoVM e validados no descritor, sem exigir atribuicoes literais. Teste adicional executa parser e registrador antecipado de producao.
 - Contratos dos novos campos, tipos, tamanhos, offsets/limites e assinaturas validados antes de habilitar minions. Nomes de parâmetros podem variar; tipos/retorno/instância continuam obrigatórios. Cache de metadata e descritor opcional de 18 campos; formatos anteriores preservados. Cache compilador v27.
 
 ## Testes e limites
