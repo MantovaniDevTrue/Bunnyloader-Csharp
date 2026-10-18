@@ -188,6 +188,7 @@ struct NativeProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    bool minionContactDamage = false;
 };
 
 struct ManagedHurtBinding {
@@ -1533,12 +1534,13 @@ bool applyManagedNativeDefaultsBatch(
             !std::isfinite(data.minionSlots) ||
             (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
             (!data.minion && data.minionSlots != 0.f) ||
+            (data.minionContactDamage && !data.minion) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
                 data.minion, data.minionSlots, data.tileCollide, data.ignoreWater,
-                data.frames}).second ||
+                data.frames, data.minionContactDamage}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||

@@ -87,6 +87,7 @@ struct ManagedProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    bool minionContactDamage = false;
 };
 
 struct ManagedWeaponDefaults {
