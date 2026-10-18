@@ -43,10 +43,18 @@ const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& sig,bool*,
  auto it=methods.find(sig.name);if(it==methods.end())return nullptr;
  if(sig.name=="IEntitySource GetItemSource_Misc(int context)"){
    if(sourceTypeMismatch)return nullptr;
-   if(sourceNameDrift){if(nameMismatch)*nameMismatch=&it->second;return nullptr;}
+   if (sourceNameDrift) {
+     if (nameMismatch) {
+       *nameMismatch = &it->second;
+     }
+     return nullptr;
+   }
  }
  if(sig.name=="void QuickSpawnItem(IEntitySource source, int item, int stack)"&&grantNameDrift){
-   if(nameMismatch)*nameMismatch=&it->second;return nullptr;
+   if (nameMismatch) {
+     *nameMismatch = &it->second;
+   }
+   return nullptr;
  }
  return &it->second;
 }
