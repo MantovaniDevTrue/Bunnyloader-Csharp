@@ -151,7 +151,7 @@ void configure(){
  apiInstance.gc_wbarrier_set_field=[](Il2CppObject*,void** field,void* value){*field=value;barriers++;};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** ex)->Il2CppObject*{
   *ex=nullptr;
-  if(m->signature=="void .ctor(string groupDescriptorKey, int[] validItems)") {
+  if(m->signature=="RecipeGroup Register(string, string, int[])") {
    auto* group=static_cast<NativeGroup*>(self);auto* array=static_cast<Il2CppArray*>(args[1]);
    assert(array&&array->obj.klass==&intArray&&array->length>0);auto* values=static_cast<int*>(arrayData(array));
    group->members.assign(values,values+array->length);group->placeholder=values[0];
