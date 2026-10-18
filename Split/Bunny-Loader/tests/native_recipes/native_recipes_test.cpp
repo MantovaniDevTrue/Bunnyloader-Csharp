@@ -42,6 +42,7 @@ unsigned nextRoot=1;int numRecipes=0,maxRecipes=16,lookups=0,commits=0,barriers=
 Il2CppObject* current=nullptr;Il2CppArray* table=nullptr;
 bool failDefaults=false,failAdd=false,failLookup=false,wrongArray=false,failedAllocation=false;
 bool failGroup=false,failPlaceholder=false,wrongGroupReturn=false,failCustomSort=false;
+bool failRegisterReturn=false,alternateRegisterObject=false;
 int customRegistrations=0,customSorts=0;
 Il2CppObject* wood=nullptr;Il2CppObject* iron=nullptr;
 Il2CppObject exception{&exceptionClass,nullptr};
@@ -159,7 +160,15 @@ void configure(){
   }else if(m->signature=="RecipeGroup Register()"||m->signature=="int Register()"||m->signature=="void Register()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
    ++customRegistrations;
-   if(m->signature=="RecipeGroup Register()")return static_cast<Il2CppObject*>(self);
+   if(m->signature=="RecipeGroup Register()"){
+    if(failRegisterReturn)return &exception;
+    if(alternateRegisterObject){
+     auto* original=static_cast<NativeGroup*>(self);
+     auto* replacement=new NativeGroup{{&groupClass,nullptr},original->placeholder,original->members};
+     allocated.push_back(replacement);return &replacement->obj;
+    }
+    return static_cast<Il2CppObject*>(self);
+   }
   }else if(m->signature=="void SortDecraftingEntries()"){
    assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
    ++customSorts;if(failCustomSort)*ex=&exception;
