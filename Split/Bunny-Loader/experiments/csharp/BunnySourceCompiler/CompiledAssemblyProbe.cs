@@ -561,6 +561,9 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate content class: " + name);
             projectileNames.Add(name);
             bool minion = Value<bool>(projectile, "Minion");
+            int frames = Value<int>(projectile, "Frames");
+            if (frames < 1 || frames > 32)
+                throw new InvalidOperationException("Invalid C# projectile sprite frame count: " + name);
             float minionSlots = Value<float>(projectile, "MinionSlots");
             bool tileCollide = Value<bool>(projectile, "TileCollide");
             bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
@@ -574,10 +577,13 @@ public static class CompiledAssemblyProbe
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
                 Value<bool>(projectile, "Friendly") ? "1" : "0");
-            if (minion || !tileCollide || !ignoreWater)
+            if (minion || !tileCollide || !ignoreWater || frames > 1)
+            {
                 entry += "\t" + (minion ? "1" : "0") + "\t" +
                     minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
                     (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
+                if (frames > 1) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+            }
             lines.Add(entry);
         }
         foreach (object weapon in weapons)

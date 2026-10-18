@@ -69,6 +69,7 @@ public abstract class BunnyProjectile
     public int Width { get; set; } = 8;
     public int Height { get; set; } = 8;
     public int AiStyle { get; set; } = 1;
+    public int Frames { get; set; } = 1;
     public bool Friendly { get; set; } = true;
     public bool Minion { get; set; }
     public float MinionSlots { get; set; }

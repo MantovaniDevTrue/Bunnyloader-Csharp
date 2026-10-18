@@ -86,6 +86,7 @@ struct ManagedProjectileDefaults {
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
+    int frames = 1;
 };
 
 struct ManagedWeaponDefaults {

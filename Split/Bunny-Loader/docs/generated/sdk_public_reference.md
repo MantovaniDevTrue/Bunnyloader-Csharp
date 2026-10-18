@@ -792,6 +792,7 @@ bool Minion { get; set; }
 bool TileCollide { get; set; }
 float MinionSlots { get; set; }
 int AiStyle { get; set; }
+int Frames { get; set; }
 int Height { get; set; }
 int Penetrate { get; set; }
 int TimeLeft { get; set; }

@@ -187,6 +187,7 @@ struct NativeProjectileDefaults {
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
+    int frames = 1;
 };
 
 struct ManagedHurtBinding {
@@ -410,6 +411,15 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
+    if (d.frames > 1) {
+        auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
+        FieldInfo* framesField = mainClass ? il2cpp::findField(mainClass, "projFrames") : nullptr;
+        Il2CppArray* frames = nullptr;
+        if (framesField) il2cpp::api().field_static_get_value(framesField, &frames);
+        if (frames && type >= 0 && type < static_cast<int>(frames->length) &&
+            frames->length > 0 && frames->length <= 32768)
+            static_cast<int32_t*>(arrayData(frames))[type] = d.frames;
+    }
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -1510,10 +1520,12 @@ bool applyManagedNativeDefaultsBatch(
             !std::isfinite(data.minionSlots) ||
             (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
             (!data.minion && data.minionSlots != 0.f) ||
+            data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
-                data.minion, data.minionSlots, data.tileCollide, data.ignoreWater}).second ||
+                data.minion, data.minionSlots, data.tileCollide, data.ignoreWater,
+                data.frames}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||

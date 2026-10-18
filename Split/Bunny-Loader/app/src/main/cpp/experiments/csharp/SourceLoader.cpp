@@ -247,6 +247,14 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if (projectile && key == "Frames") {
+            int frames = 0;
+            if (!integer(value, &frames) || frames < 1 || frames > 32) {
+                *error = type.name + ": Frames deve ser entre 1 e 32";
+                return false;
+            }
+            continue;
+        }
         if (projectile && key == "MinionSlots") {
             float slots = 0.f;
             if (!real(value, &slots) || slots < 0.f || slots > 10.f) {
@@ -774,7 +782,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12)) {
+        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -789,7 +797,7 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             record.values.friendly = true;
-            if (fields.size() == 12) {
+            if (fields.size() >= 12) {
                 int minion = -1, collide = -1, ignoreWater = -1;
                 if (!integer(fields[8], &minion) ||
                     !real(fields[9], &record.values.minionSlots) ||
@@ -806,6 +814,12 @@ bool applyManagedSourceDefaults(
                 record.values.minion = minion == 1;
                 record.values.tileCollide = collide == 1;
                 record.values.ignoreWater = ignoreWater == 1;
+                if (fields.size() == 13 &&
+                    (!integer(fields[12], &record.values.frames) ||
+                     record.values.frames < 1 || record.values.frames > 32)) {
+                    *error = "Frames invalidos do projetil: " + record.name;
+                    return false;
+                }
             }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));
