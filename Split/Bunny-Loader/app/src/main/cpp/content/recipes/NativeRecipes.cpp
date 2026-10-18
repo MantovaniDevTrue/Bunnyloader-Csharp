@@ -302,7 +302,7 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     if(!ctor||!sort||!binding.placeholder||!binding.require)return false;
     auto* created=a.object_new(group);Root groupRoot(created);
     auto* array=a.array_new(integer,members.size());Root membersRoot(array?&array->obj:nullptr);
-    auto* descriptor=a.string_new(key.c_str());Root descriptorRoot(reinterpret_cast<Il2CppObject*>(descriptor));
+    auto* descriptor=a.string_new(ingredient.groupDescription.c_str());Root descriptorRoot(reinterpret_cast<Il2CppObject*>(descriptor));
     if(!groupRoot.handle||!membersRoot.handle||!descriptorRoot.handle||!array||
        a.class_get_rank(array->obj.klass)!=1||a.class_get_element_class(array->obj.klass)!=integer||array->length!=members.size()) {
         *detail="Group="+key+" Reason=AllocationOrArrayLayoutFailed";return false;
