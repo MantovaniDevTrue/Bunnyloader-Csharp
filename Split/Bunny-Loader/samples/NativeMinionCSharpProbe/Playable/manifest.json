@@ -1,0 +1,22 @@
+{
+  "uid": "c2d8af54-6bd2-4a3c-82d5-1e7f68b49503",
+  "id": "nativeminioncsharpprobe",
+  "name": "Native Minion — CSharp Probe",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "C# SDK QA"
+    }
+  ],
+  "category": "Example",
+  "summary": "Standalone C# native minion summon/buff/AI probe using MonoVM and IL2CPP, no JavaScript.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}
