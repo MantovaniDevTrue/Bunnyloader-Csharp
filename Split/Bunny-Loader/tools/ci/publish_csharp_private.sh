@@ -225,8 +225,8 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-summon-lifecycle-v95" ]; then
     if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 30 ]; then echo "[CSharp][ERROR][Delivery] Stage=RequiredChecks Result=Rejected Reason=ChecksNotSuccessful"; exit 1; fi
     sleep 10
   done
-  TITLE="Bunny CSharp .95 + ExampleMod 0.1.54 | experimental summon lifecycle"
-  NOTES="Preserves .94/.93/.90.6 commits. Native buff cancellation and owner lifetime, per-update configurable follow/attack/return/teleport, formation and separation, live targets/manual target and LOS, real source-item originalDamage initialization without changing incoming scaled damage. Production hooks tested with controlled IL2CPP providers and QuickJS disabled. Android gameplay/FPS still awaiting validation; no full-loader completion claim. Source ${GITHUB_SHA}."
+  TITLE="Bunny CSharp .95.1 + ExampleMod 0.1.54 | experimental summon lifecycle"
+  NOTES="Preserves .94/.93/.90.6 commits. Native buff cancellation and owner lifetime, per-update configurable follow/attack/return/teleport, formation and separation, live targets/manual target and LOS, real source-item originalDamage initialization without changing incoming scaled damage. Immutable projectile/weapon definitions published atomically; concurrent reader/writer regression included. Production hooks tested with controlled IL2CPP providers and QuickJS disabled. Android gameplay/FPS still awaiting validation; no full-loader completion claim. Source ${GITHUB_SHA}."
 fi
 
 RELEASE_ASSETS=(

@@ -1,6 +1,6 @@
-# .95 — ciclo de vida e combate de summons
+# .95.1 — ciclo de vida e combate de summons
 
-Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando as correções funcionais da `.90.6` contidas na `.94` (a branch `.90.6` não é ancestral desta linha). Bunny `.90.29.95-summon-lifecycle`, code270; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
+Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.94` (`6a106345`) preservando as correções funcionais da `.90.6` contidas na `.94` (a branch `.90.6` não é ancestral desta linha). Bunny `.90.29.95.1-summon-snapshots`, code271; ExampleMod `0.1.54`; Lights `0.4.2.3` preservado.
 
 ## Correções sistêmicas
 
@@ -11,6 +11,12 @@ Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.9
 - ApplyStatsFromSource inicializa originalDamage pelo item real; preserva dano escalado e baseline existente. Eliminado fallback que usava o maior dano entre cajados registrados e mascarava a causa do zero.
 - Registro antecipado de BunnyProjectile extrai apenas nomes/assets; defaults calculados e MinionMovement sao executados pelo Roslyn/MonoVM e validados no descritor, sem exigir atribuicoes literais. Teste adicional executa parser e registrador antecipado de producao.
 - Contratos dos novos campos, tipos, tamanhos, offsets/limites e assinaturas validados antes de habilitar minions. Nomes de parâmetros podem variar; tipos/retorno/instância continuam obrigatórios. Cache de metadata e descritor opcional de 18 campos; formatos anteriores preservados. Cache compilador v27.
+
+## Publicação concorrente das definições
+
+A build `.95`/code270 foi compilada e entregue experimentalmente pelo run [39164705347](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39164705347), fonte `25ea4f5bc9c18d3eca91d20303e9da6c7e122c3e`. A revisão posterior identificou leitores do jogo acessando mapas que o carregador pode alterar em segundo plano. A `.95.1` publica snapshots imutáveis de armas e definições de projéteis (defaults, offsets validados, movimento e chave de diagnóstico). O jogo conserva uma revisão enquanto a lê; a publicação do lote ocorre depois da validação. Não há cópia de mapas nem alocação de configurações a cada frame.
+
+O teste do publicador de produção executa 2.000 revisões com três leitores concorrentes e verifica consistência entre chave e valores. O ExampleMod permanece0.1.54. Os demais stores legados não recebem uma certificação global de concorrência por este teste. Validar no Android a `.95.1` ou posterior, não promover a `.95` a referência estável por ter CI verde.
 
 ## Testes e limites
 

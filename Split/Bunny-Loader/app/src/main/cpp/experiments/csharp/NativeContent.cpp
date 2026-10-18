@@ -225,6 +225,24 @@ FieldInfo* g_mainNpcArrayField = nullptr;
 FieldInfo* g_mainProjectileArrayField = nullptr;
 std::map<int, NativeWeaponDefaults> g_weapons;
 std::map<int, NativeProjectileDefaults> g_projectiles;
+struct ProjectileDefinition {
+    NativeProjectileDefaults defaults{};
+    ProjectileGameplayFields fields{};
+    SummonMovement movement{};
+    std::string key{};
+};
+using ProjectileDefinitions=std::map<int,ProjectileDefinition>;
+std::shared_ptr<const ProjectileDefinitions> g_projectileView=std::make_shared<const ProjectileDefinitions>();
+std::shared_ptr<const std::map<int,NativeWeaponDefaults>> g_weaponView=std::make_shared<const std::map<int,NativeWeaponDefaults>>();
+void publishWeaponDefaults() {
+    std::atomic_store_explicit(&g_weaponView,std::make_shared<const std::map<int,NativeWeaponDefaults>>(g_weapons),std::memory_order_release);
+}
+void publishProjectileDefinition(int type,const NativeProjectileDefaults& defaults,
+                                 const std::string& key) {
+    auto next=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
+    auto& record=(*next)[type];record.defaults=defaults;record.key=key;
+    std::atomic_store_explicit(&g_projectileView,std::shared_ptr<const ProjectileDefinitions>(std::move(next)),std::memory_order_release);
+}
 std::map<int, NativeNpcDefaults> g_npcs;
 std::map<int, NativeAccessoryDefaults> g_accessories;
 std::mutex g_nativeEquipDescriptorsMutex;
@@ -347,10 +365,11 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         bl::runtime::finishModItem(self,type);
         return;
     }
-    auto it = g_weapons.find(type);
+    const auto weapons=std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire);
+    auto it = weapons->find(type);
     auto accessory = g_accessories.find(type);
     auto potion = g_potions.find(type);
-    if ((it == g_weapons.end() && accessory == g_accessories.end() &&
+    if ((it == weapons->end() && accessory == g_accessories.end() &&
          potion == g_potions.end()) || !self) {
         if (g_originalItem) g_originalItem(self, type, variant, method);
         return;
@@ -411,7 +430,7 @@ void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,c
     if(g_originalApplyProjectileStats)g_originalApplyProjectileStats(projectile,source,method);
     if(!projectile||g_originalDamageField<0)return;
     const int type=runtime::field<int32_t>(projectile,g_refs.projectileType);
-    if(!g_projectiles.count(type))return;
+    if(!std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire)->count(type))return;
     auto& baseline=runtime::field<int32_t>(projectile,g_originalDamageField);
     if(baseline>0)return; // Preserve native/other-mod initialization and the incoming scaled damage.
     int itemDamage=-1;
@@ -474,10 +493,11 @@ void hkNativeMinionDamage(Il2CppObject* projectile, const MethodInfo* method) {
 
 void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
     if (g_originalProjectile) g_originalProjectile(self, type, method);
-    auto it = g_projectiles.find(type);
-    if (it == g_projectiles.end() || !self) return;
+    const auto definitions=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    auto it = definitions->find(type);
+    if (it == definitions->end() || !self) return;
     const auto& r = g_refs;
-    const auto& d = it->second;
+    const auto& d = it->second.defaults;
     bl::runtime::field<int32_t>(self, r.projAiStyle) = d.aiStyle;
     bl::runtime::field<uint8_t>(self, r.projFriendly) = d.friendly ? 1 : 0;
     bl::runtime::field<uint8_t>(self, r.projHostile) = d.hostile ? 1 : 0;
@@ -1270,28 +1290,32 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
 
 }
 
-namespace { std::map<int,ProjectileGameplayFields> g_projectileGameplayFields; std::map<int,SummonMovement> g_minionMovement; std::map<int,std::string> g_projectileKeys; }
-std::string nativeManagedProjectileKey(int type) {const auto it=g_projectileKeys.find(type);return it==g_projectileKeys.end()?std::string{}:it->second;}
-SummonMovement nativeManagedMinionMovement(int type) {const auto it=g_minionMovement.find(type);return it==g_minionMovement.end()?SummonMovement{}:it->second;}
+std::string nativeManagedProjectileKey(int type) {
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto it=view->find(type);return it==view->end()?std::string{}:it->second.key;
+}
+SummonMovement nativeManagedMinionMovement(int type) {
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto it=view->find(type);return it==view->end()?SummonMovement{}:it->second.movement;
+}
 ProjectilePolicy nativeManagedProjectilePolicy(int type) {
-    const auto found=g_projectiles.find(type);if(found==g_projectiles.end())return {};
-    const auto& d=found->second;
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto found=view->find(type);if(found==view->end())return {};
+    const auto& d=found->second.defaults;
     return {d.frames,d.animationFrameTicks,d.minionScanTicks,d.minionTargetRange,d.minion};
 }
 bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields) {
-    const auto found=g_projectileGameplayFields.find(type);if(found==g_projectileGameplayFields.end())return false;
-    *fields=found->second;return true;
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto found=view->find(type);if(found==view->end())return false;
+    *fields=found->second.fields;return true;
 }
-
-int nativeManagedProjectileFrames(int type) {
-    const auto it = g_projectiles.find(type);
-    return it == g_projectiles.end() ? 1 : it->second.frames;
-}
+int nativeManagedProjectileFrames(int type) {return nativeManagedProjectilePolicy(type).frames;}
 
 int nativeManagedMinionBuff(int projectileType) {
     const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
     for(const auto& [type,buff]:*buffs)if(buff.minionProjectileType==projectileType)return type;
-    for (const auto& [type, weapon] : g_weapons) {
+    const auto weapons=std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire);
+    for (const auto& [type, weapon] : *weapons) {
         if (weapon.summon && weapon.shootType == projectileType)
             return weapon.minionBuffType;
     }
@@ -1299,8 +1323,9 @@ int nativeManagedMinionBuff(int projectileType) {
 }
 
 bool nativeManagedMinionContactEnabled(int projectileType) {
-    const auto it = g_projectiles.find(projectileType);
-    return it != g_projectiles.end() && it->second.minion && it->second.minionContactDamage;
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto it = view->find(projectileType);
+    return it != view->end() && it->second.defaults.minion && it->second.defaults.minionContactDamage;
 }
 
 
@@ -1639,6 +1664,8 @@ bool applyManagedNativeDefaults(
     g_weapons[weaponType] = {
         weapon.damage, weapon.useTime, weapon.shootSpeed, projectileType
     };
+    publishProjectileDefinition(projectileType,g_projectiles.at(projectileType),modId+"/"+projectileName);
+    publishWeaponDefaults();
     BL_INFO("csharp native: managed SetDefaults applied for %s/%s and %s/%s",
             modId.c_str(), projectileName.c_str(), modId.c_str(), weaponName.c_str());
     return true;
@@ -1732,18 +1759,20 @@ bool applyManagedNativeDefaultsBatch(
             data.shootSpeed < 1.f || data.shootSpeed > 40.f)
             return false;
     }
+    auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
     for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;
         // Update the shared texture/frame registry too: finishModProjectile restores
         // geometry from it, and table growth must preserve the same frame count.
         bl::runtime::setModProjectileFrames(item.first,item.second.frames);
     }
-    for(const auto& item:stagedFields)g_projectileGameplayFields[item.first]=item.second;
-    for(const auto& item:projectiles) {g_minionMovement[item.type]=item.values.movement;g_projectileKeys[item.type]=modId+"/"+item.name;}
+    for(const auto& item:projectiles)(*nextView)[item.type]={stagedProjectiles.at(item.type),stagedFields.at(item.type),item.values.movement,modId+"/"+item.name};
+    std::atomic_store_explicit(&g_projectileView,std::shared_ptr<const ProjectileDefinitions>(std::move(nextView)),std::memory_order_release);
     for (const auto& item : stagedWeapons) {
         g_weapons[item.first] = item.second;
         enableManagedPrefixEligibility(item.first);
     }
+    publishWeaponDefaults();
     BL_INFO("csharp native: managed batch applied for %s (%zu projectile, %zu weapon)",
             modId.c_str(), stagedProjectiles.size(), stagedWeapons.size());
     return true;
@@ -2051,7 +2080,7 @@ int managedNativeAccessoryMoveSpeedPercent(int type) {
 int managedNativePrefixItemKind(int type) {
     if (basicItemIsAccessory(type)) return 2;
     if (basicItemHasDamage(type)) return 1;
-    if (g_weapons.contains(type)) return 1;
+    if (std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire)->contains(type)) return 1;
     if (g_accessories.contains(type)) return 2;
     return 0;
 }
@@ -2060,12 +2089,13 @@ void refreshManagedPrefixEligibilityOnWorldReady() {
     int corrected = 0;
     for (int type : basicItemTypes())
         if (basicItemHasDamage(type) && enableManagedPrefixEligibility(type)) ++corrected;
-    for (const auto& weapon : g_weapons)
+    const auto weapons=std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire);
+    for (const auto& weapon : *weapons)
         if (enableManagedPrefixEligibility(weapon.first)) ++corrected;
     for (const auto& accessory : g_accessories)
         if (enableManagedPrefixEligibility(accessory.first)) ++corrected;
     BL_INFO("csharp prefix: mundo pronto; elegibilidade C# revista para %zu item(ns), %d corrigido(s)",
-            g_weapons.size() + g_accessories.size(), corrected);
+            weapons->size() + g_accessories.size(), corrected);
 }
 
 namespace {
@@ -2420,6 +2450,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         if (type >= 0) {
             g_projectiles[type] = {spec->width, spec->height, spec->aiStyle,
                                    spec->penetrate, spec->timeLeft, true, false};
+            publishProjectileDefinition(type,g_projectiles.at(type),ctx.modId+"/"+spec->name);
             ++ctx.projectiles;
         }
         return type;
@@ -2520,6 +2551,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         const int type = bl::runtime::registerModItem(std::move(def));
         if (type >= 0) {
             g_weapons[type] = {spec->damage, spec->useTime, spec->shootSpeed, spec->shootType};
+            publishWeaponDefaults();
             ++ctx.items;
         }
         return type;
