@@ -1545,7 +1545,7 @@ bool applyManagedNativeDefaultsBatch(
             if(error)*error=diagnostic;
             BL_ERROR("%s",diagnostic.c_str());return false;
         }
-        if(data.frames>1&&!bindProjectileFrameTable(il2cpp::findClass({"Terraria","Main",{}}),entry.type,&detail)) {
+        if(!bindProjectileFrameTable(il2cpp::findClass({"Terraria","Main",{}}),entry.type,&detail)) {
             const auto diagnostic="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+entry.name+" Stage=BindFrames Result=Rejected Detail="+detail;
             if(error)*error=diagnostic;
             BL_ERROR("%s",diagnostic.c_str());return false;
