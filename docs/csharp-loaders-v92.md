@@ -33,7 +33,7 @@ Três receitas reais adicionais em ExampleWand, ExampleFocusAccessory e
 ExampleBuffPotion; dez ExampleItem na bancada C# e recompensa de um ExampleItem
 via classe compartilhada. Nenhum exemplo existente removido. O pacote passa de
 67 para 68 fontes editáveis; classes de conteúdo continuam45, linhas de receita
-auxiliares3, receitas totais13. Os comportamentos originais ainda parciais não
+auxiliares3, receitas descritas no wire14 (onze anteriores + três novas). Os comportamentos originais ainda parciais não
 são classificados como completos por causa dessas receitas adicionais.
 
 Novo teste gerenciado compila mod independente, herança/declarativo, três donos,
@@ -58,3 +58,25 @@ A .92 exige teste Android segundo `OWNED_RECIPE_LOADER_V92.md` no bmod. A entreg
 é experimental privada e depende do build/assinatura e das nove suítes no mesmo
 SHA. Atualizar o recibo de CI após o resultado real; não declarar build aprovada
 antes disso. O Lote A e o conjunto de loaders permanecem incompletos.
+
+## Entrega verificável — 2026-10-18
+
+Fonte testada: `2ea904f484aa81a6d1f9c4eabb0f370f81924117`.
+[PR93](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/93),
+[build Android 39139316748](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39139316748):
+compilação, assinatura, publicação e verificação privada aprovadas. As nove
+suítes de push passaram nesse mesmo SHA. [Recibo por workflow/job/asset](validation/csharp-v92-ci-2026-10-18.json).
+
+[APK .92 e ExampleMod 0.1.51, release privada experimental](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39139316748-a1).
+APK241476609bytes; bmod178959bytes. Download e SHA-256 do bmod conferidos;
+os 68 fontes .cs publicados correspondem exatamente ao commit. Não inclui
+DLLs/SOs/JS no ExampleMod. A validação sintática também usa o SDK completo
+net8.0, substituindo a inclusão parcial que falhou na primeira tentativa de CI.
+
+A fila de um mod que só contém categorias especializadas agora dispara no
+próximo pump, sem aguardar até120ticks do polling. O teste também força e recusa
+um resultado acima do maxStack nativo, sem confirmar registro inválido.
+No Android, a recompensa usa QuickSpawnItem: se necessário, recolha o material
+junto ao jogador antes de conferir o saldo líquido de-9 por fabricação.
+Gameplay, desempenho e tempo de compilação fria da .92 NÃO foram medidos no
+aparelho. Os documentos posteriores a esse SHA não alteram o runtime testado.
