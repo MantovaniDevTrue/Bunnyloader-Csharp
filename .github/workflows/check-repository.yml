@@ -29,3 +29,5 @@ jobs:
           python-version: '3.12'
       - run: python3 tools/check_repository.py
       - run: python3 -m unittest discover -s tests -p test_repository_checks.py -v
+      - run: python3 -m py_compile tools/potato_integration_audit.py
+      - run: python3 -m unittest discover -s tests -p test_potato_integration_audit.py -v
