@@ -16,8 +16,9 @@ enum BasicField { BasicWidth, BasicHeight, BasicMaxStack, BasicValue, BasicRare,
 inline constexpr std::array<const char*,BasicFieldCount> kBasicFieldNames = {
     "Width","Height","MaxStack","Value","Rare","Damage","Crit","UseTime",
     "UseAnimation","UseStyle","Pick","Axe","Hammer","Flags"};
-struct BasicRecipeIngredient { std::string key; int count=1; int type=-1; };
-struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; };
+struct BasicRecipeIngredient { std::string key; int count=1; int type=-1;
+    std::string customGroup{}, groupDescription{}; std::vector<std::string> groupMembers{}; };
+struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient> ingredients; std::string stationKey; int callbacks=0; };
 struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
     std::string name; int type=-1; int defense=0;
@@ -70,7 +71,11 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
     auto recipes=basicSplit(text,';');
     if(recipes.size()>16) {*error=item->name+": mais de 16 receitas";return false;}
     for(const auto& wire:recipes) {
-        auto parts=basicSplit(wire,',');BasicRecipe recipe;
+        auto policy=basicSplit(wire,'@');BasicRecipe recipe;
+        if(policy.size()>2||(policy.size()==2&&(!basicInteger(policy[1],&recipe.callbacks)||recipe.callbacks<1||recipe.callbacks>7))) {
+            *error=item->name+": Stage=ParseRecipeCallbacks Expected=Mask1..7 Reason=InvalidCallbackDescriptor";return false;
+        }
+        auto parts=basicSplit(policy[0],',');
         if(parts.size()<3||parts.size()>17||!basicInteger(parts[0],&recipe.stack)||
             recipe.stack<1||recipe.stack>item->values[BasicMaxStack]) { *error=item->name+": resultado da receita invalido";return false; }
         if(parts[1].size()>1&&parts[1][0]=='m') {
@@ -88,7 +93,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
         }
         for(size_t i=2;i<parts.size();++i) {
             auto pair=basicSplit(parts[i],':');BasicRecipeIngredient ingredient;
-            if(pair.size()!=2||pair[0].size()<2||pair[0].size()>161||
+            if(pair.size()!=2||pair[0].size()<2||pair[0].size()>48000||
                 !basicInteger(pair[1],&ingredient.count)||ingredient.count<1||ingredient.count>9999) {
                 *error="[CSharp][ERROR][Recipe] Class="+item->name+" API=BunnyRecipe Stage=ParseIngredient Expected=TypedKey:Count(1..9999) Actual="+parts[i]+" Result=Rejected Reason=InvalidIngredientDescriptor";return false;
             }
@@ -97,6 +102,25 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
                 if(!basicInteger(pair[0].substr(1),&ingredient.type)||ingredient.type<1||ingredient.type>=6196) {*error=item->name+": ItemID vanilla invalido";return false;}
             } else if(pair[0][0]=='m') {
                 for(unsigned char c:pair[0].substr(1))if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='/')) {*error=item->name+": chave de item invalida";return false;}
+            } else if(pair[0][0]=='h') {
+                const auto fields=basicSplit(pair[0].substr(1),'~');
+                if(fields.size()!=3||fields[0].empty()||fields[0].size()>72||fields[1].empty()||fields[1].size()>512||fields[1].size()%2) {
+                    *error=item->name+": Stage=ParseRecipeGroup Reason=InvalidCustomGroupDescriptor";return false;
+                }
+                for(unsigned char c:fields[0])if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-')) {
+                    *error=item->name+": Stage=ParseRecipeGroup Reason=InvalidGroupName";return false;
+                }
+                auto nibble=[](char c)->int{return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
+                for(size_t n=0;n<fields[1].size();n+=2){const int a=nibble(fields[1][n]),b=nibble(fields[1][n+1]);
+                    if(a<0||b<0||((a<<4)|b)<32||((a<<4)|b)==127){*error=item->name+": Stage=ParseRecipeGroup Reason=InvalidDescriptionHex";return false;}
+                    ingredient.groupDescription+=static_cast<char>((a<<4)|b);
+                }
+                ingredient.customGroup=fields[0];ingredient.groupMembers=basicSplit(fields[2],'+');
+                if(ingredient.groupMembers.empty()||ingredient.groupMembers.size()>256){*error=item->name+": Stage=ParseRecipeGroup Reason=MemberLimit";return false;}
+                for(const auto& member:ingredient.groupMembers){
+                    if(member.size()<2||member.size()>161||(member[0]!='v'&&member[0]!='m')){*error=item->name+": Stage=ParseRecipeGroup Reason=InvalidMember";return false;}
+                    for(unsigned char c:member.substr(1))if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='/')){*error=item->name+": Stage=ParseRecipeGroup Reason=InvalidMemberKey";return false;}
+                }
             } else if(pair[0][0]=='g') {
                 const auto name=pair[0].substr(1);
                 bool valid=name.size()<=72&&((name.front()>='A'&&name.front()<='Z')||(name.front()>='a'&&name.front()<='z'));

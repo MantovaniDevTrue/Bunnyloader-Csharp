@@ -236,7 +236,7 @@ try
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 43)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 45)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -244,7 +244,7 @@ try
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 44 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (defaultRows.Length != 46 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=44Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {
@@ -286,7 +286,7 @@ try
             " Expected=" + expectedDefault.TrimEnd('\n') + " Actual=" + actualDefault);
     }
     string[] benchDefaults = defaultRows.Single(row => row.StartsWith("ITEM\tExampleWorkbench\t", StringComparison.Ordinal)).Split('\t');
-    const string expectedBenchRecipes = "1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2";
+    const string expectedBenchRecipes = "1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2;1,-1,hExampleMaterials~416E79204578616D706C65206D6174657269616C~mExampleItem+mExampleSoul:10,gWood:10@7";
     if (benchDefaults[19] != expectedBenchRecipes)
         throw new InvalidOperationException("Independent ExampleWorkbench recipes mismatch: Expected=" + expectedBenchRecipes + " Actual=" + benchDefaults[19]);
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));

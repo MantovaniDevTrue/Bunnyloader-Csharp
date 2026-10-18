@@ -1777,10 +1777,30 @@
       "gitBlobSha": "a5aa962c9b31abd88b5e620e70d9de5af12a83a3",
       "bytes": 1384,
       "role": "active-source",
-      "auditState": "Pendente",
+      "auditState": "Em andamento",
       "verifiedPort": false,
       "candidateBunnyFiles": [],
-      "candidateMeaning": "Coincidência de nome; não comprova comportamento ou cobertura"
+      "candidateMeaning": "Coincidência de nome; não comprova comportamento ou cobertura",
+      "portStatus": "Parcial",
+      "bunnyImplementation": [
+        "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs",
+        "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "implementedFeatures": [
+        "Flag de debuff e descrição",
+        "Multiplicador de defesa após os equipamentos, com defaults e metadados validados"
+      ],
+      "missingFeatures": [
+        "Validação de comportamento no Android e localização integral"
+      ],
+      "validation": {
+        "host": "SDK/compilação e contratos de tipos no host; não comprova gameplay",
+        "ci": "Pendente",
+        "android": "Aguardando validação"
+      },
+      "evidence": [
+        "docs/csharp-buffs-recipes-v90.md"
+      ]
     },
     {
       "path": "ExampleMod/Content/Buffs/ExampleDefenseDebuff.png",
@@ -2287,15 +2307,20 @@
       "implementedFeatures": [
         "Grupos nativos de ingredientes por nome de campo IL2CPP; Recipe.RequireGroup real",
         "Referencias locais tipadas para ingredientes e estacoes",
-        "Clone e remocao em receitas declaradas pelo proprio BunnyRecipe"
+        "Clone e remocao em receitas declaradas pelo proprio BunnyRecipe",
+        "Grupos personalizados com identidade UID/nome e membros resolvidos pelo registro compartilhado",
+        "Condições e callbacks C# reais no worker Mono com snapshot e orçamento limitado",
+        "Consumo limitado ao disponível e concessões de itens na thread do jogo"
       ],
       "missingFeatures": [
-        "Criacao/mesclagem e membros de grupos customizados",
         "Multiplas estacoes na mesma receita",
         "Condicoes nativas/managed e interfaces de descricao",
         "Callbacks de consumo e OnCraft",
         "Clone/alteracao de receitas globais existentes e PostAddRecipes",
-        "Shimmer/decrafting e integracao com exemplos dependentes"
+        "Shimmer/decrafting e integracao com exemplos dependentes",
+        "Merge/edição de grupos já existentes",
+        "Fogos originais e contexto consumedItems/destinationStack do OnCraft",
+        "Estado completo do Terraria e apresentação localizada das condições"
       ],
       "bunnyImplementation": [
         "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -2312,12 +2337,14 @@
       "validation": {
         "host": "Contrato/servico de producao executado com IL2CPP controlado, sem QuickJS",
         "ci": "Aprovado: build 39080974810 e nove suites no SHA b22962178a6beafa34301caa89a0bced46a598bb; fixture C# compilado executado no pump sem QuickJS",
-        "android": "Validacao do fluxo entregue relatada pelo usuario em 18/10/2026, .89 / ExampleMod 0.1.48, pid4488; variantes/consumos e reentrada nao discriminados individualmente"
+        "android": "Validacao do fluxo entregue relatada pelo usuario em 18/10/2026, .89 / ExampleMod 0.1.48, pid4488; variantes/consumos e reentrada nao discriminados individualmente",
+        "v90": "26 verificações gerenciadas e contratos nativos no host; CI e Android pendentes; arquivo continua Parcial"
       },
       "evidence": [
         "docs/csharp-native-recipe-groups-v89.md",
         "docs/validation/csharp-v89-android-2026-10-18.md",
-        "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810"
+        "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810",
+        "docs/csharp-buffs-recipes-v90.md"
       ]
     },
     {

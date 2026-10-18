@@ -601,9 +601,20 @@ public static class CompiledAssemblyProbe
                 if (!projectileNames.Contains(minion))
                     throw new InvalidOperationException("Buff minion projectile not found: " + minion);
             }
-            lines.Add(string.Join("\t", "BUFF", name,
-                defense.ToString(CultureInfo.InvariantCulture),
-                minion.Length > 0 ? minion : "-"));
+            string description=Value<string>(buff,"Description") ?? "";
+            if(System.Text.Encoding.UTF8.GetByteCount(description)>512 || description.Any(c=>char.IsControl(c)&&c!='\n'))
+                throw new InvalidOperationException("[CSharp][ERROR][Buff] Class="+buff.GetType().FullName+" Field=Description Stage=SetDefaults Expected=Utf8UpTo512Bytes Reason=InvalidDescription");
+            description=description.Replace("{0}",defense.ToString(CultureInfo.InvariantCulture));
+            int multiplier=Value<int>(buff,"DefenseMultiplierPercent");
+            if(multiplier<0||multiplier>100)throw new InvalidOperationException("[CSharp][ERROR][Buff] Class="+name+" Field=DefenseMultiplierPercent Expected=0..100 Actual="+multiplier+" Reason=InvalidDefenseMultiplier");
+            int flags=(Value<bool>(buff,"IsDebuff")?1:0)|(Value<bool>(buff,"NoSave")?2:0)|(Value<bool>(buff,"NoTimeDisplay")?4:0)|(Value<bool>(buff,"NurseCannotRemove")?8:0);
+            // Keep the old row for unchanged mods; extended rows carry values executed by MonoVM.
+            if(minion.Length==0 && flags==0 && description.Length==0 && multiplier==100)
+                lines.Add(string.Join("\t","BUFF",name,defense.ToString(CultureInfo.InvariantCulture)));
+            else lines.Add(string.Join("\t", "BUFF", name,
+                defense.ToString(CultureInfo.InvariantCulture), minion.Length > 0 ? minion : "-",
+                flags.ToString(CultureInfo.InvariantCulture),description.Length==0?"-":Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(description)),
+                multiplier.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (object potion in potions)
         {

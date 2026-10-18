@@ -33,5 +33,22 @@ public sealed class ExampleWorkbench : BunnyItem {
         var metalRecipe = woodRecipe.Clone();
         metalRecipe.RemoveNativeRecipeGroup("Wood");
         metalRecipe.AddNativeRecipeGroup("IronBar", 2).Register();
+
+        // Grupo personalizado: o núcleo resolve os IDs de ExampleItem e ExampleSoul
+        // depois do registro. Qualquer membro serve, sem converter um no outro.
+        var materials = new BunnyRecipeGroup("ExampleMaterials", "Any Example material")
+            .AddItem<ExampleModCSharp.ExampleItem>().AddItem("ExampleSoul");
+        CreateRecipe().AddRecipeGroup(materials, 10)
+            .AddNativeRecipeGroup("Wood", 10)
+            // Predicado C# real, executado no worker Mono a partir de snapshot.
+            .AddCondition("Night and low health", context =>
+                !context.IsDay && context.CurrentLife < context.MaxLife / 2)
+            // A madeira é necessária para liberar a receita, mas não é consumida.
+            // O núcleo limita a resposta à quantidade originalmente requisitada.
+            .AddConsumeIngredientCallback((context, type, amount) => type == 9 ? 0 : amount)
+            // Após avaliação bem-sucedida, a concessão ocorre na thread do jogo.
+            // A operação usa a mesma API pública em qualquer mod independente.
+            .AddOnCraftCallback(context => context.GiveItem<ExampleModCSharp.ExampleItem>())
+            .Register();
     }
 }

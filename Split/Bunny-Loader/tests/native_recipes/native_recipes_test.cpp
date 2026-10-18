@@ -24,7 +24,7 @@ struct Item {
  bool flags[7]{};float knockBack=0;void* sound=nullptr; int16_t createTile=-1;uint16_t placementSentinel=0x5a5a;int16_t placeStyle=0;uint16_t styleSentinel=0xa5a5;
 };
 struct Recipe { Il2CppObject obj; Il2CppObject* result=nullptr; Il2CppArray* ingredients=nullptr; int station=-1; std::vector<Il2CppObject*> groups; };
-struct NativeGroup { Il2CppObject obj; int placeholder=9; };
+struct NativeGroup { Il2CppObject obj; int placeholder=9; std::vector<int> members{}; };
 struct BoxedInt { Il2CppObject obj; int value=0; };
 Il2CppClass intClass{"System","Int32",4,true},floatClass{"System","Single",4,true},
     shortClass{"System","Int16",2,true},boolClass{"System","Boolean",1,true},byteClass{"System","Byte",1,true},legacyClass{"Terraria.Audio","LegacySoundStyle"},
@@ -33,7 +33,7 @@ Il2CppClass intClass{"System","Int32",4,true},floatClass{"System","Single",4,tru
     recipeArray{"Terraria","Recipe[]",0,false,&recipeClass},variantClass{"Terraria","ItemVariant",4,true},
     shimmerClass{"Terraria.GameContent","ShimmerTransforms"},samplesClass{"Terraria.ID","ContentSamples"},
     exceptionClass{"System","InvalidOperationException",sizeof(Il2CppObject)},
-    recipeGroupsClass{"Terraria.ID","RecipeGroups"},groupClass{"Terraria","RecipeGroup",sizeof(NativeGroup)};
+    recipeGroupsClass{"Terraria.ID","RecipeGroups"},groupClass{"Terraria","RecipeGroup",sizeof(NativeGroup)},stringClass{"System","String"},intArray{"System","Int32[]",0,false,&intClass};
 bl::il2cpp::Api apiInstance;
 std::vector<FieldInfo> fields;
 std::map<std::string,MethodInfo> methods;
@@ -57,7 +57,7 @@ Il2CppClass* findNested(Il2CppClass*,std::string_view){return nullptr;}
 Il2CppClass* findClassQuiet(const std::string&,const std::string&){return nullptr;}
 
 Api& api(){return apiInstance;}
-Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass,&recipeGroupsClass,&groupClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
+Il2CppClass* findClass(const TypeRef& r){for(auto* cls:{&itemClass,&recipeClass,&mainClass,&shimmerClass,&samplesClass,&recipeGroupsClass,&groupClass,&intClass,&stringClass})if(cls->ns==r.ns&&cls->name==r.name)return cls;return nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){const auto key=cls->name+"."+std::string(name);for(auto& f:fields)if(f.name==key)return &f;return nullptr;}
 int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cls,name);return f?static_cast<int32_t>(f->offset):-1;}
 Signature parseSignature(std::string_view s){Signature out;out.name=std::string(s);return out;}
@@ -102,6 +102,9 @@ void configure(){
    "void AddRecipe()","void CreateRequiredItemQuickLookups()","void UpdateMaterialFieldForAllRecipes()",
    "void UpdateWhichItemsAreMaterials()","void UpdateWhichItemsAreCrafted()","void UpdateRecipeSets()","void FixItemsAfterRecipesAreAdded()"})
    methods.emplace(s,MethodInfo{s,std::string(s)=="void .ctor()"||std::string(s)=="void SetDefaults(int Type, ItemVariant variant)"||std::string(s)=="void SetCraftingStation(int tileType)"});
+ methods.emplace("void .ctor(string groupDescriptorKey, int[] validItems)",MethodInfo{"void .ctor(string groupDescriptorKey, int[] validItems)",true});
+ methods.emplace("void Register()",MethodInfo{"void Register()",true});
+ methods.emplace("void SortDecraftingEntries()",MethodInfo{"void SortDecraftingEntries()",true});
  methods.emplace("int GetPlaceholderItemType()",MethodInfo{"int GetPlaceholderItemType()",true});
  methods.emplace("void RequireGroup(RecipeGroup group)",MethodInfo{"void RequireGroup(RecipeGroup group)",true});
  apiInstance.class_get_name=[](Il2CppClass* c){return c->name.c_str();};
@@ -136,13 +139,24 @@ void configure(){
  apiInstance.method_is_instance=[](const MethodInfo* m){return m->instance;};
  apiInstance.method_get_param=[](const MethodInfo*,unsigned){static Il2CppType t{&variantClass};return static_cast<const Il2CppType*>(&t);};
  apiInstance.object_get_class=[](Il2CppObject* o){return o->klass;};
- apiInstance.object_new=[](Il2CppClass* cls)->Il2CppObject*{assert(cls==&recipeClass);if(failedAllocation)return nullptr;return &makeRecipe()->obj;};
+ apiInstance.object_new=[](Il2CppClass* cls)->Il2CppObject*{if(failedAllocation)return nullptr;
+  if(cls==&groupClass){auto* group=new NativeGroup{{&groupClass,nullptr},9,{}};allocated.push_back(group);return &group->obj;}
+  assert(cls==&recipeClass);return &makeRecipe()->obj;};
+ apiInstance.array_new=[](Il2CppClass* cls,uintptr_t n){assert(cls==&intClass);return makeArray(&intArray,n);};
+ apiInstance.string_new=[](const char* text){size_t n=std::strlen(text);auto* p=static_cast<Il2CppString*>(std::calloc(1,sizeof(Il2CppString)+n*2));p->obj.klass=&stringClass;p->length=static_cast<int>(n);for(size_t i=0;i<n;++i)p->chars[i]=text[i];allocated.push_back(p);return p;};
+ apiInstance.gchandle_get_target=[](unsigned h){return roots.at(h);};
  apiInstance.gchandle_new=[](Il2CppObject* obj,bool){const auto h=nextRoot++;roots[h]=obj;return h;};
  apiInstance.gchandle_free=[](unsigned h){assert(roots.erase(h)==1);};
  apiInstance.gc_wbarrier_set_field=[](Il2CppObject*,void** field,void* value){*field=value;barriers++;};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** ex)->Il2CppObject*{
   *ex=nullptr;
-  if(m->signature=="void .ctor()"){
+  if(m->signature=="void .ctor(string groupDescriptorKey, int[] validItems)") {
+   auto* group=static_cast<NativeGroup*>(self);auto* array=static_cast<Il2CppArray*>(args[1]);
+   assert(array&&array->obj.klass==&intArray&&array->length>0);auto* values=static_cast<int*>(arrayData(array));
+   group->members.assign(values,values+array->length);group->placeholder=values[0];
+  }else if(m->signature=="void Register()"||m->signature=="void SortDecraftingEntries()"){
+   assert(self&&static_cast<Il2CppObject*>(self)->klass==&groupClass);
+  }else if(m->signature=="void .ctor()"){
    auto* r=static_cast<Recipe*>(self);r->result=&makeItem()->obj;r->ingredients=makeArray(wrongArray?&recipeArray:&itemArray,15);
    auto** slots=static_cast<Il2CppObject**>(arrayData(r->ingredients));for(int i=0;i<15;i++)slots[i]=&makeItem()->obj;
   }else if(m->signature=="void SetDefaults(int Type, ItemVariant variant)"){
@@ -190,6 +204,24 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--custom-groups") {
+  numRecipes=1;auto grouped=request("CustomBench");
+  RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
+  ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
+  auto result=installNativeRecipe(grouped);assert(result.index==1&&numRecipes==2&&commits==1&&roots.size()==1);
+  auto** recipes=static_cast<Recipe**>(arrayData(table));auto* group=static_cast<NativeGroup*>(static_cast<void*>(recipes[1]->groups.at(0)));
+  assert(group->members.size()==2&&group->members[0]==9&&group->members[1]==kVanillaItemCount);
+  auto** items=static_cast<Item**>(arrayData(recipes[1]->ingredients));assert(items[0]->type==9&&items[0]->stack==3);
+  grouped.key="cs/custom-again";result=installNativeRecipe(grouped);assert(result.index==2&&roots.size()==1);
+  assert(recipes[2]->groups.at(0)==&group->obj);
+  grouped.key="cs/custom-conflict";grouped.ingredients[0].groupMembers={"v22"};
+  result=installNativeRecipe(grouped);assert(result.index<0&&result.error.find("ConflictingGroupDefinition")!=std::string::npos&&commits==2&&roots.size()==1);
+  grouped.key="cs/custom-late";grouped.ingredients[0].customGroup="LateGroup";grouped.ingredients[0].groupMembers={"mMissing"};
+  result=installNativeRecipe(grouped);assert(result.index<0&&result.error.find("MissingDependency")!=std::string::npos&&commits==2);
+  ModItemDef member;member.mod="cs";member.name="Missing";registerModItem(member);item_registry::g_installed.store(3);
+  result=installNativeRecipe(grouped);assert(result.index==3&&commits==3&&roots.size()==2);
+  std::cout<<"NATIVE_CUSTOM_GROUP_REAL_REGISTRY_REQUIRE_REUSE_CONFLICT_LATE_DEPENDENCY_PASS\n";return 0;
+ }
  if(mode=="--group-wire") {
   assert(argc==3);std::ifstream file(argv[2]);std::string line;
   assert(std::getline(file,line)&&line=="BUNNY_MANAGED_DEFAULTS_V2"&&std::getline(file,line));

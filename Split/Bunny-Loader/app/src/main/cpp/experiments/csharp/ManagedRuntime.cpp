@@ -282,6 +282,17 @@ std::atomic<bool> g_universalPolling{false};
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
+struct RecipeRpcCompletion { bool done=false,cancelled=false;std::string output; };
+struct RecipeRpcJob {
+    std::string mod,assembly,owner,snapshot;int index=0,kind=0;
+    std::chrono::steady_clock::time_point deadline;
+    std::shared_ptr<RecipeRpcCompletion> completion;
+};
+std::deque<RecipeRpcJob> g_recipeRpcQueue;
+std::condition_variable g_recipeRpcWake;
+void* g_recipeDispatchMethod=nullptr;
+std::atomic<bool> g_recipeRuntimeReady{false};
+
 
 struct SceneLightBinding {
     std::string modId, assemblyPath, nameSpace, className, methodName;
@@ -1345,6 +1356,36 @@ bool pollUniversalHooksOnWorker() {
     return true;
 }
 
+std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
+       !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke||!g_api.attach(g_domain))return {};
+    if(!g_recipeDispatchMethod) {
+        const auto slash=g_checkpointPath.find_last_of('/');
+        if(slash==std::string::npos)return {};
+        const auto sdk=g_checkpointPath.substr(0,slash+1)+"BunnySourceSdk.dll";
+        if(!validAssembly(sdk))return {};
+        auto* assembly=g_api.openAssembly(g_domain,sdk.c_str());
+        auto* image=assembly?g_api.image(assembly):nullptr;
+        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source","BunnyRecipeRuntime"):nullptr;
+        g_recipeDispatchMethod=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
+        if(!g_recipeDispatchMethod)return {};
+    }
+    void* args[]={g_api.newString(g_domain,job.mod.c_str()),g_api.newString(g_domain,job.assembly.c_str()),
+        g_api.newString(g_domain,job.owner.c_str()),const_cast<int*>(&job.index),const_cast<int*>(&job.kind),
+        g_api.newString(g_domain,job.snapshot.c_str())};
+    if(!args[0]||!args[1]||!args[2]||!args[5])return {};
+    void* exception=nullptr;auto* result=g_api.invoke(g_recipeDispatchMethod,nullptr,args,&exception);
+    if(exception||!result)return "ERROR|Reason=MonoDispatchException";
+    using Utf8=char*(*)(void*);using Release=void(*)(void*);
+    static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
+    if(!utf8||!release)return {};
+    char* value=utf8(result);if(!value)return {};
+    const auto length=strnlen(value,16385);std::string output;
+    if(length<=16384)output.assign(value,length);
+    release(value);return output;
+}
+
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
                                 ManagedScreenLightResult* result) {
     if (!result) return false;
@@ -1806,6 +1847,15 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                if(!g_recipeRpcQueue.empty()) {
+                    auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
+                    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline)continue;
+                    lock.unlock();auto output=executeRecipeOnWorker(job);lock.lock();
+                    if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
+                        job.completion->output=std::move(output);job.completion->done=true;
+                    }
+                    g_recipeRpcWake.notify_all();continue;
+                }
                 if (!g_sceneLightQueue.empty()) {
                     SceneLightRequest request = std::move(g_sceneLightQueue.front());
                     g_sceneLightQueue.pop_front();
@@ -1850,7 +1900,7 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -1877,6 +1927,8 @@ void* pinnedMonoWorker(void*) {
         }
         {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            if(result.domainInitialized&&result.methodExecuted&&result.result==42)
+                g_recipeRuntimeReady.store(true,std::memory_order_release);
             g_pinnedResult = std::move(result);
             g_auditEnabled = stage == "DOMAIN_THREAD_AUDIT" && result.domainInitialized;
             g_auditIndex = 0;
@@ -2230,6 +2282,24 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
     auto status = g_hurtScheduler;
     status.pending = static_cast<int>(g_managedHurtQueue.size());
     return status;
+}
+
+bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_order_acquire);}
+
+bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+                         const std::string& owner,int index,int kind,const std::string& snapshot,
+                         std::string* output,int budgetMicroseconds) {
+    if(!output||budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
+       snapshot.size()>512||assembly.empty()||assembly.size()>4096)return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion});g_pinnedWake.notify_one();
+    if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
+        completion->cancelled=true;return false;
+    }
+    *output=std::move(completion->output);return !output->empty();
 }
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,

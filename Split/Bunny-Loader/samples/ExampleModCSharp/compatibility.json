@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.48",
+  "exampleModCSharpVersion": "0.1.49",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -299,6 +299,16 @@
       "examples": [
         "ExampleWorkbench"
       ]
+    },
+    {
+      "id": "native_custom_recipes_and_buff_flags",
+      "status": "experimental",
+      "examples": [
+        "ExampleWorkbench",
+        "ExampleDefenseDebuff",
+        "ExampleDebuffPotion"
+      ],
+      "details": "Native custom RecipeGroup, managed conditions/consumption/crafting on the pinned Mono worker, typed buff flags and post-equipment defense multiplier. Android validation pending. Minions, Blocky and mounts are NOT completed by this checkpoint."
     }
   ]
 }

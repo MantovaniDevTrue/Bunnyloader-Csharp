@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.48",
+  "version": "0.1.49",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Receitas por grupos nativos de ingredientes, referencias C# tipadas e diagnosticos de registro; preserva exemplos e hooks existentes.",
+  "summary": "Buffs e debuffs com flags e atributos nativos; bancada C# com grupos personalizados, condições e callbacks gerenciados. Infraestrutura experimental.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

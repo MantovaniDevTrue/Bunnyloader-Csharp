@@ -801,6 +801,11 @@ void requestBasicItemInstanceRefresh(const char* reason) {
     instancesPending.store(true, std::memory_order_release);
 }
 
+bool hasManagedRecipeCallbacks(const std::string& modId) {
+    std::lock_guard lock(mutex);
+    for(const auto& pair:recipes)if(pair.second.modId==modId&&pair.second.values.callbacks)return true;
+    return false;
+}
 void pumpBasicRecipesOnGameThread() {
     pumpNativeArmorPoliciesOnGameThread();
     static unsigned ticks=0, knownGeneration=0, fastPasses=0;
@@ -822,12 +827,13 @@ void pumpBasicRecipesOnGameThread() {
             request.key=pending.id;request.mod=pending.modId;request.source=pending.source;
             const auto slash=pending.id.find('/'), hash=pending.id.rfind('#');
             request.name=pending.id.substr(slash+1,hash-slash-1);
-            request.result=pending.result;request.stack=pending.values.stack;
+            request.result=pending.result;request.stack=pending.values.stack;request.callbacks=pending.values.callbacks;
             request.station=pending.values.station;request.stationKey=pending.values.stationKey;
             for(const auto& ingredient:pending.values.ingredients)
                 request.ingredients.push_back({ingredient.type,ingredient.count,
                     ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{},
-                    ingredient.key.front()=='g'?ingredient.key.substr(1):std::string{}});
+                    ingredient.key.front()=='g'?ingredient.key.substr(1):std::string{},
+                    ingredient.customGroup,ingredient.groupDescription,ingredient.groupMembers});
             runtime::NativeRecipeRequest resolved;std::string dependencyError;
             runtime::NativeRecipeResult result;
             if(!runtime::resolveNativeRecipe(request,&resolved,&dependencyError))result.error=dependencyError;

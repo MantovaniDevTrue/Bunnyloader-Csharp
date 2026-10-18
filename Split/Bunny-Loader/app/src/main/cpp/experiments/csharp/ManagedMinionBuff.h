@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 namespace bl::csharp {
 
@@ -17,6 +18,15 @@ inline MinionBuffAction decideMinionBuff(int32_t ownedCount, int32_t buffTime) {
         return buffTime == kMinionBuffTicks ? MinionBuffAction::Keep
                                             : MinionBuffAction::Refresh;
     return MinionBuffAction::Remove;
+}
+
+// DelBuff shifts entries left. Reverse traversal never executes a shifted buff twice.
+template<class Visitor>
+inline void visitManagedBuffSlots(int32_t* types,int32_t* times,size_t count,Visitor visitor) {
+    for(size_t remaining=count;remaining>0;--remaining) {
+        const size_t slot=remaining-1;
+        if(types[slot]>0&&times[slot]>0)visitor(slot);
+    }
 }
 
 }  // namespace bl::csharp
