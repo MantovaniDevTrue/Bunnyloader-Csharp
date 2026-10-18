@@ -112,7 +112,7 @@ bool call(const Policy& policy,int kind,Il2CppObject* player,int type,int amount
     std::string assembly;{std::lock_guard lock(assemblyMutex);auto it=assemblies.find(policy.request.mod);if(it!=assemblies.end())assembly=it->second;}
     if(assembly.empty()||!player){diagnose(policy,kind,"AssemblyOrPlayerNotReady");return false;}
     if(!csharp::invokeManagedRecipe(policy.request.mod,assembly,policy.request.name,policy.index,kind,
-        snapshot(player,policy.request.result,type,amount,quick,available),output,budget)) {diagnose(policy,kind,"MonoWorkerBusyOrDeadlineExceeded");return false;}
+        snapshot(player,policy.request.result,type,amount,quick,available),output,budget)) {diagnose(policy,kind,output->empty()?"Stage=Invoke Reason=EmptyTransportResponse":*output);return false;}
     if(output->rfind("ERROR|",0)==0){diagnose(policy,kind,*output);return false;}return true;
 }
 void hkFind(bool delay,const MethodInfo* info){
@@ -275,8 +275,10 @@ runtime::RecipeCallbackReadiness prepareNativeRecipeCallbackProvider(const Nativ
     if(hash!=std::string::npos){const auto token=request.key.substr(hash+1);const auto parsed=std::from_chars(token.data(),token.data()+token.size(),index);
         if(parsed.ec!=std::errc{}||parsed.ptr!=token.data()+token.size())index=-1;}
     std::string output;
-    if(assembly.empty()||index<0||!invokeManagedRecipe(request.mod,assembly,request.name,index,3,"",&output)) {
-        *error="Stage=PrepareManagedHandlers Reason=AssemblyOrWorkerNotReady";return Ready::Pending;
+    if(assembly.empty()||index<0){*error="Stage=PrepareManagedHandlers Reason=AssemblyOrIdentityNotReady";return Ready::Pending;}
+    if(!invokeManagedRecipe(request.mod,assembly,request.name,index,3,"",&output)) {
+        *error=output.empty()?"Stage=PrepareManagedHandlers Reason=EmptyTransportResponse":output;
+        return output.rfind("ERROR|",0)==0?Ready::Rejected:Ready::Pending;
     }
     if(output!="READY"){*error="Stage=PrepareManagedHandlers Expected=READY Actual="+output;return Ready::Rejected;}
     return Ready::Ready;

@@ -1359,30 +1359,32 @@ bool pollUniversalHooksOnWorker() {
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
-       !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke||!g_api.attach(g_domain))return {};
+       !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
+    if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
     if(!g_recipeDispatchMethod) {
         const auto slash=g_checkpointPath.find_last_of('/');
-        if(slash==std::string::npos)return {};
+        if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
         const auto sdk=g_checkpointPath.substr(0,slash+1)+"BunnySourceSdk.dll";
-        if(!validAssembly(sdk))return {};
+        if(!validAssembly(sdk))return "ERROR|Stage=ResolveSdk Path="+sdk+" Reason=SdkAssemblyMissingOrInvalid";
         auto* assembly=g_api.openAssembly(g_domain,sdk.c_str());
         auto* image=assembly?g_api.image(assembly):nullptr;
         auto* cls=image?g_api.findClass(image,"BunnyLoader.Source","BunnyRecipeRuntime"):nullptr;
         g_recipeDispatchMethod=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
-        if(!g_recipeDispatchMethod)return {};
+        if(!g_recipeDispatchMethod)return "ERROR|Stage=BindDispatcher Class=BunnyRecipeRuntime Method=Dispatch Expected=SixParameters Reason=MethodMissing";
     }
     void* args[]={g_api.newString(g_domain,job.mod.c_str()),g_api.newString(g_domain,job.assembly.c_str()),
         g_api.newString(g_domain,job.owner.c_str()),const_cast<int*>(&job.index),const_cast<int*>(&job.kind),
         g_api.newString(g_domain,job.snapshot.c_str())};
-    if(!args[0]||!args[1]||!args[2]||!args[5])return {};
+    if(!args[0]||!args[1]||!args[2]||!args[5])return "ERROR|Stage=MarshalArguments Reason=MonoStringAllocationFailed";
     void* exception=nullptr;auto* result=g_api.invoke(g_recipeDispatchMethod,nullptr,args,&exception);
     if(exception||!result)return "ERROR|Reason=MonoDispatchException";
     using Utf8=char*(*)(void*);using Release=void(*)(void*);
     static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
-    if(!utf8||!release)return {};
-    char* value=utf8(result);if(!value)return {};
+    if(!utf8||!release)return "ERROR|Stage=DecodeResponse Expected=mono_string_to_utf8Andmono_free Reason=RequiredExportMissing";
+    char* value=utf8(result);if(!value)return "ERROR|Stage=DecodeResponse Reason=MonoUtf8AllocationFailed";
     const auto length=strnlen(value,16385);std::string output;
     if(length<=16384)output.assign(value,length);
+    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo16384 ActualAtLeast=16385 Reason=ResponseTooLarge";
     release(value);return output;
 }
 
@@ -2289,15 +2291,18 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds) {
-    if(!output||budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
-       snapshot.size()>512||assembly.empty()||assembly.size()>4096)return false;
+    if(!output)return false;
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
+       snapshot.size()>512||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
-    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
+    if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
+    if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
     g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
-        completion->cancelled=true;return false;
+        completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
     *output=std::move(completion->output);return !output->empty();
 }
