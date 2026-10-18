@@ -279,30 +279,40 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     if(!group||!integer){*detail="Group="+key+" Reason=MissingClass";return false;}
     a.runtime_class_init(group);uint32_t alignment=0;
     if(!a.class_is_valuetype(integer)||a.class_value_size(integer,&alignment)!=4){*detail="Group="+key+" Expected=System.Int32:4 Reason=InvalidIntegerLayout";return false;}
-    const auto* reg=method(group,"RecipeGroup Register(string, string, int[])",false,detail);
+    const auto* ctor=method(group,"void .ctor(string groupDescriptorKey, int[] validItems)",true,detail);
+    const auto* reg=method(group,"int Register()",true,detail);
+    if(!reg) {
+        const auto* alternative=method(group,"void Register()",true,detail);
+        if(alternative)reg=alternative;
+        else {
+            const auto candidates=il2cpp::listOverloads(group,"Register");
+            *detail="Group="+key+" Method=Register() Candidates=";
+            if(candidates.empty())*detail+="None";
+            for(const auto& signature:candidates) {
+                if(detail->size()>1200)break;
+                *detail+=signature+";";
+            }
+            return false;
+        }
+    }
     const auto* sort=method(group,"void SortDecraftingEntries()",true,detail);
     GroupContract binding;binding.groupClass=group;
     binding.placeholder=method(group,"int GetPlaceholderItemType()",true,detail);
     binding.require=method(contract.recipe,"void RequireGroup(RecipeGroup group)",true,detail);
-    if(!reg||!sort||!binding.placeholder||!binding.require)return false;
+    if(!ctor||!sort||!binding.placeholder||!binding.require)return false;
+    auto* created=a.object_new(group);Root groupRoot(created);
     auto* array=a.array_new(integer,members.size());Root membersRoot(array?&array->obj:nullptr);
-    auto* identity=a.string_new(key.c_str());Root identityRoot(reinterpret_cast<Il2CppObject*>(identity));
-    auto* description=a.string_new(ingredient.groupDescription.c_str());Root textRoot(reinterpret_cast<Il2CppObject*>(description));
-    if(!membersRoot.handle||!identityRoot.handle||!textRoot.handle||!array||
+    auto* descriptor=a.string_new(key.c_str());Root descriptorRoot(reinterpret_cast<Il2CppObject*>(descriptor));
+    if(!groupRoot.handle||!membersRoot.handle||!descriptorRoot.handle||!array||
        a.class_get_rank(array->obj.klass)!=1||a.class_get_element_class(array->obj.klass)!=integer||array->length!=members.size()) {
         *detail="Group="+key+" Reason=AllocationOrArrayLayoutFailed";return false;
     }
     std::memcpy(arrayData(array),members.data(),members.size()*sizeof(int));
-    void* args[]={identity,description,array};
-    Il2CppObject* created=nullptr;
-    if(!invoke(reg,nullptr,args,detail,&created))return false;
-    Root groupRoot(created);
-    if(!created||!groupRoot.handle||a.object_get_class(created)!=group) {
-        *detail="Group="+key+" Method=RecipeGroup.Register Expected=Terraria.RecipeGroup Actual="+
-            (created?typeName(a.object_get_class(created)):"Null");return false;
-    }
+    void* args[]={descriptor,array};
+    if(!invoke(ctor,created,args,detail))return false;
     const auto handle=a.gchandle_new(created,false);
     if(!handle){*detail="Group="+key+" Reason=AllocationFailed";return false;}
+    if(!invoke(reg,created,nullptr,detail)){a.gchandle_free(handle);return false;}
     auto entry=customGroups.emplace(key,CustomGroup{ingredient.groupDescription,members,handle,binding,sort,false}).first;
     if(!invoke(sort,created,nullptr,detail))return false;
     entry->second.sorted=true;
