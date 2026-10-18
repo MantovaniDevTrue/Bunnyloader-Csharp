@@ -21,6 +21,7 @@ on:
     branches:
       - codex/example-completion-v90-28
       - fix/csharp-90-3-recipegroup-return-contract
+      - feat/csharp-90-4-projectile-minion-contract
       - codex/integrate-csharp-sdk-lot-a-20261015
       - codex/csharp-native-policies-android-v90-29-42
       - codex/csharp-native-visual-diagnostics-v90-29-43
