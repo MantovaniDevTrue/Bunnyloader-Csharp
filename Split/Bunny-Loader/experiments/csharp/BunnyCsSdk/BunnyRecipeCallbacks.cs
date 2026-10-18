@@ -65,7 +65,15 @@ public static class BunnyRecipeRuntime
                 foreach(Type type in assembly.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyItem).IsAssignableFrom(t)))
                 {
                     var item=(BunnyItem)Activator.CreateInstance(type)!;
-                    item.SetDefaults();capture=new List<BunnyRecipe>();
+                    var declaration=type.GetCustomAttribute<BunnyContentAttribute>(false);
+                    if(declaration!=null){
+                        if(declaration.Kind!=BunnyContentKind.Item)throw new InvalidOperationException("Declared recipe owner must be BunnyContentKind.Item: "+type.FullName);
+                        item.DisplayName=declaration.DisplayName;item.Texture=declaration.Texture;
+                    }
+                    item.SetDefaults();
+                    if(declaration!=null&&(item.DisplayName!=declaration.DisplayName||item.Texture!=declaration.Texture))
+                        throw new InvalidOperationException("SetDefaults changed declared recipe-owner identity: "+type.FullName);
+                    capture=new List<BunnyRecipe>();
                     try { item.AddRecipes();mod.Recipes.Add(type.Name,capture); }
                     finally { capture=null; }
                 }
