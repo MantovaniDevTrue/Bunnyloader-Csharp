@@ -2311,11 +2311,13 @@
       ],
       "validation": {
         "host": "Contrato/servico de producao executado com IL2CPP controlado, sem QuickJS",
-        "ci": "Pendente",
-        "android": "Aguardando validacao; roteiro no bmod"
+        "ci": "Aprovado: build 39080974810 e nove suites no SHA b22962178a6beafa34301caa89a0bced46a598bb; fixture C# compilado executado no pump sem QuickJS",
+        "android": "Validacao do fluxo entregue relatada pelo usuario em 18/10/2026, .89 / ExampleMod 0.1.48, pid4488; variantes/consumos e reentrada nao discriminados individualmente"
       },
       "evidence": [
-        "docs/csharp-native-recipe-groups-v89.md"
+        "docs/csharp-native-recipe-groups-v89.md",
+        "docs/validation/csharp-v89-android-2026-10-18.md",
+        "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810"
       ]
     },
     {

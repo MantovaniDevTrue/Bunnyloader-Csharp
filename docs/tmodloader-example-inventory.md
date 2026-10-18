@@ -14,3 +14,5 @@ Não foram criados ports novos neste checkpoint: a revisão .88.8 corrigiu build
 ## Primeiro grupo de infraestrutura: receitas .89
 
 A linha Content/ExampleRecipes.cs foi auditada e detalhada no JSON. Estado: **Parcial**, com grupos nativos, referencias tipadas, Clone de receitas Bunny e remocao implementados. O [relatorio](csharp-native-recipe-groups-v89.md) e o guia dentro do bmod registram os testes e todas as lacunas. Os demais arquivos conservam seu estado de auditoria; nenhum arquivo foi removido e nenhum port foi certificado integralmente.
+
+Validacao de continuidade em 18/10/2026: CI .89 aprovado e usuario confirmou funcionamento do fluxo de receitas entregue no Android com ExampleMod 0.1.48. A linha ExampleRecipes continua Parcial; nenhum outro arquivo foi promovido. Ver [evidencias e escopo](validation/csharp-v89-android-2026-10-18.md). A meta de primeira compilacao <=5 s e FPS nao foi validada por esse relato.

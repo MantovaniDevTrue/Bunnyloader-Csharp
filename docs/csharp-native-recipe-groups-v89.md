@@ -27,7 +27,11 @@ Referencia oficial lida: tModLoader/tModLoader 130d914e622c1db30007e647d311cb00e
 
 Local: testes executaveis do servico e da fila de producao sem QuickJS; grupos/quantidades, inicializacao tardia, layout boxed/raw, erro de tipo/tamanho/assinatura/export, excecoes e isolamento passaram. GCC 14 do host deprecia as operacoes atomic/shared_ptr antigas do runtime; a supressao local limita-se a esse aviso de codigo preservado. CI mantem -Wall -Wextra -Werror no toolchain do workflow.
 
-CI previsto: compilar fonte C# do fixture e executar o wire no pump real; fixtures de tipos genericos; referencia publica gerada por reflection; regressao completa, nove suites independentes, compilacao/assinatura Android. A entrega e experimental e depende da aprovacao desses gates. Estado Android: aguardando validacao real. Nao afirmar consumo alternativo, estabilidade, <=5 s ou 60 FPS no Xiaomi antes do teste.
+CI aprovado no codigo b22962178a6beafa34301caa89a0bced46a598bb: [build Android 39080974810](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810), nove suites independentes, fixture C# compilado executado no pump nativo sem QuickJS, referencia publica por reflection, smoke Mono, AOT e assinatura V3. Entrega privada experimental confirmada, tag csharp-v3-run-39080974810-a1; APK .89 e ExampleMod 0.1.48.
+
+Em 18/10/2026 o usuario confirmou funcionamento no Android do fluxo entregue. A sessao pid=4488 registra MonoVM verificado, dez receitas, nenhum erro/aviso e preparo com cache de 609 ms. O relato nao discrimina todas as variantes/consumos ou testes de reentrada; esses casos nao sao certificados individualmente. Primeira compilacao <=5 s e FPS seguem pendentes: snapshot historico de compilacao tem nativeWallMs=6254. Ver [registro de validacao e limites](validation/csharp-v89-android-2026-10-18.md).
+
+O smoke valida os 29 descritores esperados e as tres receitas reais da ExampleWorkbench, com diagnostico individual Expected/Actual. A versao da mensagem de entrada deriva do manifesto do pacote. O teste rapido dos fontes tambem confere a ordem real dos ingredientes depois de Clone/remocao; nao exige reordenar uma copia para corresponder a um literal de teste.
 
 Roteiro e explicacoes dentro do bmod: samples/ExampleModCSharp/Playable/content/Documentation/RECEITAS_NATIVAS.md.
 

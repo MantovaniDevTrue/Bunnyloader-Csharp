@@ -245,10 +245,19 @@ Evidência deste checkpoint: [Android CI 39077778658](https://github.com/Mantova
 
 ## Continuidade .90.29.89 — grupos nativos de receitas
 
-A autorizacao do usuario abrange novas APIs/classes/hooks/bridges reutilizaveis para portar toda a referencia oficial do tModLoader. Branch de desenvolvimento: feat/csharp-native-recipe-groups-v89, derivada integralmente da revisao .88.8. Versoes previstas: Bunny .90.29.89/code260 e ExampleMod 0.1.48; Lights permanece 0.4.2.3.
+A autorizacao do usuario abrange novas APIs/classes/hooks/bridges reutilizaveis para portar toda a referencia oficial do tModLoader. Branch de desenvolvimento: feat/csharp-native-recipe-groups-v89, derivada integralmente da revisao .88.8. Versoes entregues experimentalmente: Bunny .90.29.89/code260 e ExampleMod 0.1.48; Lights permanece 0.4.2.3.
 
 Implementadas APIs de ingredientes por grupos nativos (AddNativeRecipeGroup), referencias genericas locais (AddIngredient<TItem>/AddTile<TTile>), Clone de receita declarada e remocao de ingredientes/grupos. A bridge chama Recipe.RequireGroup real, verifica metadata e boxing Int32 e preserva as receitas antigas. O ExampleWorkbench C# demonstra duas receitas adicionais e a copia independente; sua receita original permanece intacta.
 
-Os testes locais do servico e pump sem QuickJS passaram; CI precisa compilar/serializar o fixture C#, validar a referencia publica por reflection, executar regressao e compilar/assinar o APK antes da entrega experimental. Ver [contratos, evidencias e pendencias](csharp-native-recipe-groups-v89.md). Android continua pendente.
+Os testes locais e o CI b22962178a6beafa34301caa89a0bced46a598bb passaram: fixture C# compilado/serializado executado no pump real sem QuickJS, SDK por reflection, nove suites independentes e compilacao/assinatura Android. [Build 39080974810](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810) aprovado; artefatos privados experimentais entregues. Ver [contratos, evidencias e pendencias](csharp-native-recipe-groups-v89.md).
 
 Content/ExampleRecipes.cs oficial permanece Parcial: grupos customizados/merge/membros, multiplas estacoes, condicoes, callbacks, shimmer e alteracao global ainda faltam. Sua linha foi detalhada no inventario, sem remover os demais 449 fontes ativos/112 legados ou promover a matriz JavaScript. O lote A nao esta concluido e nenhum port oficial integral e anunciado por este checkpoint.
+
+
+## Validacao recebida em 18/10/2026 — .89 / ExampleMod 0.1.48
+
+O usuario confirmou que o fluxo entregue funcionou perfeitamente no Xiaomi. Relatorio da sessao pid=4488: MonoVM verificado, dez receitas, nenhum erro/aviso e dois mods C# preparados com cache em 609 ms, junto de Weapon Out Lite JavaScript. Registrar como validacao relatada do fluxo, sem promover todas as variantes, reentrada, FPS ou o arquivo oficial completo. [Evidencias e limites](validation/csharp-v89-android-2026-10-18.md).
+
+A primeira compilacao em ate cinco segundos continua pendente: o snapshot historico, de outro processo, registra nativeWallMs=6254; CompileMs=0 da sessao atual significa cache. Nao misturar a reutilizacao/verificacao do worker com compilacao fria.
+
+Proxima implementacao: investigar e ampliar grupos customizados/registro de membros e as demais lacunas de receitas oficiais usando servicos nativos independentes, preservando este checkpoint validado. Nao recriar a bancada, receitas originais, equipamentos ou sistemas ja funcionais. Manter todos os arquivos oficiais/JS contabilizados; Lote A e Content/ExampleRecipes.cs continuam parciais.
