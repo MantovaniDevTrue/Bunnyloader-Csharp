@@ -280,11 +280,11 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     a.runtime_class_init(group);uint32_t alignment=0;
     if(!a.class_is_valuetype(integer)||a.class_value_size(integer,&alignment)!=4){*detail="Group="+key+" Expected=System.Int32:4 Reason=InvalidIntegerLayout";return false;}
     const auto* ctor=method(group,"void .ctor(string groupDescriptorKey, int[] validItems)",true,detail);
-    const auto* reg=method(group,"int Register()",true,detail);
+    const auto* reg=method(group,"RecipeGroup Register()",true,detail);
+    const bool returnsGroup=reg!=nullptr;
+    if(!reg)reg=method(group,"int Register()",true,detail);
+    if(!reg)reg=method(group,"void Register()",true,detail);
     if(!reg) {
-        const auto* alternative=method(group,"void Register()",true,detail);
-        if(alternative)reg=alternative;
-        else {
             const auto candidates=il2cpp::listOverloads(group,"Register");
             *detail="Group="+key+" Method=Register() Candidates=";
             if(candidates.empty())*detail+="None";
@@ -293,7 +293,6 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
                 *detail+=signature+";";
             }
             return false;
-        }
     }
     const auto* sort=method(group,"void SortDecraftingEntries()",true,detail);
     GroupContract binding;binding.groupClass=group;
@@ -310,9 +309,19 @@ bool readCustomGroup(const NativeRecipeRequest& request,const RecipeIngredient& 
     std::memcpy(arrayData(array),members.data(),members.size()*sizeof(int));
     void* args[]={descriptor,array};
     if(!invoke(ctor,created,args,detail))return false;
+    Il2CppObject* returned=nullptr;
+    if(!invoke(reg,created,nullptr,detail,returnsGroup?&returned:nullptr))return false;
+    Root returnedRoot(returnsGroup?returned:nullptr);
+    if(returnsGroup) {
+        if(!returned||!returnedRoot.handle||a.object_get_class(returned)!=group) {
+            *detail="Group="+key+" Method=RecipeGroup Register() Expected=Terraria.RecipeGroup Actual="+
+                (returned?typeName(a.object_get_class(returned)):"Null")+" Reason=InvalidRegisterReturn";
+            return false;
+        }
+        created=returned;
+    }
     const auto handle=a.gchandle_new(created,false);
     if(!handle){*detail="Group="+key+" Reason=AllocationFailed";return false;}
-    if(!invoke(reg,created,nullptr,detail)){a.gchandle_free(handle);return false;}
     auto entry=customGroups.emplace(key,CustomGroup{ingredient.groupDescription,members,handle,binding,sort,false}).first;
     if(!invoke(sort,created,nullptr,detail))return false;
     entry->second.sorted=true;

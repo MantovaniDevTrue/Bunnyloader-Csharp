@@ -14,5 +14,9 @@ output="${RUNNER_TEMP:-/tmp}/bunny-recipe-callbacks"
 "$output" --value16
 "$output" --value16-boxed
 "$output" --bad-aggregate
+"$output" --source-name-drift
+"$output" --grant-name-drift
+"$output" --source-type-mismatch
+"$output" --source-static-mismatch
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/minion_buff/minion_buff_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o "$output-buffs"
 "$output-buffs"

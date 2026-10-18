@@ -28,7 +28,7 @@ std::vector<FieldInfo> fields;std::map<std::string,MethodInfo> methods;
 std::map<std::string,void*> hooks;
 int sinks=1;
 int playerIndex=0,availableCount=4,findCalls=0,craftCalls=0,grantCalls=0,grantedType=0,grantedCount=0;
-bool day=false,rpcReady=true;
+bool day=false,rpcReady=true,sourceNameDrift=false,grantNameDrift=false,sourceTypeMismatch=false;
 std::string conditionReply="0",consumeReply="0",craftReply="OK|v2:3",lastSnapshot;
 Player player{{&playerClass,nullptr}};Il2CppObject recipe{&recipeClass,nullptr},source{&itemClass,nullptr};
 Il2CppArray *players=nullptr,*available=nullptr;
@@ -39,7 +39,30 @@ Il2CppClass* findClass(const TypeRef& ref){if(ref.nested=="RequiredItemEntry")re
  return nullptr;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){for(auto& f:fields)if(f.name==cls->name+"."+std::string(name))return &f;return nullptr;}
 Signature parseSignature(std::string_view value){Signature s;s.name=std::string(value);return s;}
-const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& sig,bool*,const MethodInfo**){auto it=methods.find(sig.name);return it==methods.end()?nullptr:&it->second;}
+const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& sig,bool*,const MethodInfo** nameMismatch){
+ auto it=methods.find(sig.name);if(it==methods.end())return nullptr;
+ if(sig.name=="IEntitySource GetItemSource_Misc(int context)"){
+   if(sourceTypeMismatch)return nullptr;
+   if (sourceNameDrift) {
+     if (nameMismatch) {
+       *nameMismatch = &it->second;
+     }
+     return nullptr;
+   }
+ }
+ if(sig.name=="void QuickSpawnItem(IEntitySource source, int item, int stack)"&&grantNameDrift){
+   if (nameMismatch) {
+     *nameMismatch = &it->second;
+   }
+   return nullptr;
+ }
+ return &it->second;
+}
+std::vector<std::string> listOverloads(Il2CppClass*,std::string_view name){
+ std::vector<std::string> results;
+ for(const auto& entry:methods)if(entry.first.find(" "+std::string(name)+"(")!=std::string::npos)results.push_back(entry.second.signature);
+ return results;
+}
 }
 namespace bl::hook {bool install(const MethodInfo* method,void* replacement,void** original){hooks[method->signature]=replacement;*original=method->pointer;return true;}}
 namespace bl::log {void write(int,const char*,...){}}
@@ -140,6 +163,23 @@ int main(int argc,char** argv){
  }
  if(mode=="--wrong-type"){fields[6].type.cls=&booleanClass;assert(!bl::csharp::prepareNativeRecipeCallbacks(7,&error)&&error.find("NativeTypeOrStorageMismatch")!=std::string::npos&&hooks.empty());std::cout<<"RECIPE_CALLBACK_WRONG_TYPE_REJECTED_PASS\n";return 0;}
  if(mode=="--wrong-offset"){fields[5].offset=sizeof(Player)+4;assert(!bl::csharp::prepareNativeRecipeCallbacks(7,&error)&&error.find("InvalidFieldBounds")!=std::string::npos&&hooks.empty());std::cout<<"RECIPE_CALLBACK_WRONG_OFFSET_REJECTED_PASS\n";return 0;}
+ if(mode=="--source-name-drift"||mode=="--grant-name-drift"||mode=="--source-type-mismatch"||mode=="--source-static-mismatch"){
+   sourceNameDrift=mode=="--source-name-drift";grantNameDrift=mode=="--grant-name-drift";sourceTypeMismatch=mode=="--source-type-mismatch";
+   if(mode=="--source-static-mismatch")methods.at("IEntitySource GetItemSource_Misc(int context)").instance=false;
+   const bool valid=mode=="--source-name-drift"||mode=="--grant-name-drift";
+   const bool ready=bl::csharp::prepareNativeRecipeCallbacks(4,&error);
+   if(!valid){
+     assert(!ready&&hooks.empty()&&error.find("NativeSignatureMismatch")!=std::string::npos&&error.find("HookInstallFailed")==std::string::npos);
+     std::cout<<"NATIVE_RECIPE_GRANT_ABI_REJECTION_PASS "<<mode<<'\n';return 0;
+   }
+   assert(ready&&hooks.size()==1);
+   bl::runtime::NativeRecipeRequest policy;policy.key="mod/Bench#0";policy.mod="mod";policy.name="Bench";policy.result=6196;policy.callbacks=4;
+   bl::csharp::bindNativeRecipeAssembly("mod","test.dll");bl::csharp::trackNativeRecipeCallbacks(policy,&recipe,11);
+   auto craft=reinterpret_cast<void(*)(Il2CppObject*,Il2CppObject*,bool,const MethodInfo*)>(hooks.at("void CraftItem_GrantItem(Recipe recipe, Item result, bool quickCraft)"));
+   craft(&recipe,nullptr,false,nullptr);
+   assert(craftCalls==1&&grantCalls==1&&grantedType==2&&grantedCount==3);
+   std::cout<<"NATIVE_RECIPE_GRANT_PARAMETER_NAME_DRIFT_PASS "<<mode<<'\n';return 0;
+ }
  bl::runtime::NativeRecipeRequest waiting;waiting.callbacks=7;
  rpcReady=false;assert(bl::csharp::prepareNativeRecipeCallbackProvider(waiting,&error)==bl::runtime::RecipeCallbackReadiness::Pending);rpcReady=true;
  if(mode=="--ushort-sink")for(auto& f:fields)if(f.name=="TileID.Sinks")f.type.cls=&ushortClass;
