@@ -779,6 +779,10 @@ abstract class; base: `System.Object`.
 
 ```csharp
 bool Friendly { get; set; }
+bool IgnoreWater { get; set; }
+bool Minion { get; set; }
+bool TileCollide { get; set; }
+float MinionSlots { get; set; }
 int AiStyle { get; set; }
 int Height { get; set; }
 int Penetrate { get; set; }
@@ -1075,10 +1079,13 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 abstract class; base: `System.Object`.
 
 ```csharp
+bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
+int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
+string MinionBuff { get; set; }
 string Shoot { get; set; }
 string Texture { get; set; }
 ```
