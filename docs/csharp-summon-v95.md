@@ -14,7 +14,7 @@ Branch `feat/csharp-summon-lifecycle-v95`. Base integrada por merge: `.93` + `.9
 
 ## Testes e limites
 
-`tests/summon_lifecycle`: executa os hooks de produção e helpers com providers IL2CPP controlados e QuickJS desativado. Cobre cancelamento/morte/reinvocação/dono/seguimento/teleporte/alvos/LOS/leash, baseline por origem/dano escalado/zero e contratos rejeitados sem publicação parcial. O compilador real valida wire e recusa combinação de IA nativa e override C# ou AiStyle incompatível. Suítes anteriores preservadas.
+`tests/summon_lifecycle`: executa os hooks de produção e helpers com providers IL2CPP controlados e QuickJS desativado. Cobre cancelamento/morte/reinvocação/dono/seguimento/teleporte/alvos/LOS/leash, baseline por origem/dano escalado/zero e contratos rejeitados sem publicação parcial. O compilador real valida wire e recusa combinação de IA nativa e override C# ou AiStyle incompatível. Suítes anteriores preservadas. Checagens lexicais antigas do hook foram substituídas por execução real do hook e do agendador: primeiro ticket imediato, cadência de seis ticks, deduplicação, descarte de gerações antigas e pausa de mundo. O teste de registro antecipado prepara NativeContentSpec; não aloca IDs reais nem carrega texturas do Terraria.
 
 Esses testes não executam Terraria Android nem certificam a ABI real ou FPS. Guia incluído em `Documentation/SUMMON_LOADER_V95.md`; todos os passos usam ExampleMod. Não declarar Lote 1 ou ProjectileLoader completo: matriz mantém exemplos parciais (atributos do cajado, spawn na mira, luz, contador de buff, hooks e outras famílias de projéteis pendentes).
 

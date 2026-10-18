@@ -1529,25 +1529,6 @@ jobs:
           assert 'if (!javaScriptEnabled)' in engine
           print('CSHARP_QUICKJS_SETTINGS_ISOLATION=PASS')
           PY
-      - name: Verify early managed projectile registration and six-tick cadence
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          root = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp')
-          source = (root / 'ManagedProjectileHook.cpp').read_text()
-          dispatcher = (root / 'ManagedRuntime.cpp').read_text()
-          header = (root / 'ManagedRuntime.h').read_text()
-          prewarm = source.index('void hkAi(')
-          call = source.index('runManagedEntityProjectile(projectile, game, type, false);', prewarm)
-          native = source.index('if (original) original(projectile, method);', prewarm)
-          assert call < native, 'first registration must precede native AI'
-          assert 'firstObserved, npcTarget, npcX, npcY)) return;' in source, 'target payload must preserve early projectile AI cadence'
-          assert 'result, bool immediateFirstTick' in header
-          assert 'if ((!immediateFirstTick && ticks % 6 != 0) || pending)' in dispatcher
-          assert 'result, false, -1, 0.f, 0.f);' in dispatcher, 'NPC dispatch must preserve six-tick, non-first-tick scheduling'
-          print('PROJECTILE_EARLY_FIRST_TICK=PASS')
-          PY
       - name: Validate generic C# projectile policy integration
         shell: bash
         run: |
