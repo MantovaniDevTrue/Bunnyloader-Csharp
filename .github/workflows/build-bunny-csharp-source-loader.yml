@@ -2191,12 +2191,12 @@ jobs:
       - name: Export independent native minion CSharp probe
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-NativeMinion-Probe-0.1.1
+          name: BunnyLoader-CSharp-NativeMinion-Probe-0.1.2
           retention-days: 14
           if-no-files-found: error
           path: |
-            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.1.bmod
-            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.1.bmod.sha256
+            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.2.bmod
+            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.2.bmod.sha256
 
       - name: Export compiler reference comparison
         uses: actions/upload-artifact@v4
