@@ -1097,7 +1097,9 @@ jobs:
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
               assert "content/LEIA_PRIMEIRO.md" in names
-              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
+              assert len([n for n in names if n.startswith("content/Common/Recipes/") and n.endswith(".cs")]) == 8
+              assert "content/Content/Recipes/ExampleWorkbenchRecipeBehavior.cs" in names
+              assert "content/Documentation/RECIPE_LOADER_V91.md" in names
               for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
                   assert "content/Content/Items/" + file in names
               for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
