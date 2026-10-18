@@ -25,7 +25,7 @@ string MethodName(MethodInfo method) => method.Name + (method.IsGenericMethodDef
 
 string Mode(Type type, MethodInfo method)
 {
-    if (type == typeof(BunnyRecipeBehavior) || type == typeof(BunnyRecipeRuntime)) return "worker_sync_recipe_snapshot";
+    if (type == typeof(BunnyRecipeBehavior) || type == typeof(BunnyRecipeRuntime) || type == typeof(BunnyRecipeLoader)) return "worker_sync_recipe_snapshot";
     if (type == typeof(BunnyCraftContext)) return "worker_craft_command_queue";
     if (type == typeof(BunnyRecipeCondition)) return "managed_predicate_composition";
     if (type == typeof(BunnyNativeScope) || type == typeof(BunnyNativeType) || type == typeof(BunnyNativeMember) ||

@@ -52,7 +52,7 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
-public abstract class BunnyWeapon
+public abstract class BunnyWeapon : BunnyRecipeSource
 {
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
@@ -85,7 +85,7 @@ public abstract class BunnyBuff
     public abstract void SetDefaults();
 }
 
-public abstract class BunnyBuffPotion
+public abstract class BunnyBuffPotion : BunnyRecipeSource
 {
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
@@ -102,7 +102,7 @@ public enum BunnyAccessoryVisualMode
     RunningTrail = 3
 }
 
-public abstract class BunnyAccessory
+public abstract class BunnyAccessory : BunnyRecipeSource
 {
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";

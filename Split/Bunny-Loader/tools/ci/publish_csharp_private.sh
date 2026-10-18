@@ -156,11 +156,28 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-loader-foundation-v91" ]; then
   TITLE="EXPERIMENTAL — CSharp recipe loader classes | $VERSION"
   NOTES="Experimental .91 / ExampleMod 0.1.50. Preserves .90.3.1 RecipeGroup and native craft-source ABI fixes. Adds reusable class-based recipe hooks, composable conditions, owner-level callback reconstruction isolation and explicit callback stages. ExampleWorkbench uses the public APIs. All 88 original loader modules inventoried; this is NOT completion of all loaders or Lot A. Native groups/conditions/callbacks remain connected to real Terraria hooks. Nine independent same-SHA checks and Android build/signing passed. Gameplay and FPS require Android testing. Source ${GITHUB_SHA}. See docs/csharp-loaders-v91.md."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-owned-recipe-loader-v92" ]; then
+  for attempt in $(seq 1 40); do
+    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/v91-workflows.json"
+    set +e
+    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v91-workflows.json" "$GITHUB_SHA" --current
+    DELIVERY_STATUS=$?
+    set -e
+    if [ "$DELIVERY_STATUS" = 0 ]; then break; fi
+    if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 40 ]; then
+      echo "::error::Independent same-commit regressions not approved; delivery refused"
+      exit 1
+    fi
+    sleep 15
+  done
+  TITLE="EXPERIMENTAL — Bunny loaders próprios C# | $VERSION"
+  NOTES="Loader de receitas próprio para BunnyItem, BunnyWeapon, BunnyAccessory e BunnyBuffPotion. ExampleMod 0.1.51 com três receitas na bancada CSharp e callback de recompensa compartilhado. Serviço nativo independente de QuickJS; contratos host e nove regressões exigidos no mesmo SHA. Gameplay, desempenho e compatibilidade IL2CPP no Android ainda aguardam validação. O conjunto de loaders e o Lote A NÃO estão concluídos. Source ${GITHUB_SHA}; run https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.50.bmod"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.50.bmod.sha256"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod.sha256"
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )

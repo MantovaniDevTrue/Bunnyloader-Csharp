@@ -28,6 +28,7 @@ struct SourceModStatus {
     bool runtimeApplied = false;
     std::map<std::string, int> registeredTypes;
     std::map<std::string, int> registeredKindTypes;
+    std::map<std::string, std::string> registeredBases,sourcePaths;
 };
 
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod);

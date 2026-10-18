@@ -43,7 +43,7 @@
     {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
@@ -224,7 +224,7 @@
     {
       "name": "BunnyLoader.Source.BunnyBuffPotion",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "int Duration { get; set; }",
@@ -926,12 +926,11 @@
     {
       "name": "BunnyLoader.Source.BunnyItem",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "BunnyItemBehavior Behavior { get; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -965,14 +964,6 @@
       ],
       "values": [],
       "methods": [
-        {
-          "signature": "BunnyRecipe CreateRecipe(int stack)",
-          "execution": "managed_helper"
-        },
-        {
-          "signature": "void AddRecipes()",
-          "execution": "compile_policy"
-        },
         {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
           "execution": "managed_helper"
@@ -1658,6 +1649,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyRecipeLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_sync_recipe_snapshot"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyRecipeRuntime",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1668,6 +1673,26 @@
         {
           "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
           "execution": "worker_sync_recipe_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeSource",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyRecipe CreateRecipe(int stack)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void AddRecipes()",
+          "execution": "compile_policy"
         }
       ]
     },
@@ -2117,7 +2142,7 @@
     {
       "name": "BunnyLoader.Source.BunnyWeapon",
       "kind": "abstract class",
-      "baseType": "System.Object",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
         "float ShootSpeed { get; set; }",

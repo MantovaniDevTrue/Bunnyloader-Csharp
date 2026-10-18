@@ -21,7 +21,7 @@ Values: Ok, Invalid, WrongThread, Capacity, NativeException, TimedOut, Busy, Exp
 
 ## BunnyLoader.Source.BunnyAccessory
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
@@ -132,7 +132,7 @@ string Texture { get; set; }
 
 ## BunnyLoader.Source.BunnyBuffPotion
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 int Duration { get; set; }
@@ -510,12 +510,11 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyItemBehavior Behavior { get; }
 Dictionary<string, string> TooltipTranslations { get; }
-IReadOnlyList<string> RecipeDefinitions { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
@@ -550,8 +549,6 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
-| `BunnyRecipe CreateRecipe(int stack)` | managed_helper |
-| `void AddRecipes()` | compile_policy |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -884,6 +881,14 @@ string Name { get; }
 | `BunnyRecipeGroup AddItem(string modItemName)` | managed_helper |
 | `BunnyRecipeGroup AddItem<TItem>()` | managed_helper |
 
+## BunnyLoader.Source.BunnyRecipeLoader
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_recipe_snapshot |
+
 ## BunnyLoader.Source.BunnyRecipeRuntime
 
 abstract class; base: `System.Object`.
@@ -891,6 +896,19 @@ abstract class; base: `System.Object`.
 | Method | Execution |
 | --- | --- |
 | `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_recipe_snapshot |
+
+## BunnyLoader.Source.BunnyRecipeSource
+
+abstract class; base: `System.Object`.
+
+```csharp
+IReadOnlyList<string> RecipeDefinitions { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyRecipe CreateRecipe(int stack)` | managed_helper |
+| `void AddRecipes()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyRecipeStage
 
@@ -1117,7 +1135,7 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyWeapon
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 float ShootSpeed { get; set; }

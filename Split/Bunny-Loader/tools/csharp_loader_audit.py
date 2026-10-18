@@ -19,7 +19,7 @@ MAPPING={
  'NPCLoader':(['BunnyNPC'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp']),
  'PrefixLoader':(['BunnyPrefix'],['experiments/csharp/NativeContent.cpp']),
  'TileLoader':(['BunnyTile'],['experiments/csharp/NativeTileGameplay.cpp']),
- 'RecipeLoader':(['BunnyRecipe','BunnyRecipeGroup','BunnyRecipeBehavior','BunnyRecipeCondition'],['content/recipes/NativeRecipes.cpp','experiments/csharp/NativeRecipeCallbacks.cpp']),
+ 'RecipeLoader':(['BunnyRecipeLoader','BunnyRecipeSource','BunnyRecipe','BunnyRecipeGroup','BunnyRecipeBehavior','BunnyRecipeCondition'],['content/recipes/NativeRecipes.cpp','experiments/csharp/NativeRecipeCallbacks.cpp']),
  'PlayerDrawHooks':(['BunnyVisual'],['experiments/csharp/NativeVisualRenderer.cpp']),
 }
 

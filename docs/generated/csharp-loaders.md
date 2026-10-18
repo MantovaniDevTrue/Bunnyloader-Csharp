@@ -62,7 +62,7 @@ As APIs indicadas já possuem caminhos reais, mas ainda precisam de comparação
 | `PvpItemNetwork` | — | Auditoria pendente |
 | `PylonLoader` | — | Auditoria pendente |
 | `RarityLoader` | — | Auditoria pendente |
-| `RecipeLoader` | BunnyRecipe, BunnyRecipeGroup, BunnyRecipeBehavior, BunnyRecipeCondition | Parcial |
+| `RecipeLoader` | BunnyRecipeLoader, BunnyRecipeSource, BunnyRecipe, BunnyRecipeGroup, BunnyRecipeBehavior, BunnyRecipeCondition | Parcial |
 | `SceneEffectLoader` | — | Auditoria pendente |
 | `ScreenEffectsSetting` | — | Auditoria pendente |
 | `ServerSyncLoader` | — | Auditoria pendente |

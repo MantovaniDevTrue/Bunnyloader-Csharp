@@ -46,7 +46,7 @@ public sealed class BunnyCraftContext
 }
 
 /// <summary>Internal transport endpoint, public for Mono reflection. All callbacks execute on the existing Mono worker.</summary>
-public static class BunnyRecipeRuntime
+public static class BunnyRecipeLoader
 {
     private sealed class Mod
     {
@@ -69,15 +69,23 @@ public static class BunnyRecipeRuntime
             }
             if(!mod.Recipes.TryGetValue(owner,out var recipes))
             {
-                    Type type=mod.Assembly.GetTypes().Single(t=>t.Name==owner&&t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyItem).IsAssignableFrom(t));
-                    var item=(BunnyItem)Activator.CreateInstance(type)!;
+                    var candidates=mod.Assembly.GetTypes().Where(t=>t.Name==owner&&t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyRecipeSource).IsAssignableFrom(t)).ToArray();
+                    if(candidates.Length!=1)throw new InvalidOperationException("[CSharp][ERROR][RecipeLoader] Class="+owner+" Stage=ResolveOwner Expected=OneRegisteredItemCategory Actual="+candidates.Length+" Reason=OwnerIdentityMismatch");
+                    Type type=candidates[0];
+                    BunnyContentKind ownerKind=typeof(BunnyItem).IsAssignableFrom(type)?BunnyContentKind.Item:
+                        typeof(BunnyWeapon).IsAssignableFrom(type)?BunnyContentKind.Weapon:
+                        typeof(BunnyAccessory).IsAssignableFrom(type)?BunnyContentKind.Accessory:
+                        typeof(BunnyBuffPotion).IsAssignableFrom(type)?BunnyContentKind.BuffPotion:
+                        throw new InvalidOperationException("Unsupported recipe source category: "+type.FullName);
+                    var item=(BunnyRecipeSource)Activator.CreateInstance(type)!;
                     var declaration=type.GetCustomAttribute<BunnyContentAttribute>(false);
                     if(declaration!=null){
-                        if(declaration.Kind!=BunnyContentKind.Item)throw new InvalidOperationException("Declared recipe owner must be BunnyContentKind.Item: "+type.FullName);
-                        item.DisplayName=declaration.DisplayName;item.Texture=declaration.Texture;
+                        if(declaration.Kind!=ownerKind)throw new InvalidOperationException("Declared recipe owner must be BunnyContentKind."+ownerKind+": "+type.FullName);
+                        type.GetProperty("DisplayName")!.SetValue(item,declaration.DisplayName);
+                        type.GetProperty("Texture")!.SetValue(item,declaration.Texture);
                     }
-                    item.SetDefaults();
-                    if(declaration!=null&&(item.DisplayName!=declaration.DisplayName||item.Texture!=declaration.Texture))
+                    type.GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(item,null);
+                    if(declaration!=null&&((string?)type.GetProperty("DisplayName")!.GetValue(item)!=declaration.DisplayName||(string?)type.GetProperty("Texture")!.GetValue(item)!=declaration.Texture))
                         throw new InvalidOperationException("SetDefaults changed declared recipe-owner identity: "+type.FullName);
                     var previous=capture;capture=new List<BunnyRecipe>();
                     try { item.AddRecipes();recipes=capture;mod.Recipes.Add(type.Name,recipes); }
@@ -114,4 +122,12 @@ public static class BunnyRecipeRuntime
                 " RecipeIndex="+index+" Stage=Invoke Kind="+kind+" Reason=ManagedException Result=Rejected Exception="+error;
         }
     }
+}
+
+/// <summary>Compatibility endpoint retained for existing native bridges and source mods.</summary>
+public static class BunnyRecipeRuntime
+{
+    internal static void Capture(BunnyRecipe recipe) => BunnyRecipeLoader.Capture(recipe);
+    public static string Dispatch(string modId,string assemblyPath,string owner,int index,int kind,string snapshot)
+        => BunnyRecipeLoader.Dispatch(modId,assemblyPath,owner,index,kind,snapshot);
 }

@@ -967,6 +967,8 @@
         "RecipeAvailable"
       ],
       "publicApis": [
+        "BunnyRecipeLoader",
+        "BunnyRecipeSource",
         "BunnyRecipe",
         "BunnyRecipeGroup",
         "BunnyRecipeBehavior",

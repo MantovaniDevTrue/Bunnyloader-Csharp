@@ -1,3 +1,5 @@
+> Continuidade atual: [loader próprio .92](csharp-loaders-v92.md), [PR93](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/93). Fonte `2ea904f4`: nove regressões, build/assinatura e entrega privada aprovadas. [Evidência](validation/csharp-v92-ci-2026-10-18.json). Preserva a .91; três receitas adicionais por API comum, sem certificar conclusão do Lote A ou paridade de todos os loaders. Gameplay Android da .92 pendente.
+
 # Plano global de conclusao do ExampleMod C#
 
 > Retomada atual: branch `feat/csharp-loader-foundation-v91`, PR92, derivada da
