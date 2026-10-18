@@ -6,8 +6,9 @@ using System.Linq;
 namespace BunnyLoader.Source;
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
-public abstract class BunnyItem
+public abstract class BunnyItem : BunnyRecipeSource
 {
+    internal override int RecipeStackLimit => MaxStack;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Tooltip { get; set; } = "";
@@ -65,21 +66,12 @@ public abstract class BunnyItem
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
     public abstract void SetDefaults();
-    public virtual void AddRecipes() { }
-    private readonly List<string> recipes = new();
-    public IReadOnlyList<string> RecipeDefinitions => recipes;
-    public BunnyRecipe CreateRecipe(int stack = 1) => new(this, stack);
-    internal void RecordRecipe(string definition)
-    {
-        if (recipes.Count >= 16) throw new InvalidOperationException(GetType().Name+": maximo 16 receitas por item");
-        recipes.Add(definition);
-    }
 }
 
 /// <summary>Receita declarada em C# e instalada pelo host na thread do Terraria.</summary>
 public sealed class BunnyRecipe
 {
-    private readonly BunnyItem owner;
+    private readonly BunnyRecipeSource owner;
     private readonly int stack;
     private string station = "-1";
     private bool registered;
@@ -120,7 +112,7 @@ public sealed class BunnyRecipe
     { int limit=Math.Max(amount,context.AvailableIngredientCount);foreach(var callback in consume)amount=Math.Clamp(callback(context,type,amount),0,limit);return amount; }
     internal void Crafted(BunnyCraftContext context) { foreach(var callback in crafted)callback(context); }
 
-    internal BunnyRecipe(BunnyItem owner, int stack)
+    internal BunnyRecipe(BunnyRecipeSource owner, int stack)
     { this.owner=owner; this.stack=Amount(stack); }
     public BunnyRecipe AddIngredient(int vanillaItemId, int count = 1)
     {
@@ -221,7 +213,7 @@ public sealed class BunnyRecipe
     {
         Mutable();
         if (ingredients.Count==0) throw new InvalidOperationException("Receita sem ingredientes");
-        if (stack>owner.MaxStack) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
+        if (stack>owner.RecipeStackLimit) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
         // Nao e um sucesso simulado: o descritor entra nos defaults transferidos
         // ao host. O nucleo resolve IDs, registra Recipe e confirma seus lookups.
         int callbacks=(conditions.Count>0?1:0)|(consume.Count>0?2:0)|(crafted.Count>0?4:0);

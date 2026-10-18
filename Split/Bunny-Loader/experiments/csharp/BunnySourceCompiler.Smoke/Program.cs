@@ -244,7 +244,7 @@ try
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 46 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (defaultRows.Length != 49 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=44Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {

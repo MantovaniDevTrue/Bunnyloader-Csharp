@@ -1,3 +1,5 @@
+> Novos testes .92: [receitas de arma/acessório/poção na bancada C#](OWNED_RECIPE_LOADER_V92.md).
+
 # Lote .90.28 — roteiro Terraria Android
 
 Instale APK e ExampleMod 0.1.34 desta entrega, mantendo um mod JS ativo para

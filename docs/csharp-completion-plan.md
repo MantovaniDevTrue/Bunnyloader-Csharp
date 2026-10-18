@@ -1,3 +1,5 @@
+> Continuidade atual: [loader próprio .92](csharp-loaders-v92.md). Preserva a .91; três receitas adicionais por API comum, sem certificar conclusão do Lote A ou paridade de todos os loaders. Testes Android da .92 pendentes.
+
 # Plano global de conclusao do ExampleMod C#
 
 > Retomada atual: branch `feat/csharp-loader-foundation-v91`, PR92, derivada da

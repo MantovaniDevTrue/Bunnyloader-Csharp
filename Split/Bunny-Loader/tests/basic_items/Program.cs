@@ -85,6 +85,26 @@ try {
  foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks"})
   File.Copy(Path.Combine(source,name+".dll"),Path.Combine(runtime,name+".dll"));
  File.Copy(typeof(BunnyItem).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
+ Check("recipe.owned-loader-independent-source-and-callbacks",()=>{
+  string output=Path.Combine(scratch,"owned.dll"),diag=Path.Combine(scratch,"owned.txt");
+  Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
+  Equal(5,CompiledAssemblyProbe.Verify(output,diag));
+  var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(9,rows.Length);Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
+  foreach(string owner in new[]{"ContractWeapon","ContractAccessory","ContractPotion"}) {
+   string Call(int kind,string state)=>BunnyRecipeLoader.Dispatch("owned",output,owner,0,kind,state);
+   Equal("READY",Call(3,""));Equal("1",Call(0,"10,100,0,3,9,3,0,0,0"));
+   Equal("0",Call(0,"10,100,1,3,9,3,0,0,0"));Equal("0",Call(1,"10,100,0,3,9,3,0,0,0"));
+   Equal("3",Call(1,"10,100,0,3,22,3,0,0,0"));Equal("OK|mContractAccessory:1",Call(2,"10,100,0,3,9,3,0,0,0"));
+   Equal("READY",BunnyRecipeRuntime.Dispatch("owned",output,owner,0,3,""));
+   string error=Call(2,"10,100,16,3,9,3,0,0,0");
+   if(!error.Contains("Owned callback failed")||!error.Contains("Class="+owner)||!error.Contains("Stage=Invoke"))throw new Exception(error);
+   Equal("READY",Call(3,""));
+  }
+  var rejected=BunnyRecipeLoader.Dispatch("owned",output,"ContractBuff",0,3,"");
+  if(!rejected.Contains("OwnerIdentityMismatch"))throw new Exception(rejected);
+  File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/owned-source-runtime-values.txt",true);
+ });
  Check("recipe.managed-callbacks-real-source",()=>{
   string output=Path.Combine(scratch,"callbacks.dll"),diag=Path.Combine(scratch,"callbacks.txt");
   Equal(1,Compiler.Compile("tests/basic_items/callback_fixture",output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
@@ -161,7 +181,7 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");

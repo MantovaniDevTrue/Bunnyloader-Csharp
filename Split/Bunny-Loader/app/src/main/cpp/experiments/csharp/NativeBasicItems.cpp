@@ -554,6 +554,51 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
     return true;
 }
 
+bool enqueueOwnedSourceRecipes(const std::string& modId,const std::vector<SourceRecipeOwner>& entries,std::string* error) {
+    if(entries.empty())return true;
+    std::lock_guard lock(mutex);
+    std::map<std::string,PendingBasicRecipe> staged;
+    auto reject=[&](const SourceRecipeOwner& owner,const std::string& reason,const std::string& expected,const std::string& actual) {
+        *error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Class="+owner.name+" File="+owner.source+
+            " ContentId="+std::to_string(owner.type)+" Stage=QueueOwnedRecipes Expected="+expected+
+            " Actual="+actual+" Result=Rejected Reason="+reason;return false;
+    };
+    if(entries.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=QueueOwnedRecipes Expected=AtMost4096Owners Actual="+std::to_string(entries.size())+" Reason=OwnerCapacityExceeded";return false;}
+    for(const auto& owner:entries) {
+        if(owner.type<0||recipeOwnerBase(owner.kind).empty()||definitions.contains(owner.type)||
+           runtime::modItemKey(owner.type)!=modId+"/"+owner.name)
+            return reject(owner,"OwnerRegistryMismatch","RegisteredSpecializedItemOfMod",runtime::modItemKey(owner.type));
+        if(owner.recipes.empty()||owner.recipes.size()>16)return reject(owner,"RecipeCapacityExceeded","1..16Recipes",std::to_string(owner.recipes.size()));
+        for(size_t i=0;i<owner.recipes.size();++i) {
+            const auto id=modId+"/"+owner.name+"#"+std::to_string(i);
+            const auto& recipe=owner.recipes[i];
+            if(recipe.ingredients.empty()||recipe.ingredients.size()>15||recipe.stationKey.size()>160)
+                return reject(owner,"InvalidRecipeDescriptor","1..15IngredientsAndBoundedStation",id);
+            std::string wire=std::to_string(recipe.stack)+","+(recipe.stationKey.empty()?std::to_string(recipe.station):"m"+recipe.stationKey);
+            for(const auto& ingredient:recipe.ingredients) {
+                if(ingredient.key.empty()||ingredient.key.size()>48000)
+                    return reject(owner,"InvalidIngredientDescriptor","NonemptyBoundedTypedKey",id);
+                wire+=","+ingredient.key+":"+std::to_string(ingredient.count);
+            }
+            if(recipe.callbacks)wire+="@"+std::to_string(recipe.callbacks);
+            BasicItemEntry checked;checked.name=owner.name;checked.values[BasicMaxStack]=9999;std::string detail;
+            if(!parseBasicRecipes(wire,&checked,&detail)||checked.recipes.size()!=1||checked.recipes[0]!=recipe)
+                return reject(owner,"InvalidRecipeDescriptor","CanonicalUnresolvedRecipe",id+":"+detail);
+            PendingBasicRecipe pending{id,modId,owner.type,-1,recipe,owner.source,""};
+            const auto existing=recipes.find(id);
+            if((existing!=recipes.end()&&(existing->second.result!=pending.result||existing->second.values!=pending.values))||
+               !staged.emplace(id,std::move(pending)).second)
+                return reject(owner,"RecipeIdentityConflict","UnchangedUniqueOwnerAndLocalIndex",id);
+        }
+    }
+    // All owners are checked before publishing any new entry. The existing game-thread
+    // pump handles dependency resolution, native construction, callbacks and acknowledgement.
+    bool added=false;
+    for(auto& [id,pending]:staged)if(recipes.emplace(id,std::move(pending)).second)added=true;
+    if(added)recipesPending.store(true,std::memory_order_release);
+    return true;
+}
+
 bool setBasicItemDefense(int type,int value,std::string* error) {
     std::lock_guard lock(mutex);
     const auto entry=definitions.find(type);

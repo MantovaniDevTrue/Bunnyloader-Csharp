@@ -892,6 +892,18 @@ public static class CompiledAssemblyProbe
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
         string destination = Path.Combine(folder, "source-runtime-values.txt");
         string temporary = destination + ".tmp";
+        // Specialized items share the Bunny recipe loader; primary V2 rows stay unchanged.
+        foreach(var owner in weapons.Select(o=>(Value:o,Kind:"WEAPON"))
+            .Concat(accessories.Select(o=>(Value:o,Kind:"ACCESSORY")))
+            .Concat(potions.Select(o=>(Value:o,Kind:"POTION"))))
+        {
+            var type=owner.Value.GetType();
+            type.GetMethod("AddRecipes",Type.EmptyTypes)!.Invoke(owner.Value,null);
+            var recipes=(IReadOnlyList<string>)type.GetProperty("RecipeDefinitions")!.GetValue(owner.Value)!;
+            if(recipes.Count==0)continue;
+            if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
+            lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
+        }
         File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
         File.Move(temporary, destination, true);
         File.AppendAllText(diagnosticsPath, "\nDEFAULTS_MULTI_OK projectiles=" +
