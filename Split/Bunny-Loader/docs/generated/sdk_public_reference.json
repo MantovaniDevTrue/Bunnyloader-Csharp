@@ -1491,7 +1491,9 @@
       "kind": "struct",
       "baseType": "System.ValueType",
       "constructors": [],
-      "properties": [],
+      "properties": [
+        "bool HasTarget { get; }"
+      ],
       "values": [],
       "methods": []
     },
