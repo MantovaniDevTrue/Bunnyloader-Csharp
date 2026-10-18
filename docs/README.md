@@ -5,6 +5,7 @@ continuam disponíveis e identificam as APIs JavaScript.
 
 | Trilha | Documentos |
 | --- | --- |
+| **Integrar no Bunny original (Potato)** | **[Caminhos exatos, merges, runtime e verificação](INTEGRACAO-BUNNY-ORIGINAL.md)** · [Script de auditoria](../tools/potato_integration_audit.py) |
 | Primeiro mod | [Guia rápido](PRIMEIRO-MOD.md) · [Exemplos](../examples/README.md) |
 | SDK e execução | [Contratos](SDK-CSharp.md) · [Referência gerada](../Split/Bunny-Loader/docs/generated/sdk_public_reference.md) · [Arquitetura](ARQUITETURA.md) |
 | Código e contribuição | [Mapa do repositório](REPOSITORIO.md) · [Build e CI](BUILD.md) · [Contribuição](../CONTRIBUTING.md) |
