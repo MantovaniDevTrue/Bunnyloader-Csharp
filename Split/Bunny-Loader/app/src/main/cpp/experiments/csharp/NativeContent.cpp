@@ -54,6 +54,7 @@ struct NativeRefs {
     int itemShootSpeed = -1;
     int itemKnockBack = -1;
     int itemRanged = -1;
+    int itemSummon = -1;
     int itemNoMelee = -1;
     int itemAutoReuse = -1;
     int itemRare = -1;
@@ -128,6 +129,9 @@ struct NativeWeaponDefaults {
     int useTime;
     float shootSpeed;
     int shootType;
+    bool summon = false;
+    int minionBuffType = -1;
+    int minionBuffTime = 0;
 };
 
 struct NativeAccessoryDefaults {
@@ -372,7 +376,12 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemShoot) = d.shootType;
     bl::runtime::field<float>(self, r.itemShootSpeed) = d.shootSpeed;
     bl::runtime::field<float>(self, r.itemKnockBack) = 2.0f;
-    bl::runtime::field<uint8_t>(self, r.itemRanged) = 1;
+    bl::runtime::field<uint8_t>(self, r.itemRanged) = d.summon ? 0 : 1;
+    if (d.summon) {
+        bl::runtime::field<uint8_t>(self, r.itemSummon) = 1;
+        bl::runtime::field<int32_t>(self, r.itemBuffType) = d.minionBuffType;
+        bl::runtime::field<int32_t>(self, r.itemBuffTime) = d.minionBuffTime;
+    }
     bl::runtime::field<uint8_t>(self, r.itemNoMelee) = 1;
     bl::runtime::field<uint8_t>(self, r.itemAutoReuse) = 1;
     bl::runtime::field<int32_t>(self, r.itemRare) = 2;
@@ -1189,6 +1198,7 @@ bool prepareNativeContent() {
     r.itemShootSpeed = fieldOffset(item, "shootSpeed");
     r.itemKnockBack = fieldOffset(item, "knockBack");
     r.itemRanged = fieldOffset(item, "ranged");
+    r.itemSummon = fieldOffset(item, "summon");
     r.itemNoMelee = fieldOffset(item, "noMelee");
     r.itemAutoReuse = fieldOffset(item, "autoReuse");
     r.itemRare = fieldOffset(item, "rare");
@@ -1518,8 +1528,13 @@ bool applyManagedNativeDefaultsBatch(
             bl::runtime::modItemTypeByKey(modId + "/" + entry.name) != entry.type ||
             g_weapons.count(entry.type) != 1 ||
             stagedProjectiles.count(entry.shootType) != 1 ||
+            (entry.summon && (g_refs.itemSummon < 0 ||
+                              entry.minionBuffType < 0 ||
+                              !stagedProjectiles.at(entry.shootType).minion ||
+                              entry.minionBuffTime < 1 || entry.minionBuffTime > 36000)) ||
             !stagedWeapons.emplace(entry.type, NativeWeaponDefaults{
-                data.damage, data.useTime, data.shootSpeed, entry.shootType}).second ||
+                data.damage, data.useTime, data.shootSpeed, entry.shootType,
+                entry.summon, entry.minionBuffType, entry.minionBuffTime}).second ||
             data.damage < 1 || data.damage > 1000 ||
             data.useTime < 2 || data.useTime > 120 ||
             !std::isfinite(data.shootSpeed) ||
