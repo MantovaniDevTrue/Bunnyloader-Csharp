@@ -6,8 +6,9 @@ using System.Linq;
 namespace BunnyLoader.Source;
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
-public abstract class BunnyItem
+public abstract class BunnyItem : BunnyRecipeSource
 {
+    internal override int RecipeStackLimit => MaxStack;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Tooltip { get; set; } = "";
@@ -65,44 +66,53 @@ public abstract class BunnyItem
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
     public abstract void SetDefaults();
-    public virtual void AddRecipes() { }
-    private readonly List<string> recipes = new();
-    public IReadOnlyList<string> RecipeDefinitions => recipes;
-    public BunnyRecipe CreateRecipe(int stack = 1) => new(this, stack);
-    internal void RecordRecipe(string definition)
-    {
-        if (recipes.Count >= 16) throw new InvalidOperationException(GetType().Name+": maximo 16 receitas por item");
-        recipes.Add(definition);
-    }
 }
 
 /// <summary>Receita declarada em C# e instalada pelo host na thread do Terraria.</summary>
 public sealed class BunnyRecipe
 {
-    private readonly BunnyItem owner;
+    private readonly BunnyRecipeSource owner;
     private readonly int stack;
     private string station = "-1";
     private bool registered;
     private readonly List<string> ingredients = new();
-    private readonly List<(string Description,Func<BunnyCraftContext,bool> Predicate)> conditions=new();
+    private readonly List<BunnyRecipeCondition> conditions=new();
     private readonly List<Func<BunnyCraftContext,int,int,int>> consume=new();
     private readonly List<Action<BunnyCraftContext>> crafted=new();
     public BunnyRecipe AddCondition(string description,Func<BunnyCraftContext,bool> predicate)
+        => AddCondition(new BunnyRecipeCondition(description,predicate));
+    public BunnyRecipe AddCondition(BunnyRecipeCondition condition)
     {
-        Mutable();ArgumentNullException.ThrowIfNull(predicate);
-        if(string.IsNullOrWhiteSpace(description)||description.Length>256||conditions.Count>=32)throw new ArgumentException("Expected condition description and at most 32 predicates",nameof(description));
-        conditions.Add((description,predicate));return this;
+        Mutable();ArgumentNullException.ThrowIfNull(condition);
+        if(conditions.Count>=32)throw new InvalidOperationException("Condition limit 32");
+        conditions.Add(condition);return this;
+    }
+    public bool RemoveCondition(BunnyRecipeCondition condition)
+    { Mutable();ArgumentNullException.ThrowIfNull(condition);return conditions.Remove(condition); }
+    /// <summary>Binds actual virtual overrides to the same native hooks as delegate callbacks.</summary>
+    public BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)
+    {
+        Mutable();ArgumentNullException.ThrowIfNull(behavior);int mask=behavior.CallbackMask();
+        // Validate every part before changing this recipe; failed bindings leave no partial callbacks.
+        BunnyRecipeCondition? condition=(mask&1)!=0?new(behavior.ConditionDescription,behavior.IsAvailable):null;
+        if((condition!=null&&conditions.Count>=32)||((mask&2)!=0&&consume.Count>=16)||((mask&4)!=0&&crafted.Count>=16))
+            throw new InvalidOperationException("[CSharp][ERROR][RecipeBehavior] Class="+behavior.GetType().FullName+" Stage=Bind Reason=CallbackCapacityExceeded");
+        if(condition!=null)conditions.Add(condition);
+        if((mask&2)!=0)consume.Add(behavior.ConsumeIngredient);
+        if((mask&4)!=0)crafted.Add(behavior.OnCraft);
+        return this;
     }
     public BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext,int,int,int> callback)
     { Mutable();ArgumentNullException.ThrowIfNull(callback);if(consume.Count>=16)throw new InvalidOperationException("Callback limit 16");consume.Add(callback);return this; }
     public BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)
     { Mutable();ArgumentNullException.ThrowIfNull(callback);if(crafted.Count>=16)throw new InvalidOperationException("Callback limit 16");crafted.Add(callback);return this; }
-    internal bool IsAvailable(BunnyCraftContext context) => conditions.All(c=>c.Predicate(context));
+    internal bool IsAvailable(BunnyCraftContext context)
+    { foreach(var condition in conditions)if(!condition.Evaluate(context))return false;return true; }
     internal int Consume(BunnyCraftContext context,int type,int amount)
     { int limit=Math.Max(amount,context.AvailableIngredientCount);foreach(var callback in consume)amount=Math.Clamp(callback(context,type,amount),0,limit);return amount; }
     internal void Crafted(BunnyCraftContext context) { foreach(var callback in crafted)callback(context); }
 
-    internal BunnyRecipe(BunnyItem owner, int stack)
+    internal BunnyRecipe(BunnyRecipeSource owner, int stack)
     { this.owner=owner; this.stack=Amount(stack); }
     public BunnyRecipe AddIngredient(int vanillaItemId, int count = 1)
     {
@@ -203,7 +213,7 @@ public sealed class BunnyRecipe
     {
         Mutable();
         if (ingredients.Count==0) throw new InvalidOperationException("Receita sem ingredientes");
-        if (stack>owner.MaxStack) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
+        if (stack>owner.RecipeStackLimit) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
         // Nao e um sucesso simulado: o descritor entra nos defaults transferidos
         // ao host. O nucleo resolve IDs, registra Recipe e confirma seus lookups.
         int callbacks=(conditions.Count>0?1:0)|(consume.Count>0?2:0)|(crafted.Count>0?4:0);

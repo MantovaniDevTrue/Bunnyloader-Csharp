@@ -1,4 +1,13 @@
+> Continuidade atual: [loader próprio .92](csharp-loaders-v92.md), [PR93](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/93). Fonte `2ea904f4`: nove regressões, build/assinatura e entrega privada aprovadas. [Evidência](validation/csharp-v92-ci-2026-10-18.json). Preserva a .91; três receitas adicionais por API comum, sem certificar conclusão do Lote A ou paridade de todos os loaders. Gameplay Android da .92 pendente.
+
 # Plano global de conclusao do ExampleMod C#
+
+> Retomada atual: branch `feat/csharp-loader-foundation-v91`, PR92, derivada da
+> .90.3.1/PR90. Runtime `.90.29.91`, ExampleMod 0.1.50. Ver
+> [relatório atual](csharp-loaders-v91.md) e [evidência CI](validation/csharp-v91-ci-2026-10-18.json).
+> As seções anteriores de progresso abaixo são histórico; bancada, armaduras,
+> equipamentos e receitas já existentes devem ser preservados. Todos os loaders
+> continuam no escopo; .91 é experimental e ainda aguarda gameplay Android.
 
 ## Referencias e regra de conclusao
 
@@ -277,3 +286,21 @@ receitas ainda listados no relatório. Não são bloqueios comprovados do Androi
 A matriz JS e os 449 fontes ativos/112 legados oficiais continuam preservados.
 Host: 26 verificações gerenciadas e contratos nativos passaram. CI e Android devem
 ser registrados separadamente; a .90 é experimental WIP, não conclusão do Lote A.
+
+## Continuidade .91 — base atualizada pelo usuário e loaders
+
+Retomar em `feat/csharp-loader-foundation-v91`, preservando PR90/.90.3.1
+`77be9001c2e0328324bb9b60db0fd3a7a64ad23a`. As correções nativas de Register e
+OnCraft continuam intactas. [Relatório .91](csharp-loaders-v91.md) e
+[inventário de todos os módulos](generated/csharp-loaders.md) registram o novo
+checkpoint. Existem 88 módulos no diretório original, inclusive helpers; não
+confundir inventário com port completo. Nenhuma categoria pode desaparecer.
+
+SDK e RecipeLoader: comportamentos em classes, condições compostas/remoção,
+estágio de callbacks e isolamento por dono, usando as bridges existentes.
+ExampleMod 0.1.50 mostra a bancada C# com o comportamento separado e fonte editável.
+A .91 ainda é experimental e requer Android; o conjunto inteiro permanece aberto.
+Prosseguir nas pendências explícitas de buffs/minions/Blocky/montarias/receitas e
+nas dependências dos demais loaders, sem recriar sistemas estáveis.
+
+Checkpoint de entrega .91: runtime `3126971483569438060020cd26d1f691f018b46c`, Android [39136870790](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39136870790), nove suítes do mesmo SHA, assinatura e verificação de entrega privada aprovadas. [Registro](validation/csharp-v91-ci-2026-10-18.json). O .bmod remoto possui os mesmos 67 fontes editáveis e SHA-256 conferido. A validação de gameplay Android e a conclusão dos loaders continuam pendentes. O commit seguinte de documentação não modifica o APK nem o pacote.

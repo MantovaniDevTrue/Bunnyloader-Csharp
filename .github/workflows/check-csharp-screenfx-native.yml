@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - feat/csharp-native-recipe-groups-v89
+      - feat/csharp-loader-foundation-v91
+      - feat/csharp-owned-recipe-loader-v92
       - feat/csharp-buff-recipes-v90
       - fix/csharp-90-1-static-recipegroup-register
       - fix/csharp-90-2-recipegroup-real-instance-abi

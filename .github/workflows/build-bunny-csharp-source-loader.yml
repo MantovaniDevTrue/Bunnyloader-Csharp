@@ -20,6 +20,8 @@ on:
   push:
     branches:
       - codex/example-completion-v90-28
+      - feat/csharp-loader-foundation-v91
+      - feat/csharp-owned-recipe-loader-v92
       - fix/csharp-90-3-recipegroup-return-contract
       - feat/csharp-90-4-projectile-minion-contract
       - feat/csharp-90-5-native-minion-targeting-lot
@@ -221,6 +223,7 @@ on:
       - "Split/Bunny-Loader/**"
 
 permissions:
+  actions: read
   contents: read
   issues: write
   pull-requests: write
@@ -231,7 +234,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath"]'), github.head_ref)) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath","feat/csharp-loader-foundation-v91","feat/csharp-owned-recipe-loader-v92"]'), github.head_ref)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -1002,6 +1005,13 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -I Split/Bunny-Loader/app/src/main/cpp Split/Bunny-Loader/tests/native_boot_effects_test.cpp -o "$RUNNER_TEMP/native-boot-effects-test"
           "$RUNNER_TEMP/native-boot-effects-test"
 
+      - name: Validate loader inventory and read-only private delivery checks
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 tools/csharp_loader_audit.py --check
+          python3 tests/private_delivery_verifier_test.py
+          python3 tests/current_delivery_gate_test.py
+
       - name: Execute basic item compiler and native bridge regressions
         working-directory: Split/Bunny-Loader
         run: |
@@ -1023,6 +1033,7 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test" --pump
+          "$RUNNER_TEMP/native-recipes-test" --owned-recipes build/basic-items/owned-source-runtime-values.txt
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/native_recipes/recipe_group_wire_test.cpp -o "$RUNNER_TEMP/recipe-group-wire-test"
           "$RUNNER_TEMP/recipe-group-wire-test"
           "$RUNNER_TEMP/native-recipes-test" --groups
@@ -1066,7 +1077,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.49
+      - name: Package independent ExampleMod CSharp 0.1.51
         shell: bash
         run: |
           set -euo pipefail
@@ -1075,22 +1086,26 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.49.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.51.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
-              assert manifest["version"]=="0.1.49"
+              assert manifest["version"]=="0.1.51"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
               assert "content/LEIA_PRIMEIRO.md" in names
-              assert len([n for n in names if "/Recipes/" in n and n.endswith(".cs")]) == 8
+              assert len([n for n in names if n.startswith("content/Common/Recipes/") and n.endswith(".cs")]) == 8
+              assert "content/Content/Recipes/ExampleWorkbenchRecipeBehavior.cs" in names
+              assert "content/Documentation/RECIPE_LOADER_V91.md" in names
+              assert "content/Documentation/OWNED_RECIPE_LOADER_V92.md" in names
+              assert "content/Content/Recipes/ExampleCraftingReward.cs" in names
               for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
                   assert "content/Content/Items/" + file in names
               for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
@@ -1173,8 +1188,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.49.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.51.bmod.sha256"
 
       - name: Package standalone native minion CSharp probe
         shell: bash
@@ -2180,7 +2195,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.49.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.51.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2215,14 +2230,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.49
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.51
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.49.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.49.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.51.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.51.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
@@ -2233,32 +2248,16 @@ jobs:
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
   report-private-csharp-apk:
     needs: build
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' }}
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' || github.ref == 'refs/heads/feat/csharp-loader-foundation-v91' || github.ref == 'refs/heads/feat/csharp-owned-recipe-loader-v92') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
     steps:
-      - name: Verify signed V3 APK exists in private release
+      - uses: actions/checkout@v4
+      - name: Verify signed V3 APK and source-only mod exist in private release
         env:
-          GH_TOKEN: ${{ github.token }}
-          PRIVATE_BUILD_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
-          BUILD_RESULT: ${{ needs.build.result }}
-          SOURCE_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RELEASE_TAG: csharp-v3-run-${{ github.run_id }}-a${{ github.run_attempt }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          result=FAILED
-          asset=
-          if [ "$BUILD_RESULT" = "success" ] && [ -n "$PRIVATE_BUILD_TOKEN" ]; then
-            asset="$(GH_TOKEN="$PRIVATE_BUILD_TOKEN" gh api "repos/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tags/$RELEASE_TAG" --jq '.assets[] | select(.size > 0) | .name' | grep '90\.3\.1-.*-SignedV3\.apk$' || true)"
-            if [ -n "$asset" ]; then result=SUCCESS; fi
-          fi
-          if [ "$result" = SUCCESS ]; then
-            body="Bunny Loader C# .90.3.1: APK assinado V3 GERADO e verificado na release privada. Arquivo: $asset. Tag: $RELEASE_TAG. Build: $SOURCE_RUN"
-          else
-            body="Bunny Loader C# .90.3.1: APK NAO publicado ou nao verificado. Resultado do job Android: $BUILD_RESULT. Conferir logs: $SOURCE_RUN. Tag esperada: $RELEASE_TAG"
-          fi
-          gh issue comment 90 --repo "${{ github.repository }}" --body "$body"
-          test "$result" = SUCCESS
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+          BUNNY_BUILD_RESULT: ${{ needs.build.result }}
+          BUNNY_SOURCE_SHA: ${{ github.sha }}
+          BUNNY_RELEASE_TAG: csharp-v3-run-${{ github.run_id }}-a${{ github.run_attempt }}
+        run: python3 Split/Bunny-Loader/tools/ci/verify_private_delivery.py

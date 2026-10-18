@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.49",
+  "exampleModCSharpVersion": "0.1.51",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -309,6 +309,19 @@
         "ExampleDebuffPotion"
       ],
       "details": "Native custom RecipeGroup, managed conditions/consumption/crafting on the pinned Mono worker, typed buff flags and post-equipment defense multiplier. Android validation pending. Minions, Blocky and mounts are NOT completed by this checkpoint."
+    },
+    {
+      "id": "recipe_loader_class_behaviors",
+      "status": "experimental",
+      "examples": [
+        "ExampleWorkbench"
+      ],
+      "api": [
+        "BunnyRecipeBehavior",
+        "BunnyRecipeCondition",
+        "BunnyRecipeStage"
+      ],
+      "validation": "Host contracts; Android pending; not complete RecipeLoader parity"
     }
   ]
 }

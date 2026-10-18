@@ -21,7 +21,7 @@ Values: Ok, Invalid, WrongThread, Capacity, NativeException, TimedOut, Busy, Exp
 
 ## BunnyLoader.Source.BunnyAccessory
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
@@ -132,7 +132,7 @@ string Texture { get; set; }
 
 ## BunnyLoader.Source.BunnyBuffPotion
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 int Duration { get; set; }
@@ -198,6 +198,7 @@ Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC
 class; base: `System.Object`.
 
 ```csharp
+BunnyRecipeStage Stage { get; }
 bool InDesert { get; }
 bool InSnow { get; }
 bool IsDay { get; }
@@ -211,9 +212,9 @@ int ResultType { get; }
 
 | Method | Execution |
 | --- | --- |
-| `void GiveItem(int vanillaItemId, int count)` | managed_helper |
-| `void GiveItem(string modItemName, int count)` | managed_helper |
-| `void GiveItem<TItem>(int count)` | managed_helper |
+| `void GiveItem(int vanillaItemId, int count)` | worker_craft_command_queue |
+| `void GiveItem(string modItemName, int count)` | worker_craft_command_queue |
+| `void GiveItem<TItem>(int count)` | worker_craft_command_queue |
 
 ## BunnyLoader.Source.BunnyDodgeHook
 
@@ -510,12 +511,11 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyItemBehavior Behavior { get; }
 Dictionary<string, string> TooltipTranslations { get; }
-IReadOnlyList<string> RecipeDefinitions { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
@@ -550,8 +550,6 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
-| `BunnyRecipe CreateRecipe(int stack)` | managed_helper |
-| `void AddRecipes()` | compile_policy |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -828,6 +826,8 @@ class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)` | managed_helper |
+| `BunnyRecipe AddCondition(BunnyRecipeCondition condition)` | managed_helper |
 | `BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)` | managed_helper |
 | `BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)` | managed_helper |
 | `BunnyRecipe AddIngredient(int vanillaItemId, int count)` | managed_helper |
@@ -840,12 +840,48 @@ class; base: `System.Object`.
 | `BunnyRecipe AddTile(string modTileName)` | managed_helper |
 | `BunnyRecipe AddTile<TTile>()` | managed_helper |
 | `BunnyRecipe Clone()` | managed_helper |
+| `bool RemoveCondition(BunnyRecipeCondition condition)` | managed_helper |
 | `bool RemoveIngredient(int vanillaItemId)` | managed_helper |
 | `bool RemoveIngredient(string modItemName)` | managed_helper |
 | `bool RemoveIngredient<TItem>()` | managed_helper |
 | `bool RemoveNativeRecipeGroup(string groupField)` | managed_helper |
 | `bool RemoveRecipeGroup(string localGroupName)` | managed_helper |
 | `void Register()` | managed_helper |
+
+## BunnyLoader.Source.BunnyRecipeBehavior
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ConditionDescription { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool IsAvailable(BunnyCraftContext context)` | worker_sync_recipe_snapshot |
+| `int ConsumeIngredient(BunnyCraftContext context, int ingredientType, int amount)` | worker_sync_recipe_snapshot |
+| `void OnCraft(BunnyCraftContext context)` | worker_sync_recipe_snapshot |
+
+## BunnyLoader.Source.BunnyRecipeCondition
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)
+BunnyRecipeCondition Day { get; }
+BunnyRecipeCondition InDesert { get; }
+BunnyRecipeCondition InSnow { get; }
+BunnyRecipeCondition NearWater { get; }
+BunnyRecipeCondition Night { get; }
+string Description { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyRecipeCondition Not(string description)` | managed_predicate_composition |
+| `bool Evaluate(BunnyCraftContext context)` | managed_predicate_composition |
+| `static BunnyRecipeCondition All(string description, BunnyRecipeCondition[] conditions)` | managed_predicate_composition |
+| `static BunnyRecipeCondition Any(string description, BunnyRecipeCondition[] conditions)` | managed_predicate_composition |
 
 ## BunnyLoader.Source.BunnyRecipeGroup
 
@@ -863,13 +899,40 @@ string Name { get; }
 | `BunnyRecipeGroup AddItem(string modItemName)` | managed_helper |
 | `BunnyRecipeGroup AddItem<TItem>()` | managed_helper |
 
+## BunnyLoader.Source.BunnyRecipeLoader
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_recipe_snapshot |
+
 ## BunnyLoader.Source.BunnyRecipeRuntime
 
 abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
-| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_recipe_snapshot |
+
+## BunnyLoader.Source.BunnyRecipeSource
+
+abstract class; base: `System.Object`.
+
+```csharp
+IReadOnlyList<string> RecipeDefinitions { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyRecipe CreateRecipe(int stack)` | managed_helper |
+| `void AddRecipes()` | compile_policy |
+
+## BunnyLoader.Source.BunnyRecipeStage
+
+enum; base: `System.Enum`.
+
+Values: Availability, Consumption, Craft.
 
 ## BunnyLoader.Source.BunnyRectangle
 
@@ -1090,7 +1153,7 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyWeapon
 
-abstract class; base: `System.Object`.
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 bool Summon { get; set; }

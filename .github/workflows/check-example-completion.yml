@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
+    branches: [feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
   pull_request:
     paths:
@@ -125,6 +125,7 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o /tmp/native-recipes-test
           /tmp/native-recipes-test
           /tmp/native-recipes-test --pump
+          /tmp/native-recipes-test --owned-recipes build/basic-items/owned-source-runtime-values.txt
           /tmp/native-recipes-test --placement-wire build/basic-items/placement-source-runtime-values.txt
           /tmp/native-recipes-test --probe-wire build/basic-items/probe-source-runtime-values.txt
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test

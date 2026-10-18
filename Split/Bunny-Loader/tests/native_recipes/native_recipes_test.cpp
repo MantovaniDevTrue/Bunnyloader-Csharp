@@ -1,4 +1,5 @@
 #include "content/recipes/NativeRecipes.h"
+#include "content/recipes/RecipeCallbackProvider.h"
 #include "content/items/ItemRegistryInternal.h"
 #include "content/tiles/TileRegistryInternal.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -178,7 +179,8 @@ void configure(){
   }else if(m->signature=="void SetDefaults(int Type, ItemVariant variant)"){
    assert(*static_cast<int*>(args[1])==0);auto* item=static_cast<Item*>(self);item->type=*static_cast<int*>(args[0]);
    if(bl::csharp::isBasicItem(item->type))assert(bl::csharp::applyBasicItemToObject(&item->obj,item->type));
-   if(item->type==3)item->maxStack=1;
+   if(item->type==3||bl::runtime::modItemKey(item->type)=="owned/ContractWeapon"||bl::runtime::modItemKey(item->type)=="owned/ContractAccessory")item->maxStack=1;
+   if(bl::runtime::modItemKey(item->type)=="owned/ContractPotion")item->maxStack=30;
    if(failDefaults)*ex=&exception;
   }else if(m->signature=="void SetCraftingStation(int tileType)")static_cast<Recipe*>(self)->station=*static_cast<int*>(args[0]);
   else if(m->signature=="int GetPlaceholderItemType()"){
@@ -220,6 +222,63 @@ int main(int argc,char** argv){
  assert(resolveNativeRecipe(r,&resolved,&error));assert(resolved.ingredients[0].type==laterId);
  auto* saved=current;
  const std::string mode=argc>1?argv[1]:"--normal";
+ if(mode=="--owned-recipes") {
+  assert(argc==3);std::ifstream input(argv[2]);std::string line;std::vector<bl::csharp::SourceRecipeOwner> owners;
+  while(std::getline(input,line))if(line.rfind("RECIPES\t",0)==0) {
+   bl::csharp::SourceRecipeOwner owner;assert(bl::csharp::parseSourceRecipeOwner(bl::csharp::basicSplit(line,'\t'),"owned",&owner,&error));
+   ModItemDef def;def.mod="owned";def.name=owner.name;def.texture="asset.png";owner.type=registerModItem(def);
+   owner.source="content/"+owner.name+".cs";owners.push_back(owner);
+  }
+  assert(owners.size()==3);item_registry::g_installed.store(5);numRecipes=1;
+  auto invalid=owners;invalid[1].recipes[0].ingredients[0].key="";
+  assert(!bl::csharp::enqueueOwnedSourceRecipes("owned",invalid,&error));
+  assert(error.find("InvalidIngredientDescriptor")!=std::string::npos&&bl::csharp::pendingBasicRecipes().empty());
+  invalid=owners;invalid[1].type=owners[0].type;
+  assert(!bl::csharp::enqueueOwnedSourceRecipes("owned",invalid,&error));
+  assert(error.find("OwnerRegistryMismatch")!=std::string::npos&&bl::csharp::pendingBasicRecipes().empty());
+  assert(!bl::csharp::parseSourceRecipeOwner({"RECIPES","ContractWeapon","ITEM","1,-1,v9:1"},"owned",&invalid[0],&error));
+  assert(error.find("UnsupportedOwnerKind")!=std::string::npos);
+  assert(bl::csharp::enqueueOwnedSourceRecipes("owned",owners,&error));
+  assert(bl::csharp::pendingBasicRecipes().size()==3);
+  static std::vector<std::string> tracked;
+  static const RecipeCallbackProvider provider{
+   [](const NativeRecipeRequest& req,std::string* detail){assert(req.callbacks==7);detail->clear();return RecipeCallbackReadiness::Ready;},
+   [](const NativeRecipeRequest& req,Il2CppObject* recipe,int index){assert(recipe&&index>0);tracked.push_back(req.name);}};
+  setRecipeCallbackProvider(&provider);
+  bl::csharp::pumpBasicRecipesOnGameThread();
+  // The vanilla-station potion is independent of both unresolved mod stations.
+  assert(commits==1&&numRecipes==2&&tracked==std::vector<std::string>{"ContractPotion"});
+  assert(bl::csharp::pendingBasicRecipes().size()==2);
+  const int ownBench=registerModTile({"owned","Bench","bench.png"});tile_registry::g_installed.store(3);
+  for(int tick=0;tick<120;++tick)bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(commits==2&&bl::csharp::pendingBasicRecipes().size()==1);
+  const int crossBench=registerModTile({"other","LateBench","bench.png"});tile_registry::g_installed.store(4);
+  for(int tick=0;tick<120;++tick)bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(commits==3&&numRecipes==4&&bl::csharp::pendingBasicRecipes().empty()&&tracked.size()==3);
+  auto** slots=static_cast<Recipe**>(arrayData(table));
+  for(int index=1;index<4;++index){
+   auto* result=reinterpret_cast<Item*>(slots[index]->result);
+   const auto expected=std::find_if(owners.begin(),owners.end(),[&](const auto& owner){return owner.type==result->type;});
+   assert(expected!=owners.end()&&result->stack==expected->recipes[0].stack);
+   assert(slots[index]->station==(expected->kind=="POTION"?18:expected->kind=="WEAPON"?ownBench:crossBench));
+  }
+  assert(bl::csharp::enqueueOwnedSourceRecipes("owned",owners,&error));
+  for(int tick=0;tick<120;++tick)bl::csharp::pumpBasicRecipesOnGameThread();
+  assert(commits==3&&tracked.size()==3&&bl::csharp::pendingBasicRecipes().empty());
+  auto pristine=owners;
+  owners[0].recipes[0].ingredients[0].count++;
+  assert(!bl::csharp::enqueueOwnedSourceRecipes("owned",owners,&error));assert(error.find("RecipeIdentityConflict")!=std::string::npos);
+  auto oversize=pristine;
+  auto weapon=std::find_if(oversize.begin(),oversize.end(),[](const auto& owner){return owner.kind=="WEAPON";});
+  weapon->recipes.push_back(weapon->recipes[0]);weapon->recipes.back().stack=2;
+  // Keep original recipes unchanged; only the newly appended result is rejected natively.
+  assert(bl::csharp::enqueueOwnedSourceRecipes("owned",oversize,&error));
+  bl::csharp::pumpBasicRecipesOnGameThread();
+  const auto remaining=bl::csharp::pendingBasicRecipes();
+  assert(remaining.size()==1&&remaining[0].error.find("MaxStack=1")!=std::string::npos&&commits==3);
+  assert(current==saved&&roots.empty());
+  std::cout<<"OWNED_CSHARP_COMPILE_TO_NATIVE_PUMP_NO_QUICKJS_PASS callbacks,stations,load-order,isolation,atomic-validation,replay,conflicts\n";return 0;
+ }
  if(mode=="--custom-missing-register") {
   methods.erase("RecipeGroup Register()");
   numRecipes=1;auto grouped=request("CustomBench");
