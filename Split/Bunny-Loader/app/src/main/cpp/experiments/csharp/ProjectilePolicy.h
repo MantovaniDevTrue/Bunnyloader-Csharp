@@ -39,6 +39,17 @@ inline bool parseProjectileTuning(const std::vector<std::string>& fields,Project
     if(!validateProjectilePolicy(staged,error))return false;
     *policy=staged;return true;
 }
+inline bool bindProjectileFrameTable(Il2CppClass* main,int type,std::string* error) {
+    FieldInfo* field=nullptr;
+    if(!il2cpp::nativeFieldContract(main,"projFrames","System.Int32[]",true,sizeof(void*),&field,nullptr,error))return false;
+    if(!il2cpp::api().field_static_get_value){*error="Field=projFrames Stage=BindFrames Reason=RequiredExportMissing";return false;}
+    Il2CppArray* table=nullptr;il2cpp::api().field_static_get_value(field,&table);
+    if(!il2cpp::nativeArrayContract(table,"Int32",4,32768)||type<0||static_cast<uintptr_t>(type)>=table->length) {
+        *error="Field=projFrames Stage=BindFrames Expected=Int32ArrayContainingContentId ActualLength="+
+            (table?std::to_string(table->length):"Null")+" ContentId="+std::to_string(type)+" Reason=NativeArrayMismatch";return false;
+    }
+    return true;
+}
 struct ProjectileGameplayFields {
     int minion=-1,minionSlots=-1,frame=-1,frameCounter=-1;
 };

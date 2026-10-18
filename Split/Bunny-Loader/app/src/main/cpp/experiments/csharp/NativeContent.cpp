@@ -413,15 +413,6 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
-    if (d.frames > 1) {
-        auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
-        FieldInfo* framesField = mainClass ? il2cpp::findField(mainClass, "projFrames") : nullptr;
-        Il2CppArray* frames = nullptr;
-        if (framesField) il2cpp::api().field_static_get_value(framesField, &frames);
-        if (frames && type >= 0 && type < static_cast<int>(frames->length) &&
-            frames->length > 0 && frames->length <= 32768)
-            static_cast<int32_t*>(arrayData(frames))[type] = d.frames;
-    }
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -1554,6 +1545,11 @@ bool applyManagedNativeDefaultsBatch(
             if(error)*error=diagnostic;
             BL_ERROR("%s",diagnostic.c_str());return false;
         }
+        if(data.frames>1&&!bindProjectileFrameTable(il2cpp::findClass({"Terraria","Main",{}}),entry.type,&detail)) {
+            const auto diagnostic="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+entry.name+" Stage=BindFrames Result=Rejected Detail="+detail;
+            if(error)*error=diagnostic;
+            BL_ERROR("%s",diagnostic.c_str());return false;
+        }
         stagedFields.emplace(entry.type,fields);
         if (entry.type < 0 ||
             bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
@@ -1603,8 +1599,12 @@ bool applyManagedNativeDefaultsBatch(
             data.shootSpeed < 1.f || data.shootSpeed > 40.f)
             return false;
     }
-    for (const auto& item : stagedProjectiles)
+    for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;
+        // Update the shared texture/frame registry too: finishModProjectile restores
+        // geometry from it, and table growth must preserve the same frame count.
+        bl::runtime::setModProjectileFrames(item.first,item.second.frames);
+    }
     for(const auto& item:stagedFields)g_projectileGameplayFields[item.first]=item.second;
     for (const auto& item : stagedWeapons) {
         g_weapons[item.first] = item.second;

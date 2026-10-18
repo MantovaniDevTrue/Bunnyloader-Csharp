@@ -10,7 +10,8 @@ struct Il2CppType {Il2CppClass* cls;};
 struct FieldInfo {std::string name;Il2CppType type;size_t offset;uint32_t flags;};
 struct Projectile {Il2CppObject obj;bool minion=true;float slots=1;int frame=0,counter=0;uint32_t sentinel=0xabcdef12;};
 bl::il2cpp::Api instance;
-Il2CppClass projectile{"Terraria","Projectile",sizeof(Projectile),false},boolean{"System","Boolean",1,true},single{"System","Single",4,true},integer{"System","Int32",4,true};
+Il2CppClass projectile{"Terraria","Projectile",sizeof(Projectile),false},boolean{"System","Boolean",1,true},single{"System","Single",4,true},integer{"System","Int32",4,true},intArray{"System","Int32[]",0,false},mainClass{"Terraria","Main",sizeof(Il2CppObject),false};
+Il2CppArray* frameTable=nullptr;
 std::vector<FieldInfo> fields;
 namespace bl::il2cpp {
 Api& api(){return instance;}
@@ -27,6 +28,9 @@ int main(int argc,char** argv){
  instance.class_is_valuetype=[](const Il2CppClass* c){return c->value;};
  instance.class_instance_size=[](Il2CppClass* c){return static_cast<uint32_t>(c->size);};
  instance.class_value_size=[](Il2CppClass* c,uint32_t* align){*align=4;return static_cast<int32_t>(c->size);};
+ instance.class_get_rank=[](const Il2CppClass* c){return c==&intArray?1:0;};
+ instance.class_get_element_class=[](Il2CppClass* c)->Il2CppClass*{return c==&intArray?&integer:nullptr;};
+ instance.field_static_get_value=[](FieldInfo*,void* destination){std::memcpy(destination,&frameTable,sizeof frameTable);};
  fields={{"minion",{&boolean},offsetof(Projectile,minion),0},{"minionSlots",{&single},offsetof(Projectile,slots),0},
          {"frame",{&integer},offsetof(Projectile,frame),0},{"frameCounter",{&integer},offsetof(Projectile,counter),0}};
  ProjectileGameplayFields bound;std::string error;
@@ -38,6 +42,14 @@ int main(int argc,char** argv){
  for(int tick=0;tick<15;++tick)advanceProjectileFrame(&object.obj,bound,policy);
  assert(object.frame==0&&object.counter==0&&object.sentinel==0xabcdef12);
  object.frame=INT32_MAX;object.counter=INT32_MAX;advanceProjectileFrame(&object.obj,bound,policy);assert(object.frame==0&&object.counter==0);
+ // Actual static table contract, including element size, rank and bounds.
+ Il2CppArray nativeTable{{&intArray,nullptr},nullptr,1200};frameTable=&nativeTable;
+ fields.push_back({"projFrames",{&intArray},0,0x10});
+ assert(bindProjectileFrameTable(&mainClass,1136,&error));
+ assert(!bindProjectileFrameTable(&mainClass,1200,&error)&&error.find("NativeArrayMismatch")!=std::string::npos);
+ integer.size=8;assert(!bindProjectileFrameTable(&mainClass,1136,&error));integer.size=4;
+ frameTable=nullptr;assert(!bindProjectileFrameTable(&mainClass,1136,&error));
+ fields.pop_back();
  const auto saved=bound;
  fields[0].type.cls=&integer;
  assert(!bindProjectileGameplayFields(&projectile,true,true,&bound,&error)&&error.find("Expected=Instance:System.Boolean Actual=System.Int32")!=std::string::npos);
