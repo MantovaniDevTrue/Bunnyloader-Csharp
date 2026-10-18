@@ -49,3 +49,12 @@ with TemporaryDirectory() as directory:
     subprocess.run([str(binary)], check=True)
 
 print("BUNNY_CSHARP_SUMMON_DAMAGE_NATIVE=PASS")
+
+example = root / "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs"
+staff = root / "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs"
+assert "MinionContactDamage = true;" in example.read_text()
+assert "Summon = true;" in staff.read_text()
+policy = (root / "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h").read_text()
+assert "fields.size()!=16&&fields.size()!=17" in policy
+assert "nativeManagedMinionConfiguredDamage(type)" in native and "nativeManagedMinionConfiguredDamage(type)" in managed
+print("BUNNY_OWNED_EXAMPLEMOD_CSHARP_SUMMON=PASS")
