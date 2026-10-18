@@ -595,8 +595,8 @@ bool enqueueOwnedSourceRecipes(const std::string& modId,const std::vector<Source
     // pump handles dependency resolution, native construction, callbacks and acknowledgement.
     bool added=false;
     for(auto& [id,pending]:staged)if(recipes.emplace(id,std::move(pending)).second)added=true;
-    if(added)recipesPending.store(true,std::memory_order_release);
-    return true;
+    if(added){contentGeneration.fetch_add(1,std::memory_order_release);recipesPending.store(true,std::memory_order_release);}
+    error->clear();return true;
 }
 
 bool setBasicItemDefense(int type,int value,std::string* error) {

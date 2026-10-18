@@ -179,7 +179,8 @@ void configure(){
   }else if(m->signature=="void SetDefaults(int Type, ItemVariant variant)"){
    assert(*static_cast<int*>(args[1])==0);auto* item=static_cast<Item*>(self);item->type=*static_cast<int*>(args[0]);
    if(bl::csharp::isBasicItem(item->type))assert(bl::csharp::applyBasicItemToObject(&item->obj,item->type));
-   if(item->type==3)item->maxStack=1;
+   if(item->type==3||bl::runtime::modItemKey(item->type)=="owned/ContractWeapon"||bl::runtime::modItemKey(item->type)=="owned/ContractAccessory")item->maxStack=1;
+   if(bl::runtime::modItemKey(item->type)=="owned/ContractPotion")item->maxStack=30;
    if(failDefaults)*ex=&exception;
   }else if(m->signature=="void SetCraftingStation(int tileType)")static_cast<Recipe*>(self)->station=*static_cast<int*>(args[0]);
   else if(m->signature=="int GetPlaceholderItemType()"){
@@ -244,7 +245,7 @@ int main(int argc,char** argv){
    [](const NativeRecipeRequest& req,std::string* detail){assert(req.callbacks==7);detail->clear();return RecipeCallbackReadiness::Ready;},
    [](const NativeRecipeRequest& req,Il2CppObject* recipe,int index){assert(recipe&&index>0);tracked.push_back(req.name);}};
   setRecipeCallbackProvider(&provider);
-  for(int tick=0;tick<120;++tick)bl::csharp::pumpBasicRecipesOnGameThread();
+  bl::csharp::pumpBasicRecipesOnGameThread();
   // The vanilla-station potion is independent of both unresolved mod stations.
   assert(commits==1&&numRecipes==2&&tracked==std::vector<std::string>{"ContractPotion"});
   assert(bl::csharp::pendingBasicRecipes().size()==2);
@@ -264,8 +265,17 @@ int main(int argc,char** argv){
   assert(bl::csharp::enqueueOwnedSourceRecipes("owned",owners,&error));
   for(int tick=0;tick<120;++tick)bl::csharp::pumpBasicRecipesOnGameThread();
   assert(commits==3&&tracked.size()==3&&bl::csharp::pendingBasicRecipes().empty());
+  auto pristine=owners;
   owners[0].recipes[0].ingredients[0].count++;
   assert(!bl::csharp::enqueueOwnedSourceRecipes("owned",owners,&error));assert(error.find("RecipeIdentityConflict")!=std::string::npos);
+  auto oversize=pristine;
+  auto weapon=std::find_if(oversize.begin(),oversize.end(),[](const auto& owner){return owner.kind=="WEAPON";});
+  weapon->recipes.push_back(weapon->recipes[0]);weapon->recipes.back().stack=2;
+  // Keep original recipes unchanged; only the newly appended result is rejected natively.
+  assert(bl::csharp::enqueueOwnedSourceRecipes("owned",oversize,&error));
+  bl::csharp::pumpBasicRecipesOnGameThread();
+  const auto remaining=bl::csharp::pendingBasicRecipes();
+  assert(remaining.size()==1&&remaining[0].error.find("MaxStack=1")!=std::string::npos&&commits==3);
   assert(current==saved&&roots.empty());
   std::cout<<"OWNED_CSHARP_COMPILE_TO_NATIVE_PUMP_NO_QUICKJS_PASS callbacks,stations,load-order,isolation,atomic-validation,replay,conflicts\n";return 0;
  }
