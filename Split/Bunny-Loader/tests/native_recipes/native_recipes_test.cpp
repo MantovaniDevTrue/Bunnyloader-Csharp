@@ -64,6 +64,7 @@ int32_t fieldOffset(Il2CppClass* cls,std::string_view name){auto* f=findField(cl
 Signature parseSignature(std::string_view s){Signature out;out.name=std::string(s);return out;}
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& s,bool*,const MethodInfo**){auto it=methods.find(s.name);return it==methods.end()?nullptr:&it->second;}
 std::string describeMethod(const MethodInfo* m){return m->signature;}
+std::vector<std::string> listOverloads(Il2CppClass*,std::string_view name){std::vector<std::string> out;for(const auto& [signature,method]:methods)if(signature.find(std::string(name)+"(")!=std::string::npos)out.push_back(signature);return out;}
 }
 namespace bl::csharp {
 bool managedPrefixDescriptorReady(int) { return false; }
