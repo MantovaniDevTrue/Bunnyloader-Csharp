@@ -22,6 +22,7 @@ on:
       - codex/example-completion-v90-28
       - fix/csharp-90-3-recipegroup-return-contract
       - feat/csharp-90-4-projectile-minion-contract
+      - feat/csharp-90-5-native-minion-targeting-lot
       - codex/integrate-csharp-sdk-lot-a-20261015
       - codex/csharp-native-policies-android-v90-29-42
       - codex/csharp-native-visual-diagnostics-v90-29-43
@@ -1183,22 +1184,22 @@ jobs:
           PKG="$ROOT/samples/NativeMinionCSharpProbe/Playable"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/nativeminioncsharpprobe-0.1.0.bl"
+          SOURCE="$ROOT/build/mods-packs/nativeminioncsharpprobe-0.1.1.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE"
-          cp "$SOURCE" "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod"
-          python3 - "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod"
+          python3 - "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod" <<'PY'
           import sys,zipfile,json
           with zipfile.ZipFile(sys.argv[1]) as pack:
               manifest=json.loads(pack.read("manifest.json"))
               assert manifest["id"] == "nativeminioncsharpprobe"
-              assert manifest["version"] == "0.1.0"
+              assert manifest["version"] == "0.1.1"
               assert "content/main.cs" in pack.namelist()
-              for asset in ("Projectiles/SourceBolt.png","Items/Weapons/SourceWand.png","Buffs/ExampleDefenseBuff.png"):
+              for asset in ("Projectiles/ExampleMinion.png","Items/Weapons/Summon/ExampleMinionItem.png","Buffs/ExampleMinionBuff.png"):
                   assert "content/Content/" + asset in pack.namelist()
               assert not any(name.endswith((".js",".dll",".so")) for name in pack.namelist())
           PY
-          sha256sum "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod" > "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod" > "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod.sha256"
 
       - name: Package optimized Lights And Shadows CSharp 0.4.2.3
         shell: bash
@@ -2189,12 +2190,12 @@ jobs:
       - name: Export independent native minion CSharp probe
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-NativeMinion-Probe-0.1.0
+          name: BunnyLoader-CSharp-NativeMinion-Probe-0.1.1
           retention-days: 14
           if-no-files-found: error
           path: |
-            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.0.bmod
-            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.0.bmod.sha256
+            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.1.bmod
+            ${{ runner.temp }}/NativeMinionCSharpProbe-v0.1.1.bmod.sha256
 
       - name: Export compiler reference comparison
         uses: actions/upload-artifact@v4

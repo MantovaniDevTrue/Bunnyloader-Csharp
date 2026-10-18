@@ -1,15 +1,14 @@
-# Native Minion CSharp Probe 0.1.0
+# Native Minion CSharp Probe 0.1.1 — Lote .90.5
 
-Standalone source-only .bmod for the Bunny C# MonoVM .90.4. No JavaScript and no tModLoader API.
+Teste nativo da API C#/MonoVM, sem JavaScript. Preserva o ExampleMod CSharp 0.1.49.
 
-1. Install .90.4 APK and enable only this probe and optionally Lights And Shadows CSharp.
-2. Start a disposable test world or back up the main world.
-3. Give yourself "Native C# Summon Staff" using the loader's native item browser.
-4. Use it once: a 1-slot minion projectile should appear and the matching native minion buff should apply.
-5. Move left and right, jump and explore to check native projectile ownership and managed follow AI. Spawn a normal enemy to observe contact damage.
-6. Test 60 FPS, saving/re-entering the world, and disabling/re-enabling the mod.
-7. Return the Bunny Loader report, especially CSharp startup and projectile AI/buff logs.
+1. Instale o Bunny Loader .90.5 e o NativeMinionCSharpProbe 0.1.1. Desative o probe 0.1.0.
+2. Em mundo de teste, invoque usando Native C# Summon Staff. Confira o ícone de buff Native C# Minion.
+3. Verifique que o minion mostra a textura original ExampleMinion e alterna entre quatro frames.
+4. Invoque um slime próximo: o minion deve persegui-lo e acertá-lo, não apenas seguir o jogador.
+5. Mova-se, passe por blocos e reinvoque com um minion ativo. Confira uso de slots, ausência de duplicação e buff persistente.
+6. Salve, saia, reentre e verifique se o minion/buff é limpo sem estado vazando. Compare FPS e latência com .90.4.
+7. Teste ExampleWorkbench, Lights And Shadows e Weapon Out Lite para regressões.
+8. Envie o relatório completo se o minion não causar dano, não mostrar ícone/buff ou se houver travamento.
 
-Native IL2CPP fields are checked for presence when the minion contract is used. An unsupported field rejects this mod rather than writing to an unknown offset.
-
-The underlying .90.3.1 ExampleWorkbench recipe and existing Lights effects are intentionally left untouched. Do not claim full summon fidelity until device verification.
+Regressões de compilação NÃO significam confirmação no Android. A .90.4 assinada continua como fallback.
