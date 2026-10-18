@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 66
+    "cSharpSourceFiles": 67
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -16579,6 +16579,15 @@
       "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
       "classes": [
         "ExampleWaveBolt"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Recipes/ExampleWorkbenchRecipeBehavior.cs",
+      "classes": [
+        "ExampleWorkbenchRecipeBehavior"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],

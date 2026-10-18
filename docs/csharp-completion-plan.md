@@ -277,3 +277,19 @@ receitas ainda listados no relatório. Não são bloqueios comprovados do Androi
 A matriz JS e os 449 fontes ativos/112 legados oficiais continuam preservados.
 Host: 26 verificações gerenciadas e contratos nativos passaram. CI e Android devem
 ser registrados separadamente; a .90 é experimental WIP, não conclusão do Lote A.
+
+## Continuidade .91 — base atualizada pelo usuário e loaders
+
+Retomar em `feat/csharp-loader-foundation-v91`, preservando PR90/.90.3.1
+`77be9001c2e0328324bb9b60db0fd3a7a64ad23a`. As correções nativas de Register e
+OnCraft continuam intactas. [Relatório .91](csharp-loaders-v91.md) e
+[inventário de todos os módulos](generated/csharp-loaders.md) registram o novo
+checkpoint. Existem 88 módulos no diretório original, inclusive helpers; não
+confundir inventário com port completo. Nenhuma categoria pode desaparecer.
+
+SDK e RecipeLoader: comportamentos em classes, condições compostas/remoção,
+estágio de callbacks e isolamento por dono, usando as bridges existentes.
+ExampleMod 0.1.50 mostra a bancada C# com o comportamento separado e fonte editável.
+A .91 ainda é experimental e requer Android; o conjunto inteiro permanece aberto.
+Prosseguir nas pendências explícitas de buffs/minions/Blocky/montarias/receitas e
+nas dependências dos demais loaders, sem recriar sistemas estáveis.

@@ -198,6 +198,7 @@ Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC
 class; base: `System.Object`.
 
 ```csharp
+BunnyRecipeStage Stage { get; }
 bool InDesert { get; }
 bool InSnow { get; }
 bool IsDay { get; }
@@ -211,9 +212,9 @@ int ResultType { get; }
 
 | Method | Execution |
 | --- | --- |
-| `void GiveItem(int vanillaItemId, int count)` | managed_helper |
-| `void GiveItem(string modItemName, int count)` | managed_helper |
-| `void GiveItem<TItem>(int count)` | managed_helper |
+| `void GiveItem(int vanillaItemId, int count)` | worker_craft_command_queue |
+| `void GiveItem(string modItemName, int count)` | worker_craft_command_queue |
+| `void GiveItem<TItem>(int count)` | worker_craft_command_queue |
 
 ## BunnyLoader.Source.BunnyDodgeHook
 
@@ -810,6 +811,8 @@ class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)` | managed_helper |
+| `BunnyRecipe AddCondition(BunnyRecipeCondition condition)` | managed_helper |
 | `BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)` | managed_helper |
 | `BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)` | managed_helper |
 | `BunnyRecipe AddIngredient(int vanillaItemId, int count)` | managed_helper |
@@ -822,12 +825,48 @@ class; base: `System.Object`.
 | `BunnyRecipe AddTile(string modTileName)` | managed_helper |
 | `BunnyRecipe AddTile<TTile>()` | managed_helper |
 | `BunnyRecipe Clone()` | managed_helper |
+| `bool RemoveCondition(BunnyRecipeCondition condition)` | managed_helper |
 | `bool RemoveIngredient(int vanillaItemId)` | managed_helper |
 | `bool RemoveIngredient(string modItemName)` | managed_helper |
 | `bool RemoveIngredient<TItem>()` | managed_helper |
 | `bool RemoveNativeRecipeGroup(string groupField)` | managed_helper |
 | `bool RemoveRecipeGroup(string localGroupName)` | managed_helper |
 | `void Register()` | managed_helper |
+
+## BunnyLoader.Source.BunnyRecipeBehavior
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ConditionDescription { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool IsAvailable(BunnyCraftContext context)` | worker_sync_recipe_snapshot |
+| `int ConsumeIngredient(BunnyCraftContext context, int ingredientType, int amount)` | worker_sync_recipe_snapshot |
+| `void OnCraft(BunnyCraftContext context)` | worker_sync_recipe_snapshot |
+
+## BunnyLoader.Source.BunnyRecipeCondition
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)
+BunnyRecipeCondition Day { get; }
+BunnyRecipeCondition InDesert { get; }
+BunnyRecipeCondition InSnow { get; }
+BunnyRecipeCondition NearWater { get; }
+BunnyRecipeCondition Night { get; }
+string Description { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyRecipeCondition Not(string description)` | managed_predicate_composition |
+| `bool Evaluate(BunnyCraftContext context)` | managed_predicate_composition |
+| `static BunnyRecipeCondition All(string description, BunnyRecipeCondition[] conditions)` | managed_predicate_composition |
+| `static BunnyRecipeCondition Any(string description, BunnyRecipeCondition[] conditions)` | managed_predicate_composition |
 
 ## BunnyLoader.Source.BunnyRecipeGroup
 
@@ -851,7 +890,13 @@ abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
-| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_recipe_snapshot |
+
+## BunnyLoader.Source.BunnyRecipeStage
+
+enum; base: `System.Enum`.
+
+Values: Availability, Consumption, Craft.
 
 ## BunnyLoader.Source.BunnyRectangle
 

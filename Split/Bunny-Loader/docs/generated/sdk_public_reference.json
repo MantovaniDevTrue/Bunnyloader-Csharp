@@ -353,6 +353,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "BunnyRecipeStage Stage { get; }",
         "bool InDesert { get; }",
         "bool InSnow { get; }",
         "bool IsDay { get; }",
@@ -367,15 +368,15 @@
       "methods": [
         {
           "signature": "void GiveItem(int vanillaItemId, int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         },
         {
           "signature": "void GiveItem(string modItemName, int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         },
         {
           "signature": "void GiveItem\u003CTItem\u003E(int count)",
-          "execution": "managed_helper"
+          "execution": "worker_craft_command_queue"
         }
       ]
     },
@@ -1485,6 +1486,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "BunnyRecipe AddBehavior(BunnyRecipeBehavior behavior)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipe AddCondition(BunnyRecipeCondition condition)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
           "execution": "managed_helper"
         },
@@ -1533,6 +1542,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool RemoveCondition(BunnyRecipeCondition condition)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool RemoveIngredient(int vanillaItemId)",
           "execution": "managed_helper"
         },
@@ -1555,6 +1568,65 @@
         {
           "signature": "void Register()",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeBehavior",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string ConditionDescription { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool IsAvailable(BunnyCraftContext context)",
+          "execution": "worker_sync_recipe_snapshot"
+        },
+        {
+          "signature": "int ConsumeIngredient(BunnyCraftContext context, int ingredientType, int amount)",
+          "execution": "worker_sync_recipe_snapshot"
+        },
+        {
+          "signature": "void OnCraft(BunnyCraftContext context)",
+          "execution": "worker_sync_recipe_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeCondition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
+      ],
+      "properties": [
+        "BunnyRecipeCondition Day { get; }",
+        "BunnyRecipeCondition InDesert { get; }",
+        "BunnyRecipeCondition InSnow { get; }",
+        "BunnyRecipeCondition NearWater { get; }",
+        "BunnyRecipeCondition Night { get; }",
+        "string Description { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyRecipeCondition Not(string description)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "bool Evaluate(BunnyCraftContext context)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "static BunnyRecipeCondition All(string description, BunnyRecipeCondition[] conditions)",
+          "execution": "managed_predicate_composition"
+        },
+        {
+          "signature": "static BunnyRecipeCondition Any(string description, BunnyRecipeCondition[] conditions)",
+          "execution": "managed_predicate_composition"
         }
       ]
     },
@@ -1595,9 +1667,22 @@
       "methods": [
         {
           "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
-          "execution": "managed_helper"
+          "execution": "worker_sync_recipe_snapshot"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeStage",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Availability",
+        "Consumption",
+        "Craft"
+      ],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyRectangle",
