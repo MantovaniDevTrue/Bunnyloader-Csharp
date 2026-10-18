@@ -65,7 +65,8 @@ example_classes = {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe", "SourceWand
                    "ExampleGuardianShieldAccessory", "ExampleGuardianShieldPlayer",
                    "ExampleTrailblazerBootsAccessory", "ExampleTrailblazerBootsPlayer",
                    "ExampleMysticWardAccessory", "ExampleMysticWardPlayer",
-                   "ExampleWorkbench", "ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"}
+                   "ExampleWorkbench", "ExampleHelmet", "ExampleBreastplate", "ExampleLeggings",
+                   "ExampleMinion", "ExampleMinionBuff", "ExampleMinionItem"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
