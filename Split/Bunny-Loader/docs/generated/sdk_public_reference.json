@@ -17,30 +17,6 @@
       "methods": []
     },
     {
-      "name": "BunnyLoader.Source.BunnyAccessStatus",
-      "kind": "enum",
-      "baseType": "System.Enum",
-      "constructors": [],
-      "properties": [],
-      "values": [
-        "Ok",
-        "Invalid",
-        "WrongThread",
-        "Capacity",
-        "NativeException",
-        "TimedOut",
-        "Busy",
-        "Expired",
-        "ReadOnly",
-        "TypeMismatch",
-        "Ambiguous",
-        "NotFound",
-        "Unavailable",
-        "Unsupported"
-      ],
-      "methods": []
-    },
-    {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -75,6 +51,30 @@
         "EquippedSprite",
         "EnergyBarrier",
         "RunningTrail"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAccessStatus",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Ok",
+        "Invalid",
+        "WrongThread",
+        "Capacity",
+        "NativeException",
+        "TimedOut",
+        "Busy",
+        "Expired",
+        "ReadOnly",
+        "TypeMismatch",
+        "Ambiguous",
+        "NotFound",
+        "Unavailable",
+        "Unsupported"
       ],
       "methods": []
     },
@@ -374,7 +374,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void GiveItem\u003CTItem\u003E(int count)",
+          "signature": "void GiveItem<TItem>(int count)",
           "execution": "managed_helper"
         }
       ]
@@ -617,56 +617,6 @@
       ]
     },
     {
-      "name": "BunnyLoader.Source.BunnyHookScope",
-      "kind": "class",
-      "baseType": "System.Object",
-      "constructors": [
-        "BunnyHookScope()"
-      ],
-      "properties": [
-        "BunnyNativeScope Native { get; }"
-      ],
-      "values": [],
-      "methods": [
-        {
-          "signature": "BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookVoidInt32(string type, string method, BunnyVoidInt32Hook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookVoidInt32Pair(string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "BunnyMethodHook HookVoidInt32Triple(string type, string method, BunnyVoidInt32TripleHook callback, bool isStatic)",
-          "execution": "experimental_worker_sync_void0"
-        },
-        {
-          "signature": "void Dispose()",
-          "execution": "experimental_worker_sync_void0"
-        }
-      ]
-    },
-    {
       "name": "BunnyLoader.Source.BunnyHooks",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -737,6 +687,56 @@
         },
         {
           "signature": "static void RemoveSlot(int slot)",
+          "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHookScope",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyHookScope()"
+      ],
+      "properties": [
+        "BunnyNativeScope Native { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyMethodHook HookInt32(string type, string method, BunnyInt32Hook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookVoidInt32(string type, string method, BunnyVoidInt32Hook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookVoidInt32Pair(string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookVoidInt32Triple(string type, string method, BunnyVoidInt32TripleHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "void Dispose()",
           "execution": "experimental_worker_sync_void0"
         }
       ]
@@ -929,8 +929,8 @@
       "constructors": [],
       "properties": [
         "BunnyItemBehavior Behavior { get; }",
-        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }",
+        "Dictionary<string, string> TooltipTranslations { get; }",
+        "IReadOnlyList<string> RecipeDefinitions { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -1062,47 +1062,16 @@
       ]
     },
     {
-      "name": "BunnyLoader.Source.BunnyNPC",
+      "name": "BunnyLoader.Source.BunnyMinionSteering",
       "kind": "abstract class",
       "baseType": "System.Object",
       "constructors": [],
-      "properties": [
-        "int AiStyle { get; set; }",
-        "int AnimationType { get; set; }",
-        "int Damage { get; set; }",
-        "int Defense { get; set; }",
-        "int Frames { get; set; }",
-        "int Height { get; set; }",
-        "int LifeMax { get; set; }",
-        "int Width { get; set; }",
-        "string DisplayName { get; set; }",
-        "string Texture { get; set; }"
-      ],
+      "properties": [],
       "values": [],
       "methods": [
         {
-          "signature": "bool AI(ref BunnyNpcAiState state)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void OnDespawn(ref BunnyNpcAiState state)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void OnHit(ref BunnyNpcAiState state, int damage)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void OnKill(ref BunnyNpcAiState state)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void OnSpawn(ref BunnyNpcAiState state)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void SetDefaults()",
-          "execution": "compile_policy"
+          "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state)",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -1218,6 +1187,51 @@
         {
           "signature": "BunnyNativeMember Property(string name, BunnyValueKind kind, bool isStatic, bool writable)",
           "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNPC",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int AiStyle { get; set; }",
+        "int AnimationType { get; set; }",
+        "int Damage { get; set; }",
+        "int Defense { get; set; }",
+        "int Frames { get; set; }",
+        "int Height { get; set; }",
+        "int LifeMax { get; set; }",
+        "int Width { get; set; }",
+        "string DisplayName { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool AI(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnDespawn(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnHit(ref BunnyNpcAiState state, int damage)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnKill(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnSpawn(ref BunnyNpcAiState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
         }
       ]
     },
@@ -1489,11 +1503,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
+          "signature": "BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)",
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)",
           "execution": "managed_helper"
         },
         {
@@ -1505,7 +1519,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddIngredient\u003CTItem\u003E(int count)",
+          "signature": "BunnyRecipe AddIngredient<TItem>(int count)",
           "execution": "managed_helper"
         },
         {
@@ -1513,7 +1527,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
+          "signature": "BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)",
           "execution": "managed_helper"
         },
         {
@@ -1529,7 +1543,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddTile\u003CTTile\u003E()",
+          "signature": "BunnyRecipe AddTile<TTile>()",
           "execution": "managed_helper"
         },
         {
@@ -1545,7 +1559,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "bool RemoveIngredient\u003CTItem\u003E()",
+          "signature": "bool RemoveIngredient<TItem>()",
           "execution": "managed_helper"
         },
         {
@@ -1584,7 +1598,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
+          "signature": "BunnyRecipeGroup AddItem<TItem>()",
           "execution": "managed_helper"
         }
       ]

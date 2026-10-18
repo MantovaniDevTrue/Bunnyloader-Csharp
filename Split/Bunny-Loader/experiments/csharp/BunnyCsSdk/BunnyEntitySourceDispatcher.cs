@@ -161,6 +161,12 @@ public static class BunnyEntitySourceDispatcher
 
     public static long TickProjectile(int modSlot, int type, int slot, int generation, int owner,
         float x, float y, float vx, float vy, float playerX, float playerY)
+        => TickProjectile(modSlot, type, slot, generation, owner,
+            x, y, vx, vy, playerX, playerY, -1, 0f, 0f);
+
+    public static long TickProjectile(int modSlot, int type, int slot, int generation, int owner,
+        float x, float y, float vx, float vy, float playerX, float playerY,
+        int targetNpc, float targetX, float targetY)
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u ||
             generation < 1 || !float.IsFinite(x) || !float.IsFinite(y)) return -1;
@@ -186,7 +192,10 @@ public static class BunnyEntitySourceDispatcher
         if (instance.Blocked) return -1;
         var state = new BunnyProjectileAiState {
             Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
-            X = x, Y = y, VelocityX = vx, VelocityY = vy, PlayerX = playerX, PlayerY = playerY
+            X = x, Y = y, VelocityX = vx, VelocityY = vy, PlayerX = playerX, PlayerY = playerY,
+            TargetNpc = targetNpc >= 0 && targetNpc < 200 && float.IsFinite(targetX) &&
+                float.IsFinite(targetY) ? targetNpc : -1,
+            TargetX = targetX, TargetY = targetY
         };
         try
         {

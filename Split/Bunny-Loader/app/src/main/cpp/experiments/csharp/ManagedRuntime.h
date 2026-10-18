@@ -81,7 +81,9 @@ bool tickManagedEntityNpc(int type, int slot, int generation,
 bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
                                  uintptr_t identity, float x, float y,
                                  float vx, float vy, float playerX, float playerY,
-                                 ManagedEntityVelocity* result, bool immediateFirstTick = false);
+                                 ManagedEntityVelocity* result, bool immediateFirstTick = false,
+                                 int targetNpc = -1, float targetX = 0.f,
+                                 float targetY = 0.f);
 
 bool registerManagedPlayerHurtMod(const std::string& modId,
                                   const std::string& assemblyPath);

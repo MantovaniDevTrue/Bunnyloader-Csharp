@@ -594,6 +594,14 @@ bool IsDisposed { get; }
 | --- | --- |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
+## BunnyLoader.Source.BunnyMinionSteering
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool FollowOrAttack(ref BunnyProjectileAiState state)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyNPC
 
 abstract class; base: `System.Object`.

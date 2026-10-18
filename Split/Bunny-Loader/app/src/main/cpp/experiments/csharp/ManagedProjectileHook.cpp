@@ -300,6 +300,8 @@ struct ManagedEntityProjectileSlot {
     int lastTimeLeft = 0;
     int generation = 0;
     bool killQueued = false;
+    Slot targetCache{};
+    unsigned targetScanTicks = 0;
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
@@ -339,12 +341,42 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     const Vector2 before = runtime::field<Vector2>(projectile, game.entity.velocity);
     const int width = runtime::field<int>(projectile, game.entity.width);
     const int height = runtime::field<int>(projectile, game.entity.height);
+    const float cx = position.x + width * 0.5f;
+    const float cy = position.y + height * 0.5f;
+    int npcTarget = -1;
+    float npcX = 0.f;
+    float npcY = 0.f;
+    static int minionOffset = -2;
+    if (minionOffset == -2) {
+        auto* projectileClass = il2cpp::findClass({"Terraria", "Projectile", {}});
+        minionOffset = projectileClass ? il2cpp::fieldOffset(projectileClass, "minion") : -1;
+    }
+    if (minionOffset >= 0 && runtime::field<uint8_t>(projectile, minionOffset)) {
+        static bool scanUnavailable = false;
+        if (!g_targets.ready && !scanUnavailable) {
+            std::string reason;
+            if (!prepareHomingTargetRefs(&reason)) {
+                scanUnavailable = true;
+                BL_WARN("csharp minion: native NPC targeting unavailable: %s", reason.c_str());
+            }
+        }
+        if (g_targets.ready) {
+            if (firstObserved || ++state.targetScanTicks >= 8) {
+                state.targetScanTicks = 0;
+                refreshTarget(state.targetCache, {cx, cy}, 700.f * 700.f);
+            }
+            npcTarget = state.targetCache.target;
+            if (npcTarget >= 0) {
+                npcX = state.targetCache.targetX;
+                npcY = state.targetCache.targetY;
+            }
+        }
+    }
     ManagedEntityVelocity next{};
     if (!tickManagedEntityProjectile(type, slot, state.generation, owner,
-        reinterpret_cast<uintptr_t>(projectile),
-        position.x + width * 0.5f, position.y + height * 0.5f,
+        reinterpret_cast<uintptr_t>(projectile), cx, cy,
         before.x, before.y, target.player.x, target.player.y, &next,
-        firstObserved)) return;
+        firstObserved, npcTarget, npcX, npcY)) return;
     if (!applyVelocity) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int>(projectile, game.proj.type) != type ||
