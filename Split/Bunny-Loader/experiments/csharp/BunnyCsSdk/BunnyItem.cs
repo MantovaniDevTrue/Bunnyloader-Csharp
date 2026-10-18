@@ -97,6 +97,27 @@ public sealed class BunnyRecipe
         BunnyContentKey.Validate(modItemName,nameof(modItemName),"BunnyRecipe.AddIngredient");
         return Ingredient("m"+modItemName,count);
     }
+    /// <summary>Item local identificado pela classe; UID/Nome continua disponivel para dependencias externas.</summary>
+    public BunnyRecipe AddIngredient<TItem>(int count = 1) where TItem : class
+        => AddIngredient(BunnyContentKey.TypeName(typeof(TItem),false,"BunnyRecipe.AddIngredient<TItem>"),count);
+    /// <summary>Um ingrediente alternativo de Terraria.ID.RecipeGroups, como Wood ou IronBar.
+    /// O nucleo resolve o grupo e chama Recipe.RequireGroup; nao escolhe um item fixo.</summary>
+    public BunnyRecipe AddNativeRecipeGroup(string groupField, int count = 1)
+    {
+        string key=NativeGroupKey(groupField,"BunnyRecipe.AddNativeRecipeGroup");
+        if(ingredients.Any(token=>token.StartsWith(key+":",StringComparison.Ordinal)))
+            throw new InvalidOperationException("[CSharp][ERROR][Recipe] API=BunnyRecipe.AddNativeRecipeGroup Group="+groupField+
+                " Stage=ValidateGroup Reason=DuplicateRecipeGroup Result=Rejected");
+        return Ingredient(key,count);
+    }
+    private static string NativeGroupKey(string groupField,string api)
+    {
+        if(string.IsNullOrEmpty(groupField)||groupField.Length>72||
+            !char.IsAsciiLetter(groupField[0])||groupField.Any(c=>!(char.IsAsciiLetterOrDigit(c)||c=='_')))
+            throw new ArgumentException("[CSharp][ERROR][Recipe] API="+api+" Stage=ValidateGroup Expected=RecipeGroupsField Actual="+
+                groupField+" Reason=InvalidGroupField Result=Rejected",nameof(groupField));
+        return "g"+groupField;
+    }
     private BunnyRecipe Ingredient(string key,int count)
     {
         Mutable();
@@ -119,6 +140,32 @@ public sealed class BunnyRecipe
         BunnyContentKey.Validate(modTileName,nameof(modTileName),"BunnyRecipe.AddTile");
         station="m"+modTileName;return this;
     }
+    /// <summary>Estacao local identificada pela classe BunnyTile, sem resolver IDs na compilacao.</summary>
+    public BunnyRecipe AddTile<TTile>() where TTile : class
+        => AddTile(BunnyContentKey.TypeName(typeof(TTile),true,"BunnyRecipe.AddTile<TTile>"));
+    /// <summary>Copia independente dos descritores desta receita, inclusive apos Register.
+    /// A copia preserva resultado/estacao e so sera instalada ao chamar seu Register.</summary>
+    public BunnyRecipe Clone()
+    {
+        var copy=new BunnyRecipe(owner,stack){station=station};
+        copy.ingredients.AddRange(ingredients);return copy;
+    }
+    public bool RemoveIngredient(int vanillaItemId)
+    {
+        if(vanillaItemId<=0||vanillaItemId>=6196)throw new ArgumentOutOfRangeException(nameof(vanillaItemId));
+        return RemoveKey("v"+vanillaItemId.ToString(CultureInfo.InvariantCulture));
+    }
+    public bool RemoveIngredient(string modItemName)
+    {
+        BunnyContentKey.Validate(modItemName,nameof(modItemName),"BunnyRecipe.RemoveIngredient");
+        return RemoveKey("m"+modItemName);
+    }
+    public bool RemoveIngredient<TItem>() where TItem : class
+        => RemoveIngredient(BunnyContentKey.TypeName(typeof(TItem),false,"BunnyRecipe.RemoveIngredient<TItem>"));
+    public bool RemoveNativeRecipeGroup(string groupField)
+        => RemoveKey(NativeGroupKey(groupField,"BunnyRecipe.RemoveNativeRecipeGroup"));
+    private bool RemoveKey(string key)
+    { Mutable();return ingredients.RemoveAll(token=>token.StartsWith(key+":",StringComparison.Ordinal))>0; }
     public void Register()
     {
         Mutable();
@@ -139,6 +186,19 @@ public static class BunnyVanillaTiles { public const int WorkBenches=18; }
 
 internal static class BunnyContentKey
 {
+    internal static string TypeName(Type type,bool tile,string api)
+    {
+        var declaration=Attribute.GetCustomAttribute(type,typeof(BunnyContentAttribute),false) as BunnyContentAttribute;
+        bool supported=tile?typeof(BunnyTile).IsAssignableFrom(type)||declaration?.Kind==BunnyContentKind.Tile:
+            typeof(BunnyItem).IsAssignableFrom(type)||typeof(BunnyWeapon).IsAssignableFrom(type)||
+            typeof(BunnyAccessory).IsAssignableFrom(type)||typeof(BunnyBuffPotion).IsAssignableFrom(type)||
+            declaration?.Kind is BunnyContentKind.Item or BunnyContentKind.Weapon or BunnyContentKind.Accessory or BunnyContentKind.BuffPotion;
+        if(!supported||type.IsAbstract||type.IsGenericType)
+            throw new ArgumentException("[CSharp][ERROR][ContentKey] API="+api+
+                " Stage=ValidateType Expected="+(tile?"ConcreteTileContent":"ConcreteItemContent")+
+                " Actual="+type.FullName+" Reason=UnsupportedContentType Result=Rejected");
+        Validate(type.Name,"contentType",api);return type.Name;
+    }
     internal static void Validate(string key,string parameter,string api)
     {
         string reason=string.IsNullOrWhiteSpace(key)?"EmptyIdentity":key.Length>160?"IdentityTooLong":

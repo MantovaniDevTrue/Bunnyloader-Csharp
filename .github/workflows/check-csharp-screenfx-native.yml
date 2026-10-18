@@ -3,6 +3,7 @@ name: CSharp Native ScreenFx
 on:
   push:
     branches:
+      - feat/csharp-native-recipe-groups-v89
       - fix/csharp-88-8-lights-review
       - codex/csharp-screenfx-v90-29-86
       - codex/csharp-lights-native-graph-v90-29-87

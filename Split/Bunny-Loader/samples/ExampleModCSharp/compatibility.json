@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "exampleModCSharpVersion": "0.1.47",
+  "exampleModCSharpVersion": "0.1.48",
   "verifiedLoaderVersion": "0.1.10.16.34",
   "fixtureMod": "sourcecsharp",
   "fixtureModVersion": "0.1.5",
@@ -291,6 +291,13 @@
         "ExampleHelmet",
         "ExampleBreastplate",
         "ExampleLeggings"
+      ]
+    },
+    {
+      "id": "native_recipe_ingredient_groups",
+      "status": "experimental",
+      "examples": [
+        "ExampleWorkbench"
       ]
     }
   ]

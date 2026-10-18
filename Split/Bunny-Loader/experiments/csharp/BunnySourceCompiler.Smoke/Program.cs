@@ -240,38 +240,55 @@ try
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
-    if (!independentDefaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PROJECTILE\tExampleWaveBolt\t10\t10\t1\t2\t180\t1\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("WEAPON\tExampleWaveWand\t12\t16\t9\tExampleWaveBolt\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("BUFF\tExampleDefenseBuff\t10\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleFocusAccessory\t0\tConcede +7 de defesa enquanto equipado\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleSwiftAccessory\t0\tAumenta a velocidade de corrida em 8%\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleMomentumAccessory\t0\tAumenta a aceleracao ao correr em 6%\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleShadowAccessory\t0\tAtiva um efeito visual de sombra enquanto equipado\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tC# Hook QA 0.1.47: consulte os estados H1-H5 no relatorio do Bunny Loader.\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida; reducao adicional contra NPC e projetil; esquiva no quarto golpe\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleGuardianShieldAccessory\t0\t+5 defesa, +4 regeneracao de vida; reduz dano de NPCs e projeteis\t1\tContent/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png\t", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleTrailblazerBootsAccessory\t0\t+12% velocidade, +8% aceleracao\t3\tContent/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png\t", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ACCESSORY\tExampleMysticWardAccessory\t0\t+3 defesa, +8 regeneracao de mana; protecao com pouca vida e contra projeteis proximos\t2\tContent/Effects/MysticWardBarrier.png\t", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleGuardianShieldPlayer\tExampleGuardianShieldAccessory\t5\t0\t0\t0\t-\t-\t0\t0\t-\t4\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleTrailblazerBootsPlayer\tExampleTrailblazerBootsAccessory\t0\t12\t8\t0\t-\t-\t0\t0\t-\t0\t0\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PLAYER\tExampleMysticWardPlayer\tExampleMysticWardAccessory\t3\t0\t0\t0\t-\t-\t0\t0\t-\t0\t8\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PREFIX\tExampleMightyPrefix\t4\t5\t1.2", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("PREFIX\tExampleGuardedPrefix\t5\t1\t1", StringComparison.Ordinal) ||
-        !independentDefaults.Contains("ITEM\tExampleWings\t", StringComparison.Ordinal) ||
-        independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 44)
-        throw new InvalidOperationException("Independent ExampleMod defaults are incorrect");
+    string exampleVersion = System.Text.Json.JsonDocument.Parse(
+        File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
+        .RootElement.GetProperty("version").GetString()!;
+    string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (defaultRows.Length != 44 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=44Rows,V2Header ActualRows=" +
+            defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
+    string[] expectedDefaults = {
+        "PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n",
+        "PROJECTILE\tExampleWaveBolt\t10\t10\t1\t2\t180\t1\n",
+        "WEAPON\tExampleWand\t18\t20\t11\tExampleBolt\n",
+        "WEAPON\tExampleWaveWand\t12\t16\t9\tExampleWaveBolt\n",
+        "BUFF\tExampleDefenseBuff\t10\n",
+        "POTION\tExampleBuffPotion\t600\tExampleDefenseBuff\n",
+        "ACCESSORY\tExampleFocusAccessory\t0\tConcede +7 de defesa enquanto equipado\n",
+        "ACCESSORY\tExampleSwiftAccessory\t0\tAumenta a velocidade de corrida em 8%\n",
+        "ACCESSORY\tExampleMomentumAccessory\t0\tAumenta a aceleracao ao correr em 6%\n",
+        "ACCESSORY\tExampleShadowAccessory\t0\tAtiva um efeito visual de sombra enquanto equipado\n",
+        "PLAYER\tExampleFocusPlayer\tExampleFocusAccessory\t7\t0\t0\t0\t-\t-\t0\t0\t-\t0\t0\n",
+        "PLAYER\tExampleSwiftPlayer\tExampleSwiftAccessory\t0\t8\t0\t0\t-\t-\t0\t0\t-\t0\t0\n",
+        $"PLAYER\tExampleWelcomePlayer\t-\t0\t0\t0\t0\tC# Hook QA {exampleVersion}: consulte os estados H1-H5 no relatorio do Bunny Loader.\tExample C#: BunnyPlayer OnRespawn ativo!\t1\t1\tExample C#: BunnyPlayer UpdateDead ativo!\t0\t0\n",
+        "PLAYER\tExampleMomentumPlayer\tExampleMomentumAccessory\t0\t0\t6\t0\t-\t-\t0\t0\t-\t0\t0\n",
+        "PLAYER\tExampleShadowPlayer\tExampleShadowAccessory\t0\t0\t0\t1\t-\t-\t0\t0\t-\t0\t0\n",
+        "ACCESSORY\tExampleVitalAccessory\t0\tRegenera +12 vida; reducao adicional contra NPC e projetil; esquiva no quarto golpe\n",
+        "ACCESSORY\tExampleArcaneAccessory\t0\tAumenta a regeneracao de mana em 10 enquanto equipado\n",
+        "PLAYER\tExampleVitalPlayer\tExampleVitalAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t12\t0\n",
+        "PLAYER\tExampleArcanePlayer\tExampleArcaneAccessory\t0\t0\t0\t0\t-\t-\t0\t0\t-\t0\t10\n",
+        "ACCESSORY\tExampleGuardianShieldAccessory\t0\t+5 defesa, +4 regeneracao de vida; reduz dano de NPCs e projeteis\t1\tContent/Items/Accessories/ExampleGuardianShieldAccessory_Shield.png\t",
+        "ACCESSORY\tExampleTrailblazerBootsAccessory\t0\t+12% velocidade, +8% aceleracao\t3\tContent/Items/Accessories/ExampleTrailblazerBootsAccessory_Shoes.png\t",
+        "ACCESSORY\tExampleMysticWardAccessory\t0\t+3 defesa, +8 regeneracao de mana; protecao com pouca vida e contra projeteis proximos\t2\tContent/Effects/MysticWardBarrier.png\t",
+        "PLAYER\tExampleGuardianShieldPlayer\tExampleGuardianShieldAccessory\t5\t0\t0\t0\t-\t-\t0\t0\t-\t4\t0\n",
+        "PLAYER\tExampleTrailblazerBootsPlayer\tExampleTrailblazerBootsAccessory\t0\t12\t8\t0\t-\t-\t0\t0\t-\t0\t0\n",
+        "PLAYER\tExampleMysticWardPlayer\tExampleMysticWardAccessory\t3\t0\t0\t0\t-\t-\t0\t0\t-\t0\t8\n",
+        "NPC\tExampleSlimeNPC\t32\t24\t7\t2\t25\t1\t1\t2\n",
+        "PREFIX\tExampleMightyPrefix\t4\t5\t1.2",
+        "PREFIX\tExampleGuardedPrefix\t5\t1\t1",
+        "ITEM\tExampleWings\t",
+    };
+    foreach (string expectedDefault in expectedDefaults) {
+        if (independentDefaults.Contains(expectedDefault, StringComparison.Ordinal)) continue;
+        string identity = string.Join("\t", expectedDefault.Split('\t').Take(2));
+        string actualDefault = defaultRows.FirstOrDefault(row => row.StartsWith(identity + "\t", StringComparison.Ordinal)) ?? "<missing>";
+        throw new InvalidOperationException("Independent ExampleMod default mismatch: Content=" + identity +
+            " Expected=" + expectedDefault.TrimEnd('\n') + " Actual=" + actualDefault);
+    }
+    string[] benchDefaults = defaultRows.Single(row => row.StartsWith("ITEM\tExampleWorkbench\t", StringComparison.Ordinal)).Split('\t');
+    const string expectedBenchRecipes = "1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2";
+    if (benchDefaults[19] != expectedBenchRecipes)
+        throw new InvalidOperationException("Independent ExampleWorkbench recipes mismatch: Expected=" + expectedBenchRecipes + " Actual=" + benchDefaults[19]);
     string independentCurves = File.ReadAllText(Path.Combine(scratch, "source-projectile-turns.txt"));
     string[] independentRows = independentCurves.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     if (independentRows.Length != 3 || independentRows[0] != "BUNNY_PROJECTILE_TURNS_V1")

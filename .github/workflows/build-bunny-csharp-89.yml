@@ -1,0 +1,16 @@
+name: Build Bunny CSharp 89 native recipes
+on:
+  push:
+    branches: [feat/csharp-native-recipe-groups-v89]
+    paths:
+      - '.github/workflows/**'
+      - 'Split/Bunny-Loader/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+jobs:
+  android:
+    uses: ./.github/workflows/build-bunny-csharp-source-loader.yml
+    secrets: inherit

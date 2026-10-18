@@ -228,7 +228,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","fix/csharp-88-8-lights-review","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath"]'), github.head_ref)) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath"]'), github.head_ref)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -1020,6 +1020,16 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/native_recipes/native_recipes_test.cpp app/src/main/cpp/content/recipes/NativeRecipes.cpp app/src/main/cpp/content/items/ItemRegistry.cpp app/src/main/cpp/content/tiles/TileRegistry.cpp app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp app/src/main/cpp/content/common/TypeTables.cpp tests/basic_items/native_policy_support.cpp -o "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test"
           "$RUNNER_TEMP/native-recipes-test" --pump
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/native_recipes/recipe_group_wire_test.cpp -o "$RUNNER_TEMP/recipe-group-wire-test"
+          "$RUNNER_TEMP/recipe-group-wire-test"
+          "$RUNNER_TEMP/native-recipes-test" --groups
+          "$RUNNER_TEMP/native-recipes-test" --groups-raw
+          "$RUNNER_TEMP/native-recipes-test" --group-type
+          "$RUNNER_TEMP/native-recipes-test" --group-method
+          "$RUNNER_TEMP/native-recipes-test" --group-return
+          "$RUNNER_TEMP/native-recipes-test" --group-size
+          "$RUNNER_TEMP/native-recipes-test" --group-export
+          "$RUNNER_TEMP/native-recipes-test" --group-wire build/basic-items/group-source-runtime-values.txt
           "$RUNNER_TEMP/native-recipes-test" --placement-wire build/basic-items/placement-source-runtime-values.txt
           "$RUNNER_TEMP/native-recipes-test" --probe-wire build/basic-items/probe-source-runtime-values.txt
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/placement_probe_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/placement-probe-registration-test
@@ -1050,7 +1060,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.47
+      - name: Package independent ExampleMod CSharp 0.1.48
         shell: bash
         run: |
           set -euo pipefail
@@ -1059,17 +1069,17 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.47.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.48.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
-              assert manifest["version"]=="0.1.47"
+              assert manifest["version"]=="0.1.48"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
@@ -1157,8 +1167,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod.sha256"
 
       - name: Package optimized Lights And Shadows CSharp 0.4.2.3
         shell: bash
@@ -2169,7 +2179,7 @@ jobs:
             done
             TAG="experimental-lot-a-${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
             TITLE="EXPERIMENTAL — Lote A1 bancada C# | Bunny Loader C# $VERSION"
-            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.47.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
+            NOTES="Experimental Lot A1 Android checkpoint: BunnyTile, ExampleWorkbench 2x1, native drops, dust, housing, adjacency, guide station icon and CSharp armor recipe support. Nine regression suites required. These features and 60 FPS have NOT yet been validated in Terraria Android; use ExampleModCSharp-v0.1.48.bmod for the unified test; disable the old standalone A1 probe to avoid duplicate workbenches. Compilation cache now survives native apply failures. Public source commit: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Private runtime bundle; do not redistribute."
           fi
           if [ "${{ steps.build_policy.outputs.aot }}" = "true" ]; then
             for attempt in $(seq 1 40); do
@@ -2257,13 +2267,17 @@ jobs:
             NOTES="Experimental .69: includes .68 typed Int32 hooks; typed native fields/properties, method calls with up to 4 supported arguments, Vector2/Color/Rectangle, scopes and batched reads. Install NativeAccessProbeCSharp-v0.1.0.bmod and disable Universal Hooks Probe CSharp because both use Player.ResetEffects. Probe is read-only: check Editor CSharp native access batch/method counters, zero writes, world re-entry, hook recovery and FPS. Android gameplay is NOT yet validated. Source: ${GITHUB_SHA}. Workflow: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Restricted runtime bundle; do not redistribute."
           fi
           if [ "${{ steps.build_policy.outputs.lights }}" = "true" ]; then
-            NOTES="EXPERIMENTAL ${VERSION}: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Includes typed/sized IL2CPP scene read contracts, exact-zero underground transition, bounded workflow expressions, framebuffer copy telemetry and render-stat batching. Android heavy boss stress test pending. ExampleMod CSharp 0.1.47 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
+            NOTES="EXPERIMENTAL ${VERSION}: Lights And Shadows CSharp 0.4.2.3 with invisible-underground-sun fast paths; nine render passes and original texture assets preserved. Includes typed/sized IL2CPP scene read contracts, exact-zero underground transition, bounded workflow expressions, framebuffer copy telemetry and render-stat batching. Android heavy boss stress test pending. ExampleMod CSharp 0.1.48 and SIGABRT diagnostics retained. Commit ${GITHUB_SHA}. Android 60 FPS NOT yet confirmed."
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/feat/csharp-native-recipe-groups-v89" ]; then
+            TITLE="EXPERIMENTAL — CSharp native recipe groups | $VERSION"
+            NOTES="EXPERIMENTAL ${VERSION}: reusable native RecipeGroup ingredients resolved by IL2CPP field identity, typed CSharp ingredient/station references, independent recipe cloning/removal and detailed contract diagnostics. ExampleMod CSharp 0.1.48 adds alternate group recipes for its actual CSharp ExampleWorkbench; original recipes and content IDs preserved. Includes Lights 0.4.2.3 and the .88.8 scene fixes. Host contract/integration checks and Android build passed; crafting, alternate-material consumption, save/re-entry, FPS and <=5-second cold compilation still require Xiaomi testing. Source ${GITHUB_SHA}."
           fi
           RELEASE_ASSETS=(
             "$RUNNER_TEMP/$FILE"
             "$RUNNER_TEMP/$FILE.sha256"
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod"
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.47.bmod.sha256"
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod"
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.48.bmod.sha256"
             "Split/Bunny-Loader/build/combat-batch-results.json"
             "Split/Bunny-Loader/build/basic-items-results.json"
           )
@@ -2332,7 +2346,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.47.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.48.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2357,14 +2371,14 @@ jobs:
       - name: Export source-only CSharp examples as safe workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.47
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.48
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.47.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.47.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.48.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.48.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod

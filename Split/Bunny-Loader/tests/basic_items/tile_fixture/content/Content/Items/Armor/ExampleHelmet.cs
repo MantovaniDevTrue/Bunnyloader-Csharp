@@ -25,6 +25,7 @@ public sealed class ExampleHelmet : BunnyItem
 
     public override void AddRecipes()
     {
-        CreateRecipe().AddIngredient("ExampleItem").AddTile("ExampleWorkbench").Register();
+        CreateRecipe().AddIngredient<ExampleModCSharp.Content.Items.ExampleItem>()
+            .AddTile<ExampleTiles.Furniture.ExampleWorkbench>().Register();
     }
 }

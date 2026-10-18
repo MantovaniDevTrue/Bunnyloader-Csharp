@@ -89,12 +89,19 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
         for(size_t i=2;i<parts.size();++i) {
             auto pair=basicSplit(parts[i],':');BasicRecipeIngredient ingredient;
             if(pair.size()!=2||pair[0].size()<2||pair[0].size()>161||
-                !basicInteger(pair[1],&ingredient.count)||ingredient.count<1||ingredient.count>9999) {*error=item->name+": ingrediente invalido";return false;}
+                !basicInteger(pair[1],&ingredient.count)||ingredient.count<1||ingredient.count>9999) {
+                *error="[CSharp][ERROR][Recipe] Class="+item->name+" API=BunnyRecipe Stage=ParseIngredient Expected=TypedKey:Count(1..9999) Actual="+parts[i]+" Result=Rejected Reason=InvalidIngredientDescriptor";return false;
+            }
             ingredient.key=pair[0];
             if(pair[0][0]=='v') {
                 if(!basicInteger(pair[0].substr(1),&ingredient.type)||ingredient.type<1||ingredient.type>=6196) {*error=item->name+": ItemID vanilla invalido";return false;}
             } else if(pair[0][0]=='m') {
                 for(unsigned char c:pair[0].substr(1))if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='/')) {*error=item->name+": chave de item invalida";return false;}
+            } else if(pair[0][0]=='g') {
+                const auto name=pair[0].substr(1);
+                bool valid=name.size()<=72&&((name.front()>='A'&&name.front()<='Z')||(name.front()>='a'&&name.front()<='z'));
+                for(unsigned char c:name)if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'))valid=false;
+                if(!valid){*error=item->name+": Stage=ParseRecipe Field=group Expected=RecipeGroupsField Actual="+name+" Reason=InvalidGroupField";return false;}
             } else {*error=item->name+": tipo de ingrediente invalido";return false;}
             recipe.ingredients.push_back(std::move(ingredient));
         }

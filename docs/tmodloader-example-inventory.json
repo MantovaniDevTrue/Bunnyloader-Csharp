@@ -2279,10 +2279,46 @@
       "gitBlobSha": "81d0d37ab695dd0876c76e8be8bb65fdbc769e35",
       "bytes": 11539,
       "role": "active-source",
-      "auditState": "Pendente",
+      "auditState": "Em andamento",
       "verifiedPort": false,
       "candidateBunnyFiles": [],
-      "candidateMeaning": "Coincidência de nome; não comprova comportamento ou cobertura"
+      "candidateMeaning": "Coincidência de nome; não comprova comportamento ou cobertura",
+      "portStatus": "Parcial",
+      "implementedFeatures": [
+        "Grupos nativos de ingredientes por nome de campo IL2CPP; Recipe.RequireGroup real",
+        "Referencias locais tipadas para ingredientes e estacoes",
+        "Clone e remocao em receitas declaradas pelo proprio BunnyRecipe"
+      ],
+      "missingFeatures": [
+        "Criacao/mesclagem e membros de grupos customizados",
+        "Multiplas estacoes na mesma receita",
+        "Condicoes nativas/managed e interfaces de descricao",
+        "Callbacks de consumo e OnCraft",
+        "Clone/alteracao de receitas globais existentes e PostAddRecipes",
+        "Shimmer/decrafting e integracao com exemplos dependentes"
+      ],
+      "bunnyImplementation": [
+        "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "Split/Bunny-Loader/app/src/main/cpp/content/recipes/NativeRecipes.cpp",
+        "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/BasicItemDefaults.h",
+        "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs"
+      ],
+      "tests": [
+        "tests/native_recipes/native_recipes_test.cpp --groups/--groups-raw/--group-*/--group-wire",
+        "tests/native_recipes/recipe_group_wire_test.cpp",
+        "tests/basic_items/Program.cs recipe.native-group-public-sdk/recipe.clone-isolation-and-removal/recipe.groups-real-source-wire"
+      ],
+      "validation": {
+        "host": "Contrato/servico de producao executado com IL2CPP controlado, sem QuickJS",
+        "ci": "Aprovado: build 39080974810 e nove suites no SHA b22962178a6beafa34301caa89a0bced46a598bb; fixture C# compilado executado no pump sem QuickJS",
+        "android": "Validacao do fluxo entregue relatada pelo usuario em 18/10/2026, .89 / ExampleMod 0.1.48, pid4488; variantes/consumos e reentrada nao discriminados individualmente"
+      },
+      "evidence": [
+        "docs/csharp-native-recipe-groups-v89.md",
+        "docs/validation/csharp-v89-android-2026-10-18.md",
+        "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39080974810"
+      ]
     },
     {
       "path": "ExampleMod/Content/Hairs/ExampleHair.cs",

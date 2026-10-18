@@ -4,9 +4,11 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "il2cpp/ValueLayout.h"
 #include <cstring>
 #include <limits>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace bl::runtime {
@@ -135,8 +137,9 @@ struct Root {
     ~Root(){if(handle)il2cpp::api().gchandle_free(handle);}
     Root(const Root&)=delete;
 };
-bool invoke(const MethodInfo* m,void* obj,void** args,std::string* error) {
-    auto& a=il2cpp::api();Il2CppObject* ex=nullptr;a.runtime_invoke(m,obj,args,&ex);
+bool invoke(const MethodInfo* m,void* obj,void** args,std::string* error,Il2CppObject** result=nullptr) {
+    auto& a=il2cpp::api();Il2CppObject* ex=nullptr;auto* value=a.runtime_invoke(m,obj,args,&ex);
+    if(result)*result=ex?nullptr:value;
     if(!ex)return true;
     Root root(ex);
     *error="Method="+il2cpp::describeMethod(m)+" Exception="+typeName(a.object_get_class(ex));
@@ -154,6 +157,58 @@ bool invoke(const MethodInfo* m,void* obj,void** args,std::string* error) {
         }
     }
     return false;
+}
+struct GroupContract {
+    Binding field;
+    Il2CppClass* groupClass=nullptr;
+    const MethodInfo* placeholder=nullptr;
+    const MethodInfo* require=nullptr;
+};
+std::map<std::string,GroupContract> groupContracts;
+bool readNativeGroup(const std::string& name,Il2CppObject** object,
+                     const MethodInfo** require,int* placeholder,std::string* detail,bool* notReady=nullptr) {
+    if(notReady)*notReady=false;
+    auto& a=il2cpp::api();
+    auto it=groupContracts.find(name);
+    if(it==groupContracts.end()) {
+        auto* groups=il2cpp::findClass({"Terraria.ID","RecipeGroups",{}});
+        auto* group=il2cpp::findClass({"Terraria","RecipeGroup",{}});
+        if(!groups||!group){*detail="Group="+name+" Class=Terraria.ID.RecipeGroups/Terraria.RecipeGroup Reason=MissingClass";return false;}
+        a.runtime_class_init(groups);a.runtime_class_init(group);
+        GroupContract binding;
+        if(!bindField(groups,name.c_str(),true,"Terraria.RecipeGroup",&binding.field,detail))return false;
+        binding.placeholder=method(group,"int GetPlaceholderItemType()",true,detail);
+        binding.require=method(contract.recipe,"void RequireGroup(RecipeGroup group)",true,detail);
+        if(!binding.placeholder||!binding.require)return false;
+        binding.groupClass=group;
+        it=groupContracts.emplace(name,std::move(binding)).first;
+    }
+    const auto& binding=it->second;
+    a.field_static_get_value(binding.field.field,object);
+    if(!*object){if(notReady)*notReady=true;*detail="Group="+name+" Expected=InitializedRecipeGroup Actual=Null Reason=RecipeSetupNotReady";return false;}
+    if(a.object_get_class(*object)!=binding.groupClass){*detail="Group="+name+" Expected=Terraria.RecipeGroup Actual="+typeName(a.object_get_class(*object));return false;}
+    Root groupRoot(*object);
+    if(!groupRoot.handle){*detail="Group="+name+" Root=RecipeGroup Reason=AllocationFailed";return false;}
+    Il2CppObject* boxed=nullptr;
+    if(!invoke(binding.placeholder,*object,nullptr,detail,&boxed)){*detail="Group="+name+" "+*detail;return false;}
+    Root resultRoot(boxed);
+    uint32_t alignment=0;auto* actual=boxed?a.object_get_class(boxed):nullptr;
+    if(!boxed||!resultRoot.handle||typeName(actual)!="System.Int32"||
+       !a.class_is_valuetype(actual)||a.class_value_size(actual,&alignment)!=4) {
+        *detail="Group="+name+" Method=GetPlaceholderItemType Expected=System.Int32:4 Actual="+typeName(actual);return false;
+    }
+    il2cpp::ValueLayout layout;
+    if(!il2cpp::resolveValueLayout(actual,&layout,detail))return false;
+    auto* value=a.class_get_field_from_name?a.class_get_field_from_name(actual,"m_value"):nullptr;
+    size_t offset=0;const size_t boxedSize=a.class_instance_size(actual);
+    if(!value||(a.field_get_flags(value)&0x10u)||
+       a.class_from_il2cpp_type(a.field_get_type(value))!=actual||
+       !layout.offset(a.field_get_offset(value),sizeof(int),&offset)||
+       boxedSize<sizeof(Il2CppObject)+sizeof(int)||offset>boxedSize-sizeof(Il2CppObject)-sizeof(int)) {
+        *detail="Group="+name+" Method=GetPlaceholderItemType Field=m_value Expected=BoundedBoxedInt32 ActualSize="+std::to_string(boxedSize)+" Reason=InvalidValueLayout";return false;
+    }
+    std::memcpy(placeholder,reinterpret_cast<const char*>(boxed)+sizeof(Il2CppObject)+offset,sizeof(int));
+    *require=binding.require;return true;
 }
 bool arrayOf(Il2CppArray* array,Il2CppClass* element,uintptr_t minimum) {
     auto& a=il2cpp::api();
@@ -189,9 +244,21 @@ bool resolveNativeRecipe(const NativeRecipeRequest& r,NativeRecipeRequest* out,s
         if(out->station>=tileTypeCount())return fail("ResolveStation","DependencyNotInstalled","InstalledTile",key);
     } else if(r.station< -1||r.station>=kVanillaTileCount)
         return fail("ResolveStation","InvalidVanillaTile","-1.."+std::to_string(kVanillaTileCount-1),std::to_string(r.station));
+    std::set<std::string> groups;
     for(auto& ingredient:out->ingredients) {
         if(ingredient.count<1||ingredient.count>9999)return fail("ResolveIngredient","InvalidAmount","1..9999",std::to_string(ingredient.count));
-        if(!ingredient.key.empty()) {
+        if(!ingredient.nativeGroup.empty()) {
+            const auto& group=ingredient.nativeGroup;
+            bool valid=group.size()<=72&&((group.front()>='A'&&group.front()<='Z')||(group.front()>='a'&&group.front()<='z'));
+            for(unsigned char ch:group)if(!((ch>='A'&&ch<='Z')||(ch>='a'&&ch<='z')||(ch>='0'&&ch<='9')||ch=='_'))valid=false;
+            if(!valid||!ingredient.key.empty())return fail("ResolveRecipeGroup","InvalidGroupField","RecipeGroupsField",group);
+            if(!groups.insert(group).second)return fail("ResolveRecipeGroup","DuplicateRecipeGroup","OneIngredientPerGroup",group);
+            std::string detail;Il2CppObject* object=nullptr;const MethodInfo* require=nullptr;bool notReady=false;
+            if(!prepare(&detail)||!readNativeGroup(group,&object,&require,&ingredient.type,&detail,&notReady))
+                return fail("ResolveRecipeGroup",notReady?"RecipeSetupNotReady":"NativeGroupContractMismatch","InitializedNativeRecipeGroup",group+":"+detail);
+            if(ingredient.type<1||ingredient.type>=itemTypeCount())
+                return fail("ResolveRecipeGroup","InvalidGroupPlaceholder","InstalledItem",group+":"+std::to_string(ingredient.type));
+        } else if(!ingredient.key.empty()) {
             if(!keyValid(ingredient.key))return fail("ResolveIngredient","InvalidContentKey","NameOrUID/Name",ingredient.key);
             const auto key=qualified(r.mod,ingredient.key);ingredient.type=modItemTypeByKey(key);
             if(ingredient.type<0)return fail("ResolveIngredient","MissingDependency","RegisteredItem",key);
@@ -233,6 +300,15 @@ NativeRecipeResult installNativeRecipe(const NativeRecipeRequest& request) {
         auto** items=static_cast<Il2CppObject**>(arrayData(ingredients));
         for(size_t i=0;i<r.ingredients.size();++i)if(!setItem(items[i],r.ingredients[i].type,r.ingredients[i].count,&detail))return fail("SetIngredients","ItemRejected");
         if(r.station>=0){void* args[]={&r.station};if(!invoke(contract.station,recipe,args,&detail))return fail("SetStation","ManagedException");}
+        for(const auto& ingredient:r.ingredients)if(!ingredient.nativeGroup.empty()) {
+            Il2CppObject* group=nullptr;const MethodInfo* require=nullptr;int placeholder=-1;
+            if(!readNativeGroup(ingredient.nativeGroup,&group,&require,&placeholder,&detail))return fail("RequireGroup","NativeGroupContractMismatch");
+            Root groupRoot(group);
+            if(!groupRoot.handle){detail="Group="+ingredient.nativeGroup+" Root=RecipeGroup";return fail("RequireGroup","AllocationFailed");}
+            if(placeholder!=ingredient.type){detail="Group="+ingredient.nativeGroup+" ExpectedPlaceholder="+std::to_string(ingredient.type)+" Actual="+std::to_string(placeholder);return fail("RequireGroup","GroupChangedDuringRegistration");}
+            void* args[]={group};
+            if(!invoke(require,recipe,args,&detail)){detail="Group="+ingredient.nativeGroup+" "+detail;return fail("RequireGroup","ManagedException");}
+        }
         auto** slots=static_cast<Il2CppObject**>(arrayData(table));
         auto* oldSlot=slots[index];Root slotRoot(oldSlot);
         if(oldSlot&&!slotRoot.handle){detail="Root=Main.recipe[Index]";return fail("Commit","AllocationFailed");}

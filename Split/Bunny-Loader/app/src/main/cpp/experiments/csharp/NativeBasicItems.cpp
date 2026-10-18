@@ -826,7 +826,8 @@ void pumpBasicRecipesOnGameThread() {
             request.station=pending.values.station;request.stationKey=pending.values.stationKey;
             for(const auto& ingredient:pending.values.ingredients)
                 request.ingredients.push_back({ingredient.type,ingredient.count,
-                    ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{}});
+                    ingredient.key.front()=='m'?ingredient.key.substr(1):std::string{},
+                    ingredient.key.front()=='g'?ingredient.key.substr(1):std::string{}});
             runtime::NativeRecipeRequest resolved;std::string dependencyError;
             runtime::NativeRecipeResult result;
             if(!runtime::resolveNativeRecipe(request,&resolved,&dependencyError))result.error=dependencyError;

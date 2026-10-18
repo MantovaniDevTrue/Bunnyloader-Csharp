@@ -20,6 +20,9 @@ string Name(Type type)
 string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
     .Select(parameter => (parameter.IsOut ? "out " + Name(parameter.ParameterType.GetElementType()!) : Name(parameter.ParameterType)) + " " + parameter.Name));
 
+string MethodName(MethodInfo method) => method.Name + (method.IsGenericMethodDefinition
+    ? "<" + string.Join(", ", method.GetGenericArguments().Select(Name)) + ">" : "");
+
 string Mode(Type type, MethodInfo method)
 {
     if (type == typeof(BunnyNativeScope) || type == typeof(BunnyNativeType) || type == typeof(BunnyNativeMember) ||
@@ -61,7 +64,7 @@ var types = sdk.GetExportedTypes().OrderBy(type => type.FullName, StringComparer
         .OrderBy(value => value, StringComparer.Ordinal).ToArray(),
     values = type.IsEnum ? Enum.GetNames(type) : Array.Empty<string>(),
     methods = type.GetMethods(declared).Where(method => !method.IsSpecialName).Select(method => new {
-        signature = (method.IsStatic ? "static " : "") + Name(method.ReturnType) + " " + method.Name + "(" + Parameters(method) + ")",
+        signature = (method.IsStatic ? "static " : "") + Name(method.ReturnType) + " " + MethodName(method) + "(" + Parameters(method) + ")",
         execution = Mode(type, method)
     }).OrderBy(value => value.signature, StringComparer.Ordinal).ToArray()
 }).ToArray();
