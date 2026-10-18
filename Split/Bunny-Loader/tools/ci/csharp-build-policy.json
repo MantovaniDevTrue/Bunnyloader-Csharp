@@ -11,6 +11,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
@@ -25,6 +26,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
@@ -115,6 +117,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
@@ -129,6 +132,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
@@ -143,6 +147,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
@@ -151,6 +156,7 @@
     "feat/csharp-native-recipe-groups-v89",
     "fix/csharp-88-8-lights-review",
     "fix/csharp-90-1-static-recipegroup-register",
+    "fix/csharp-90-2-recipegroup-real-instance-abi",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
     "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ]
