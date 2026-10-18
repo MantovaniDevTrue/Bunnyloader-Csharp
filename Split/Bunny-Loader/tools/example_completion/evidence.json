@@ -739,7 +739,8 @@
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/native_tile_policy.cpp",
-        "tests/native_recipes/native_recipes_test.cpp"
+        "tests/native_recipes/native_recipes_test.cpp",
+        "tests/recipe_callbacks/run.sh"
       ],
       "terrariaTests": [
         "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
@@ -769,6 +770,127 @@
         "Colocar a ExampleWorkbench C#, fabricar as tres armaduras, quebrar e recolher uma bancada; repetir apos save/reload e destruicao do suporte."
       ],
       "validation": "Implementacao nativa existente preservada; colocacao de tiles vanilla testada anteriormente nao valida a ExampleWorkbench C#."
+    },
+    "Content/Buffs/ExampleDefenseDebuff.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs"
+      ],
+      "preservedFeatures": [
+        "Flag de debuff, descrição e multiplicação de 75% da defesa após os equipamentos.",
+        "Defaults gerenciados e contratos de memória/tabelas nativas validados."
+      ],
+      "missingFeatures": [
+        "Localização integral e validação de comportamento no Android."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/content/buffs/ModBuffs.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs buff.managed-flags-calculated-defaults",
+        "tests/recipe_callbacks/run.sh"
+      ],
+      "terrariaTests": [
+        "Usar ExampleDebuffPotion, observar defesa por dez segundos, trocar armadura, remover o debuff, morrer/respawn e sair/entrar."
+      ],
+      "validation": "Host/compilação passaram; CI e execução Android ainda devem ser registrados separadamente."
+    },
+    "Content/ExampleRecipes.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs"
+      ],
+      "preservedFeatures": [
+        "Grupos nativos e personalizados de alternativas; resolução de IDs por registro compartilhado.",
+        "Condições e callbacks de consumo/criação C# no worker Mono, com concessões nativas."
+      ],
+      "missingFeatures": [
+        "Receitas originais que produzem resultados vanilla e alterações globais ainda não portadas.",
+        "Spawn dos fogos originais, contexto de itens consumidos/destinationStack, shimmer e condições completas.",
+        "Merge/edição de grupos existentes e múltiplas estações."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/content/recipes/NativeRecipes.cpp",
+        "app/src/main/cpp/content/recipes/RecipeCallbackProvider.h",
+        "app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs recipe.managed-callbacks-real-source",
+        "tests/native_recipes/native_recipes_test.cpp --custom-groups",
+        "tests/recipe_callbacks/run.sh"
+      ],
+      "terrariaTests": [
+        "Executar a quarta receita da ExampleWorkbench com ExampleItems/ExampleSouls, à noite e com pouca vida, verificando consumo, madeira preservada e recompensa.",
+        "Repetir junto de mod JS, salvar e reentrar."
+      ],
+      "validation": "Infraestrutura e demonstração reais no host; não equivalem ao port integral do arquivo JS. Android pendente."
+    },
+    "Content/Buffs/Blocky.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Estado de acessório/jogador, moradores, salto/queda, visual normal/molhado e regras de vaidade."
+      ],
+      "preservedFeatures": [],
+      "nativeDependencies": [
+        "Implementar sobre o serviço nativo de conteúdo; as flags de BunnyBuff já estão disponíveis."
+      ],
+      "automatedTests": [],
+      "terrariaTests": [
+        "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
+      ],
+      "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
+    },
+    "Content/Buffs/ExampleMinionBuff.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Arquivo C# do buff e contador no tooltip.",
+        "Minion/cajado com IA, alvo manual, colisão, animação, iluminação, summon slots e ciclo de vida."
+      ],
+      "preservedFeatures": [],
+      "nativeDependencies": [
+        "Implementar sobre o serviço nativo de conteúdo; as flags de BunnyBuff já estão disponíveis."
+      ],
+      "automatedTests": [],
+      "terrariaTests": [
+        "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
+      ],
+      "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
+    },
+    "Content/Buffs/ExampleMountBuff.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Arquivo C# e registro nativo de montaria, item, movement, frames, efeitos e estado por jogador."
+      ],
+      "preservedFeatures": [],
+      "nativeDependencies": [
+        "Implementar sobre o serviço nativo de conteúdo; as flags de BunnyBuff já estão disponíveis."
+      ],
+      "automatedTests": [],
+      "terrariaTests": [
+        "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
+      ],
+      "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
+    },
+    "Content/Buffs/ExampleMinecartBuff.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "missingFeatures": [
+        "Arquivo C# e registro nativo de minecart, Cart/MountType, sons/faíscas, texturas e ciclo de vida."
+      ],
+      "preservedFeatures": [],
+      "nativeDependencies": [
+        "Implementar sobre o serviço nativo de conteúdo; as flags de BunnyBuff já estão disponíveis."
+      ],
+      "automatedTests": [],
+      "terrariaTests": [
+        "Concluir o exemplo real e documentar seu roteiro antes de pedir validação."
+      ],
+      "validation": "Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado."
     }
   },
   "additionalCSharpDeviceEvidence": {

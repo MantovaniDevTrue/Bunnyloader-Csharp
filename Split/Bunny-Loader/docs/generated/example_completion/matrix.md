@@ -12,7 +12,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Armor | 6 | 5 (83.33%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Biomes | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Bosses | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Buffs | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
+| Buffs | 6 | 0 (0.0%) | 0 (0.0%) | 2 (33.33%) | 0 |
 | Clouds | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Commands | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Configs | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -36,7 +36,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Projectiles | 20 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Quests | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Systems | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Systems | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tiles | 37 | 1 (2.7%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -77,19 +77,19 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Biomes/ExampleWaterStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWaterStyle | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleWaterfallStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWaterfallStyle | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/BossBars/ExampleBossBar.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBossBar | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Buffs/Blocky.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBuff | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Buffs/Blocky.js | — | Não implementado | Estado de acessório/jogador, moradores, salto/queda, visual normal/molhado e regras de vaidade. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
 | Content/Buffs/ExampleDefenseBuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs | Parcial | ModifyDescription com localizacao e ModifyBuffText com duracao restante. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
-| Content/Buffs/ExampleDefenseDebuff.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBuff | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Buffs/ExampleMinecartBuff.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBuff | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Buffs/ExampleMinionBuff.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBuff | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Buffs/ExampleMountBuff.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBuff | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Buffs/ExampleDefenseDebuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs | Parcial | Localização integral e validação de comportamento no Android. | tests/basic_items/Program.cs buff.managed-flags-calculated-defaults; tests/recipe_callbacks/run.sh |
+| Content/Buffs/ExampleMinecartBuff.js | — | Não implementado | Arquivo C# e registro nativo de minecart, Cart/MountType, sons/faíscas, texturas e ciclo de vida. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
+| Content/Buffs/ExampleMinionBuff.js | — | Não implementado | Arquivo C# do buff e contador no tooltip.; Minion/cajado com IA, alvo manual, colisão, animação, iluminação, summon slots e ciclo de vida. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
+| Content/Buffs/ExampleMountBuff.js | — | Não implementado | Arquivo C# e registro nativo de montaria, item, movement, frames, efeitos e estado por jogador. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
 | Content/Clouds/ExampleAdvancedCloud.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCloud | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/DamageClasses/ExampleDamageClass.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para DamageClass | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Effects/ExampleRiftEffect.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModScreenEffect | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/EmoteBubbles/ExampleAnimatedEmote.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModEmoteBubble | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/EmoteBubbles/ExampleItemEmote.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModEmoteBubble | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/ExampleModMenu.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModMenu | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/ExampleRecipes.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem; Revisar diferencas de comportamento da referencia fornecida 1.9.0. | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/ExampleRecipes.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs | Parcial | Receitas originais que produzem resultados vanilla e alterações globais ainda não portadas.; Spawn dos fogos originais, contexto de itens consumidos/destinationStack, shimmer e condições completas.; Merge/edição de grupos existentes e múltiplas estações.; Revisar diferencas de comportamento da referencia fornecida 1.9.0. | tests/basic_items/Program.cs recipe.managed-callbacks-real-source; tests/native_recipes/native_recipes_test.cpp --custom-groups; tests/recipe_callbacks/run.sh |
 | Content/Hairs/ExampleHair.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModHair | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Accessories/ExampleBeard.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py |
 | Content/Items/Accessories/ExampleBoots.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs | Parcial | rocketBoots, waterWalk, iceSkate, desertBoots, fireWalk, noFallDmg, lavaRose/lavaMax do original.; Rastro em montarias permitidas pelo JS original; C# atual restringe a personagem sem montaria. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
@@ -148,7 +148,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Placeable/Furniture/ExampleTable.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleToilet.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleWideBanner.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/Furniture/ExampleWorkbench.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/native_tile_policy.cpp; tests/native_recipes/native_recipes_test.cpp |
+| Content/Items/Placeable/Furniture/ExampleWorkbench.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/native_tile_policy.cpp; tests/native_recipes/native_recipes_test.cpp; tests/recipe_callbacks/run.sh |
 | Content/Items/Placeable/Furniture/MinionBossRelic.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/MinionBossTrophy.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Quests/ExampleQuestFish.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
