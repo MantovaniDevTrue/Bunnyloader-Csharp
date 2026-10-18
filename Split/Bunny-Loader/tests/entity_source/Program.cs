@@ -20,13 +20,14 @@ public sealed class ManagedProbeNpc : BunnyNPC
 
 public sealed class ManagedProbeProjectile : BunnyProjectile
 {
-    public static int Spawns, Despawns, Hits, Calls, Kills;
+    public static int Spawns, Despawns, Hits, Calls, Kills, SeenTarget = -1;
     public override void SetDefaults() { }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
     public override bool AI(ref BunnyProjectileAiState state)
     {
         Calls++;
+        SeenTarget = state.HasTarget ? state.TargetNpc : -1;
         state.VelocityY = state.Age + 1;
         return true;
     }
@@ -99,6 +100,19 @@ public static class Program
         Check(DecodeX(projectile) == 4 && DecodeY(projectile) == 1, "projectile typed velocity");
         Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 0,
             100, 100, 4, 0, 120, 120) >= 0 && ManagedProbeProjectile.Spawns == 1, "same projectile");
+        Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 0,
+            100, 100, 4, 0, 120, 120, 7, 135, 155) >= 0 &&
+            ManagedProbeProjectile.SeenTarget == 7, "native target identity carried to MonoVM");
+        Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 0,
+            100, 100, 4, 0, 120, 120, -1, 0, 0) >= 0 &&
+            ManagedProbeProjectile.SeenTarget == -1, "native target cleared");
+        var steering = new BunnyProjectileAiState {
+            X = 100, Y = 100, PlayerX = 90, PlayerY = 90,
+            TargetNpc = 7, TargetX = 200, TargetY = 100
+        };
+        Check(BunnyMinionSteering.FollowOrAttack(ref steering) &&
+            steering.VelocityX > 0 && Math.Abs(steering.VelocityY) < 0.01f,
+            "native minion chasing steering");
         Check(BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 0, 5, 7), "projectile hit");
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 1, 5, 7), "projectile owner isolation");
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 11, 0, 5, 7), "projectile generation isolation");

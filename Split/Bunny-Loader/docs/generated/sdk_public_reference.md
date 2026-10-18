@@ -241,6 +241,7 @@ string LastRegistrationError { get; }
 | --- | --- |
 | `static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
 | `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
+| `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY, int targetNpc, float targetX, float targetY)` | worker_async_entity |
 | `static bool Bind(int modSlot, int kind, int type, string name)` | worker_async_entity |
 | `static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)` | worker_async_entity |
 | `static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)` | worker_async_entity |
@@ -594,6 +595,14 @@ bool IsDisposed { get; }
 | --- | --- |
 | `void Dispose()` | experimental_worker_sync_void0 |
 
+## BunnyLoader.Source.BunnyMinionSteering
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool FollowOrAttack(ref BunnyProjectileAiState state)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyNPC
 
 abstract class; base: `System.Object`.
@@ -784,6 +793,7 @@ bool Minion { get; set; }
 bool TileCollide { get; set; }
 float MinionSlots { get; set; }
 int AiStyle { get; set; }
+int Frames { get; set; }
 int Height { get; set; }
 int Penetrate { get; set; }
 int TimeLeft { get; set; }
@@ -807,6 +817,10 @@ string Texture { get; set; }
 ## BunnyLoader.Source.BunnyProjectileAiState
 
 struct; base: `System.ValueType`.
+
+```csharp
+bool HasTarget { get; }
+```
 
 ## BunnyLoader.Source.BunnyRecipe
 

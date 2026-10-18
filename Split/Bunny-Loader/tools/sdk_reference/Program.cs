@@ -103,8 +103,24 @@ foreach (var output in outputs)
 {
     if (args[0] == "--check")
     {
-        if (!File.Exists(output.Key) || File.ReadAllText(output.Key) != output.Value)
+        string actual = File.Exists(output.Key) ? File.ReadAllText(output.Key) : "";
+        if (actual != output.Value)
+        {
+            int different = 0;
+            while (different < actual.Length && different < output.Value.Length &&
+                   actual[different] == output.Value[different]) different++;
+            int first = Math.Max(0, different - 80);
+            int actualLength = Math.Min(230, actual.Length - first);
+            int expectedLength = Math.Min(230, output.Value.Length - first);
+            Console.Error.WriteLine("SDK_REFERENCE_DIFFERENCE path=" + output.Key +
+                " first=" + different + " actualLength=" + actual.Length +
+                " expectedLength=" + output.Value.Length);
+            Console.Error.WriteLine("SDK_REFERENCE_ACTUAL=" +
+                JsonSerializer.Serialize(actual.Substring(first, actualLength)));
+            Console.Error.WriteLine("SDK_REFERENCE_EXPECTED=" +
+                JsonSerializer.Serialize(output.Value.Substring(first, expectedLength)));
             throw new InvalidOperationException("Stale public SDK reference: " + output.Key);
+        }
     }
     else File.WriteAllText(output.Key, output.Value);
 }

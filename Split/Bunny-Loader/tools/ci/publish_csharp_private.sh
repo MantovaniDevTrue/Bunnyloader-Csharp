@@ -142,6 +142,10 @@ fi
 if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-4-projectile-minion-contract" ]; then
   NOTES="EXPERIMENTAL native CSharp minion/summon SDK .90.4: own MonoVM source API, IL2CPP minion flags, weapon buff and managed follow AI. Standalone NativeMinionCSharpProbe 0.1.0 included. Legacy ExampleMod CSharp 0.1.49 and Lights 0.4.2.3 unchanged. Device and FPS validation pending. SHA ${GITHUB_SHA}; CI https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]; then
+  TITLE="EXPERIMENTAL — CSharp minion native combat and animated summon | $VERSION"
+  NOTES="Native CSharp summon .90.5 (MonoVM) with player/minion buff spawn, hostile-target packet, four-frame minion sprites, own C# steering class and real ExampleMinion visual assets. ExampleMod CSharp 0.1.49, recipe tests and Lights 0.4.2.3 preserved. Source-only NativeMinionCSharpProbe v0.1.1. Android gameplay, damage and 60 FPS REQUIRE testing. Source ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+fi
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
@@ -154,6 +158,12 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-4-projectile-minion-contract" ];
   RELEASE_ASSETS+=(
     "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod"
     "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.0.bmod.sha256"
+  )
+fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]; then
+  RELEASE_ASSETS+=(
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod"
+    "$RUNNER_TEMP/NativeMinionCSharpProbe-v0.1.1.bmod.sha256"
   )
 fi
 if [ "$BUNNY_POLICY_LIGHTS" = "true" ]; then

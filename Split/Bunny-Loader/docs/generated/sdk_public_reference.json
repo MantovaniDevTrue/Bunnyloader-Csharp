@@ -422,6 +422,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY, int targetNpc, float targetX, float targetY)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static bool Bind(int modSlot, int kind, int type, string name)",
           "execution": "worker_async_entity"
         },
@@ -1062,6 +1066,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyMinionSteering",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool FollowOrAttack(ref BunnyProjectileAiState state)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNPC",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1424,6 +1442,7 @@
         "bool TileCollide { get; set; }",
         "float MinionSlots { get; set; }",
         "int AiStyle { get; set; }",
+        "int Frames { get; set; }",
         "int Height { get; set; }",
         "int Penetrate { get; set; }",
         "int TimeLeft { get; set; }",
@@ -1476,7 +1495,9 @@
       "kind": "struct",
       "baseType": "System.ValueType",
       "constructors": [],
-      "properties": [],
+      "properties": [
+        "bool HasTarget { get; }"
+      ],
       "values": [],
       "methods": []
     },

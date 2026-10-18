@@ -86,6 +86,7 @@ struct ManagedProjectileDefaults {
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
+    int frames = 1;
 };
 
 struct ManagedWeaponDefaults {
@@ -119,6 +120,8 @@ struct ManagedWeaponEntry {
 bool applyManagedNativeDefaultsBatch(const std::string& modId,
                                      const std::vector<ManagedProjectileEntry>& projectiles,
                                      const std::vector<ManagedWeaponEntry>& weapons);
+int nativeManagedProjectileFrames(int type);
+int nativeManagedMinionBuff(int projectileType);
 
 struct ManagedBuffEntry {
     std::string name;

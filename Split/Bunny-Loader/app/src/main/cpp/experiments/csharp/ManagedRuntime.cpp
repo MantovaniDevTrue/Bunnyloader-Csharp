@@ -387,6 +387,8 @@ struct ManagedEntityJob {
     uint64_t session = 0;
     int damage = 0;
     int target = -1;
+    float targetX = 0.f;
+    float targetY = 0.f;
 };
 
 struct ManagedEntityResult {
@@ -1071,7 +1073,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityRegister = g_api.findMethod(klass, "Register", 2);
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 12);
-        g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 11);
+        g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
@@ -1150,8 +1152,11 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     }
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
                        &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
+    int targetNpc = job.target;
+    float targetX = job.targetX, targetY = job.targetY;
     void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
-                              &x, &y, &vx, &vy, &px, &py};
+                              &x, &y, &vx, &vy, &px, &py,
+                              &targetNpc, &targetX, &targetY};
     void* exception = nullptr;
     void* boxed = g_api.invoke(job.kind == 0 ? g_entityNpcTick : g_entityProjectileTick,
                                nullptr, job.kind == 0 ? npcArgs : projectileArgs,
@@ -2167,11 +2172,14 @@ bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
                        uintptr_t identity, int life, int lifeMax,
                        float x, float y, float vx, float vy,
                        float playerX, float playerY, ManagedEntityVelocity* velocity,
-                       bool immediateFirstTick) {
+                       bool immediateFirstTick, int targetNpc,
+                       float targetX, float targetY) {
     if (!velocity || generation <= 0 || identity == 0 ||
         !std::isfinite(x) || !std::isfinite(y) ||
         !std::isfinite(vx) || !std::isfinite(vy) ||
-        !std::isfinite(playerX) || !std::isfinite(playerY)) return false;
+        !std::isfinite(playerX) || !std::isfinite(playerY) ||
+        (kind == 1 && (targetNpc < -1 || targetNpc >= 200 ||
+                       !std::isfinite(targetX) || !std::isfinite(targetY)))) return false;
     const int bound = kind == 0
         ? (hasManagedEntityNpcType(type)
             ? g_entityNpcTypeOwner[static_cast<size_t>(type)].load(std::memory_order_acquire) : 0)
@@ -2215,6 +2223,11 @@ bool pollManagedEntity(int kind, int type, int slot, int generation, int owner,
         bound - 1, kind, type, slot, generation, owner, life, lifeMax,
         identity, x, y, vx, vy, playerX, playerY, g_entitySession
     });
+    if (kind == 1) {
+        g_entityQueue.back().target = targetNpc;
+        g_entityQueue.back().targetX = targetX;
+        g_entityQueue.back().targetY = targetY;
+    }
     pending = true;
     g_entityJobsSubmitted.fetch_add(1, std::memory_order_relaxed);
     g_pinnedWake.notify_one();
@@ -2226,15 +2239,17 @@ bool tickManagedEntityNpc(int type, int slot, int generation,
                           float x, float y, float vx, float vy,
                           float playerX, float playerY, ManagedEntityVelocity* result) {
     return pollManagedEntity(0, type, slot, generation, -1, identity, life, lifeMax,
-                             x, y, vx, vy, playerX, playerY, result, false);
+                             x, y, vx, vy, playerX, playerY, result, false, -1, 0.f, 0.f);
 }
 
 bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
                                  uintptr_t identity, float x, float y,
                                  float vx, float vy, float playerX, float playerY,
-                                 ManagedEntityVelocity* result, bool immediateFirstTick) {
+                                 ManagedEntityVelocity* result, bool immediateFirstTick,
+                                 int targetNpc, float targetX, float targetY) {
     return pollManagedEntity(1, type, slot, generation, owner, identity, 0, 0,
-                             x, y, vx, vy, playerX, playerY, result, immediateFirstTick);
+                             x, y, vx, vy, playerX, playerY, result, immediateFirstTick,
+                             targetNpc, targetX, targetY);
 }
 
 bool registerManagedPlayerHurtMod(const std::string& modId,
