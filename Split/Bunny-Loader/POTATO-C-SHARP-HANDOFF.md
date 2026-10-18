@@ -34,10 +34,10 @@ Comparamos todos os blobs Git dentro de `Split/Bunny-Loader/⟧ com os da raiz d
 | Arquivos | Quantidade |
 | --- | ---: |
 | Rastreados pelo original | 2024 |
-| Presentes em nosso projeto Android | 2760 |
-| **Idênticos ao original** | **1949** |
-| Compartilhados mas modificados pelo port C# | 75 |
-| Acrescentados pelo port (inclui fontes, testes e docs) | 736 |
+| Presentes em nosso projeto Android | 2761 |
+| **Idênticos ao original** | **1948** |
+| Compartilhados mas modificados pelo port C# | 76 |
+| Acrescentados pelo port (inclui fontes, testes e docs) | 737 |
 | **Arquivos originais faltando em nossa árvore** | **0** |
 
 Os sete arquivos inicialmente faltantes foram copiados de modo byte-idêntico do original: `_icons/launcher/titulo.png⟧ e os arquivos de `tools/tests/research/⟧ e `tools/tests/devarmor/⟧. A prova caminho-por-caminho está no arquivo `../../docs/POTATO-UPSTREAM-FILE-MAP.json⟧. Cada arquivo modificado registra SHA do original e do nosso lado. Esse mapa é um diff **de conteúdo**, não uma afirmação de compatibilidade em execução.
@@ -63,7 +63,7 @@ Existem DOIS diretórios `experiments/csharp⟧ distintos. Na raiz há projetos 
 
 ## 5. Os arquivos que não podem ser sobrescritos
 
-Os 75 arquivos divergentes precisam de revisão e merge manual, não `cp -r⟧ sobre o Bunny oficial. Os pontos decisivos são:
+Os 76 arquivos divergentes precisam de revisão e merge manual, não `cp -r⟧ sobre o Bunny oficial. Os pontos decisivos são:
 
 1. `app/src/main/cpp/CMakeLists.txt⟧: manter `bunny⟧ com QuickJS; acrescentar `bunnymonoprobe⟧ com `ManagedRuntime.cpp⟧, `MonoWorkerJni.cpp⟧ e `NativeAbortProbe.cpp⟧. Não compilar `MonoWorkerJni.cpp⟧ nos dois targets.
 2. `app/src/main/cpp/boot/Probe.cpp⟧, `QuickStart.cpp⟧: manter `mods::loadAll⟧ JS; agregar `csharpmods::loadAll⟧, `startAutoSourceRuntime⟧, instalação de hooks e gate `preWorldCSharpContentReady⟧, sem congelar a thread do jogo.
@@ -74,7 +74,7 @@ Os 75 arquivos divergentes precisam de revisão e merge manual, não `cp -r⟧ s
 7. `app/build.gradle.kts⟧: **não substituir a identidade, assinatura e distribuição oficiais** pelos nossos valores de teste (o port usa `com.bunnyloader.csharptest⟧). Adaptar os assets e dependências nativas mantendo configurações do original.
 8. `app/src/main/cpp/graphics/⟧, `script/⟧, `menu/⟧ e UI Kotlin: revisar alterações específicas; os novos efeitos/diagnósticos não autorizam apagar nem enfraquecer QuickJS.
 
-A lista exata dos 75, com hashes, fica no JSON de inventário citado.
+A lista exata dos 76, com hashes, fica no JSON de inventário citado.
 
 ## 6. Build C# real e limitações de distribuição
 
@@ -94,4 +94,4 @@ Para a `.95.2⟧, o cenário prioritário no aparelho é carregar `ExampleModCSh
 
 Créditos, licenças e marcas: Jonata Oliveira (Bunny Loader original), Mantovani (extensão C#). Preservar `LICENSE.md⟧, `LICENSING.md⟧, `THIRD_PARTY_NOTICES.md⟧ e `TRADEMARKS.md⟧. Não disponibilizar APK integrado ao Terraria publicamente.
 
-**English summary:** Full Android source, based on the latest upstream commit as checked on Oct 18, 2026. All 2,024 upstream files exist; 1,949 unchanged, 75 modified, 736 additions. C# runs on MonoVM/Roslyn/C++ with QuickJS preserved. Android CI built/signed the v95.2 artifact; device gameplay for the v95.2 minion fix is pending. Private game binaries and patched Mono are not included.
+**English summary:** Full Android source, based on the latest upstream commit as checked on Oct 18, 2026. All 2,024 upstream files exist; 1,949 unchanged, 75 modified, 737 additions. C# runs on MonoVM/Roslyn/C++ with QuickJS preserved. Android CI built/signed the v95.2 artifact; device gameplay for the v95.2 minion fix is pending. Private game binaries and patched Mono are not included.
