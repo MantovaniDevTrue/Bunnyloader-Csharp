@@ -1152,9 +1152,11 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     }
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
                        &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
+    int targetNpc = job.target;
+    float targetX = job.targetX, targetY = job.targetY;
     void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
                               &x, &y, &vx, &vy, &px, &py,
-                              &job.target, &job.targetX, &job.targetY};
+                              &targetNpc, &targetX, &targetY};
     void* exception = nullptr;
     void* boxed = g_api.invoke(job.kind == 0 ? g_entityNpcTick : g_entityProjectileTick,
                                nullptr, job.kind == 0 ? npcArgs : projectileArgs,
