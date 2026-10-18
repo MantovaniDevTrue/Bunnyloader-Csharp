@@ -1,4 +1,5 @@
 #include "content/buffs/ModBuffs.h"
+#include "il2cpp/FieldContract.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -27,6 +28,7 @@ std::atomic<BuffsInstalledHook> g_installedHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
+std::atomic<bool> g_managedDefaultsPending{false};
 
 // Conferida contra toda alocacao de 401 posicoes na libil2cpp (`mov #0x191`):
 // as estaticas estao em Main (10), BuffID.Sets, Lang (nome e descricao) e
@@ -45,6 +47,9 @@ struct Refs {
     FieldInfo* names = nullptr;          // Lang._buffNameCache
     FieldInfo* descriptions = nullptr;   // Lang._buffDescriptionCache
     FieldInfo* noSave = nullptr;         // Main.buffNoSave
+    FieldInfo* debuff = nullptr;         // Main.debuff (opcional)
+    FieldInfo* nurseCannotRemove = nullptr;
+    FieldInfo* noTimeDisplay = nullptr;  // Main.buffNoTimeDisplay (opcional)
     FieldInfo* players = nullptr;        // Main.player
     FieldInfo* npcs = nullptr;           // Main.npc
     int32_t playerImmune = -1, npcImmune = -1;   // buffImmune
@@ -68,6 +73,10 @@ Refs& refs() {
     r.names = lang ? findField(lang, "_buffNameCache") : nullptr;
     r.descriptions = lang ? findField(lang, "_buffDescriptionCache") : nullptr;
     r.noSave = main ? findField(main, "buffNoSave") : nullptr;
+    r.debuff = main ? findField(main, "debuff") : nullptr;
+    r.noTimeDisplay = main ? findField(main, "buffNoTimeDisplay") : nullptr;
+    auto* buffSets=findClass({"Terraria.ID","BuffID","Sets"});
+    r.nurseCannotRemove=buffSets?findField(buffSets,"NurseCannotRemoveDebuff"):nullptr;
     r.players = main ? findField(main, "player") : nullptr;
     r.npcs = main ? findField(main, "npc") : nullptr;
     r.playerImmune = player ? fieldOffset(player, "buffImmune") : -1;
@@ -104,6 +113,39 @@ void applyTexts(int type, const Entry& e) {
     }
 }
 
+bool flagContract(FieldInfo* table,const char* name,std::string* error,bool nurse=false) {
+    FieldInfo* checked=nullptr;
+    auto* main=nurse?il2cpp::findClass({"Terraria.ID","BuffID","Sets"}):il2cpp::findClass({"Terraria","Main",{}});
+    if(!il2cpp::nativeFieldContract(main,name,"System.Boolean[]",true,sizeof(void*),&checked,nullptr,error)||checked!=table)return false;
+    auto* array=readStatic(table);
+    if(array&&!il2cpp::nativeArrayContract(array,"Boolean",1)) {
+        *error="Field="+std::string(name)+" Expected=Boolean[]:1 Reason=InvalidArrayLayout";return false;
+    }
+    return true;
+}
+void setFlag(FieldInfo* table,int type,bool value) {
+    if(!table)return;
+    auto& a=il2cpp::api();
+    if(!a.field_get_flags||!a.field_get_type||!a.class_from_il2cpp_type||!a.class_get_rank||!a.class_get_element_class||
+       !(a.field_get_flags(table)&0x10u))return;
+    auto* arrayType=a.class_from_il2cpp_type(a.field_get_type(table));
+    auto* element=arrayType&&a.class_get_rank(arrayType)==1?a.class_get_element_class(arrayType):nullptr;
+    uint32_t alignment=0;
+    const char* ns=element&&a.class_get_namespace?a.class_get_namespace(element):nullptr;
+    const char* name=element&&a.class_get_name?a.class_get_name(element):nullptr;
+    if(!element||!ns||!name||!a.class_is_valuetype||!a.class_value_size||
+       std::strcmp(ns,"System")||std::strcmp(name,"Boolean")||
+       !a.class_is_valuetype(element)||a.class_value_size(element,&alignment)!=1)return;
+    auto* array=readStatic(table);
+    if(il2cpp::nativeArrayContract(array,"Boolean",1)&&type>=0&&static_cast<uintptr_t>(type)<array->length)
+        static_cast<uint8_t*>(arrayData(array))[type]=value?1:0;
+}
+void applyFlags(int type,const Entry& e) {
+    if(!e.def.managedFlags)return; // JavaScript owns its own SetStaticDefaults.
+    const auto& r=refs();
+    setFlag(r.debuff,type,e.def.debuff);setFlag(r.noSave,type,e.def.noSave);setFlag(r.noTimeDisplay,type,e.def.noTimeDisplay);setFlag(r.nurseCannotRemove,type,e.def.nurseCannotRemove);
+}
+
 void applyTexture(int type, const Entry& e) {
     Il2CppObject* asset = e.asset ? il2cpp::api().gchandle_get_target(e.asset) : nullptr;
     if (asset) content::setTableElement(refs().textures, type, asset);
@@ -117,6 +159,7 @@ void onTableRegrown(FieldInfo* f, int size) {
         const int type = kVanillaBuffCount + static_cast<int>(i);
         if (f == r.names || f == r.descriptions) applyTexts(type, g_regs[i]);
         if (f == r.textures) applyTexture(type, g_regs[i]);
+        if (f == r.debuff || f == r.noSave || f == r.noTimeDisplay || f == r.nurseCannotRemove) applyFlags(type, g_regs[i]);
     }
 }
 
@@ -236,6 +279,25 @@ void growInstances(int size) {
 
 } // namespace
 
+bool updateModBuffDefaults(const std::string& mod,int type,int flags,
+                           const std::string& description,std::string* error) {
+    if(flags<0||flags>15||description.size()>512){*error="Field=BuffDefaults Reason=InvalidDescriptor";return false;}
+    const auto& r=refs();
+    if(!r.ok){*error="Stage=BindBuffFields Reason=NativeBuffTablesNotReady";return false;}
+    if(((flags&1)&&!flagContract(r.debuff,"debuff",error))||((flags&2)&&!flagContract(r.noSave,"buffNoSave",error))||
+       ((flags&4)&&!flagContract(r.noTimeDisplay,"buffNoTimeDisplay",error))||
+       ((flags&8)&&!flagContract(r.nurseCannotRemove,"NurseCannotRemoveDebuff",error,true)))return false;
+    std::lock_guard<std::mutex> lock(g_mx);
+    const int index=type-kVanillaBuffCount;
+    if(index<0||static_cast<size_t>(index)>=g_regs.size()||g_regs[index].def.mod!=mod) {
+        *error="ContentId="+std::to_string(type)+" Reason=BuffOwnershipMismatch";return false;
+    }
+    auto& e=g_regs[index];e.def.managedFlags=true;e.def.debuff=flags&1;e.def.noSave=flags&2;e.def.noTimeDisplay=flags&4;e.def.nurseCannotRemove=flags&8;
+    e.def.descriptions={{"",description}};
+    g_managedDefaultsPending.store(true,std::memory_order_release);
+    error->clear();return true;
+}
+
 int registerModBuff(ModBuffDef def) {
     std::lock_guard<std::mutex> l(g_mx);
     for (const Entry& e : g_regs) {
@@ -263,6 +325,10 @@ void tickModBuffs() {
     const int from = kVanillaBuffCount + installed;
 
     if (installed == total) {
+        if(g_managedDefaultsPending.exchange(false,std::memory_order_acq_rel)) {
+            std::lock_guard<std::mutex> lock(g_mx);
+            for(int i=0;i<installed;++i)if(g_regs[i].def.managedFlags){applyFlags(kVanillaBuffCount+i,g_regs[i]);applyTexts(kVanillaBuffCount+i,g_regs[i]);}
+        }
         g_tables.checkPending(from);
         static int frame = 0;
         if (++frame % 120 == 0) g_tables.watch(from, onTableRegrown);
@@ -304,6 +370,7 @@ void tickModBuffs() {
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             applyTexture(type, e);
             applyTexts(type, e);
+            applyFlags(type, e);
         }
     }
     BL_INFO("buffs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",

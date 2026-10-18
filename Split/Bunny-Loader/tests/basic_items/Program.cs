@@ -25,6 +25,16 @@ Check("recipe.native-group-public-sdk",()=>{
  var once=item.CreateRecipe().AddNativeRecipeGroup("Wood");once.Register();Reject(()=>once.AddNativeRecipeGroup("IronBar"));
  var many=item.CreateRecipe();for(int i=0;i<15;i++)many.AddIngredient(2);Reject(()=>many.AddNativeRecipeGroup("Wood"));
 });
+Check("recipe.custom-group-builder-snapshot",()=>{
+ var item=new ExampleItem();item.SetDefaults();
+ var group=new BunnyRecipeGroup("AnyMaterial","Any material").AddItem(9).AddItem<ExampleItem>();
+ var recipe=item.CreateRecipe().AddRecipeGroup(group,3);group.AddItem(22);recipe.Register();
+ Equal("1,-1,hAnyMaterial~416E79206D6174657269616C~v9+mExampleItem:3",item.RecipeDefinitions[0]);
+ Reject(()=>new BunnyRecipeGroup("bad/name","Description"));Reject(()=>new BunnyRecipeGroup("Group","").AddItem(2));
+ Reject(()=>new BunnyRecipeGroup("Group","Text").AddItem(2).AddItem(2));
+ Reject(()=>item.CreateRecipe().AddRecipeGroup(new BunnyRecipeGroup("Empty","Text")));
+ Reject(()=>recipe.AddCondition("test",c=>true));Reject(()=>recipe.AddOnCraftCallback(c=>{}));
+});
 Check("recipe.clone-isolation-and-removal",()=>{
  var item=new ExampleItem();item.SetDefaults();
  var original=item.CreateRecipe(3).AddIngredient(2,10).AddNativeRecipeGroup("Wood",5).AddIngredient<ExampleItem>().AddTile(18);original.Register();
@@ -57,6 +67,27 @@ try {
  foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks"})
   File.Copy(Path.Combine(source,name+".dll"),Path.Combine(runtime,name+".dll"));
  File.Copy(typeof(BunnyItem).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
+ Check("recipe.managed-callbacks-real-source",()=>{
+  string output=Path.Combine(scratch,"callbacks.dll"),diag=Path.Combine(scratch,"callbacks.txt");
+  Equal(1,Compiler.Compile("tests/basic_items/callback_fixture",output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var line=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1];
+  if(!line.Split('\t')[19].EndsWith(":3@7"))throw new Exception("Missing callback registration mask");
+  string Call(int kind,string state)=>BunnyRecipeRuntime.Dispatch("contract",output,"ContractRecipeItem",0,kind,state);
+  Equal("READY",Call(3,""));
+  Equal("1",Call(0,"10,100,0,3,9,3,0,0,0"));Equal("0",Call(0,"90,100,0,3,9,3,0,0,0"));
+  Equal("0",Call(0,"10,100,1,3,9,3,0,0,0"));Equal("0",Call(1,"10,100,0,3,9,3,0,0,0"));
+  Equal("3",Call(1,"10,100,0,3,22,3,0,0,0"));Equal("OK|mContractRecipeItem:2",Call(2,"10,100,0,3,9,3,0,0,0"));
+  var error=Call(2,"10,100,16,3,9,3,0,0,0");
+  if(!error.Contains("Fixture callback failure")||!error.Contains("ContractRecipeItem")||!error.Contains("Stage=Invoke"))throw new Exception(error);
+  var invalid=BunnyRecipeRuntime.Dispatch("contract",output,"ContractRecipeItem",99,0,"10,100,0,3,9,3,0,0,0");
+  if(!invalid.StartsWith("ERROR|"))throw new Exception("Unregistered handler accepted");
+ });
+ Check("buff.managed-flags-calculated-defaults",()=>{
+  string output=Path.Combine(scratch,"buffs.dll"),diag=Path.Combine(scratch,"buffs.txt");
+  Equal(1,Compiler.Compile("tests/basic_items/buff_fixture",output,runtime,diag));Equal(2,CompiledAssemblyProbe.Verify(output,diag));
+  string line=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(s=>s.StartsWith("BUFF\t"));
+  Equal("BUFF\tComputedBuff\t10\tContractProjectile\t15\t43616C63756C6174656420626F6E75733A203130\t100",line);
+ });
  Check("recipe.groups-real-source-wire",()=>{
   string root="tests/basic_items/recipe_group_fixture",output=Path.Combine(scratch,"groups.dll"),diag=Path.Combine(scratch,"groups.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
@@ -92,7 +123,7 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var benchRecipes=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t",StringComparison.Ordinal)).Split('\t')[19];
-  Equal("1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2",benchRecipes);
+  Equal("1,-1,v36:1,mExampleItem:10;1,-1,gWood:10,mExampleItem:10;1,-1,mExampleItem:10,gIronBar:2;1,-1,hExampleMaterials~416E79204578616D706C65206D6174657269616C~mExampleItem+mExampleSoul:10,gWood:10@7",benchRecipes);
   var assets=new List<object>();
   foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
       domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {

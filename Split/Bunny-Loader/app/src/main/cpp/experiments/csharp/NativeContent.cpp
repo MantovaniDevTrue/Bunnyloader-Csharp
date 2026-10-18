@@ -2,6 +2,9 @@
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedMinionBuff.h"
+#include "il2cpp/FieldContract.h"
+#include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
@@ -32,11 +35,14 @@
 #include <cstddef>
 #include <cstdio>
 #include <map>
+#include <memory>
 #include <cmath>
 #include <string>
 #include <sys/stat.h>
 
 namespace bl::csharp {
+using il2cpp::nativeFieldContract;
+using il2cpp::nativeArrayContract;
 namespace {
 
 struct NativeRefs {
@@ -109,6 +115,7 @@ struct NativeRefs {
     int playerImmune = -1;
     int playerImmuneTime = -1;
     int playerHurtCooldowns = -1;
+    int playerOwnedProjectileCounts = -1;   // opcional: so buffs de minion
     int sourceNpcOffset = -1;
     int sourceProjectileOffset = -1;
     int sourceSize = 0;
@@ -137,8 +144,15 @@ struct NativeAccessoryDefaults {
     int nativeEquipSlot = -1;
 };
 
+const MethodInfo* g_removeMinionBuff=nullptr;
+std::string g_minionBindError;
+using BuffEquipFn=void(*)(Il2CppObject*,int32_t,const MethodInfo*);
+BuffEquipFn g_originalBuffEquip=nullptr;
+bool g_buffMultipliersInstalled=false;
 struct NativeBuffDefaults {
     int defenseBonus;
+    int minionProjectileType = -1;
+    int defenseMultiplierPercent=100;
 };
 
 struct NativePotionDefaults {
@@ -207,6 +221,9 @@ bool g_deadEventDelivered = false;
 bool g_anyLifeRegen = false;
 bool g_anyManaRegen = false;
 std::map<int, NativeBuffDefaults> g_buffs;
+std::shared_ptr<const std::map<int,NativeBuffDefaults>> g_buffView=std::make_shared<const std::map<int,NativeBuffDefaults>>();
+void publishBuffDefaults(){std::atomic_store_explicit(&g_buffView,std::make_shared<const std::map<int,NativeBuffDefaults>>(g_buffs),std::memory_order_release);}
+
 std::map<int, NativePotionDefaults> g_potions;
 ItemDefaultsFn g_originalItem = nullptr;
 ProjectileDefaultsFn g_originalProjectile = nullptr;
@@ -1094,23 +1111,52 @@ void hkPlayerManaRegen(Il2CppObject* self, const MethodInfo* method) {
         BL_INFO("csharp BunnyPlayer UpdateManaRegen: bonus nativo +%d", bonus);
 }
 
-void hkUpdateBuffs(Il2CppObject* self, int32_t index, const MethodInfo* method) {
-    if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, index, method);
-    if (!self || g_buffs.empty()) return;
-    Il2CppArray* types = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffType);
-    Il2CppArray* times = bl::runtime::field<Il2CppArray*>(self, g_refs.playerBuffTime);
-    if (!types || !times) return;
-    const uintptr_t count = std::min(types->length, times->length);
-    if (count == 0 || count > 60 || index < 0 ||
-        static_cast<uintptr_t>(index) >= count) return;
-    const auto* typeValues = reinterpret_cast<const int32_t*>(arrayData(types));
-    const auto* timeValues = reinterpret_cast<const int32_t*>(arrayData(times));
-    const auto slot = static_cast<uintptr_t>(index);
-    if (timeValues[slot] <= 0) return;
-    const auto it = g_buffs.find(typeValues[slot]);
-    if (it != g_buffs.end())
-        bl::runtime::field<int32_t>(self, g_refs.playerStatDefense) +=
-            it->second.defenseBonus;
+void hkBuffEquipment(Il2CppObject* self,int32_t playerIndex,const MethodInfo* method) {
+    if(g_originalBuffEquip)g_originalBuffEquip(self,playerIndex,method);
+    if(!self)return;
+    const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
+    if(buffs->empty())return;
+    auto* types=runtime::field<Il2CppArray*>(self,g_refs.playerBuffType);
+    auto* times=runtime::field<Il2CppArray*>(self,g_refs.playerBuffTime);
+    if(!nativeArrayContract(types,"Int32",4,60)||!nativeArrayContract(times,"Int32",4,60))return;
+    const auto* ids=static_cast<const int32_t*>(arrayData(types));const auto* ticks=static_cast<const int32_t*>(arrayData(times));
+    auto& defense=runtime::field<int32_t>(self,g_refs.playerStatDefense);
+    for(size_t n=0;n<std::min(types->length,times->length);++n) {
+        if(ticks[n]<=0)continue;
+        const auto it=buffs->find(ids[n]);
+        if(it!=buffs->end()&&it->second.defenseMultiplierPercent!=100)
+            defense=static_cast<int32_t>((static_cast<int64_t>(defense)*it->second.defenseMultiplierPercent)/100);
+    }
+}
+void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* method) {
+    if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, playerIndex, method);
+    if (!self) return;
+    const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
+    if(buffs->empty())return;
+    auto* types=bl::runtime::field<Il2CppArray*>(self,g_refs.playerBuffType);
+    auto* times=bl::runtime::field<Il2CppArray*>(self,g_refs.playerBuffTime);
+    if(!nativeArrayContract(types,"Int32",4,60)||!nativeArrayContract(times,"Int32",4,60))return;
+    const auto count=std::min(types->length,times->length);
+    auto* typeValues=static_cast<int32_t*>(arrayData(types));auto* timeValues=static_cast<int32_t*>(arrayData(times));
+    // i is a PLAYER index, not a buff slot. Reverse traversal tolerates DelBuff shifting entries left.
+    visitManagedBuffSlots(typeValues,timeValues,count,[&](size_t slot) {
+        const auto it=buffs->find(typeValues[slot]);if(it==buffs->end())return;
+        bl::runtime::field<int32_t>(self,g_refs.playerStatDefense)+=it->second.defenseBonus;
+        if(it->second.minionProjectileType<0||g_refs.playerOwnedProjectileCounts<0)return;
+        int32_t owned=-1;
+        auto* counts=bl::runtime::field<Il2CppArray*>(self,g_refs.playerOwnedProjectileCounts);
+        const auto type=static_cast<uintptr_t>(it->second.minionProjectileType);
+        if(nativeArrayContract(counts,"Int32",4,65536)&&type<counts->length)owned=static_cast<int32_t*>(arrayData(counts))[type];
+        switch(decideMinionBuff(owned,timeValues[slot])) {
+        case MinionBuffAction::Refresh:timeValues[slot]=kMinionBuffTicks;break;
+        case MinionBuffAction::Remove:
+            if(g_removeMinionBuff){int32_t removeIndex=static_cast<int32_t>(slot);void* args[]={&removeIndex};Il2CppObject* error=nullptr;
+                il2cpp::api().runtime_invoke(g_removeMinionBuff,self,args,&error);
+                if(error){static unsigned failures=0;if(failures++<3)BL_ERROR("[CSharp][ERROR][Buff] ContentId=%d Key=%s Stage=RemoveMinionBuff Method=Player.DelBuff Slot=%d Reason=NativeManagedException Result=NotRemoved Exception=%s",typeValues[slot],runtime::modBuffKey(typeValues[slot]).c_str(),removeIndex,il2cpp::describeException(error).c_str());}}
+            break;
+        case MinionBuffAction::Keep:break;
+        }
+    });
 }
 
 }
@@ -1193,8 +1239,16 @@ bool prepareNativeContent() {
     r.playerHurtCooldowns = fieldOffset(player, "hurtCooldowns");
     r.playerLifeMax = fieldOffset(player, "statLifeMax2");
     if (r.playerLifeMax < 0) r.playerLifeMax = fieldOffset(player, "statLifeMax");
-    r.playerBuffType = fieldOffset(player, "buffType");
-    r.playerBuffTime = fieldOffset(player, "buffTime");
+    std::string buffFieldError;
+    if(!nativeFieldContract(player,"buffType","System.Int32[]",false,sizeof(void*),nullptr,&r.playerBuffType,&buffFieldError)||
+       !nativeFieldContract(player,"buffTime","System.Int32[]",false,sizeof(void*),nullptr,&r.playerBuffTime,&buffFieldError)||
+       !nativeFieldContract(player,"statDefense","System.Int32",false,4,nullptr,&r.playerStatDefense,&buffFieldError)) {
+        BL_ERROR("[CSharp][ERROR][Buff] API=BunnyBuff Stage=BindPlayerFields Result=Rejected Detail=%s",buffFieldError.c_str());return false;
+    }
+    g_removeMinionBuff=il2cpp::findMethodBySignature(player,il2cpp::parseSignature("void DelBuff(int b)"));
+    if(g_removeMinionBuff&&!il2cpp::api().method_is_instance(g_removeMinionBuff))g_removeMinionBuff=nullptr;
+    if(!nativeFieldContract(player,"ownedProjectileCounts","System.Int32[]",false,sizeof(void*),nullptr,&r.playerOwnedProjectileCounts,&g_minionBindError))
+        r.playerOwnedProjectileCounts=-1;
 
     const int* all = &r.itemDamage;
     for (size_t i = 0; i < offsetof(NativeRefs, itemAccessory) / sizeof(int); ++i) {
@@ -1473,10 +1527,16 @@ bool applyManagedNativeBuffDefaultsBatch(
     if (buffs.empty() && potions.empty()) return true;
     if (!g_effectsReady) return false;
     for (const auto& buff : buffs) {
+        if(buff.minionProjectileType>=0&&(g_refs.playerOwnedProjectileCounts<0||!g_removeMinionBuff)) {
+            BL_ERROR("[CSharp][ERROR][Buff] Mod=%s Class=%s ContentId=%d ProjectileId=%d API=BunnyBuff.MinionProjectile Stage=BindPlayerState Expected=Int32ArrayAndInstanceDelBuff Result=Rejected Detail=%s DelBuff=%s",
+                modId.c_str(),buff.name.c_str(),buff.type,buff.minionProjectileType,g_minionBindError.c_str(),g_removeMinionBuff?"Present":"MissingOrWrongSignature");return false;
+        }
         const auto it = g_buffs.find(buff.type);
         if (it == g_buffs.end() ||
             bl::runtime::modBuffTypeByName(modId, buff.name) != buff.type ||
-            buff.defenseBonus < -50 || buff.defenseBonus > 100)
+            buff.defenseBonus < -50 || buff.defenseBonus > 100 ||
+            (buff.minionProjectileType >= 0 &&
+             (!bl::runtime::isModProjectile(buff.minionProjectileType)||(g_refs.playerOwnedProjectileCounts<0||!g_removeMinionBuff))))
             return false;
     }
     for (const auto& potion : potions) {
@@ -1487,10 +1547,34 @@ bool applyManagedNativeBuffDefaultsBatch(
             potion.duration < 1 || potion.duration > 216000)
             return false;
     }
-    for (const auto& buff : buffs)
+    bool needsMultiplier=false;
+    for(const auto& buff:buffs){
+        if(buff.defenseMultiplierPercent<0||buff.defenseMultiplierPercent>100)return false;
+        needsMultiplier=needsMultiplier||buff.defenseMultiplierPercent!=100;
+    }
+    if(needsMultiplier&&!g_buffMultipliersInstalled){
+        auto* player=il2cpp::findClass({"Terraria","Player",{}});
+        auto* equip=il2cpp::findMethodBySignature(player,il2cpp::parseSignature("void UpdateEquips(int i)"));
+        if(!equip||!il2cpp::api().method_is_instance(equip)||!hook::install(equip,hkBuffEquipment,&g_originalBuffEquip)) {
+            BL_ERROR("[CSharp][ERROR][Buff] Mod=%s API=BunnyBuff.DefenseMultiplierPercent Method=Player.UpdateEquips Stage=InstallHook Result=Rejected Reason=NativeSignatureOrHookMismatch",modId.c_str());return false;
+        }
+        g_buffMultipliersInstalled=true;
+    }
+    for (const auto& buff : buffs) {
+        if(buff.flags>=0) {
+            std::string error;
+            if(!runtime::updateModBuffDefaults(modId,buff.type,buff.flags,buff.description,&error)) {
+                BL_ERROR("[CSharp][ERROR][Buff] Mod=%s Class=%s ContentId=%d API=BunnyBuff Stage=ApplyManagedDefaults Result=Rejected Detail=%s",
+                    modId.c_str(),buff.name.c_str(),buff.type,error.c_str());return false;
+            }
+        }
         g_buffs[buff.type].defenseBonus = buff.defenseBonus;
+        g_buffs[buff.type].minionProjectileType = buff.minionProjectileType;
+        g_buffs[buff.type].defenseMultiplierPercent=buff.defenseMultiplierPercent;
+    }
     for (const auto& potion : potions)
         g_potions[potion.type].duration = potion.duration;
+    publishBuffDefaults();
     BL_INFO("csharp native: managed buffs applied for %s (%zu buffs, %zu potions)",
             modId.c_str(), buffs.size(), potions.size());
     return true;
@@ -2145,9 +2229,15 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.name = spec->name;
         def.texture = path;
         def.names.push_back({"", display});
+        def.managedFlags = true;
+        def.debuff = (spec->flags & kNativeBuffDebuff) != 0;
+        def.noSave = (spec->flags & kNativeBuffNoSave) != 0;
+        def.noTimeDisplay = (spec->flags & kNativeBuffNoTimeDisplay) != 0;
+        def.nurseCannotRemove=(spec->flags & kNativeBuffNurseCannotRemove)!=0;
         const int type = bl::runtime::registerModBuff(std::move(def));
         if (type >= 0) {
             g_buffs[type] = {spec->damage};
+            publishBuffDefaults();
             if (ctx.firstBuffType < 0) ctx.firstBuffType = type;
             ++ctx.buffs;
         }

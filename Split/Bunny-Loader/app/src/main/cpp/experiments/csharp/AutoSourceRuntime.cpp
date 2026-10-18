@@ -1,3 +1,5 @@
+#include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
@@ -855,6 +857,21 @@ void run() {
                     BL_WARN("csharp auto %s: cache recompilado nao foi gravado",mod.id.c_str());
                 note(&status,"applying");
                 defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
+            }
+        }
+        if (defaultsApplied) {
+            bindNativeRecipeAssembly(mod.id,assembly);
+            static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
+            runtime::setRecipeCallbackProvider(&provider);
+            if(hasManagedRecipeCallbacks(mod.id)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+                const auto probe=work+"BunnyManagedProbe.dll";
+                g_runtimeWarming.store(true,std::memory_order_release);
+                std::thread([probe]{
+                    const auto state=probeManagedRuntimePinnedThread(probe,"PINNED_MONO");
+                    if(!state.methodExecuted||state.result!=42)
+                        BL_ERROR("[CSharp][ERROR][RecipeCallback] Stage=InitializeMonoWorker Probe=%s Result=Pending Phase=%s Detail=%s",probe.c_str(),state.phase.c_str(),state.error.c_str());
+                    g_runtimeWarming.store(false,std::memory_order_release);
+                }).detach();
             }
         }
         if (!defaultsApplied) {

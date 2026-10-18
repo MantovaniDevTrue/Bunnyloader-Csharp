@@ -83,3 +83,11 @@ A bancada C# ja existe; AddTile por si so nao registra um tile. Equipamentos e
 outros sistemas conservam seus contratos e auditorias de independencia proprios.
 Receitas acima do limite nativo do menu ainda sao recusadas com diagnostico;
 nao se presume que hooks do RecipeLoader JavaScript estejam disponiveis ao C#.
+
+## Evolução .90 / ExampleMod 0.1.49
+
+As três receitas acima estão preservadas. A quarta receita adiciona um grupo
+personalizado, uma condição C# e callbacks reais. Leia
+[BUFFS_E_RECEITAS_V90.md](BUFFS_E_RECEITAS_V90.md) e os comentários na ExampleWorkbench.
+A tabela de limitações anterior descreve a entrega .89; o novo guia distingue o
+que foi implementado na .90 do que permanece pendente.

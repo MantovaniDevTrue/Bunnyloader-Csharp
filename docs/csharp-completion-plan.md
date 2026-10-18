@@ -261,3 +261,19 @@ O usuario confirmou que o fluxo entregue funcionou perfeitamente no Xiaomi. Rela
 A primeira compilacao em ate cinco segundos continua pendente: o snapshot historico, de outro processo, registra nativeWallMs=6254; CompileMs=0 da sessao atual significa cache. Nao misturar a reutilizacao/verificacao do worker com compilacao fria.
 
 Proxima implementacao: investigar e ampliar grupos customizados/registro de membros e as demais lacunas de receitas oficiais usando servicos nativos independentes, preservando este checkpoint validado. Nao recriar a bancada, receitas originais, equipamentos ou sistemas ja funcionais. Manter todos os arquivos oficiais/JS contabilizados; Lote A e Content/ExampleRecipes.cs continuam parciais.
+
+
+## Checkpoint em andamento .90 — PR86 e receitas gerenciadas
+
+Branch feat/csharp-buff-recipes-v90 deriva da .89 validada. Implementa flags e
+descrições executadas pelo C#, correção de todos os slots de buffs, DelBuff real,
+imunidade à enfermeira, multiplicador de defesa pós-equipamentos, grupos
+personalizados e callbacks/condições por worker Mono. ExampleMod 0.1.49 contém
+receita da bancada C# e demonstração de debuff/poção. [Relatório e contratos](csharp-buffs-recipes-v90.md).
+
+O conjunto solicitado NÃO está concluído. Continuar obrigatoriamente minion/cajado/
+contador, Blocky/costume, montaria/carrinho, tooltip temporal e os mecanismos de
+receitas ainda listados no relatório. Não são bloqueios comprovados do Android.
+A matriz JS e os 449 fontes ativos/112 legados oficiais continuam preservados.
+Host: 26 verificações gerenciadas e contratos nativos passaram. CI e Android devem
+ser registrados separadamente; a .90 é experimental WIP, não conclusão do Lote A.

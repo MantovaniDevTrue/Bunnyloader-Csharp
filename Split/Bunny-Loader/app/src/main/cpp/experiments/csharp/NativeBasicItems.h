@@ -31,6 +31,7 @@ std::vector<PendingBasicRecipe> pendingBasicRecipes();
 bool acknowledgeBasicRecipe(const std::string& id,int index);
 bool reportBasicRecipeError(const std::string& id,const std::string& error);
 // Native game-update calls only if a batch is pending; no Mono or JS per frame.
+bool hasManagedRecipeCallbacks(const std::string& modId);
 void pumpBasicRecipesOnGameThread();
 void requestBasicItemInstanceRefresh(const char* reason = "Unspecified");
 }

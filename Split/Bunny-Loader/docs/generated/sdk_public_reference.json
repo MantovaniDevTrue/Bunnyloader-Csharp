@@ -202,8 +202,15 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "bool IsDebuff { get; set; }",
+        "bool NoSave { get; set; }",
+        "bool NoTimeDisplay { get; set; }",
+        "bool NurseCannotRemove { get; set; }",
         "int DefenseBonus { get; set; }",
+        "int DefenseMultiplierPercent { get; set; }",
+        "string Description { get; set; }",
         "string DisplayName { get; set; }",
+        "string MinionProjectile { get; set; }",
         "string Texture { get; set; }"
       ],
       "values": [],
@@ -339,6 +346,38 @@
         "Prefix"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyCraftContext",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool InDesert { get; }",
+        "bool InSnow { get; }",
+        "bool IsDay { get; }",
+        "bool NearWater { get; }",
+        "bool QuickCraft { get; }",
+        "int AvailableIngredientCount { get; }",
+        "int CurrentLife { get; }",
+        "int MaxLife { get; }",
+        "int ResultType { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void GiveItem(int vanillaItemId, int count)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void GiveItem(string modItemName, int count)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void GiveItem\u003CTItem\u003E(int count)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyDodgeHook",
@@ -1446,6 +1485,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "BunnyRecipe AddIngredient(int vanillaItemId, int count)",
           "execution": "managed_helper"
         },
@@ -1459,6 +1506,14 @@
         },
         {
           "signature": "BunnyRecipe AddNativeRecipeGroup(string groupField, int count)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipe AddRecipeGroup(BunnyRecipeGroup group, int count)",
           "execution": "managed_helper"
         },
         {
@@ -1494,7 +1549,52 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool RemoveRecipeGroup(string localGroupName)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void Register()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeGroup",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyRecipeGroup(string name, string displayName)"
+      ],
+      "properties": [
+        "string DisplayName { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyRecipeGroup AddItem(int vanillaItemId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipeGroup AddItem(string modItemName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRecipeRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
           "execution": "managed_helper"
         }
       ]

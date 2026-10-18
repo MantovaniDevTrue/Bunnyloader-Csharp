@@ -29,10 +29,19 @@ struct ModBuffDef {
     std::string texture;   // caminho absoluto do PNG (32x32 no jogo)
     std::vector<std::pair<std::string, std::string>> names;          // "pt-BR" -> nome
     std::vector<std::pair<std::string, std::string>> descriptions;   // "pt-BR" -> descricao
+    bool managedFlags = false;
+    bool debuff = false;          // Main.debuff[type]
+    bool noSave = false;          // Main.buffNoSave[type]
+    bool nurseCannotRemove = false;
+    bool noTimeDisplay = false;   // Main.buffNoTimeDisplay[type]
 };
 
 /** Reserva o proximo id. THREAD-SAFE. -1 se o mesmo mod ja registrou esse nome. */
 int registerModBuff(ModBuffDef def);
+// Managed defaults are stored for regrowth and applied through the shared native registry.
+// Returns the actual contract failure; the caller must not acknowledge rejected defaults.
+bool updateModBuffDefaults(const std::string& mod,int type,int flags,
+                           const std::string& description,std::string* error);
 
 bool isModBuff(int type);
 

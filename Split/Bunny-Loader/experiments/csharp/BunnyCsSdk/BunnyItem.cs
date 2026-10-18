@@ -84,6 +84,24 @@ public sealed class BunnyRecipe
     private string station = "-1";
     private bool registered;
     private readonly List<string> ingredients = new();
+    private readonly List<(string Description,Func<BunnyCraftContext,bool> Predicate)> conditions=new();
+    private readonly List<Func<BunnyCraftContext,int,int,int>> consume=new();
+    private readonly List<Action<BunnyCraftContext>> crafted=new();
+    public BunnyRecipe AddCondition(string description,Func<BunnyCraftContext,bool> predicate)
+    {
+        Mutable();ArgumentNullException.ThrowIfNull(predicate);
+        if(string.IsNullOrWhiteSpace(description)||description.Length>256||conditions.Count>=32)throw new ArgumentException("Expected condition description and at most 32 predicates",nameof(description));
+        conditions.Add((description,predicate));return this;
+    }
+    public BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext,int,int,int> callback)
+    { Mutable();ArgumentNullException.ThrowIfNull(callback);if(consume.Count>=16)throw new InvalidOperationException("Callback limit 16");consume.Add(callback);return this; }
+    public BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)
+    { Mutable();ArgumentNullException.ThrowIfNull(callback);if(crafted.Count>=16)throw new InvalidOperationException("Callback limit 16");crafted.Add(callback);return this; }
+    internal bool IsAvailable(BunnyCraftContext context) => conditions.All(c=>c.Predicate(context));
+    internal int Consume(BunnyCraftContext context,int type,int amount)
+    { int limit=Math.Max(amount,context.AvailableIngredientCount);foreach(var callback in consume)amount=Math.Clamp(callback(context,type,amount),0,limit);return amount; }
+    internal void Crafted(BunnyCraftContext context) { foreach(var callback in crafted)callback(context); }
+
     internal BunnyRecipe(BunnyItem owner, int stack)
     { this.owner=owner; this.stack=Amount(stack); }
     public BunnyRecipe AddIngredient(int vanillaItemId, int count = 1)
@@ -108,6 +126,15 @@ public sealed class BunnyRecipe
         if(ingredients.Any(token=>token.StartsWith(key+":",StringComparison.Ordinal)))
             throw new InvalidOperationException("[CSharp][ERROR][Recipe] API=BunnyRecipe.AddNativeRecipeGroup Group="+groupField+
                 " Stage=ValidateGroup Reason=DuplicateRecipeGroup Result=Rejected");
+        return Ingredient(key,count);
+    }
+    /// <summary>Snapshot de um grupo personalizado; membros são resolvidos por identidade no núcleo.</summary>
+    public BunnyRecipe AddRecipeGroup(BunnyRecipeGroup group, int count = 1)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        string key=group.Definition();
+        if(ingredients.Any(token=>token.StartsWith("h"+group.Name+"~",StringComparison.Ordinal)))
+            throw new InvalidOperationException("Duplicate recipe group: "+group.Name);
         return Ingredient(key,count);
     }
     private static string NativeGroupKey(string groupField,string api)
@@ -148,7 +175,7 @@ public sealed class BunnyRecipe
     public BunnyRecipe Clone()
     {
         var copy=new BunnyRecipe(owner,stack){station=station};
-        copy.ingredients.AddRange(ingredients);return copy;
+        copy.ingredients.AddRange(ingredients);copy.conditions.AddRange(conditions);copy.consume.AddRange(consume);copy.crafted.AddRange(crafted);return copy;
     }
     public bool RemoveIngredient(int vanillaItemId)
     {
@@ -162,6 +189,12 @@ public sealed class BunnyRecipe
     }
     public bool RemoveIngredient<TItem>() where TItem : class
         => RemoveIngredient(BunnyContentKey.TypeName(typeof(TItem),false,"BunnyRecipe.RemoveIngredient<TItem>"));
+    public bool RemoveRecipeGroup(string localGroupName)
+    {
+        Mutable();BunnyContentKey.Validate(localGroupName,nameof(localGroupName),"BunnyRecipe.RemoveRecipeGroup");
+        if(localGroupName.Contains('/'))throw new ArgumentException("Expected a local group name",nameof(localGroupName));
+        return ingredients.RemoveAll(token=>token.StartsWith("h"+localGroupName+"~",StringComparison.Ordinal))>0;
+    }
     public bool RemoveNativeRecipeGroup(string groupField)
         => RemoveKey(NativeGroupKey(groupField,"BunnyRecipe.RemoveNativeRecipeGroup"));
     private bool RemoveKey(string key)
@@ -173,8 +206,10 @@ public sealed class BunnyRecipe
         if (stack>owner.MaxStack) throw new InvalidOperationException("Resultado excede MaxStack de "+owner.GetType().Name);
         // Nao e um sucesso simulado: o descritor entra nos defaults transferidos
         // ao host. O nucleo resolve IDs, registra Recipe e confirma seus lookups.
+        int callbacks=(conditions.Count>0?1:0)|(consume.Count>0?2:0)|(crafted.Count>0?4:0);
         owner.RecordRecipe(stack.ToString(CultureInfo.InvariantCulture)+","+
-            station+","+string.Join(",",ingredients));
+            station+","+string.Join(",",ingredients)+(callbacks==0?"":"@"+callbacks.ToString(CultureInfo.InvariantCulture)));
+        BunnyRecipeRuntime.Capture(this);
         registered=true;
     }
     private void Mutable() { if(registered) throw new InvalidOperationException("Receita ja registrada"); }

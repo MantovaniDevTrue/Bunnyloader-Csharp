@@ -3,10 +3,11 @@
 #include <vector>
 
 namespace bl::runtime {
-struct RecipeIngredient { int type=-1, count=1; std::string key; std::string nativeGroup{}; };
+struct RecipeIngredient { int type=-1, count=1; std::string key; std::string nativeGroup{}; std::string customGroup{}, groupDescription{}; std::vector<std::string> groupMembers{}; };
 struct NativeRecipeRequest {
     std::string key, mod, name, source;
     int result=-1, stack=1, station=-1;
+    int callbacks=0;
     std::string stationKey;
     std::vector<RecipeIngredient> ingredients;
 };

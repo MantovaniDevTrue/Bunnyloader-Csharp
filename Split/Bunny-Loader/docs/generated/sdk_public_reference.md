@@ -114,8 +114,15 @@ BunnyBeforeHurtHook(Object object, IntPtr method)
 abstract class; base: `System.Object`.
 
 ```csharp
+bool IsDebuff { get; set; }
+bool NoSave { get; set; }
+bool NoTimeDisplay { get; set; }
+bool NurseCannotRemove { get; set; }
 int DefenseBonus { get; set; }
+int DefenseMultiplierPercent { get; set; }
+string Description { get; set; }
 string DisplayName { get; set; }
+string MinionProjectile { get; set; }
 string Texture { get; set; }
 ```
 
@@ -185,6 +192,28 @@ string Texture { get; }
 enum; base: `System.Enum`.
 
 Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+
+## BunnyLoader.Source.BunnyCraftContext
+
+class; base: `System.Object`.
+
+```csharp
+bool InDesert { get; }
+bool InSnow { get; }
+bool IsDay { get; }
+bool NearWater { get; }
+bool QuickCraft { get; }
+int AvailableIngredientCount { get; }
+int CurrentLife { get; }
+int MaxLife { get; }
+int ResultType { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void GiveItem(int vanillaItemId, int count)` | managed_helper |
+| `void GiveItem(string modItemName, int count)` | managed_helper |
+| `void GiveItem<TItem>(int count)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyDodgeHook
 
@@ -781,10 +810,14 @@ class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)` | managed_helper |
+| `BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)` | managed_helper |
 | `BunnyRecipe AddIngredient(int vanillaItemId, int count)` | managed_helper |
 | `BunnyRecipe AddIngredient(string modItemName, int count)` | managed_helper |
 | `BunnyRecipe AddIngredient<TItem>(int count)` | managed_helper |
 | `BunnyRecipe AddNativeRecipeGroup(string groupField, int count)` | managed_helper |
+| `BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)` | managed_helper |
+| `BunnyRecipe AddRecipeGroup(BunnyRecipeGroup group, int count)` | managed_helper |
 | `BunnyRecipe AddTile(int vanillaTileId)` | managed_helper |
 | `BunnyRecipe AddTile(string modTileName)` | managed_helper |
 | `BunnyRecipe AddTile<TTile>()` | managed_helper |
@@ -793,7 +826,32 @@ class; base: `System.Object`.
 | `bool RemoveIngredient(string modItemName)` | managed_helper |
 | `bool RemoveIngredient<TItem>()` | managed_helper |
 | `bool RemoveNativeRecipeGroup(string groupField)` | managed_helper |
+| `bool RemoveRecipeGroup(string localGroupName)` | managed_helper |
 | `void Register()` | managed_helper |
+
+## BunnyLoader.Source.BunnyRecipeGroup
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRecipeGroup(string name, string displayName)
+string DisplayName { get; }
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyRecipeGroup AddItem(int vanillaItemId)` | managed_helper |
+| `BunnyRecipeGroup AddItem(string modItemName)` | managed_helper |
+| `BunnyRecipeGroup AddItem<TItem>()` | managed_helper |
+
+## BunnyLoader.Source.BunnyRecipeRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyRectangle
 

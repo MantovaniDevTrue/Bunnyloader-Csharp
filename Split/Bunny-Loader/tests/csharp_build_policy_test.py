@@ -35,3 +35,7 @@ assert max(map(len, expressions)) < 2000, "GitHub expression growth: move branch
 gate = re.search(r"contains\(fromJSON\('(.*?)'\), github.head_ref\)", workflow)
 assert gate and json.loads(gate[1]) == module.POLICY["android_pr"]
 print("CSHARP_BUILD_POLICY_EVENTS_REFS_FORKS_OUTPUT_AND_EXPRESSION_LIMIT=PASS")
+
+# GitHub also limits the expanded literal of each interpolated step, not only expressions.
+run_blocks=re.findall(r"(?m)^        run: \|\n((?: {10}.*\n|\n)*)",workflow)
+assert max((len(block) for block in run_blocks if '${{' in block),default=0)<18000, 'Extract large interpolated run steps before GitHub 21000 limit'

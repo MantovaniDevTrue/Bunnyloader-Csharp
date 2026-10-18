@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/csharp-native-recipe-groups-v89
+      - feat/csharp-buff-recipes-v90
       - fix/csharp-88-8-lights-review
       - codex/lot-a-complete-v90-29
       - codex/example-completion-v90-28

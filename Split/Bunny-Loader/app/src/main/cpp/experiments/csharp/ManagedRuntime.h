@@ -11,6 +11,11 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+bool managedRecipeRuntimeReady();
+// Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
+bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+                         const std::string& owner,int index,int kind,const std::string& snapshot,
+                         std::string* output,int budgetMicroseconds=3000);
 struct ManagedScreenLightResult {
     float sunX = 0, sunY = 0, clock = 0, strength = 0;
     float shadowThreshold = 0;

@@ -167,7 +167,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
         if (accessory && key == "VisualTexture") {
-            if (value.empty() || value.size() > 180 ||
+            if (value.empty() || value.size() > 512 ||
                 value.front() == '/' || value.find("..") != std::string::npos ||
                 value.find(static_cast<char>(92)) != std::string::npos ||
                 value.find(':') != std::string::npos ||
@@ -202,6 +202,19 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             continue;
         }
 
+        if (buff && (key == "MinionProjectile" || key == "DefenseMultiplierPercent")) continue;  // validado na linha V2 apos o Mono
+        if (buff && (key == "Description" || key == "IsDebuff" ||
+                     key == "NoSave" || key == "NoTimeDisplay" || key == "NurseCannotRemove")) {
+            const bool text = key == "Description";
+            const bool badText = text && (value.size() > 512 ||
+                std::any_of(value.begin(), value.end(),
+                    [](unsigned char c) { return (c < 32 && c != 10) || c == 127; }));
+            if ((!text && value != "true" && value != "false") || badText) {
+                *error = type.name + ": valor invalido em " + key;
+                return false;
+            }
+            continue;
+        }
         if (weapon && key == "Shoot") { *shoot = value; continue; }
         if (potion && key == "Buff") { *shoot = value; continue; }
         if (key == "Friendly" && projectile) {
@@ -351,6 +364,16 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 spec.shootType = it->second;
+            }
+            if (base == "BunnyBuff") {
+                auto flag = [&](const char* key) {
+                    const auto it = def.properties.find(key);
+                    return it != def.properties.end() && it->second == "true";
+                };
+                spec.flags = (flag("IsDebuff") ? kNativeBuffDebuff : 0) |
+                             (flag("NoSave") ? kNativeBuffNoSave : 0) |
+                             (flag("NoTimeDisplay") ? kNativeBuffNoTimeDisplay : 0) | (flag("NurseCannotRemove") ? kNativeBuffNurseCannotRemove : 0);
+
             }
             spec.name = def.name.c_str();
             spec.texture = texture.c_str();
@@ -832,7 +855,7 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             npcs.push_back(std::move(record));
-        } else if (fields[0] == "BUFF" && fields.size() == 3) {
+        } else if (fields[0] == "BUFF" && (fields.size() == 3 || fields.size() == 4 || fields.size() == 6 || fields.size() == 7)) {
             ManagedBuffEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -841,6 +864,29 @@ bool applyManagedSourceDefaults(
                 runtime::modBuffTypeByName(modId, record.name) != record.type) {
                 *error = "Valores invalidos de buff C#: " + record.name;
                 return false;
+            }
+            if (fields.size() >= 4 && fields[3] != "-") {
+                const auto minion = projectilesByName.find(fields[3]);
+                if (minion == projectilesByName.end()) {
+                    *error = "[CSharp][ERROR][Buff] Mod="+modId+" Class="+record.name+" API=BunnyBuff.MinionProjectile Stage=ResolveProjectile Expected=RegisteredLocalProjectile Actual="+fields[3]+" Result=Rejected Reason=MissingDependency";
+                    return false;
+                }
+                record.minionProjectileType = minion->second;
+            }
+            if(fields.size()>=6) {
+                if(!integer(fields[4],&record.flags)||record.flags<0||record.flags>15){*error="[CSharp][ERROR][Buff] Mod="+modId+" Class="+record.name+" Field=Flags Expected=0..15 Actual="+fields[4]+" Reason=InvalidFlags";return false;}
+                if(fields[5]!="-") {
+                    const auto& hex=fields[5];
+                    if(hex.size()%2||hex.size()>1024){*error=record.name+": Field=Description Reason=InvalidHexLength";return false;}
+                    auto nibble=[](char c)->int{return c>='0'&&c<='9'?c-'0':c>='A'&&c<='F'?c-'A'+10:c>='a'&&c<='f'?c-'a'+10:-1;};
+                    for(size_t n=0;n<hex.size();n+=2){int a=nibble(hex[n]),b=nibble(hex[n+1]);
+                        if(a<0||b<0||((a<<4)|b)==0||((a<<4)|b)==127||(((a<<4)|b)<32&&((a<<4)|b)!=10)){*error=record.name+": Field=Description Reason=InvalidDescriptionHex";return false;}
+                        record.description+=static_cast<char>((a<<4)|b);
+                    }
+                }
+            }
+            if(fields.size()==7&&(!integer(fields[6],&record.defenseMultiplierPercent)||record.defenseMultiplierPercent<0||record.defenseMultiplierPercent>100)) {
+                *error="[CSharp][ERROR][Buff] Mod="+modId+" Class="+record.name+" Field=DefenseMultiplierPercent Expected=0..100 Actual="+fields[6]+" Reason=InvalidMultiplier";return false;
             }
             buffsByName[record.name] = record.type;
             buffs.push_back(std::move(record));
