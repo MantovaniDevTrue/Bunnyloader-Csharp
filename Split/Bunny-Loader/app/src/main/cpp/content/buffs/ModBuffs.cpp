@@ -45,6 +45,8 @@ struct Refs {
     FieldInfo* names = nullptr;          // Lang._buffNameCache
     FieldInfo* descriptions = nullptr;   // Lang._buffDescriptionCache
     FieldInfo* noSave = nullptr;         // Main.buffNoSave
+    FieldInfo* debuff = nullptr;         // Main.debuff (opcional)
+    FieldInfo* noTimeDisplay = nullptr;  // Main.buffNoTimeDisplay (opcional)
     FieldInfo* players = nullptr;        // Main.player
     FieldInfo* npcs = nullptr;           // Main.npc
     int32_t playerImmune = -1, npcImmune = -1;   // buffImmune
@@ -68,6 +70,8 @@ Refs& refs() {
     r.names = lang ? findField(lang, "_buffNameCache") : nullptr;
     r.descriptions = lang ? findField(lang, "_buffDescriptionCache") : nullptr;
     r.noSave = main ? findField(main, "buffNoSave") : nullptr;
+    r.debuff = main ? findField(main, "debuff") : nullptr;
+    r.noTimeDisplay = main ? findField(main, "buffNoTimeDisplay") : nullptr;
     r.players = main ? findField(main, "player") : nullptr;
     r.npcs = main ? findField(main, "npc") : nullptr;
     r.playerImmune = player ? fieldOffset(player, "buffImmune") : -1;
@@ -104,6 +108,21 @@ void applyTexts(int type, const Entry& e) {
     }
 }
 
+void setFlag(FieldInfo* table, int type, bool value) {
+    if (!table || !value) return;
+    Il2CppArray* arr = readStatic(table);
+    if (arr && type >= 0 && static_cast<uintptr_t>(type) < arr->length)
+        static_cast<uint8_t*>(arrayData(arr))[type] = 1;
+}
+
+/** Main.debuff / buffNoSave / buffNoTimeDisplay do buff de mod, vindos do codigo C#. */
+void applyFlags(int type, const Entry& e) {
+    const Refs& r = refs();
+    setFlag(r.debuff, type, e.def.debuff);
+    setFlag(r.noSave, type, e.def.noSave);
+    setFlag(r.noTimeDisplay, type, e.def.noTimeDisplay);
+}
+
 void applyTexture(int type, const Entry& e) {
     Il2CppObject* asset = e.asset ? il2cpp::api().gchandle_get_target(e.asset) : nullptr;
     if (asset) content::setTableElement(refs().textures, type, asset);
@@ -117,6 +136,7 @@ void onTableRegrown(FieldInfo* f, int size) {
         const int type = kVanillaBuffCount + static_cast<int>(i);
         if (f == r.names || f == r.descriptions) applyTexts(type, g_regs[i]);
         if (f == r.textures) applyTexture(type, g_regs[i]);
+        if (f == r.debuff || f == r.noSave || f == r.noTimeDisplay) applyFlags(type, g_regs[i]);
     }
 }
 
@@ -304,6 +324,7 @@ void tickModBuffs() {
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             applyTexture(type, e);
             applyTexts(type, e);
+            applyFlags(type, e);
         }
     }
     BL_INFO("buffs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",

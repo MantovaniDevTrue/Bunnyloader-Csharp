@@ -31,8 +31,13 @@ struct NativeContentSpec {
     int32_t aiStyle;
     int32_t penetrate;
     int32_t timeLeft;
-    int32_t flags;
+    int32_t flags;            // NativeBuff: kBuffDebuff | kBuffNoSave | kBuffNoTimeDisplay
+    const char* description = nullptr;   // NativeBuff: dica ja com "{0}" resolvido
 };
+
+constexpr int32_t kNativeBuffDebuff = 1;
+constexpr int32_t kNativeBuffNoSave = 2;
+constexpr int32_t kNativeBuffNoTimeDisplay = 4;
 
 struct NativeRegisterContext {
     std::string modId;
@@ -111,6 +116,7 @@ struct ManagedBuffEntry {
     std::string name;
     int type = -1;
     int defenseBonus = 0;
+    int minionProjectileType = -1;   // >= 0: buff de minion (renovado/removido pelo host)
 };
 
 struct ManagedPotionEntry {
