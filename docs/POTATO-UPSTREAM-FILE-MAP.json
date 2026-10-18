@@ -10,19 +10,25 @@
     "repository": "MantovaniDevTrue/Bunnyloader-Csharp",
     "branch": "handoff/potato-bunny-csharp-20261018",
     "referenceSourceCommit": "a222d945683ac73fd65eace85c0bbef96286645a",
-    "sourceRoot": "Split/Bunny-Loader/"
+    "sourceRoot": "Split/Bunny-Loader/",
+    "sourceTreeSha": "43087147dad25b79d99bda3c5e1b3a7d61ba3e36"
   },
   "method": "Recursive complete Git tree comparison by SHA-1 blob OID; mode and behavior compatibility not guaranteed. Diff includes assets, docs and code.",
   "summary": {
     "upstreamFiles": 2024,
-    "portFiles": 2760,
-    "identical": 1949,
-    "modified": 75,
-    "portOnly": 736,
+    "portFiles": 2761,
+    "identical": 1948,
+    "modified": 76,
+    "portOnly": 737,
     "upstreamMissing": 0
   },
   "missingUpstreamFiles": [],
   "modifiedFiles": [
+    {
+      "path": "README.md",
+      "sourceBlob": "7c53246f8b67624ca968414a2e22415c0fcb3ddb",
+      "upstreamBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
+    },
     {
       "path": "app/build.gradle.kts",
       "sourceBlob": "dc4c7783579a038813c4ff638f1ed6f856528040",
@@ -400,6 +406,10 @@
     }
   ],
   "portOnlyFiles": [
+    {
+      "path": "POTATO-C-SHARP-HANDOFF.md",
+      "sourceBlob": "23e7e7de6fbe2823757c2f85548aa0c45fa941af"
+    },
     {
       "path": "app/src/main/cpp/content/items/ItemRegistry.cpp",
       "sourceBlob": "bc8226bfac07c529ab48bfe7f9fcde7c351eefc9"
