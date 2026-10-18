@@ -241,6 +241,28 @@ int main(int argc,char** argv){
   assert(roots.size()==1&&numRecipes==2);
   std::cout<<"CUSTOM_GROUP_INSTANCE_VOID_REGISTER_PASS\n";return 0;
  }
+ if(mode=="--custom-return-alternate"||mode=="--custom-return-invalid"||mode=="--custom-int-register") {
+  if(mode=="--custom-int-register") {
+   methods.erase("RecipeGroup Register()");
+   methods.emplace("int Register()",MethodInfo{"int Register()",true});
+  }
+  alternateRegisterObject=mode=="--custom-return-alternate";
+  failRegisterReturn=mode=="--custom-return-invalid";
+  numRecipes=1;auto grouped=request("CustomBench");
+  RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
+  ingredient.groupMembers={"v9","mMaterial"};grouped.ingredients={ingredient};
+  auto result=installNativeRecipe(grouped);
+  if(failRegisterReturn) {
+   assert(result.index<0&&result.error.find("InvalidRegisterReturn")!=std::string::npos);
+   assert(roots.empty()&&numRecipes==1&&commits==0&&customSorts==0);
+  }else{
+   assert(result.index==1&&numRecipes==2&&commits==1&&roots.size()==1&&customSorts==1);
+   auto** recipes=static_cast<Recipe**>(arrayData(table));
+   auto* group=static_cast<NativeGroup*>(static_cast<void*>(recipes[1]->groups.at(0)));
+   assert(group->members.size()==2&&group->members[0]==9&&group->members[1]==kVanillaItemCount);
+  }
+  std::cout<<"CUSTOM_GROUP_RETURN_VARIANTS_PASS\n";return 0;
+ }
  if(mode=="--custom-groups") {
   numRecipes=1;auto grouped=request("CustomBench");
   RecipeIngredient ingredient;ingredient.count=3;ingredient.customGroup="AnyMaterial";ingredient.groupDescription="Any material";
