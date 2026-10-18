@@ -1,5 +1,24 @@
 # Independencia C# — auditoria e checkpoint .90.29.1
 
+## Continuidade .93 — política própria de projéteis
+
+Base .90.5/PR94 integrada com .92/PR93 sem reverter commits. A seleção de alvo,
+a animação e a aplicação de velocidade usam NativeContent/ManagedProjectileHook
+→ serviços de conteúdo/Terraria; AI executa no worker MonoVM. Esta expansão não
+executa JS para o novo percurso. O registro compartilhado de quadros é atualizado
+na aplicação do lote, conservando contagem/medidas nas reconstruções de tabelas.
+
+Políticas públicas AnimationFrameTicks/MinionScanTicks/MinionTargetRange são
+validadas pelo compilador e decoder, cacheadas por instância e aplicadas nativamente.
+BunnyMinionMovement é um algoritmo C# reutilizável, não uma ponte simulada.
+Os contratos dos campos novos e da tabela de frames são verificados antes de uso;
+o scanner valida NPC.active/friendly/life, dontTakeDamage quando presente, e o
+rank/tipo da tabela NPC. Os testes usam metadata controlada no host e não comprovam
+execução Android. Nenhuma certificação nova de independência dos equipamentos ou
+de todos os demais módulos é inferida disso. Seguem as lacunas de fidelidade do
+minion e dos demais loaders em [csharp-loaders-v93.md](csharp-loaders-v93.md).
+
+
 ## Continuidade .90.29.92 — loaders próprios
 
 As seções abaixo são o histórico da auditoria, não o estado atual da bancada.

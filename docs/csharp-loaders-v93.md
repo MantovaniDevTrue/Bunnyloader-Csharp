@@ -7,7 +7,7 @@ Build mais recente examinada: .90.5, fonte
 Integração por merge com `3cfffc52b3a560561c75326e596a745916e539f7` (.92/PR93),
 sem descartar os commits das duas branches. Commit de merge `e73746d9`.
 Branch `feat/csharp-owned-loaders-v93`; Bunny .90.29.93/code268,
-ExampleMod0.1.52; Lights0.4.2.3 preservado. A última build .90.5 não incluía
+ExampleMod0.1.52; Lights0.4.2.3 preservado. O pacote contém71fontes editáveis,48classes e15receitas no wire. A última build .90.5 não incluía
 as receitas comuns .92: agora os dois percursos estão na mesma fonte.
 
 ## Funcionalidades novas
@@ -56,3 +56,15 @@ Demais loaders continuam no escopo, sem criar classes vazias para inflar cobertu
 
 Teste Android: guia `PROJECTILE_LOADER_V93.md` incluído no bmod. Use apenas
 conteúdo do ExampleMod: bancada, material, cajado/minion/buff e receitas da .92.
+
+
+## Próximos passos concretos
+
+Preservar o [PR96](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/96)
+e este merge ao integrar na linha principal. Validar o guia Android sem o probe
+antigo. Seguir pela relação de lacunas na matriz dos três exemplos summon:
+campos reutilizáveis do cajado (incluindo mana/som/knockback), spawn na mira e
+alvo manual/LOS; depois teleporte, separação, luz e contador do buff. Não afirmar
+que mudar o nome de um helper finaliza o ProjectileLoader. O loader de receitas
+mantém condicionais/consumo/OnCraft; apresentação das condições e demais contextos
+continuam pendentes, sem remover o que já funciona.
