@@ -17,7 +17,7 @@
   "nativeProvider": "controlled IL2CPP objects/metadata, BL_HAVE_QUICKJS=0",
   "androidGameplay": "awaiting validation",
   "androidFPS": "unmeasured",
-  "ci": "pending final source commit",
+  "ci": "success:39165749967",
   "sourceRegistrationScope": "SourceParser + SourceLoader.fields -> NativeContentSpec; does not allocate Terraria IDs or load game textures",
   "schedulerScope": "Production ManagedRuntime.cpp request queue/cadence/deduplication/stale generation/world pause; no MonoVM worker execution in this fixture",
   "concurrentPublication": {
@@ -31,5 +31,6 @@
     "source": "25ea4f5bc9c18d3eca91d20303e9da6c7e122c3e",
     "result": "success",
     "supersededReason": "Concurrent definition publication corrected in .95.1"
-  }
+  },
+  "testedSource": "ea35b7b130487480ae8993d4f7ad3189d83e50af"
 }

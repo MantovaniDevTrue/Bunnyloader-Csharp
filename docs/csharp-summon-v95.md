@@ -32,3 +32,9 @@ Os avisos RecipeCallback de deadline e ScreenFx CPU do relatório `.94` são ár
 2. Completar propriedades públicas do cajado e spawn de origem/mira reutilizando os serviços existentes de itens.
 3. Expandir armas/projéteis por mecanismos compartilhados (classes de dano, munição/mana, imunidade/colisão, minions/sentries e IA), não por hotfix de item.
 4. Seguir matrizes completas sem perder arquivos; Bunny JS como mecanismo Android, PC/tModLoader como referência comportamental, C# independente como implementação. Sem nova dependência de tModLoader, QuickJS ou shaders neste lote.
+
+## Entrega verificada
+
+Fonte testada: `ea35b7b130487480ae8993d4f7ad3189d83e50af`. [CI39165749967](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749967) e nove suites independentes no mesmo SHA aprovados; assinatura V3 verificada no pipeline. [Release privada .95.1](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39165749967-a1): APK241518449bytes e ExampleMod0.1.54. Checksum do bmod conferido e todas as71fontes C# comparadas byte a byte com o repositorio. Recibo: [csharp-v95-1-ci-2026-10-18.json](validation/csharp-v95-1-ci-2026-10-18.json).
+
+Para o teste de combate, gere **Example Slime** (`ExampleSlimeNPC`) pelo catalogo do ExampleMod. Use ExampleMinionItem, seu buff e a bancada C#. Android/gameplay/ABI real/FPS continuam aguardando validacao do usuario. A .95 anterior permanece como historico experimental; a recomendacao desta entrega e .95.1. O conjunto completo de armas/projeteis permanece aberto.
