@@ -52,6 +52,8 @@ public abstract class BunnyProjectile
     public bool Friendly { get; set; } = true;
     public bool Minion { get; set; }
     public bool MinionContactDamage { get; set; }
+    /// <summary>Optional native per-update follow/attack controller. Null keeps custom MonoVM AI; lifecycle remains native.</summary>
+    public BunnyMinionMovement? MinionMovement { get; set; }
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
     public bool IgnoreWater { get; set; } = true;

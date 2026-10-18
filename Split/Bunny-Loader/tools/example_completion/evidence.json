@@ -852,23 +852,30 @@
         "CachedProjectileCounterBuffTextHandler (texto de contagem) ainda pendente."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
       ],
       "deviceEvidence": []
     },
@@ -910,27 +917,37 @@
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs"
       ],
       "missingFeatures": [
-        "Teleporte, separacao entre minions, alvo manual, linha de visao e iluminacao originais ainda pendentes.",
-        "Rotacao e movimento dependentes da direcao do dono ainda diferem do original."
+        "Iluminacao .78, CanCutTiles(false) e resistencia Cultist ainda pendentes.",
+        "Idle damping e limite de afastamento do dono sao politicas explicitas do SDK, diferem do idle original; gameplay Android .95 ainda aguardando validacao."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas.",
+        "Controlador nativo configuravel por update: inercia de seguir/atacar/retornar, formacao por dono/direcao, separacao, teleporte, rotacao e spriteDirection.",
+        "Alvo manual quando campo nativo existe, CanBeChasedBy, linha de visao com curto alcance atraves de paredes e alvo vivo atualizado entre scans.",
+        "Buff cancelado ou dono morto/inativo encerra via Projectile.Kill; originalDamage vem de Item/source real, preservando dano escalado recebido."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
       ],
       "deviceEvidence": []
     },
@@ -944,23 +961,30 @@
         "Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/identity, acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android."
       ],
       "deviceEvidence": []
     }

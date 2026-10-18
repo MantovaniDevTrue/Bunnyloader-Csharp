@@ -8,6 +8,7 @@ on:
       - feat/csharp-owned-recipe-loader-v92
       - feat/csharp-94-owned-summon-damage-lot
       - feat/csharp-owned-loaders-v93
+      - feat/csharp-summon-lifecycle-v95
       - feat/csharp-buff-recipes-v90
       - fix/csharp-90-1-static-recipegroup-register
       - fix/csharp-90-2-recipegroup-real-instance-abi

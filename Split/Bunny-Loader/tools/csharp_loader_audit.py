@@ -15,7 +15,7 @@ MAPPING={
  'PlayerLoader':(['BunnyPlayer'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp']),
  'PlayerUpdateHooks':(['BunnyPlayer'],['experiments/csharp/NativeContent.cpp']),
  'PlayerHurtHooks':(['BunnyPlayer'],['experiments/csharp/ManagedRuntime.cpp']),
- 'ProjectileLoader':(['BunnyProjectile','BunnyMinionSteering','BunnyMinionMovement'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp','experiments/csharp/ProjectilePolicy.h']),
+ 'ProjectileLoader':(['BunnyProjectile','BunnyMinionSteering','BunnyMinionMovement'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp','experiments/csharp/ProjectilePolicy.h','experiments/csharp/SummonPolicy.h']),
  'NPCLoader':(['BunnyNPC'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp']),
  'PrefixLoader':(['BunnyPrefix'],['experiments/csharp/NativeContent.cpp']),
  'TileLoader':(['BunnyTile'],['experiments/csharp/NativeTileGameplay.cpp']),

@@ -598,18 +598,25 @@ bool IsDisposed { get; }
 class; base: `System.Object`.
 
 ```csharp
-BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping)
+BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping, float catchUpInertia, float teleportDistance, float formationSpacing, float attackStopDistance, float ownerLeashDistance, float rotationFactor, float separation)
 BunnyMinionMovement Default { get; }
 float AttackInertia { get; }
 float AttackSpeed { get; }
+float AttackStopDistance { get; }
 float CatchUpDistance { get; }
+float CatchUpInertia { get; }
 float CatchUpSpeed { get; }
 float FollowInertia { get; }
 float FollowOffsetX { get; }
 float FollowOffsetY { get; }
 float FollowSpeed { get; }
+float FormationSpacing { get; }
 float IdleDamping { get; }
 float IdleDistance { get; }
+float OwnerLeashDistance { get; }
+float RotationFactor { get; }
+float Separation { get; }
+float TeleportDistance { get; }
 ```
 
 ## BunnyLoader.Source.BunnyMinionSteering
@@ -805,6 +812,7 @@ string DisplayName { get; set; }
 abstract class; base: `System.Object`.
 
 ```csharp
+BunnyMinionMovement MinionMovement { get; set; }
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }

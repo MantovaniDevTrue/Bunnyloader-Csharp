@@ -1,3 +1,7 @@
+## Continuidade .95 — summons por mecanismos compartilhados
+
+Ver [csharp-summon-v95.md](csharp-summon-v95.md). .93/.94/.90.6 integradas, cancelamento e dono tratados nativamente, controlador de movimento por update e originalDamage pela origem real. Não conclui Lote 1 nem muda pendências para validadas Android. Guia no ExampleMod0.1.54. Manter os 192 históricos e 206 canônicos.
+
 > Continuidade .93: [última build .90.5 integrada aos loaders .92](csharp-loaders-v93.md). Novas políticas públicas de projétil e exemplos summon parciais; testes Android pendentes. Histórico preservado abaixo.
 
 > Continuidade atual: [loader próprio .92](csharp-loaders-v92.md), [PR93](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/93). Fonte `2ea904f4`: nove regressões, build/assinatura e entrega privada aprovadas. [Evidência](validation/csharp-v92-ci-2026-10-18.json). Preserva a .91; três receitas adicionais por API comum, sem certificar conclusão do Lote A ou paridade de todos os loaders. Gameplay Android da .92 pendente.

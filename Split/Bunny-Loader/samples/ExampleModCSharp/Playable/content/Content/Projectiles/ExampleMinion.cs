@@ -7,7 +7,7 @@ public sealed class ExampleMinion : BunnyProjectile
     private static readonly BunnyMinionMovement movement = new(
         followSpeed: 4f, attackSpeed: 8f, catchUpSpeed: 12f,
         followInertia: 80f, attackInertia: 20f,
-        followOffsetX: -42f, followOffsetY: -48f);
+        followOffsetX: 10f, followOffsetY: -48f);
 
     public override void SetDefaults()
     {
@@ -21,6 +21,9 @@ public sealed class ExampleMinion : BunnyProjectile
         Friendly = true;
         Minion = true;
         MinionContactDamage = true;
+        // The native controller updates every game tick; custom C# AI remains available with null.
+        // Cancelling the associated buff or losing the owner ends the real projectile lifecycle.
+        MinionMovement = movement;
         MinionSlots = 1f;
         TileCollide = false;
         IgnoreWater = true;
@@ -30,6 +33,4 @@ public sealed class ExampleMinion : BunnyProjectile
         MinionScanTicks = 8;
     }
 
-    public override bool AI(ref BunnyProjectileAiState state)
-        => BunnyMinionSteering.FollowOrAttack(ref state, movement);
 }

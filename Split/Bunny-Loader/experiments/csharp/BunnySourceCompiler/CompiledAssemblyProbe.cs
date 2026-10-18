@@ -562,6 +562,12 @@ public static class CompiledAssemblyProbe
             projectileNames.Add(name);
             bool minion = Value<bool>(projectile, "Minion");
             bool contactDamage = Value<bool>(projectile, "MinionContactDamage");
+            object? motion = projectile.GetType().GetProperty("MinionMovement")!.GetValue(projectile);
+            if(motion!=null&&Value<int>(projectile,"AiStyle")!=0)
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Expected=AiStyle0 Reason=ConflictingVanillaAI Result=Rejected");
+            if(motion!=null && projectile.GetType().GetMethod("AI")!.DeclaringType!.FullName!="BunnyLoader.Source.BunnyProjectile")
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Stage=Validate Reason=ConflictingMovementControllers Expected=NativeMovementOrOverrideAI Result=Rejected");
+            if(motion!=null&&!minion)throw new InvalidOperationException("MinionMovement requires Minion=true: "+name);
             if (contactDamage && !minion)
                 throw new InvalidOperationException("MinionContactDamage requires Minion=true: " + name);
             int frames = Value<int>(projectile, "Frames");
@@ -570,7 +576,7 @@ public static class CompiledAssemblyProbe
             int frameTicks=Value<int>(projectile,"AnimationFrameTicks");
             int scanTicks=Value<int>(projectile,"MinionScanTicks");
             float range=Value<float>(projectile,"MinionTargetRange");
-            bool customPolicy=frameTicks!=6||scanTicks!=8||range!=700f;
+            bool customPolicy=frameTicks!=6||scanTicks!=8||range!=700f||motion!=null;
             if(frameTicks<1||frameTicks>120||scanTicks<1||scanTicks>120||!float.IsFinite(range)||range<1||range>4000)
                 throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" Stage=SetDefaults Expected=AnimationFrameTicks1..120,MinionScanTicks1..120,MinionTargetRange1..4000 Actual="+frameTicks+","+scanTicks+","+range+" Reason=OutOfRange");
             float minionSlots = Value<float>(projectile, "MinionSlots");
@@ -594,7 +600,8 @@ public static class CompiledAssemblyProbe
                 if (frames > 1 || customPolicy || contactDamage) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
                 if(customPolicy || contactDamage)
                     entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
-                if (contactDamage) entry += "\t1";
+                if (contactDamage || motion!=null) entry += "\t"+(contactDamage?"1":"0");
+                if(motion!=null)entry+="\t"+string.Join(",",new[]{"FollowSpeed","AttackSpeed","CatchUpSpeed","FollowInertia","AttackInertia","FollowOffsetX","FollowOffsetY","CatchUpDistance","IdleDistance","IdleDamping","CatchUpInertia","TeleportDistance","FormationSpacing","AttackStopDistance","OwnerLeashDistance","RotationFactor","Separation"}.Select(property=>Value<float>(motion,property).ToString("R",CultureInfo.InvariantCulture)));
             }
             lines.Add(entry);
         }

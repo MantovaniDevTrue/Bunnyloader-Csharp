@@ -1,3 +1,7 @@
+## Continuidade .95 — ciclo de vida e movimento de summons
+
+`BunnyProjectile.MinionMovement`, buff/dono/identity e ApplyStatsFromSource seguem C# → descritores/MonoVM → núcleo C++ → Terraria, sem executar QuickJS. Tests/summon_lifecycle executa os hooks de produção com providers IL2CPP controlados e BL_HAVE_QUICKJS=0; não comprova a ABI real no Android. C# custom AI continua alternativa explícita ao controlador nativo. Nenhuma independência global nova é inferida para os módulos legados. Ver [csharp-summon-v95.md](csharp-summon-v95.md).
+
 # Independencia C# — auditoria e checkpoint .90.29.1
 
 ## Continuidade .93 — política própria de projéteis

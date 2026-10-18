@@ -1,3 +1,7 @@
+# Continuidade .95 — teste o sistema de summons do ExampleMod
+
+Leia [SUMMON_LOADER_V95.md](SUMMON_LOADER_V95.md). Cancelar o buff deve matar todos os minions daquele dono; reinvocar, seguir, combater e retornar são os testes prioritários. Esta entrega ainda aguarda teste Android.
+
 > Atualização .93: veja PROJECTILE_LOADER_V93.md para testar minion, buff, cajado, políticas e regressão das receitas, todos no ExampleMod principal.
 
 > Novos testes .92: [receitas de arma/acessório/poção na bancada C#](OWNED_RECIPE_LOADER_V92.md).

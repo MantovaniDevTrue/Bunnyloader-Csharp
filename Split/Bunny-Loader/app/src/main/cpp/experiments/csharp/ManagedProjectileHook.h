@@ -125,6 +125,7 @@ struct ManagedProjectileHookStatus {
     int lastState = 0;
 };
 
+bool prepareManagedSummonRuntime(std::string* error);
 void resetManagedSourceProjectileSlots();
 bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
                                         int npcIndex, int damage);

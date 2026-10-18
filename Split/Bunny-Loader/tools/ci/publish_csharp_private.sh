@@ -214,11 +214,26 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]
   TITLE="EXPERIMENTAL — CSharp minion native combat and animated summon | $VERSION"
   NOTES="Native CSharp summon .90.5 (MonoVM) with player/minion buff spawn, hostile-target packet, four-frame minion sprites, own C# steering class and real ExampleMinion visual assets. ExampleMod CSharp 0.1.49, recipe tests and Lights 0.4.2.3 preserved. Source-only NativeMinionCSharpProbe v0.1.1. Android gameplay, damage and 60 FPS REQUIRE testing. Source ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-summon-lifecycle-v95" ]; then
+  for attempt in $(seq 1 30); do
+    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/v95-workflows.json"
+    set +e
+    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v95-workflows.json" "$GITHUB_SHA" --current
+    DELIVERY_STATUS=$?
+    set -e
+    if [ "$DELIVERY_STATUS" = 0 ]; then break; fi
+    if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 30 ]; then echo "[CSharp][ERROR][Delivery] Stage=RequiredChecks Result=Rejected Reason=ChecksNotSuccessful"; exit 1; fi
+    sleep 10
+  done
+  TITLE="Bunny CSharp .95 + ExampleMod 0.1.54 | experimental summon lifecycle"
+  NOTES="Preserves .94/.93/.90.6 commits. Native buff cancellation and owner lifetime, per-update configurable follow/attack/return/teleport, formation and separation, live targets/manual target and LOS, real source-item originalDamage initialization without changing incoming scaled damage. Production hooks tested with controlled IL2CPP providers and QuickJS disabled. Android gameplay/FPS still awaiting validation; no full-loader completion claim. Source ${GITHUB_SHA}."
+fi
+
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod.sha256"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.54.bmod"
+  "$RUNNER_TEMP/ExampleModCSharp-v0.1.54.bmod.sha256"
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )

@@ -812,7 +812,7 @@ bool applyManagedSourceDefaults(
             return false;
         }
         if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
-                 fields.size() == 16 || fields.size() == 17)) {
+                 fields.size() == 16 || fields.size() == 17 || fields.size() == 18)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -853,18 +853,21 @@ bool applyManagedSourceDefaults(
             }
             ProjectilePolicy policy{record.values.frames,record.values.animationFrameTicks,record.values.minionScanTicks,record.values.minionTargetRange,record.values.minion};
             std::string detail;
-            if(((fields.size()==16||fields.size()==17)&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
+            if(((fields.size()>=16)&&!parseProjectileTuning(fields,&policy,&detail))||!validateProjectilePolicy(policy,&detail)) {
                 *error="[CSharp][ERROR][ProjectilePolicy] Mod="+modId+" Class="+record.name+" "+detail;return false;
             }
             record.values.animationFrameTicks=policy.animationFrameTicks;record.values.minionScanTicks=policy.minionScanTicks;record.values.minionTargetRange=policy.minionTargetRange;
-            if (fields.size() == 14 || fields.size() == 17) {
+            if (fields.size() == 14 || fields.size() >= 17) {
                 int contact = 0;
-                const auto& value = fields.back();
-                if (!integer(value, &contact) || contact != 1 || !record.values.minion) {
+                const auto& value = fields[fields.size()==14?13:16];
+                if (!integer(value, &contact) || (contact != 0 && contact != 1) || !record.values.minion) {
                     *error = "MinionContactDamage invalido: " + record.name;
                     return false;
                 }
-                record.values.minionContactDamage = true;
+                record.values.minionContactDamage = contact == 1;
+            }
+            if(fields.size()==18&&!parseSummonMovement(fields[17],&record.values.movement,&detail)) {
+                *error="[CSharp][ERROR][Summon] Mod="+modId+" Class="+record.name+" Stage=DecodeMovement Result=Rejected "+detail;return false;
             }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));

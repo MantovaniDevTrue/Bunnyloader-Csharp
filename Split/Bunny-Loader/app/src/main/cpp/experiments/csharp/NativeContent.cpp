@@ -1,8 +1,8 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
-#include "experiments/csharp/SummonDamageRules.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/GuardedCall.h"
@@ -247,8 +247,13 @@ ProjectileDefaultsFn g_originalProjectile = nullptr;
 ProjectileDamageFn g_originalProjectileDamage = nullptr;
 FieldInfo* g_nativeMinionProjPet = nullptr;
 FieldInfo* g_nativeMinionSacrificable = nullptr;
+FieldInfo* g_nativeMinionTargeting = nullptr;
 std::atomic<int> g_nativeMinionContactSamples{0};
-std::atomic<int> g_nativeMinionRestoreSamples{0};
+int g_originalDamageField=-1;
+using ApplyProjectileStatsFn=void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*);
+ApplyProjectileStatsFn g_originalApplyProjectileStats=nullptr;
+struct ProjectileSourceItem {int field=-1;const MethodInfo* getter=nullptr;};
+std::map<Il2CppClass*,ProjectileSourceItem> g_projectileSourceItems;
 NpcDefaultsPtrFn g_originalNpc = nullptr;
 ApplyEquipFn g_originalEquip = nullptr;
 ApplyEquipFn g_originalEquipVanity = nullptr;
@@ -402,17 +407,38 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::finishModItem(self, type);
 }
 
-int applyRegisteredMinionDamage(Il2CppObject* projectile, int type) {
-    if (!projectile || g_refs.projectileDamage < 0) return 0;
-    auto& damage = bl::runtime::field<int32_t>(projectile, g_refs.projectileDamage);
-    const int replacement = nativeManagedMinionConfiguredDamage(type);
-    const auto decision = resolveNativeSummonDamage(damage, replacement);
-    if (!decision.recovered) return decision.damage;
-    damage = decision.damage;
-    const int sample = g_nativeMinionRestoreSamples.fetch_add(1, std::memory_order_relaxed);
-    if (sample < 8)
-        BL_INFO("csharp summon: restored zero damage at native combat type=%d configured=%d", type, damage);
-    return damage;
+void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,const MethodInfo* method) {
+    if(g_originalApplyProjectileStats)g_originalApplyProjectileStats(projectile,source,method);
+    if(!projectile||g_originalDamageField<0)return;
+    const int type=runtime::field<int32_t>(projectile,g_refs.projectileType);
+    if(!g_projectiles.count(type))return;
+    auto& baseline=runtime::field<int32_t>(projectile,g_originalDamageField);
+    if(baseline>0)return; // Preserve native/other-mod initialization and the incoming scaled damage.
+    int itemDamage=0;
+    if(source) {
+        auto found=g_projectileSourceItems.find(source->klass);
+        if(found==g_projectileSourceItems.end()) {
+            ProjectileSourceItem binding;std::string reason;
+            if(il2cpp::findField(source->klass,"Item"))
+                il2cpp::nativeFieldContract(source->klass,"Item","Terraria.Item",false,sizeof(void*),nullptr,&binding.field,&reason);
+            binding.getter=il2cpp::findMethodBySignature(source->klass,il2cpp::parseSignature("Terraria.Item get_Item()"));
+            if(binding.getter&&!il2cpp::api().method_is_instance(binding.getter))binding.getter=nullptr;
+            // Cache metadata only, never retain an IL2CPP object across frames/GC.
+            found=g_projectileSourceItems.emplace(source->klass,binding).first;
+            if(!reason.empty())BL_WARN("[CSharp][WARN][ProjectileSource] ContentId=%d Stage=BindSourceItem Result=TryTypedPropertyOrIncomingDamage Detail=%s",type,reason.c_str());
+        }
+        Il2CppObject* item=nullptr;
+        if(found->second.field>=0)item=runtime::field<Il2CppObject*>(source,found->second.field);
+        else if(found->second.getter) {
+            Il2CppObject* error=nullptr;item=il2cpp::api().runtime_invoke(found->second.getter,source,nullptr,&error);
+            if(error) {static unsigned failures=0;if(failures++<4)BL_ERROR("[CSharp][ERROR][ProjectileSource] ContentId=%d Method=get_Item Stage=Invoke Result=UseIncomingDamage Reason=NativeManagedException Exception=%s",type,il2cpp::describeException(error).c_str());item=nullptr;}
+        }
+        if(item)itemDamage=runtime::field<int32_t>(item,g_refs.itemDamage);
+    }
+    baseline=summonSourceDamage(baseline,itemDamage,runtime::field<int32_t>(projectile,g_refs.projectileDamage));
+    static unsigned samples=0;
+    if(samples++<8)BL_INFO("[CSharp][ProjectileSource] ContentId=%d Stage=ApplyStatsFromSource OriginalDamage=%d IncomingDamage=%d ItemDamage=%d Result=BaselineInitialized",
+        type,baseline,runtime::field<int32_t>(projectile,g_refs.projectileDamage),itemDamage);
 }
 
 void hkNativeMinionDamage(Il2CppObject* projectile, const MethodInfo* method) {
@@ -434,7 +460,7 @@ void hkNativeMinionDamage(Il2CppObject* projectile, const MethodInfo* method) {
         original(projectile, method);
         return;
     }
-    const int damage = applyRegisteredMinionDamage(projectile, type);
+    const int damage = runtime::field<int32_t>(projectile,g_refs.projectileDamage);
     auto* values = static_cast<uint8_t*>(arrayData(flags));
     const uint8_t originalPet = values[type];
     values[type] = 0;
@@ -467,18 +493,12 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
     if (d.minion) {
-        Il2CppArray* pets = nullptr;
-        if (g_nativeMinionProjPet)
-            il2cpp::api().field_static_get_value(g_nativeMinionProjPet, &pets);
-        if (il2cpp::nativeArrayContract(pets, "Boolean", 1, 65536) &&
-            type >= 0 && static_cast<uintptr_t>(type) < pets->length)
-            static_cast<uint8_t*>(arrayData(pets))[type] = 1;
-        Il2CppArray* slots = nullptr;
-        if (g_nativeMinionSacrificable)
-            il2cpp::api().field_static_get_value(g_nativeMinionSacrificable, &slots);
-        if (il2cpp::nativeArrayContract(slots, "Boolean", 1, 65536) &&
-            type >= 0 && static_cast<uintptr_t>(type) < slots->length)
-            static_cast<uint8_t*>(arrayData(slots))[type] = 1;
+        FieldInfo* const tables[]={g_nativeMinionProjPet,g_nativeMinionSacrificable,g_nativeMinionTargeting};
+        for(auto* table:tables) {
+            Il2CppArray* flags=nullptr;if(table)il2cpp::api().field_static_get_value(table,&flags);
+            if(il2cpp::nativeArrayContract(flags,"Boolean",1,65536)&&type>=0&&static_cast<uintptr_t>(type)<flags->length)
+                static_cast<uint8_t*>(arrayData(flags))[type]=1;
+        }
     }
     bl::runtime::finishModProjectile(self, type);
 }
@@ -1250,7 +1270,9 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
 
 }
 
-namespace { std::map<int,ProjectileGameplayFields> g_projectileGameplayFields; }
+namespace { std::map<int,ProjectileGameplayFields> g_projectileGameplayFields; std::map<int,SummonMovement> g_minionMovement; std::map<int,std::string> g_projectileKeys; }
+std::string nativeManagedProjectileKey(int type) {const auto it=g_projectileKeys.find(type);return it==g_projectileKeys.end()?std::string{}:it->second;}
+SummonMovement nativeManagedMinionMovement(int type) {const auto it=g_minionMovement.find(type);return it==g_minionMovement.end()?SummonMovement{}:it->second;}
 ProjectilePolicy nativeManagedProjectilePolicy(int type) {
     const auto found=g_projectiles.find(type);if(found==g_projectiles.end())return {};
     const auto& d=found->second;
@@ -1267,6 +1289,8 @@ int nativeManagedProjectileFrames(int type) {
 }
 
 int nativeManagedMinionBuff(int projectileType) {
+    const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
+    for(const auto& [type,buff]:*buffs)if(buff.minionProjectileType==projectileType)return type;
     for (const auto& [type, weapon] : g_weapons) {
         if (weapon.summon && weapon.shootType == projectileType)
             return weapon.minionBuffType;
@@ -1279,15 +1303,6 @@ bool nativeManagedMinionContactEnabled(int projectileType) {
     return it != g_projectiles.end() && it->second.minion && it->second.minionContactDamage;
 }
 
-int nativeManagedMinionConfiguredDamage(int projectileType) {
-    if (!nativeManagedMinionContactEnabled(projectileType)) return 0;
-    int damage = 0;
-    for (const auto& [type, weapon] : g_weapons) {
-        if (weapon.summon && weapon.shootType == projectileType)
-            damage = std::max(damage, weapon.damage);
-    }
-    return damage;
-}
 
 bool prepareNativeContent() {
     if (g_ready) return true;
@@ -1395,9 +1410,12 @@ bool prepareNativeContent() {
     if (!itemMethod || !projectileMethod) return false;
     auto* mainClass = findClass({"Terraria", "Main", {}});
     auto* projectileSets = findClass({"Terraria.ID", "ProjectileID", "Sets"});
-    g_nativeMinionProjPet = mainClass ? findField(mainClass, "projPet") : nullptr;
-    g_nativeMinionSacrificable = projectileSets ?
-        findField(projectileSets, "MinionSacrificable") : nullptr;
+    std::string flagContract;
+    if(!nativeFieldContract(mainClass,"projPet","System.Boolean[]",true,sizeof(void*),&g_nativeMinionProjPet,nullptr,&flagContract)||
+       !nativeFieldContract(projectileSets,"MinionSacrificable","System.Boolean[]",true,sizeof(void*),&g_nativeMinionSacrificable,nullptr,&flagContract)||
+       !nativeFieldContract(projectileSets,"MinionTargetingFeature","System.Boolean[]",true,sizeof(void*),&g_nativeMinionTargeting,nullptr,&flagContract)) {
+        BL_ERROR("[CSharp][ERROR][Summon] API=BunnyProjectile.Minion Stage=BindNativeSets Result=Rejected Detail=%s",flagContract.c_str());return false;
+    }
     const MethodInfo* damageMethod = findMethodBySignature(
         projectile, parseSignature("void Damage()"));
     if (!g_nativeMinionProjPet || !damageMethod || r.projectileType < 0 ||
@@ -1406,10 +1424,18 @@ bool prepareNativeContent() {
         return false;
     }
 
+    auto* statsMethod=findMethodBySignature(projectile,parseSignature("void ApplyStatsFromSource(IEntitySource spawnSource)"));
+    std::string damageContract;
+    if(!statsMethod||!api().method_is_instance(statsMethod)||
+       !nativeFieldContract(projectile,"originalDamage","System.Int32",false,4,nullptr,&g_originalDamageField,&damageContract)||
+       !nativeFieldContract(item,"damage","System.Int32",false,4,nullptr,&r.itemDamage,&damageContract)) {
+        BL_ERROR("[CSharp][ERROR][ProjectileSource] API=BunnyProjectile Stage=BindStatsSource Expected=InstanceApplyStatsFromSourceAndInt32DamageFields Result=Rejected Detail=%s",damageContract.c_str());return false;
+    }
     g_refs = r;
-    if (!bl::hook::install(itemMethod, hkItemDefaults, &g_originalItem)) return false;
-    if (!bl::hook::install(projectileMethod, hkProjectileDefaults, &g_originalProjectile)) return false;
-    if (!bl::hook::install(damageMethod, hkNativeMinionDamage, &g_originalProjectileDamage))
+    if(!g_originalApplyProjectileStats&&!bl::hook::install(statsMethod,hkProjectileStatsFromSource,&g_originalApplyProjectileStats))return false;
+    if (!g_originalItem&&!bl::hook::install(itemMethod, hkItemDefaults, &g_originalItem)) return false;
+    if (!g_originalProjectile&&!bl::hook::install(projectileMethod, hkProjectileDefaults, &g_originalProjectile)) return false;
+    if (!g_originalProjectileDamage&&!bl::hook::install(damageMethod, hkNativeMinionDamage, &g_originalProjectileDamage))
         return false;
 
     g_ready = true;
@@ -1646,6 +1672,11 @@ bool applyManagedNativeDefaultsBatch(
             if(error)*error=diagnostic;
             BL_ERROR("%s",diagnostic.c_str());return false;
         }
+        if(data.minion&&!prepareManagedSummonRuntime(&detail)) {
+            const auto diagnostic="[CSharp][ERROR][Summon] Mod="+modId+" Class="+entry.name+" Stage=BindLifecycle Result=Rejected "+detail;
+            if(error)*error=diagnostic;
+            BL_ERROR("%s",diagnostic.c_str());return false;
+        }
         stagedFields.emplace(entry.type,fields);
         if (entry.type < 0 ||
             bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
@@ -1654,6 +1685,7 @@ bool applyManagedNativeDefaultsBatch(
             !std::isfinite(data.minionSlots) ||
             (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
             (!data.minion && data.minionSlots != 0.f) ||
+            (data.movement.enabled&&(!data.minion||data.aiStyle!=0)) ||
             (data.minionContactDamage && (!data.minion || !g_originalProjectileDamage)) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
@@ -1704,6 +1736,7 @@ bool applyManagedNativeDefaultsBatch(
         bl::runtime::setModProjectileFrames(item.first,item.second.frames);
     }
     for(const auto& item:stagedFields)g_projectileGameplayFields[item.first]=item.second;
+    for(const auto& item:projectiles) {g_minionMovement[item.type]=item.values.movement;g_projectileKeys[item.type]=modId+"/"+item.name;}
     for (const auto& item : stagedWeapons) {
         g_weapons[item.first] = item.second;
         enableManagedPrefixEligibility(item.first);

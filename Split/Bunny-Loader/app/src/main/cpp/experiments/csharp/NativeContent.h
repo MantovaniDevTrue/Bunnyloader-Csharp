@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "experiments/csharp/ProjectilePolicy.h"
+#include "experiments/csharp/SummonPolicy.h"
 #include <string>
 #include <vector>
 
@@ -89,6 +90,7 @@ struct ManagedProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int frames = 1;
+    SummonMovement movement{};
     int animationFrameTicks=6, minionScanTicks=8;
     float minionTargetRange=700.f;
 };
@@ -131,7 +133,8 @@ int nativeManagedProjectileFrames(int type);
 ProjectilePolicy nativeManagedProjectilePolicy(int type);
 bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields);
 int nativeManagedMinionBuff(int projectileType);
-int nativeManagedMinionConfiguredDamage(int projectileType);
+SummonMovement nativeManagedMinionMovement(int projectileType);
+std::string nativeManagedProjectileKey(int type);
 bool nativeManagedMinionContactEnabled(int projectileType);
 
 struct ManagedBuffEntry {

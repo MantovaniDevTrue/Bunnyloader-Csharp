@@ -107,6 +107,18 @@ try {
    string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=PolicyProjectile")||!error.Contains("Reason=OutOfRange"))throw new Exception(error);
   }
  });
+ Check("summon.native-movement-conflicting-ai-and-vanilla-style-rejected",()=>{
+  string root=Path.Combine(scratch,"summon-policy");Directory.CreateDirectory(Path.Combine(root,"content"));
+  string file=Path.Combine(root,"content","IndependentSummon.cs"),output=Path.Combine(scratch,"summon.dll"),diag=Path.Combine(scratch,"summon.txt");
+  string source="using BunnyLoader.Source;public sealed class IndependentSummon:BunnyProjectile{public override void SetDefaults(){DisplayName=\"Summon\";Texture=\"summon.png\";AiStyle=0;Minion=true;MinionSlots=1;MinionMovement=new BunnyMinionMovement();}}";
+  File.WriteAllText(file,source);Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(18,File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t').Length);
+  foreach(var mutation in new[]{("AiStyle=0;","AiStyle=1;"),("public override void SetDefaults()","public override bool AI(ref BunnyProjectileAiState state)=>true; public override void SetDefaults()")}) {
+   File.WriteAllText(file,source.Replace(mutation.Item1,mutation.Item2));Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+   string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=IndependentSummon")||!error.Contains("Reason=Conflicting"))throw new Exception(error);
+  }
+  foreach(var create in new Action[]{()=>new BunnyMinionMovement(teleportDistance:600),()=>new BunnyMinionMovement(catchUpInertia:0),()=>new BunnyMinionMovement(ownerLeashDistance:float.NaN),()=>new BunnyMinionMovement(formationSpacing:201)})Reject(create);
+ });
  Check("recipe.owned-loader-independent-source-and-callbacks",()=>{
   string output=Path.Combine(scratch,"owned.dll"),diag=Path.Combine(scratch,"owned.txt");
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
@@ -210,7 +222,7 @@ try {
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
-  Equal(17,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);
+  Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
   foreach(var invalid in new[]{0,121}) {
    Reject(()=>new BunnyMinionMovement(attackSpeed:invalid));
