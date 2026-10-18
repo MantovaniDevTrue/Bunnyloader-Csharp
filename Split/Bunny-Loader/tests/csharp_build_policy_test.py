@@ -12,6 +12,12 @@ spec = importlib.util.spec_from_file_location("build_policy", path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 repo = "MantovaniDevTrue/Bunnyloader-Csharp"
+native_branch = "feat/csharp-90-4-projectile-minion-contract"
+for key in ("aot_push", "publish_push", "lights"):
+    assert native_branch in module.POLICY[key], f".90.4 missing trusted {key} policy"
+for workflow_name in ("check-mono-pinned-gc.yml", "check-mono-signal-ownership.yml"):
+    workflow_text = (root.parents[1] / ".github/workflows" / workflow_name).read_text()
+    assert native_branch in workflow_text, f".90.4 compiler delivery gate missing {workflow_name}"
 assert module.classify("push", "refs/heads/fix/csharp-90-1-static-recipegroup-register", "", repo, repo)["publish"]
 assert module.classify("push", "refs/heads/fix/csharp-90-1-static-recipegroup-register", "", repo, repo)["aot"]
 for event in ("push", "workflow_dispatch", "pull_request"):
