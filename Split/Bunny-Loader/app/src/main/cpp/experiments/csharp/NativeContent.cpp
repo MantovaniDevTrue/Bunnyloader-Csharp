@@ -62,6 +62,8 @@ struct NativeRefs {
     int projFriendly = -1;
     int projHostile = -1;
     int projRanged = -1;
+    int projMinion = -1;
+    int projMinionSlots = -1;
     int projPenetrate = -1;
     int projTimeLeft = -1;
     int projIgnoreWater = -1;
@@ -177,6 +179,10 @@ struct NativeProjectileDefaults {
     int timeLeft;
     bool friendly;
     bool hostile;
+    bool minion = false;
+    float minionSlots = 0.f;
+    bool tileCollide = true;
+    bool ignoreWater = true;
 };
 
 struct ManagedHurtBinding {
@@ -384,11 +390,15 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
     bl::runtime::field<int32_t>(self, r.projAiStyle) = d.aiStyle;
     bl::runtime::field<uint8_t>(self, r.projFriendly) = d.friendly ? 1 : 0;
     bl::runtime::field<uint8_t>(self, r.projHostile) = d.hostile ? 1 : 0;
-    bl::runtime::field<uint8_t>(self, r.projRanged) = 1;
+    bl::runtime::field<uint8_t>(self, r.projRanged) = d.minion ? 0 : 1;
+    if (d.minion && r.projMinion >= 0 && r.projMinionSlots >= 0) {
+        bl::runtime::field<uint8_t>(self, r.projMinion) = 1;
+        bl::runtime::field<float>(self, r.projMinionSlots) = d.minionSlots;
+    }
     bl::runtime::field<int32_t>(self, r.projPenetrate) = d.penetrate;
     bl::runtime::field<int32_t>(self, r.projTimeLeft) = d.timeLeft;
-    bl::runtime::field<uint8_t>(self, r.projIgnoreWater) = 1;
-    bl::runtime::field<uint8_t>(self, r.projTileCollide) = 1;
+    bl::runtime::field<uint8_t>(self, r.projIgnoreWater) = d.ignoreWater ? 1 : 0;
+    bl::runtime::field<uint8_t>(self, r.projTileCollide) = d.tileCollide ? 1 : 0;
     bl::runtime::field<int32_t>(self, r.projWidth) = d.width;
     bl::runtime::field<int32_t>(self, r.projHeight) = d.height;
     bl::runtime::finishModProjectile(self, type);
@@ -1187,6 +1197,8 @@ bool prepareNativeContent() {
     r.projFriendly = fieldOffset(projectile, "friendly");
     r.projHostile = fieldOffset(projectile, "hostile");
     r.projRanged = fieldOffset(projectile, "ranged");
+    r.projMinion = fieldOffset(projectile, "minion");
+    r.projMinionSlots = fieldOffset(projectile, "minionSlots");
     r.projPenetrate = fieldOffset(projectile, "penetrate");
     r.projTimeLeft = fieldOffset(projectile, "timeLeft");
     r.projIgnoreWater = fieldOffset(projectile, "ignoreWater");
@@ -1484,9 +1496,14 @@ bool applyManagedNativeDefaultsBatch(
         if (entry.type < 0 ||
             bl::runtime::modProjectileTypeByName(modId, entry.name) != entry.type ||
             g_projectiles.count(entry.type) != 1 ||
+            (data.minion && (g_refs.projMinion < 0 || g_refs.projMinionSlots < 0)) ||
+            !std::isfinite(data.minionSlots) ||
+            (data.minion && (data.minionSlots <= 0.f || data.minionSlots > 10.f)) ||
+            (!data.minion && data.minionSlots != 0.f) ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
-                data.timeLeft, true, false}).second ||
+                data.timeLeft, true, false,
+                data.minion, data.minionSlots, data.tileCollide, data.ignoreWater}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
             data.aiStyle < 0 || data.aiStyle > 255 ||
