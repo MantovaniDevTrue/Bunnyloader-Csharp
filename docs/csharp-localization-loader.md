@@ -31,6 +31,14 @@ A Action `CSharp Localization Core` compilou e executou os testes para o commit 
 
 Os testes cobrem fallback, namespaces entre mods, referências e ciclos, offsets de argumentos, snapshots, registro global, entrada inválida, concorrência, arquivos reais do ExampleMod, recarga, Unicode/surrogates e rollback por JSON incorreto. Nenhuma dessas verificações é um teste de gameplay, de ABI ARM64 ou de FPS.
 
+## Verificação da ponte no host — 19/10/2026
+
+A suíte CI sem APK comprovou que o SDK, o verificador Roslyn e o C++ da integração **compilam no host**, e que o decoder nativo rejeita culturas inválidas, UTF-8 malformado, chaves de outros mods e wire fora dos limites. A mesma execução confirmou o formato da referência pública e executou os 12 cenários gerenciados.
+
+Execução aprovada no GitHub: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39312669920 (commit `542a022722999c76c0aaca5038f86969dcb949b4`).
+
+Essa execução usa `dotnet build`, `dotnet run` e `g++ -fsyntax-only` / teste nativo de política. **Não compila bibliotecas Android, não invoca Gradle, não gera APK, não valida ABI do jogo e não mede FPS.** Código fonte nativo verificado sintaticamente não substitui o teste integrado do `LanguageManager`.
+
 ## Pendências obrigatórias para declarar completo
 
 1. **Compilar e testar** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
