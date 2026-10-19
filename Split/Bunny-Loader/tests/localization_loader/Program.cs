@@ -264,4 +264,45 @@ Test("strict-json-numbers-and-transactional-reload", () =>
     finally { Directory.Delete(root, true); }
 });
 
+Test("register-language-map-atomic-and-key-identity", () =>
+{
+    var catalog = new BunnyLocalizationCatalog("pt-BR");
+    catalog.Register("LegacyInterface.28", new Dictionary<string, string>
+    {
+        ["en-US"] = "Open",
+        ["pt-BR"] = "Abrir"
+    });
+    Equal("Abrir", catalog.Translate("LegacyInterface.28"));
+    catalog.SetCulture("en-US");
+    Equal("Open", catalog.Translate("LegacyInterface.28"));
+    catalog.Register("Mods.owner.ItemName.Foo", new Dictionary<string, string>
+    {
+        ["en-US"] = "Foo",
+        ["pt-BR"] = "Fó"
+    });
+    Equal("Mods.owner.ItemName.Foo", catalog.Key("ItemName.Foo", "owner"));
+    Equal("Mods.owner.ItemName.Foo", catalog.Key("Mods.owner.ItemName.Foo", "owner"));
+    Equal("ItemName.Missing", catalog.Key("ItemName.Missing", "owner"));
+    Equal("Mods.other.ItemName.Foo", catalog.Key("Mods.other.ItemName.Foo", "owner"));
+    int revision = catalog.Revision;
+    Reject(() => catalog.Register("LegacyInterface.28", new Dictionary<string, string>
+    {
+        ["pt-BR"] = "Novo",
+        ["de_DE"] = "Ungültig"
+    }));
+    Equal(revision, catalog.Revision);
+    catalog.SetCulture("pt-BR");
+    Equal("Abrir", catalog.Translate("LegacyInterface.28"));
+    catalog.Register("LegacyInterface.28", new Dictionary<string, string>
+    {
+        ["en-US"] = "Updated"
+    });
+    Equal("Abrir", catalog.Translate("LegacyInterface.28"));
+    catalog.SetCulture("fr-FR");
+    Equal("Updated", catalog.Translate("LegacyInterface.28"));
+    Reject(() => catalog.Register("LegacyInterface.28",
+        new Dictionary<string, string>()));
+    Equal("Updated", catalog.Translate("LegacyInterface.28"));
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
