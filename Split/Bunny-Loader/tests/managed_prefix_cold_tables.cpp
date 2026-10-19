@@ -474,6 +474,7 @@ int main() {
     mighty.applyValueBonus = 40;
     mighty.requireEffectiveStats = false;
     mighty.extraTooltip = "Bonus adicional do prefixo";
+    mighty.tooltipLines = {"First line", "Second line"};
     descriptors = {guarded, mighty, custom};
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
     Item extra{};
