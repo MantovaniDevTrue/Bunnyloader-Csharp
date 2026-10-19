@@ -394,7 +394,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                 if (!texture.empty()) {
                     if (texture.size() > 240 || texture[0] == '/' ||
                         texture.find("..") != std::string::npos ||
-                        texture.find('\\\\') != std::string::npos ||
+                        texture.find(static_cast<char>(92)) != std::string::npos ||
                         texture.find(':') != std::string::npos ||
                         texture.find('|') != std::string::npos ||
                         !texture.ends_with(".png")) {
@@ -426,6 +426,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 typed[sourceIdentityForBase(def.base, def.name)] = type;
+                status->dustTextures[def.name] = it == def.properties.end() ? "" : it->second;
                 ++status->dusts;
                 continue;
             }
@@ -648,9 +649,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
-        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s)",
+        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
-                status.projectiles, status.buffs, status.potions, status.npcs);
+                status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
@@ -688,6 +689,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, int> buffsByName;
     std::map<std::string, bool> seen;
     std::vector<ManagedTileEntry> tiles;
+    int dustRows = 0;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
@@ -767,6 +769,33 @@ bool applyManagedSourceDefaults(
         if (identity.empty() || !seen.emplace(identity, true).second) {
             *error = "Classe C# duplicada ou registro invalido";
             return false;
+        }
+        if (fields[0] == "DUST" && fields.size() == 5) {
+            const auto native = mod->registeredKindTypes.find(identity);
+            const auto source = mod->dustTextures.find(fields[1]);
+            int updateType = -1;
+            int hooks = -1;
+            if (native == mod->registeredKindTypes.end() ||
+                source == mod->dustTextures.end() ||
+                runtime::modDustTypeByName(modId, fields[1]) != native->second ||
+                !integer(fields[2], &updateType) ||
+                !integer(fields[3], &hooks) ||
+                updateType < -1 || updateType >= runtime::kVanillaDustCount ||
+                hooks < 0 || hooks > 31 ||
+                fields[4] != (source->second.empty() ? "-" : source->second)) {
+                *error = "[CSharp][ERROR][DustLoader] Mod=" + modId +
+                    " Class=" + fields[1] +
+                    " Stage=ApplyDefaults Reason=NativeIdentityOrDescriptorMismatch";
+                return false;
+            }
+            runtime::setModDustUpdateType(native->second, updateType);
+            mod->dustMasks[fields[1]] = static_cast<unsigned>(hooks);
+            ++dustRows;
+            if (dustRows > static_cast<int>(kSourceMaxCategory)) {
+                *error = "[CSharp][ERROR][DustLoader] Stage=Decode Reason=CategoryCapacityExceeded";
+                return false;
+            }
+            continue;
         }
         if (fields[0] == "TILE" && fields.size() == 13) {
             const auto it = mod->registeredKindTypes.find(identity);
@@ -1140,7 +1169,8 @@ bool applyManagedSourceDefaults(
             return false;
         }
     }
-    if (tiles.size() != static_cast<size_t>(mod->tiles) ||
+    if (dustRows != mod->dusts ||
+        tiles.size() != static_cast<size_t>(mod->tiles) ||
         projectiles.size() != static_cast<size_t>(mod->projectiles) ||
         weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
             static_cast<size_t>(mod->items) ||
