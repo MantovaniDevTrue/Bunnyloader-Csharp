@@ -59,7 +59,10 @@ int main() {
     auto merged=dynamic.snapshot();
     assert(merged.active.at("owner").size()==3);
     assert(merged.active.at("other").size()==1);
-    assert(merged.active.at("owner")[0].value=="Dynamic");
+    assert(merged.active.at("owner")[0].key=="Mods.owner.ItemName.New");
+    assert(merged.active.at("owner")[0].value=="Novo");
+    assert(merged.active.at("owner")[1].key=="Mods.owner.ItemName.One");
+    assert(merged.active.at("owner")[1].value=="Dynamic");
     assert(!dynamic.replaceDynamic("owner",{{"en-US","Mods.owner.ItemName.One","Dynamic"},
                                             {"pt-BR","Mods.owner.ItemName.New","Novo"}}));
     assert(original.active.at("owner").size()==2);
