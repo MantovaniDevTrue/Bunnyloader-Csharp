@@ -116,6 +116,7 @@ struct PendingPrefix {
 };
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingRarity;
+std::map<std::string, std::map<Il2CppObject*, PendingPrefix>> g_pendingRarityByItem;
 std::atomic<int> g_prefixRestoreFailureLogs{0};
 
 std::string rarityFor(Il2CppObject* item) {
@@ -141,6 +142,17 @@ std::string pendingRarityFor(const std::string& path, const std::string& contain
     const auto it = file->second.find(container + "#" + std::to_string(slot));
     return it != file->second.end() && it->second.type == type
         ? it->second.key : std::string();
+}
+
+std::string pendingRarityForItem(const std::string& path, Il2CppObject* item,
+    int type) {
+    if (!item) return {};
+    std::lock_guard<std::mutex> guard(g_mx);
+    const auto file = g_pendingRarityByItem.find(path);
+    if (file == g_pendingRarityByItem.end()) return {};
+    const auto entry = file->second.find(item);
+    return entry != file->second.end() && entry->second.type == type
+        ? entry->second.key : std::string();
 }
 
 std::string placeKey(const std::string& container, int slot) {
@@ -430,6 +442,8 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                     previousRarity->second.first == type)
                     stableRarity = previousRarity->second.second;
             }
+            if (stableRarity.empty())
+                stableRarity = pendingRarityForItem(path, item, type);
             if (stableRarity.empty())
                 stableRarity = pendingRarityFor(path, c.name, slot, type);
             if (!isModItem(type)) {
