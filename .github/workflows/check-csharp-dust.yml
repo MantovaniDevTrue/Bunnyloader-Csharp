@@ -1,0 +1,30 @@
+name: CSharp DustLoader source contracts
+
+on:
+  push:
+    branches:
+      - feat/csharp-dust-loader-20261019
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyDust.cs
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnyDustTests/**
+      - .github/workflows/check-csharp-dust.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyDust.cs
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnyDustTests/**
+
+permissions:
+  contents: read
+
+jobs:
+  dust-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and run managed DustLoader contracts
+        run: dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release
