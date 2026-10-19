@@ -12,6 +12,15 @@ on:
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - Split/Bunny-Loader/tests/prefix_v89/PrefixFixture/Content.cs
+      - Split/Bunny-Loader/tests/prefix_v89/Program.cs
+      - Split/Bunny-Loader/tests/prefix_v89/guard_native_bridge.py
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+      - Split/Bunny-Loader/tools/sdk_reference/Program.cs
       - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
       - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
       - docs/equipment-loader-preflight.md
@@ -55,6 +64,16 @@ jobs:
           python3 tools/equipment_preflight.py --json --output build/equipment-preflight/sources.json
           python3 tools/equipment_contract_surface.py --json --output build/equipment-preflight/callbacks.json
           python3 tools/equipment_contract_surface.py --output build/equipment-preflight/callbacks.md
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Execute managed item-rule handoff and check the SDK reference
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+          dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --check
+          python3 tests/prefix_v89/guard_native_bridge.py
       - name: Compile and test native prefix snapshot path
         working-directory: Split/Bunny-Loader
         shell: bash
