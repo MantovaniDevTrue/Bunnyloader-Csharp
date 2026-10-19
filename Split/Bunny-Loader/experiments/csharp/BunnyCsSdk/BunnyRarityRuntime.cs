@@ -83,11 +83,11 @@ public static class BunnyRarityRuntime
                     if (!entries.TryGetValue(type.Name, out int id) ||
                         byName.ContainsKey(type.Name) || byId.ContainsKey(id))
                         return "ERROR|Stage=BindRarity Reason=AmbiguousClassOrId";
-                    var rarity = (BunnyRarity)(Activator.CreateInstance(type) ??
+                    var instance = (BunnyRarity)(Activator.CreateInstance(type) ??
                         throw new InvalidOperationException("Cannot instantiate rarity " + type.FullName));
-                    rarity.Type = id;
-                    byName.Add(type.Name, rarity);
-                    byId.Add(id, rarity);
+                    instance.Type = id;
+                    byName.Add(type.Name, instance);
+                    byId.Add(id, instance);
                 }
                 Mods.Add(modId, new ModRarities(assemblyPath, byName, byId));
                 try
