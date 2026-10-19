@@ -1,6 +1,8 @@
 #include "experiments/csharp/NativeTileSpritePass.h"
 #include "experiments/csharp/NativeTileSpritePassQueue.h"
 #include "experiments/csharp/NativeTileParticleQueue.h"
+#include "experiments/csharp/NativeTileParticleStylePolicy.h"
+#include "il2cpp/ValueLayout.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/NativeTileSpriteBatch.h"
 #include "experiments/csharp/NativeTileSpriteBatchLifecycle.h"
@@ -10,6 +12,7 @@
 #include "il2cpp/FieldContract.h"
 #include "hook/HookManager.h"
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -21,6 +24,13 @@ SpritePassQueue pending;
 tile_particle::ParticleQueue pendingParticles;
 const MethodInfo* newDust=nullptr;
 NativeColorLayout dustColor{};
+struct DustFields {
+    FieldInfo* dustArray=nullptr;
+    Il2CppClass* klass=nullptr;
+    size_t position=0,velocity=0,fadeIn=0,noGravity=0,alpha=0;
+    bool ready=false;
+};
+DustFields dustFields{};
 FieldInfo* spriteBatchField=nullptr;
 FieldInfo* gameMenuField=nullptr;
 FieldInfo* frameField=nullptr;
@@ -39,6 +49,92 @@ bool matchesBool(const Il2CppType* type,const char* name) {
 
 bool matchType(const Il2CppType* type,const char* name) {
     return matchesBool(type,name);
+}
+
+bool dustField(Il2CppClass* dust,const char* name,const char* type,
+               size_t width,size_t* offset) {
+    auto& a=il2cpp::api();
+    auto* field=il2cpp::findField(dust,name);
+    if(!field||(a.field_get_flags(field)&0x10u)||
+       !matchesBool(a.field_get_type(field),type))return false;
+    const size_t instanceSize=a.class_instance_size(dust);
+    const size_t raw=a.field_get_offset(field);
+    if(!tile_particle::safeFieldOffset(raw,width,instanceSize))return false;
+    *offset=raw;
+    return true;
+}
+
+bool bindDustFields() {
+    using namespace il2cpp;
+    auto& a=api();
+    if(!a.class_instance_size||!a.field_get_offset||!a.field_get_flags||
+       !a.field_get_type||!a.field_static_get_value||!a.object_get_class||
+       !a.class_from_il2cpp_type||!a.class_get_element_class||
+       !a.class_is_valuetype)return false;
+    auto* main=findClass({"Terraria","Main",{}});
+    auto* dust=findClass({"Terraria","Dust",{}});
+    auto* vector=findClass({"Microsoft.Xna.Framework","Vector2",{}});
+    if(!main||!dust||!vector||a.class_is_valuetype(dust))return false;
+    auto* array=findField(main,"dust");
+    if(!array||!(a.field_get_flags(array)&0x10u)||
+       !matchesBool(a.field_get_type(array),"Terraria.Dust[]"))return false;
+    auto* arrayClass=a.class_from_il2cpp_type(a.field_get_type(array));
+    if(!arrayClass||a.class_get_element_class(arrayClass)!=dust)return false;
+    ValueLayout vectorLayout;
+    std::string reason;
+    if(!resolveValueLayout(vector,&vectorLayout,&reason)||vectorLayout.size!=8)
+        return false;
+    for(const auto* component:{"X","Y"}) {
+        auto* field=findField(vector,component);
+        size_t offset=0;
+        if(!field||!matchesBool(a.field_get_type(field),"System.Single")||
+           !vectorLayout.offset(a.field_get_offset(field),4,&offset)||
+           offset!=(std::strcmp(component,"X")==0?0u:4u))return false;
+    }
+    DustFields found;
+    found.dustArray=array;
+    found.klass=dust;
+    if(!dustField(dust,"position","Microsoft.Xna.Framework.Vector2",8,&found.position)||
+       !dustField(dust,"velocity","Microsoft.Xna.Framework.Vector2",8,&found.velocity)||
+       !dustField(dust,"fadeIn","System.Single",4,&found.fadeIn)||
+       !dustField(dust,"noGravity","System.Boolean",1,&found.noGravity)||
+       !dustField(dust,"alpha","System.Int32",4,&found.alpha))return false;
+    found.ready=true;
+    dustFields=found;
+    return true;
+}
+
+void applyDustStyle(int index,const tile_particle::Particle& particle) {
+    if(!particle.styled||!dustFields.ready||index<0||index>=6000)return;
+    auto& a=il2cpp::api();
+    Il2CppArray* arr=nullptr;
+    a.field_static_get_value(dustFields.dustArray,&arr);
+    if(!arr||static_cast<uintptr_t>(index)>=arr->length)return;
+    auto* target=static_cast<Il2CppObject**>(arrayData(arr))[index];
+    if(!target||a.object_get_class(target)!=dustFields.klass)return;
+    char* memory=reinterpret_cast<char*>(target);
+    float motion[2]{};
+    std::memcpy(motion,memory+dustFields.velocity,sizeof(motion));
+    float vx=0,vy=0;
+    if(!tile_particle::applyMotion(particle,motion[0],motion[1],&vx,&vy))
+        return;
+    float position[2]{};
+    std::memcpy(position,memory+dustFields.position,sizeof(position));
+    if(!std::isfinite(position[0])||!std::isfinite(position[1]))return;
+    const float newX=position[0]+static_cast<float>(particle.positionXAdd);
+    if(!std::isfinite(newX))return;
+    int32_t alpha=0;
+    std::memcpy(&alpha,memory+dustFields.alpha,sizeof(alpha));
+    const int32_t newAlpha=tile_particle::saturatingAlpha(alpha,particle.alphaAdd);
+    float fade=static_cast<float>(particle.fadeInMilli)*0.001f;
+    const uint8_t gravity=static_cast<uint8_t>(particle.noGravity);
+    std::memcpy(memory+dustFields.velocity,&vx,sizeof(vx));
+    std::memcpy(memory+dustFields.velocity+sizeof(float),&vy,sizeof(vy));
+    std::memcpy(memory+dustFields.position,&newX,sizeof(newX));
+    std::memcpy(memory+dustFields.alpha,&newAlpha,sizeof(newAlpha));
+    std::memcpy(memory+dustFields.noGravity,&gravity,sizeof(gravity));
+    if(particle.fadeInMilli!=0)
+        std::memcpy(memory+dustFields.fadeIn,&fade,sizeof(fade));
 }
 
 bool bindDust(std::string* error) {
@@ -71,6 +167,8 @@ bool bindDust(std::string* error) {
     if(!layout.bind(a.class_from_il2cpp_type(a.method_get_param(method,7)),error))
         return false;
     dustColor=layout;
+    dustFields=DustFields{};
+    bindDustFields();
     newDust=method;
     return true;
 }
@@ -90,7 +188,13 @@ void emitDust(const tile_particle::Particle& particle) {
     uint32_t color=dustColor.fromArgb(particle.argb);
     void* args[]={&pos,&width,&height,&type,&speedX,&speedY,&alpha,&color,&scale};
     Il2CppObject* error=nullptr;
-    a.runtime_invoke(newDust,nullptr,args,&error);
+    Il2CppObject* result=a.runtime_invoke(newDust,nullptr,args,&error);
+    if(!error&&result&&particle.styled) {
+        const auto* bytes=reinterpret_cast<const char*>(result)+sizeof(Il2CppObject);
+        int32_t index=-1;
+        std::memcpy(&index,bytes,sizeof(index));
+        applyDustStyle(index,particle);
+    }
 }
 
 void postDraw(Il2CppObject* renderer,bool solidLayer,bool forRenderTargets,
@@ -194,6 +298,8 @@ bool bindNativeTileDust(std::string* error) {
 
 bool stageNativeTileParticlesForCurrentFrame(const tile_particle::Batch& batch) {
     if(!ready||!frameField||!newDust)return false;
+    for(size_t i=0;i<batch.count;++i)
+        if(batch.items[i].styled&&!dustFields.ready)return false;
     uint64_t frame=0;
     il2cpp::api().field_static_get_value(frameField,&frame);
     return frame!=0&&pendingParticles.stage(frame,batch);
