@@ -32,6 +32,7 @@ using StatsFn = bool (*)(Il2CppObject*, int32_t, float*, float*, float*, float*,
                         const MethodInfo*);
 using GrantFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using RollFn = bool (*)(Il2CppObject*, Il2CppObject*, int32_t*, const MethodInfo*);
+using PrefixChanceFn = bool (*)(Il2CppObject*, int32_t, uint8_t*, const MethodInfo*);
 using ReforgeFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 using InventoryTooltipFn = void (*)(Il2CppObject*, int32_t*, int32_t*, int32_t*,
                                     float, int32_t*, Il2CppArray*, Il2CppArray*,
@@ -73,6 +74,10 @@ CanRollFn g_originalCanRoll = nullptr;
 StatsFn g_originalStats = nullptr;
 GrantFn g_originalGrant = nullptr;
 RollFn g_originalRoll = nullptr;
+PrefixChanceFn g_originalItemPrefix = nullptr;
+std::mutex g_chanceInstallMutex;
+std::atomic<bool> g_chanceReady{false};
+int g_chanceItemTypeOffset = -1;
 ReforgeFn g_originalReforge = nullptr;
 InventoryTooltipFn g_originalInventoryTooltip = nullptr;
 std::atomic<bool> g_inventoryTooltipReady{false};
@@ -181,6 +186,21 @@ bool ensurePrefixTables(const std::vector<ManagedPrefixEntry>& prefixes) {
             return false;
     }
     return true;
+}
+
+bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
+                          const MethodInfo* method) {
+    if (!g_originalItemPrefix) return false;
+    if (!g_chanceReady.load(std::memory_order_acquire) || !item ||
+        g_chanceItemTypeOffset < 0 || (want != -1 && want != -2))
+        return g_originalItemPrefix(item, want, topTier, method);
+    const auto rules = managedItemPrefixChanceView();
+    const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
+    const auto decision = rules->find(type);
+    if (decision == rules->end())
+        return g_originalItemPrefix(item, want, topTier, method);
+    if (!decision->second) return false;
+    return g_originalItemPrefix(item, want == -1 ? -2 : want, topTier, method);
 }
 
 Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
@@ -623,6 +643,24 @@ bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string*
 bool managedPrefixGameplayReady() {
     return g_hooksReady.load(std::memory_order_acquire) &&
            !snapshotManagedPrefixes().empty();
+}
+
+bool installManagedPrefixChanceHook() {
+    std::lock_guard<std::mutex> guard(g_chanceInstallMutex);
+    if (g_chanceReady.load(std::memory_order_acquire)) return true;
+    auto* item = bl::il2cpp::findClass({"Terraria", "Item", {}});
+    if (!item) return false;
+    const int typeOffset = bl::il2cpp::fieldOffset(item, "type");
+    const auto* method = bl::il2cpp::findMethodBySignature(
+        item, bl::il2cpp::parseSignature(
+            "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)"));
+    if (typeOffset < 0 || !method ||
+        !bl::hook::install(method, hookItemPrefixChance, &g_originalItemPrefix))
+        return false;
+    g_chanceItemTypeOffset = typeOffset;
+    g_chanceReady.store(true, std::memory_order_release);
+    BL_INFO("csharp prefix: PrefixChance nativo por item instalado");
+    return true;
 }
 
 bool installManagedPrefixGameplayHooks() {
