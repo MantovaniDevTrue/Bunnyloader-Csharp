@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <set>
 #include <tuple>
@@ -33,7 +34,7 @@ std::set<std::string> pendingManagedNotification;
 std::map<std::string, uint64_t> managedEpochs;
 uint64_t nextManagedEpoch = 0;
 uint64_t lastDynamicRevision = 0;
-std::map<std::string, std::map<std::string, std::string>> vanillaOriginals;
+std::map<std::string, std::map<std::string, std::optional<std::string>>> vanillaOriginals;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -190,9 +191,10 @@ Refs& refs() {
     return reference;
 }
 
-bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current) {
+bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current,
+                       const std::set<std::string>& createdExternalKeys) {
     if (current.retired.empty()) return true;
-    if (!safeToRetireAll(current)) return false;
+    if (!safeToRetireAll(current, createdExternalKeys)) return false;
     static bool unsupported=false;
     if (unsupported) return true;
     const auto disable=[]() {
@@ -261,20 +263,29 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
     for (const auto& [key, value] : all) {
         if (key.rfind("Mods.", 0) == 0 || originals.contains(key)) continue;
         std::string native;
-        if (!vanilla(key, &native)) return false;
-        originals.emplace(key, std::move(native));
+        if (vanilla(key, &native))
+            originals.emplace(key, std::move(native));
+        else
+            originals.emplace(key, std::nullopt);
     }
     std::map<std::string, std::string> retiredValues;
     SessionSnapshot ownedRetirement = current;
     ownedRetirement.retired.clear();
+    std::set<std::string> createdExternalKeys;
     for (const auto& key : retired) {
         if (key.rfind("Mods.", 0) == 0) {
             ownedRetirement.retired.insert(key);
             retiredValues[key] = key;
         } else if (!all.contains(key)) {
             auto previous = originals.find(key);
-            if (previous != originals.end())
-                retiredValues[key] = previous->second;
+            if (previous == originals.end()) continue;
+            if (previous->second.has_value()) {
+                retiredValues[key] = *previous->second;
+            } else {
+                retiredValues[key] = key;
+                createdExternalKeys.insert(key);
+                ownedRetirement.retired.insert(key);
+            }
         }
     }
     for (const auto& [key,value] : retiredValues) all[key]=value;
@@ -317,7 +328,7 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
     };
     if(!retiredValues.empty() && !publishOne("retired",retiredValues)) return false;
     if(!ownedRetirement.retired.empty() &&
-       !removeRetiredKeys(manager,ownedRetirement))return false;
+       !removeRetiredKeys(manager,ownedRetirement,createdExternalKeys))return false;
     for(const auto& [modId,entries]:selectedByMod)
         if(!publishOne(modId,entries))return false;
     return true;
