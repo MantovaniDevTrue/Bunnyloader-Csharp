@@ -224,13 +224,19 @@ try {
  });
  Check("roslyn.tile-animation-native-wire",()=>{
   string folder=Path.Combine(scratch,"animated-tile");Directory.CreateDirectory(Path.Combine(folder,"content"));
-  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;}}");
+  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;}public override bool CanKillTile(int x,int y)=>false;public override bool CanDrop(int x,int y)=>x<3;public override void HitWire(int x,int y){}public override void RandomUpdate(int x,int y){} }");
   string assemblyPath=Path.Combine(scratch,"animated-tile.dll"),diagPath=Path.Combine(scratch,"animated-tile.txt");
   Equal(1,Compiler.Compile(folder,assemblyPath,runtime,diagPath));
   Equal(1,CompiledAssemblyProbe.Verify(assemblyPath,diagPath));
   var tileWire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))
    .Single(line=>line.StartsWith("TILE\tAnimatedExampleTile\t",StringComparison.Ordinal)).Split('\t');
-  Equal(20,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("0",tileWire[19]);
+  Equal(20,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("15",tileWire[19]);
+  Equal("READY",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,2,""));
+  Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"3,4"));
+  Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",1,0,"2,4"));
+  Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",1,0,"5,4"));
+  Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",2,0,"4,4"));
+  Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",3,0,"4,4"));
  });
  Check("roslyn.full-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
