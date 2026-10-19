@@ -748,6 +748,7 @@ bool applyManagedSourceDefaults(
                 *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=CapacityExceeded";
                 return false;
             }
+            quest.catchEnabled = quest.catchRules != 0;
             anglerQuests.push_back(std::move(quest));
             continue;
         }
@@ -793,6 +794,7 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             quest->catchRules=rules;
+            quest->catchEnabled=true;
             continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
