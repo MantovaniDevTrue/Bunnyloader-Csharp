@@ -49,6 +49,17 @@ Essa execução usa `dotnet build`, `dotnet run` e `g++ -fsyntax-only` / teste n
 
 **Interferência de PR paralela:** as Actions disparadas em `pull_request` usam uma árvore de merge com a base mais recente. Quando a PR #98 acrescenta novas propriedades do SDK e mais um campo no wire de Tile, verificações de referência/documentação e o teste rígido de comprimento de Tile podem falhar na árvore combinada, mesmo com os testes específicos da branch de localização passando. Não alterar fontes de Tile na #101; reconciliar as bases e regenerar documentação somente quando a integração dos lotes ocorrer.
 
+## Compatibilidade restaurada e ciclo de vida
+
+- A branch da PR #101 foi reconciliada com a baseline atual de Tile (PR #98), preservando a propriedade `BunnyTile.CacheDrawData`, a serialização de 21 campos, a implementação de `NativeTile` e as alterações de MonoVM. O SDK público JSON e Markdown foi atualizado sem eliminar a classe `BunnyLocalizationCatalog`.
+- A checagem combinada de localização, SDK e auditoria de ExampleMod ficou verde nessa baseline; os erros antigos de 20/21 campos e documentação de Tile não foram suprimidos com testes permissivos.
+- `NativeLocalizationSession.h` mantém catálogos por mod e geração, substitui versões sem reter entradas obsoletas e retira da tabela ativa os mods não carregados no novo início de sessão.
+- A remoção guarda as chaves antigas num conjunto de *retired* e as neutraliza por `LanguageManager.LoadLanguageFromFileText` com seu próprio caminho como texto. Isso impede a exibição da tradução antiga sem invalidar abruptamente referências a `LocalizedText` guardadas pelo jogo. **Não remove fisicamente as chaves de `_localizedTexts`**: `Exists` pode continuar verdadeiro para elas. Descarregamento integral ainda precisa de política nativa de remoção segura e validação em jogo.
+- O reconciliador roda só no início do lote C# e reaplica o catálogo na thread do jogo. `native_session_test.cpp` cobre reinício, desativação, reativação, substituição e não alteração da revisão quando os mods ativos não mudam.
+- Compatibilidade da PR #100 (equipamentos) permanece **separada**: não incorporamos classes experimentais dessa PR nem sobrescrevemos as alterações de Prefix.
+
+Teste de regressão de localizações + ciclo de vida (CI, sem APK): https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39317201257
+
 ## Pendências obrigatórias para declarar completo
 
 1. **Validar no Terraria Android** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
