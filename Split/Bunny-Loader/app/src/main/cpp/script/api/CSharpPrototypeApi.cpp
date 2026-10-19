@@ -69,6 +69,11 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     return out;
 }
 
+JSValue jsRarityCount(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "rarityCount()");
+    return JS_NewInt32(ctx, bl::csharp::nativeRarities().nextType());
+}
+
 JSValue jsReserveRarityId(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
     if (argc != 0) return JS_ThrowTypeError(ctx, "reserveRarityId()");
     const int id = bl::csharp::nativeRarities().reserveExternalType();
@@ -2900,6 +2905,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JSValue api = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
     JS_SetPropertyStr(ctx, api, "reserveRarityId", JS_NewCFunction(ctx, jsReserveRarityId, "reserveRarityId", 0));
+    JS_SetPropertyStr(ctx, api, "rarityCount", JS_NewCFunction(ctx, jsRarityCount, "rarityCount", 0));
     JS_SetPropertyStr(ctx, api, "managedAvailable",
                       JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
