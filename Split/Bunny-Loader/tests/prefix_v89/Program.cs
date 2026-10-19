@@ -42,7 +42,7 @@ try
         throw new InvalidOperationException("Managed prefix per-item rules are not canonical");
     Check("TestGuardedPrefix", 5, 1f, 1f, 1.2f, 4);
     Check("TestCustomPrefix", 6, 1f, 1f, 1f, 0);
-    if (byName["TestCustomPrefix"][16] != "1:0,TestWand:0:1")
+    if (byName["TestCustomPrefix"][16] != "1:0,TestWand:0:1:1")
         throw new InvalidOperationException("Custom prefix must keep explicit item rules only");
     var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
     rules.Deny(12);
@@ -59,6 +59,21 @@ try
     catch (InvalidOperationException) { prematureRejected = true; }
     if (!prematureRejected)
         throw new InvalidOperationException("CanRoll override without item rule accepted");
+    bool preferenceRejected = false;
+    try { rules.PreferFor(12); }
+    catch (InvalidOperationException) { preferenceRejected = true; }
+    if (preferenceRejected)
+        throw new InvalidOperationException("Positive weight should allow a preferred prefix");
+    if (rules.Serialize() != "12:5:1:1")
+        throw new InvalidOperationException("Preferred prefix wire missing");
+    rules.Deny(12);
+    if (rules.Serialize() != "12:0")
+        throw new InvalidOperationException("Deny must cancel preferred prefix");
+    bool disallowedPreferenceRejected = false;
+    try { rules.PreferFor(12); }
+    catch (InvalidOperationException) { disallowedPreferenceRejected = true; }
+    if (!disallowedPreferenceRejected)
+        throw new InvalidOperationException("Disallowed preferred item accepted");
     var named = new BunnyLoader.Source.BunnyPrefixRollRules();
     named.Deny("ExampleWand");
     named.Allow("ExampleWand", 6);
