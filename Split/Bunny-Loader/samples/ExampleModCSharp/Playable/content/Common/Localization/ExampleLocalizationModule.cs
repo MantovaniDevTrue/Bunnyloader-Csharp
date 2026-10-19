@@ -10,6 +10,12 @@ public sealed class ExampleLocalizationModule : BunnyLocalizationModule
     public override void OnLocalizationsLoaded()
     {
         LastAppliedCulture = BunnyLocalizationRuntime.ActiveCultureName;
+        BunnyLocalizationRuntime.Register("Mods.examplemodcsharp.Common.Localization.RuntimeGreeting",
+            new Dictionary<string, string>
+            {
+                ["en-US"] = "Hello during runtime",
+                ["pt-BR"] = "Olá durante a execução"
+            });
     }
 
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
