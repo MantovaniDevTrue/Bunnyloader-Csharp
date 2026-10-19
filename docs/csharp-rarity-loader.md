@@ -167,6 +167,13 @@ Isso é teste de integridade de arquivos no host, **não** confirmação de salv
 
 **Limite:** a identidade da referência é preservada quando o próprio `Item` permanece o mesmo; cópias profundas ou reconstruções de objetos por APIs nativas exigem QA Android. O rastreador não é uma identidade persistente para rede/multiplayer nem substitui o save `mod/classe`. Nenhum APK criado.
 
+## Lote — confirmação de escrita antes de atualizar pendências (19/10)
+
+- A gravação nativa `ModItemSave.cpp::writeFile` agora retorna sucesso/falha. A substituição por `.tmp` + `rename` e a remoção de sidecars vazios só informam sucesso após a operação efetiva, e continuam recusando arquivos danificados ou inacessíveis.
+- A reconciliação dos mapas `g_pendingRarity` e `g_pendingRarityByItem` acontece **somente quando a escrita do sidecar do personagem retorna sucesso**. Uma falha ao abrir, copiar backup, gravar, renomear ou remover deixa as referências pendentes como estavam em memória, para não avançar o estado enquanto o arquivo permanece antigo.
+- Mensagens `itens gravados` do personagem e do mundo agora dependem da confirmação da escrita. Os diagnósticos de falha específicos continuam disponíveis.
+- Os testes de host do lote anterior validam movimento de itens, remoção, reconciliação e carregamento via selector original do Bunny. O arquivo de integração nativa é compilado com `-Werror`; o fluxo IL2CPP real ainda depende de QA no aparelho.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
