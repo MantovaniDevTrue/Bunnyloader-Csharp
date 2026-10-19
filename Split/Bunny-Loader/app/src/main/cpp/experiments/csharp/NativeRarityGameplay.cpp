@@ -379,6 +379,17 @@ int g_hoverItemTypeOffset = -1;
 native_static::Value g_hoverItem;
 thread_local Il2CppString* g_rarityTextTarget = nullptr;
 thread_local uint32_t g_rarityTextColor = 0;
+thread_local bool g_rarityTextMatchByContent = false;
+
+bool rarityTextMatches(Il2CppString* text) {
+    const auto* target = g_rarityTextTarget;
+    if (!text || !target) return false;
+    if (target == text) return true;
+    if (!g_rarityTextMatchByContent || text->length != target->length ||
+        text->length <= 0 || text->length > 256) return false;
+    return std::memcmp(text->chars, target->chars,
+        static_cast<size_t>(text->length) * sizeof(char16_t)) == 0;
+}
 
 uint32_t nativeRarityToArgb(uint32_t native) {
     std::array<uint8_t, 4> bytes{};
@@ -393,7 +404,7 @@ void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* tex
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
     if (g_groundTextHookReady.load(std::memory_order_acquire) &&
-        g_rarityTextTarget && text == g_rarityTextTarget) {
+        rarityTextMatches(text)) {
         const uint32_t original = nativeRarityToArgb(color);
         const uint8_t opacity = static_cast<uint8_t>(original >> 24);
         if (shouldTintNativeRarityText(original, opacity))
@@ -434,11 +445,14 @@ void rarityMouseScope(Il2CppObject* info, F&& original) {
     }
     const auto previousText = g_rarityTextTarget;
     const auto previousColor = g_rarityTextColor;
+    const bool previousMatch = g_rarityTextMatchByContent;
     g_rarityTextTarget = text;
     g_rarityTextColor = color;
+    g_rarityTextMatchByContent = false;
     original();
     g_rarityTextTarget = previousText;
     g_rarityTextColor = previousColor;
+    g_rarityTextMatchByContent = previousMatch;
 }
 
 void rarityMouseStatic(Il2CppObject* info, bool worldMouse, const MethodInfo* method) {
