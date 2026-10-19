@@ -996,6 +996,11 @@ public static class CompiledAssemblyProbe
                     applyValue.ToString(CultureInfo.InvariantCulture),
                     effectiveStats ? "1" : "0",
                     extraTooltip.Length == 0 ? "-" : extraTooltip));
+            string tooltipWire = (string)(type.GetMethod("SerializeTooltipLines",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(prefix, null)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix tooltip lines"));
+            if (tooltipWire.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_TOOLTIP", name, tooltipWire));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
