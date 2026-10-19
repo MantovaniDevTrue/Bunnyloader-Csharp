@@ -348,3 +348,11 @@ public override void SetDefaults()
 O SourceLoader valida propriedade do prefixo, quantidade, tamanho, hexadecimal maiúsculo e caracteres de controle. As linhas passam ao snapshot imutável do prefixo. `hookInventoryTooltip` chama o original antes, inclui `ExtraTooltip` e depois cada linha adicional, respeitando o menor tamanho entre os arrays `lines/modifier/bad` e usando `gc_wbarrier_set_field` no IL2CPP. Nenhuma chamada ao MonoVM acontece durante o desenho.
 
 Os testes de host verificam o wire UTF-8, rejeição atômica de entradas excessivas, três linhas inseridas corretamente com flags de prefixo e capacidade final do array. O recurso cobre o texto **estático**; a implementação de `ModPrefix.GetTooltipLines(item)` que calcula múltiplas linhas arbitrárias a partir da instância ainda não está disponível. Android real, idioma local, saves e FPS continuam pendentes.
+
+## Prefixos misturados com outros mods — seleção com pesos
+
+O loader JS original mantém prefixos vanilla e de outros mods na lista de candidatos, aplicando `RollChance(item)` para os seus prefixos e peso padrão 1 para os demais. A implementação C# não pode devolver a rolagem ao jogo apenas por detectar um prefixo externo, porque isso ignora os pesos C# e as políticas `AllowPrefix` do item. `hookRoll` agora preserva os candidatos externos e vanilla dentro do array que já foi filtrado por `hookRollable`, com uma chamada à seleção nativa ponderada para os candidatos gerenciados. A decisão não introduz chamadas ao MonoVM no caminho quente.
+
+O teste C++ injeta uma lista `vanilla 71, externo 100, C# 98` com peso C# de 3; a seleção nativa percorre `71,100,98,98,98` por valores determinísticos de `NextDouble()`. Quando `Deny(71)` está ativo, a lista passa a `100,98,98,98`; nenhuma das seleções volta ao sorteio vanilla original. A rota original ainda é preservada para listas sem prefixo C# e sem filtro de item.
+
+Este comportamento foi testado em host, não garante paridade com hooks dinâmicos `GlobalItem` de mods terceiros, não executa C# por reforja e não foi validado em Android com mods externos reais.
