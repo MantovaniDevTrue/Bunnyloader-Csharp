@@ -72,9 +72,21 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Validação de host:** [CI #39316929714](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39316929714) passou após o hook de tabela. Testes adicionais de item falsificado e ABI estão na revisão atual, sujeitos à nova CI. Não houve APK, validação Android ou medição de FPS.
 
+## Lote — IDs compartilhados entre JS e C# (19/10)
+
+- O alocador `NativeRarityRegistry` distingue entradas gerenciadas (`managed=true`) das reservas JS (`managed=false`) e atribui IDs pelo **mesmo snapshot atômico**, começando em 12, sem reserva paralela e colisão entre esses dois loaders.
+- O QuickJS **existente** recebeu apenas `bl.csharp.reserveRarityId()` e `bl.csharp.rarityCount()`, funções C++ que operam diretamente no registro nativo. **Mods C# não executam nem consultam JavaScript**.
+- O `RarityLoader.js` original consulta a reserva compartilhada em `Add(inst)`; o `RarityCount` usado nos prefixos reflete também IDs registrados pelo C#. Há fallback compatível com o loader JS antigo quando a ponte nativa não existe.
+- A rotina visual C# ignora explicitamente reservas JS no hook de inicialização de cores, no lookup de prefixos e na enumeração de raridades de um mod.
+- Testes reais de host cobrem a sequência JS/C#/JS/C#, capacidade de 4096, esgotamento, IDs duplicados, retorno do contador nativo e concorrência entre duas threads. Um teste Node executa **o próprio arquivo** `RarityLoader.js` com a ponte nativa simulada e verifica que ele aceita o ID intercalado.
+
+**Verificação:** [CI #39318842507](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39318842507) passou com o contrato de IDs compartilhados. Teste concorrente de dois escritores foi acrescentado após esse checkpoint.
+
+**Ainda não garantido:** IDs persistentes ao mudar a ordem de carregamento, reidratação de saves antigos com IDs anteriores, compatibilidade visual real dos hooks JS e C# no Android e restrições de multiplayer. A compilação host **não substitui** o teste no aparelho.
+
 ## Bloqueios para declarar o loader completo
 
-1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e coordenar raridades entre mods C# e JS sem colisões.
+1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
 2. Aplicar `Rare` de armas, acessórios e itens às novas identidades; suportar `TypeOf` cruzado e persistência/reidratação sem perda de ID.
 3. Registrar cores de raridade em `Terraria.GameContent.UI.ItemRarity.Initialize` no C++/IL2CPP, incluindo chamadas de reinicialização.
 4. Implementar `Item.GetPopupRarityColor` para textos flutuantes e `Item.Prefix` com out/ref, multiplicadores e caso `Prefix(-1)` que não pode voltar a roxo.
