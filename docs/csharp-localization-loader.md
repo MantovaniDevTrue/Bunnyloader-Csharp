@@ -153,3 +153,15 @@ A fonte de referência foi `Bunny-Loader-main/app/src/main/cpp/script/js/mod/Mod
 - Foram acrescentados testes para registros vanilla compilados e dinâmicos, rejeição de `Mods.other.*`, restauração e descarregamento de chaves compartilhadas, além de remoção permitida somente para chaves externas cuja criação foi registrada.
 
 **Limite:** a fidelidade de substituição global por `Register` foi implementada em fontes e contratos de host, mas ainda falta teste end-to-end com o dicionário e os `LocalizedText` do Terraria ARM64. Alterações gerenciadas realizadas arbitrariamente fora de `RegisterTranslations`/`OnLocalizationsLoaded` ainda não têm um transporte de publicação nativo validado. A atualização de caches privados de NPCs, buffs e UI permanece pendente quando não é feita automaticamente pelo `LanguageManager`. Nenhum APK nem `.bmod` foi gerado.
+
+
+## Auditoria dos consumidores de `LocalizedText` nas fontes nativas
+
+O padrão já utilizado nas fontes do Bunny Loader é `content::makeLocalizedText` em `ContentAssets.cpp`: ele constrói o `LocalizedText`, registra o mesmo objeto em `LanguageManager._localizedTexts` e devolve a referência para os caches dos conteúdos.
+
+- `ModItems.cpp` coloca o objeto em `Lang._itemNameCache` e trabalha com `Lang._itemTooltipCache`.
+- `ModNpcs.cpp` insere o objeto em `Lang._npcNameCache`.
+- `ModBuffs.cpp` registra `Lang._buffNameCache` e `Lang._buffDescriptionCache`.
+- O `LocalizationLoader.js` original usa `LanguageManager.LoadLanguageFromFileText` nas recargas e `ItemTooltip.InvalidateTooltips` para invalidar as linhas de tooltip. A ponte C# utiliza o mesmo caminho de publicação e a invalidação existente, sem varreduras por quadro nem APIs de cache inventadas.
+
+Como consequência, os caches que **mantêm essa mesma referência** devem observar as alterações de `LocalizedText.Value` feitas pelo `LanguageManager`. Ainda é obrigatório verificar no jogo que `LoadLanguageFromFileText` preserva a identidade desses objetos no Terraria 1.4.5.8.6, inclusive durante unload e recarga; não se pode presumir isso apenas pelos testes de host. Strings copiadas por outros subsistemas não têm atualização genérica comprovada.
