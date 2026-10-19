@@ -10,6 +10,8 @@ public sealed class BunnyTileDrawContext {
     private int y;
     private readonly Sprite[] sprites = new Sprite[8];
     private int count;
+    private readonly Dust[] particles = new Dust[2];
+    private int particleCount;
     private bool specialRequested;
     private bool specialPhase;
 
@@ -24,6 +26,16 @@ public sealed class BunnyTileDrawContext {
         }
     }
 
+    private readonly struct Dust {
+        public readonly int Type, OffsetX, OffsetY, Width, Height, SpeedX, SpeedY, Alpha, Scale;
+        public readonly uint Argb;
+        public Dust(int type,int offsetX,int offsetY,int width,int height,
+                    int speedX,int speedY,int alpha,int scale,uint argb) {
+            Type=type;OffsetX=offsetX;OffsetY=offsetY;Width=width;Height=height;
+            SpeedX=speedX;SpeedY=speedY;Alpha=alpha;Scale=scale;Argb=argb;
+        }
+    }
+
     internal BunnyTileDrawContext(int tileType, int cellX, int cellY) {
         Reset(tileType,cellX,cellY);
     }
@@ -33,10 +45,42 @@ public sealed class BunnyTileDrawContext {
            cellX > 100000 || cellY > 100000)
             throw new ArgumentOutOfRangeException(nameof(tileType));
         type=tileType; x=cellX; y=cellY; count=0;
-        specialRequested=false; specialPhase=false;
+        specialRequested=false; specialPhase=false;particleCount=0;
     }
 
     public int Count => count;
+    public int ParticleCount => particleCount;
+
+    public void EmitDust(int dustType,int offsetX,int offsetY,int width,int height,
+                         int speedXMilli=0,int speedYMilli=0,int alpha=100,
+                         int scaleMilli=1000,uint argb=0xffffffffu) {
+        if (particleCount>=particles.Length)
+            throw new InvalidOperationException("Tile particle limit exceeded");
+        if (dustType<0||dustType>4095||offsetX < -64||offsetX>64||
+            offsetY < -64||offsetY>64||width<1||width>32||height<1||height>32||
+            speedXMilli < -10000||speedXMilli>10000||
+            speedYMilli < -10000||speedYMilli>10000||
+            alpha<0||alpha>255||scaleMilli<100||scaleMilli>3000)
+            throw new ArgumentOutOfRangeException(nameof(dustType));
+        particles[particleCount++]=new Dust(dustType,offsetX,offsetY,width,height,
+                                           speedXMilli,speedYMilli,alpha,scaleMilli,argb);
+    }
+
+    internal string EncodeParticles() {
+        var result=new StringBuilder("PARTICLES|");
+        result.Append(particleCount.ToString(CultureInfo.InvariantCulture));
+        for (int i=0;i<particleCount;i++) {
+            var p=particles[i];
+            result.Append('|').Append(type).Append(',').Append(x).Append(',').Append(y)
+                .Append(',').Append(p.Type).Append(',').Append(p.OffsetX)
+                .Append(',').Append(p.OffsetY).Append(',').Append(p.Width)
+                .Append(',').Append(p.Height).Append(',').Append(p.SpeedX)
+                .Append(',').Append(p.SpeedY).Append(',').Append(p.Alpha)
+                .Append(',').Append(p.Scale).Append(',')
+                .Append(p.Argb.ToString(CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
+    }
 
     public void RequestSpecialDraw() => specialRequested=true;
 

@@ -1148,6 +1148,7 @@ string Texture { get; set; }
 | `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
 | `void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
+| `void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
 | `void MouseOver(int x, int y)` | managed_helper |
@@ -1167,6 +1168,7 @@ class; base: `System.Object`.
 
 ```csharp
 int Count { get; }
+int ParticleCount { get; }
 ```
 
 | Method | Execution |
@@ -1174,6 +1176,7 @@ int Count { get; }
 | `void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
 | `void RequestSpecialDraw()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileFlags

@@ -2073,6 +2073,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void HitWire(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2128,7 +2132,8 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "int Count { get; }"
+        "int Count { get; }",
+        "int ParticleCount { get; }
       ],
       "values": [],
       "methods": [
@@ -2142,6 +2147,10 @@
         },
         {
           "signature": "void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)",
           "execution": "managed_helper"
         },
         {

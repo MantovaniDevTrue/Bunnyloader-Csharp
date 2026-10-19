@@ -27,7 +27,7 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.AnimateTile), nameof(BunnyTile.SetDrawPositions),
         nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects),
         nameof(BunnyTile.PostDraw), nameof(BunnyTile.DrawEffects),
-        nameof(BunnyTile.SpecialDraw)
+        nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -61,7 +61,7 @@ public static class BunnyTileRuntime {
             }
             if (kind == 2) return "READY";
             if (index == 13) {
-                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (7 << 16))) == 0) return "DEFAULT";
+                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (15 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
@@ -103,8 +103,9 @@ public static class BunnyTileRuntime {
                 bool hasPostDraw = (mod.Masks[owner] & (1 << 16)) != 0 && fields[10] == "0";
                 bool hasDrawEffects = (mod.Masks[owner] & (1 << 17)) != 0 && fields[10] == "0";
                 bool hasSpecialDraw = (mod.Masks[owner] & (1 << 18)) != 0 && fields[10] == "0";
+                bool hasParticles = (mod.Masks[owner] & (1 << 19)) != 0 && fields[10] == "0";
                 BunnyTileDrawContext? context = null;
-                if (hasPreDraw || hasPostDraw || hasDrawEffects || hasSpecialDraw) {
+                if (hasPreDraw || hasPostDraw || hasDrawEffects || hasSpecialDraw || hasParticles) {
                     if (tileType >= 754) {
                         if (!mod.DrawContexts.TryGetValue(owner, out context)) {
                             context = new BunnyTileDrawContext(tileType, x, y);
@@ -112,13 +113,14 @@ public static class BunnyTileRuntime {
                         } else context.Reset(tileType, x, y);
                         if (hasPreDraw) drawDefault = tile.PreDraw(x, y, context);
                         if (hasDrawEffects) tile.DrawEffects(x, y, sourceFrameX, sourceFrameY, context);
+                        if (hasParticles) tile.EmitParticles(x, y, sourceFrameX, sourceFrameY, context);
                         if (hasPostDraw) tile.PostDraw(x, y, context);
                         if (hasSpecialDraw && context.SpecialRequested) {
                             context.BeginSpecialDraw();
                             tile.SpecialDraw(x, y, context);
                         }
                     } else {
-                        if (hasPostDraw || hasDrawEffects || hasSpecialDraw)
+                        if (hasPostDraw || hasDrawEffects || hasSpecialDraw || hasParticles)
                             return "ERROR|Stage=DecodeTileDraw Reason=VisualCallbacksRequireTileType";
                         if (hasPreDraw) drawDefault = tile.PreDraw(x, y);
                     }
@@ -140,8 +142,11 @@ public static class BunnyTileRuntime {
                     addFrameY.ToString(CultureInfo.InvariantCulture),
                     effects.ToString(CultureInfo.InvariantCulture)) +
                     (hasPreDraw ? (drawDefault ? "|1" : "|0") : "");
-                return context != null && context.Count > 0
-                    ? drawWire + "\n" + context.Encode() : drawWire;
+                if (context != null && context.Count > 0)
+                    drawWire += "\n" + context.Encode();
+                if (context != null && context.ParticleCount > 0)
+                    drawWire += "\n" + context.EncodeParticles();
+                return drawWire;
             }
             switch (index) {
                 case 0: return tile.CanKillTile(x, y) ? "1" : "0";

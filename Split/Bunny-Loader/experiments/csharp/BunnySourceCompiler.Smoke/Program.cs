@@ -782,6 +782,19 @@ public sealed class MinionStaff : BunnyWeapon
         "3,4,0,0,16,16,0,0,0,0,1,754");
     if(noSpecial!="DRAW|0|0|16|16|0|0|0|0")
         throw new InvalidOperationException("SpecialDraw invoked in special pass: "+noSpecial);
+    string dust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dust-tile",
+        tileSmokeAssembly,nameof(TileDustSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(dust!="DRAW|0|0|16|16|0|0|0|0\nPARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967295")
+        throw new InvalidOperationException("EmitParticles expected native Dust wire: "+dust);
+    if((new TileDustSmoke().TileCallbackMask&(1<<19))==0)
+        throw new InvalidOperationException("EmitParticles override missing");
+    string noDust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dust-tile",
+        tileSmokeAssembly,nameof(TileDustSmoke),13,0,
+        "3,4,0,18,16,16,0,0,0,0,0,754");
+    if(noDust!="DRAW|0|18|16|16|0|0|0|0")
+        throw new InvalidOperationException("EmitParticles ran with wrong tile frame: "+noDust);
+    Console.WriteLine("BUNNY_CSHARP_TILE_PARTICLES=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_DRAW_EFFECTS_SPECIAL=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
@@ -875,5 +888,16 @@ sealed class TileEffectsSmoke : BunnyLoader.Source.BunnyTile
     public override void SpecialDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
     {
         draw.DrawFlameTexture(0,36,16,16,0,2,0xffffffffu,1);
+    }
+}
+
+sealed class TileDustSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void EmitParticles(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameY!=0)return;
+        draw.EmitDust(31,2,-4,4,8,0,-1500,100,1000);
     }
 }

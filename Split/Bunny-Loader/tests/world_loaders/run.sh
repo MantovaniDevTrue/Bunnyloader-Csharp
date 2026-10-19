@@ -48,6 +48,9 @@ reply="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-reply"
 overlay="${RUNNER_TEMP:-/tmp}/bunny-world-tile-overlay"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_overlay_test.cpp -o "$overlay"
 "$overlay"
+particle="${RUNNER_TEMP:-/tmp}/bunny-world-tile-particles"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_particle_wire_test.cpp -o "$particle"
+"$particle"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpriteBatch.cpp
 
 pass="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-pass"
