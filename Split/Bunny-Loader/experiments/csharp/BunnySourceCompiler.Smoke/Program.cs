@@ -763,7 +763,7 @@ public sealed class MinionStaff : BunnyWeapon
     string overlayWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-overlay-tile",
         tileSmokeAssembly,nameof(TileOverlaySmoke),13,0,
         "3,4,0,0,16,16,0,0,0,0,0,754");
-    if(overlayWire!="DRAW|0|0|16|16|0|0|0|0\\nSPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
+    if(overlayWire!="DRAW|0|0|16|16|0|0|0|0\nSPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
         throw new InvalidOperationException("Tile glow/flame source wire mismatch: "+overlayWire);
     Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
