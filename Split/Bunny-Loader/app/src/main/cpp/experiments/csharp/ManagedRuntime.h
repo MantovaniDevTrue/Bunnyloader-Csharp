@@ -13,7 +13,8 @@ namespace bl::graphics { struct ScreenSceneRaw; }
 namespace bl::csharp {
 bool queueManagedLocalizationLoaded(const std::string& modId,
                                    const std::string& assemblyPath,
-                                   const std::string& culture);
+                                   const std::string& culture,
+                                   uint64_t generation);
 void unloadManagedLocalizationCallbacks(const std::string& modId);
 bool managedRecipeRuntimeReady();
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
