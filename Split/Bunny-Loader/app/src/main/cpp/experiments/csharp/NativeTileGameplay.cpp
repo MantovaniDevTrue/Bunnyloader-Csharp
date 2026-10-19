@@ -23,6 +23,7 @@
 #include <limits>
 #include <dlfcn.h>
 #include <map>
+#include <memory>
 #include <string>
 
 namespace bl::csharp {
@@ -35,6 +36,7 @@ struct TileBehavior {
 };
 std::map<int, TileBehavior> g_tiles;
 std::array<std::atomic<uint8_t>, 65536> g_managedDrawMarks{};
+std::array<std::atomic<std::shared_ptr<const TileBehavior>>, 65536> g_managedDrawBindings{};
 bool g_managedDrawBound = false;
 std::map<std::string,std::string> g_assemblyByMod;
 bool g_wireInstalled = false;
@@ -197,9 +199,9 @@ void dispatchTileEvent(const NativeTileGameplaySpec& spec,int bit,int x,int y) {
 }
 bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool special) {
     if(!data || type < runtime::kVanillaTileCount || type >= 65536)return false;
-    const auto it=g_tiles.find(type);
-    if(it==g_tiles.end() || !managedTileReady(it->second.spec,13))return false;
-    const auto& spec=it->second.spec;
+    const auto binding=g_managedDrawBindings[type].load(std::memory_order_acquire);
+    if(!binding || !managedTileReady(binding->spec,13))return false;
+    const auto& spec=binding->spec;
     char snapshot[192]{};
     const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
         x,y,data->frameX,data->frameY,data->width,data->height,
@@ -1036,6 +1038,12 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
     for(auto& [type,behavior]:g_tiles) {
         if(behavior.spec.mod!=mod)continue;
         behavior.spec.assembly=assembly;
+        if((behavior.spec.callbackMask & (7<<13))!=0 &&
+           type>=runtime::kVanillaTileCount && type<65536 && g_managedDrawBound) {
+            g_managedDrawBindings[type].store(
+                std::make_shared<const TileBehavior>(behavior),std::memory_order_release);
+            g_managedDrawMarks[type].store(1,std::memory_order_release);
+        }
         if(behavior.spec.callbackMask)
             queueManagedTileWarmup(mod,assembly,behavior.spec.name);
     }
@@ -1088,8 +1096,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         }
     }
     g_tiles[spec.type] = behavior;
-    if((spec.callbackMask & (7 << 13)) != 0)
+    if((spec.callbackMask & (7 << 13)) != 0 && !behavior.spec.assembly.empty()) {
+        g_managedDrawBindings[spec.type].store(
+            std::make_shared<const TileBehavior>(behavior),std::memory_order_release);
         g_managedDrawMarks[spec.type].store(1,std::memory_order_release);
+    }
     g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;
     g_usesManagedLight|=(spec.callbackMask&(1<<6))!=0;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
