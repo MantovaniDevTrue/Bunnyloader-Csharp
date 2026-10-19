@@ -23,6 +23,7 @@
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace bl::csharp {
@@ -478,7 +479,9 @@ bool validateRarityTextVec2(Il2CppClass* type, std::string* error) {
     for (const auto& [name, expected] :
         {std::pair{"X", size_t{0}}, std::pair{"Y", size_t{4}}}) {
         auto* field = findField(type, name);
-        if (!field || !parameterIs(nullptr, nullptr, 0, "", "") && !a.field_get_type) return false;
+        if (!field || !a.field_get_type || !a.class_from_il2cpp_type ||
+            !a.field_get_offset || !a.class_get_namespace || !a.class_get_name ||
+            (a.field_get_flags(field) & 0x10u)) return false;
         auto* primitive = a.class_from_il2cpp_type(a.field_get_type(field));
         const char* ns = primitive ? a.class_get_namespace(primitive) : nullptr;
         const char* kind = primitive ? a.class_get_name(primitive) : nullptr;
