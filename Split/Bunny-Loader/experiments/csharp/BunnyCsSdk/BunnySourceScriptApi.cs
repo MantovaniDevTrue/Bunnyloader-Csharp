@@ -96,6 +96,7 @@ public abstract class BunnyWeapon : BunnyShootSource
     public string MinionBuff { get; set; } = "";
     public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -131,6 +132,7 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public int Duration { get; set; } = 600;
     public bool? PrefixChance { get; set; }
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -157,6 +159,7 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public float VisualOpacity { get; set; } = 1f;
     public uint VisualColor { get; set; } = 0xFFFFFFFF;
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -329,6 +332,45 @@ public struct PrefixStats
         ShootSpeedMultiplier = 1f,
         ManaMultiplier = 1f
     };
+}
+
+public sealed class BunnyItemPrefixRules
+{
+    private readonly System.Collections.Generic.SortedSet<int> blocked = new();
+    private readonly System.Collections.Generic.SortedSet<string> named =
+        new(System.StringComparer.Ordinal);
+
+    public void Deny(int prefixType)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        if (!blocked.Contains(prefixType) && blocked.Count + named.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        blocked.Add(prefixType);
+    }
+
+    public void Deny(string ownModPrefixName)
+    {
+        if (string.IsNullOrEmpty(ownModPrefixName) || ownModPrefixName.Length > 64 ||
+            !(ownModPrefixName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        foreach (char ch in ownModPrefixName)
+            if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        named.Add(ownModPrefixName);
+    }
+
+    public string Serialize()
+    {
+        var values = new System.Collections.Generic.List<string>();
+        foreach (int id in blocked)
+            values.Add(id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (string name in named)
+            values.Add(name);
+        return string.Join(",", values);
+    }
 }
 
 public sealed class BunnyPrefixRollRules
