@@ -1192,6 +1192,7 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
@@ -1279,6 +1280,7 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
+        angler::invalidateWorldSession();
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
