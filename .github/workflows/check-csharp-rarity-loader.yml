@@ -1,5 +1,11 @@
 name: Check CSharp RarityLoader Core
 on:
+  push:
+    branches:
+      - feat/csharp-rarity-loader-core-20261019
+    paths:
+      - 'Split/Bunny-Loader/**'
+      - '.github/workflows/check-csharp-rarity-loader.yml'
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
