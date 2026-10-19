@@ -71,8 +71,10 @@ bool isReturn(const MethodInfo* method, const char* ns, const char* name) {
     if (!method || !a.method_get_return_type || !a.class_from_il2cpp_type ||
         !a.class_get_namespace || !a.class_get_name) return false;
     auto* type = a.class_from_il2cpp_type(a.method_get_return_type(method));
-    return type && !std::strcmp(a.class_get_namespace(type), ns) &&
-        !std::strcmp(a.class_get_name(type), name);
+    const char* actualNs = type ? a.class_get_namespace(type) : nullptr;
+    const char* actualName = type ? a.class_get_name(type) : nullptr;
+    return actualNs && actualName && !std::strcmp(actualNs, ns) &&
+        !std::strcmp(actualName, name);
 }
 
 struct RarityTable {
