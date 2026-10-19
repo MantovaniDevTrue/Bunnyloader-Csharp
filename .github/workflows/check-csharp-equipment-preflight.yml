@@ -39,5 +39,13 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
           python3 -m unittest discover -s tests -p equipment_contract_surface_test.py -v
-          python3 tools/equipment_preflight.py --json --output /tmp/bunny-equipment-preflight.json
-          python3 tools/equipment_contract_surface.py --json --output /tmp/bunny-equipment-surface.json
+          mkdir -p build/equipment-preflight
+          python3 tools/equipment_preflight.py --json --output build/equipment-preflight/sources.json
+          python3 tools/equipment_contract_surface.py --json --output build/equipment-preflight/callbacks.json
+          python3 tools/equipment_contract_surface.py --output build/equipment-preflight/callbacks.md
+      - name: Retain equipment source and callback audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunny-csharp-equipment-audit
+          path: Split/Bunny-Loader/build/equipment-preflight/
+          retention-days: 30
