@@ -11,6 +11,10 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+using ManagedLocalizationResultSink = bool (*)(const std::string& modId,
+    const std::string& assemblyPath, const std::string& culture,
+    uint64_t generation, const std::string& wire);
+void setManagedLocalizationResultSink(ManagedLocalizationResultSink sink);
 bool queueManagedLocalizationLoaded(const std::string& modId,
                                    const std::string& assemblyPath,
                                    const std::string& culture,
