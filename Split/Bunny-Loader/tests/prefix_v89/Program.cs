@@ -15,16 +15,19 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 9 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 10 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
+    if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
+        throw new InvalidOperationException("Item-owned prefix denials missing from native wire");
     if (data.Count(row => row == "PREFIX_CHANCE\tTestWand\t0") != 1)
         throw new InvalidOperationException("Managed item PrefixChance policy missing");
     if (data.Count(row => row == "PREFIX_APPLY\tTestWand\t4\t125") != 1)
         throw new InvalidOperationException("Managed item ApplyPrefix policy missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
-    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
+    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_APPLY\t", StringComparison.Ordinal))
         .Select(row => row.Split('\t'))
@@ -97,6 +100,19 @@ try
     catch (ArgumentOutOfRangeException) { invalidNameRejected = true; }
     if (!invalidNameRejected)
         throw new InvalidOperationException("Unsafe stable item name accepted");
+    var denied = new BunnyLoader.Source.BunnyItemPrefixRules();
+    denied.Deny("TestMightyPrefix");
+    denied.Deny(71);
+    if (denied.Serialize() != "71,TestMightyPrefix")
+        throw new InvalidOperationException("Prefix denial serialization is not canonical");
+    bool badPrefix = false;
+    try { denied.Deny(0); }
+    catch (ArgumentOutOfRangeException) { badPrefix = true; }
+    if (!badPrefix) throw new InvalidOperationException("Invalid vanilla prefix accepted");
+    bool badName = false;
+    try { denied.Deny("external/OtherPrefix"); }
+    catch (ArgumentOutOfRangeException) { badName = true; }
+    if (!badName) throw new InvalidOperationException("External prefix lookup accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2");
 }
 finally
