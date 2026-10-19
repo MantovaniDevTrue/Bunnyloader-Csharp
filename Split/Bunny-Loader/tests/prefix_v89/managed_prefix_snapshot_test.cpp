@@ -30,6 +30,7 @@ int modItemTypeByKey(const std::string& key) {
 
 namespace bl::csharp {
 bool installManagedPrefixGameplayHooks() { return true; }
+bool installManagedPrefixChanceHook() { return true; }
 }
 
 #include "../../app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
@@ -39,6 +40,17 @@ int main() {
     auto first = managedPrefixView();
     assert(first && first->empty());
     assert(registeredManagedPrefixCount() == 0);
+    assert(managedItemPrefixChanceView()->empty());
+    assert(!applyManagedItemPrefixChances({{6207, false}, {6207, true}}));
+    assert(managedItemPrefixChanceView()->empty());
+    assert(applyManagedItemPrefixChances({{6207, false}}));
+    auto firstChances = managedItemPrefixChanceView();
+    assert(firstChances->at(6207) == false);
+    assert(!applyManagedItemPrefixChances({{6207, true}}));
+    assert(managedItemPrefixChanceView() == firstChances);
+    assert(applyManagedItemPrefixChances({{6208, true}}));
+    assert(managedItemPrefixChanceView()->at(6208));
+    assert(firstChances->size() == 1);
 
     reserveManagedPrefixDescriptor(98);
     assert(managedPrefixDescriptorPending(98));
