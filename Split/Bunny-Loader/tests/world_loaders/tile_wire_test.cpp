@@ -4,7 +4,7 @@
 
 int main() {
     using namespace bl::csharp::tile_wire;
-    for (std::size_t n = 0; n < 20; ++n) {
+    for (std::size_t n = 0; n <= 20; ++n) {
         const bool allow = n == 13 || n == 14 || n == 16 || n == 17 || n == 19 || n == 20;
         assert(supported(n) == allow);
         assert(hasAnimationHeight(n) == (allow && n >= 14));
