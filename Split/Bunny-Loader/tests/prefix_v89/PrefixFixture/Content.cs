@@ -30,6 +30,13 @@ public sealed class TestMightyPrefix : BunnyPrefix
         DisplayName = "Poderoso";
     }
 
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Allow(1, 3);
+        rules.Deny(2);
+        rules.Allow(512, 7);
+    }
+
     public override void SetStats(ref PrefixStats stats)
     {
         stats.DamageMultiplier *= 1.2f;
