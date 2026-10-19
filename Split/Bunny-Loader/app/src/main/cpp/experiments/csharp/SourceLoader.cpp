@@ -653,6 +653,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
     std::vector<std::pair<int, bool>> prefixChances;
+    std::set<int> seenPrefixChances;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -671,7 +672,8 @@ bool applyManagedSourceDefaults(
             if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
                 (fields[2] != "0" && fields[2] != "1") ||
                 runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
-                prefixChances.size() >= kSourceMaxCategory) {
+                prefixChances.size() >= kSourceMaxCategory ||
+                !seenPrefixChances.insert(registered->second).second) {
                 *error = "[CSharp][ERROR][PrefixChance] Mod=" + modId +
                     " Stage=Decode Reason=InvalidItemOrPolicy";
                 return false;
