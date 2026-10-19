@@ -181,6 +181,16 @@ bool isPrefixDenied(Il2CppObject* item, int prefix) {
 bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
     const auto& r = g_refs;
     if (!item || !itemCanRoll(item, p)) return false;
+    if (p.minItemDamage != 0 || p.maxItemDamage != 100000) {
+        if (r.damage < 0) return false;
+        const int damage = bl::runtime::field<int32_t>(item, r.damage);
+        if (damage < p.minItemDamage || damage > p.maxItemDamage) return false;
+    }
+    if (p.minItemMana != 0 || p.maxItemMana != 10000) {
+        if (r.mana < 0) return false;
+        const int mana = bl::runtime::field<int32_t>(item, r.mana);
+        if (mana < p.minItemMana || mana > p.maxItemMana) return false;
+    }
     if (p.category == 6) {
         const int type = bl::runtime::field<int32_t>(item, r.type);
         return p.itemWeights.contains(type);
