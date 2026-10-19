@@ -566,11 +566,12 @@ bool installRarityGroundTextHook(std::string* error) {
     auto* color = a.class_from_il2cpp_type(a.method_get_param(draw, 3));
     auto* effects = a.class_from_il2cpp_type(a.method_get_param(draw, 7));
     NativeColorLayout layout;
+    uint32_t effectAlignment = 0;
     if (vector != origin || !validateRarityTextVec2(vector, error) ||
         !layout.bind(color, error) || !effects ||
         !a.class_is_enum || !a.class_is_enum(effects) ||
         !a.class_value_size || !a.class_enum_basetype ||
-        a.class_value_size(effects, nullptr) != 4 ||
+        a.class_value_size(effects, &effectAlignment) != 4 ||
         !a.class_get_namespace || !a.class_get_name ||
         std::strcmp(a.class_get_namespace(effects), "Microsoft.Xna.Framework.Graphics") ||
         std::strcmp(a.class_get_name(effects), "SpriteEffects")) {
