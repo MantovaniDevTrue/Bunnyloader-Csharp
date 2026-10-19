@@ -224,7 +224,7 @@ try {
  });
  Check("roslyn.tile-animation-native-wire",()=>{
   string folder=Path.Combine(scratch,"animated-tile");Directory.CreateDirectory(Path.Combine(folder,"content"));
-  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;}public override bool CanKillTile(int x,int y)=>false;public override bool CanDrop(int x,int y)=>x<3;public override void HitWire(int x,int y){}public override void RandomUpdate(int x,int y){}public override void AnimateTile(ref int frame,ref int counter){frame=(frame+1)%4;counter=0;}public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b){r=0.2f;g=0.4f;b=0.8f;}public override void NearbyEffects(int x,int y,bool closer){} }");
+  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;}public override bool CanKillTile(int x,int y){if(x==99)throw new System.InvalidOperationException(\"Independent tile error\");return false;}public override bool CanDrop(int x,int y)=>x<3;public override void HitWire(int x,int y){}public override void RandomUpdate(int x,int y){}public override void AnimateTile(ref int frame,ref int counter){frame=(frame+1)%4;counter=0;}public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b){r=0.2f;g=0.4f;b=0.8f;}public override void NearbyEffects(int x,int y,bool closer){} }");
   string assemblyPath=Path.Combine(scratch,"animated-tile.dll"),diagPath=Path.Combine(scratch,"animated-tile.txt");
   Equal(1,Compiler.Compile(folder,assemblyPath,runtime,diagPath));
   Equal(1,CompiledAssemblyProbe.Verify(assemblyPath,diagPath));
@@ -241,13 +241,28 @@ try {
   Equal("LIGHT|200|400|800",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",6,0,"3,4"));
   Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",11,0,"3,4,0"));
   Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",11,0,"3,4,1"));
+  var callbackError=BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"99,4");
+  foreach(string detail in new[]{"Mod=tile-fixture","Class=AnimatedExampleTile","Callback=CanKillTile","Stage=Invoke","System.InvalidOperationException","Independent tile error","CanKillTile("})
+   if(!callbackError.Contains(detail))throw new Exception(callbackError);
+  Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"3,4"));
+ });
+ Check("wall.real-compiler-policy-and-native-helper-overrides",()=>{
+  string folder=Path.Combine(scratch,"wall"),file=Path.Combine(folder,"content","Wall.cs");Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+  File.WriteAllText(file,"using BunnyLoader.Source;namespace Walls {public sealed class IndependentWall:BunnyWall {public override void SetStaticDefaults(){Texture=\"wall.png\";DisplayName=\"Example Independent Wall\";Housing=true;BlendWallName=\"CogWall\";DustName=\"Stone\";FailedDustCount=3;DustCount=10;AnimationFrames=2;AnimationFrameTicks=5;SetFrameDust(0,\"GemEmerald\");RandomizeFrame(0,.75f,1,2);NightLight=new(.1f,.5f,0);AddMapEntry(68,68,68,\"Example Wall\");}}} namespace Items {public sealed class IndependentWall:BunnyItem {public override void SetDefaults(){Texture=\"item.png\";DisplayName=\"Example Independent Wall\";DefaultToPlaceableWall(\"IndependentWall\");Width=0;UseTime=7;AutoReuse=false;}public override void AddRecipes(){CreateRecipe(4).AddIngredient(\"OtherMod/Material\").AddTile(\"OtherMod/Station\").Register();}}}");
+  string output=Path.Combine(folder,"wall.dll"),diag=Path.Combine(folder,"wall.txt");
+  Equal(1,Compiler.Compile(folder,output,runtime,diag));if(CompiledAssemblyProbe.Verify(output,diag)!=2)throw new Exception(File.ReadAllText(diag));
+  var rows=File.ReadAllLines(Path.Combine(folder,"source-runtime-values.txt"));
+  var wall=rows.Single(r=>r.StartsWith("WALL\t")).Split('\t');Equal(16,wall.Length);Equal("3",wall[5]);Equal("10",wall[6]);Equal("2",wall[7]);Equal("5",wall[8]);Equal("0.75",wall[10]);Equal("1,2",wall[11]);Equal("0:GemEmerald",wall[12]);Equal("0.1,0.5,0",wall[14]);
+  var item=rows.Single(r=>r.StartsWith("ITEM\t")).Split('\t');Equal("wmIndependentWall:0:129:4",item[21]);Equal("4,mOtherMod/Station,mOtherMod/Material:1",item[19]);
+  File.Copy(Path.Combine(folder,"source-runtime-values.txt"),"build/basic-items/wall-source-runtime-values.txt",true);
+  Reject(()=>new BunnyWorldLight(float.NaN,0,0));Reject(()=>new BunnyWorldLight(0,-1,0));
  });
  Check("roslyn.full-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
-   [typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
    [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
@@ -255,7 +270,7 @@ try {
    .Select(t=>new{type=t,domain=domains.FirstOrDefault(p=>p.Key.IsAssignableFrom(t)).Value})
    .Where(x=>x.domain is not null).Select(x=>x.domain+":"+x.type.Name).ToHashSet(StringComparer.Ordinal);
   if(identities.Count==0)throw new Exception("full package has no content");
-  Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
+  if(CompiledAssemblyProbe.Verify(output,diag)!=identities.Count)throw new Exception(File.ReadAllText(diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)&&!l.StartsWith("SHOOT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
@@ -290,7 +305,7 @@ try {
   foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
       domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
-    var defaults=type.GetMethod(typeof(BunnyTile).IsAssignableFrom(type)?"SetStaticDefaults":"SetDefaults");
+    var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
     // Execute every registered content class: names and localized names share the user-facing convention.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
@@ -429,7 +444,7 @@ try {
   Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
-  Equal(13,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal(20,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);

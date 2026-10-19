@@ -90,7 +90,7 @@ As APIs indicadas já possuem caminhos reais, mas ainda precisam de comparação
 | `UndergroundBackgroundLoader` | — | Auditoria pendente |
 | `VanillaMusic` | — | Auditoria pendente |
 | `VanillaTooltips` | — | Auditoria pendente |
-| `WallLoader` | — | Auditoria pendente |
+| `WallLoader` | BunnyWall, BunnyWorldLight | Parcial |
 | `WaterStyleLoader` | — | Auditoria pendente |
 | `WaterfallStyleLoader` | — | Auditoria pendente |
 | `WingLoader` | — | Auditoria pendente |

@@ -14,10 +14,12 @@
 struct Il2CppClass { const char* name; bool value; int size; std::vector<FieldInfo*> fields; Il2CppClass* element=nullptr; int rank=0; Il2CppClass* parent=nullptr; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType* type; size_t offset; uint32_t flags; };
-struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; int8_t backSlot; unsigned char sentinel[3]; uint32_t color=0; void* clonedReference=nullptr; };
+struct FakeItem { Il2CppObject header; int type; int values[13]; bool flags[7]; float knockBack; alignas(void*) unsigned char sound[64]; int16_t defense; unsigned char defenseSentinel[2]; int headSlot; int16_t bodySlot; int16_t legSlot; int8_t wingSlot; int8_t beardSlot; int8_t backSlot; unsigned char sentinel[3]; uint16_t createWall=0;unsigned char wallSentinel[2]={0x5a,0x5a};uint32_t color=0; void* clonedReference=nullptr; };
 struct FakePlayer { Il2CppObject header; float meleeDamage=2,rangedDamage=3,magicDamage=4,minionDamage=5,moveSpeed=1; bool strongBees=false; unsigned char sentinel[3]={0x5a,0x5a,0x5a}; int statManaMax2=200,maxMinions=1,statDefense=0,lifeRegen=0; Il2CppArray* buffImmune=nullptr; Il2CppArray* armor=nullptr; uint32_t hairColor=0;int wingsLogic=0;float velocity[2]{},gravDir=1,wingTime=180;int wingTimeMax=180;bool empressBrooch=false; };
 struct MethodInfo {void* pointer=nullptr;};
 MethodInfo functionalMethod;
+MethodInfo wallHelper;
+bool wallMode=false;int wallHelperCalls=0;
 using EquipCallback=void (*)(Il2CppObject*,int32_t,Il2CppObject*,const MethodInfo*);
 EquipCallback functionalHook=nullptr;int originalEquipCalls=0,hookInstalls=0;
 bool rejectEquipHook=false;
@@ -73,15 +75,19 @@ bool applyManagedPrefixStatFallback(Il2CppObject*, int, std::string*) { return f
 }
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
+bool modWallAssetReady(int){return true;}
 std::string modItemKey(int type){return identities[type];}
 int modTileTypeByKey(const std::string&){return -1;}
 int tileTypeCount(){return 754;}
+int modWallTypeByKey(const std::string& key){return wallMode&&key=="mod/IndependentWall"?367:-1;}
+int wallTypeCount(){return wallMode?368:367;}
 int modItemTypeByKey(const std::string& key){for(auto& p:identities)if(p.second==key)return p.first;return -1;}
 void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> values){tooltips[type]=values.at(0).second;}
 }
 
 void configure(){
  storage.reserve(64);
+ if(wallMode){static Il2CppClass ushortClass{"UInt16",true,2,{}};static Il2CppType ushortType{&ushortClass};storage.push_back({"createWall",&ushortType,offsetof(FakeItem,createWall),0});itemClass.fields.push_back(&storage.back());}
  storage.push_back({"type",&intType,offsetof(FakeItem,type),0});itemClass.fields.push_back(&storage.back());
  const char* playerFields[]={"meleeDamage","rangedDamage","magicDamage","minionDamage","moveSpeed","strongBees"};
  const size_t playerOffsets[]={offsetof(FakePlayer,meleeDamage),offsetof(FakePlayer,rangedDamage),offsetof(FakePlayer,magicDamage),offsetof(FakePlayer,minionDamage),offsetof(FakePlayer,moveSpeed),offsetof(FakePlayer,strongBees)};
@@ -139,11 +145,23 @@ int main(int argc,char** argv){
  if(mode=="--int16") {styleClass.name="Int16";styleClass.size=2;}
  if(mode=="--int32"||enumStyle) {styleClass.name=enumStyle?"ItemUseStyle":"Int32";styleClass.size=4;}
  if(rejectStyle) {styleClass.name="Single";styleClass.size=4;}
+ wallMode=mode=="--wall";
  configure();
+ if(wallMode) {
+  wallHelper.pointer=reinterpret_cast<void*>(originalEquip);
+  additionalMethod=+[](Il2CppClass* cls,const bl::il2cpp::Signature& s)->const MethodInfo*{return cls==&itemClass&&s.name=="void DefaultToPlaceableWall(ushort wallToPlace)"?&wallHelper:nullptr;};
+  apiInstance.method_is_instance=[](const MethodInfo* m){return m==&wallHelper;};
+  apiInstance.runtime_invoke=[](const MethodInfo* m,void* object,void** args,Il2CppObject** error)->Il2CppObject* {
+   assert(m==&wallHelper);*error=nullptr;++wallHelperCalls;
+   auto* item=static_cast<FakeItem*>(object);item->createWall=*static_cast<uint16_t*>(args[0]);
+   item->values[0]=12;item->values[1]=12;item->values[2]=9999;item->values[7]=7;item->values[8]=15;
+   item->flags[2]=true;item->flags[3]=true;item->flags[4]=true;return nullptr;
+  };
+ }
  if(badBounds)bl::il2cpp::findField(&itemClass,"useStyle")->offset=sizeof(FakeItem);
  std::ifstream file(argv[1]);std::string line,error;std::getline(file,line);
  std::vector<bl::csharp::BasicItemEntry> entries;int next=6196;
- while(std::getline(file,line)){if(line.empty())continue;bl::csharp::BasicItemEntry entry;
+ while(std::getline(file,line)){if(line.empty()||(wallMode&&!line.starts_with("ITEM\t")))continue;bl::csharp::BasicItemEntry entry;
   assert(bl::csharp::parseBasicItemWire(bl::csharp::basicSplit(line,'\t'),&entry,&error));
   entry.type=next++;identities[entry.type]="mod/"+entry.name;
   if(rejectStyle) {
@@ -163,6 +181,16 @@ int main(int argc,char** argv){
   assert(error.find("Expected=4096 Actual=4097")!=std::string::npos);
   assert(error.find("ContentCountExceeded")!=std::string::npos);
   std::cout<<"NATIVE_BASIC_ITEM_192_AND_CATEGORY_4096_LIMIT_PASS\n";return 0;
+ }
+ if(wallMode) {
+  assert(entries.size()==1&&entries[0].wallPlaceable);entries[0].recipes.clear();
+  assert(bl::csharp::applyNativeBasicItemDefaults("mod",entries,&error));
+  FakeItem item{};assert(bl::csharp::applyBasicItemToObject(&item.header,entries[0].type));
+  assert(wallHelperCalls==1&&item.values[0]==0&&item.values[1]==12&&item.values[2]==9999&&item.values[7]==7&&item.values[8]==15);
+  assert(!item.flags[2]&&item.flags[3]&&item.flags[4]&&item.wallSentinel[0]==0x5a&&item.wallSentinel[1]==0x5a);
+  // Before dependency resolution an unsigned field gets zero, never -1/65535.
+  assert(item.createWall==0);
+  std::cout<<"NATIVE_WALL_HELPER_OVERRIDE_EQUAL_ZERO_FALSE_UNSIGNED_WIDTH_NO_QUICKJS_PASS\n";return 0;
  }
  assert(entries.size()==3);
  if(mode=="--recipes-only") {

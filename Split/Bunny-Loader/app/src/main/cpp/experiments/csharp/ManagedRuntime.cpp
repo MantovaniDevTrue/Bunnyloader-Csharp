@@ -2357,7 +2357,8 @@ bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds) {
     if(callback<0||callback>12||x<0||y<0||x>100000||y>100000) {
-        if(output)*output="ERROR|Stage=TileCallback Reason=InvalidCoordinatesOrKind";return false;
+        if(output)*output="ERROR|Stage=TileCallback Reason=InvalidCoordinatesOrKind";
+        return false;
     }
     return invokeManagedCallback(false,mod,assembly,owner,callback,0,
         std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
@@ -2405,7 +2406,8 @@ int managedTileWarmupState(const std::string& mod,const std::string& assembly,
     if(found==g_tileWarmups.end()){if(error)*error="Stage=Warmup Reason=TileOwnerNotQueued";return -1;}
     if(!found->second->done)return 0;
     if(found->second->output=="READY")return 1;
-    if(error)*error=found->second->output;return -1;
+    if(error)*error=found->second->output;
+    return -1;
 }
 static std::string shootWarmupKey(const std::string& mod,const std::string& assembly,const std::string& owner) {
     return mod+"|"+assembly+"|"+owner;

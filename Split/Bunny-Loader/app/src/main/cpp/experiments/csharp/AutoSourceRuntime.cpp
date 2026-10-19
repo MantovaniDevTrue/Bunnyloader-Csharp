@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/NativeShooting.h"
 #include "experiments/csharp/NativeTileGameplay.h"
+#include "experiments/csharp/NativeWallRuntime.h"
 #include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
@@ -1159,7 +1160,9 @@ void reportCSharpLoadSummary() {
         if (!g_pendingLiveSpecs.empty() &&
             !managedNpcBuffEffectStatus().gameHookInstalled) ++pendingCallbacks;
     }
-    const int pending = basic.pendingBehaviors + basic.pendingRecipes +
+    const auto wallStatus=walls::loadStatus();
+    failed+=wallStatus.failed;
+    const int pending = wallStatus.pending + basic.pendingBehaviors + basic.pendingRecipes +
         basic.pendingPlacements + pendingCallbacks + static_cast<int>(pendingNativeVisualRenderer());
     if (pending) return;
     if (g_initialCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))

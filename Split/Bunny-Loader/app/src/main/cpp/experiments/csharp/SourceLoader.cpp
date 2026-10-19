@@ -6,6 +6,8 @@
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeHoldout.h"
 #include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeWallRuntime.h"
+#include "content/walls/ModWalls.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -119,12 +121,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     const bool projectile = type.base == "BunnyProjectile";
     const bool basic = type.base == "BunnyItem";
     const bool tile = type.base == "BunnyTile";
+    const bool wall = type.base == "BunnyWall";
     const bool weapon = type.base == "BunnyWeapon";
     const bool buff = type.base == "BunnyBuff";
     const bool potion = type.base == "BunnyBuffPotion";
     const bool accessory = type.base == "BunnyAccessory";
     const bool npc = type.base == "BunnyNPC";
-    if (!basic && !tile && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
+    if (!basic && !tile && !wall && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
@@ -137,10 +140,10 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     spec->useTime = npc ? 2 : weapon ? 18 : 0;
     spec->shootType = npc ? 25 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
-    spec->kind = tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
+    spec->kind = wall ? NativeWall : tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
                  weapon ? NativeWeapon : buff ? NativeBuff :
                  accessory ? NativeAccessory : npc ? NativeNpc : NativeBuffPotion;
-    *texture = tile ? "Content/Tiles/" + type.name + ".png" :
+    *texture = wall ? "Content/Walls/" + type.name + ".png" : tile ? "Content/Tiles/" + type.name + ".png" :
                basic ? "Content/Items/" + type.name + ".png" : npc ? "Content/NPCs/" + type.name + ".png" :
                projectile ? "Content/Projectiles/" + type.name + ".png" :
                weapon ? "Content/Items/Weapons/" + type.name + ".png" :
@@ -151,8 +154,8 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     for (const auto& [key, value] : type.properties) {
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
-        if (tile) {
-            *error = type.name + ": BunnyTile permite somente Texture e DisplayName no registro antecipado";
+        if (tile || wall) {
+            *error = type.name + ": "+type.base+" permite somente Texture e DisplayName no registro antecipado";
             return false;
         }
         if (basic) {
@@ -372,8 +375,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 9> order = {
-        "BunnyTile", "BunnyItem",
+    const std::array<std::string, 10> order = {
+        "BunnyTile", "BunnyWall", "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
         "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
     };
@@ -497,6 +500,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->registeredTypes.try_emplace(key.substr(colon + 1), type);
     }
     status->tiles = ctx.tiles;
+    status->walls = ctx.walls;
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
     status->buffs = ctx.buffs;
@@ -639,6 +643,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, int> buffsByName;
     std::map<std::string, bool> seen;
     std::vector<ManagedTileEntry> tiles;
+    std::vector<walls::Definition> wallDefinitions;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
@@ -722,6 +727,18 @@ bool applyManagedSourceDefaults(
             const auto source=mod->sourcePaths.find(key);
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
+        }
+        if(fields.size()>1&&fields[0]=="WALL") {
+            const auto key=sourceIdentityForWire("WALL",fields[1]);auto target=mod->registeredKindTypes.find(key);
+            walls::Definition definition;
+            if(target==mod->registeredKindTypes.end()||runtime::modWallTypeByName(modId,fields[1])!=target->second) {
+                *error="[CSharp][ERROR][WallDefaults] Mod="+modId+" Class="+fields[1]+" Stage=ResolveContent Result=Rejected Reason=WallNotRegistered";return false;
+            }
+            auto source=mod->sourcePaths.find(key);const std::string sourcePath=source==mod->sourcePaths.end()?"<unavailable>":source->second;
+            if(!walls::parse(fields,&definition,error)){*error="[CSharp][ERROR][Wall] Mod="+modId+" Class="+fields[1]+" File="+sourcePath+" ContentId="+std::to_string(target->second)+" Stage=Decode Result=Rejected Detail="+*error;return false;}
+            definition.mod=modId;definition.type=target->second;definition.source=sourcePath;
+            if(!seen.emplace(key,true).second){*error="Duplicate WALL: "+fields[1];return false;}
+            wallDefinitions.push_back(std::move(definition));continue;
         }
         const std::string identity = fields.size() >= 2
             ? sourceIdentityForWire(fields[0], fields[1]) : "";
@@ -1211,6 +1228,7 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao validar descritores de prefixo C#";
         return false;
     }
+    if(!wallDefinitions.empty()&&!walls::publish(std::move(wallDefinitions),error))return false;
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }

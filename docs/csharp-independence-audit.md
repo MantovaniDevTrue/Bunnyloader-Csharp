@@ -234,3 +234,9 @@ validacao da nova API no Android pendente.
 ## Grupo de mundo .99
 
 BunnyTile.Flags → TILE → SourceLoader → NativeTileFlags/NativeContent → arrays Terraria. API C# com bridge nativa própria; registro/persistência usam serviços nativos independentes compartilhados. O teste world_loaders/tile_flags_test.cpp executa o publicador de produção com metadata controlada e wire do ExampleMod compilado, BL_HAVE_QUICKJS=0. Não inicializa VM JS. Isso comprova esse caminho de flags, não a independência integral dos loaders de tile/árvore/parede ainda pendentes. TreeLoader/TileEntity/GlobalTile C# completos não existem nesta revisão; não se expõem fachadas vazias.
+
+## Paredes C# .100
+
+Classificação: API C# original com bridge própria, utilizando serviços nativos independentes compartilhados. BunnyWall/SourceLoader chamam ModWalls diretamente; não executam API JS nem inicializam QuickJS. NativeWallRuntime mantém políticas de gameplay em tabela nativa imutável, e os listeners de registro C# e JS são separados.
+
+A prova host contém o registro/mapa real (`wall_registry_test.cpp`, BL_HAVE_QUICKJS=0), os hooks de produção com engine/metadata controlada (`wall_runtime_test.cpp`) e a aplicação de defaults de item com o helper nativo e suas máscaras (`native_item_binding_test --wall`). Não comprova renderização/persistência no Terraria nem independência de TODOS os outros sistemas: os callbacks arbitrários de parede, Tree/TileEntity/GlobalTile permanecem pendentes. O helper é aplicado na thread do Terraria; getters C# anteriores à aplicação retornam apenas o estado declarado.

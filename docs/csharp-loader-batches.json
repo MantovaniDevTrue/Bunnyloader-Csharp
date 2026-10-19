@@ -21,7 +21,7 @@
             "TileUseLoader",
             "TileWorldLoader"
           ],
-          "contractStatus": "pending",
+          "contractStatus": "partial",
           "exampleStatus": "implemented-awaiting-android",
           "example": {
             "reference": "Content/Tiles/ExampleTile.js",
@@ -31,11 +31,16 @@
           },
           "tests": [
             "tests/basic_items/Program.cs",
-            "tests/world_loaders/tile_flags_test.cpp"
+            "tests/world_loaders/tile_flags_test.cpp",
+            "tests/world_loaders/tile_animation_test.cpp",
+            "tests/world_loaders/tile_adjacency_test.cpp",
+            "tests/world_loaders/tile_wire_test.cpp",
+            "tests/world_loaders/tile_break_policy_test.cpp",
+            "tests/world_loaders/tile_scan_policy_test.cpp"
           ],
           "missing": [
-            "Flags originais do ExampleTile, NumDust precomputados; colocação/drop/save existentes.",
-            "Faltam callbacks completos de quebra, interação, frames, desenho/luz, animação e mundo."
+            "Completar o contrato de desenho, smart-interact, frames e demais hooks originais; revisar paridade/contexto dos novos caminhos RGB e NearbyEffects.",
+            "Revisar limites/fairness de AnimateTile gerenciado e validar ABI, eventos, persistência e multiplayer no Android."
           ],
           "android": "pending",
           "contractSource": "app/src/main/cpp/script/js/mod/ModTile.js"
@@ -45,18 +50,25 @@
           "modules": [
             "WallLoader"
           ],
-          "contractStatus": "pending",
-          "exampleStatus": "pending",
+          "contractStatus": "partial",
+          "exampleStatus": "partial",
           "example": {
             "reference": "Content/Walls/ExampleWallAdvanced.js",
             "referenceKind": "bunny-js-pinned",
-            "csharpClass": "",
+            "csharpClass": "ExampleModCSharp.Walls.ExampleWallAdvanced",
             "supportingSourcesAllowed": true
           },
-          "tests": [],
+          "tests": [
+            "tests/basic_items/Program.cs",
+            "tests/world_loaders/wall_runtime_test.cpp",
+            "tests/world_loaders/wall_registry_test.cpp",
+            "tests/basic_items/native_item_binding_test.cpp",
+            "tests/basic_items/package_assets_test.py"
+          ],
           "missing": [
-            "Faltam SDK público de paredes e conexão C# de todos os hooks do original.",
-            "Exemplo exige dust condicional, frames, animação e luz noturna, colocação e persistência."
+            "Validar no Android as novas bridges: moradia/blend, frames, animação, dust, luz, colocação, drops, mapa e persistência.",
+            "Concluir callbacks C# arbitrários de parede (KillWall/NumDust/CreateDust/KillSound/Drop/ModifyLight/AnimateWall/RandomUpdate/WallFrame), além das políticas nativas implementadas.",
+            "Defaults efetivos do helper de colocação executam no host; getters C# anteriores à aplicação ainda representam a declaração, não uma consulta ao objeto Android."
           ],
           "android": "pending",
           "contractSource": "app/src/main/cpp/script/js/mod/ModWall.js"

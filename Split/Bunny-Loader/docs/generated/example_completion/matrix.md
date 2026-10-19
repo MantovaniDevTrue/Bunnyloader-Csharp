@@ -30,7 +30,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Mounts | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 1 (2.78%) | 0 |
 | Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 1 (5.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
@@ -40,7 +40,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tiles | 37 | 2 (5.41%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Walls | 2 | 0 (0.0%) | 0 (0.0%) | 1 (50.0%) | 0 |
 | Weapons | 18 | 4 (22.22%) | 0 (0.0%) | 1 (5.56%) | 0 |
 
 ## Todos os arquivos
@@ -136,7 +136,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Placeable/ExampleTransparentShapedTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTrap.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem, ExampleTrapBase, ExampleTrapBase | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleWall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleWallAdvanced.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleWallAdvanced.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs | Parcial | Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.; BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados. | tests/basic_items/Program.cs; tests/world_loaders/wall_runtime_test.cpp; tests/world_loaders/wall_registry_test.cpp; tests/basic_items/native_item_binding_test.cpp --wall; tests/basic_items/package_assets_test.py |
 | Content/Items/Placeable/Furniture/ExampleBed.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleChair.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleChandelier.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -251,7 +251,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Tiles/Plants/ExampleSapling.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/Plants/ExampleTree.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTree | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Walls/ExampleWall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWall | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Walls/ExampleWallAdvanced.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWall | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Walls/ExampleWallAdvanced.js | samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs | Parcial | Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.; BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados. | tests/basic_items/Program.cs; tests/world_loaders/wall_runtime_test.cpp; tests/world_loaders/wall_registry_test.cpp; tests/basic_items/native_item_binding_test.cpp --wall; tests/basic_items/package_assets_test.py |
 | main.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para Mod | Sem validacao funcional C# deste exemplo inteiro. |
 
 ## Evidencia e continuidade

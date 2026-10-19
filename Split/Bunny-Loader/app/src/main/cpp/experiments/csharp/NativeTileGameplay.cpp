@@ -159,22 +159,32 @@ bool cellIs(int x, int y, int type, const runtime::TileArrays& world) {
            runtime::tileTypeAt(x, y) == type;
 }
 
+std::map<std::pair<int,int>,uint64_t> g_tileCallbackFailures;
+void reportTileCallbackFailure(const NativeTileGameplaySpec& spec,int bit,const std::string& actual) {
+    const auto count=++g_tileCallbackFailures[{spec.type,bit}];
+    if(count>3&&(count&(count-1))!=0)return;
+    BL_WARN("[CSharp][WARN][TileCallback] Mod=%s Class=%s Assembly=%s ContentId=%d Callback=%d Stage=Invoke Result=NativeFallback FailureCount=%llu Actual=%s",
+        spec.mod.c_str(),spec.name.c_str(),spec.assembly.c_str(),spec.type,bit,
+        static_cast<unsigned long long>(count),actual.c_str());
+}
 bool managedTileReady(const NativeTileGameplaySpec& spec,int bit) {
     if((spec.callbackMask&(1<<bit))==0||spec.assembly.empty())return false;
     std::string error;
-    return managedTileWarmupState(spec.mod,spec.assembly,spec.name,&error)==1;
+    const int state=managedTileWarmupState(spec.mod,spec.assembly,spec.name,&error);
+    if(state<0)reportTileCallbackFailure(spec,bit,error);
+    return state==1;
 }
 bool invokeTileBool(const NativeTileGameplaySpec& spec,int bit,int x,int y,bool* out) {
     if(!out||!managedTileReady(spec,bit))return false;
     std::string reply;
-    if(!invokeManagedTile(spec.mod,spec.assembly,spec.name,bit,x,y,&reply))return false;
+    if(!invokeManagedTile(spec.mod,spec.assembly,spec.name,bit,x,y,&reply)){reportTileCallbackFailure(spec,bit,reply);return false;}
     if(reply=="1"){*out=true;return true;}
     if(reply=="0"){*out=false;return true;}
-    return false;
+    reportTileCallbackFailure(spec,bit,"Expected=BooleanWire Actual="+reply);return false;
 }
 void dispatchTileEvent(const NativeTileGameplaySpec& spec,int bit,int x,int y) {
-    if(managedTileReady(spec,bit))
-        queueManagedTileEvent(spec.mod,spec.assembly,spec.name,bit,x,y);
+    if(managedTileReady(spec,bit)&&!queueManagedTileEvent(spec.mod,spec.assembly,spec.name,bit,x,y))
+        reportTileCallbackFailure(spec,bit,"Reason=EventSubmissionRejected");
 }
 void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
                     int32_t* drop, int32_t* stack, int32_t* extra, int32_t* extraStack,

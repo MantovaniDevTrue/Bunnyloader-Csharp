@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 namespace bl::runtime {
 
@@ -29,6 +30,9 @@ namespace bl::runtime {
 int addModTileMapEntry(int type, int r, int g, int b, const std::string& nameKey);
 
 int addModWallMapEntry(int type, int r, int g, int b, const std::string& nameKey);
+struct WallMapEntry { int r,g,b;std::string name; };
+// Replaces one content owner's map entries atomically. Existing JS add API is unchanged.
+bool setModWallMapEntries(int type,const std::vector<WallMapEntry>& entries);
 
 /**
  * Poe as entradas nas tabelas do mapa (so na thread do jogo). `rebuilt`: o

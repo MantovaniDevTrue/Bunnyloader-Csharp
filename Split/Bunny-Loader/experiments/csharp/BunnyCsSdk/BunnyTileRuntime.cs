@@ -98,9 +98,11 @@ public static class BunnyTileRuntime {
                 default: return "ERROR|Stage=TileCallback Reason=ContextRequired";
             }
         } catch (Exception error) {
-            return "ERROR|[CSharp][Tile] Mod=" + modId + " Class=" + owner +
+            string detail=error.ToString();
+            if(detail.Length>3000)detail=detail.Substring(0,3000);
+            return "ERROR|[CSharp][Tile] Mod=" + modId + " Class=" + owner + " Assembly=" + assemblyPath +
                 " Callback=" + (index >= 0 && index < Names.Length ? Names[index] : "<invalid>") +
-                " Reason=" + error.GetType().Name + " Message=" + error.Message;
+                " Stage=Invoke Result=CallbackRejected Reason=" + error.GetType().Name + " Exception=" + detail;
         }
     }
 }

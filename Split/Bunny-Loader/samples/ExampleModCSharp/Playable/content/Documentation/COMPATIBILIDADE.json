@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 80
+    "cSharpSourceFiles": 82
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -417,17 +417,18 @@
     "Placeable": {
       "total": 36,
       "states": {
-        "Não implementado": 34,
-        "Implementado, aguardando validação": 2
+        "Não implementado": 33,
+        "Implementado, aguardando validação": 2,
+        "Parcial": 1
       },
       "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 0,
+      "partial": 1,
       "implementedPercent": 5.56,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 2.78,
       "limitations": 0,
       "missingExamples": 34
     },
@@ -585,16 +586,17 @@
     "Walls": {
       "total": 2,
       "states": {
-        "Não implementado": 2
+        "Não implementado": 1,
+        "Parcial": 1
       },
       "implemented": 0,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 0,
+      "partial": 1,
       "implementedPercent": 0.0,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 50.0,
       "limitations": 0,
       "missingExamples": 2
     },
@@ -7105,29 +7107,48 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
-        "content/Content/Items/Placeable/ExampleWallAdvanced.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.png"
       ],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "preservedFeatures": [
+        "DefaultToPlaceableWall do próprio Terraria Android; createWall com largura/offset validados.",
+        "Overrides explícitos após o helper, inclusive valores 0 e false, preservados no wire.",
+        "Receita original de quatro paredes com ExampleItem e bancada C# ExampleWorkbench; nomes resolvidos a cada sessão."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
       "deviceEvidence": [],
@@ -16018,7 +16039,9 @@
         ],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs"
+      ],
       "requiredApis": [
         "AnimateWall",
         "CreateDust",
@@ -16030,23 +16053,41 @@
         "WallFrame",
         "byte wallFrameNumber()"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
-        "content/Content/Walls/ExampleWallAdvanced.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.png"
       ],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "preservedFeatures": [
+        "Registro nativo compartilhado WALL separado de ITEM, moradia e blend CogWall.",
+        "Frames condicionais com chance de 75%; animação de dois quadros a cada cinco ticks.",
+        "Poeira Stone/GemEmerald por frame, orçamento 3/10 e iluminação RGB noturna 0.1/0.5/0.",
+        "Textura original preservada; serviço de mapa transacional e persistência de parede no núcleo existente."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModWall"
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModWall.js"
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
       "deviceEvidence": [],
@@ -16722,6 +16763,17 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs",
+      "classes": [
+        "ExampleWallAdvanced"
+      ],
+      "mappedToJs": [
+        "Content/Items/Placeable/ExampleWallAdvanced.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs",
       "classes": [
         "ExampleWorkbench"
@@ -16937,6 +16989,17 @@
       ],
       "mappedToJs": [
         "Content/Tiles/Furniture/ExampleWorkbench.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs",
+      "classes": [
+        "ExampleWallAdvanced"
+      ],
+      "mappedToJs": [
+        "Content/Walls/ExampleWallAdvanced.js"
       ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."

@@ -157,6 +157,7 @@ jobs:
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+          /tmp/native-items-no-js build/basic-items/wall-source-runtime-values.txt --wall
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit

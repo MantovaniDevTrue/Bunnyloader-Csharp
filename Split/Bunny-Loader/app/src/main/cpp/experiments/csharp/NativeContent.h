@@ -16,7 +16,8 @@ enum NativeContentKind : int32_t {
     NativeBuff = 5,
     NativeBuffPotion = 6,
     NativeBasicItem = 7,
-    NativeTile = 8
+    NativeTile = 8,
+    NativeWall = 9
 };
 
 struct NativeContentSpec {
@@ -52,6 +53,7 @@ struct NativeRegisterContext {
     int potions = 0;
     int basicItems = 0;
     int tiles = 0;
+    int walls = 0;
     int firstNpcType = -1;
     int firstAccessoryType = -1;
     int firstBuffType = -1;

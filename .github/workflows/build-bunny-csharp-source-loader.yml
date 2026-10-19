@@ -1076,6 +1076,7 @@ jobs:
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable-unboxed
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --bounds
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/wall-source-runtime-values.txt --wall
       - name: Execute combat batch and actionable diagnostic regressions
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/combat_batch/CombatBatch.csproj -c Release

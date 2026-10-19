@@ -1268,6 +1268,87 @@
       ],
       "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
       "deviceEvidence": []
+    },
+    "Content/Walls/ExampleWallAdvanced.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs"
+      ],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.png"
+      ],
+      "preservedFeatures": [
+        "Registro nativo compartilhado WALL separado de ITEM, moradia e blend CogWall.",
+        "Frames condicionais com chance de 75%; animação de dois quadros a cada cinco ticks.",
+        "Poeira Stone/GemEmerald por frame, orçamento 3/10 e iluminação RGB noturna 0.1/0.5/0.",
+        "Textura original preservada; serviço de mapa transacional e persistência de parede no núcleo existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "missingFeatures": [
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
+      ],
+      "terrariaTests": [
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
+      ]
+    },
+    "Content/Items/Placeable/ExampleWallAdvanced.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.png"
+      ],
+      "preservedFeatures": [
+        "DefaultToPlaceableWall do próprio Terraria Android; createWall com largura/offset validados.",
+        "Overrides explícitos após o helper, inclusive valores 0 e false, preservados no wire.",
+        "Receita original de quatro paredes com ExampleItem e bancada C# ExampleWorkbench; nomes resolvidos a cada sessão."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "missingFeatures": [
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
+      ],
+      "terrariaTests": [
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
+      ]
     }
   },
   "additionalCSharpDeviceEvidence": {

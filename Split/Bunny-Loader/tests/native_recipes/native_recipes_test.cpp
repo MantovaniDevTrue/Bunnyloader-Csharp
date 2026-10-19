@@ -75,6 +75,9 @@ bool applyManagedPrefixStatFallback(Il2CppObject*, int, std::string*) { return f
 }
 namespace bl::log {void write(int,const char*,...) {}}
 namespace bl::runtime {
+bool modWallAssetReady(int){return true;}
+int modWallTypeByKey(const std::string&){return -1;}
+int wallTypeCount(){return 367;}
 void setModItemTooltip(int type,std::vector<std::pair<std::string,std::string>> text){
  std::lock_guard lock(item_registry::g_mx);item_registry::g_regs.at(type-kVanillaItemCount).def.tooltips=std::move(text);
 }

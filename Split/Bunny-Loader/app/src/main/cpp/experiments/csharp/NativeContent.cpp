@@ -21,6 +21,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/ModWalls.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileAccess.h"
 #include "il2cpp/Api.h"
@@ -2298,7 +2299,7 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.shape, entry.failDust, entry.normalDust,
                                         entry.animationFrameHeight, entry.animationFrames,
                                         entry.animationFrameTicks,
-                                        entry.allowBreaking, entry.allowDrops, entry.callbackMask});
+                                        entry.allowBreaking, entry.allowDrops, entry.callbackMask, {}});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
@@ -2398,6 +2399,13 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
+    if (spec->kind == NativeWall) {
+        std::string wallError;
+        const int type=runtime::registerModWall({ctx.modId,spec->name,path},&wallError);
+        if(type<0){ctx.lastError="[CSharp][ERROR][WallRegistration] Mod="+ctx.modId+" Class="+spec->name+" File="+ctx.sourceFile+" Stage=NativeRegister Result=Rejected Detail="+wallError;BL_ERROR("%s",ctx.lastError.c_str());return -1;}
+        ++ctx.walls;
+        return type;
+    }
     if (spec->kind == NativeTile) {
         bl::runtime::ModTileDef def{};
         def.mod = ctx.modId;

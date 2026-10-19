@@ -347,7 +347,8 @@
         "Accessory",
         "Player",
         "NPC",
-        "Prefix"
+        "Prefix",
+        "Wall"
       ],
       "methods": []
     },
@@ -1004,6 +1005,14 @@
         },
         {
           "signature": "void DefaultToPlaceableTile(string modTileName, int style)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DefaultToPlaceableWall(int vanillaWallId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DefaultToPlaceableWall(string modWallName)",
           "execution": "managed_helper"
         },
         {
@@ -1995,11 +2004,18 @@
       "properties": [
         "BunnyTileFlags Flags { get; set; }",
         "BunnyTileShape Shape { get; set; }",
+        "bool AllowBreaking { get; set; }",
+        "bool AllowDrops { get; set; }",
         "int AdjacentTile { get; set; }",
+        "int AnimationFrameHeight { get; set; }",
+        "int AnimationFrameTicks { get; set; }",
+        "int AnimationFrames { get; set; }",
         "int CoordinateHeight { get; set; }",
         "int MapB { get; }",
         "int MapG { get; }",
         "int MapR { get; }",
+        "int TileCallbackMask { get; }",
+        "int[] AdjacentTiles { get; set; }",
         "string DisplayName { get; set; }",
         "string DustName { get; set; }",
         "string MapName { get; }",
@@ -2008,11 +2024,63 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool CanDrop(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool CanKillTile(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool PreDraw(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool RightClick(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Slope(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "int NumDust(bool fail)",
           "execution": "compile_policy"
         },
         {
           "signature": "void AddMapEntry(int red, int green, int blue, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void AnimateTile(ref int frame, ref int frameCounter)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void HitWire(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ModifyLight(int x, int y, ref float r, ref float g, ref float b)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void MouseOver(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void MouseOverFar(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void NearbyEffects(int x, int y, bool closer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void PlaceInWorld(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RandomUpdate(int x, int y)",
           "execution": "managed_helper"
         },
         {
@@ -2047,6 +2115,20 @@
         "Cut"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyTileShape",
@@ -2388,6 +2470,45 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyWall",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyWorldLight DayLight { get; set; }",
+        "BunnyWorldLight NightLight { get; set; }",
+        "bool Housing { get; set; }",
+        "int AnimationFrameTicks { get; set; }",
+        "int AnimationFrames { get; set; }",
+        "int DustCount { get; set; }",
+        "int FailedDustCount { get; set; }",
+        "string BlendWallName { get; set; }",
+        "string DisplayName { get; set; }",
+        "string DustName { get; set; }",
+        "string NativeDefinition { get; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void AddMapEntry(int r, int g, int b, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RandomizeFrame(int from, float chance, int[] alternatives)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetFrameDust(int frameNumber, string dustName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWeapon",
       "kind": "abstract class",
       "baseType": "BunnyLoader.Source.BunnyShootSource",
@@ -2414,6 +2535,21 @@
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldLight",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyWorldLight(float r, float g, float b)"
+      ],
+      "properties": [
+        "float B { get; }",
+        "float G { get; }",
+        "float R { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.PrefixCategory",

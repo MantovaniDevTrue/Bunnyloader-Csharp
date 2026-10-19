@@ -195,7 +195,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -572,6 +572,8 @@ string UseSound { get; set; }
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
+| `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
+| `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyItemBehavior
@@ -1113,11 +1115,18 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
+bool AllowBreaking { get; set; }
+bool AllowDrops { get; set; }
 int AdjacentTile { get; set; }
+int AnimationFrameHeight { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
 int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int TileCallbackMask { get; }
+int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
 string MapName { get; }
@@ -1126,8 +1135,21 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool CanDrop(int x, int y)` | managed_helper |
+| `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y)` | managed_helper |
+| `bool RightClick(int x, int y)` | managed_helper |
+| `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void HitWire(int x, int y)` | managed_helper |
+| `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
+| `void MouseOver(int x, int y)` | managed_helper |
+| `void MouseOverFar(int x, int y)` | managed_helper |
+| `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void RandomUpdate(int x, int y)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags
@@ -1135,6 +1157,14 @@ string Texture { get; set; }
 enum; base: `System.Enum`.
 
 Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut.
+
+## BunnyLoader.Source.BunnyTileRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape
 
@@ -1294,6 +1324,32 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 | `void EndInvoke(IAsyncResult result)` | managed_helper |
 | `void Invoke(BunnyOriginalVoid original, IntPtr self, int first, int second, int third)` | managed_helper |
 
+## BunnyLoader.Source.BunnyWall
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyWorldLight DayLight { get; set; }
+BunnyWorldLight NightLight { get; set; }
+bool Housing { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
+int DustCount { get; set; }
+int FailedDustCount { get; set; }
+string BlendWallName { get; set; }
+string DisplayName { get; set; }
+string DustName { get; set; }
+string NativeDefinition { get; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AddMapEntry(int r, int g, int b, string name)` | managed_helper |
+| `void RandomizeFrame(int from, float chance, int[] alternatives)` | managed_helper |
+| `void SetFrameDust(int frameNumber, string dustName)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyWeapon
 
 abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
@@ -1317,6 +1373,17 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyWorldLight
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyWorldLight(float r, float g, float b)
+float B { get; }
+float G { get; }
+float R { get; }
+```
 
 ## BunnyLoader.Source.PrefixCategory
 

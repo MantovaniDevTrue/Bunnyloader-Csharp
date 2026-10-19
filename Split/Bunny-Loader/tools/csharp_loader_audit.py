@@ -18,6 +18,7 @@ MAPPING={
  'ProjectileLoader':(['BunnyProjectile','BunnyMinionSteering','BunnyMinionMovement'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp','experiments/csharp/ProjectilePolicy.h','experiments/csharp/SummonPolicy.h']),
  'NPCLoader':(['BunnyNPC'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp']),
  'PrefixLoader':(['BunnyPrefix'],['experiments/csharp/NativeContent.cpp']),
+ 'WallLoader':(['BunnyWall','BunnyWorldLight'],['experiments/csharp/NativeWallRuntime.cpp','content/walls/ModWalls.cpp']),
  'TileLoader':(['BunnyTile'],['experiments/csharp/NativeTileGameplay.cpp']),
  'RecipeLoader':(['BunnyRecipeLoader','BunnyRecipeSource','BunnyRecipe','BunnyRecipeGroup','BunnyRecipeBehavior','BunnyRecipeCondition'],['content/recipes/NativeRecipes.cpp','experiments/csharp/NativeRecipeCallbacks.cpp']),
  'PlayerDrawHooks':(['BunnyVisual'],['experiments/csharp/NativeVisualRenderer.cpp']),
