@@ -113,6 +113,7 @@ std::map<std::string, std::vector<SavedItem>> g_kept;
 struct PendingPrefix {
     int type = 0;
     std::string key;
+    std::string origin{};
 };
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingRarity;
@@ -642,7 +643,9 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                     const PendingPrefix unresolved{
                         field<int32_t>(slotItem, g_refs.type), s.rarityKey};
                     pendingRarity[placeKey(s.container, s.slot)] = unresolved;
-                    pendingRarityByItem[slotItem] = unresolved;
+                    pendingRarityByItem[slotItem] = {
+                        unresolved.type, unresolved.key,
+                        placeKey(s.container, s.slot)};
                 }
                 continue;
             }
@@ -670,7 +673,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey)) {
                     pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
-                    pendingRarityByItem[slotItem] = {type, s.rarityKey};
+                    pendingRarityByItem[slotItem] = {type, s.rarityKey,
+                        placeKey(s.container, s.slot)};
                 }
                 ++restored;
                 continue;
@@ -688,12 +692,15 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             bool prefixRestored = false;
             if (target && restore(target, type, s, &prefixRestored)) {
                 if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey)) {
-                    pendingRarityByItem[target] = {type, s.rarityKey};
+                    pendingRarityByItem[target] = {type, s.rarityKey,
+                        target == slotItem ? placeKey(s.container, s.slot) : std::string()};
                     bool located = false;
                     for (const Container& candidate : containers) {
                         for (int targetSlot = 0; targetSlot < candidate.size(); ++targetSlot) {
                             if (candidate.at(targetSlot) != target) continue;
-                            pendingRarity[placeKey(candidate.name, targetSlot)] = {type, s.rarityKey};
+                            const std::string destination = placeKey(candidate.name, targetSlot);
+                            pendingRarity[destination] = {type, s.rarityKey};
+                            pendingRarityByItem[target].origin = destination;
                             located = true;
                             break;
                         }
