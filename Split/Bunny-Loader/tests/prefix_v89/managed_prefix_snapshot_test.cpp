@@ -65,6 +65,22 @@ int main() {
     assert(applyManagedItemPrefixEffects({{6208, {2, 0}}}));
     assert(managedItemPrefixApplyView()->at(6208).damageBonus == 2);
     assert(firstEffects->size() == 1);
+    assert(managedItemPrefixDenyView()->empty());
+    assert(!applyManagedItemPrefixDenials("test", {{6207, {"71", "71"}}}));
+    assert(managedItemPrefixDenyView()->empty());
+    assert(!applyManagedItemPrefixDenials("test", {{6207, {"MissingPrefix"}}}));
+    assert(managedItemPrefixDenyView()->empty());
+    assert(!applyManagedItemPrefixDenials("test", {{6207, {"256"}}}));
+    assert(managedItemPrefixDenyView()->empty());
+    assert(applyManagedItemPrefixDenials("test", {{6207, {"71", "Mighty"}}}));
+    auto firstBans = managedItemPrefixDenyView();
+    assert(firstBans->at(6207).contains(71));
+    assert(firstBans->at(6207).contains(99));
+    assert(!applyManagedItemPrefixDenials("test", {{6207, {"72"}}}));
+    assert(managedItemPrefixDenyView() == firstBans);
+    assert(applyManagedItemPrefixDenials("test", {{6208, {"72"}}}));
+    assert(managedItemPrefixDenyView()->at(6208).contains(72));
+    assert(firstBans->size() == 1);
 
 
     reserveManagedPrefixDescriptor(98);
