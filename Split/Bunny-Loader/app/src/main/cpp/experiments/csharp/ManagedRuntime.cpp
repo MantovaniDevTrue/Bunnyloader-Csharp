@@ -2023,7 +2023,8 @@ void* pinnedMonoWorker(void*) {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
                         !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
-                        !g_localizationQueue.empty() || !g_localizationUnloads.empty();
+                        (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                         (!g_localizationQueue.empty() || !g_localizationUnloads.empty()));
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
