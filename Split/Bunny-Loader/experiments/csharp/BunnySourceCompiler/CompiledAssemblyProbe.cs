@@ -951,6 +951,27 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Managed prefix item rules too long: " + name);
             if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
             lines.Add(string.Join("\t", fields));
+            MethodInfo configureItemConditions = type.GetMethod("ConfigureItemConditions",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.ConfigureItemConditions");
+            Type itemConditionsType = configureItemConditions.GetParameters().Single().ParameterType;
+            object conditions = Activator.CreateInstance(itemConditionsType)
+                ?? throw new InvalidOperationException("BunnyPrefixItemConditions unavailable");
+            configureItemConditions.Invoke(prefix, new object[] { conditions });
+            int minDamage = Value<int>(conditions, "MinDamage");
+            int maxDamage = Value<int>(conditions, "MaxDamage");
+            int minMana = Value<int>(conditions, "MinMana");
+            int maxMana = Value<int>(conditions, "MaxMana");
+            if (minDamage < 0 || maxDamage < minDamage || maxDamage > 100000 ||
+                minMana < 0 || maxMana < minMana || maxMana > 10000)
+                throw new InvalidOperationException("Invalid runtime prefix item conditions: " + name);
+            if (minDamage != 0 || maxDamage != 100000 ||
+                minMana != 0 || maxMana != 10000)
+                lines.Add(string.Join("\t", "PREFIX_CONDITION", name,
+                    minDamage.ToString(CultureInfo.InvariantCulture),
+                    maxDamage.ToString(CultureInfo.InvariantCulture),
+                    minMana.ToString(CultureInfo.InvariantCulture),
+                    maxMana.ToString(CultureInfo.InvariantCulture)));
             MethodInfo applyPrefix = type.GetMethod("Apply",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");
