@@ -43,12 +43,15 @@ public sealed partial class BunnyLocalizationCatalog
     private sealed class State
     {
         public readonly Dictionary<string, TextEntry> Entries;
+        public readonly Dictionary<string, TextEntry> Overrides;
         public readonly string Culture;
         public readonly int Revision;
 
-        public State(Dictionary<string, TextEntry> entries, string culture, int revision)
+        public State(Dictionary<string, TextEntry> entries, string culture, int revision,
+            Dictionary<string, TextEntry>? overrides = null)
         {
             Entries = entries;
+            Overrides = overrides ?? new Dictionary<string, TextEntry>(StringComparer.Ordinal);
             Culture = culture;
             Revision = revision;
         }
@@ -71,7 +74,7 @@ public sealed partial class BunnyLocalizationCatalog
         {
             var snapshot = current;
             if (snapshot.Culture == culture) return;
-            Volatile.Write(ref current, new State(snapshot.Entries, culture, checked(snapshot.Revision + 1)));
+            Volatile.Write(ref current, new State(snapshot.Entries, culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -102,8 +105,12 @@ public sealed partial class BunnyLocalizationCatalog
                         [culture] = pair.Value
                     }, culture);
             }
+            foreach (var pair in checkedTexts)
+                if (snapshot.Overrides.TryGetValue(pair.Key, out TextEntry? registered))
+                    foreach (var cultureEntry in registered.Cultures)
+                        next[pair.Key] = next[pair.Key].With(cultureEntry.Key, cultureEntry.Value);
             if (next.Count > MaxEntries) throw new InvalidOperationException("Localization catalog exceeds its entry limit");
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -124,7 +131,7 @@ public sealed partial class BunnyLocalizationCatalog
                     [culture] = text
                 }, culture);
             if (next.Count > MaxEntries) throw new InvalidOperationException("Localization catalog exceeds its entry limit");
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -160,7 +167,7 @@ public sealed partial class BunnyLocalizationCatalog
             }
             if (next.Count > MaxEntries)
                 throw new InvalidOperationException("Localization catalog exceeds its entry limit");
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -222,7 +229,7 @@ public sealed partial class BunnyLocalizationCatalog
                         throw new InvalidOperationException("Localization catalog exceeds its entry limit");
                 }
             }
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -241,7 +248,7 @@ public sealed partial class BunnyLocalizationCatalog
                 if (next.Remove(key)) removed++;
             }
             if (removed != 0)
-                Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+                Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
 
@@ -274,7 +281,7 @@ public sealed partial class BunnyLocalizationCatalog
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (string culture in entry.Cultures.Keys)
         {
-            var cultureSnapshot = new State(snapshot.Entries, culture, snapshot.Revision);
+            var cultureSnapshot = new State(snapshot.Entries, culture, snapshot.Revision, snapshot.Overrides);
             result[culture] = Expand(cultureSnapshot, key,
                 new HashSet<string>(StringComparer.Ordinal), 0);
         }
