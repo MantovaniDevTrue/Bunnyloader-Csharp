@@ -38,3 +38,8 @@ bindings="${RUNNER_TEMP:-/tmp}/bunny-world-tile-bindings"
 cache="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw-cache"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_cache_test.cpp -o "$cache"
 "$cache"
+
+sprites="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-wire"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_wire_test.cpp -o "$sprites"
+"$sprites"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpriteBatch.cpp
