@@ -40,6 +40,8 @@ struct Item {
 };
 struct Player { Il2CppObject object{}; int defense = 10; };
 struct Box { Il2CppObject object{}; uint8_t value = 0; } boxed;
+struct DoubleBox { Il2CppObject object{}; double value = 0.0; } randomDouble;
+bool mixedPrefixCandidates = false;
 int constructorRuns = 0, nativeRolls = 0;
 
 Il2CppArray* allocate(size_t count, size_t stride) {
@@ -64,8 +66,10 @@ void getStatic(FieldInfo* f, void* out) {
 void setStatic(FieldInfo* f, void* value) { f->value = static_cast<Il2CppArray*>(value); }
 Il2CppArray* vanillaRollable(Il2CppObject* object, const MethodInfo*) {
     if (!reinterpret_cast<Item*>(object)->accessory) return nullptr;
-    auto* a = allocate(1, sizeof(int32_t));
-    *static_cast<int32_t*>(arrayData(a)) = 71;
+    auto* a = allocate(mixedPrefixCandidates ? 2 : 1, sizeof(int32_t));
+    auto* values = static_cast<int32_t*>(arrayData(a));
+    values[0] = 71;
+    if (mixedPrefixCandidates) values[1] = 100;
     return a;
 }
 bool vanillaRoll(Il2CppObject*, Il2CppObject*, int32_t* result, const MethodInfo*) {
@@ -97,6 +101,8 @@ Il2CppObject* invoke(const MethodInfo* method, void* self, void** args, Il2CppOb
     *error = nullptr;
     if (method == &rollableMethod)
         return reinterpret_cast<Il2CppObject*>(hookRollable(static_cast<Il2CppObject*>(self), method));
+    if (method == &nextDoubleMethod)
+        return &randomDouble.object;
     assert(method == &prefixMethod);
     auto* item = static_cast<Item*>(self);
     assert(*static_cast<int32_t*>(args[0]) == -2);
@@ -115,7 +121,7 @@ bool isModItem(int type) { return type >= 6196; }
 int vanillaPrefixCount() { return 98; }
 std::string modPrefixKey(int type) {
     return type == 98 ? "fixture/Guarded" : type == 99 ? "fixture/Mighty" :
-           type == 101 ? "fixture/Custom" : "";
+           type == 100 ? "other/External" : type == 101 ? "fixture/Custom" : "";
 }
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old, uintptr_t size) {
     const size_t stride = strides.at(old);
@@ -218,6 +224,39 @@ int main() {
         std::vector<ManagedPrefixEntry>{guarded, mighty});
     assert(!applyManagedPrefixViaNativeRoll(&accessory.object, 99, &prefixMethod, &reached));
     assert(!reached && accessory.prefix==98);
+
+    mixedPrefixCandidates = true;
+    auto* mixed = hookRollable(&accessory.object, nullptr);
+    assert(mixed && mixed->length == 3);
+    const auto* mixedIds = static_cast<const int32_t*>(arrayData(mixed));
+    assert(mixedIds[0] == 71 && mixedIds[1] == 100 && mixedIds[2] == 98);
+    const int priorNativeRolls = nativeRolls;
+    int32_t selectedMixed = -1;
+    randomDouble.value = 0.1;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 71);
+    randomDouble.value = 0.4;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 100);
+    randomDouble.value = 0.9;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 98);
+    assert(nativeRolls == priorNativeRolls);
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>(
+        std::map<int, std::set<int>>{{6196, {71}}});
+    auto* mixedFiltered = hookRollable(&accessory.object, nullptr);
+    assert(mixedFiltered && mixedFiltered->length == 2);
+    const auto* filteredIds = static_cast<const int32_t*>(arrayData(mixedFiltered));
+    assert(filteredIds[0] == 100 && filteredIds[1] == 98);
+    randomDouble.value = 0.1;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 100);
+    randomDouble.value = 0.8;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 98);
+    assert(nativeRolls == priorNativeRolls);
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>();
+    mixedPrefixCandidates = false;
 
     api.string_new = [](const char* text) -> Il2CppString* {
         const size_t length = std::strlen(text);
