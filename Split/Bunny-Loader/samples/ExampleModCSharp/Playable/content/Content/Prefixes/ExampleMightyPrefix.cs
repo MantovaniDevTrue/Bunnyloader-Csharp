@@ -17,6 +17,12 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
         rules.Allow("ExampleWand", 3);
     }
 
+    public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
+    {
+        conditions.RequireDamageBetween(10, 25);
+        conditions.RequireManaBetween(0, 8);
+    }
+
     public override void Apply(ref BunnyPrefixApplyStats effects)
     {
         effects.DamageBonus = 3;
