@@ -876,6 +876,7 @@ string ExtraTooltip { get; set; }
 | --- | --- |
 | `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
+| `void ConfigureItemConditions(BunnyPrefixItemConditions conditions)` | compile_policy |
 | `void ConfigureRollRules(BunnyPrefixRollRules rules)` | compile_policy |
 | `void ModifyValue(ref float valueMultiplier)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
@@ -889,6 +890,23 @@ struct; base: `System.ValueType`.
 int DamageBonus { get; set; }
 int ValueBonus { get; set; }
 ```
+
+## BunnyLoader.Source.BunnyPrefixItemConditions
+
+class; base: `System.Object`.
+
+```csharp
+BunnyPrefixItemConditions()
+int MaxDamage { get; }
+int MaxMana { get; }
+int MinDamage { get; }
+int MinMana { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void RequireDamageBetween(int minimum, int maximum)` | compile_policy |
+| `void RequireManaBetween(int minimum, int maximum)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyPrefixRollRules
 
