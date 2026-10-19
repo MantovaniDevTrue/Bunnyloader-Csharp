@@ -97,7 +97,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("std::atomic_store_explicit(&g_itemChanceView", bridge)
         self.assertIn("bool hookItemPrefixChance(", gameplay)
         self.assertIn("g_restoreRoll.item == item", gameplay)
-        self.assertIn("want == -1 ? -2 : want", gameplay)
+        self.assertIn("if (want == -1) request = -2;", gameplay)
 
     def test_item_apply_prefix_policy_is_sampled_and_native_post_success(self):
         sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
@@ -123,6 +123,10 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("if (!accepted || !item || want == -3", gameplay)
         self.assertIn("damage > INT32_MAX - policy->second.damageBonus", gameplay)
         self.assertIn("value > INT32_MAX - policy->second.valueBonus", gameplay)
+        fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
+        self.assertIn("effects.DamageBonus = 4;", fixture)
+        self.assertIn("effects.ValueBonus = 125;", fixture)
+
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
