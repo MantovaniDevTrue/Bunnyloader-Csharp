@@ -1,0 +1,112 @@
+name: Export validated patched Mono ARM64 for source handoff
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - entrega/potato-bunny-original-com-csharp-20261018
+    paths:
+      - .github/workflows/export-validated-mono-arm64.yml
+
+permissions:
+  contents: read
+
+jobs:
+  publish-only-open-source-mono:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+      APK_NAME: BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk
+      EXPECTED_APK_SHA256: 84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb
+    steps:
+      - name: Check out the complete CSharp source
+        uses: actions/checkout@v4
+        with:
+          ref: entrega/potato-bunny-original-com-csharp-20261018
+          persist-credentials: false
+
+      - name: Check source patch included in handoff
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/mono/patch_mono_android_signals.py
+          bash -n tools/mono/build_patched_mono_arm64.sh
+          grep -q 'mono_bunny_android_signal_policy_v1' tools/mono/patch_mono_android_signals.py
+
+      - name: Extract only the patched Mono library from validated private historical build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          test "$(gh api "repos/$PRIVATE_INPUTS_REPO" --jq '.private')" = "true"
+          mkdir -p "$RUNNER_TEMP/source-apk" "$RUNNER_TEMP/mono-only"
+          gh release download \
+            --repo "$PRIVATE_INPUTS_REPO" \
+            --pattern "$APK_NAME" \
+            --dir "$RUNNER_TEMP/source-apk"
+          APK="$RUNNER_TEMP/source-apk/$APK_NAME"
+          printf '%s  %s\n' "$EXPECTED_APK_SHA256" "$APK" | sha256sum -c -
+          unzip -p "$APK" "lib/arm64-v8a/libmonosgen-2.0.so" \
+            > "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so"
+          test -s "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so"
+          readelf -h "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so" > "$RUNNER_TEMP/mono-elf-header.txt"
+          grep -q "AArch64" "$RUNNER_TEMP/mono-elf-header.txt"
+          readelf -Ws "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so" > "$RUNNER_TEMP/mono-elf-symbols.txt"
+          grep -q 'mono_bunny_android_signal_policy_v1' "$RUNNER_TEMP/mono-elf-symbols.txt"
+          grep -q 'mono_jit_init' "$RUNNER_TEMP/mono-elf-symbols.txt"
+          grep -q 'mono_thread_attach' "$RUNNER_TEMP/mono-elf-symbols.txt"
+          cd "$RUNNER_TEMP/mono-only"
+          sha256sum libmonosgen-2.0.so > libmonosgen-2.0.so.sha256
+
+      - name: Include Mono source license and precise artifact provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$RUNNER_TEMP/mono-only"
+          curl -fLsS --retry 3 \
+            https://raw.githubusercontent.com/dotnet/runtime/v8.0.23/LICENSE.TXT \
+            -o "$DEST/DOTNET_RUNTIME_LICENSE.txt"
+          cat > "$DEST/README.txt" <<'TXT'
+          Bunny Loader CSharp - patched Android ARM64 MonoVM 8.0.23
+
+          This artifact contains ONLY the patched open-source MonoVM library,
+          its SHA-256, and the .NET runtime license. There are no Terraria,
+          Unity, APK, keystore, game assets or secrets.
+
+          Provenance: extracted the lib/arm64-v8a/libmonosgen-2.0.so from the
+          previously validated Bunny Loader CSharp .72 ManagedIngress APK
+          (APK SHA256: 84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb).
+
+          Required symbols: mono_bunny_android_signal_policy_v1,
+          mono_jit_init, mono_thread_attach.
+
+          Source patch:
+          tools/mono/patch_mono_android_signals.py
+          Source rebuilding instructions:
+          tools/mono/build_patched_mono_arm64.sh
+          tools/mono/README.md
+
+          Install after staging the official Mono Android 8.0.23 framework
+          from the NuGet runtime pack. Replace ONLY
+          app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so.
+
+          Device tests are still required for the CSharp .95.2 minion
+          lifecycle fix, irrespective of this library's prior validation.
+          TXT
+          cd "$DEST"
+          sha256sum -c libmonosgen-2.0.so.sha256
+          test "$(find . -maxdepth 1 -type f | wc -l)" = "4"
+
+      - name: Share patched Mono ARM64 as a stand-alone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bunny-CSharp-MonoVM-ARM64-8.0.23-patched-standalone
+          path: |
+            ${{ runner.temp }}/mono-only/libmonosgen-2.0.so
+            ${{ runner.temp }}/mono-only/libmonosgen-2.0.so.sha256
+            ${{ runner.temp }}/mono-only/DOTNET_RUNTIME_LICENSE.txt
+            ${{ runner.temp }}/mono-only/README.txt
+          if-no-files-found: error
+          retention-days: 90
