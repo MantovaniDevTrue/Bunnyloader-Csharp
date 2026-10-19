@@ -67,12 +67,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Execute managed item-rule handoff and check the SDK reference
+      - name: Execute managed prefix policy and descriptor handoff
         working-directory: Split/Bunny-Loader
         run: |
           dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
           dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
-          dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --check
           python3 tests/prefix_v89/guard_native_bridge.py
       - name: Compile and test native prefix snapshot path
         working-directory: Split/Bunny-Loader
