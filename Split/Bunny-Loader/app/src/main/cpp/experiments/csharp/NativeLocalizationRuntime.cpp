@@ -10,9 +10,13 @@
 #include "hook/HookManager.h"
 #include <algorithm>
 #include <atomic>
+#include <charconv>
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <sstream>
+#include <set>
+#include <tuple>
 #include <string>
 #include <utility>
 #include <vector>
@@ -26,6 +30,9 @@ std::string lastCulture;
 std::map<std::string, std::string> managedAssemblies;
 std::map<std::string, std::string> lastManagedNotification;
 std::set<std::string> pendingManagedNotification;
+std::map<std::string, uint64_t> managedEpochs;
+uint64_t nextManagedEpoch = 0;
+uint64_t lastDynamicRevision = 0;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -303,7 +310,7 @@ void invalidateGameTooltips() {
 }
 
 void notifyManagedApplied(const SessionSnapshot& snapshot, const std::string& culture, bool force) {
-    std::vector<std::pair<std::string, std::string>> callbacks;
+    std::vector<std::tuple<std::string, std::string, uint64_t>> callbacks;
     const std::string token = std::to_string(snapshot.revision) + "|" + culture;
     {
         std::lock_guard<std::mutex> lock(gate);
@@ -311,11 +318,11 @@ void notifyManagedApplied(const SessionSnapshot& snapshot, const std::string& cu
         for (const auto& [modId, assembly] : managedAssemblies) {
             if (!force && lastManagedNotification[modId] == token) continue;
             lastManagedNotification[modId] = token;
-            callbacks.emplace_back(modId, assembly);
+            callbacks.emplace_back(modId, assembly, managedEpochs[modId]);
         }
     }
-    for (const auto& [modId, assembly] : callbacks) {
-        const bool queued = bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture);
+    for (const auto& [modId, assembly, epoch] : callbacks) {
+        const bool queued = bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture, epoch);
         {
             std::lock_guard<std::mutex> lock(gate);
             if (queued)
@@ -393,6 +400,71 @@ bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,
     return true;
 }
 
+bool decodeManagedWire(const std::string& wire, const std::string& modId,
+                       std::vector<Entry>* result, std::string* error) {
+    if (!result || !error || wire.size() > 262144 || !identifier(modId, false)) return false;
+    auto reject = [&](const char* reason) {
+        *error = reason;
+        return false;
+    };
+    std::istringstream input(wire);
+    std::string line;
+    if (!std::getline(input, line) || line.rfind("OK|", 0) != 0)
+        return reject("InvalidReplyHeader");
+    int modules = -1;
+    const char* start = line.data() + 3;
+    auto [end, status] = std::from_chars(start, line.data() + line.size(), modules);
+    if (status != std::errc() || end != line.data() + line.size() ||
+        modules < 0 || modules > 32) return reject("InvalidModuleCount");
+    if (!std::getline(input, line) || line != "BUNNY_DYNAMIC_LOCALES_V1")
+        return reject("InvalidDynamicWireVersion");
+    std::vector<Entry> entries;
+    std::set<std::pair<std::string, std::string>> seen;
+    const std::string prefix = "Mods." + modId + ".";
+    while (std::getline(input, line)) {
+        if (line.empty() || entries.size() >= 256) return reject("RowCountExceeded");
+        const size_t a = line.find('\t');
+        const size_t b = a == std::string::npos ? a : line.find('\t', a + 1);
+        const size_t c = b == std::string::npos ? b : line.find('\t', b + 1);
+        if (a == std::string::npos || b == std::string::npos ||
+            c == std::string::npos || line.find('\t', c + 1) != std::string::npos ||
+            line.substr(0, a) != "LOCALE") return reject("InvalidDynamicWireRow");
+        Entry entry;
+        entry.culture = line.substr(a + 1, b - a - 1);
+        if (!cultureId(entry.culture) ||
+            !hex(line.substr(b + 1, c - b - 1), &entry.key, 280) ||
+            !hex(line.substr(c + 1), &entry.value, 8192) ||
+            entry.key.rfind(prefix, 0) != 0 ||
+            !identifier(entry.key.substr(prefix.size()), true) ||
+            !seen.emplace(entry.key, entry.culture).second)
+            return reject("InvalidDynamicWireIdentity");
+        entries.push_back(std::move(entry));
+    }
+    *result = std::move(entries);
+    return true;
+}
+
+bool acceptManagedWire(const std::string& modId, const std::string& assemblyPath,
+                       const std::string& culture, uint64_t generation,
+                       const std::string& wire) {
+    std::vector<Entry> rows;
+    std::string error;
+    if (!decodeManagedWire(wire, modId, &rows, &error)) {
+        BL_WARN("[CSharp][Localization] Mod=%s Stage=DynamicDecode Reason=%s",
+                modId.c_str(), error.c_str());
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(gate);
+    auto bound = managedAssemblies.find(modId);
+    auto epoch = managedEpochs.find(modId);
+    if (bound == managedAssemblies.end() || bound->second != assemblyPath ||
+        epoch == managedEpochs.end() || epoch->second != generation ||
+        culture != lastCulture) return false;
+    if (session.replaceDynamic(modId, std::move(rows)))
+        lastDynamicRevision = session.revision();
+    return true;
+}
+
 void bindManagedAssembly(const std::string& modId, const std::string& assemblyPath) {
     if (modId.empty() || modId.size() > 64 ||
         assemblyPath.empty() || assemblyPath.size() > 2048) return;
@@ -405,6 +477,7 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
             return;
         replaced = previous != managedAssemblies.end();
         managedAssemblies[modId] = assemblyPath;
+        managedEpochs[modId] = ++nextManagedEpoch;
         lastManagedNotification.erase(modId);
         pendingManagedNotification.erase(modId);
         if (lastAppliedGeneration == session.revision() && !lastCulture.empty()) {
@@ -414,8 +487,13 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
         }
     }
     if (replaced) bl::csharp::unloadManagedLocalizationCallbacks(modId);
+    uint64_t epoch = 0;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        epoch = managedEpochs[modId];
+    }
     if (!pendingCulture.empty() &&
-        !bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, pendingCulture)) {
+        !bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, pendingCulture, epoch)) {
         std::lock_guard<std::mutex> lock(gate);
         lastManagedNotification.erase(modId);
         pendingManagedNotification.insert(modId);
@@ -440,6 +518,7 @@ void retainActiveMods(const std::set<std::string>& activeIds) {
             removed.push_back(it->first);
             lastManagedNotification.erase(it->first);
             pendingManagedNotification.erase(it->first);
+            managedEpochs.erase(it->first);
             it = managedAssemblies.erase(it);
         }
     }
@@ -481,6 +560,7 @@ void pumpOnGameThread() {
             applied = true;
         }
     }
-    if (applied) notifyManagedApplied(current, culture, false);
+    if (applied && revision != lastDynamicRevision)
+        notifyManagedApplied(current, culture, false);
 }
 }
