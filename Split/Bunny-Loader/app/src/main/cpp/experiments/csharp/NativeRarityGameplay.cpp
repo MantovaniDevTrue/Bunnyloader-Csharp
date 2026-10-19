@@ -864,33 +864,33 @@ void pumpNativeRarityGameplay() {
     if (!g_tableHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
         if (installRarityTableHook(&error)) writeRarityTable(sample.type, argb);
-        else BL_WARN("[CSharp][RarityLoader] Stage=InstallTable Result=Pending Detail=%s",
+        else if (g_tick % 600u == 0) BL_WARN("[CSharp][RarityLoader] Stage=InstallTable Result=Pending Detail=%s",
             error.c_str());
     }
     if (!g_hookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
-        if (!installPopupRarityHook(&error))
+        if (!installPopupRarityHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallPopup Result=Pending Detail=%s",
                 error.c_str());
     }
     if (g_hookReady.load(std::memory_order_acquire) &&
         !g_groundTextHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
-        if (!installRarityGroundTextHook(&error))
+        if (!installRarityGroundTextHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallGroundText Result=Pending Detail=%s",
                 error.c_str());
     }
     if (g_groundTextHookReady.load(std::memory_order_acquire) &&
         !g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
-        if (!installRarityTooltipHook(&error))
+        if (!installRarityTooltipHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallTooltip Result=Pending Detail=%s",
                 error.c_str());
     }
     if (g_hookReady.load(std::memory_order_acquire) &&
         !g_prefixReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
-        if (!installPrefixRarityHook(&error))
+        if (!installPrefixRarityHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallPrefix Result=Pending Detail=%s",
                 error.c_str());
     }
