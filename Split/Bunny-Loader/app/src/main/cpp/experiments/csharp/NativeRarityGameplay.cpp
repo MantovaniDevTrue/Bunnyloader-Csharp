@@ -117,6 +117,7 @@ bool bindRarityTable(std::string* error) {
     auto* color = a.class_from_il2cpp_type(a.method_get_param(set, 1));
     NativeColorLayout validated;
     if (!validated.bind(color, error)) return false;
+    g_colorLayout = validated;
     g_table = {field, contains, set, color};
     return true;
 }
