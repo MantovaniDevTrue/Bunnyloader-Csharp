@@ -11,6 +11,8 @@ on:
       - experiments/csharp/BunnyDustCompilerSmoke/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
+      - tests/csharp/native_dust_mailbox.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
       - tests/csharp/native_dust_parser.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
@@ -49,3 +51,7 @@ jobs:
           "$RUNNER_TEMP/dust_parser"
       - name: Verify DustLoader compilation through real Roslyn and Mono source contract
         run: dotnet run --project experiments/csharp/BunnyDustCompilerSmoke/BunnyDustCompilerSmoke.csproj -c Release
+      - name: Verify bounded Dust worker mailbox and stale-instance protection
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp             tests/csharp/native_dust_mailbox.cpp -o "$RUNNER_TEMP/dust_mailbox"
+          "$RUNNER_TEMP/dust_mailbox"
