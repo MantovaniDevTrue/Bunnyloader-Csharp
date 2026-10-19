@@ -135,13 +135,19 @@ bool restoreRarity(Il2CppObject* item, const std::string& key) {
 }
 
 std::string pendingRarityFor(const std::string& path, const std::string& container,
-    int slot, int type) {
+    int slot, int type, Il2CppObject* item) {
     std::lock_guard<std::mutex> l(g_mx);
     const auto file = g_pendingRarity.find(path);
     if (file == g_pendingRarity.end()) return {};
     const auto it = file->second.find(container + "#" + std::to_string(slot));
-    return it != file->second.end() && it->second.type == type
-        ? it->second.key : std::string();
+    if (it == file->second.end() || it->second.type != type) return {};
+    const auto tracked = g_pendingRarityByItem.find(path);
+    if (tracked != g_pendingRarityByItem.end()) {
+        for (const auto& [originalItem, state] : tracked->second)
+            if (state.type == type && state.key == it->second.key &&
+                originalItem != item) return {};
+    }
+    return it->second.key;
 }
 
 std::string pendingRarityForItem(const std::string& path, Il2CppObject* item,
@@ -445,7 +451,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             if (stableRarity.empty())
                 stableRarity = pendingRarityForItem(path, item, type);
             if (stableRarity.empty())
-                stableRarity = pendingRarityFor(path, c.name, slot, type);
+                stableRarity = pendingRarityFor(path, c.name, slot, type, item);
             if (!isModItem(type)) {
                 const bool customPrefix = prefix >= vanillaPrefixCount() &&
                     !modPrefixKey(prefix).empty();
