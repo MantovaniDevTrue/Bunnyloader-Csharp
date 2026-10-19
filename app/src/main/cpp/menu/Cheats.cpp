@@ -18,6 +18,7 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
+#include "content/dusts/ModDusts.h"
 #include "content/tiles/ModTiles.h"
 #include "content/walls/ModWalls.h"
 #include "menu/MenuCatalog.h"
@@ -868,6 +869,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModProjectiles();
     tickModNpcs();
     tickModBuffs();
+    tickModDusts();
     tickModTiles();
     tickModWalls();
     tickTexturePacks();
