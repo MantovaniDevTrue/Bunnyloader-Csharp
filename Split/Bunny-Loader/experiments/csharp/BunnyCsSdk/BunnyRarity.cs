@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace BunnyLoader.Source;
 
@@ -88,44 +89,41 @@ public sealed class BunnyRarityRegistry
             sealedRegistry = true;
             foreach (BunnyRarityEntry entry in entries)
                 entry.Instance.SetStaticDefaults();
-            sealedEntries = Array.AsReadOnly(entries.ToArray());
-            return sealedEntries;
+            IReadOnlyList<BunnyRarityEntry> published = Array.AsReadOnly(entries.ToArray());
+            Volatile.Write(ref sealedEntries, published);
+            return published;
         }
     }
 
     public bool TryGetColor(int type, out BunnyColor color)
     {
-        lock (gate)
+        IReadOnlyList<BunnyRarityEntry>? published = Volatile.Read(ref sealedEntries);
+        if (published == null)
+            throw new InvalidOperationException("Seal rarities before game callbacks");
+        int index = type - TerrariaVanillaRarityCount;
+        if ((uint)index >= (uint)published.Count)
         {
-            if (!sealedRegistry || sealedEntries == null)
-                throw new InvalidOperationException("Seal rarities before game callbacks");
-            int index = type - TerrariaVanillaRarityCount;
-            if ((uint)index >= (uint)entries.Count)
-            {
-                color = default;
-                return false;
-            }
-            color = entries[index].Instance.RarityColor;
-            return true;
+            color = default;
+            return false;
         }
+        color = published[index].Instance.RarityColor;
+        return true;
     }
 
     public int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)
     {
         if (!float.IsFinite(valueMultiplier) || valueMultiplier < 0f)
             throw new ArgumentOutOfRangeException(nameof(valueMultiplier));
-        lock (gate)
-        {
-            if (!sealedRegistry || sealedEntries == null)
-                throw new InvalidOperationException("Seal rarities before game callbacks");
-            int index = originalType - TerrariaVanillaRarityCount;
-            if ((uint)index >= (uint)entries.Count) return nativeResult;
-            BunnyRarity rarity = entries[index].Instance;
-            int offset = PrefixOffset(valueMultiplier);
-            int result = rarity.GetPrefixedRarity(offset, valueMultiplier);
-            if (result > -11) result = Math.Clamp(result, -1, TerrariaVanillaRarityCount + entries.Count - 1);
-            return result;
-        }
+        IReadOnlyList<BunnyRarityEntry>? published = Volatile.Read(ref sealedEntries);
+        if (published == null)
+            throw new InvalidOperationException("Seal rarities before game callbacks");
+        int index = originalType - TerrariaVanillaRarityCount;
+        if ((uint)index >= (uint)published.Count) return nativeResult;
+        BunnyRarity rarity = published[index].Instance;
+        int offset = PrefixOffset(valueMultiplier);
+        int result = rarity.GetPrefixedRarity(offset, valueMultiplier);
+        if (result > -11) result = Math.Clamp(result, -1, TerrariaVanillaRarityCount + published.Count - 1);
+        return result;
     }
 
     public static int PrefixOffset(float valueMultiplier)
