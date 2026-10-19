@@ -177,8 +177,12 @@ Refs& refs() {
     reference.getValue=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("string GetTextValue(string key)"));
     reference.loadCulture=il2cpp::findMethodBySignature(lm,il2cpp::parseSignature("void LoadFilesForCulture(GameCulture culture)"));
     auto* tooltip=il2cpp::findClass({"Terraria.UI","ItemTooltip",{}});
-    reference.invalidateTooltips=tooltip ? il2cpp::api().class_get_method_from_name(tooltip,"InvalidateTooltips",0) : nullptr;
     auto& api=il2cpp::api();
+    const MethodInfo* invalidator=tooltip
+        ? il2cpp::findMethodBySignature(tooltip,il2cpp::parseSignature("void InvalidateTooltips()"))
+        : nullptr;
+    reference.invalidateTooltips=invalidator && api.method_is_instance &&
+        !api.method_is_instance(invalidator) ? invalidator : nullptr;
     reference.valid=reference.manager&&reference.active&&reference.name&&reference.load&&
         api.method_is_instance&&api.method_is_instance(reference.load)&&
         !api.method_is_instance(reference.active)&&api.method_is_instance(reference.name);
