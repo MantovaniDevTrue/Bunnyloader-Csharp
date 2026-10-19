@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeTileDrawWire.h"
 #include "experiments/csharp/NativeTileDrawBindings.h"
 #include "experiments/csharp/NativeTileSpriteReply.h"
+#include "experiments/csharp/NativeTileParticleReply.h"
 #include "experiments/csharp/NativeTileSpritePass.h"
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -219,9 +220,15 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
     }
     tile_draw::Data draw{};
     tile_sprite::Batch sprites{};
-    bool hasSprites=false;
-    if(!tile_sprite::parseDrawWithSprites(reply,&draw,&sprites,&hasSprites)) {
+    tile_particle::Batch particles{};
+    bool hasSprites=false,hasParticles=false;
+    if(!tile_particle::parseReply(reply,&draw,&sprites,&hasSprites,
+                                  &particles,&hasParticles)) {
         reportTileCallbackFailure(spec,13,"Stage=DecodeDraw Reason=InvalidReply");
+        return false;
+    }
+    if(hasParticles&&(special||!tile_particle::owned(particles,type,x,y))) {
+        reportTileCallbackFailure(spec,13,"Stage=ValidateParticles Reason=OwnershipOrPass");
         return false;
     }
     if(hasSprites) {
@@ -231,6 +238,8 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
             return false;
         }
     }
+    if(hasParticles&&!tile_sprite::stageNativeTileParticlesForCurrentFrame(particles))
+        reportTileCallbackFailure(spec,13,"Stage=QueueDust Reason=FrameBudgetOrUnavailable");
     data->frameX=draw.frameX;
     data->frameY=draw.frameY;
     data->width=draw.width;
@@ -1100,11 +1109,17 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if((spec.callbackMask & tile_policy::kManagedDrawCallbacks) != 0) {
-        if((spec.callbackMask & ((1 << 5) | (7 << 16))) != 0) {
+        if((spec.callbackMask & ((1 << 5) | (15 << 16))) != 0) {
             std::string drawingError;
             if(!tile_sprite::installNativeTileSpritePass(&drawingError))
                 BL_WARN("[CSharp][TileDraw] Stage=BindSpritePass Mod=%s Class=%s Result=DefaultFallback Detail=%s",
                         spec.mod.c_str(),spec.name.c_str(),drawingError.c_str());
+        }
+        if((spec.callbackMask&(1<<19))!=0) {
+            std::string dustError;
+            if(!tile_sprite::bindNativeTileDust(&dustError))
+                BL_WARN("[CSharp][TileDust] Mod=%s Class=%s Stage=Bind Result=Disabled Detail=%s",
+                        spec.mod.c_str(),spec.name.c_str(),dustError.c_str());
         }
         runtime::ensureTileDrawHook();
         if(!runtime::tileDrawHooksReady()) {

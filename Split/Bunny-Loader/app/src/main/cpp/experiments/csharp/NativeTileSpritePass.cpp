@@ -1,5 +1,7 @@
 #include "experiments/csharp/NativeTileSpritePass.h"
 #include "experiments/csharp/NativeTileSpritePassQueue.h"
+#include "experiments/csharp/NativeTileParticleQueue.h"
+#include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/NativeTileSpriteBatch.h"
 #include "experiments/csharp/NativeTileSpriteBatchLifecycle.h"
 #include "content/tiles/ModTiles.h"
@@ -16,6 +18,9 @@ namespace {
 using DrawPass = void (*)(Il2CppObject*,bool,bool,bool,const MethodInfo*);
 DrawPass originalPostDraw = nullptr;
 SpritePassQueue pending;
+tile_particle::ParticleQueue pendingParticles;
+const MethodInfo* newDust=nullptr;
+NativeColorLayout dustColor{};
 FieldInfo* spriteBatchField=nullptr;
 FieldInfo* gameMenuField=nullptr;
 FieldInfo* frameField=nullptr;
@@ -32,17 +37,82 @@ bool matchesBool(const Il2CppType* type,const char* name) {
     return equal;
 }
 
+bool matchType(const Il2CppType* type,const char* name) {
+    return matchesBool(type,name);
+}
+
+bool bindDust(std::string* error) {
+    using namespace il2cpp;
+    auto& a=api();
+    if(newDust)return true;
+    if(!a.class_get_method_from_name||!a.method_get_param_count||
+       !a.method_get_param||!a.method_get_return_type||
+       !a.method_is_instance||!a.runtime_invoke||
+       !a.class_from_il2cpp_type)return false;
+    auto* dust=findClass({"Terraria","Dust",{}});
+    const auto* method=dust?a.class_get_method_from_name(dust,"NewDust",9):nullptr;
+    if(!method||!methodPointer(method)||a.method_is_instance(method)||
+       a.method_get_param_count(method)!=9||
+       !matchType(a.method_get_return_type(method),"System.Int32")) {
+        if(error)*error="Stage=BindDust Reason=NativeNewDustMissing";
+        return false;
+    }
+    const char* params[]={
+        "Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32",
+        "System.Int32","System.Single","System.Single","System.Int32",
+        "Microsoft.Xna.Framework.Color","System.Single"
+    };
+    for(unsigned i=0;i<9;++i)
+        if(!matchType(a.method_get_param(method,i),params[i])) {
+            if(error)*error="Stage=BindDust Reason=SignatureMismatch";
+            return false;
+        }
+    NativeColorLayout layout;
+    if(!layout.bind(a.class_from_il2cpp_type(a.method_get_param(method,7)),error))
+        return false;
+    dustColor=layout;
+    newDust=method;
+    return true;
+}
+
+void emitDust(const tile_particle::Particle& particle) {
+    if(!newDust||!tile_particle::valid(particle))return;
+    auto& a=il2cpp::api();
+    struct Position {float x,y;} pos{
+        static_cast<float>(particle.x*16+particle.offsetX),
+        static_cast<float>(particle.y*16+particle.offsetY)
+    };
+    int32_t width=particle.width,height=particle.height,type=particle.dustType;
+    int32_t alpha=particle.alpha;
+    float speedX=static_cast<float>(particle.speedXMilli)*0.001f;
+    float speedY=static_cast<float>(particle.speedYMilli)*0.001f;
+    float scale=static_cast<float>(particle.scaleMilli)*0.001f;
+    uint32_t color=dustColor.fromArgb(particle.argb);
+    void* args[]={&pos,&width,&height,&type,&speedX,&speedY,&alpha,&color,&scale};
+    Il2CppObject* error=nullptr;
+    a.runtime_invoke(newDust,nullptr,args,&error);
+}
+
 void postDraw(Il2CppObject* renderer,bool solidLayer,bool forRenderTargets,
               bool intoRenderTargets,const MethodInfo* method) {
     originalPostDraw(renderer,solidLayer,forRenderTargets,intoRenderTargets,method);
-    if(!ready||!pending.pending()||solidLayer||intoRenderTargets)return;
+    if(!ready||solidLayer||intoRenderTargets)return;
     auto& a=il2cpp::api();
     uint8_t menu=1;
     a.field_static_get_value(gameMenuField,&menu);
     if(!eligibleDrawPass(solidLayer,intoRenderTargets,menu!=0))return;
     uint64_t frame=0;
     a.field_static_get_value(frameField,&frame);
-    if(!pending.pendingFor(frame))return;
+    const bool hasSprites=pending.pendingFor(frame);
+    const bool hasDust=pendingParticles.pendingFor(frame);
+    if(!hasSprites&&!hasDust)return;
+    if(hasDust) {
+        std::array<tile_particle::Particle,tile_particle::kMaxFrameParticles> commands{};
+        size_t count=0;
+        if(pendingParticles.take(frame,&commands,&count))
+            for(size_t i=0;i<count;++i)emitDust(commands[i]);
+    }
+    if(!hasSprites)return;
     Vec screen{};
     a.field_static_get_value(screenField,&screen);
     if(!std::isfinite(screen.x)||!std::isfinite(screen.y))return;
@@ -118,6 +188,17 @@ bool stageNativeTileSprites(uint64_t frame,const Batch& batch) {
     return ready&&pending.stage(frame,batch);
 }
 
+bool bindNativeTileDust(std::string* error) {
+    return bindDust(error);
+}
+
+bool stageNativeTileParticlesForCurrentFrame(const tile_particle::Batch& batch) {
+    if(!ready||!frameField||!newDust)return false;
+    uint64_t frame=0;
+    il2cpp::api().field_static_get_value(frameField,&frame);
+    return frame!=0&&pendingParticles.stage(frame,batch);
+}
+
 bool stageNativeTileSpritesForCurrentFrame(const Batch& batch) {
     if(!ready || !frameField)return false;
     for(size_t i=0;i<batch.count;++i) {
@@ -130,5 +211,8 @@ bool stageNativeTileSpritesForCurrentFrame(const Batch& batch) {
     return frame!=0 && pending.stage(frame,batch);
 }
 
-void resetNativeTileSpritePass() {pending.clear();}
+void resetNativeTileSpritePass() {
+    pending.clear();
+    pendingParticles.clear();
+}
 }
