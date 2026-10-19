@@ -897,6 +897,16 @@ void run() {
         }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
+        if (mod.dusts > 0) {
+            std::vector<std::pair<int, std::string>> dustTypes;
+            for (const auto& [key, nativeType] : mod.registeredKindTypes) {
+                if (!key.starts_with("DUST:")) continue;
+                dustTypes.emplace_back(nativeType, key.substr(5));
+            }
+            if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes))
+                BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
+                        mod.id.c_str());
+        }
         if (mod.npcs > 0 || mod.projectiles > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
@@ -1199,6 +1209,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
+    resetManagedDustSourceWorld();
     pauseManagedScreenSceneCallbacks();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
