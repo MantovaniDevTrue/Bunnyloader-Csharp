@@ -603,6 +603,58 @@ string NativeArmorDefinition { get; }
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
 
+## BunnyLoader.Source.BunnyLocalizationCatalog
+
+class; base: `System.Object`.
+
+```csharp
+BunnyLocalizationCatalog(string culture)
+int Count { get; }
+int Revision { get; }
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
+| `IReadOnlyDictionary<string, string> Texts(string path, string callerModId)` | managed_helper |
+| `IReadOnlyList<string> ExportWireRows()` | managed_helper |
+| `bool Exists(string path, string callerModId)` | managed_helper |
+| `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
+| `string Key(string path, string callerModId)` | managed_helper |
+| `string Translate(string path, string callerModId)` | managed_helper |
+| `string TryTranslate(string path, string callerModId)` | managed_helper |
+| `void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)` | managed_helper |
+| `void Register(string fullKey, string culture, string text)` | managed_helper |
+| `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
+| `void RemoveMod(string modId)` | managed_helper |
+| `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
+| `void SetCulture(string culture)` | managed_helper |
+
+## BunnyLoader.Source.BunnyLocalizationModule
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void OnLocalizationsLoaded()` | worker_async_localization |
+| `void RegisterTranslations(BunnyLocalizationCatalog catalog)` | compile_policy |
+
+## BunnyLoader.Source.BunnyLocalizationRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Unload(string modId)` | worker_async_localization |
+| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static void Register(string key, IReadOnlyDictionary<string, string> cultures)` | worker_callback_registration |
+| `static void Register(string key, string culture, string value)` | worker_callback_registration |
+
 ## BunnyLoader.Source.BunnyMethodHook
 
 class; base: `System.Object`.

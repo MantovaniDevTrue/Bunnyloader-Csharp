@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeShooting.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeWallRuntime.h"
+#include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
@@ -211,14 +212,18 @@ bool hashSources(const std::string& dir, const std::string& relative,
         if (S_ISDIR(metadata.st_mode)) {
             if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1, hasHooks)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
-                   name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
-            if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes) || static_cast<size_t>(++*count) > kSourceMaxFiles)
+                   ((name.size() > 3 && name.substr(name.size() - 3) == ".cs") ||
+                    (relative == "Localization" && name.size() > 5 &&
+                     name.substr(name.size() - 5) == ".json"))) {
+            const bool sourceFile=name.size()>3 && name.substr(name.size()-3)==".cs";
+            if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes))
                 return false;
+            if (sourceFile && static_cast<size_t>(++*count) > kSourceMaxFiles) return false;
             *totalBytes+=static_cast<size_t>(metadata.st_size);
             if(*totalBytes>kSourceMaxTotalBytes)return false;
             std::string source = readText(full, kSourceMaxFileBytes);
             if (source.empty()) return false;
-            if (hasHooks && source.find("BunnyHookModule") != std::string::npos) *hasHooks = true;
+            if (sourceFile && hasHooks && source.find("BunnyHookModule") != std::string::npos) *hasHooks = true;
             hash->field(rel);
             hash->field(source);
         }
@@ -743,7 +748,13 @@ void run() {
     bool runtimeChecked=false;
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
-    for (const auto& mod : sourceModStatuses()) {
+    const auto loadedMods=sourceModStatuses();
+    std::set<std::string> activeLocales;
+    for (const auto& mod : loadedMods)
+        if (mod.loaded && mod.sourceFiles && mod.id != kFixtureId && safeId(mod.id))
+            activeLocales.insert(mod.id);
+    localization::retainActiveMods(activeLocales);
+    for (const auto& mod : loadedMods) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
@@ -819,7 +830,9 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 ||
+             (defaults.find("LOCALE\t") != std::string::npos ||
+              defaults.find("LOCALE_MODULES\t") != std::string::npos)) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -866,6 +879,9 @@ void run() {
             bindNativeRecipeAssembly(mod.id,assembly);
             bindNativeTileAssembly(mod.id,assembly);
             if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
+            if (defaultsApplied && (defaults.find("LOCALE\t") != std::string::npos ||
+              defaults.find("LOCALE_MODULES\t") != std::string::npos))
+                localization::bindManagedAssembly(mod.id, assembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
             if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
@@ -1230,6 +1246,7 @@ void flushDeferredWorldEntry();
 void noteAutoGameUpdate() {
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
+    localization::pumpOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {

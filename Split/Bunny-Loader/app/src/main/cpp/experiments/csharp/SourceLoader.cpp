@@ -7,6 +7,7 @@
 #include "experiments/csharp/NativeHoldout.h"
 #include "experiments/csharp/NativeShooting.h"
 #include "experiments/csharp/NativeWallRuntime.h"
+#include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "content/walls/ModWalls.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
@@ -34,6 +35,7 @@
 #include <iterator>
 #include <map>
 #include <sstream>
+#include <set>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -657,6 +659,9 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
+    std::vector<localization::Entry> localized;
+    std::set<std::string> seenLocale;
+    bool seenLocalizationModules = false;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -668,6 +673,27 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
+            int count=0;
+            if (seenLocalizationModules || fields.size()!=2 ||
+                !integer(fields[1],&count) || count<1 || count>32) {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Reason=InvalidModuleMarker";
+                return false;
+            }
+            seenLocalizationModules=true;
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="LOCALE") {
+            localization::Entry entry;
+            if (!localization::decodeWire(fields,modId,&entry,error))return false;
+            if (!seenLocale.insert(entry.culture+"\t"+entry.key).second ||
+                localized.size() >= 8192u*32u) {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Result=Rejected Reason=DuplicateOrOverflow";
+                return false;
+            }
+            localized.push_back(std::move(entry));
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="RECIPES") {
             SourceRecipeOwner owner;
             if(!parseSourceRecipeOwner(fields,modId,&owner,error))return false;
@@ -1256,6 +1282,7 @@ bool applyManagedSourceDefaults(
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
     }
     if(!shooting::publish(shooting,error))return false;
+    localization::stage(modId,std::move(localized));
     mod->runtimeApplied = true;
     return true;
 }

@@ -11,6 +11,15 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+using ManagedLocalizationResultSink = bool (*)(const std::string& modId,
+    const std::string& assemblyPath, const std::string& culture,
+    uint64_t generation, const std::string& wire);
+void setManagedLocalizationResultSink(ManagedLocalizationResultSink sink);
+bool queueManagedLocalizationLoaded(const std::string& modId,
+                                   const std::string& assemblyPath,
+                                   const std::string& culture,
+                                   uint64_t generation);
+void unloadManagedLocalizationCallbacks(const std::string& modId);
 bool managedRecipeRuntimeReady();
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
