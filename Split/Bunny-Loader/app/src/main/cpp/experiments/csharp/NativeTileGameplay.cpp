@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeTileGameplay.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "il2cpp/FieldContract.h"
@@ -27,6 +28,10 @@ struct TileBehavior {
     int dustType = -1;
 };
 std::map<int, TileBehavior> g_tiles;
+std::map<std::string,std::string> g_assemblyByMod;
+bool g_wireInstalled = false;
+bool g_overgroundInstalled = false;
+bool g_undergroundInstalled = false;
 bool g_installed = false;
 bool g_dropInstalled = false;
 bool g_dustInstalled = false;
@@ -53,6 +58,10 @@ DropFn g_origDrop = nullptr;
 KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
 FrameFn g_origFrame = nullptr;
+using WireFn=void (*)(int32_t,int32_t,const MethodInfo*);
+using RandomFn=void (*)(int32_t,int32_t,bool,int32_t,const MethodInfo*);
+WireFn g_origWire=nullptr;
+RandomFn g_origOverground=nullptr,g_origUnderground=nullptr;
 CanKillFn g_origCanKill = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
@@ -102,6 +111,23 @@ bool cellIs(int x, int y, int type, const runtime::TileArrays& world) {
            runtime::tileTypeAt(x, y) == type;
 }
 
+bool managedTileReady(const NativeTileGameplaySpec& spec,int bit) {
+    if((spec.callbackMask&(1<<bit))==0||spec.assembly.empty())return false;
+    std::string error;
+    return managedTileWarmupState(spec.mod,spec.assembly,spec.name,&error)==1;
+}
+bool invokeTileBool(const NativeTileGameplaySpec& spec,int bit,int x,int y,bool* out) {
+    if(!out||!managedTileReady(spec,bit))return false;
+    std::string reply;
+    if(!invokeManagedTile(spec.mod,spec.assembly,spec.name,bit,x,y,&reply))return false;
+    if(reply=="1"){*out=true;return true;}
+    if(reply=="0"){*out=false;return true;}
+    return false;
+}
+void dispatchTileEvent(const NativeTileGameplaySpec& spec,int bit,int x,int y) {
+    if(managedTileReady(spec,bit))
+        queueManagedTileEvent(spec.mod,spec.assembly,spec.name,bit,x,y);
+}
 void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
                     int32_t* drop, int32_t* stack, int32_t* extra, int32_t* extraStack,
                     bool* noPrefix, bool large, const MethodInfo* method) {
@@ -113,6 +139,10 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
     if (!tile_policy::shouldDrop(behavior.spec.shape, large, behavior.spec.allowDrops)) {
         *drop = 0; *stack = 0; *extra = 0; *extraStack = 0;
         return;
+    }
+    bool allowDrop=true;
+    if(invokeTileBool(behavior.spec,1,x,y,&allowDrop)&&!allowDrop) {
+        *drop=0;*stack=0;*extra=0;*extraStack=0;return;
     }
     int itemType = behavior.itemType;
     if (itemType <= 0)
@@ -312,9 +342,16 @@ bool hkCanKillTile(int32_t x, int32_t y, bool* blockDamaged, const MethodInfo* m
     const int type = runtime::tileTypeAt(x, y);
     if (type >= runtime::kVanillaTileCount) {
         const auto it = g_tiles.find(type);
-        if (it != g_tiles.end() && tile_policy::blocksCanKillTile(it->second.spec.allowBreaking)) {
-            if (blockDamaged) *blockDamaged = false;
-            return false;
+        if(it!=g_tiles.end()) {
+            if(tile_policy::blocksCanKillTile(it->second.spec.allowBreaking)) {
+                if(blockDamaged)*blockDamaged=false;
+                return false;
+            }
+            bool allowed=true;
+            if(invokeTileBool(it->second.spec,0,x,y,&allowed)&&!allowed) {
+                if(blockDamaged)*blockDamaged=false;
+                return false;
+            }
         }
     }
     return g_origCanKill ? g_origCanKill(x, y, blockDamaged, method) : false;
@@ -339,6 +376,58 @@ bool setupCanKillTileHook() {
     return true;
 }
 
+void hkTileWire(int32_t x,int32_t y,const MethodInfo* method) {
+    if(g_origWire)g_origWire(x,y,method);
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,2,x,y);
+}
+void hkOverground(int32_t x,int32_t y,bool npc,int32_t wallDist,const MethodInfo* method) {
+    if(g_origOverground)g_origOverground(x,y,npc,wallDist,method);
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,3,x,y);
+}
+void hkUnderground(int32_t x,int32_t y,bool npc,int32_t wallDist,const MethodInfo* method) {
+    if(g_origUnderground)g_origUnderground(x,y,npc,wallDist,method);
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,3,x,y);
+}
+bool validTileWorldMethod(const MethodInfo* method,int count,bool withRandomArgs) {
+    auto& a=il2cpp::api();
+    if(!method||!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||a.method_get_param_count(method)!=static_cast<uint32_t>(count)||
+       !nameOf(a.method_get_return_type(method),"System.Void")||
+       !nameOf(a.method_get_param(method,0),"System.Int32")||
+       !nameOf(a.method_get_param(method,1),"System.Int32"))return false;
+    if(withRandomArgs&&(!nameOf(a.method_get_param(method,2),"System.Boolean")||
+       !nameOf(a.method_get_param(method,3),"System.Int32")))return false;
+    return il2cpp::methodPointer(method)!=nullptr;
+}
+bool setupTileWorldHooks(bool wire,bool random) {
+    auto& a=il2cpp::api();
+    if(wire&&!g_wireInstalled) {
+        auto* cls=il2cpp::findClass({"Terraria","Wiring",{}});
+        const MethodInfo* method=cls?a.class_get_method_from_name(cls,"HitWireSingle",2):nullptr;
+        if(!validTileWorldMethod(method,2,false)||
+           !hook::install(method,hkTileWire,&g_origWire))return false;
+        g_wireInstalled=true;
+    }
+    if(random) {
+        auto* cls=il2cpp::findClass({"Terraria","WorldGen",{}});
+        if(!g_overgroundInstalled) {
+            const MethodInfo* method=cls?a.class_get_method_from_name(cls,"UpdateWorld_OvergroundTile",4):nullptr;
+            if(!validTileWorldMethod(method,4,true)||
+               !hook::install(method,hkOverground,&g_origOverground))return false;
+            g_overgroundInstalled=true;
+        }
+        if(!g_undergroundInstalled) {
+            const MethodInfo* method=cls?a.class_get_method_from_name(cls,"UpdateWorld_UndergroundTile",4):nullptr;
+            if(!validTileWorldMethod(method,4,true)||
+               !hook::install(method,hkUnderground,&g_origUnderground))return false;
+            g_undergroundInstalled=true;
+        }
+    }
+    return true;
+}
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -382,6 +471,16 @@ bool setupHooks() {
 
 }
 
+void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) {
+    if(mod.empty()||assembly.empty())return;
+    g_assemblyByMod[mod]=assembly;
+    for(auto& [type,behavior]:g_tiles) {
+        if(behavior.spec.mod!=mod)continue;
+        behavior.spec.assembly=assembly;
+        if(behavior.spec.callbackMask)
+            queueManagedTileWarmup(mod,assembly,behavior.spec.name);
+    }
+}
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.shape < 0 || spec.shape > 1 ||
         spec.failDust < 0 || spec.failDust > 20 ||
@@ -390,16 +489,25 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                                {spec.animationFrames, spec.animationFrameTicks})) return false;
     TileBehavior behavior{};
     behavior.spec = spec;
+    const auto assembly=g_assemblyByMod.find(spec.mod);
+    if(assembly!=g_assemblyByMod.end())behavior.spec.assembly=assembly->second;
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
     if (spec.animationFrames > 1 && !setupNativeTileAnimation()) return false;
-    if (!spec.allowBreaking && !setupCanKillTileHook()) {
+    if ((!spec.allowBreaking || (spec.callbackMask&1)) && !setupCanKillTileHook()) {
         BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
                  spec.mod.c_str(), spec.name.c_str());
         return false;
     }
+    if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
+        BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     g_tiles[spec.type] = behavior;
+    if(spec.callbackMask&& !behavior.spec.assembly.empty())
+        queueManagedTileWarmup(spec.mod,behavior.spec.assembly,spec.name);
     if (spec.animationFrames > 1)
         g_animatedTiles[spec.type] = {spec.animationFrames, spec.animationFrameTicks};
     BL_DEBUG("[CSharp][Tile] %s/%s type=%d item=%d dust=%d shape=%d",
