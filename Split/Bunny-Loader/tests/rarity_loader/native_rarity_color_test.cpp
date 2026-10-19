@@ -23,6 +23,17 @@ int main() {
     }) assert(!bl::csharp::decodeRarityColorWire(invalid, &color));
     assert(!bl::csharp::decodeRarityColorWire("COLOR|1|2|3|4", nullptr));
 
+    int rarity = 0;
+    assert(bl::csharp::decodeRarityPrefixWire("RARITY|15", &rarity) && rarity == 15);
+    assert(bl::csharp::decodeRarityPrefixWire("RARITY|4107", &rarity) && rarity == 4107);
+    assert(bl::csharp::decodeRarityPrefixWire("RARITY|-11", &rarity) && rarity == -11);
+    for (std::string_view invalid : {
+        "RARITY|", "RARITY|4108", "RARITY|-12", "RARITY|+12",
+        "RARITY|2x", "RARITY|15|2", "RARITY| 15", "RARITY|NaN",
+        "RARITY|2147483648", "RARITY|15\\n"
+    }) assert(!bl::csharp::decodeRarityPrefixWire(invalid, &rarity));
+    assert(!bl::csharp::decodeRarityPrefixWire("RARITY|14", nullptr));
+
     bl::csharp::NativeRarityPalette palette;
     assert(!palette.read(11, &color));
     assert(!palette.read(12, &color));
