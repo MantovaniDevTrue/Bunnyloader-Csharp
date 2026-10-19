@@ -2119,7 +2119,7 @@
         {
           "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
           "execution": "managed_helper"
-        },
+        }
       ]
     },
     {
