@@ -17,9 +17,21 @@ internal static class TileWriter {
         int animationFrames = Get<int>("AnimationFrames");
         int animationTicks = Get<int>("AnimationFrameTicks");
         int adjacent = Get<int>("AdjacentTile");
+        int[] aliases = Get<int[]>("AdjacentTiles");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
         int r = Get<int>("MapR"), g = Get<int>("MapG"), b = Get<int>("MapB");
+        if (aliases.Length > 16) throw new InvalidOperationException(type.FullName + ": maximum 16 adjacent tile aliases");
+        int[] sortedAliases = (int[])aliases.Clone();
+        Array.Sort(sortedAliases);
+        for (int i = 0; i < sortedAliases.Length; i++)
+            if (sortedAliases[i] < 0 || sortedAliases[i] >= 754 ||
+                sortedAliases[i] == adjacent ||
+                (i > 0 && sortedAliases[i] == sortedAliases[i - 1]))
+                throw new InvalidOperationException(type.FullName + ": invalid or duplicate adjacent tile");
+        string adjacentList = sortedAliases.Length == 0 ? "-" :
+            string.Join(",", Array.ConvertAll(sortedAliases,
+                value => value.ToString(CultureInfo.InvariantCulture)));
         int fail = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {true})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         int normal = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {false})
@@ -53,7 +65,8 @@ internal static class TileWriter {
             normal.ToString(CultureInfo.InvariantCulture),
             animationHeight.ToString(CultureInfo.InvariantCulture),
             animationFrames.ToString(CultureInfo.InvariantCulture),
-            animationTicks.ToString(CultureInfo.InvariantCulture));
+            animationTicks.ToString(CultureInfo.InvariantCulture),
+            adjacentList);
     }
 
     private static bool Safe(string value) {

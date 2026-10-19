@@ -43,6 +43,7 @@ public abstract class BunnyTile {
     public int AnimationFrames { get; set; } = 1;
     public int AnimationFrameTicks { get; set; } = 0;
     public int AdjacentTile { get; set; } = -1;
+    public int[] AdjacentTiles { get; set; } = Array.Empty<int>();
     public string DustName { get; set; } = "";
     public int MapR { get; private set; } = 200;
     public int MapG { get; private set; } = 200;

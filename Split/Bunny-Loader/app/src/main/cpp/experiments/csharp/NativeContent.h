@@ -69,6 +69,7 @@ struct ManagedTileEntry {
     int shape = 0;
     int coordinateHeight = 18;
     int adjacentTile = -1;
+    std::vector<int> adjacentTiles;
     std::string dustName;
     int mapR = 200, mapG = 200, mapB = 200;
     std::string mapName;

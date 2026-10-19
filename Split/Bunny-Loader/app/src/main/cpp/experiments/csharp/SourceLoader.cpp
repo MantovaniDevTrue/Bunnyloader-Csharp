@@ -728,7 +728,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14 || fields.size() == 16)) {
+        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14 || fields.size() == 16 || fields.size() == 17)) {
             const auto it = mod->registeredKindTypes.find(identity);
             if (it == mod->registeredKindTypes.end() ||
                 runtime::modTileTypeByName(modId, fields[1]) != it->second) {
@@ -788,6 +788,22 @@ bool applyManagedSourceDefaults(
                     const int left = nibble(hex[k]), right = nibble(hex[k + 1]);
                     if (left < 0 || right < 0) { *error = "Nome do mapa tile invalido"; return false; }
                     tile.mapName.push_back(static_cast<char>(left * 16 + right));
+                }
+            }
+            if (fields.size() == 17 && fields[16] != "-") {
+                std::istringstream adjacentStream(fields[16]);
+                std::string token;
+                while (std::getline(adjacentStream, token, ',')) {
+                    int alias = -1;
+                    if (!integer(token, &alias) || alias < 0 || alias >= runtime::kVanillaTileCount ||
+                        alias == tile.adjacentTile || tile.adjacentTiles.size() >= 16 ||
+                        std::find(tile.adjacentTiles.begin(), tile.adjacentTiles.end(), alias) != tile.adjacentTiles.end()) {
+                        *error = fields[1] + ": lista AdjacentTiles invalida"; return false;
+                    }
+                    tile.adjacentTiles.push_back(alias);
+                }
+                if (fields[16].empty() || fields[16].back() == ',') {
+                    *error = fields[1] + ": lista AdjacentTiles malformada"; return false;
                 }
             }
             tiles.push_back(std::move(tile));

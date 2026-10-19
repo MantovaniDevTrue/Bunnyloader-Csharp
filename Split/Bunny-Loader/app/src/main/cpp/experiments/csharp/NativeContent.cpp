@@ -2169,13 +2169,15 @@ std::array<std::pair<int, int>, kMaxNativeAdjacencies> g_adjPairs{};
 size_t g_adjCount = 0;
 
 bool addNativeAdjacency(int type, int vanilla) {
-    for (size_t i = 0; i < g_adjCount; ++i) {
-        if (g_adjPairs[i].first != type) continue;
-        g_adjPairs[i].second = vanilla;
-        return true;
-    }
+    const auto entry = std::pair<int, int>{type, vanilla};
+    auto begin = g_adjPairs.begin();
+    auto end = begin + g_adjCount;
+    auto it = std::lower_bound(begin, end, entry);
+    if (it != end && *it == entry) return true;
     if (g_adjCount == g_adjPairs.size()) return false;
-    g_adjPairs[g_adjCount++] = {type, vanilla};
+    for (auto cursor = end; cursor != it; --cursor) *cursor = *(cursor - 1);
+    *it = entry;
+    ++g_adjCount;
     return true;
 }
 
@@ -2207,12 +2209,13 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
             const int type = world.type[definition];
             if (type < runtime::kVanillaTileCount ||
                 static_cast<uintptr_t>(type) >= adjacent->length) continue;
-            for (size_t pair = 0; pair < g_adjCount; ++pair)
-                if (type == g_adjPairs[pair].first) {
-                    result[type] = 1;
-                    result[g_adjPairs[pair].second] = 1;
-                    break;
-                }
+            const auto end = g_adjPairs.begin() + g_adjCount;
+            const auto first = std::lower_bound(g_adjPairs.begin(), end,
+                                                 std::pair<int, int>{type, -1});
+            if (first == end || first->first != type) continue;
+            result[type] = 1;
+            for (auto it = first; it != end && it->first == type; ++it)
+                result[it->second] = 1;
         }
 }
 
@@ -2289,8 +2292,18 @@ void onManagedTilesInstalled(int first, int last) {
         const bool shape = applyTileShape(entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
-        const bool adjacency = entry.adjacentTile < 0 ||
-            (ensureNativeAdjTiles() && addNativeAdjacency(entry.type, entry.adjacentTile));
+        bool adjacency = true;
+        if (entry.adjacentTile >= 0 || !entry.adjacentTiles.empty()) {
+            adjacency = ensureNativeAdjTiles();
+            if (adjacency && entry.adjacentTile >= 0)
+                adjacency = addNativeAdjacency(entry.type, entry.adjacentTile);
+            if (adjacency)
+                for (int alias : entry.adjacentTiles)
+                    if (!addNativeAdjacency(entry.type, alias)) {
+                        adjacency = false;
+                        break;
+                    }
+        }
         const bool gameplay = flags && shape &&
             registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
                                         entry.shape, entry.failDust, entry.normalDust,
@@ -2329,10 +2342,20 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
              (entry.animationFrameHeight == 0 || entry.animationFrameTicks == 0)) ||
             (entry.animationFrames == 1 && entry.animationFrameTicks != 0) ||
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
+            entry.adjacentTiles.size() > 16 ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)
             return false;
+    }
+    for (const auto& entry : tiles) {
+        for (size_t i = 0; i < entry.adjacentTiles.size(); ++i) {
+            const int alias = entry.adjacentTiles[i];
+            if (alias < 0 || alias >= runtime::kVanillaTileCount ||
+                alias == entry.adjacentTile ||
+                std::find(entry.adjacentTiles.begin(), entry.adjacentTiles.begin() + i, alias) !=
+                    entry.adjacentTiles.begin() + i) return false;
+        }
     }
     {
         std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
