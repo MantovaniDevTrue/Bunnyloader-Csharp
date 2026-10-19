@@ -197,6 +197,22 @@ int main() {
         output << "inventory\t1\t1\t0\t0\tmod/Broken\t{}\tmod/Rarity\n";
     }
     assert(!canReplaceExisting(path));
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        output << original;
+    }
+    {
+        std::ofstream output(backup, std::ios::binary | std::ios::trunc);
+        output << "bunnyloader itens 2\n";
+        output << "inventory\t0\t0\t0\t0\tmod/Invalid\t{}\n";
+    }
+    assert(canReplaceExisting(path));
+    assert(!preserveLegacyBeforeRaritySave(path, modern));
+    {
+        std::ofstream output(backup, std::ios::binary | std::ios::trunc);
+        output << original;
+    }
+    assert(preserveLegacyBeforeRaritySave(path, modern));
     std::filesystem::remove_all(directory);
 
     bl::csharp::NativeRarityRegistry first;
