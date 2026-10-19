@@ -6,8 +6,8 @@ static void Check(bool success, string reason)
     if (!success) throw new InvalidOperationException(reason);
 }
 
-var basic = new ExampleModRarity { Type = 12 };
-var higher = new ExampleHigherTierModRarity { Type = 13 };
+var basic = new ExampleModRarity();
+var higher = new ExampleHigherTierModRarity();
 Check(basic.RarityColor.R == 200 && basic.RarityColor.G == 215 &&
     basic.RarityColor.B == 230, "Base rarity must match ExampleModBunny");
 Check(higher.RarityColor.R == 127 && higher.RarityColor.G == 204 &&
