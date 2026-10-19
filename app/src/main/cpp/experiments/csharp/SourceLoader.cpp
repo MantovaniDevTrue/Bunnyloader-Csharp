@@ -7,6 +7,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/items/ModItems.h"
@@ -640,6 +641,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
+    std::vector<angler::Quest> anglerQuests;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
     std::vector<useSounds::Entry> useSounds;
@@ -679,6 +681,43 @@ bool applyManagedSourceDefaults(
             owner.type=type->second;owner.source=source->second;
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_FISH") {
+            if(fields.size()!=6) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=InvalidFieldCount";
+                return false;
+            }
+            const auto key=sourceIdentityForWire("ITEM",fields[1]);
+            const auto owner=mod->registeredKindTypes.find(key);
+            const auto base=mod->registeredBases.find(key);
+            int pre=-1, hard=-1;
+            std::string description, location;
+            if(owner==mod->registeredKindTypes.end()||base==mod->registeredBases.end()||
+               base->second!="BunnyItem"||!isBasicItem(owner->second)||
+               !integer(fields[2],&pre)||!integer(fields[3],&hard)||
+               (pre!=0&&pre!=1)||(hard!=0&&hard!=1)||
+               !angler::decodeHex(fields[4],&description)||
+               !angler::decodeHex(fields[5],&location)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=OwnerOrQuestDescriptorInvalid";
+                return false;
+            }
+            angler::Quest quest{modId,fields[1],owner->second,pre==1,hard==1,
+                                std::move(description),std::move(location)};
+            if(std::any_of(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& previous) {
+                    return previous.type==quest.type||previous.name==quest.name;
+                })) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=DuplicateQuest";
+                return false;
+            }
+            if(anglerQuests.size()>=kSourceMaxCategory) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=CapacityExceeded";
+                return false;
+            }
+            anglerQuests.push_back(std::move(quest));
             continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
@@ -1159,6 +1198,21 @@ bool applyManagedSourceDefaults(
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
+    }
+    for(const auto& quest:anglerQuests) {
+        if(std::none_of(basicItems.begin(),basicItems.end(),
+            [&](const BasicItemEntry& item) {
+                return item.type==quest.type&&item.name==quest.name;
+            })) {
+            *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+quest.name+
+                " Stage=Publish Reason=PrimaryItemDefaultsMissing";
+            return false;
+        }
+    }
+    if(!angler::registry().publish(modId,anglerQuests,error)) {
+        *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+            " Stage=Publish Reason="+*error;
+        return false;
     }
     if(!enqueueOwnedSourceRecipes(modId,recipeOwners,error))return false;
     for(const auto& request:nativeDefaults)if(!seen.contains(sourceIdentityForWire(request.projectile?"PROJECTILE":"ITEM",request.name))) {
