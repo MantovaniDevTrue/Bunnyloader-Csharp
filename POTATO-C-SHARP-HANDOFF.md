@@ -24,7 +24,7 @@ Eu comparei **todas as entradas da árvore Git** e restaurei os sete arquivos qu
 
 A comparação registrada no [JSON de inventário](docs/POTATO-UPSTREAM-FILE-MAP.json) contém o resumo quantitativo atualizado e os arquivos exatos, com blobs `sourceBlob` e `upstreamBlob`. A diferença inclui fontes, documentação, exemplos, recursos e testes; não se limita às classes C#.
 
-Eu preservei os arquivos de QuickJS, a estrutura Android, launcher, exemplos JavaScript e recursos atuais do seu código. As atualizações que eu já tinha incorporado em branches anteriores incluem modo Jornada com `ResearchUnlockCount`, tratamento de bolsas `PreHardmodeLikeBossBag` e correção de nomes de linhas de tooltip. **Os arquivos compartilhados que são diferentes não significam necessariamente que ficaram desatualizados**; são, em grande parte, pontos nos quais o C# se conecta ao núcleo original.
+Preservei a estrutura Android, launcher, exemplos JavaScript e recursos do projeto. **O QuickJS-ng v0.17.0 agora também está incluído integralmente na fonte** (`app/src/main/cpp/third_party/quickjs/`), com MIT LICENSE, e o CMake habilita automaticamente o engine real sem precisar clonar dependências. As atualizações que eu já tinha incorporado em branches anteriores incluem modo Jornada com `ResearchUnlockCount`, tratamento de bolsas `PreHardmodeLikeBossBag` e correção de nomes de linhas de tooltip. **Os arquivos compartilhados que são diferentes não significam necessariamente que ficaram desatualizados**; são, em grande parte, pontos nos quais o C# se conecta ao núcleo original.
 
 Esta é uma cópia de fontes compatível **estruturalmente com o commit comparado**, não uma promessa de que todo hook e ABI foi testado contra cada aparelho ou futura atualização sua.
 
