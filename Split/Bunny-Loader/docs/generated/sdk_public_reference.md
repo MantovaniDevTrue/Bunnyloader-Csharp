@@ -603,6 +603,28 @@ string NativeArmorDefinition { get; }
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
 
+## BunnyLoader.Source.BunnyLocalizationCatalog
+
+class; base: `System.Object`.
+
+```csharp
+BunnyLocalizationCatalog(string culture)
+int Count { get; }
+int Revision { get; }
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
+| `bool Exists(string path, string callerModId)` | managed_helper |
+| `string Translate(string path, string callerModId)` | managed_helper |
+| `string TryTranslate(string path, string callerModId)` | managed_helper |
+| `void Register(string fullKey, string culture, string text)` | managed_helper |
+| `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
+| `void RemoveMod(string modId)` | managed_helper |
+| `void SetCulture(string culture)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyMethodHook
 
 class; base: `System.Object`.
