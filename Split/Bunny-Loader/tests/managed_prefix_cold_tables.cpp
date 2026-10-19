@@ -29,9 +29,10 @@ Il2CppObject localized{}, randomObject{};
 std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
 std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 std::shared_ptr<const std::map<int, bool>> chanceView;
+std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
 struct Item {
     Il2CppObject object{};
-    int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0;
+    int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0, value = 100;
     float knockBack = 2;
     uint8_t accessory = 0, consumable = 0, ranged = 1, prefix = 0;
 };
@@ -72,9 +73,18 @@ bool vanillaRoll(Il2CppObject*, Il2CppObject*, int32_t* result, const MethodInfo
 }
 int receivedChanceWant = -999;
 int chanceOriginalCalls = 0;
-bool vanillaPrefixChance(Il2CppObject*, int32_t want, uint8_t*, const MethodInfo*) {
+int nativePrefixDamage = 12, nativePrefixValue = 100;
+bool nativePrefixAccept = true;
+bool vanillaPrefixChance(Il2CppObject* object, int32_t want, uint8_t*, const MethodInfo*) {
     receivedChanceWant = want;
     ++chanceOriginalCalls;
+    if (!nativePrefixAccept) return false;
+    auto* item = reinterpret_cast<Item*>(object);
+    if (want != -3) {
+        item->prefix = static_cast<uint8_t>(want > 0 ? want : 71);
+        item->damage = nativePrefixDamage;
+        item->value = nativePrefixValue;
+    }
     return true;
 }
 Il2CppObject* invoke(const MethodInfo* method, void* self, void** args, Il2CppObject** error) {
@@ -121,6 +131,7 @@ namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { return chanceView; }
+std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -309,9 +320,14 @@ int main() {
 
     g_originalItemPrefix = vanillaPrefixChance;
     g_chanceItemTypeOffset = offsetof(Item, type);
+    g_chancePrefixOffset = offsetof(Item, prefix);
+    g_chanceDamageOffset = offsetof(Item, damage);
+    g_chanceValueOffset = offsetof(Item, value);
     g_chanceReady.store(true, std::memory_order_release);
     chanceView = std::make_shared<const std::map<int, bool>>(
         std::map<int, bool>{{6199, false}, {6198, true}});
+    effectView = std::make_shared<const std::map<int, ManagedItemPrefixApply>>(
+        std::map<int, ManagedItemPrefixApply>{{6199, {4, 125}}, {6198, {10, 200}}});
     uint8_t chanceTier = 0;
     weapon.type = 6199;
     int originalCalls = chanceOriginalCalls;
