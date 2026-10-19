@@ -28,6 +28,10 @@ struct ManagedPrefixEntry {
     int accessoryDefense = 0;
     int applyDamageBonus = 0;
     int applyValueBonus = 0;
+    int minItemDamage = 0;
+    int maxItemDamage = 100000;
+    int minItemMana = 0;
+    int maxItemMana = 10000;
     bool requireEffectiveStats = true;
     std::string extraTooltip;
 };
