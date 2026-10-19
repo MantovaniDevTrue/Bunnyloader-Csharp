@@ -49,6 +49,19 @@ int main() {
         Quest{"secondmod", "ExtraQuest", 851, true, true, "", ""}});
     assert((merged == std::vector<int>{1, 2, 850, 2, 851}));
     assert(Registry::mergeIds(merged, {fish}).size() == merged.size());
+    const std::vector<int> moddedIds{1, 2, 850, 7001, 851, 2};
+    auto same = Registry::reconcileIds(moddedIds, {850}, {fish}, 3);
+    assert(!same.changed && same.selected == 3 && same.ids == moddedIds);
+    auto newQuest = Quest{"examplemodcsharp", "OtherQuest", 860, true, true, "", ""};
+    auto updated = Registry::reconcileIds(moddedIds, {850}, {newQuest}, 4);
+    assert(updated.changed);
+    assert((updated.ids == std::vector<int>{1, 2, 7001, 851, 2, 860}));
+    assert(updated.selected == 3);
+    auto unloaded = Registry::reconcileIds(updated.ids, {860}, {}, 5);
+    assert(unloaded.changed);
+    assert((unloaded.ids == std::vector<int>{1, 2, 7001, 851, 2}));
+    assert(unloaded.selected == 0);
+    assert(Registry::reconcileIds(unloaded.ids, {}, {}, 2).ids == unloaded.ids);
 
     assert(!registry.publish("secondmod",
         {Quest{"secondmod", "OtherFish", 850, true, true, "", ""}}, &error));
