@@ -12,8 +12,10 @@ on:
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.h
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs
       - Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - Split/Bunny-Loader/tests/prefix_v89/PrefixFixture/Content.cs
       - Split/Bunny-Loader/tests/prefix_v89/Program.cs
@@ -23,6 +25,11 @@ on:
       - Split/Bunny-Loader/tools/sdk_reference/Program.cs
       - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
       - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.h
       - docs/equipment-loader-preflight.md
       - .github/workflows/check-csharp-equipment-preflight.yml
   pull_request:
