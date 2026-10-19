@@ -95,6 +95,14 @@ Os métodos C# de transformação de desenho (`SetDrawPositions`, `AnimateIndivi
 
 O teste `tile_draw_bindings_test.cpp` reproduz atualização de um tipo enquanto outra thread lê o snapshot, checa consistência dos campos, limites de ID e vida útil das instâncias antigas. A compilação e execução isoladas passaram localmente em G++ 14 e Clang++ 17 com `-std=c++20 -Wall -Wextra -Werror -pthread -fsanitize=address,undefined`. O teste entra em `tests/world_loaders/run.sh`. **Ainda falta a confirmação pela build NDK no novo SHA, além de jogo real**. `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` com `SpriteBatch` permanecem sem paridade completa, e o gate de APK segue fechado.
 
+### CacheDrawData C# e compatibilidade do wire — revisão 21
+
+O SDK C# agora expõe `BunnyTile.CacheDrawData` (padrão true), como o ModTile original do ExampleModBunny. Quando false, somente o tipo C# marcado evita reutilizar a saída do cache de `TileDrawing.GetTileDrawData`. Os mods JS continuam usando sua marca original `tile.drawdata.uncached`, sem alteração de comportamento. A política nativa `NativeTileDrawCachePolicy.h` combina o passe especial e as duas marcas sem desativar o cache dos demais tiles. A opção é declarada durante `SetStaticDefaults`; isso não implementa sozinho `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` nem o contexto `SpriteBatch`.
+
+O protocolo `TILE` acrescenta o21º campo opcional `CacheDrawData=0|1`, conservando suporte a13/14/16/17/19/20 colunas. O compilador Roslyn v39 emite21 campos, o registrador copia a política para os metadados nativos e a publicação de marcas segue os bindings imutáveis, sincronizados com a thread de desenho. O teste `tile_draw_cache_test.cpp` é executado pelo gate de world loaders. Os fixtures do ExampleWorkbench e do tile animado validam respectivamente o cache padrão ligado e o cache desativado. A primeira rodada de auditoria encontrou uma expectativa antiga de20 campos no teste original de bancada, corrigida no commit e95cdff.
+
+**Gate continua fechado:** os callbacks gráficos que desenham sprites/partículas ainda não estão implementados com paridade completa; APK de teste e declaração de TileLoader completo dependem da compilação Android do SHA atual e da validação no aparelho.
+
 ## Critério e gate de entrega
 
 `tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.
