@@ -151,6 +151,8 @@ public abstract class BunnyAccessory : BunnyRecipeSource
 public abstract class BunnyPlayer
 {
     public string Accessory { get; set; } = "";
+    public string FishingQuestFishName { get; set; } = "";
+    public BunnyQuestCatchRules FishingCatchRules { get; set; }
     public int DefenseBonus { get; protected set; } = 0;
     public int MoveSpeedPercent { get; protected set; } = 0;
     public abstract void SetDefaults();
