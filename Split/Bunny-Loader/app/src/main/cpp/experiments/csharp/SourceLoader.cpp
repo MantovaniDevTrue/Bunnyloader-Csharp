@@ -156,6 +156,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             *error = type.name + ": BunnyTile permite somente Texture e DisplayName no registro antecipado";
             return false;
         }
+        if ((basic || weapon || accessory || potion) && key == "PrefixChance") {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": PrefixChance requer literal true/false";
+                return false;
+            }
+            continue;
+        }
         if (basic) {
             const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
