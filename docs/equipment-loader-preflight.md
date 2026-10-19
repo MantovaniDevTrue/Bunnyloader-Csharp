@@ -89,3 +89,21 @@ Regras são processadas na ordem de tipo e transportadas por um campo opcional (
 **Limites importantes:** números de tipo de conteúdo modificado podem variar entre sessões e ordens de carregamento, portanto este primeiro contrato é mais seguro para tipos vanilla estáveis. Ainda não há resolução de nomes de itens de mod, nem execução arbitrária de `RollChance(item)` ou `CanRoll(item)` no MonoVM para cada instância. A implementação é um subconjunto declarativo de elegibilidade e chance por tipo, não paridade integral do callback do ExampleModBunny. Os testes de host não substituem validação Android.
 
 Os testes `tests/prefix_v89/PrefixFixture/Content.cs`, `tests/prefix_v89/Program.cs`, `tests/managed_prefix_cold_tables.cpp` e `tests/prefix_v89/managed_prefix_snapshot_test.cpp` verificam serialização C#, retrocompatibilidade, seleção ponderada nativa, negação por item e rejeição de regras malformadas. Nenhum APK foi produzido automaticamente para esta etapa.
+
+## Regras estáveis para itens do mesmo mod
+
+`BunnyPrefixRollRules` também aceita o nome registrado da classe de item do próprio mod (`string`), além do ID numérico (`int`). Isso impede que uma regra para `ExampleGun` passe a apontar para outro item quando os IDs mudarem entre carregamentos.
+
+```csharp
+public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+{
+    rules.Allow("ExampleGun", 3);
+    rules.Deny("ExampleCharm");
+}
+```
+
+As versões `Allow(string, int)`, `Deny(string)` e `SetWeight(string, int)` aceitam somente identificadores de classe com 1–64 caracteres ASCII (letras, dígitos e sublinhado, sem iniciar por dígito). O compilador mantém o formato opcional de 17 campos `PREFIX`, transportando entradas `ExampleGun:3`, além das entradas numéricas anteriores. O `SourceLoader` rejeita nomes malformados e a ponte nativa resolve `<modId>/<itemName>` via `modItemTypeByKey` **antes** de publicar as novas políticas.
+
+Nomes inexistentes, colisão entre regra numérica e regra por nome resolvida para o mesmo tipo, peso fora de 0–20 ou mais de 32 regras provocam rejeição completa; nunca publicação parcial. A consulta em gameplay permanece exclusivamente por ID nativo resolvido, em visão imutável, sem busca textual nem chamada gerenciada por tentativa. A resolução por nome, nesta etapa, é deliberadamente limitada a itens do próprio mod; referenciar itens de terceiros exigirá um contrato separado de ordem de dependências/carregamento.
+
+O teste host `tests/prefix_v89/managed_prefix_snapshot_test.cpp` cobre sucesso e falha de resolução, colisões e rollback. O teste managed de `PrefixFixture` cobre o serializador que combina `int` e `string` e mantém um prefixo legado com 16 campos.
