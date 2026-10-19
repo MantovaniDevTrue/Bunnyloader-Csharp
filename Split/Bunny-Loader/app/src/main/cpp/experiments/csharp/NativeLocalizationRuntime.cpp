@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeLocalizationRuntime.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeLocalizationSession.h"
 #include "experiments/csharp/NativeLocalizationRetirePolicy.h"
 #include "experiments/csharp/LocalizationResolve.h"
@@ -22,6 +23,8 @@ std::mutex gate;
 NativeLocalizationSession session;
 uint64_t lastAppliedGeneration = 0;
 std::string lastCulture;
+std::map<std::string, std::string> managedAssemblies;
+std::map<std::string, std::string> lastManagedNotification;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -298,6 +301,28 @@ void invalidateGameTooltips() {
     if(exception)BL_WARN("[CSharp][Localization] Stage=Tooltips Reason=InvalidateFailed");
 }
 
+void notifyManagedApplied(const SessionSnapshot& snapshot, const std::string& culture, bool force) {
+    std::vector<std::pair<std::string, std::string>> callbacks;
+    const std::string token = std::to_string(snapshot.revision) + "|" + culture;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        if (snapshot.revision != session.revision()) return;
+        for (const auto& [modId, assembly] : managedAssemblies) {
+            if (!force && lastManagedNotification[modId] == token) continue;
+            lastManagedNotification[modId] = token;
+            callbacks.emplace_back(modId, assembly);
+        }
+    }
+    for (const auto& [modId, assembly] : callbacks) {
+        if (bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture)) continue;
+        std::lock_guard<std::mutex> lock(gate);
+        if (lastManagedNotification[modId] == token)
+            lastManagedNotification.erase(modId);
+        BL_WARN("[CSharp][Localization] Mod=%s Stage=CallbackQueue Reason=QueueFull",
+                modId.c_str());
+    }
+}
+
 void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const MethodInfo* method) {
     if(originalLoadCulture)originalLoadCulture(manager,culture,method);
     auto& r=refs();
@@ -308,15 +333,23 @@ void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const M
         std::lock_guard<std::mutex> lock(gate);
         current=session.snapshot();
     }
-    if(current.active.empty() && current.retired.empty())return;
+    if (current.active.empty() && current.retired.empty()) {
+        std::lock_guard<std::mutex> lock(gate);
+        if (managedAssemblies.empty()) return;
+    }
     const uint64_t revision=current.revision;
     if(!publishToGame(current,name))return;
     invalidateGameTooltips();
-    std::lock_guard<std::mutex> lock(gate);
-    if(revision==session.revision()) {
-        lastAppliedGeneration=revision;
-        lastCulture=name;
+    bool applied = false;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        if(revision==session.revision()) {
+            lastAppliedGeneration=revision;
+            lastCulture=name;
+            applied = true;
+        }
     }
+    if (applied) notifyManagedApplied(current, name, true);
 }
 
 bool installLanguageReloadHook() {
@@ -351,14 +384,55 @@ bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,
     return true;
 }
 
+void bindManagedAssembly(const std::string& modId, const std::string& assemblyPath) {
+    if (modId.empty() || modId.size() > 64 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048) return;
+    std::string pendingCulture;
+    bool replaced = false;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        auto previous = managedAssemblies.find(modId);
+        if (previous != managedAssemblies.end() && previous->second == assemblyPath)
+            return;
+        replaced = previous != managedAssemblies.end();
+        managedAssemblies[modId] = assemblyPath;
+        lastManagedNotification.erase(modId);
+        if (lastAppliedGeneration == session.revision() && !lastCulture.empty()) {
+            pendingCulture = lastCulture;
+            lastManagedNotification[modId] =
+                std::to_string(session.revision()) + "|" + lastCulture;
+        }
+    }
+    if (replaced) bl::csharp::unloadManagedLocalizationCallbacks(modId);
+    if (!pendingCulture.empty() &&
+        !bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, pendingCulture)) {
+        std::lock_guard<std::mutex> lock(gate);
+        lastManagedNotification.erase(modId);
+    }
+}
+
 void stage(const std::string& modId,std::vector<Entry> entries) {
     std::lock_guard<std::mutex> lock(gate);
     session.replace(modId,std::move(entries));
 }
 
 void retainActiveMods(const std::set<std::string>& activeIds) {
-    std::lock_guard<std::mutex> lock(gate);
-    session.retainOnly(activeIds);
+    std::vector<std::string> removed;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        session.retainOnly(activeIds);
+        for (auto it = managedAssemblies.begin(); it != managedAssemblies.end();) {
+            if (activeIds.contains(it->first)) {
+                ++it;
+                continue;
+            }
+            removed.push_back(it->first);
+            lastManagedNotification.erase(it->first);
+            it = managedAssemblies.erase(it);
+        }
+    }
+    for (const auto& modId : removed)
+        bl::csharp::unloadManagedLocalizationCallbacks(modId);
 }
 
 void pumpOnGameThread() {
@@ -380,12 +454,15 @@ void pumpOnGameThread() {
     const uint64_t revision=current.revision;
     if(!publishToGame(current,culture))return;
     invalidateGameTooltips();
+    bool applied = false;
     {
         std::lock_guard<std::mutex> lock(gate);
         if(session.revision()==revision) {
             lastAppliedGeneration=revision;
             lastCulture=culture;
+            applied = true;
         }
     }
+    if (applied) notifyManagedApplied(current, culture, false);
 }
 }
