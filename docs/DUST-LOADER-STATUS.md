@@ -1,28 +1,32 @@
-# DustLoader C# — andamento e critérios de entrega
+# DustLoader C# — desenvolvimento isolado, sem APK
 
-## Fontes verificadas
+## Origem
 
-Base de integração: `v1.0` do Bunny Loader C#. Referência do motor: `JonataOliveiraa/Bunny-Loader`, `app/src/main/cpp/content/dusts/ModDusts.{h,cpp}`. O motor original tem registro nativo de tipos, atualização/coloração/desenho de Dust, texturas do mod e recuperação da pilha de 6000 slots. Ele também possui a API JavaScript, que não será usada no caminho C#.
+Branch `feat/csharp-dust-loader-20261019`, base `v1.0`. O motor `content/dusts/ModDusts.h/.cpp` veio da fonte do Bunny Loader original `JonataOliveiraa/Bunny-Loader`. O caminho C# não usa QuickJS nem código do tModLoader.
 
-## Implementado nesta branch
+## Implementado e validado em CI
 
-- `BunnyDust`, `BunnyDustState`, `BunnyDustHooks`, `BunnyDustDefinition` e `BunnyDustRegistry` em C# independente.
-- Identidade por nome, binding por ID nativo, validação antecipada de texturas e tipo de atualização.
-- Sobrescritas opcionais `OnSpawn`, `Update`, `MidUpdate`, `GetAlpha` e `PreDraw`; nenhuma chamada por quadro a métodos não sobrescritos.
-- Proteção por `slot + type + generation`, restauração de estado em erro e bloqueio do callback com problema apenas naquela instância.
-- `ResetWorld`, `Release` e `Unload` distintos.
-- ABI `ManagedDustState` de 64 bytes conferida por C# e C++.
-- Testes puros de .NET/C++, executados em CI sem tarefas Gradle ou geração de APK.
+- Registro nativo antecipado `BunnyDust` no `SourceParser` e `SourceLoader`, propriedade `BunnyContentKind.Dust`, domínio `DUST`, IDs por mod e verificação de caminhos e existência do PNG.
+- Motor Dust do Bunny original importado, `tickModDusts` habilitado e incluído na barreira `contentSettled` antes do mundo.
+- Compilador Roslyn reconhece classes `BunnyDust`, chama `SetStaticDefaults` e exporta `DUST\tClassName\tUpdateType\tHookMask\tTexture` para o host, com validação de identidade e bounds.
+- `BunnyDust.cs`: estados de 64 bytes, registro, máscaras de métodos sobrescritos, lifecycle por tipo/slot/generation, rollback, isolamento de falhas e reset.
+- `BunnyDustSourceDispatcher.cs`: registra assemblies gerenciadas, faz bind dos tipos e executa callbacks a partir do ponteiro de estado nativo, sem JavaScript. O dispatcher funciona nos smoke tests isolados; **ainda não foi conectado ao worker do jogo**.
+- `ManagedDustMailbox.h`: fila limitada a 128 registros, sem espera na thread do jogo, rejeição de respostas antigas e limitação de idade a 3 frames. Ainda precisa ser ligada ao ciclo real do MonoVM.
+- Exemplo `ExampleSparkDust` no ExampleMod C#, com `TrailblazerSpark.png` reaproveitado da fonte do sample.
+- Testes de contrato C#/C++ e smoke real de Roslyn e exportação do descritor foram aprovados; compilação ARM64 C++ do projeto Android passou sem gerar pacote instalável.
 
-## Ainda obrigatório antes de declarar completo
+## Bloqueadores reais antes de release
 
-1. Importar/conciliar o Dust nativo do Bunny original com o port C#, incluindo `content/dusts`, ativação em `menu/Cheats.cpp` e `content/common/ModContent.cpp`, sem copiar arquivos atuais do upstream sobre os locais modificados.
-2. Incluir `BunnyDust` em `SourceParser.cpp`, `SourceLoader.cpp` e identidades de conteúdo. Reservar e registrar os tipos na thread correta antes da entrada no mundo. Nenhum tipo deve ser identificado como registrado apenas por existir no SDK.
-3. Incluir o tipo na descoberta gerenciada, em `CompiledAssemblyProbe.cs`, compilação por Roslyn e na resposta de defaults; conferir nome, textura, `UpdateType` e máscara de callbacks.
-4. Criar o canal MonoVM C++/C# para lote de estados (com geração e limite por quadro), invocar os callbacks C# sem usar JS e devolver atualizações com identidade e validade conferidas. Nenhum callback C# pode bloquear a thread do jogo esperando o worker.
-5. Adaptar `DustCallbacks` do motor original para receber os resultados C# independentes, corrigir o ciclo de vida dos slots e restaurar sempre o estado ao retornar ao Terraria; preservar a recuperação de `freeDust` e o comportamento de mods JS.
-6. Resolver texturas de Dust por mod, frames/atlas e cores, com rejeição de assets faltantes e fallback fiel aos nativos.
-7. Criar um exemplo C# testável, usando assets do ExampleModBunny com licença e caminhos corretos, e validar spawn, atualização, alpha, desenho, morte e reaproveitamento de slots no Android.
-8. Validar coexistência com múltiplos mods C# + JS, troca de mundo, reload, ausência de vazamento de slots, 60 FPS quando possível, diagnósticos de falha e todas as builds de fontes relevantes.
+1. Vincular `BunnyDustSourceDispatcher` à thread MonoVM residente, registrando as DLLs e os IDs dos tipos no worker. O mecanismo nativo deve rejeitar chamadas a mods não vinculados.
+2. Integrar `ManagedDustMailbox` ao hook Dust com capturas em lote, geração de spawn, retornos assíncronos e aplicação dos resultados na thread do jogo. Não transferir ponteiros de objetos IL2CPP para o worker.
+3. Aplicar sem perda os retornos de `Update`, `MidUpdate`, `GetAlpha`, `PreDraw`, `OnSpawn`, inclusive kill / `SetNotActive` sem quebrar a pilha de 6000 slots.
+4. Validar concorrência, descarte de lotes e deadlines, respostas em atraso, proteção de geração, coexistência de mods, menus e troca de mundo.
+5. Validar texturas personalizadas, frames, alpha e render no Android/Terraria; corrigir qualquer diferença do ExampleModBunny.
+6. Verificar desempenho, estabilidade, integração completa com QuickJS existente e todas as fontes nativas/gerenciadas em CI.
+7. Só depois de **todos** os gates, considerar uma build de teste. Nunca gerar APK de um lote incompleto.
 
-**Regra de release:** manter a PR em rascunho, não mesclar como funcional e **não gerar APK** enquanto qualquer critério acima estiver pendente. Os testes de host validam somente contratos gerenciados/ABI, não a integração in-game.
+## Segurança de desenvolvimento
+
+`managedDustCallbacksConnected()` retorna `false` enquanto a ponte com o worker não existe. O host **rejeita** mod C# de Dust que exija hooks personalizados nesse estágio, com `MonoDustBridgeNotConnected`. Dust sem callbacks pode seguir o caminho nativo. Isso impede declarar falsamente que todos os efeitos funcionam.
+
+A PR fica em draft e não deve ser mesclada como feature funcional enquanto os bloqueadores persistirem.
