@@ -874,6 +874,8 @@ string ExtraTooltip { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `string SerializeTooltipLines()` | compile_policy |
+| `void AddTooltipLine(string text)` | compile_policy |
 | `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
 | `void ConfigureItemConditions(BunnyPrefixItemConditions conditions)` | compile_policy |
