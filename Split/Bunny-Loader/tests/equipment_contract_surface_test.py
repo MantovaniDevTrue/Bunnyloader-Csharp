@@ -198,6 +198,9 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("if (mana < p.minItemMana || mana > p.maxItemMana)", gameplay)
         self.assertIn("conditions.RequireDamageBetween(10, 25);", fixture)
         self.assertIn("conditions.RequireManaBetween(0, 8);", fixture)
+        example = (ROOT / "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs").read_text(encoding="utf-8")
+        self.assertIn("conditions.RequireDamageBetween(10, 25);", example)
+        self.assertIn("conditions.RequireManaBetween(0, 8);", example)
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
