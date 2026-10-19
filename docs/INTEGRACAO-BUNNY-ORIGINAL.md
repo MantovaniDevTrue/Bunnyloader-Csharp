@@ -1,6 +1,6 @@
 # Integrar o C# ao Bunny Loader original — guia para o Potato
 
-> **Escopo:** integração do suporte C# (Roslyn + MonoVM + hooks nativos) ao projeto Android original do [Bunny Loader](https://github.com/JonataOliveiraa/Bunny-Loader), mantendo o JavaScript/QuickJS existente. **Não é** um tutorial de tModLoader, ExMod ou Thorium. Nada aqui concede acesso ao repositório original nem afirma que ele já contém nosso C#.
+> **Escopo:** integração do suporte C# (Roslyn + MonoVM + hooks nativos) ao projeto Android original do [Bunny Loader](https://github.com/JonataOliveiraa/Bunny-Loader), mantendo o JavaScript/QuickJS existente. **Não é** um tutorial de tModLoader, ExMod. Nada aqui concede acesso ao repositório original nem afirma que ele já contém nosso C#.
 
 ## Ponto de partida verificado
 
