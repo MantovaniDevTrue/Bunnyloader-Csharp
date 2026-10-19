@@ -74,8 +74,8 @@ public abstract class BunnyProjectile
 
 public struct BunnyPrefixApplyStats
 {
-    public int DamageBonus;
-    public int ValueBonus;
+    public int DamageBonus { get; set; }
+    public int ValueBonus { get; set; }
 }
 
 public abstract class BunnyWeapon : BunnyShootSource
