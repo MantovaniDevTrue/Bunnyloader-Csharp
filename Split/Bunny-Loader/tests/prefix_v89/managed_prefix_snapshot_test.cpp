@@ -17,6 +17,7 @@ int modPrefixByKey(const std::string& key) {
     if (key == "test/Guarded") return 98;
     if (key == "test/Mighty") return 99;
     if (key == "test/Swift") return 100;
+    if (key == "test/Custom") return 101;
     return -1;
 }
 int modItemTypeByKey(const std::string& key) {
@@ -78,7 +79,7 @@ int main() {
     ManagedPrefixEntry invalid = mighty;
     invalid.type = 100;
     invalid.name = "Swift";
-    invalid.category = 6;
+    invalid.category = 7;
     assert(!applyManagedPrefixDescriptors("test", {invalid}));
     assert(managedPrefixView() == third);
 
@@ -135,4 +136,24 @@ int main() {
     assert(first->empty());
     assert(registeredManagedPrefixCount() == 3);
     assert(snapshots.load(std::memory_order_relaxed) > 0);
+
+    ManagedPrefixEntry custom;
+    custom.type = 101;
+    custom.name = "Custom";
+    custom.category = 6;
+    custom.rollWeight = 1.f;
+    custom.itemNames["ExampleBlade"] = 2;
+    custom.itemNames["ExampleCharm"] = 0;
+    auto denied = custom;
+    denied.itemNames["ExampleBlade"] = 0;
+    assert(!applyManagedPrefixDescriptors("test", {denied}));
+    assert(managedPrefixView() == final);
+    assert(applyManagedPrefixDescriptors("test", {custom}));
+    auto withCustom = managedPrefixView();
+    assert(withCustom->size() == 4 && withCustom->at(3).category == 6);
+    assert(withCustom->at(3).itemNames.empty());
+    assert(withCustom->at(3).itemWeights.at(6207) == 2);
+    assert(withCustom->at(3).itemWeights.at(6208) == 0);
+    assert(final->size() == 3);
+    assert(registeredManagedPrefixCount() == 4);
 }
