@@ -37,6 +37,13 @@ jobs:
           test -s app/src/main/cpp/third_party/quickjs/quickjs.c
           test -s app/src/main/cpp/third_party/quickjs/quickjs.h
           test -s app/src/main/cpp/third_party/quickjs/LICENSE
+          test -s experiments/csharp/BunnyCsSdk/BunnySoundStyle.cs
+          test -s app/src/main/cpp/experiments/csharp/NativeUseSounds.h
+          test -s samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs
+          test -s samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg
+          grep -q 'versionName = "1.0"' app/build.gradle.kts
+          grep -a -q BunnySoundStyle app/src/main/assets/managed/BunnySourceSdk.dll
+          grep -a -q CustomUseSound app/src/main/assets/managed/BunnySourceSdk.dll
           test -s app/src/main/assets/managed/framework.sha256
           test -s app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
