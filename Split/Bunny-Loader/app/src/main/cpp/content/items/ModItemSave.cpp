@@ -502,14 +502,14 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         }
     }
     writeFile(path + kSuffix, items);
-    std::vector<item_save::LiveRarityItem<Il2CppObject*>> liveRarityItems;
+    bool hasRarityPending = false;
     {
         std::lock_guard<std::mutex> guard(g_mx);
-        if (g_pendingRarity.find(path) != g_pendingRarity.end() ||
-            g_pendingRarityByItem.find(path) != g_pendingRarityByItem.end())
-            liveRarityItems.reserve(256);
+        hasRarityPending = g_pendingRarity.find(path) != g_pendingRarity.end() ||
+            g_pendingRarityByItem.find(path) != g_pendingRarityByItem.end();
     }
-    if (!liveRarityItems.empty() || !items.empty()) {
+    if (hasRarityPending) {
+        std::vector<item_save::LiveRarityItem<Il2CppObject*>> liveRarityItems;
         for (const Container& container : containersOf(player)) {
             for (int slot = 0; slot < container.size(); ++slot) {
                 auto* item = container.at(slot);
