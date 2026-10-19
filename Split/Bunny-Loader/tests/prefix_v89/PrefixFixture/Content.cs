@@ -18,6 +18,7 @@ public sealed class TestWand : BunnyWeapon
     {
         Damage = 22;
         Shoot = nameof(TestBolt);
+        PrefixChance = false;
     }
 }
 
