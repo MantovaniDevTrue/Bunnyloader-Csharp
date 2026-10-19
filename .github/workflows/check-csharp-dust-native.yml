@@ -1,0 +1,58 @@
+name: DustLoader CSharp native ARM64 compile only
+
+on:
+  push:
+    branches:
+      - feat/csharp-dust-loader-20261019
+    paths:
+      - .github/workflows/check-csharp-dust-native.yml
+      - app/src/main/cpp/content/dusts/**
+      - app/src/main/cpp/content/common/ModContent.cpp
+      - app/src/main/cpp/menu/Cheats.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+  pull_request:
+    paths:
+      - app/src/main/cpp/content/dusts/**
+      - app/src/main/cpp/content/common/ModContent.cpp
+      - app/src/main/cpp/menu/Cheats.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+
+permissions:
+  contents: read
+
+jobs:
+  native-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout DustLoader branch
+        uses: actions/checkout@v4
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Install Android CMake and ARM64 NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;30.0.16248370" "cmake;3.22.1" "platforms;android-34"
+      - name: Compile native sources without APK packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :app:externalNativeBuildDebug --no-daemon --stacktrace -Pbl.uiOnly=true
+          if find app/build/outputs/apk -type f -name '*.apk' -print -quit 2>/dev/null | grep -q .; then
+            echo "APK output forbidden for incomplete DustLoader"
+            exit 1
+          fi
+          find app/build/intermediates/cxx -type f -name 'libbunny.so' -print -quit | grep -q .
+          echo "DUST_NATIVE_ARM64_COMPILE=PASS NO_APK=TRUE"
