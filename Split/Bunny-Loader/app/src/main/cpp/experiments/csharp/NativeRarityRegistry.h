@@ -13,6 +13,7 @@ struct NativeRarityIdentity {
     int type = -1;
     std::string mod;
     std::string name;
+    bool managed = true;
 };
 
 class NativeRarityRegistry {
@@ -28,12 +29,25 @@ public:
         key.push_back('/');
         key.append(name);
         std::lock_guard<std::mutex> guard(mutex_);
-        if (keys_.contains(key) || keys_.size() >= kMaximumCustom) return -1;
+        if (keys_.contains(key)) return -1;
         const auto current = std::atomic_load_explicit(&published_, std::memory_order_acquire);
+        if (current->size() >= kMaximumCustom) return -1;
         const int type = kVanillaCount + static_cast<int>(current->size());
         auto next = std::make_shared<std::vector<NativeRarityIdentity>>(*current);
         next->push_back({type, std::string(mod), std::string(name)});
         keys_.emplace(std::move(key), type);
+        std::shared_ptr<const std::vector<NativeRarityIdentity>> immutable = next;
+        std::atomic_store_explicit(&published_, std::move(immutable), std::memory_order_release);
+        return type;
+    }
+
+    int reserveExternalType() {
+        std::lock_guard<std::mutex> guard(mutex_);
+        const auto current = std::atomic_load_explicit(&published_, std::memory_order_acquire);
+        if (current->size() >= kMaximumCustom) return -1;
+        const int type = kVanillaCount + static_cast<int>(current->size());
+        auto next = std::make_shared<std::vector<NativeRarityIdentity>>(*current);
+        next->push_back({type, "", "", false});
         std::shared_ptr<const std::vector<NativeRarityIdentity>> immutable = next;
         std::atomic_store_explicit(&published_, std::move(immutable), std::memory_order_release);
         return type;
