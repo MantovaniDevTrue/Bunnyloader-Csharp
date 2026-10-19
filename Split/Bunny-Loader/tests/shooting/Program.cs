@@ -32,6 +32,9 @@ Require(Call("LargeBatch").Length>16384&&Call("LargeBatch").Length<=32768,"64 lo
 Require(Call("WeaponWithProjectileProperty").StartsWith("SHOT1|0|"),"Legacy BunnyWeapon.Shoot property and new OnShoot callback coexist");
 Require(BunnyShootRuntime.Dispatch("independent",assembly,"ExampleShotgun",1,2,"").StartsWith("ERROR|"),"Warmup rejects invalid index");
 Require(Call("ExampleShotgun",2,input).StartsWith("ERROR|"),"Warmup rejects payload");
+Require(Call("WarmSpy",2)=="READY"&&Call("WarmSpy").Contains(",25,7,1,2,3"),"Warmup never executes user gameplay callbacks");
+Require(Call("EscapedContext").Contains("first-context-failure")&&Call("EscapedContext").Contains("only available during OnShoot"),"Failed callbacks cannot leave escaped contexts open");
+Require(Call("CrossThreadContext").Contains("WrongCallbackThread"),"Spawn queue enforces callback thread affinity");
 Require(new ExampleShotgun().ShootCallbackMask==4,"Actual example override mask");
 Require(Call("Hidden",2).Contains("HiddenOrAmbiguousCallback"),"Hidden methods cannot silently bind");
 var shotgun=new ExampleShotgun();shotgun.SetDefaults();Require(shotgun.UseTime==55&&shotgun.UseAnimation==55&&shotgun.Damage==10&&shotgun.Value==100000&&shotgun.UseSound=="Item36","Original defaults");
@@ -65,4 +68,23 @@ public sealed class LargeBatch:Fixture {
 public sealed class WeaponWithProjectileProperty:BunnyWeapon {
  public override void SetDefaults(){DisplayName="Independent";Texture="fixture.png";Shoot="IndependentProjectile";}
  public override bool OnShoot(BunnyShootContext context,BunnyShot shot){context.Spawn(shot);return false;}
+}
+
+public sealed class WarmSpy:Fixture {
+ private int calls;
+ public override bool OnShoot(BunnyShootContext context,BunnyShot shot){shot.Damage+=++calls;context.Spawn(shot);return false;}
+}
+
+public sealed class EscapedContext:Fixture {
+ private BunnyShootContext? previous;
+ public override bool OnShoot(BunnyShootContext context,BunnyShot shot){
+  if(previous!=null){previous.Spawn(shot);return false;}
+  previous=context;throw new Exception("first-context-failure");
+ }
+}
+
+public sealed class CrossThreadContext:Fixture {
+ public override bool OnShoot(BunnyShootContext context,BunnyShot shot){
+  Task.Run(()=>context.Spawn(shot)).GetAwaiter().GetResult();return false;
+ }
 }

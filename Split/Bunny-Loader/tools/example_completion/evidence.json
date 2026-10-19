@@ -1208,7 +1208,7 @@
       ],
       "validation": "C# e hooks/decoder/binder C++ reais exercitados no host com providers controlados. Não executa Terraria Android. Aguardando CI Android e validação de gameplay; nenhum pacote publicado.",
       "automatedEvidence": [
-        "39 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
+        "42 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],
       "deviceEvidence": []
     }

@@ -31,6 +31,7 @@ public struct BunnyShot
 /// <summary>One weapon use on the Mono worker. Spawn requests apply on the game thread only after validation.</summary>
 public sealed class BunnyShootContext
 {
+    private readonly int threadId=Environment.CurrentManagedThreadId;
     internal BunnyShootContext() { }
     public int PlayerIndex { get; internal set; }
     public int ItemType { get; internal set; }
@@ -42,6 +43,7 @@ public sealed class BunnyShootContext
     /// <summary>Uses the original owner/source/modifier; maximum 64 extra projectiles per native shot.</summary>
     public void Spawn(BunnyShot shot)
     {
+        if(Environment.CurrentManagedThreadId!=threadId)throw new InvalidOperationException("[CSharp][ERROR][Shoot] API=BunnyShootContext.Spawn Stage=QueueSpawn ExpectedThread="+threadId+" ActualThread="+Environment.CurrentManagedThreadId+" Reason=WrongCallbackThread");
         if(!CanSpawn)throw new InvalidOperationException("Spawn is only available during OnShoot, not CanShoot or ModifyShootStats");
         if(shots.Count>=64)throw new InvalidOperationException("[CSharp][ERROR][Shoot] Stage=QueueSpawn Expected=AtMost64 Reason=SpawnCapacityExceeded");
         _=shot.Encode();shots.Add(shot);
@@ -82,6 +84,32 @@ public static class BunnyShootRuntime
         public readonly Dictionary<string,BunnyShootSource> Items=new(StringComparer.Ordinal);
     }
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
+    private static bool coreReady;
+    private static (BunnyShootContext Context,BunnyShot Shot) ReadSnapshot(string snapshot)
+    {
+        var f=snapshot.Split(',');if(f.Length!=14)throw new ArgumentException("Expected 14 shooting snapshot fields");
+        int I(int i)=>int.Parse(f[i],NumberStyles.Integer,CultureInfo.InvariantCulture);
+        float F(int i)=>float.Parse(f[i],NumberStyles.Float,CultureInfo.InvariantCulture);
+        var context=new BunnyShootContext{PlayerIndex=I(0),ItemType=I(1),WeaponDamage=I(2),Random=new Random(I(3))};
+        if(context.PlayerIndex<0||context.PlayerIndex>255||context.ItemType<1||context.ItemType>1000000||context.WeaponDamage<0||context.WeaponDamage>1000000)
+            throw new ArgumentException("Invalid player/item/damage snapshot");
+        var shot=new BunnyShot{Type=I(4),X=F(5),Y=F(6),VelocityX=F(7),VelocityY=F(8),Damage=I(9),KnockBack=F(10),Ai0=F(11),Ai1=F(12),Ai2=F(13)};
+        _=shot.Encode();return (context,shot);
+    }
+    private static string EncodeResponse(bool original,BunnyShot shot,BunnyShootContext context)
+        => "SHOT1|"+(original?"1":"0")+"|"+shot.Encode()+"|"+string.Join(";",context.Shots.Select(s=>s.Encode()));
+    private static void PrepareCore()
+    {
+        if(coreReady)return;
+        // Warm only SDK-owned parsing/commands/math, with no native calls and no user gameplay callbacks.
+        var (context,shot)=ReadSnapshot("0,1,1,1,0,100,200,1,0,1,1,0,0,0");
+        context.CanSpawn=true;
+        for(int i=0;i<64;i++){
+            float angle=context.Random.NextSingle();shot.VelocityX=MathF.Cos(angle);shot.VelocityY=MathF.Sin(angle);
+            context.Spawn(shot);
+        }
+        _=EncodeResponse(true,shot,context);coreReady=true;
+    }
     public static string Dispatch(string modId,string assemblyPath,string owner,int index,int kind,string snapshot)
     {
         string callback="Bind",className=owner;
@@ -104,25 +132,21 @@ public static class BunnyShootRuntime
                 types[0].GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(item,null);
                 if(item.ShootCallbackMask==0)throw new InvalidOperationException("No shooting callbacks declared");
                 // Compile methods without running mod gameplay or consuming its state during warmup.
+                callback="PrepareMethod";
                 foreach(var name in new[]{"CanShoot","ModifyShootStats","OnShoot"})
                     System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(types[0].GetMethod(name)!.MethodHandle);
                 mod.Items.Add(owner,item);
             }
             className=item.GetType().FullName??owner;
+            callback="PrepareCore";PrepareCore();
             if(kind==2)return "READY";
-            var f=snapshot.Split(',');if(f.Length!=14)throw new ArgumentException("Expected 14 shooting snapshot fields");
-            int I(int i)=>int.Parse(f[i],NumberStyles.Integer,CultureInfo.InvariantCulture);
-            float F(int i)=>float.Parse(f[i],NumberStyles.Float,CultureInfo.InvariantCulture);
-            var context=new BunnyShootContext{PlayerIndex=I(0),ItemType=I(1),WeaponDamage=I(2),Random=new Random(I(3))};
-            if(context.PlayerIndex<0||context.PlayerIndex>255||context.ItemType<1||context.ItemType>1000000||context.WeaponDamage<0||context.WeaponDamage>1000000)
-                throw new ArgumentException("Invalid player/item/damage snapshot");
-            var shot=new BunnyShot{Type=I(4),X=F(5),Y=F(6),VelocityX=F(7),VelocityY=F(8),Damage=I(9),KnockBack=F(10),Ai0=F(11),Ai1=F(12),Ai2=F(13)};
-            _=shot.Encode();
+            callback="ReadSnapshot";var (context,shot)=ReadSnapshot(snapshot);
             if(kind==0){callback="CanShoot";return item.CanShoot(context)?"1":"0";}
             callback="ModifyShootStats";item.ModifyShootStats(context,ref shot);_=shot.Encode();
-            callback="OnShoot";context.CanSpawn=true;bool original=item.OnShoot(context,shot);context.CanSpawn=false;
+            callback="OnShoot";bool original;context.CanSpawn=true;
+            try {original=item.OnShoot(context,shot);}finally {context.CanSpawn=false;}
             // Validate every queued command before returning any of them to the native bridge.
-            return "SHOT1|"+(original?"1":"0")+"|"+shot.Encode()+"|"+string.Join(";",context.Shots.Select(s=>s.Encode()));
+            return EncodeResponse(original,shot,context);
         }
         catch(Exception error)
         {

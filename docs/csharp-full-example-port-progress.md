@@ -33,7 +33,7 @@ BunnyShootSource, BunnyShootContext, BunnyShot e BunnyShootRuntime conectam CanS
 
 ExampleShotgun foi portado com defaults, textura original, offset e algoritmo original de oito tiros±15°/70–100%. Estado implementado aguardando validação: host não comprova ABI/gameplay Android. A matriz contém os206, Weapons4/18 implementados (22.22%),0 integralmente validados. Os demais exemplos dependentes de projéteis/IA/CanUseItem/draw continuam pendentes; o callback isolado não os conclui. Nomes exibidos/traduções/prefixos de todo ExampleMod agora começam com Example por pedido do usuário; IDs não mudaram. O teste executa todas as classes e seus nomes localizados.
 
-Testes locais:39 verificações gerenciadas de disparos e hooks C++ de produção com saída da escopeta compilada; binder/ABI/falhas/transação/dono/fonte/munição/dano/AI/limites; ASan/UBSan; warmup/prazo/cancelamento no scheduler. Regressões:36 itens,43 entidades (dez mil ticks sem alocação),31 combate, dez executáveis de summons/áudio, receitas/projéteis, smoke Roslyn55 classes/72linhas e seis verificações de assets. CI Android desta revisão deve ser registrado separadamente. Nenhum pacote será publicado. Guia: content/Documentation/SHOOTING.md.
+Testes locais:42 verificações gerenciadas de disparos e hooks C++ de produção com saída da escopeta compilada; binder/ABI/falhas/transação/dono/fonte/munição/dano/AI/limites; ASan/UBSan; warmup/prazo/cancelamento no scheduler. Regressões:36 itens,43 entidades (dez mil ticks sem alocação),31 combate, dez executáveis de summons/áudio, receitas/projéteis, smoke Roslyn55 classes/72linhas e seis verificações de assets. CI Android desta revisão deve ser registrado separadamente. Nenhum pacote será publicado. Guia: content/Documentation/SHOOTING.md.
 
 ## Planejamento anterior de disparos (executado acima)
 
@@ -68,3 +68,5 @@ A aprovação geral da .96 está em validation/csharp-v96-android-user-2026-10-1
 O transporte aceita até32KiB para os64 comandos, com teste de identidades longas. OnShoot preserva a propriedade BunnyWeapon.Shoot existente. Exceções nativas são capturadas pelo GuardedCall existente, com restauração do escopo TLS e teste de retomada após falha; não se promete rollback de efeitos que o Terraria já aplicou antes de lançar a exceção.
 
 O sentinela da fábrica foi conferido nos ItemLoader/GlobalItemLoader/PlayerItemHooks originais:1000 nesta versão Android. O teste cobre a pool com1001 células e recusa de pool menor; não se usa comprimento do array como retorno falso de Shoot.
+
+O preparo executa apenas operações internas do SDK (parsing/serialização/random/math), sem chamar gameplay do mod. O contexto fecha também quando OnShoot lança exceção e Spawn valida a thread criadora; os testes cobrem contexto retido e emissão de outra thread.

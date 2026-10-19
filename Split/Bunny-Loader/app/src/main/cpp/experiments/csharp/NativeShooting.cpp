@@ -112,7 +112,7 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     auto policy=found->second;int who=-1;std::memcpy(&who,reinterpret_cast<char*>(player)+refs.who,4);
     Active context{policy,who,damage,poolSize()};
     bool allowed=context.slots>0&&who>=0&&who<=255&&damage>=0&&damage<=1000000;
-    if(!allowed)diagnostic(*policy,"ReadSnapshot","Expected=Player0..255,Damage0..1000000,NonEmptyProjectilePool ActualPlayer="+std::to_string(who)+" ActualDamage="+std::to_string(damage)+" ActualPoolLength="+std::to_string(context.slots)+" Reason=InvalidNativeShotSnapshot");
+    if(!allowed)diagnostic(*policy,"ReadSnapshot","Expected=Player0..255,Damage0..1000000,PoolWithAtLeast1000Cells ActualPlayer="+std::to_string(who)+" ActualDamage="+std::to_string(damage)+" ValidatedProjectileCapacity="+std::to_string(context.slots)+" Reason=InvalidNativeShotSnapshot");
     else allowed=ready(*policy);
     if(allowed&&(policy->entry.mask&1)) {
         std::string output;const bool invoked=invokeManagedShoot(policy->entry.mod,policy->entry.assembly,policy->entry.name,0,snapshot(context,{}),&output);
