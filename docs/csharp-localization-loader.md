@@ -80,21 +80,33 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 - `BunnyLocalizationCatalog.Texts(path, callerModId)` retorna uma cópia das traduções nas culturas realmente declaradas, com referências `{$...}` resolvidas em cada cultura sem alterar a cultura ativa.
 - A suíte gerenciada verifica registro de várias culturas, colisão, fallback `en-US`, entrada inválida, atomicidade, resolução `Key`, expansão de `Texts` e identidade do idioma.
 
-**Limitação importante:** esses métodos funcionam no catálogo C# gerenciado e estão expostos no SDK, mas alterações dinâmicas feitas dentro de uma sessão MonoVM ainda não são transmitidas ao publicador IL2CPP; também falta acionar `OnLocalizationsLoaded` no assembly C# após aplicação real. Não chamar essas duas partes de completas.
+**Limitação importante:** esses métodos funcionam no catálogo C# gerenciado e estão expostos no SDK, mas alterações dinâmicas feitas dentro de uma sessão MonoVM ainda não são transmitidas ao publicador IL2CPP. O despacho do `OnLocalizationsLoaded` foi integrado em código, porém não foi testado no jogo ou em Android.
 
-## Registro de traduções em classes C# — compilação, não callback ao vivo
+## Registro de traduções em classes C# e callback no MonoVM
 
 - `BunnyLocalizationModule` foi adicionado ao SDK e pode ser implementado diretamente como `public sealed class MinhaLocalizacao : BunnyLocalizationModule`. O método obrigatório `RegisterTranslations(BunnyLocalizationCatalog catalog)` é chamado uma vez durante o verificador da montagem C#.
 - O verificador usa a mesma descoberta por tipos de conteúdo do ExampleModCSharp, com limite de 32 módulos, ordem por nome completo e exigência de construtor público sem parâmetros. Ele junta JSON e traduções dos módulos em um único catálogo, preservando a precedência do `Register` e exportando as culturas ao protocolo nativo já existente.
 - Neste lote, só se aceitam entradas sob `Mods.source.*`, posteriormente adaptadas ao identificador real do mod. Tentativas de alterar chaves vanilla/globais pelo módulo são rejeitadas antes de publicar. O wire suporta assemblies que contenham exclusivamente módulos de localização.
 - Exemplo canônico: `samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs`, com `en-US` e `pt-BR`. O teste `compiled-localization-module-publishes-wire-without-json` chama diretamente `CompiledAssemblyProbe.Verify` usando uma montagem C# gerenciada com um módulo, sem APK. A matriz oficial de exemplos recebeu o novo arquivo, sem promoção artificial de status de validação Android.
-- **Não é uma implementação de `OnLocalizationsLoaded` ao vivo.** Essa etapa executa o registro na compilação/verificação e deixa o resultado cacheado para o publicador nativo. O callback de idioma na montagem MonoVM, invocado novamente após o recarregamento de cultura, continua pendente e deverá preservar a thread proprietária e evitar reentrância.
+- O registro de textos ainda ocorre na compilação/verificação. A notificação `OnLocalizationsLoaded()` possui uma ponte separada para o worker MonoVM: o método não executa no verificador, não acessa ponteiros IL2CPP e recebe a cultura aplicada por `BunnyLocalizationRuntime.ActiveCultureName`. Nenhuma chamada ao callback no Terraria Android está certificada até o momento.
+
+## Continuação de 19/10 — ciclo de vida do callback gerenciado
+
+- `BunnyLocalizationModule.OnLocalizationsLoaded()` tem implementação virtual vazia por padrão. O módulo do ExampleModCSharp mostra uma implementação que lê `BunnyLocalizationRuntime.ActiveCultureName` somente dentro do callback.
+- `BunnyLocalizationRuntime.Dispatch(modId, assemblyPath, culture)` descobre até 32 módulos concretos da montagem C#, armazena instâncias isoladas por mod e invoca os callbacks na sequência determinada pelos nomes completos. `Unload(modId)` descarta as instâncias ao desativar o mod.
+- `NativeLocalizationRuntime` agenda as notificações **depois** de publicar `LanguageManager.LoadLanguageFromFileText`, tanto no hook `LoadFilesForCulture` quanto na checagem de fallback, enviando apenas strings para a ponte. Módulos sem entradas `LOCALE` ainda não possuem detecção específica para ativar o callback.
+- `ManagedRuntime` processa as notificações na thread MonoVM fixa, com fila de até 64 eventos, priorizando o despacho síncrono existente de receitas. O worker não executa a cada frame por causa da localização; uma fila cheia recebe tentativa de reenvio no polling nativo posterior, sem republicar todas as traduções.
+- `AutoSourceRuntime` liga as montagens C# depois da aplicação dos defaults e prepara o MonoVM uma vez quando há registros de localização. `retainActiveMods` desregistra callbacks de mods inativos.
+- A suíte C# aumentou para **20 cenários**, com teste de execução, cultura ativa, descarregamento e recarga do módulo. O compilador e o catálogo ainda são testados separadamente.
+- CI de host: as verificações de C# e C++ podem validar assinaturas, sintaxe, protocolos e contratos de fila, mas **não** ABI IL2CPP/ARM64, comportamento real das chamadas MonoVM, consumo de memória ou FPS.
+
+**Ainda incompleto:** o resultado do callback não registra novas traduções dinamicamente no `LanguageManager`; callbacks em andamento durante um unload e o comportamento com vários módulos/idiomas exigem testes adicionais. Nenhum APK foi construído ou autorizado. A PR permanece draft.
 
 ## Pendências obrigatórias para declarar completo
 
 1. **Validar no Terraria Android** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
 2. Garantir que `LoadLanguageFromFileText` preserva todas as instâncias `LocalizedText` existentes em 301720, invalida os tooltips e atualiza itens/NPCs/buffs que guardam caches próprios. Testar troca repetida pt-BR/en-US/fr-FR.
-3. Resolver referências de texto cruzando mods e chaves vanilla antes da publicação, variantes `$...`, expansões recursivas, precedência de `Register` e os últimos detalhes do ciclo de vida `OnLocalizationsLoaded`.
+3. Confirmar em gameplay referências entre mods e vanilla, variantes `$...`, expansões recursivas, precedência de `Register`, callbacks `OnLocalizationsLoaded` e seu comportamento quando o worker estiver indisponível.
 4. Tratar desativação, unload e recarga em tempo de jogo: limpar textos de mods desativados, preservar mods terceiros e não deixar referências antigas na UI.
 5. Testar Android em aparelho, concorrência de carregamento, multiplayer e FPS; nenhum desses testes foi feito neste lote. **Proibido gerar APK ou `.bmod` antes de completar o escopo exigido**.
 
