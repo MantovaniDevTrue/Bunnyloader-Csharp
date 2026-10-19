@@ -1161,8 +1161,32 @@
       "values": [],
       "methods": [
         {
+          "signature": "void OnLocalizationsLoaded()",
+          "execution": "worker_async_localization"
+        },
+        {
           "signature": "void RegisterTranslations(BunnyLocalizationCatalog catalog)",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyLocalizationRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string ActiveCultureName { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string culture)",
+          "execution": "worker_async_localization"
+        },
+        {
+          "signature": "static bool Unload(string modId)",
+          "execution": "worker_async_localization"
         }
       ]
     },
