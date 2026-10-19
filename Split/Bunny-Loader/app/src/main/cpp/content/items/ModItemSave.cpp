@@ -614,6 +614,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     int managedPrefixes = 0, pendingManagedPrefixes = 0;
     std::map<std::string, PendingPrefix> pending;
     std::map<std::string, PendingPrefix> pendingRarity;
+    std::map<Il2CppObject*, PendingPrefix> pendingRarityByItem;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
         const Container* inventory = nullptr;
@@ -631,9 +632,12 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                     restoreVanillaPrefix(slotItem, s);
                 if (prefixOk && item_save::hasSavedVanillaPrefix(s)) ++prefixes;
                 if (!prefixOk) kept.push_back(s);
-                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey))
-                    pendingRarity[placeKey(s.container, s.slot)] =
-                        {field<int32_t>(slotItem, g_refs.type), s.rarityKey};
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey)) {
+                    const PendingPrefix unresolved{
+                        field<int32_t>(slotItem, g_refs.type), s.rarityKey};
+                    pendingRarity[placeKey(s.container, s.slot)] = unresolved;
+                    pendingRarityByItem[slotItem] = unresolved;
+                }
                 continue;
             }
             const int type = typeForKey(s.key);
@@ -658,8 +662,10 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                         ++pendingManagedPrefixes;
                     }
                 }
-                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey))
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey)) {
                     pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
+                    pendingRarityByItem[slotItem] = {type, s.rarityKey};
+                }
                 ++restored;
                 continue;
             }
@@ -676,6 +682,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             bool prefixRestored = false;
             if (target && restore(target, type, s, &prefixRestored)) {
                 if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey)) {
+                    pendingRarityByItem[target] = {type, s.rarityKey};
                     bool located = false;
                     for (const Container& candidate : containers) {
                         for (int targetSlot = 0; targetSlot < candidate.size(); ++targetSlot) {
@@ -721,6 +728,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         else g_pendingPrefix[path] = std::move(pending);
         if (pendingRarity.empty()) g_pendingRarity.erase(path);
         else g_pendingRarity[path] = std::move(pendingRarity);
+        if (pendingRarityByItem.empty()) g_pendingRarityByItem.erase(path);
+        else g_pendingRarityByItem[path] = std::move(pendingRarityByItem);
     }
     if (buffCount) {
         BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
