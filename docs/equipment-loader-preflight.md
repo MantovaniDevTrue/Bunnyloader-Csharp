@@ -52,3 +52,11 @@ O segundo verificador lê os métodos de `ModItem.js` e `ModPrefix.js` diretamen
 Por exemplo, `BunnyPrefix.SetStats` e `ModifyValue` aparecem na referência C#, enquanto `RollChance`, `CanRoll`, `AllStatChangesHaveEffectOn`, `Apply` e `GetTooltipLines` não têm um método com o mesmo nome em `BunnyPrefix`. Isso não demonstra que não exista um serviço nativo correspondente: a próxima implementação deve conferir o host C++, o tratamento de prefixos no Terraria IL2CPP e os casos do ExampleModBunny. `WingUpdate` também não aparece como método público de nome idêntico nos tipos C# analisados, mesmo que o SDK exponha `SetWingStats`.
 
 A ferramenta registra o número de linha e SHA-256 da fonte JS e do SDK. Se um callback original for renomeado ou um tipo público deixar de existir, o teste falha explicitamente. Nenhuma rotina altera o runtime, instala hooks ou afirma equivalência PC.
+
+## Prefixos C# — melhoria nativa independente do pacote Tile
+
+O `ManagedPrefixBridge` agora publica uma visão imutável de descritores após a validação e o registro completo. `ManagedPrefixGameplay` lê um `shared_ptr<const vector<ManagedPrefixEntry>>` atomicamente, sem copiar toda a lista de descritores nem bloquear `g_prefixMutex` a cada rolagem, cálculo de status, concessão de bônus ou tooltip. A política nativa de categoria, multiplicadores, reforja e localização continua igual.
+
+`snapshotManagedPrefixes()` permanece disponível para chamadas de compatibilidade. O acesso otimizado por `managedPrefixView()` retém os dados anteriores até o último leitor terminar. Os novos descritores são validados e a nova visão é montada antes da publicação. A estrutura de prefixos existentes e os registros do loader original não são alterados.
+
+A regressão C++ em `tests/prefix_v89/managed_prefix_snapshot_test.cpp` verifica views antigas, publicação em duas etapas, duplicação/rejeição, ordem de tipo e leitura concorrente. O teste original de tabelas frias em `tests/managed_prefix_cold_tables.cpp` também continua executado. A compilação host é um gate preliminar: o Android não foi medido, e esta alteração não implementa por si só `RollChance(item)` e `CanRoll(item)` dinâmicos do ExampleModBunny.
