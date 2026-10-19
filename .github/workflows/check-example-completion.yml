@@ -39,6 +39,7 @@ jobs:
           dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
           bash tests/shooting/run.sh
           bash tests/world_loaders/run.sh
+          python3 samples/ExampleModCSharp/Tests/check_tile_visual_probes.py
           python3 tests/world_loaders/batch_gate_test.py
           python3 tools/loader_batch_gate.py
       - name: Execute typed projectile policy integration
