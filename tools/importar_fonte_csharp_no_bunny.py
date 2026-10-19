@@ -61,9 +61,9 @@ def main():
         parser.error("Destino possui alteracoes/untracked. Use um clone limpo e uma branch propria.")
 
     source_branch = git(source, "branch", "--show-current").decode().strip()
-    if source_branch != "entrega/potato-bunny-original-com-csharp-20261018":
+    if source_branch not in ("v1.0", "entrega/potato-bunny-original-com-csharp-20261018"):
         parser.error(
-            "Clone a branch entrega/potato-bunny-original-com-csharp-20261018 "
+            "Clone a branch v1.0 (ou entrega/potato-bunny-original-com-csharp-20261018) "
             "para obter a fonte exata desta entrega."
         )
 
