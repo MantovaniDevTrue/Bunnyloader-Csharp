@@ -35,6 +35,7 @@ public sealed class TestMightyPrefix : BunnyPrefix
         rules.Allow(1, 3);
         rules.Deny(2);
         rules.Allow(512, 7);
+        rules.Allow("TestWand", 2);
     }
 
     public override void SetStats(ref PrefixStats stats)
