@@ -1,0 +1,295 @@
+#include "experiments/csharp/NativeAnglerQuestGameplay.h"
+#include "experiments/csharp/NativeAnglerQuestRegistry.h"
+#include "content/common/TypeTables.h"
+#include "core/Log.h"
+#include "hook/HookManager.h"
+#include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace bl::csharp::angler {
+namespace {
+
+using SwapFn = void (*)(const MethodInfo*);
+using ChatFn = Il2CppString* (*)(uint8_t, const MethodInfo*);
+
+SwapFn g_originalSwap = nullptr;
+ChatFn g_originalChat = nullptr;
+bool g_swapHooked = false;
+bool g_chatHooked = false;
+FieldInfo* g_questItems = nullptr;
+FieldInfo* g_questIndex = nullptr;
+FieldInfo* g_questFinished = nullptr;
+FieldInfo* g_hardMode = nullptr;
+FieldInfo* g_chatCorner = nullptr;
+FieldInfo* g_questFlag = nullptr;
+const MethodInfo* g_nameMethod = nullptr;
+uint64_t g_appliedGeneration = std::numeric_limits<uint64_t>::max();
+unsigned g_poll = 0;
+unsigned g_resolveFailures = 0;
+std::vector<Quest> g_active;
+std::set<int> g_ownedTypes;
+std::map<int, bool> g_previousFlags;
+
+bool typeName(const Il2CppType* type, const char* name) {
+    auto& a = il2cpp::api();
+    if (!type || !a.type_get_name || !a.il2cpp_free) return false;
+    char* actual = a.type_get_name(type);
+    bool ok = actual && std::strcmp(actual, name) == 0;
+    if (actual) a.il2cpp_free(actual);
+    return ok;
+}
+
+bool methodSignature(const MethodInfo* method, const char* result,
+                     const char* argument = nullptr) {
+    auto& a = il2cpp::api();
+    const uint32_t count = argument ? 1u : 0u;
+    if (!method || !a.method_get_param_count || !a.method_get_return_type ||
+        !a.method_get_param || a.method_get_param_count(method) != count ||
+        !typeName(a.method_get_return_type(method), result) ||
+        (argument && !typeName(a.method_get_param(method, 0), argument)))
+        return false;
+    return !a.method_is_instance || !a.method_is_instance(method);
+}
+
+bool arrayType(FieldInfo* field, const char* element) {
+    auto& a = il2cpp::api();
+    if (!field || !a.field_get_type || !a.class_from_il2cpp_type ||
+        !a.class_get_element_class || !a.class_get_name || !a.class_get_namespace)
+        return false;
+    Il2CppClass* array = a.class_from_il2cpp_type(a.field_get_type(field));
+    Il2CppClass* cls = array ? a.class_get_element_class(array) : nullptr;
+    if (!cls) return false;
+    const char* name = a.class_get_name(cls);
+    const char* ns = a.class_get_namespace(cls);
+    return name && ns && std::strcmp(name, element) == 0 &&
+           std::strcmp(ns, "System") == 0;
+}
+
+bool findContracts() {
+    auto& a = il2cpp::api();
+    if (!a.field_static_get_value || !a.field_static_set_value ||
+        !a.array_new || !a.object_get_class || !a.string_new ||
+        !a.class_get_method_from_name || !a.method_get_param_count)
+        return false;
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
+    Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "ItemID", "Sets"});
+    if (!main || !lang || !sets) return false;
+    if (a.runtime_class_init) {
+        a.runtime_class_init(main);
+        a.runtime_class_init(sets);
+        a.runtime_class_init(lang);
+    }
+    const MethodInfo* swap = a.class_get_method_from_name(main, "AnglerQuestSwap", 0);
+    const MethodInfo* chat = a.class_get_method_from_name(lang, "AnglerQuestChat", 1);
+    if (!methodSignature(swap, "System.Void") ||
+        !methodSignature(chat, "System.String", "System.Boolean"))
+        return false;
+    g_questItems = il2cpp::findField(main, "anglerQuestItemNetIDs");
+    g_questIndex = il2cpp::findField(main, "anglerQuest");
+    g_questFinished = il2cpp::findField(main, "anglerQuestFinished");
+    g_hardMode = il2cpp::findField(main, "hardMode");
+    g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
+    g_questFlag = il2cpp::findField(sets, "IsQuestFish");
+    if (!arrayType(g_questItems, "Int32") || !arrayType(g_questFlag, "Boolean") ||
+        !g_questIndex || !g_questFinished || !g_hardMode || !g_chatCorner ||
+        !typeName(a.field_get_type(g_questIndex), "System.Int32") ||
+        !typeName(a.field_get_type(g_chatCorner), "System.Int32") ||
+        !typeName(a.field_get_type(g_questFinished), "System.Boolean") ||
+        !typeName(a.field_get_type(g_hardMode), "System.Boolean"))
+        return false;
+    const MethodInfo* name = a.class_get_method_from_name(lang, "GetItemNameValue", 1);
+    if (methodSignature(name, "System.String", "System.Int32"))
+        g_nameMethod = name;
+    if (!g_swapHooked) g_swapHooked = hook::install(swap, +[](const MethodInfo* mi) {
+        if (!g_originalSwap) return;
+        g_originalSwap(mi);
+        if (g_active.empty()) return;
+        auto& api = il2cpp::api();
+        uint8_t finished = 0, hardmode = 0;
+        if (!g_questFinished || !g_hardMode) return;
+        api.field_static_get_value(g_questFinished, &finished);
+        api.field_static_get_value(g_hardMode, &hardmode);
+        if (finished) return;
+        Registry::reroll([&] { g_originalSwap(mi); }, [&]() -> int {
+            Il2CppArray* arr = nullptr;
+            int32_t selected = -1;
+            api.field_static_get_value(g_questItems, &arr);
+            api.field_static_get_value(g_questIndex, &selected);
+            if (!arr || selected < 0 || static_cast<uintptr_t>(selected) >= arr->length)
+                return -1;
+            return static_cast<const int32_t*>(arrayData(arr))[selected];
+        }, [&]() -> bool {
+            uint8_t done = 0;
+            api.field_static_get_value(g_questFinished, &done);
+            return done != 0;
+        }, g_active, hardmode != 0);
+    }, &g_originalSwap);
+    if (!g_chatHooked) g_chatHooked = hook::install(chat, +[](uint8_t turnIn, const MethodInfo* mi) -> Il2CppString* {
+        if (!g_originalChat) return nullptr;
+        if (turnIn || g_active.empty()) return g_originalChat(turnIn, mi);
+        auto& api = il2cpp::api();
+        uint8_t finished = 0;
+        int32_t index = -1;
+        Il2CppArray* array = nullptr;
+        api.field_static_get_value(g_questFinished, &finished);
+        api.field_static_get_value(g_questIndex, &index);
+        api.field_static_get_value(g_questItems, &array);
+        if (finished || !array || index < 0 ||
+            static_cast<uintptr_t>(index) >= array->length)
+            return g_originalChat(turnIn, mi);
+        const int type = static_cast<const int32_t*>(arrayData(array))[index];
+        const auto it = std::find_if(g_active.begin(), g_active.end(),
+            [type](const Quest& q) { return q.type == type; });
+        if (it == g_active.end()) return g_originalChat(turnIn, mi);
+        std::string name = it->name;
+        if (it->description.empty() && g_nameMethod) {
+            int itemType = type;
+            void* args[1] = {&itemType};
+            Il2CppObject* exception = nullptr;
+            auto* result = reinterpret_cast<Il2CppString*>(api.runtime_invoke(
+                g_nameMethod, nullptr, args, &exception));
+            if (!exception && result && result->length > 0 && result->length < 256) {
+                name.clear();
+                for (int i = 0; i < result->length; ++i) {
+                    if (result->chars[i] > 127) { name = it->name; break; }
+                    name.push_back(static_cast<char>(result->chars[i]));
+                }
+            }
+        }
+        Il2CppString* output = api.string_new(Registry::chat(*it, name).c_str());
+        if (!output) return g_originalChat(turnIn, mi);
+        int32_t corner = type;
+        api.field_static_set_value(g_chatCorner, &corner);
+        return output;
+    }, &g_originalChat);
+    return g_swapHooked && g_chatHooked;
+}
+
+bool writeFlags(const std::vector<Quest>& quests) {
+    auto& a = il2cpp::api();
+    Il2CppArray* flags = nullptr;
+    a.field_static_get_value(g_questFlag, &flags);
+    if (!flags || flags->length == 0 || flags->length > 65536) return false;
+    int largest = -1;
+    for (const auto& quest : quests) largest = std::max(largest, quest.type);
+    if (largest >= 65536) return false;
+    if (largest >= 0 && static_cast<uintptr_t>(largest) >= flags->length) {
+        Il2CppArray* expanded = runtime::TypeTables::resizedCopy(flags, largest + 1);
+        if (!expanded) return false;
+        a.field_static_set_value(g_questFlag, &expanded);
+        flags = expanded;
+    }
+    auto* values = static_cast<uint8_t*>(arrayData(flags));
+    std::set<int> upcoming;
+    for (const auto& quest : quests) upcoming.insert(quest.type);
+    for (int former : g_ownedTypes)
+        if (!upcoming.contains(former) &&
+            former >= 0 && static_cast<uintptr_t>(former) < flags->length) {
+            const auto saved = g_previousFlags.find(former);
+            if (saved != g_previousFlags.end()) values[former] = saved->second ? 1 : 0;
+            g_previousFlags.erase(former);
+        }
+    for (const auto& quest : quests) {
+        if (!g_previousFlags.contains(quest.type))
+            g_previousFlags[quest.type] = values[quest.type] != 0;
+        values[quest.type] = 1;
+    }
+    return true;
+}
+
+bool writeQuestIds(const std::vector<Quest>& quests) {
+    auto& a = il2cpp::api();
+    Il2CppArray* original = nullptr;
+    a.field_static_get_value(g_questItems, &original);
+    if (!original || original->length == 0 || original->length > 65536)
+        return false;
+    const auto* data = static_cast<const int32_t*>(arrayData(original));
+    std::vector<int> retained;
+    retained.reserve(original->length + quests.size());
+    std::set<int> included;
+    std::set<int> upcoming;
+    for (const auto& quest : quests) upcoming.insert(quest.type);
+    for (uintptr_t i = 0; i < original->length; ++i) {
+        const int id = data[i];
+        if (g_ownedTypes.contains(id) && !upcoming.contains(id)) continue;
+        retained.push_back(id);
+        included.insert(id);
+    }
+    for (const auto& quest : quests)
+        if (included.insert(quest.type).second) retained.push_back(quest.type);
+    if (retained.size() > 65536) return false;
+    bool changed = retained.size() != original->length;
+    if (!changed)
+        for (size_t i = 0; i < retained.size(); ++i)
+            if (retained[i] != data[i]) { changed = true; break; }
+    if (!changed) return true;
+
+    int32_t selected = -1;
+    a.field_static_get_value(g_questIndex, &selected);
+    const int activeId = selected >= 0 &&
+        static_cast<uintptr_t>(selected) < original->length
+            ? data[selected] : -1;
+    Il2CppClass* element = a.class_get_element_class(
+        a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
+    Il2CppArray* updated = a.array_new(element, retained.size());
+    if (!updated) return false;
+    std::copy(retained.begin(), retained.end(),
+              static_cast<int32_t*>(arrayData(updated)));
+    a.field_static_set_value(g_questItems, &updated);
+    auto where = std::find(retained.begin(), retained.end(), activeId);
+    const int32_t next = where == retained.end() ? 0 :
+        static_cast<int32_t>(where - retained.begin());
+    a.field_static_set_value(g_questIndex, &next);
+    return true;
+}
+
+bool updateQuests(const std::vector<Quest>& quests) {
+    if (!writeQuestIds(quests)) return false;
+    if (!writeFlags(quests)) return false;
+    std::set<int> upcoming;
+    for (const auto& quest : quests) upcoming.insert(quest.type);
+    g_ownedTypes = std::move(upcoming);
+    return true;
+}
+
+}
+
+void pumpOnGameThread() {
+    const uint64_t revision = registry().generation();
+    if (revision == 0 && g_ownedTypes.empty()) return;
+    bool pending = revision != g_appliedGeneration;
+    if (!pending && ++g_poll % 120u != 0) return;
+    if (!g_swapHooked || !g_chatHooked || !g_questItems) {
+        if (!findContracts()) {
+            if (++g_resolveFailures == 1 || g_resolveFailures == 120)
+                BL_WARN("[CSharp][AnglerQuest] Stage=ResolveNativeHooks Result=Pending Reason=MissingOrIncompatibleIL2CPPContract");
+            return;
+        }
+    }
+    const std::vector<Quest> quests = registry().snapshot();
+    if (!updateQuests(quests)) {
+        if (++g_resolveFailures == 1 || g_resolveFailures == 120)
+            BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=InvalidOrUnreadyTerrariaTables");
+        return;
+    }
+    g_resolveFailures = 0;
+    g_appliedGeneration = revision;
+    g_active = quests;
+    if (pending)
+        BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Hooks=2 Result=Installed",
+                quests.size());
+}
+
+bool hooksInstalled() { return g_swapHooked && g_chatHooked; }
+
+}
