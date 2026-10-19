@@ -1,3 +1,5 @@
+> Continuidade do port integral: áudio de ExampleGun em [CUSTOM_AUDIO.md](CUSTOM_AUDIO.md). Desenvolvimento sem nova release parcial; ainda requer validação no Android.
+
 > .96: roteiro de armas, munição, offsets e idiomas em [NATIVE_DEFAULTS_V96.md](NATIVE_DEFAULTS_V96.md). Manter também o roteiro do minion da .95.2. Novos ports ainda aguardam validação Android.
 
 # Continuidade .95 — teste o sistema de summons do ExampleMod

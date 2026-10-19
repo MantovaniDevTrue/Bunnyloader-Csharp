@@ -1126,6 +1126,40 @@
         "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
       ],
       "deviceEvidence": []
+    },
+    "Content/Items/Weapons/Ranged/ExampleGun.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
+        "Holdout(-18,0) nativo com direção/gravidade/rotação",
+        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS"
+      ],
+      "missingFeatures": [],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
+        "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
+        "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
+        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/package_assets_test.py",
+        "tests/summon_lifecycle/use_sound_test.cpp",
+        "tests/summon_lifecycle/sound_router_test.cpp"
+      ],
+      "terrariaTests": [
+        "Usar ExampleGun com ExampleBullet, conferir consumo/dano/sprite; comparar som original/volume/variação e posição da arma ao virar/mirar.",
+        "Testar pausa/retorno, mais de uma arma/mod de áudio, limite de sobreposição3 e nenhuma regressão JavaScript."
+      ],
+      "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -1501,6 +1535,13 @@
       "canonicalInventoryPreserved": 206,
       "android": "pending",
       "recipeDeadline": "Queue priority improved; 3ms budget unchanged; arbitrary slow callbacks still possible"
+    },
+    "fullPortContinuation": {
+      "exampleModDevelopmentVersion": "0.1.56",
+      "publication": "held by user request until whole port is complete",
+      "canonicalInventoryPreserved": 206,
+      "sound": "BunnySoundStyle and typed/rooted native UseSound markers; bounded shared SfxQueue, legacy JS token compatibility, fail-closed router registration",
+      "android": "pending"
     }
   }
 }

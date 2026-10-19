@@ -10,6 +10,7 @@ namespace bl::csharp {
 
 struct SourceModStatus {
     std::string id;
+    std::string directory;
     std::string error;
     int sourceFiles = 0;
     int items = 0;

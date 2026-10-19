@@ -955,6 +955,8 @@ public static class CompiledAssemblyProbe
         }
         foreach(var item in basicItems.Concat(weapons))
         {
+            object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
+            if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);
             if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
                 Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));

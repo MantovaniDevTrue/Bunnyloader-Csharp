@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Extracted without removing private-destination, signature or same-SHA CI gates.
 set -euo pipefail
+# User requires the entire example port before another deliverable.
+if [ "${GITHUB_REF:-}" = "refs/heads/feat/csharp-summon-lifecycle-v95" ] ||
+   [ "${GITHUB_HEAD_REF:-}" = "feat/csharp-summon-lifecycle-v95" ]; then
+  echo "::error::PublicationHeldFullExamplePort: no partial APK or mod release is authorized on this branch."
+  exit 1
+fi
 if [ -z "${GH_TOKEN:-}" ]; then
   echo "::error::BUNNY_PRIVATE_BUILD_TOKEN is missing. Full APK delivery was not attempted."
   exit 1

@@ -1085,7 +1085,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Package independent ExampleMod CSharp 0.1.55
+      - name: Package independent ExampleMod CSharp 0.1.56
         shell: bash
         run: |
           set -euo pipefail
@@ -1094,17 +1094,17 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.55.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.56.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.56.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.56.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
-              assert manifest["version"]=="0.1.55"
+              assert manifest["version"]=="0.1.56"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
@@ -1201,8 +1201,8 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.56.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.56.bmod.sha256"
 
       - name: Package standalone native minion CSharp probe
         if: github.ref != 'refs/heads/feat/csharp-94-owned-summon-damage-lot' && github.ref != 'refs/heads/feat/csharp-summon-lifecycle-v95'
@@ -2181,7 +2181,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.55.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.56.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2215,16 +2215,17 @@ jobs:
           if-no-files-found: error
 
       - name: Export source-only CSharp examples as safe workflow artifact
+        if: steps.build_policy.outputs.publish == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.55
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.56
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.55.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.55.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.56.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.56.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod

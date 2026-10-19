@@ -531,6 +531,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 BunnyHoldout Holdout { get; set; }
 BunnyItemBehavior Behavior { get; }
 BunnyNativeDefaults NativeDefaults { get; }
+BunnySoundStyle CustomUseSound { get; set; }
 Dictionary<string, string> TooltipTranslations { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
@@ -1043,6 +1044,27 @@ string ShaderFile { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnySoundLimitBehavior
+
+enum; base: `System.Enum`.
+
+Values: IgnoreNew, ReplaceOldest.
+
+## BunnyLoader.Source.BunnySoundStyle
+
+class; base: `System.Object`.
+
+```csharp
+BunnySoundStyle(string path, float volume, float pitch, float pitchVariance, int maxInstances, BunnySoundLimitBehavior limitBehavior)
+BunnySoundLimitBehavior LimitBehavior { get; }
+float Pitch { get; }
+float PitchVariance { get; }
+float Volume { get; }
+int MaxInstances { get; }
+string Definition { get; }
+string Path { get; }
+```
+
 ## BunnyLoader.Source.BunnyTile
 
 abstract class; base: `System.Object`.
@@ -1238,6 +1260,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 ```csharp
 BunnyHoldout Holdout { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+BunnySoundStyle CustomUseSound { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }

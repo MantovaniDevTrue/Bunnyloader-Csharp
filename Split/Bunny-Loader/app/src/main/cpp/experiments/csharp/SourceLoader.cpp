@@ -67,7 +67,7 @@ bool collect(const std::string& folder, const std::string& rel,
         } else if (S_ISREG(st.st_mode) && isSourceName(name)) {
             if (st.st_size < 0 || static_cast<uint64_t>(st.st_size) > kSourceMaxFileBytes || paths->size() >= kSourceMaxFiles) {
                 *error = "content/" + child +
-                    ": limite C# excedido (512 arquivos; 256 KiB por arquivo)";
+                    ": [CSharp][ERROR][SourceLoader] Stage=Collect Expected=Files<="+std::to_string(kSourceMaxFiles)+",FileBytes<="+std::to_string(kSourceMaxFileBytes)+" Actual=Files:"+std::to_string(paths->size()+1)+",FileBytes:"+std::to_string(st.st_size)+" Reason=SourceCapacityExceeded Result=ModRejected";
                 return false;
             }
             paths->push_back(child);
@@ -594,6 +594,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     SourceModStatus status;
     status.id = mod.id;
+    status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s)",
@@ -641,6 +642,7 @@ bool applyManagedSourceDefaults(
     std::vector<BasicItemEntry> basicItems;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
+    std::vector<useSounds::Entry> useSounds;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
     std::vector<ManagedAccessoryEntry> accessories;
@@ -678,6 +680,17 @@ bool applyManagedSourceDefaults(
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
             continue;
+        }
+        if(!fields.empty()&&fields[0]=="USE_SOUND") {
+            useSounds::Entry context;context.mod=modId;context.directory=mod->directory;
+            context.name=fields.size()>1?fields[1]:"<missing>";
+            const auto key=sourceIdentityForWire("ITEM",context.name);auto target=mod->registeredKindTypes.find(key);
+            if(target==mod->registeredKindTypes.end())
+                return useSounds::reject(context,error,"ResolveOwner","ItemNotRegistered","RegisteredItemContent",context.name);
+            context.type=target->second;auto source=mod->sourcePaths.find(key);
+            context.source=source==mod->sourcePaths.end()?"<unavailable>":source->second;
+            useSounds::Entry e;if(!useSounds::decode(fields,context,&e,error)) return false;
+            useSounds.push_back(std::move(e));continue;
         }
         if(fields.size()==4&&fields[0]=="HOLDOUT") {
             const auto key=sourceIdentityForWire("ITEM",fields[1]);auto it=mod->registeredKindTypes.find(key);float x=0,y=0;
@@ -750,7 +763,7 @@ bool applyManagedSourceDefaults(
             }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
-                *error = "Quantidade de BunnyTile C# excede 256"; return false;
+                *error = "[CSharp][ERROR][Tile] Mod="+modId+" Stage=Decode Expected=AtMost"+std::to_string(kSourceMaxCategory)+" Actual="+std::to_string(tiles.size())+" Reason=CategoryCapacityExceeded Result=ModRejected"; return false;
             }
             continue;
         }
@@ -763,7 +776,7 @@ bool applyManagedSourceDefaults(
             if(!parseBasicItemWire(fields,&record,error))return false;
             record.type=type->second;basicItems.push_back(std::move(record));
             if (basicItems.size() > kSourceMaxCategory) {
-                *error = "Quantidade de BunnyItem C# excede 256";
+                *error = "[CSharp][ERROR][Item] Mod="+modId+" Stage=Decode Expected=AtMost"+std::to_string(kSourceMaxCategory)+" Actual="+std::to_string(basicItems.size())+" Reason=CategoryCapacityExceeded Result=ModRejected";
                 return false;
             }
             continue;
@@ -1142,6 +1155,7 @@ bool applyManagedSourceDefaults(
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
+    if (!useSounds::publish(useSounds,error)) return false;
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;

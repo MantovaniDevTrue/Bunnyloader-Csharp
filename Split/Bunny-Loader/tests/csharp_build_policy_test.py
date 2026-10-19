@@ -54,3 +54,9 @@ for event in ("push", "workflow_dispatch", "pull_request"):
     held=module.classify(event,"refs/heads/feat/csharp-summon-lifecycle-v95","feat/csharp-summon-lifecycle-v95",repo,repo)
     assert held["aot"] and held["lights"] and not held["publish"]
 assert "needs.build.outputs.publish == 'true'" in workflow
+
+# A direct call must also stop before credentials/network when publication is held.
+for ref, head in (("refs/heads/feat/csharp-summon-lifecycle-v95", ""), ("refs/pull/98/merge", "feat/csharp-summon-lifecycle-v95")):
+    result=subprocess.run(["bash", str(root/"tools/ci/publish_csharp_private.sh")],
+        env=dict(os.environ,GITHUB_REF=ref,GITHUB_HEAD_REF=head),capture_output=True,text=True)
+    assert result.returncode!=0 and "PublicationHeldFullExamplePort" in result.stdout

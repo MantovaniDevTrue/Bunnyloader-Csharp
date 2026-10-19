@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 76
+    "cSharpSourceFiles": 77
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -601,20 +601,20 @@
     "Weapons": {
       "total": 18,
       "states": {
-        "Não implementado": 15,
-        "Implementado, aguardando validação": 2,
+        "Não implementado": 14,
+        "Implementado, aguardando validação": 3,
         "Parcial": 1
       },
-      "implemented": 2,
+      "implemented": 3,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 1,
-      "implementedPercent": 11.11,
+      "implementedPercent": 16.67,
       "validatedPercent": 0.0,
       "partialPercent": 5.56,
       "limitations": 0,
-      "missingExamples": 16
+      "missingExamples": 15
     }
   },
   "examples": [
@@ -9520,31 +9520,43 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
+      ],
       "requiredApis": [
         "HoldoutOffset",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
-        "content/Content/Items/Weapons/Ranged/ExampleGun.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "preservedFeatures": [
+        "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
+        "Holdout(-18,0) nativo com direção/gravidade/rotação",
+        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS"
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
+        "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
+        "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
+        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/package_assets_test.py",
+        "tests/summon_lifecycle/use_sound_test.cpp",
+        "tests/summon_lifecycle/sound_router_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Usar ExampleGun com ExampleBullet, conferir consumo/dano/sprite; comparar som original/volume/variação e posição da arma ao virar/mirar.",
+        "Testar pausa/retorno, mais de uma arma/mod de áudio, limite de sobreposição3 e nenhuma regressão JavaScript."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -16716,6 +16728,17 @@
         "ExampleBulletLauncher"
       ],
       "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs",
+      "classes": [
+        "ExampleGun"
+      ],
+      "mappedToJs": [
+        "Content/Items/Weapons/Ranged/ExampleGun.js"
+      ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },

@@ -75,6 +75,8 @@ public abstract class BunnyProjectile
 public abstract class BunnyWeapon : BunnyRecipeSource
 {
     public BunnyHoldout? Holdout { get; set; }
+    /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
+    public BunnySoundStyle? CustomUseSound { get; set; }
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";

@@ -1,3 +1,5 @@
+> Port integral em desenvolvimento: CustomUseSound usa NativeUseSounds → NativeSoundRouter → AndroidAudio/SfxQueue, sem QuickJS. SDK e binding próprios; serviço de áudio independente compartilhado com JS. Testes de host não certificam áudio Android. Publicação suspensa.
+
 > .96: NativeDefaults e NativeHoldout usam serviços C++ próprios com metadata IL2CPP validada; constantes e referências vêm do registro nativo compartilhado. BunnyName alimenta nomes dos conteúdos no núcleo. Nenhuma chamada QuickJS nesses caminhos. Fixtures BL_HAVE_QUICKJS=0; isto não certifica o desacoplamento dos88 loaders legados.
 
 > .95.2: removido contrato incorreto de identity constatado no Android .95.1. A geração é rastreada no hook nativo SetDefaults compartilhado, sem QuickJS. Binding e reutilização testados com providers controlados; Android da correção pendente.

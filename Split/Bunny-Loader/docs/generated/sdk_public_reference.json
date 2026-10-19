@@ -954,6 +954,7 @@
         "BunnyHoldout Holdout { get; set; }",
         "BunnyItemBehavior Behavior { get; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnySoundStyle CustomUseSound { get; set; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
@@ -1890,6 +1891,37 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnySoundLimitBehavior",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "IgnoreNew",
+        "ReplaceOldest"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySoundStyle",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnySoundStyle(string path, float volume, float pitch, float pitchVariance, int maxInstances, BunnySoundLimitBehavior limitBehavior)"
+      ],
+      "properties": [
+        "BunnySoundLimitBehavior LimitBehavior { get; }",
+        "float Pitch { get; }",
+        "float PitchVariance { get; }",
+        "float Volume { get; }",
+        "int MaxInstances { get; }",
+        "string Definition { get; }",
+        "string Path { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyTile",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -2290,6 +2322,7 @@
       "properties": [
         "BunnyHoldout Holdout { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnySoundStyle CustomUseSound { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",

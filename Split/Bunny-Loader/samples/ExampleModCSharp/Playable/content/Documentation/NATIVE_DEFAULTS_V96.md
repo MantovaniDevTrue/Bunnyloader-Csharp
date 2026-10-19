@@ -20,7 +20,7 @@ BunnyHoldout recebe offsets no referencial local da arma; o núcleo aplica dire�
 6. Alterne pt-BR/en-US nas configurações. Espada/Sword e nomes da bala/lançador devem corresponder ao idioma. Salve, saia, reentre e confira pilhas, itens e prefixos preservados.
 7. Refaça o teste do minion/bancada existente. Observe se o aviso RecipeCallback diminuiu durante crafting com combate; anote relatório/PID e momento. A mudança de prioridade não garante prazo para callbacks arbitrariamente caros.
 
-ExampleBulletLauncher é um exemplo adicional do SDK, não o port de ExampleGun: o áudio personalizado daquele exemplo ainda está no plano. Estes passos validam os novos recursos no aparelho; compilação/CI não substituem esse teste nem garantem60FPS. Nenhuma categoria da matriz foi removida.
+ExampleBulletLauncher é um exemplo adicional do SDK, não o port de ExampleGun: o port separado de ExampleGun foi acrescentado na continuidade0.1.56, com áudio próprio documentado em CUSTOM_AUDIO.md e validação Android pendente. Estes passos validam os novos recursos no aparelho; compilação/CI não substituem esse teste nem garantem60FPS. Nenhuma categoria da matriz foi removida.
 
 ## Valores monetários
 

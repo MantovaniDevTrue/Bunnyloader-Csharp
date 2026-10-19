@@ -21,6 +21,15 @@ Check("native-defaults.public-builder-values-and-invalid-input",()=>{
  Reject(()=>defaults.SetId("ammo","ArbitraryClass","Pointer"));Reject(()=>defaults.SetProjectile("shoot","bad/key/again"));
  Equal("mana:i:20",new BunnyNativeDefaults().SetInt("mana",10).SetInt("mana",20).Definition);
 });
+Check("sound.immutable-options-paths-and-original-gun",()=>{
+ var sound=new BunnySoundStyle("Assets/Sounds/Items/Guns/ExampleGun.ogg",volume:0.9f,pitchVariance:0.2f,maxInstances:3);
+ Equal(0.9f,sound.Volume);Equal(0.2f,sound.PitchVariance);Equal(3,sound.MaxInstances);
+ Equal("Assets/Sounds/Items/Guns/ExampleGun.ogg",sound.Path);
+ Equal(6,sound.Definition.Split('\t').Length);
+ foreach(var invalid in new[]{"../bad.ogg","/bad.wav","foo/../bad.ogg","bad.mp4","bad\\path.ogg","bad\tfile.wav"})Reject(()=>new BunnySoundStyle(invalid));
+ Reject(()=>new BunnySoundStyle("ok.wav",volume:float.NaN));Reject(()=>new BunnySoundStyle("ok.wav",pitch:float.PositiveInfinity));
+ Reject(()=>new BunnySoundStyle("ok.wav",maxInstances:-1));Reject(()=>new BunnySoundStyle("ok.wav",limitBehavior:(BunnySoundLimitBehavior)3));
+});
 Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
@@ -228,7 +237,7 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
@@ -260,6 +269,7 @@ try {
     }
     foreach(var propertyName in new[]{"Texture","VisualTexture"})
       RequireAsset(type.GetProperty(propertyName)?.GetValue(instance) as string);
+    if(type.GetProperty("CustomUseSound")?.GetValue(instance) is BunnySoundStyle sound)RequireAsset(sound.Path);
     if(type.GetProperty("BehaviorDefinition")?.GetValue(instance) is string policy&&policy.Length>0) {
       using var descriptor=JsonDocument.Parse(policy);
       if(descriptor.RootElement.TryGetProperty("equips",out var equips))

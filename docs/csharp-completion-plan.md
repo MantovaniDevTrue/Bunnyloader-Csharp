@@ -1,3 +1,5 @@
+> Continuidade do port integral: [estado, APIs de áudio e próximo sistema compartilhado](csharp-full-example-port-progress.md). Revisão de desenvolvimento .97/ExampleMod0.1.56 sem publicação.
+
 > Regra de entrega atualizada em 19/10/2026: o usuário exige o port integral antes de nova entrega. Publicação automática da branch `feat/csharp-summon-lifecycle-v95` desabilitada nas políticas push/PR; compilação e testes permanecem habilitados. Não reabilitar publicação para entregar outro subconjunto. A .96 já publicada permanece apenas checkpoint histórico; 206 exemplos seguem no escopo e nenhum pendente pode ser omitido.
 
 > Entrega experimental .96: [CI, artefatos e validação pendente](validation/csharp-v96-ci-2026-10-19.json). Fonte testada `96c90e63`; nove suítes e Android build aprovados. Não conclui os lotes.
