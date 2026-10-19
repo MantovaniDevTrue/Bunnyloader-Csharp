@@ -53,6 +53,8 @@ public:
         return changed;
     }
 
+    uint64_t revision() const { return state.revision; }
+
     SessionSnapshot snapshot() const {
         return state;
     }
