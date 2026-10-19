@@ -27,6 +27,15 @@ public static class BunnyRarityRuntime
     private static readonly Dictionary<string, ModRarities> Mods = new(StringComparer.Ordinal);
     public static BunnyColor DiscoColor { get; private set; } = new(255, 255, 255);
 
+    public static int TypeOf<T>(string modId) where T : BunnyRarity
+    {
+        if (!Mods.TryGetValue(modId, out ModRarities? mod) ||
+            !mod.ByName.TryGetValue(typeof(T).Name, out BunnyRarity? rarity) ||
+            rarity.GetType() != typeof(T))
+            throw new KeyNotFoundException("Rarity not registered for mod " + modId);
+        return rarity.Type;
+    }
+
     public static string Dispatch(string modId, string assemblyPath, string owner, int index,
         int kind, string snapshot)
     {
@@ -80,9 +89,17 @@ public static class BunnyRarityRuntime
                     byName.Add(type.Name, rarity);
                     byId.Add(id, rarity);
                 }
-                foreach (var instance in byName.OrderBy(pair => pair.Value.Type).Select(pair => pair.Value))
-                    instance.SetStaticDefaults();
                 Mods.Add(modId, new ModRarities(assemblyPath, byName, byId));
+                try
+                {
+                    foreach (var instance in byName.OrderBy(pair => pair.Value.Type).Select(pair => pair.Value))
+                        instance.SetStaticDefaults();
+                }
+                catch
+                {
+                    Mods.Remove(modId);
+                    throw;
+                }
                 return "READY|" + byName.Count.ToString(CultureInfo.InvariantCulture);
             }
 
