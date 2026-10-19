@@ -1,33 +1,33 @@
 {
-  "schema": "BunnyCSharpUpstreamParityV2",
+  "schema": "BunnyCSharpUpstreamParityV3",
   "comparedAt": "2026-10-18",
-  "method": "Full recursive Git-tree blob comparison. The inventory JSON excludes itself; tracked source and upstream files compared with their exact blob SHAs. Proves source-file parity, NOT Android runtime or behavioral equivalence.",
+  "method": "Full recursive Git tree blob comparison, self-excluding this JSON manifest. No ABI/runtime equivalence is implied.",
   "upstream": {
     "repository": "JonataOliveiraa/Bunny-Loader",
     "commit": "a370a664aa3b808c87e4e4f570b27504d20df723",
-    "treeRoot": "/"
+    "root": "/"
   },
-  "port": {
+  "source": {
     "repository": "MantovaniDevTrue/Bunnyloader-Csharp",
     "branch": "entrega/potato-bunny-original-com-csharp-20261018",
-    "observedHeadBeforeManifestUpdate": "4fbe41ca6336659868ae1df20dc63f31f09d571d",
-    "observedTreeBeforeManifestUpdate": "602d185578ec26ce8af113e8f5c54b8909fc2553",
+    "observedSourceCommitBeforeManifestUpdate": "2b4328794d2835b2a455572d9a01f60cec2a7281",
+    "observedSourceGitTreeBeforeManifestUpdate": "7c94f9cb569e2762eb66e336e77ab98d1196d25a",
     "root": "/",
-    "productionBuildCommit": "018b477a5a90115f399aed57ff84811c020d7a3f"
+    "validatedAndroidCiProductionCommit": "018b477a5a90115f399aed57ff84811c020d7a3f",
+    "validatedMonoExportCiRun": 39184151091
   },
   "summary": {
     "upstreamFiles": 2024,
-    "deliveryTrackedFilesExcludingThisMap": 2765,
+    "deliveryTrackedFilesExcludingManifest": 2773,
     "unchanged": 1948,
     "modified": 76,
-    "deliveryAdded": 741,
+    "portAdded": 749,
     "upstreamMissing": 0
   },
-  "missingOriginalFiles": [],
   "modifiedSharedFiles": [
     {
       "path": "README.md",
-      "sourceBlob": "c8df03068315e5fd479988758de28e2e1d257089",
+      "sourceBlob": "8ad26335e2af9de0bb33e9041211ceff6d00aaf9",
       "upstreamBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
     },
     {
@@ -406,18 +406,22 @@
       "upstreamBlob": "013c14e489444f5f19e238a9d3fa3b3f8bea9ed2"
     }
   ],
-  "additionalDeliveryFiles": [
+  "additionalFiles": [
     {
       "path": ".github/workflows/check-potato-handoff.yml",
-      "sourceBlob": "e7edfb6d6234d2dd95a2af90d734e6c656d3acb2"
+      "sourceBlob": "5ace7b9243b6e541b49d2e43376626f659ba2d7d"
+    },
+    {
+      "path": ".github/workflows/export-validated-mono-arm64.yml",
+      "sourceBlob": "1ebff0bb355e1f72977441af4c8a568182de4c3d"
     },
     {
       "path": "IMPORTAR-NO-GITHUB-DO-POTATO.md",
-      "sourceBlob": "f7c3c6d6ee921f34acf4807abe4beaf8ddba89c4"
+      "sourceBlob": "3d67bd6c9a48b66fb3d6a90d1aac435da3245024"
     },
     {
       "path": "POTATO-C-SHARP-HANDOFF.md",
-      "sourceBlob": "aee6b3a65a5785965adba960d8b110901fefc8ae"
+      "sourceBlob": "48850e249533787830e9f4c4322cf7ab7876c634"
     },
     {
       "path": "README-BUNNY-ORIGINAL.md",
@@ -3344,8 +3348,36 @@
       "sourceBlob": "355dd9d094644e7baaa535f68788b174a023c53f"
     },
     {
+      "path": "tools/mono/README.md",
+      "sourceBlob": "2396036388a956f3dd7163ada31e50dd5704a1b5"
+    },
+    {
+      "path": "tools/mono/build_patched_mono_arm64.sh",
+      "sourceBlob": "7fb31c8196aecee94cd7cbe7aee82b73b26bb8f9"
+    },
+    {
+      "path": "tools/mono/install_patched_mono_arm64.sh",
+      "sourceBlob": "d31f99262c33f704b4f7055a3b9ad644584af005"
+    },
+    {
       "path": "tools/mono/patch_mono_android_signals.py",
       "sourceBlob": "28774594ef8f30a11d205152b5e7267af8037dd3"
+    },
+    {
+      "path": "tools/mono/prebuilt/arm64-v8a/DOTNET_RUNTIME_LICENSE.txt",
+      "sourceBlob": "984713a49622a96da110443c15477613bc12656b"
+    },
+    {
+      "path": "tools/mono/prebuilt/arm64-v8a/README.txt",
+      "sourceBlob": "6efedf9c9fed524dd62ba5e30fcafd095028b2ca"
+    },
+    {
+      "path": "tools/mono/prebuilt/arm64-v8a/libmonosgen-2.0.so",
+      "sourceBlob": "c5fa6de4e61711b8e259d91b8d6dd02818b0b8ea"
+    },
+    {
+      "path": "tools/mono/prebuilt/arm64-v8a/libmonosgen-2.0.so.sha256",
+      "sourceBlob": "572ed6268cab299a78d65dc2e04dbb7e60f5efc8"
     },
     {
       "path": "tools/package_native_access_probe.py",
@@ -3371,5 +3403,6 @@
       "path": "tools/tests/prefix_js_reference.mjs",
       "sourceBlob": "4d5d1dd91490708605aedd31bd59fe40d99815b1"
     }
-  ]
+  ],
+  "missingUpstreamFiles": []
 }
