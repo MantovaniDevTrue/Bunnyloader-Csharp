@@ -76,6 +76,7 @@ public sealed class BunnyDustRegistry
     private readonly Dictionary<int, Entry> _types = new();
     private readonly int[] _slotTypes = new int[MaxDustSlots];
     private readonly int[] _slotGenerations = new int[MaxDustSlots];
+    private readonly bool[] _blocked = new bool[MaxDustSlots];
     private readonly string _modId;
 
     public int RegisteredCount => _names.Count;
@@ -141,6 +142,7 @@ public sealed class BunnyDustRegistry
         ReleaseSlot(slot);
         _slotTypes[slot] = state.Type;
         _slotGenerations[slot] = state.Generation;
+        _blocked[slot] = false;
         ActiveCount++;
         if ((entry.Definition.Hooks & BunnyDustHooks.OnSpawn) == 0)
             return true;
@@ -170,7 +172,7 @@ public sealed class BunnyDustRegistry
         useVanilla = true;
         if (!Matches(ref state, out Entry? entry))
             return false;
-        if ((entry.Definition.Hooks & BunnyDustHooks.Update) == 0)
+        if (_blocked[state.Slot] || (entry.Definition.Hooks & BunnyDustHooks.Update) == 0)
             return true;
         BunnyDustState original = state;
         try
@@ -195,7 +197,7 @@ public sealed class BunnyDustRegistry
         keepHorizontalSpeed = false;
         if (!Matches(ref state, out Entry? entry))
             return false;
-        if ((entry.Definition.Hooks & BunnyDustHooks.MidUpdate) == 0)
+        if (_blocked[state.Slot] || (entry.Definition.Hooks & BunnyDustHooks.MidUpdate) == 0)
             return true;
         BunnyDustState original = state;
         try
@@ -217,7 +219,7 @@ public sealed class BunnyDustRegistry
     public bool GetAlpha(ref BunnyDustState state, ref uint color)
     {
         if (!Matches(ref state, out Entry? entry) ||
-            (entry.Definition.Hooks & BunnyDustHooks.GetAlpha) == 0)
+            _blocked[state.Slot] || (entry.Definition.Hooks & BunnyDustHooks.GetAlpha) == 0)
             return false;
         BunnyDustState original = state;
         uint oldColor = color;
@@ -228,6 +230,7 @@ public sealed class BunnyDustRegistry
                 throw new InvalidOperationException("Estado invalido");
             if (!changed)
                 color = oldColor;
+            if (state.Active == 0) ReleaseSlot(state.Slot);
             return changed;
         }
         catch (Exception ex)
@@ -244,7 +247,7 @@ public sealed class BunnyDustRegistry
         draw = true;
         if (!Matches(ref state, out Entry? entry))
             return false;
-        if ((entry.Definition.Hooks & BunnyDustHooks.PreDraw) == 0)
+        if (_blocked[state.Slot] || (entry.Definition.Hooks & BunnyDustHooks.PreDraw) == 0)
             return true;
         BunnyDustState original = state;
         try
@@ -253,6 +256,7 @@ public sealed class BunnyDustRegistry
             if (!ValidateChanged(ref state, ref original))
                 throw new InvalidOperationException("Estado invalido");
             draw = visible;
+            if (state.Active == 0) ReleaseSlot(state.Slot);
             return true;
         }
         catch (Exception ex)
@@ -274,6 +278,7 @@ public sealed class BunnyDustRegistry
     {
         Array.Fill(_slotTypes, -1);
         Array.Clear(_slotGenerations);
+        Array.Clear(_blocked);
         ActiveCount = 0;
     }
 
@@ -307,11 +312,13 @@ public sealed class BunnyDustRegistry
             return;
         _slotTypes[slot] = -1;
         _slotGenerations[slot] = 0;
+        _blocked[slot] = false;
         ActiveCount--;
     }
 
     private void Fail(string stage, int slot, string cause)
     {
+        _blocked[slot] = true;
         FaultCount++;
         LastError = "[CSharp][Dust] Mod=" + _modId + " Stage=" + stage +
             " Slot=" + slot + " Reason=" + cause;
