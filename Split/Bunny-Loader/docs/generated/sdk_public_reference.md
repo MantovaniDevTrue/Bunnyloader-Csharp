@@ -618,6 +618,7 @@ string ActiveCultureName { get; }
 | --- | --- |
 | `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
 | `bool Exists(string path, string callerModId)` | managed_helper |
+| `IReadOnlyList<string> ExportWireRows()` | managed_helper |
 | `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
 | `string Translate(string path, string callerModId)` | managed_helper |
 | `string TryTranslate(string path, string callerModId)` | managed_helper |
