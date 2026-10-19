@@ -11,6 +11,9 @@ struct NativeTileGameplaySpec {
     int shape = 0;
     int failDust = 1;
     int normalDust = 3;
+    int animationFrameHeight = 0;
+    int animationFrames = 1;
+    int animationFrameTicks = 0;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

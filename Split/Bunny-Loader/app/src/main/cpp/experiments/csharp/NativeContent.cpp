@@ -2287,15 +2287,17 @@ void onManagedTilesInstalled(int first, int last) {
     for (const auto& [mod, entry] : records) {
         const bool flags = applyTileFlags(mod, entry.type, entry);
         const bool shape = applyTileShape(entry.type, entry);
-        if (flags && shape && entry.animationFrameHeight > 0)
-            runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
         const bool adjacency = entry.adjacentTile < 0 ||
             (ensureNativeAdjTiles() && addNativeAdjacency(entry.type, entry.adjacentTile));
         const bool gameplay = flags && shape &&
             registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
-                                        entry.shape, entry.failDust, entry.normalDust});
+                                        entry.shape, entry.failDust, entry.normalDust,
+                                        entry.animationFrameHeight, entry.animationFrames,
+                                        entry.animationFrameTicks});
+        if (gameplay && entry.animationFrameHeight > 0)
+            runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
             BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Stage=NativeGameplay Result=Incomplete",
                      mod.c_str(), entry.name.c_str());
@@ -2321,6 +2323,11 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
             entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
             entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
+            entry.animationFrames < 1 || entry.animationFrames > 64 ||
+            entry.animationFrameTicks < 0 || entry.animationFrameTicks > 600 ||
+            (entry.animationFrames > 1 &&
+             (entry.animationFrameHeight == 0 || entry.animationFrameTicks == 0)) ||
+            (entry.animationFrames == 1 && entry.animationFrameTicks != 0) ||
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||

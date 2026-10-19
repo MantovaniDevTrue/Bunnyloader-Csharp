@@ -1,5 +1,7 @@
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeTileAnimationPolicy.h"
+#include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
 #include "content/tiles/ModTiles.h"
@@ -29,6 +31,12 @@ bool g_installed = false;
 bool g_dropInstalled = false;
 bool g_dustInstalled = false;
 bool g_frameInstalled = false;
+bool g_animationInstalled = false;
+using AnimateFn = void (*)(const MethodInfo*);
+AnimateFn g_originalAnimate = nullptr;
+FieldInfo* g_frameArray = nullptr;
+FieldInfo* g_counterArray = nullptr;
+std::map<int, tile_animation::Policy> g_animatedTiles;
 thread_local int g_dustBudget = -1;
 thread_local int g_dustOwner = -1;
 thread_local bool g_frameCleanup = false;
@@ -244,6 +252,59 @@ int resolveDustId(const std::string& name) {
     return value > 0 && value < 2000 ? value : -1;
 }
 
+
+void hkAnimateTiles(const MethodInfo* method) {
+    if (g_originalAnimate) g_originalAnimate(method);
+    if (g_animatedTiles.empty()) return;
+    auto& a = il2cpp::api();
+    Il2CppArray* frames = nullptr;
+    Il2CppArray* counters = nullptr;
+    a.field_static_get_value(g_frameArray, &frames);
+    a.field_static_get_value(g_counterArray, &counters);
+    if (!il2cpp::nativeArrayContract(frames, "Int32", sizeof(int32_t), 65536) ||
+        !il2cpp::nativeArrayContract(counters, "Int32", sizeof(int32_t), 65536)) return;
+    auto* frameValues = static_cast<int32_t*>(arrayData(frames));
+    auto* counterValues = static_cast<int32_t*>(arrayData(counters));
+    for (const auto& [type, policy] : g_animatedTiles) {
+        if (type < 0 || static_cast<uintptr_t>(type) >= frames->length ||
+            static_cast<uintptr_t>(type) >= counters->length) continue;
+        tile_animation::advance(frameValues[type], counterValues[type], policy);
+    }
+}
+
+bool setupNativeTileAnimation() {
+    if (g_animationInstalled) return true;
+    auto& a = il2cpp::api();
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    std::string error;
+    FieldInfo *frames = nullptr, *counters = nullptr;
+    if (!il2cpp::nativeFieldContract(main, "tileFrame", "System.Int32[]",
+                                     true, sizeof(void*), &frames, nullptr, &error) ||
+        !il2cpp::nativeFieldContract(main, "tileFrameCounter", "System.Int32[]",
+                                     true, sizeof(void*), &counters, nullptr, &error)) {
+        BL_ERROR("[CSharp][TileAnimation] Stage=Bind Reason=%s", error.c_str());
+        return false;
+    }
+    Il2CppArray *frameArray = nullptr, *counterArray = nullptr;
+    a.field_static_get_value(frames, &frameArray);
+    a.field_static_get_value(counters, &counterArray);
+    if (!il2cpp::nativeArrayContract(frameArray, "Int32", sizeof(int32_t), 65536) ||
+        !il2cpp::nativeArrayContract(counterArray, "Int32", sizeof(int32_t), 65536)) {
+        BL_ERROR("[CSharp][TileAnimation] Stage=Bind Reason=NativeArrayContractMismatch");
+        return false;
+    }
+    const MethodInfo* animate = main ? a.class_get_method_from_name(main, "AnimateTiles", 0) : nullptr;
+    if (!animate || !il2cpp::methodPointer(animate) ||
+        !hook::install(animate, hkAnimateTiles, &g_originalAnimate)) {
+        BL_ERROR("[CSharp][TileAnimation] Stage=Bind Reason=AnimateTilesHookUnavailable");
+        return false;
+    }
+    g_frameArray = frames;
+    g_counterArray = counters;
+    g_animationInstalled = true;
+    return true;
+}
+
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -290,13 +351,18 @@ bool setupHooks() {
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.shape < 0 || spec.shape > 1 ||
         spec.failDust < 0 || spec.failDust > 20 ||
-        spec.normalDust < 0 || spec.normalDust > 20) return false;
+        spec.normalDust < 0 || spec.normalDust > 20 ||
+        !tile_animation::valid(spec.animationFrameHeight,
+                               {spec.animationFrames, spec.animationFrameTicks})) return false;
     TileBehavior behavior{};
     behavior.spec = spec;
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
+    if (spec.animationFrames > 1 && !setupNativeTileAnimation()) return false;
     g_tiles[spec.type] = behavior;
+    if (spec.animationFrames > 1)
+        g_animatedTiles[spec.type] = {spec.animationFrames, spec.animationFrameTicks};
     BL_DEBUG("[CSharp][Tile] %s/%s type=%d item=%d dust=%d shape=%d",
              spec.mod.c_str(), spec.name.c_str(), spec.type,
              behavior.itemType, behavior.dustType, spec.shape);
