@@ -417,6 +417,44 @@ int main() {
     assert(weapon.damage == 12 && weapon.value == INT32_MAX - 100);
     nativePrefixValue = 100;
 
+    mighty.applyDamageBonus = 3;
+    mighty.applyValueBonus = 40;
+    mighty.requireEffectiveStats = false;
+    mighty.extraTooltip = "Bonus adicional do prefixo";
+    descriptors = {guarded, mighty, custom};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    Item extra{};
+    extra.type = 6199;
+    extra.damage = 12;
+    extra.value = 100;
+    effectView = std::make_shared<const std::map<int, ManagedItemPrefixApply>>(
+        std::map<int, ManagedItemPrefixApply>{{6199, {4, 125}}});
+    nativePrefixCumulative = true;
+    assert(hookItemPrefixChance(&extra.object, 99, &chanceTier, nullptr));
+    assert(extra.damage == 19 && extra.value == 265);
+    for (int i = 0; i < 4; ++i) {
+        assert(hookItemPrefixChance(&extra.object, 99, &chanceTier, nullptr));
+        assert(extra.damage == 19 && extra.value == 265);
+    }
+    effectView = std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
+    Item onlyPrefix{};
+    onlyPrefix.type = 6199;
+    onlyPrefix.damage = 12;
+    onlyPrefix.value = 100;
+    assert(hookItemPrefixChance(&onlyPrefix.object, 99, &chanceTier, nullptr));
+    assert(onlyPrefix.damage == 15 && onlyPrefix.value == 140);
+    assert(hookItemPrefixChance(&onlyPrefix.object, 99, &chanceTier, nullptr));
+    assert(onlyPrefix.damage == 15 && onlyPrefix.value == 140);
+    nativePrefixCumulative = false;
+    Item ineffective{};
+    ineffective.type = 6199;
+    ineffective.damage = 1;
+    ineffective.useAnimation = 0;
+    float d=1, k=1, sp=1, si=1, sh=1, ma=1, val=1;
+    int cr=0, tag=0, penetration=0;
+    assert(hookStats(&ineffective.object, 99, &d, &k, &sp, &si, &sh,
+                     &ma, &cr, &tag, &penetration, &val, nullptr));
+
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
     chances.value=allocate(98,1);
