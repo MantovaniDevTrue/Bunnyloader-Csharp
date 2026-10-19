@@ -11,6 +11,7 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -895,7 +896,8 @@ void run() {
                 ++count;
             }
             if (defaultsApplied && (count != mod.rarities || identities.size() > 32768 ||
-                !queueManagedRarityWarmup(mod.id, assembly, identities))) {
+                !queueManagedRarityWarmup(mod.id, assembly, identities) ||
+                !registerNativeRaritySampling(mod.id, assembly))) {
                 error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
                     " Stage=Warmup Reason=RarityIdentityQueueRejected";
                 defaultsApplied = false;
@@ -1250,6 +1252,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    pumpNativeRarityGameplay();
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
