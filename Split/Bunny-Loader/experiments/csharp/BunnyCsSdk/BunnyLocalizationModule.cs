@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace BunnyLoader.Source;
 
@@ -26,8 +27,37 @@ public static class BunnyLocalizationRuntime
 
     [ThreadStatic]
     private static string? activeCulture;
+    [ThreadStatic]
+    private static string? activeModId;
+    [ThreadStatic]
+    private static BunnyLocalizationCatalog? activeRegistrations;
 
     public static string ActiveCultureName => activeCulture ?? "";
+
+    public static void Register(string key, string culture, string value)
+    {
+        if (activeRegistrations == null || activeModId == null)
+            throw new InvalidOperationException("Localization registration requires OnLocalizationsLoaded");
+        if (key == null || !key.StartsWith("Mods." + activeModId + ".", StringComparison.Ordinal))
+            throw new ArgumentException("Only the active mod may register localization keys", nameof(key));
+        activeRegistrations.Register(key, culture, value);
+        if (activeRegistrations.ExportWireRows().Count > 256)
+            throw new InvalidOperationException("Dynamic localization row limit exceeded");
+    }
+
+    public static void Register(string key, IReadOnlyDictionary<string, string> cultures)
+    {
+        if (activeRegistrations == null || activeModId == null)
+            throw new InvalidOperationException("Localization registration requires OnLocalizationsLoaded");
+        if (key == null || !key.StartsWith("Mods." + activeModId + ".", StringComparison.Ordinal))
+            throw new ArgumentException("Only the active mod may register localization keys", nameof(key));
+        if (cultures == null || cultures.Count > 32)
+            throw new ArgumentOutOfRangeException(nameof(cultures));
+        var next = activeRegistrations.ExportWireRows().Count;
+        if (next + cultures.Count > 256)
+            throw new InvalidOperationException("Dynamic localization row limit exceeded");
+        activeRegistrations.Register(key, cultures);
+    }
 
     public static string Dispatch(string modId, string assemblyPath, string culture)
     {
@@ -60,8 +90,13 @@ public static class BunnyLocalizationRuntime
                     Mods[modId] = state;
                 }
 
-                string? previous = activeCulture;
+                string? previousCulture = activeCulture;
+                string? previousMod = activeModId;
+                BunnyLocalizationCatalog? previousCatalog = activeRegistrations;
+                var registrations = new BunnyLocalizationCatalog(culture);
                 activeCulture = culture;
+                activeModId = modId;
+                activeRegistrations = registrations;
                 int faults = 0;
                 try
                 {
@@ -70,12 +105,23 @@ public static class BunnyLocalizationRuntime
                         try { module.OnLocalizationsLoaded(); }
                         catch (Exception) { faults++; }
                     }
+                    if (faults != 0) return "ERROR|CallbackFaults=" + faults;
+                    IReadOnlyList<string> rows = registrations.ExportWireRows();
+                    if (rows.Count > 256) return "ERROR|DynamicRowsExceeded";
+                    var wire = new StringBuilder("OK|" + state.Modules.Length + "\nBUNNY_DYNAMIC_LOCALES_V1");
+                    foreach (string row in rows)
+                    {
+                        if (wire.Length + 1 + row.Length > 262144) return "ERROR|DynamicWireExceeded";
+                        wire.Append('\n').Append(row);
+                    }
+                    return wire.ToString();
                 }
                 finally
                 {
-                    activeCulture = previous;
+                    activeRegistrations = previousCatalog;
+                    activeModId = previousMod;
+                    activeCulture = previousCulture;
                 }
-                return faults == 0 ? "OK|" + state.Modules.Length : "ERROR|CallbackFaults=" + faults;
             }
         }
         catch (Exception exception)
