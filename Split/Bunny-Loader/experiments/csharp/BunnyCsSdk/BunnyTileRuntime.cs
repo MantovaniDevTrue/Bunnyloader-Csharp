@@ -57,7 +57,9 @@ public static class BunnyTileRuntime {
                 mod.Masks.Add(owner, tile.TileCallbackMask);
             }
             if (kind == 2) return "READY";
-            if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
+            if (index == 13) {
+                if ((mod.Masks[owner] & (7 << 13)) == 0) return "DEFAULT";
+            } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 11 : 2;
             if (fields.Length != expected) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
