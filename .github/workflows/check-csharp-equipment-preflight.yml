@@ -6,7 +6,9 @@ on:
       - feat/csharp-equipment-preflight-*
     paths:
       - Split/Bunny-Loader/tools/equipment_preflight.py
+      - Split/Bunny-Loader/tools/equipment_contract_surface.py
       - Split/Bunny-Loader/tests/equipment_preflight_test.py
+      - Split/Bunny-Loader/tests/equipment_contract_surface_test.py
       - docs/equipment-loader-preflight.md
       - .github/workflows/check-csharp-equipment-preflight.yml
   pull_request:
@@ -36,4 +38,6 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: |
           python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
+          python3 -m unittest discover -s tests -p equipment_contract_surface_test.py -v
           python3 tools/equipment_preflight.py --json --output /tmp/bunny-equipment-preflight.json
+          python3 tools/equipment_contract_surface.py --json --output /tmp/bunny-equipment-surface.json
