@@ -154,7 +154,8 @@ public sealed partial class BunnyLocalizationCatalog
             }
             else
             {
-                var first = checkedCultures.Keys.First();
+                string first = "";
+                foreach (string name in checkedCultures.Keys) { first = name; break; }
                 next[fullKey] = new TextEntry(checkedCultures, first);
             }
             if (next.Count > MaxEntries)
