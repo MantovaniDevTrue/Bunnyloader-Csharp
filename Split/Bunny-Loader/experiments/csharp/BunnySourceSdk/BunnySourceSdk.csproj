@@ -18,6 +18,8 @@
     <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeSource.cs" Link="BunnyRecipeSource.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyNativeDefaults.cs" Link="BunnyNativeDefaults.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyHoldout.cs" Link="BunnyHoldout.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />

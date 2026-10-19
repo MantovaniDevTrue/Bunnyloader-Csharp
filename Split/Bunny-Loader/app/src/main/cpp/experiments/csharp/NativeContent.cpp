@@ -7,6 +7,7 @@
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeBootEffects.h"
@@ -355,6 +356,7 @@ bool enableManagedPrefixEligibility(int type) {
 }
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
+    NativeDefaultsAfter nativeDefaults{self,false,type};
     if (self && isBasicItem(type)) {
         bl::runtime::prepareModItem(self,type);
         if (!applyBasicItemToObject(self,type)) {
@@ -521,6 +523,7 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
                 static_cast<uint8_t*>(arrayData(flags))[type]=1;
         }
     }
+    applyNativeDefaults(self,true,type);
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -2426,7 +2429,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         }
         bl::runtime::ModItemDef def{};
         def.mod=ctx.modId;def.name=spec->name;def.texture=path;
-        def.names.push_back({"",display});
+        def.names=ctx.sourceNames;def.names.push_back({"",display});
         const int type=bl::runtime::registerModItem(std::move(def));
         std::string error;
         if (type < 0 || !registerBasicItemPlaceholder(type,spec->name,&error,ctx.modDir,ctx.sourceFile)) {
@@ -2446,7 +2449,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         const int type = bl::runtime::registerModProjectile(std::move(def));
         if (type >= 0) {
             g_projectiles[type] = {spec->width, spec->height, spec->aiStyle,
@@ -2470,7 +2473,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         def.frames = spec->timeLeft;
         def.animationType = spec->penetrate;
         const int type = bl::runtime::registerModNpc(std::move(def));
@@ -2489,7 +2492,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         def.managedFlags = true;
         def.debuff = (spec->flags & kNativeBuffDebuff) != 0;
         def.noSave = (spec->flags & kNativeBuffNoSave) != 0;
@@ -2511,7 +2514,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         const int type = bl::runtime::registerModItem(std::move(def));
         if (type >= 0) {
             g_accessories[type] = {spec->damage, 0, 0, false, ""};
@@ -2530,7 +2533,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         const int type = bl::runtime::registerModItem(std::move(def));
         if (type >= 0) {
             g_potions[type] = {spec->shootType, spec->timeLeft};
@@ -2548,7 +2551,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         def.mod = ctx.modId;
         def.name = spec->name;
         def.texture = path;
-        def.names.push_back({"", display});
+        def.names=ctx.sourceNames;def.names.push_back({"", display});
         const int type = bl::runtime::registerModItem(std::move(def));
         if (type >= 0) {
             g_weapons[type] = {spec->damage, spec->useTime, spec->shootSpeed, spec->shootType};

@@ -1,3 +1,4 @@
+#include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
@@ -689,6 +690,7 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
 }
 
 bool applyBasicItemToObject(Il2CppObject* object,int type) {
+    NativeDefaultsAfter nativeDefaults{object,false,type};
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
@@ -786,7 +788,7 @@ bool acknowledgeBasicItemBehavior(int type,const std::string& error) {
     for(const auto& [id,entry]:definitions)if(!entry.behavior.empty()&&!entry.behaviorInstalled){pending=true;break;}
     behaviorsPending.store(pending,std::memory_order_release);return true;
 }
-bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&it->second.values[BasicDamage]>0;}
+bool basicItemHasDamage(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&it->second.values[BasicDamage]>0&&it->second.values[BasicMaxStack]==1;}
 bool isBasicItem(int type) {std::lock_guard lock(mutex);return definitions.contains(type);}
 bool basicItemPolicyReady(int type) {
     std::lock_guard lock(mutex);const auto it=definitions.find(type);

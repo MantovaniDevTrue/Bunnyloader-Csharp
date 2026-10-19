@@ -11,6 +11,7 @@ struct ParsedSourceType {
     std::string base;
     std::string namespaceName;
     std::map<std::string, std::string> properties;
+    std::vector<std::pair<std::string,std::string>> localizedNames{};
 };
 
 bool parseCSharpSource(const std::string& source,

@@ -16,5 +16,12 @@ int main(int argc,char** argv) {
  })";
  assert(parseCSharpSource(source,&types,&error));assert(fields(types[0],&spec,&target,&display,&texture,&error));
  assert(types[0].properties.size()==2&&display=="Independent");
+ types.clear();source=R"([BunnyName("en-US","Sword")][BunnyName("pt-BR","Espada")]
+ public sealed class LocalizedSword:BunnyItem {public override void SetDefaults(){DisplayName="Sword";Texture="sword.png";}})";
+ assert(parseCSharpSource(source,&types,&error)&&types[0].localizedNames.size()==2);
+ assert(types[0].localizedNames[1].first=="pt-BR"&&types[0].localizedNames[1].second=="Espada");
+ types.clear();source=R"([BunnyName("pt-BR","Espada")][BunnyName("pt-BR","Outra")]
+ public sealed class Duplicate:BunnyItem{public override void SetDefaults(){}})";
+ assert(!parseCSharpSource(source,&types,&error)&&error.find("cultura unica")!=std::string::npos);
  std::cout<<"SUMMON_PRODUCTION_SOURCE_PARSER_AND_EARLY_REGISTRATION_NAMES_ASSETS_AND_COMPUTED_DEFAULTS_PASS\n";
 }

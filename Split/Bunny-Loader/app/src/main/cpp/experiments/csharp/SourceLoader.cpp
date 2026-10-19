@@ -2,6 +2,9 @@
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeDefaults.h"
+#include "experiments/csharp/NativeHoldout.h"
+#include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/buffs/ModBuffs.h"
@@ -427,6 +430,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             spec.displayName = display.c_str();
             const std::string sourceKey = sourceIdentityForBase(def.base, def.name);
             ctx.sourceFile="content/"+sourcePaths[sourceKey];
+            ctx.sourceNames=def.localizedNames;
             const int type = registerNativeContent(&ctx, &spec);
             if (type < 0) {
                 status->error="[CSharp][ERROR][Register] Mod="+mod.id+" Class="+def.name+
@@ -635,6 +639,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
+    std::vector<NativeDefaultsRequest> nativeDefaults;
+    std::vector<holdout::Entry> holdouts;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
     std::vector<ManagedAccessoryEntry> accessories;
@@ -671,6 +677,25 @@ bool applyManagedSourceDefaults(
             owner.type=type->second;owner.source=source->second;
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
+            continue;
+        }
+        if(fields.size()==4&&fields[0]=="HOLDOUT") {
+            const auto key=sourceIdentityForWire("ITEM",fields[1]);auto it=mod->registeredKindTypes.find(key);float x=0,y=0;
+            if(it==mod->registeredKindTypes.end()||!real(fields[2],&x)||!real(fields[3],&y)) {
+                *error="[CSharp][ERROR][Holdout] Mod="+modId+" Class="+fields[1]+" Stage=Decode Reason=InvalidItemOrOffsets Result=Rejected";return false;
+            }
+            const auto source=mod->sourcePaths.find(key);
+            holdouts.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,it->second,x,y});continue;
+        }
+        if(fields.size()==3&&(fields[0]=="NATIVE_ITEM"||fields[0]=="NATIVE_PROJECTILE")) {
+            const bool projectile=fields[0]=="NATIVE_PROJECTILE";
+            const auto key=sourceIdentityForWire(projectile?"PROJECTILE":"ITEM",fields[1]);
+            const auto registered=mod->registeredKindTypes.find(key);
+            if(registered==mod->registeredKindTypes.end()) {
+                *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+fields[1]+" Stage=Decode Result=Rejected Reason=ContentCategoryNotRegistered";return false;
+            }
+            const auto source=mod->sourcePaths.find(key);
+            nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
         const std::string identity = fields.size() >= 2
@@ -1122,6 +1147,17 @@ bool applyManagedSourceDefaults(
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
     if(!enqueueOwnedSourceRecipes(modId,recipeOwners,error))return false;
+    for(const auto& request:nativeDefaults)if(!seen.contains(sourceIdentityForWire(request.projectile?"PROJECTILE":"ITEM",request.name))) {
+        *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+request.name+" Stage=Publish Result=Rejected Reason=PrimaryDefaultsMissing";return false;
+    }
+    if(!holdout::publish(holdouts,error))return false;
+    if(!nativeDefaults.empty()) {
+        if(!publishNativeDefaults(nativeDefaults,error,[](const std::string& key){
+            const auto slash=key.find('/');return slash==std::string::npos?-1:runtime::modProjectileTypeByName(key.substr(0,slash),key.substr(slash+1));
+        }))return false;
+        requestBasicItemInstanceRefresh("NativeDefaultsPublished");
+        BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
+    }
     mod->runtimeApplied = true;
     return true;
 }

@@ -1,3 +1,5 @@
+> .96: roteiro de armas, munição, offsets e idiomas em [NATIVE_DEFAULTS_V96.md](NATIVE_DEFAULTS_V96.md). Manter também o roteiro do minion da .95.2. Novos ports ainda aguardam validação Android.
+
 # Continuidade .95 — teste o sistema de summons do ExampleMod
 
 Leia [SUMMON_LOADER_V95.md](SUMMON_LOADER_V95.md). Cancelar o buff deve matar todos os minions daquele dono; reinvocar, seguir, combater e retornar são os testes prioritários. Esta entrega ainda aguarda teste Android.

@@ -8,6 +8,14 @@ var results=new List<object>();int failures=0;
 void Check(string id,Action f) {try {f();results.Add(new{id,status="pass",error=""});}catch(Exception e){failures++;results.Add(new{id,status="fail",error=e.ToString()});}}
 void Equal<T>(T expected,T actual) {if(!EqualityComparer<T>.Default.Equals(expected,actual))throw new Exception($"expected={expected} actual={actual}");}
 void Reject(Action f) {try{f();}catch(ArgumentException){return;}catch(InvalidOperationException){return;}throw new Exception("invalid recipe accepted");}
+Check("native-defaults.public-builder-values-and-invalid-input",()=>{
+ var defaults=new BunnyNativeDefaults().SetInt("mana",10).SetBool("channel",true).SetFloat("shootSpeed",4.5f)
+   .SetProjectile("shoot","another-mod/Projectile").SetId("ammo","AmmoID","Bullet");
+ Equal(true,defaults.Definition.Contains("mana:i:10")&&defaults.Definition.Contains("channel:b:1"));
+ Reject(()=>defaults.SetFloat("light",float.NaN));Reject(()=>defaults.SetInt("bad;field",1));
+ Reject(()=>defaults.SetId("ammo","ArbitraryClass","Pointer"));Reject(()=>defaults.SetProjectile("shoot","bad/key/again"));
+ Equal("mana:i:20",new BunnyNativeDefaults().SetInt("mana",10).SetInt("mana",20).Definition);
+});
 Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
@@ -215,7 +223,7 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
@@ -224,6 +232,10 @@ try {
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  var bullet=minionRows.Single(row=>row.StartsWith("NATIVE_ITEM\tExampleBullet\t",StringComparison.Ordinal));
+  Equal(true,bullet.Contains("ammo:d:AmmoID:Bullet")&&bullet.Contains("shoot:p:ExampleBulletProjectile")&&bullet.Contains("shootSpeed:f:4.5"));
+  var projectile=minionRows.Single(row=>row.StartsWith("NATIVE_PROJECTILE\tExampleBulletProjectile\t",StringComparison.Ordinal));
+  Equal(true,projectile.Contains("localNPCHitCooldown:i:-1")&&projectile.Contains("extraUpdates:i:1")&&projectile.Contains("light:f:0.5"));
   foreach(var invalid in new[]{0,121}) {
    Reject(()=>new BunnyMinionMovement(attackSpeed:invalid));
   }

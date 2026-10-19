@@ -1,3 +1,5 @@
+> Continuidade .96: [defaults nativos, holdouts e quatro ports](csharp-native-defaults-v96.md). Anexo1.8.0/178 scripts integralmente contabilizado dentro dos206 canônicos. ExampleMod0.1.55 com76 fontes. Novos exemplos aguardam Android; não conclui o lote de armas/projéteis.
+
 > Correção atual .95.2: relatório Android da .95.1 comprovou ausência de Projectile.identity e carga parcial do ExampleMod. Contrato corrigido com ciclo nativo SetDefaults e testes sem esse campo; validar novamente o conjunto no Android. Ver [relatório](csharp-summon-v95.md). Não promove exemplos a completos.
 
 ## Continuidade .95 — summons por mecanismos compartilhados

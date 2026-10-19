@@ -25,11 +25,13 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
 UInt32 VisualColor { get; set; }
 float VisualOpacity { get; set; }
 float VisualScale { get; set; }
 int DefenseBonus { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
 string VisualTexture { get; set; }
@@ -135,9 +137,11 @@ string Texture { get; set; }
 abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
+BunnyNativeDefaults NativeDefaults { get; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
 
@@ -275,6 +279,16 @@ Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
+
+## BunnyLoader.Source.BunnyHoldout
+
+class; base: `System.Object`.
+
+```csharp
+BunnyHoldout(float x, float y)
+float X { get; }
+float Y { get; }
+```
 
 ## BunnyLoader.Source.BunnyHookHandle
 
@@ -514,7 +528,9 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
+BunnyHoldout Holdout { get; set; }
 BunnyItemBehavior Behavior { get; }
+BunnyNativeDefaults NativeDefaults { get; }
 Dictionary<string, string> TooltipTranslations { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
@@ -542,6 +558,7 @@ string BehaviorDefinition { get; }
 string DisplayName { get; set; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
+string NativeDefaultsDefinition { get; }
 string PlacementDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -654,6 +671,16 @@ string Texture { get; set; }
 | `void OnSpawn(ref BunnyNpcAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyNameAttribute
+
+class; base: `System.Attribute`.
+
+```csharp
+BunnyNameAttribute(string culture, string text)
+string Culture { get; }
+string Text { get; }
+```
+
 ## BunnyLoader.Source.BunnyNativeBatch
 
 class; base: `System.Object`.
@@ -666,6 +693,23 @@ int Count { get; }
 | --- | --- |
 | `BunnyValue ReadAndInvoke(BunnyNativeMember method, BunnyValue[] destination, BunnyNativeObject target, BunnyValue arg0, BunnyValue arg1, BunnyValue arg2, BunnyValue arg3)` | experimental_game_thread_access |
 | `void Read(BunnyValue[] destination, BunnyNativeObject target)` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeDefaults
+
+class; base: `System.Object`.
+
+```csharp
+BunnyNativeDefaults()
+string Definition { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyNativeDefaults SetBool(string field, bool value)` | managed_helper |
+| `BunnyNativeDefaults SetFloat(string field, float value)` | managed_helper |
+| `BunnyNativeDefaults SetId(string field, string idClass, string name)` | managed_helper |
+| `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
+| `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyNativeMember
 
@@ -813,6 +857,7 @@ abstract class; base: `System.Object`.
 
 ```csharp
 BunnyMinionMovement MinionMovement { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }
@@ -829,6 +874,7 @@ int Penetrate { get; set; }
 int TimeLeft { get; set; }
 int Width { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
 
@@ -1188,6 +1234,8 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
+BunnyHoldout Holdout { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
@@ -1195,6 +1243,7 @@ int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
 string MinionBuff { get; set; }
+string NativeDefaultsDefinition { get; }
 string Shoot { get; set; }
 string Texture { get; set; }
 ```

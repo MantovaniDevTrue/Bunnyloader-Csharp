@@ -953,6 +953,20 @@ public static class CompiledAssemblyProbe
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
         }
+        foreach(var item in basicItems.Concat(weapons))
+        {
+            object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);
+            if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
+                Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));
+        }
+        // A single public typed bridge serves all item families and projectiles.
+        foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)
+            .Select(value=>(Value:value,Kind:"NATIVE_ITEM"))
+            .Concat(projectiles.Select(value=>(Value:value,Kind:"NATIVE_PROJECTILE"))))
+        {
+            string native=Value<string>(definition.Value,"NativeDefaultsDefinition");
+            if(native.Length!=0)lines.Add(string.Join("\t",definition.Kind,definition.Value.GetType().Name,native));
+        }
         File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
         File.Move(temporary, destination, true);
         File.AppendAllText(diagnosticsPath, "\nDEFAULTS_MULTI_OK projectiles=" +

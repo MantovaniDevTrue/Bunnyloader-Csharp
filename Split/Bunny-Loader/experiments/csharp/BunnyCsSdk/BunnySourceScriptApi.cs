@@ -37,6 +37,8 @@ public struct BunnyProjectileAiState
 
 public abstract class BunnyProjectile
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Width { get; set; } = 8;
@@ -72,6 +74,9 @@ public abstract class BunnyProjectile
 
 public abstract class BunnyWeapon : BunnyRecipeSource
 {
+    public BunnyHoldout? Holdout { get; set; }
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Damage { get; set; } = 20;
@@ -108,6 +113,8 @@ public abstract class BunnyBuff
 
 public abstract class BunnyBuffPotion : BunnyRecipeSource
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Buff { get; set; } = "";
@@ -125,6 +132,8 @@ public enum BunnyAccessoryVisualMode
 
 public abstract class BunnyAccessory : BunnyRecipeSource
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;

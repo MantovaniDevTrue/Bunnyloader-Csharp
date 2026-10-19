@@ -57,6 +57,7 @@ struct NativeRegisterContext {
     int firstBuffType = -1;
     std::string lastError = "";
     std::string sourceFile = "";
+    std::vector<std::pair<std::string,std::string>> sourceNames{};
 };
 
 using NativeRegisterCallback = int (*)(void*, const NativeContentSpec*);

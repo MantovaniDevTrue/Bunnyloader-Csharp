@@ -111,9 +111,21 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
 
 bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
                         std::string* base, std::map<std::string, std::string>* properties,
-                        std::string* error) {
+                        std::string* error,std::vector<std::pair<std::string,std::string>>* localizedNames) {
     const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
     for (size_t i = first; i < last; ++i) {
+        if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
+            if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
+                *error="BunnyName exige cultura e texto literais";return false;
+            }
+            const auto& culture=tokens[i+2].value;const auto& text=tokens[i+4].value;
+            bool valid=culture.size()>=2&&culture.size()<=20&&!text.empty()&&text.size()<=128&&localizedNames->size()<8;
+            for(unsigned char c:culture)if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='-'))valid=false;
+            for(unsigned char c:text)if(c<32||c==127)valid=false;
+            for(const auto& name:*localizedNames)if(name.first==culture)valid=false;
+            if(!valid){*error="BunnyName exige cultura unica, nome UTF-8 ate 128 bytes e no maximo 8 idiomas";return false;}
+            localizedNames->push_back({culture,text});i+=6;continue;
+        }
         if (tokens[i].literal || (tokens[i].value != "BunnyContent" &&
             tokens[i].value != "BunnyContentAttribute")) continue;
         if (i + 10 >= last || tokens[i + 1].value != "(" ||
@@ -138,6 +150,13 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
 bool statements(const std::vector<Token>& ts, size_t first, size_t last,
                 ParsedSourceType* def, std::string* error) {
     for (size_t i = first; i < last;) {
+        // These optional descriptors are executed by Mono; legacy metadata
+        // extraction must not try to interpret constructor/fluent-call syntax.
+        if(ts[i].value=="NativeDefaults"||ts[i].value=="Holdout") {
+            size_t end=i;int parentheses=0;
+            for(;end<last;++end){if(ts[end].value=="(")++parentheses;if(ts[end].value==")")--parentheses;if(ts[end].value==";"&&parentheses==0)break;}
+            if(end==last){*error="descritor C# sem termino";return false;}i=end+1;continue;
+        }
         if (i + 5 < last && ts[i].value == "base" && ts[i + 1].value == "." &&
             ts[i + 2].value == "SetDefaults" && ts[i + 3].value == "(" &&
             ts[i + 4].value == ")" && ts[i + 5].value == ";") {
@@ -404,8 +423,9 @@ bool parseCSharpSource(const std::string& source,
         }
         std::string declaredBase;
         std::map<std::string, std::string> declaredProperties;
+        std::vector<std::pair<std::string,std::string>> localizedNames;
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
-                                &declaredProperties, error)) return false;
+                                &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
             const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
             if (roots.find("|" + base + "|") != std::string::npos && base != declaredBase) {
@@ -426,6 +446,7 @@ bool parseCSharpSource(const std::string& source,
             }
             if (!parseClass(tokens, brace, end, name, base,
                             qualifiedNamespace, definitions, error, declaredProperties)) return false;
+            definitions->back().localizedNames=std::move(localizedNames);
             ++found;
         }
         i = end;
