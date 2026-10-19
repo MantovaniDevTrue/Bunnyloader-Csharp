@@ -409,6 +409,7 @@ struct ManagedDustBinding {
     bool enabled = true;
 };
 ManagedDustMailbox g_dustMailbox;
+std::atomic<uint64_t> g_dustGameFrame{0};
 std::vector<ManagedDustBinding> g_dustBindings;
 std::deque<int> g_dustBootstrap;
 std::array<std::atomic<int>, 32768> g_dustOwners{};
@@ -1924,7 +1925,6 @@ void* pinnedMonoWorker(void*) {
                 }
                 // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
-                // Dust callbacks run on the existing MonoVM owner, never on the game thread.
                 if (g_dustWorldResetPending) {
                     g_dustWorldResetPending = false;
                     lock.unlock();
@@ -1948,9 +1948,16 @@ void* pinnedMonoWorker(void*) {
                         ManagedDustState updated{};
                         uint32_t callbackFlags = 0;
                         const auto& job = dustJobs[i];
-                        if (executeManagedDustOnWorker(job.binding, &job,
-                                                       &updated, &callbackFlags))
-                            g_dustMailbox.complete(job, updated, callbackFlags);
+                        const uint64_t now = g_dustGameFrame.load(std::memory_order_acquire);
+                        if (now >= job.frame &&
+                            now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames &&
+                            executeManagedDustOnWorker(job.binding, &job,
+                                                       &updated, &callbackFlags)) {
+                            if (!g_dustMailbox.complete(job, updated, callbackFlags))
+                                g_dustMailbox.discard(job);
+                        } else {
+                            g_dustMailbox.discard(job);
+                        }
                     }
                     lock.lock();
                     continue;
@@ -2265,6 +2272,7 @@ bool queueManagedDustCallback(int type, int phase,
     if (!hasManagedDustType(type) || type != state.type) return false;
     const int owner = g_dustOwners[static_cast<size_t>(type)].load(
         std::memory_order_acquire) - 1;
+    g_dustGameFrame.store(frame, std::memory_order_release);
     if (!g_dustMailbox.offer(owner, phase, state, frame)) return false;
     g_pinnedWake.notify_one();
     return true;
@@ -2280,6 +2288,7 @@ bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
 }
 
 void resetManagedDustSourceWorld() {
+    g_dustGameFrame.store(0, std::memory_order_release);
     g_dustMailbox.resetWorld();
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_dustWorldResetPending = true;
