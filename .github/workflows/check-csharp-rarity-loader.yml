@@ -85,6 +85,10 @@ jobs:
             -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
             -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
             app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
+            -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
+            app/src/main/cpp/content/items/ModItemSave.cpp
           python3 tests/run_managed_lifecycle_regressions.py
       - name: Commit compiled public SDK reference
         if: github.event_name == 'push' && success()
