@@ -76,6 +76,27 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("bool itemCanRoll(Il2CppObject* item", gameplay)
         self.assertIn("if (!item || !itemCanRoll(item, p)) return false;", gameplay)
 
+    def test_item_prefix_chance_contract_stays_item_owned_and_natively_gated(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        by_type = {entry["name"]: entry for entry in sdk["types"]}
+        for name in ("BunnyItem", "BunnyWeapon", "BunnyAccessory", "BunnyBuffPotion"):
+            self.assertIn(
+                "Nullable<bool> PrefixChance { get; set; }",
+                by_type["BunnyLoader.Source." + name]["properties"],
+            )
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        source = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn('"PREFIX_CHANCE"', compiler)
+        self.assertIn('fields[0] == "PREFIX_CHANCE"', source)
+        self.assertIn("seenPrefixChances.insert", source)
+        self.assertIn("applyManagedItemPrefixChances(prefixChances)", source)
+        self.assertIn("std::atomic_store_explicit(&g_itemChanceView", bridge)
+        self.assertIn("bool hookItemPrefixChance(", gameplay)
+        self.assertIn("g_restoreRoll.item == item", gameplay)
+        self.assertIn("want == -1 ? -2 : want", gameplay)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
