@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <charconv>
 #include <cstdint>
@@ -47,6 +48,141 @@ unsigned g_tick = 0;
 size_t g_modCursor = 0;
 using PopupColorFn = uint32_t (*)(int32_t, const MethodInfo*);
 PopupColorFn g_originalPopup = nullptr;
+using RarityInitFn = void (*)(const MethodInfo*);
+RarityInitFn g_originalRarityInitialize = nullptr;
+std::atomic<bool> g_tableHookReady{false};
+std::array<bool, NativeRarityPalette::kMaximumCustom> g_tableOwned{};
+
+bool parameterIs(Il2CppClass* cls, const MethodInfo* method, uint32_t index,
+    const char* ns, const char* name) {
+    auto& a = bl::il2cpp::api();
+    if (!method || !a.method_get_param_count || !a.method_get_param ||
+        !a.class_from_il2cpp_type || !a.class_get_namespace || !a.class_get_name ||
+        index >= a.method_get_param_count(method)) return false;
+    auto* type = a.class_from_il2cpp_type(a.method_get_param(method, index));
+    const char* actualNs = type ? a.class_get_namespace(type) : nullptr;
+    const char* actualName = type ? a.class_get_name(type) : nullptr;
+    return type && (!cls || cls == type) && actualNs && actualName &&
+        std::strcmp(actualNs, ns) == 0 && std::strcmp(actualName, name) == 0;
+}
+
+bool isReturn(const MethodInfo* method, const char* ns, const char* name) {
+    auto& a = bl::il2cpp::api();
+    if (!method || !a.method_get_return_type || !a.class_from_il2cpp_type ||
+        !a.class_get_namespace || !a.class_get_name) return false;
+    auto* type = a.class_from_il2cpp_type(a.method_get_return_type(method));
+    return type && !std::strcmp(a.class_get_namespace(type), ns) &&
+        !std::strcmp(a.class_get_name(type), name);
+}
+
+struct RarityTable {
+    FieldInfo* field = nullptr;
+    const MethodInfo* contains = nullptr;
+    const MethodInfo* set = nullptr;
+    Il2CppClass* color = nullptr;
+};
+RarityTable g_table;
+
+bool bindRarityTable(std::string* error) {
+    using namespace bl::il2cpp;
+    auto& a = api();
+    auto* owner = findClass({"Terraria.GameContent.UI", "ItemRarity", {}});
+    FieldInfo* field = owner ? findField(owner, "_rarities") : nullptr;
+    if (!field || !a.field_get_flags || !(a.field_get_flags(field) & 0x10u) ||
+        !a.field_static_get_value || !a.runtime_class_init ||
+        !a.object_get_class || !a.class_get_method_from_name ||
+        !a.method_is_instance || !a.runtime_invoke) {
+        *error = "Reason=RarityTableUnavailable";
+        return false;
+    }
+    a.runtime_class_init(owner);
+    Il2CppObject* table = nullptr;
+    a.field_static_get_value(field, &table);
+    auto* tableClass = table ? a.object_get_class(table) : nullptr;
+    if (!tableClass) {
+        *error = "Reason=RarityTableNotInitialized";
+        return false;
+    }
+    const auto* contains = a.class_get_method_from_name(tableClass, "ContainsKey", 1);
+    const auto* set = a.class_get_method_from_name(tableClass, "set_Item", 2);
+    if (!contains || !set || !a.method_is_instance(contains) || !a.method_is_instance(set) ||
+        !parameterIs(nullptr, contains, 0, "System", "Int32") ||
+        !parameterIs(nullptr, set, 0, "System", "Int32") ||
+        !isReturn(contains, "System", "Boolean") ||
+        !isReturn(set, "System", "Void") ||
+        !a.class_from_il2cpp_type || !a.method_get_param) {
+        *error = "Reason=RarityDictionaryMethodsMismatch";
+        return false;
+    }
+    auto* color = a.class_from_il2cpp_type(a.method_get_param(set, 1));
+    NativeColorLayout validated;
+    if (!validated.bind(color, error)) return false;
+    g_table = {field, contains, set, color};
+    return true;
+}
+
+bool writeRarityTable(int type, uint32_t argb) {
+    auto& a = bl::il2cpp::api();
+    if (type < NativeRarityPalette::kFirstCustom ||
+        type >= NativeRarityPalette::kFirstCustom + NativeRarityPalette::kMaximumCustom ||
+        !g_table.field || !g_table.contains || !g_table.set ||
+        !a.field_static_get_value || !a.object_get_class || !a.runtime_invoke)
+        return false;
+    Il2CppObject* table = nullptr;
+    a.field_static_get_value(g_table.field, &table);
+    if (!table) return false;
+    const int slot = type - NativeRarityPalette::kFirstCustom;
+    int32_t key = type;
+    void* hasArgs[] = {&key};
+    Il2CppObject* exception = nullptr;
+    auto* exists = a.runtime_invoke(g_table.contains, table, hasArgs, &exception);
+    if (exception || !exists) return false;
+    bool present = *(reinterpret_cast<const uint8_t*>(exists) + sizeof(Il2CppObject)) != 0;
+    if (present && !g_tableOwned[static_cast<size_t>(slot)]) return false;
+    if (!present) g_tableOwned[static_cast<size_t>(slot)] = false;
+    uint32_t value = g_colorLayout.fromArgb(argb);
+    void* arguments[] = {&key, &value};
+    exception = nullptr;
+    a.runtime_invoke(g_table.set, table, arguments, &exception);
+    if (exception) return false;
+    g_tableOwned[static_cast<size_t>(slot)] = true;
+    return true;
+}
+
+void initializeRarityTable(const MethodInfo* method) {
+    g_tableOwned.fill(false);
+    if (g_originalRarityInitialize) g_originalRarityInitialize(method);
+    if (!g_tableHookReady.load(std::memory_order_acquire)) return;
+    const auto entries = nativeRarities().snapshot();
+    for (const auto& entry : *entries) {
+        uint32_t color = 0;
+        if (g_palette.read(entry.type, &color))
+            writeRarityTable(entry.type, color);
+    }
+}
+
+bool installRarityTableHook(std::string* error) {
+    using namespace bl::il2cpp;
+    if (g_tableHookReady.load(std::memory_order_acquire)) return true;
+    auto* owner = findClass({"Terraria.GameContent.UI", "ItemRarity", {}});
+    const auto* initialize = owner ? findMethodBySignature(
+        owner, parseSignature("void Initialize()")) : nullptr;
+    auto& a = api();
+    if (!initialize || !a.method_is_instance || a.method_is_instance(initialize) ||
+        !a.method_get_param_count || a.method_get_param_count(initialize) != 0 ||
+        !isReturn(initialize, "System", "Void") || !bindRarityTable(error)) {
+        if (error->empty()) *error = "Reason=RarityInitializeSignatureMismatch";
+        return false;
+    }
+    if (!bl::hook::install(initialize, initializeRarityTable, &g_originalRarityInitialize)) {
+        *error = "Reason=RarityInitializeHookRejected";
+        return false;
+    }
+    g_tableHookReady.store(true, std::memory_order_release);
+    BL_INFO("[CSharp][RarityLoader] Stage=InstallHook API=ItemRarity.Initialize Result=Ready");
+    return true;
+}
+
 
 using PrefixFn = bool (*)(Il2CppObject*, int32_t, bool*, const MethodInfo*);
 using PrefixStatsFn = bool (*)(Il2CppObject*, int32_t, float*, float*, float*,
@@ -327,6 +463,14 @@ void pumpNativeRarityGameplay() {
             0, discoSnapshot(), &response, 1200)) return;
     uint32_t argb = 0;
     if (!decodeRarityColorWire(response, &argb) || !g_palette.publish(sample.type, argb)) return;
+    if (g_tableHookReady.load(std::memory_order_acquire))
+        writeRarityTable(sample.type, argb);
+    if (!g_tableHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+        std::string error;
+        if (installRarityTableHook(&error)) writeRarityTable(sample.type, argb);
+        else BL_WARN("[CSharp][RarityLoader] Stage=InstallTable Result=Pending Detail=%s",
+            error.c_str());
+    }
     if (!g_hookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
         if (!installPopupRarityHook(&error))
