@@ -185,6 +185,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
             value = ts[i + 1].value;
             i += 2;
         }
+        if (key == "FishingCatchRules" && value == "BunnyQuestCatchRules" &&
+            i + 1 < last && ts[i].value == ".") {
+            value = ts[i + 1].value;
+            i += 2;
+        }
         if (key == "VisualMode" && value == "BunnyAccessoryVisualMode" &&
             i + 1 < last && ts[i].value == ".") {
             value = ts[i + 1].value;
