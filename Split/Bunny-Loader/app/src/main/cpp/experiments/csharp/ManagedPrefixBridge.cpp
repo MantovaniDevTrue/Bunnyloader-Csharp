@@ -22,7 +22,7 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
 
 bool valid(const ManagedPrefixEntry& p) {
-    if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 5 ||
+    if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
         p.displayName.size() > 80 ||
         std::any_of(p.displayName.begin(), p.displayName.end(),
                     [](unsigned char ch) { return ch < 32; }) ||
@@ -38,6 +38,12 @@ bool valid(const ManagedPrefixEntry& p) {
     if (p.itemWeights.size() + p.itemNames.size() > 32) return false;
     for (const auto& [itemType, weight] : p.itemWeights)
         if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20) return false;
+    if (p.category == 6) {
+        bool anyAllowed = false;
+        for (const auto& [type, weight] : p.itemWeights) anyAllowed |= weight > 0;
+        for (const auto& [name, weight] : p.itemNames) anyAllowed |= weight > 0;
+        if (!anyAllowed) return false;
+    }
     for (const auto& [name, weight] : p.itemNames) {
         if (name.empty() || name.size() > 64 || weight < 0 || weight > 20 ||
             !((name[0] >= 'A' && name[0] <= 'Z') ||
