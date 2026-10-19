@@ -272,7 +272,9 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
         if (vanilla(key, &native))
             originals.emplace(key, std::move(native));
         else {
-            if (!lastLookupWasAbsent) return false;
+            if (!lastLookupWasAbsent ||
+                (!originallyAbsentGlobalKeys.contains(key) &&
+                 originallyAbsentGlobalKeys.size() >= 16384)) return false;
             originals.emplace(key, std::nullopt);
             originallyAbsentGlobalKeys.insert(key);
         }
