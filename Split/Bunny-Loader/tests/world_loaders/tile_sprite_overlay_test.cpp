@@ -25,7 +25,7 @@ int main() {
     for(std::string_view value:{
         "SPRITES|1|754,3,4,0,36,16,16,0,0,4294967295,0,3",
         "SPRITES|1|754,3,4,0,36,16,16,0,0,4294967295,0,-1",
-        "SPRITES|1|754,3,4,0,36,16,16,0,0,4294967295,0,1,0",
+        "SPRITES|1|754,3,4,0,36,16,16,0,0,4294967295,0,1,2",
         "SPRITES|1|754,3,4,0,36,16,16,0,0,4294967295,,1"
     })assert(!tile_sprite::parse(value,&batch));
     std::cout<<"CSHARP_TILE_OVERLAYS=PASS\n";
