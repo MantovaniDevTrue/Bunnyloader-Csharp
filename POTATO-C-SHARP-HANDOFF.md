@@ -73,6 +73,14 @@ Eu já fiz a integração nesses arquivos nesta cópia; estou listando para faci
 
 Também deixei no repositório os exemplos e as ferramentas de testes que uso. Não considero que todo exemplo do tModLoader foi implementado ou que multiplayer e hot-unload sejam universais: a matriz de cobertura do SDK é parcial.
 
+### Atualização dos exemplos C# e do áudio nativo
+
+Atualizei nesta cópia os fontes do **ExampleMod C#** para a revisão mais recente disponível no desenvolvimento. O pacote de exemplos mantém a estrutura editável, agora com novas armas de curto e longo alcance, munições, projéteis e o áudio personalizado do ExampleGun. O `BunnySoundStyle`, `CustomUseSound`, defaults nativos e holdouts são implementados no SDK e no host C++/Android, não por uma dependência externa de JavaScript.
+
+Mantive os PNGs e o arquivo OGG correspondentes nas pastas do mod e os testes de assets. O carregamento nativo de sons inclui validação de caminho, registro idempotente e controle de instâncias. Novas definições de áudio podem exigir reinício da sessão para preservar referências de itens já registrados.
+
+O port integral do ExampleMod ainda está **em desenvolvimento**. Não estou apresentando os exemplos novos como comprovadamente funcionais em jogo ou declarando que todas as APIs do exemplo de PC já estão disponíveis.
+
 ## 4. Compilação e dependências externas
 
 Os arquivos-fonte desta entrega já foram alterados para o C#. Os binários externos não vêm no GitHub público.
