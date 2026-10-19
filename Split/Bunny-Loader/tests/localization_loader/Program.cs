@@ -505,6 +505,27 @@ Test("managed-dynamic-translations-atomic-and-owned", () =>
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
 });
 
+Test("managed-callback-unload-race-is-serialized", () =>
+{
+    string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    HostLocalizationModule.ShouldFail = false;
+    HostLocalizationModule.DynamicTranslations = true;
+    HostLocalizationModule.RegisterForeign = false;
+    Parallel.For(0, 256, index =>
+    {
+        string culture = index % 2 == 0 ? "en-US" : "pt-BR";
+        string result = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, culture);
+        if (!result.StartsWith("OK|1\nBUNNY_DYNAMIC_LOCALES_V1\n", StringComparison.Ordinal))
+            throw new InvalidOperationException("Localization callback escaped the serialized unload lifecycle");
+        if (index % 3 == 0) BunnyLocalizationRuntime.Unload("examplemod");
+    });
+    HostLocalizationModule.DynamicTranslations = false;
+    Equal(true, BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US")
+        .StartsWith("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", StringComparison.Ordinal));
+    BunnyLocalizationRuntime.Unload("examplemod");
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
