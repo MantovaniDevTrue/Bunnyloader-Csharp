@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <cstring>
 
 namespace bl::csharp {
 
@@ -9,6 +10,15 @@ inline uint32_t tintNativeRarityText(uint32_t argb, uint8_t opacity) {
     const uint32_t blue = (argb & 255u) * opacity / 255u;
     const uint32_t alpha = ((argb >> 24) & 255u) * opacity / 255u;
     return (alpha << 24) | (red << 16) | (green << 8) | blue;
+}
+
+inline bool sameNativeRarityName(const char16_t* source, int sourceSize,
+    const char16_t* target, int targetSize) {
+    if (!source || !target || sourceSize <= 0 || sourceSize > 256 ||
+        targetSize != sourceSize) return false;
+    if (source == target) return true;
+    return std::memcmp(source, target,
+        static_cast<size_t>(sourceSize) * sizeof(char16_t)) == 0;
 }
 
 inline bool shouldTintNativeRarityText(uint32_t color, uint8_t opacity) {
