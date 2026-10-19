@@ -27,14 +27,23 @@ public sealed class BunnyRarityRegistry
     public const int MaxRegisteredRarities = 4096;
 
     private readonly object gate = new();
+    private readonly int firstCustomType;
     private readonly List<BunnyRarityEntry> entries = new();
     private readonly Dictionary<string, int> keys = new(StringComparer.Ordinal);
     private IReadOnlyList<BunnyRarityEntry>? sealedEntries;
     private bool sealedRegistry;
 
+    public BunnyRarityRegistry(int firstCustomType = TerrariaVanillaRarityCount)
+    {
+        if (firstCustomType < TerrariaVanillaRarityCount ||
+            firstCustomType > TerrariaVanillaRarityCount + MaxRegisteredRarities)
+            throw new ArgumentOutOfRangeException(nameof(firstCustomType));
+        this.firstCustomType = firstCustomType;
+    }
+
     public int RarityCount
     {
-        get { lock (gate) return TerrariaVanillaRarityCount + entries.Count; }
+        get { lock (gate) return firstCustomType + entries.Count; }
     }
 
     public int Register(string modId, BunnyRarity rarity)
@@ -60,7 +69,7 @@ public sealed class BunnyRarityRegistry
             if (entries.Count >= MaxRegisteredRarities)
                 throw new InvalidOperationException("Rarity registry capacity exceeded");
 
-            int id = TerrariaVanillaRarityCount + entries.Count;
+            int id = firstCustomType + entries.Count;
             var entry = new BunnyRarityEntry(id, modId, className, rarity);
             keys.Add(key, id);
             entries.Add(entry);
@@ -100,7 +109,7 @@ public sealed class BunnyRarityRegistry
         IReadOnlyList<BunnyRarityEntry>? published = Volatile.Read(ref sealedEntries);
         if (published == null)
             throw new InvalidOperationException("Seal rarities before game callbacks");
-        int index = type - TerrariaVanillaRarityCount;
+        int index = type - firstCustomType;
         if ((uint)index >= (uint)published.Count)
         {
             color = default;
@@ -117,12 +126,12 @@ public sealed class BunnyRarityRegistry
         IReadOnlyList<BunnyRarityEntry>? published = Volatile.Read(ref sealedEntries);
         if (published == null)
             throw new InvalidOperationException("Seal rarities before game callbacks");
-        int index = originalType - TerrariaVanillaRarityCount;
+        int index = originalType - firstCustomType;
         if ((uint)index >= (uint)published.Count) return nativeResult;
         BunnyRarity rarity = published[index].Instance;
         int offset = PrefixOffset(valueMultiplier);
         int result = rarity.GetPrefixedRarity(offset, valueMultiplier);
-        if (result > -11) result = Math.Clamp(result, -1, TerrariaVanillaRarityCount + published.Count - 1);
+        if (result > -11) result = Math.Clamp(result, -1, firstCustomType + published.Count - 1);
         return result;
     }
 
