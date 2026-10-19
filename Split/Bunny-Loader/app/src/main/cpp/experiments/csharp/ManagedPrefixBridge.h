@@ -28,6 +28,14 @@ struct ManagedPrefixEntry {
     int accessoryDefense = 0;
 };
 
+struct ManagedItemPrefixApply {
+    int damageBonus = 0;
+    int valueBonus = 0;
+};
+
+bool applyManagedItemPrefixEffects(const std::vector<std::pair<int, ManagedItemPrefixApply>>& effects);
+std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView();
+
 bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies);
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView();
 
