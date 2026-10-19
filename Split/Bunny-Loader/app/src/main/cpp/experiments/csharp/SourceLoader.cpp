@@ -691,9 +691,14 @@ bool applyManagedSourceDefaults(
                     " Stage=DecodeItemRarity Reason=InvalidFieldCount";
                 return false;
             }
-            const auto item = mod->registeredKindTypes.find(sourceIdentityForWire("ITEM", fields[1]));
+            const auto itemKey = sourceIdentityForWire("ITEM", fields[1]);
+            const auto item = mod->registeredKindTypes.find(itemKey);
+            const auto base = mod->registeredBases.find(itemKey);
             const auto rarity = mod->registeredKindTypes.find(sourceIdentityForWire("RARITY", fields[2]));
-            if (item == mod->registeredKindTypes.end() || !isBasicItem(item->second) ||
+            const bool validFamily = base != mod->registeredBases.end() &&
+                (base->second == "BunnyItem" || base->second == "BunnyWeapon" ||
+                 base->second == "BunnyAccessory" || base->second == "BunnyBuffPotion");
+            if (item == mod->registeredKindTypes.end() || !validFamily ||
                 rarity == mod->registeredKindTypes.end() ||
                 nativeRarities().findType(modId, fields[2]) != rarity->second ||
                 rarity->second < NativeRarityRegistry::kVanillaCount ||
@@ -1285,12 +1290,43 @@ bool applyManagedSourceDefaults(
             item.values[BasicRare] = overrideType->second;
     }
     for (const auto& [name, rarity] : itemRarityOverrides) {
-        (void)rarity;
-        if (std::none_of(basicItems.begin(), basicItems.end(),
-            [&](const BasicItemEntry& item) { return item.name == name; })) {
+        const auto itemKey = sourceIdentityForWire("ITEM", name);
+        const auto item = mod->registeredKindTypes.find(itemKey);
+        const auto base = mod->registeredBases.find(itemKey);
+        if (item == mod->registeredKindTypes.end() ||
+            base == mod->registeredBases.end()) {
             *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
-                " Class=" + name + " Stage=ApplyRarity Reason=MissingBasicItem";
+                " Class=" + name + " Stage=ApplyRarity Reason=MissingItemOwner";
             return false;
+        }
+        auto native = std::find_if(nativeDefaults.begin(), nativeDefaults.end(),
+            [&](const NativeDefaultsRequest& request) {
+                return !request.projectile && request.name == name;
+            });
+        if (base->second == "BunnyItem") {
+            if (std::none_of(basicItems.begin(), basicItems.end(),
+                [&](const BasicItemEntry& basic) { return basic.name == name; })) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Class=" + name + " Stage=ApplyRarity Reason=MissingBasicItem";
+                return false;
+            }
+            if (native == nativeDefaults.end()) continue;
+        } else if (native == nativeDefaults.end()) {
+            const auto source = mod->sourcePaths.find(itemKey);
+            nativeDefaults.push_back({name, modId,
+                source == mod->sourcePaths.end() ? "<unavailable>" : source->second,
+                "rare:i:" + std::to_string(rarity), item->second, false});
+            continue;
+        }
+        if (native->descriptor.starts_with("rare:") ||
+            native->descriptor.find(";rare:") != std::string::npos) {
+            *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                " Class=" + name + " Stage=ApplyRarity Reason=ConflictingNativeRare";
+            return false;
+        }
+        if (base->second != "BunnyItem") {
+            if (!native->descriptor.empty()) native->descriptor += ";";
+            native->descriptor += "rare:i:" + std::to_string(rarity);
         }
     }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
