@@ -128,6 +128,53 @@ public sealed partial class BunnyLocalizationCatalog
         }
     }
 
+    public void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)
+    {
+        ValidateKey(fullKey, false);
+        if (cultures == null) throw new ArgumentNullException(nameof(cultures));
+        if (cultures.Count == 0 || cultures.Count > 32)
+            throw new ArgumentOutOfRangeException(nameof(cultures));
+        var checkedCultures = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var culture in cultures)
+        {
+            ValidateCulture(culture.Key);
+            ValidateText(culture.Value);
+            if (!checkedCultures.TryAdd(culture.Key, culture.Value))
+                throw new ArgumentException("Duplicate localization culture", nameof(cultures));
+        }
+        lock (gate)
+        {
+            var snapshot = current;
+            var next = new Dictionary<string, TextEntry>(snapshot.Entries, StringComparer.Ordinal);
+            if (next.TryGetValue(fullKey, out TextEntry? entry))
+            {
+                foreach (var culture in checkedCultures)
+                    entry = entry.With(culture.Key, culture.Value);
+                next[fullKey] = entry;
+            }
+            else
+            {
+                var first = checkedCultures.Keys.First();
+                next[fullKey] = new TextEntry(checkedCultures, first);
+            }
+            if (next.Count > MaxEntries)
+                throw new InvalidOperationException("Localization catalog exceeds its entry limit");
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+        }
+    }
+
+    public string Key(string path, string callerModId)
+    {
+        ValidateModId(callerModId);
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        string prefix = "Mods." + callerModId + ".";
+        string relative = path.StartsWith(prefix, StringComparison.Ordinal)
+            ? path.Substring(prefix.Length) : path;
+        State snapshot = Volatile.Read(ref current);
+        string full = prefix + relative;
+        return snapshot.Entries.ContainsKey(full) ? full : path;
+    }
+
     public void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)
     {
         ValidateModId(modId);
