@@ -39,9 +39,19 @@ Execução aprovada no GitHub: https://github.com/MantovaniDevTrue/Bunnyloader-C
 
 Essa execução usa `dotnet build`, `dotnet run` e `g++ -fsyntax-only` / teste nativo de política. **Não compila bibliotecas Android, não invoca Gradle, não gera APK, não valida ABI do jogo e não mede FPS.** Código fonte nativo verificado sintaticamente não substitui o teste integrado do `LanguageManager`.
 
+## Lote de fidelidade: referências e recarga de idioma
+
+- Novo `app/src/main/cpp/experiments/csharp/LocalizationResolve.h`: usa o mesmo contrato de referências do `LocalizationLoader.js`, com busca por escopo de dentro para fora, nomes completos `Mods.<id>.*`, dependências entre mods, referências de texto vanilla por `Language.Exists/GetTextValue`, detecção de ciclos e deslocamento de índices de formatação `@N` sem Regex.
+- O publicador reúne todas as traduções escolhidas por cultura antes de processar as referências. Assim referências cruzadas não ficam dependentes da ordem de carregamento dos mods.
+- O importador nativo converte `{$Mods.source.*}` em `{$Mods.<modid>.*}` depois de substituir a identidade temporária do compilador pela identidade real do mod.
+- `LanguageManager.LoadFilesForCulture` ganhou um hook C++ que executa primeiro o método original do Terraria, reaplica os textos do C# e invalida `Terraria.UI.ItemTooltip` após êxito. A checagem de 30 atualizações permanece como fallback para carga tardia e não roda o resolvedor em cada frame.
+- Testes host incluem `native_resolver_test.cpp` (escopos, vanilla, cross-mod, ciclos, argumentos, referências ausentes) e `native_wire_test.cpp` (rebasing da identidade temporária e UTF-8). **Não há evidência de validação do hook em dispositivo Android.**
+
+**Interferência de PR paralela:** as Actions disparadas em `pull_request` usam uma árvore de merge com a base mais recente. Quando a PR #98 acrescenta novas propriedades do SDK e mais um campo no wire de Tile, verificações de referência/documentação e o teste rígido de comprimento de Tile podem falhar na árvore combinada, mesmo com os testes específicos da branch de localização passando. Não alterar fontes de Tile na #101; reconciliar as bases e regenerar documentação somente quando a integração dos lotes ocorrer.
+
 ## Pendências obrigatórias para declarar completo
 
-1. **Compilar e testar** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
+1. **Validar no Terraria Android** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
 2. Garantir que `LoadLanguageFromFileText` preserva todas as instâncias `LocalizedText` existentes em 301720, invalida os tooltips e atualiza itens/NPCs/buffs que guardam caches próprios. Testar troca repetida pt-BR/en-US/fr-FR.
 3. Resolver referências de texto cruzando mods e chaves vanilla antes da publicação, variantes `$...`, expansões recursivas, precedência de `Register` e os últimos detalhes do ciclo de vida `OnLocalizationsLoaded`.
 4. Tratar desativação, unload e recarga em tempo de jogo: limpar textos de mods desativados, preservar mods terceiros e não deixar referências antigas na UI.
