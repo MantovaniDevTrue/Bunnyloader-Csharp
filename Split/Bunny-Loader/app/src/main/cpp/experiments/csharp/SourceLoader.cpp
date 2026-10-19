@@ -834,7 +834,7 @@ bool applyManagedSourceDefaults(
                 tile.allowDrops = fields[18] == "1";
             }
             if (tile_wire::hasCallbacks(fields.size()) &&
-                (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 8191)) {
+                (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 65535)) {
                 *error = fields[1] + ": TileCallbackMask invalido"; return false;
             }
             tiles.push_back(std::move(tile));
