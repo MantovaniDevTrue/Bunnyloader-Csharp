@@ -125,13 +125,19 @@ int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
     return rule == p.itemWeights.end() ? static_cast<int>(p.rollWeight) : rule->second;
 }
 
+bool itemCanRoll(Il2CppObject* item, const ManagedPrefixEntry& p) {
+    if (!item || g_refs.type < 0) return false;
+    const int type = bl::runtime::field<int32_t>(item, g_refs.type);
+    const auto decision = p.itemCanRoll.find(type);
+    return decision == p.itemCanRoll.end() ? itemRollWeight(item, p) > 0 : decision->second;
+}
+
 bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
     const auto& r = g_refs;
-    if (!item || itemRollWeight(item, p) == 0) return false;
+    if (!item || !itemCanRoll(item, p)) return false;
     if (p.category == 6) {
         const int type = bl::runtime::field<int32_t>(item, r.type);
-        const auto allowed = p.itemWeights.find(type);
-        return allowed != p.itemWeights.end() && allowed->second > 0;
+        return p.itemWeights.contains(type);
     }
     if (p.category == 5)
         return r.accessory >= 0 && bl::runtime::field<uint8_t>(item, r.accessory) != 0;
