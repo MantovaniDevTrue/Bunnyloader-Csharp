@@ -531,6 +531,7 @@ public static class CompiledAssemblyProbe
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
+        var questFishNames = new HashSet<string>(StringComparer.Ordinal);
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
@@ -554,6 +555,7 @@ public static class CompiledAssemblyProbe
             lines.Add(BasicItemWriter.Write(item));
             if (Value<bool>(item, "QuestFish"))
             {
+                questFishNames.Add(name);
                 if (Value<int>(item, "MaxStack") != 1)
                     throw new InvalidOperationException("Quest fish must have MaxStack=1: " + name);
                 bool pre = Value<bool>(item, "QuestAvailableInPreHardmode");
@@ -861,6 +863,18 @@ public static class CompiledAssemblyProbe
                 deadMessage.Length == 0 ? "-" : deadMessage,
                 lifeRegen.ToString(CultureInfo.InvariantCulture),
                 manaRegen.ToString(CultureInfo.InvariantCulture)));
+            string questFishName = Value<string>(player, "FishingQuestFishName") ?? "";
+            int catchRules = Convert.ToInt32(Value<object>(player, "FishingCatchRules"), CultureInfo.InvariantCulture);
+            if (questFishName.Length == 0 && catchRules != 0)
+                throw new InvalidOperationException("FishingCatchRules requires FishingQuestFishName: " + name);
+            if (questFishName.Length != 0)
+            {
+                CheckName(questFishName);
+                if (!questFishNames.Contains(questFishName) || (catchRules & ~3) != 0)
+                    throw new InvalidOperationException("FishingQuestFish must reference an owned quest BunnyItem: " + name);
+                lines.Add(string.Join("\t", "QUEST_CATCH", name, questFishName,
+                    catchRules.ToString(CultureInfo.InvariantCulture)));
+            }
         }
         foreach (object npc in npcs)
         {
