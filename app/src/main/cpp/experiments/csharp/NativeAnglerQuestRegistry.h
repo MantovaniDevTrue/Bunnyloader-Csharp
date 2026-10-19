@@ -121,6 +121,10 @@ public:
     static bool available(const Quest& quest, bool hardmode) {
         return hardmode ? quest.hardmode : quest.preHardmode;
     }
+    static bool canCatch(const Quest& quest, bool invertedGravity, bool uncommon) {
+        return ((quest.catchRules & 1) == 0 || invertedGravity) &&
+               ((quest.catchRules & 2) == 0 || uncommon);
+    }
 
     static std::string chat(const Quest& quest, const std::string& fallbackName) {
         const std::string& description = quest.description.empty() ? fallbackName : quest.description;
