@@ -88,3 +88,6 @@ Continuidade: implementar as dependências reais de CanUseItem, contagens por do
 ## Continuidade atual .99 — mundo em cinco sistemas
 
 Ver csharp-loader-batches.md. ExampleTile e ExampleTileItem portados com flags booleanas nativas tipadas/atômicas por conjunto, mapa, dust, colocação e receita original. Assets preservados. SDK amplia sete flags; TILE mantém13 colunas e cache Roslyn passa a v31. Nenhum loader inteiro é promovido. Todas as88 entradas do inventário permanecem distribuídas no plano; DustLoader também está no escopo PC. Primeiro concluir contrato TileLoader, depois paredes, árvores completas, entidades e globais. As suítes e o gate devem ser executados antes de qualquer entrega.
+
+
+Checkpoint .99 confirmado: fonte f70caa80, CI39246685678 e nove suítes independentes de push aprovados no mesmo SHA. APK interno compilado/validado; publicação e exportação dos pacotes puladas pelo gate dos cinco loaders. Gameplay/FPS Android pendentes. Evidência: validation/csharp-world-loaders-v99-2026-10-19.json. Ver csharp-loader-batches.md para continuar exatamente o grupo1.

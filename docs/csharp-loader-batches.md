@@ -57,3 +57,9 @@ Os recibos documentam a revisão humana; não substituem execução. Depois dess
 6. Adicionar testes de execução de cada integração, concluir os recibos, executar regressões e build. Somente os cinco completos desbloqueiam o próximo APK.
 
 As matrizes206 JS e o inventário PC permanecem oficiais. Implementado, teste automatizado, build Android e validação no telefone são estados separados.
+
+## Evidência deste checkpoint
+
+Código `f70caa8044c2d6ae8a27716c6526a40080446601`: [CI39246685678](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685678) aprovado, incluindo ARM64, testes Gradle, APK e assinatura. Nove suítes independentes de push aprovadas no mesmo SHA. Publicação, exportação de .bmod e job de conferência privada pulados; somente artefatos de resultados de testes/medições exportados. Repositório Builds privado confirmado e tag deste run ausente (HTTP404).
+
+[Registro completo](validation/csharp-world-loaders-v99-2026-10-19.json), com etapas, suítes, contagens e hashes dos dois assets originais. O commit posterior só registra essa evidência; o código compilado é o SHA acima. Gameplay Android/FPS pendentes e zero loaders inteiros certificados. Próxima execução continua os contratos do grupo1; não remove a .96 nem publica um subconjunto.
