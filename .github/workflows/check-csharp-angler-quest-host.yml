@@ -74,6 +74,15 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
             -o "$RUNNER_TEMP/angler_il2cpp_integration_test"
           "$RUNNER_TEMP/angler_il2cpp_integration_test"
+      - name: Execute native fishing against host IL2CPP value layout
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            tests/angler_quest/native_fishing_il2cpp_test.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
+            -o "$RUNNER_TEMP/angler_fishing_il2cpp_test"
+          "$RUNNER_TEMP/angler_fishing_il2cpp_test"
   managed-host:
     runs-on: ubuntu-latest
     timeout-minutes: 12
