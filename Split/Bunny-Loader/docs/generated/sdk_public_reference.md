@@ -637,7 +637,21 @@ abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `void OnLocalizationsLoaded()` | worker_async_localization |
 | `void RegisterTranslations(BunnyLocalizationCatalog catalog)` | compile_policy |
+
+## BunnyLoader.Source.BunnyLocalizationRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static bool Unload(string modId)` | worker_async_localization |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
