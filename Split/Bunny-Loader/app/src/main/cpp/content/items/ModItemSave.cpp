@@ -954,7 +954,7 @@ void retryPendingManagedRaritiesInWorld() {
             const auto desired = item_save::selectTrackedRarity(
                 pendingByItem, pendingBySlot, item, placeKey(container.name, slot), type);
             if (!desired) continue;
-            if (restoreRarity(item, desired->key))
+            if (!rarityFor(item).empty() || restoreRarity(item, desired->key))
                 completed.push_back({desired->origin, item, desired->type, desired->key});
         }
     }
