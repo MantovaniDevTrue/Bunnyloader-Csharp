@@ -14,6 +14,7 @@ public static class BunnyTileRuntime {
         public Assembly Assembly = null!;
         public readonly Dictionary<string, BunnyTile> Tiles = new(StringComparer.Ordinal);
         public readonly Dictionary<string, int> Masks = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, BunnyTileDrawContext> DrawContexts = new(StringComparer.Ordinal);
     }
     private static readonly Dictionary<string, Mod> Mods = new(StringComparer.Ordinal);
     private static readonly string[] Names = {
@@ -99,7 +100,10 @@ public static class BunnyTileRuntime {
                 BunnyTileDrawContext? context = null;
                 if (hasPreDraw) {
                     if (tileType >= 754) {
-                        context = new BunnyTileDrawContext(tileType, x, y);
+                        if (!mod.DrawContexts.TryGetValue(owner, out context)) {
+                            context = new BunnyTileDrawContext(tileType, x, y);
+                            mod.DrawContexts.Add(owner, context);
+                        } else context.Reset(tileType, x, y);
                         drawDefault = tile.PreDraw(x, y, context);
                     } else drawDefault = tile.PreDraw(x, y);
                 }

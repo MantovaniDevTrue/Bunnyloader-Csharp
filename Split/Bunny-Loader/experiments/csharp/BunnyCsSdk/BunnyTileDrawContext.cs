@@ -5,9 +5,9 @@ using System.Text;
 namespace BunnyLoader.Source;
 
 public sealed class BunnyTileDrawContext {
-    private readonly int type;
-    private readonly int x;
-    private readonly int y;
+    private int type;
+    private int x;
+    private int y;
     private readonly Sprite[] sprites = new Sprite[8];
     private int count;
 
@@ -22,10 +22,14 @@ public sealed class BunnyTileDrawContext {
     }
 
     internal BunnyTileDrawContext(int tileType, int cellX, int cellY) {
+        Reset(tileType,cellX,cellY);
+    }
+
+    internal void Reset(int tileType,int cellX,int cellY) {
         if(tileType < 754 || tileType > 65535 || cellX < 0 || cellY < 0 ||
            cellX > 100000 || cellY > 100000)
             throw new ArgumentOutOfRangeException(nameof(tileType));
-        type=tileType; x=cellX; y=cellY;
+        type=tileType; x=cellX; y=cellY; count=0;
     }
 
     public int Count => count;
