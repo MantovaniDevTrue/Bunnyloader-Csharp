@@ -120,7 +120,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("applyManagedItemPrefixEffects(prefixEffects)", source)
         self.assertIn("std::atomic_store_explicit(&g_itemApplyView", bridge)
         self.assertIn("const bool accepted = g_originalItemPrefix(item, request, topTier, method);", gameplay)
-        self.assertIn("if (!accepted || !item || want == -3", gameplay)
+        self.assertIn("if (!accepted || !ready || want == -3 || !hasPolicy)", gameplay)
         self.assertIn("damage > INT32_MAX - policy->second.damageBonus", gameplay)
         self.assertIn("value > INT32_MAX - policy->second.valueBonus", gameplay)
         self.assertIn("g_appliedItemPrefixes", gameplay)
