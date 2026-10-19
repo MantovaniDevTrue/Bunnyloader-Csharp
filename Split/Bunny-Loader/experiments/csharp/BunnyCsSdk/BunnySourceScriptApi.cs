@@ -322,26 +322,50 @@ public struct PrefixStats
 public sealed class BunnyPrefixRollRules
 {
     private readonly System.Collections.Generic.SortedDictionary<int, int> rules = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, int> namedRules =
+        new(System.StringComparer.Ordinal);
+
+    private void Reserve(bool exists)
+    {
+        if (!exists && rules.Count + namedRules.Count >= 32)
+            throw new System.InvalidOperationException("BunnyPrefix supports at most 32 item-specific rules");
+    }
 
     public void SetWeight(int itemType, int weight)
     {
         if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20)
             throw new System.ArgumentOutOfRangeException(nameof(itemType));
-        if (!rules.ContainsKey(itemType) && rules.Count >= 32)
-            throw new System.InvalidOperationException("BunnyPrefix supports at most 32 item-specific rules");
+        Reserve(rules.ContainsKey(itemType));
         rules[itemType] = weight;
     }
 
-    public void Deny(int itemType) => SetWeight(itemType, 0);
+    public void SetWeight(string itemName, int weight)
+    {
+        if (string.IsNullOrEmpty(itemName) || itemName.Length > 64 ||
+            weight < 0 || weight > 20 ||
+            !(itemName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        foreach (char c in itemName)
+            if (!(c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        Reserve(namedRules.ContainsKey(itemName));
+        namedRules[itemName] = weight;
+    }
 
+    public void Deny(int itemType) => SetWeight(itemType, 0);
+    public void Deny(string itemName) => SetWeight(itemName, 0);
     public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
+    public void Allow(string itemName, int weight = 1) => SetWeight(itemName, weight);
 
     public string Serialize()
     {
-        var fields = new System.Collections.Generic.List<string>(rules.Count);
+        var fields = new System.Collections.Generic.List<string>(rules.Count + namedRules.Count);
         foreach (var entry in rules)
             fields.Add(entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (var entry in namedRules)
+            fields.Add(entry.Key + ":" +
+                entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         return string.Join(",", fields);
     }
 }
