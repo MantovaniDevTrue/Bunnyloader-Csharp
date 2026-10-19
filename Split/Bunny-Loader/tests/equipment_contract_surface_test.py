@@ -120,9 +120,9 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("applyManagedItemPrefixEffects(prefixEffects)", source)
         self.assertIn("std::atomic_store_explicit(&g_itemApplyView", bridge)
         self.assertIn("const bool accepted = g_originalItemPrefix(item, request, topTier, method);", gameplay)
-        self.assertIn("if (!accepted || !ready || want == -3 || !hasPolicy)", gameplay)
-        self.assertIn("damage > INT32_MAX - policy->second.damageBonus", gameplay)
-        self.assertIn("value > INT32_MAX - policy->second.valueBonus", gameplay)
+        self.assertIn("if (!accepted || !ready || want == -3)", gameplay)
+        self.assertIn("damage > INT32_MAX - damageBonus", gameplay)
+        self.assertIn("value > INT32_MAX - valueBonus", gameplay)
         self.assertIn("g_appliedItemPrefixes", gameplay)
         self.assertIn("currentDamage - previous->damageBonus", gameplay)
         self.assertIn("currentValue - previous->valueBonus", gameplay)
@@ -131,6 +131,13 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
         self.assertIn("effects.DamageBonus = 4;", fixture)
         self.assertIn("effects.ValueBonus = 125;", fixture)
+        self.assertIn('"PREFIX_POST"', compiler)
+        self.assertIn('fields[0] == "PREFIX_POST"', source)
+        self.assertIn("prefixPostPolicies.erase(post)", source)
+        self.assertIn("const auto* prefixPolicy = prefixView ? byType(*prefixView, prefix)", gameplay)
+        self.assertIn("selected->extraTooltip.c_str()", gameplay)
+        self.assertIn("requireEffectiveStats", gameplay)
+        self.assertIn("effects.DamageBonus = 3;", fixture)
 
 
     def test_report_render_is_stable_and_honest(self):
