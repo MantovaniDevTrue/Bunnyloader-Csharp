@@ -110,9 +110,14 @@ bool methodSignature(const MethodInfo* method, const char* result,
     return !a.method_is_instance || !a.method_is_instance(method);
 }
 
+bool staticField(FieldInfo* field) {
+    auto& a = il2cpp::api();
+    return field && a.field_get_flags && (a.field_get_flags(field) & 0x10u) != 0;
+}
+
 bool arrayType(FieldInfo* field, const char* element) {
     auto& a = il2cpp::api();
-    if (!field || !a.field_get_type || !a.class_from_il2cpp_type ||
+    if (!staticField(field) || !a.field_get_type || !a.class_from_il2cpp_type ||
         !a.class_get_element_class || !a.class_get_name || !a.class_get_namespace)
         return false;
     Il2CppClass* array = a.class_from_il2cpp_type(a.field_get_type(field));
@@ -129,7 +134,7 @@ bool findContracts() {
     if (!a.field_static_get_value || !a.field_static_set_value ||
         !a.array_new || !a.object_get_class || !a.string_new ||
         !a.class_get_method_from_name || !a.method_get_param_count ||
-        !a.runtime_invoke)
+        !a.runtime_invoke || !a.method_is_instance || !a.field_get_flags)
         return false;
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
@@ -152,7 +157,8 @@ bool findContracts() {
     g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
     g_questFlag = il2cpp::findField(sets, "IsQuestFish");
     if (!arrayType(g_questItems, "Int32") || !arrayType(g_questFlag, "Boolean") ||
-        !g_questIndex || !g_questFinished || !g_hardMode || !g_chatCorner ||
+        !staticField(g_questIndex) || !staticField(g_questFinished) ||
+        !staticField(g_hardMode) || !staticField(g_chatCorner) ||
         !typeName(a.field_get_type(g_questIndex), "System.Int32") ||
         !typeName(a.field_get_type(g_chatCorner), "System.Int32") ||
         !typeName(a.field_get_type(g_questFinished), "System.Boolean") ||
