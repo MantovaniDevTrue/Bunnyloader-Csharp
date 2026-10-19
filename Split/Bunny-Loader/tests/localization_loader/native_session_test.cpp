@@ -100,5 +100,14 @@ int main() {
     epochs.activate("owner",4);
     assert(epochs.current("owner",4));
     assert(epochs.current("other",1));
+    NativeLocalizationSession globals;
+    globals.replace("modA",{{"en-US","LegacyInterface.28","A"}});
+    globals.replace("modB",{{"en-US","LegacyInterface.28","B"}});
+    assert(globals.snapshot().active.size()==2);
+    assert(globals.retainOnly({"modB"}));
+    assert(globals.snapshot().active.contains("modB"));
+    assert(globals.snapshot().active.at("modB")[0].value=="B");
+    globals.replace("modB",{});
+    assert(globals.snapshot().retired.contains("LegacyInterface.28"));
     return 0;
 }
