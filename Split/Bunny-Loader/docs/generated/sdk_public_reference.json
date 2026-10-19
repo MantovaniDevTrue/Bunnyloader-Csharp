@@ -1103,6 +1103,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "int LoadFromContent(string modId, string contentDirectory)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "string Translate(string path, string callerModId)",
           "execution": "managed_helper"
         },
@@ -1120,6 +1124,10 @@
         },
         {
           "signature": "void RemoveMod(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ReplaceModCultures(string modId, IReadOnlyDictionary\u003Cstring, IReadOnlyDictionary\u003Cstring, string\u003E\u003E cultures)",
           "execution": "managed_helper"
         },
         {
