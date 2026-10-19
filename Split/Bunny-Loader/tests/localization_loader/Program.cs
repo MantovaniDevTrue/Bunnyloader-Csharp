@@ -403,6 +403,32 @@ Test("compiled-localization-module-publishes-wire-without-json", () =>
     finally { Directory.Delete(root, true); }
 });
 
+Test("compiled-localization-module-overrides-json-cultures", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-localization-source-" + Guid.NewGuid().ToString("N"));
+    string folder = Path.Combine(root, "content", "Localization");
+    Directory.CreateDirectory(folder);
+    try
+    {
+        File.WriteAllText(Path.Combine(folder, "en-US.json"),
+            "{\"ItemName\":{\"HostModule\":\"JSON fallback\"}}");
+        File.WriteAllText(Path.Combine(folder, "pt-BR.json"),
+            "{\"ItemName\":{\"HostModule\":\"Texto do JSON\"}}");
+        string diagnostics = Path.Combine(root, "module-diagnostics.txt");
+        Equal(1, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(
+            System.Reflection.Assembly.GetExecutingAssembly().Location, diagnostics, root));
+        var locales = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"))
+            .Where(row => row.StartsWith("LOCALE\t", StringComparison.Ordinal)).ToArray();
+        Equal(2, locales.Length);
+        Equal("Host module", System.Text.Encoding.UTF8.GetString(
+            Convert.FromHexString(locales[0].Split('\t')[3])));
+        Equal("Módulo de exemplo", System.Text.Encoding.UTF8.GetString(
+            Convert.FromHexString(locales[1].Split('\t')[3])));
+        Equal(true, File.ReadAllText(diagnostics).Contains("cultures=2 modules=1 rows=2", StringComparison.Ordinal));
+    }
+    finally { Directory.Delete(root, true); }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
