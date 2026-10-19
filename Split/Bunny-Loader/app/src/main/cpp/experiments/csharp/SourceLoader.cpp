@@ -736,8 +736,17 @@ bool applyManagedSourceDefaults(
             }
             ManagedTileEntry tile;
             tile.name = fields[1]; tile.type = it->second;
-            if (!integer(fields[2], &tile.flags) ||
-                !integer(fields[3], &tile.shape) ||
+            const bool flagsEncoded = integer(fields[2], &tile.flags);
+            if (!flagsEncoded || tile.flags < 0 || tile.flags > 65535) {
+                const auto source = mod->sourcePaths.find(identity);
+                *error = "[CSharp][ERROR][TileDefaults] Mod=" + modId + " Class=" + fields[1] +
+                    " File=" + (source == mod->sourcePaths.end() ? "<unavailable>" : source->second) +
+                    " API=BunnyTile.Flags Field=Flags ContentId=" + std::to_string(tile.type) +
+                    " Stage=Decode Expected=Int32:KnownMask0xFFFF Actual=" + fields[2] +
+                    " Result=Rejected Reason=" + (flagsEncoded ? "UnknownFlagBits" : "InvalidInt32");
+                return false;
+            }
+            if (!integer(fields[3], &tile.shape) ||
                 !integer(fields[4], &tile.coordinateHeight) ||
                 !integer(fields[5], &tile.adjacentTile) ||
                 !integer(fields[7], &tile.mapR) ||
@@ -745,7 +754,6 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
-                tile.flags < 0 || tile.flags > 65535 ||
                 tile.shape < 0 || tile.shape > 1 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||

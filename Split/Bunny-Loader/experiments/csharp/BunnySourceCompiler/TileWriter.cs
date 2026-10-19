@@ -21,7 +21,11 @@ internal static class TileWriter {
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         int normal = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {false})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
-        if ((flags & ~65535) != 0 || shape < 0 || shape > 1 ||
+        if ((flags & ~65535) != 0)
+            throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
+                " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFF Actual=" +
+                flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
+        if (shape < 0 || shape > 1 ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||

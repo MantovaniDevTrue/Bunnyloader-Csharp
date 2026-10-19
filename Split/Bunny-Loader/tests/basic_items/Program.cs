@@ -392,7 +392,9 @@ try {
    File.WriteAllText(Path.Combine(root,"content","InvalidTile.cs"),
     "using BunnyLoader.Source;public sealed class InvalidTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"InvalidTile.png\";DisplayName=\"Example Invalid\";Flags=(BunnyTileFlags)("+flags+");}}");
    Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
-   if(!File.ReadAllText(diag).Contains("native tile defaults out of bounds"))throw new Exception("Missing tile diagnostic");
+   string error=File.ReadAllText(diag);
+   foreach(string detail in new[]{"Class=InvalidTile","Field=Flags","Stage=Serialize","Expected=Int32:KnownMask0xFFFF","Actual="+flags,"Reason=UnknownFlagBits"})
+    if(!error.Contains(detail))throw new Exception("Missing tile diagnostic: "+detail+" in "+error);
   }
  });
  Check("tiles.original-bench-and-item-same-name-wire",()=>{
