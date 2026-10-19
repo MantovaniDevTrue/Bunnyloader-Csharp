@@ -428,10 +428,56 @@ public sealed partial class BunnyLocalizationCatalog
         if (string.IsNullOrWhiteSpace(key) || key.Length > 256 || key[0] == '.' || key[key.Length - 1] == '.')
             throw new ArgumentException("Invalid localization key", nameof(key));
         foreach (char c in key)
-            if (!char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' && c != '.' && c != '/')
+            if (!char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' &&
+                c != '.' && c != '/' && c != '
+    }
+
+    private static void ValidateText(string text)
+    {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        if (Encoding.UTF8.GetByteCount(text) > MaxTextBytes)
+            throw new ArgumentOutOfRangeException(nameof(text));
+        foreach (char c in text)
+            if (c == '\0' || (c < ' ' && c != '\n' && c != '\r' && c != '\t'))
+                throw new ArgumentException("Invalid localization text", nameof(text));
+    }
+}
+)
                 throw new ArgumentException("Invalid localization key", nameof(key));
         if (key.Contains("..", StringComparison.Ordinal) || (!relative && !key.Contains('.')))
             throw new ArgumentException("Invalid localization key", nameof(key));
+        int variant = key.IndexOf('
+    }
+
+    private static void ValidateText(string text)
+    {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        if (Encoding.UTF8.GetByteCount(text) > MaxTextBytes)
+            throw new ArgumentOutOfRangeException(nameof(text));
+        foreach (char c in text)
+            if (c == '\0' || (c < ' ' && c != '\n' && c != '\r' && c != '\t'))
+                throw new ArgumentException("Invalid localization text", nameof(text));
+    }
+}
+);
+        if (variant >= 0 &&
+            (variant == 0 || variant == key.Length - 1 ||
+             key.IndexOf('
+    }
+
+    private static void ValidateText(string text)
+    {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        if (Encoding.UTF8.GetByteCount(text) > MaxTextBytes)
+            throw new ArgumentOutOfRangeException(nameof(text));
+        foreach (char c in text)
+            if (c == '\0' || (c < ' ' && c != '\n' && c != '\r' && c != '\t'))
+                throw new ArgumentException("Invalid localization text", nameof(text));
+    }
+}
+, variant + 1) >= 0 ||
+             key.IndexOfAny(new[] { '.', '/' }, variant + 1) >= 0))
+            throw new ArgumentException("Invalid localization variant", nameof(key));
     }
 
     private static void ValidateText(string text)
