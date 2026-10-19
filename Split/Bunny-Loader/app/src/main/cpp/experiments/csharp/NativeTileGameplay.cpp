@@ -36,6 +36,9 @@ bool g_undergroundInstalled = false;
 bool g_interactInstalled=false;
 bool g_slopeInstalled=false;
 bool g_poundInstalled=false;
+bool g_playerPlacementInstalled=false;
+bool g_placeTileInstalled=false;
+thread_local int g_playerPlaceDepth=0;
 int g_useAttempt=-1,g_useRelease=-1,g_useHappened=-1;
 FieldInfo* g_gameUpdateField=nullptr;
 std::map<Il2CppObject*,uint64_t> g_lastUseFrames;
@@ -75,6 +78,10 @@ using PoundFn=bool (*)(int32_t,int32_t,const MethodInfo*);
 UseFn g_origUse=nullptr;
 SlopeFn g_origSlope=nullptr;
 PoundFn g_origPound=nullptr;
+using PlaceThingFn=void (*)(Il2CppObject*,bool,const MethodInfo*);
+using PlaceTileFn=bool (*)(int32_t,int32_t,int32_t,bool,bool,int32_t,int32_t,const MethodInfo*);
+PlaceThingFn g_origPlaceThing=nullptr;
+PlaceTileFn g_origPlaceTile=nullptr;
 CanKillFn g_origCanKill = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
@@ -556,6 +563,51 @@ bool setupTileSlopeHooks() {
     }
     return true;
 }
+void hkPlayerPlaceThing(Il2CppObject* player,bool place,const MethodInfo* method) {
+    ++g_playerPlaceDepth;
+    if(g_origPlaceThing)g_origPlaceThing(player,place,method);
+    --g_playerPlaceDepth;
+}
+bool hkWorldPlaceTile(int32_t x,int32_t y,int32_t type,bool mute,bool forced,
+                      int32_t player,int32_t style,const MethodInfo* method) {
+    const bool result=g_origPlaceTile?g_origPlaceTile(x,y,type,mute,forced,player,style,method):false;
+    if(!result||g_playerPlaceDepth<=0||type<runtime::kVanillaTileCount)return result;
+    const auto it=g_tiles.find(type);
+    if(it!=g_tiles.end()&&it->second.spec.shape==0)
+        dispatchTileEvent(it->second.spec,7,x,y);
+    return result;
+}
+bool setupTilePlacementHooks() {
+    if(g_playerPlacementInstalled&&g_placeTileInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param||!a.method_get_param_count||!a.method_get_return_type)return false;
+    auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* thing=player?a.class_get_method_from_name(player,"PlaceThing_Tiles",1):nullptr;
+    const auto* tile=world?a.class_get_method_from_name(world,"PlaceTile",7):nullptr;
+    if(!thing||!tile||a.method_get_param_count(thing)!=1||
+       a.method_get_param_count(tile)!=7||
+       !nameOf(a.method_get_return_type(thing),"System.Void")||
+       !nameOf(a.method_get_return_type(tile),"System.Boolean")||
+       !nameOf(a.method_get_param(thing,0),"System.Boolean")||
+       !nameOf(a.method_get_param(tile,0),"System.Int32")||
+       !nameOf(a.method_get_param(tile,1),"System.Int32")||
+       !nameOf(a.method_get_param(tile,2),"System.Int32")||
+       !nameOf(a.method_get_param(tile,3),"System.Boolean")||
+       !nameOf(a.method_get_param(tile,4),"System.Boolean")||
+       !nameOf(a.method_get_param(tile,5),"System.Int32")||
+       !nameOf(a.method_get_param(tile,6),"System.Int32")||
+       !il2cpp::methodPointer(thing)||!il2cpp::methodPointer(tile))return false;
+    if(!g_playerPlacementInstalled) {
+        if(!hook::install(thing,hkPlayerPlaceThing,&g_origPlaceThing))return false;
+        g_playerPlacementInstalled=true;
+    }
+    if(!g_placeTileInstalled) {
+        if(!hook::install(tile,hkWorldPlaceTile,&g_origPlaceTile))return false;
+        g_placeTileInstalled=true;
+    }
+    return true;
+}
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -630,6 +682,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     }
     if((spec.callbackMask&(1<<4))&&!setupTileInteractHook())return false;
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
+    if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
     if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
         BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
                  spec.mod.c_str(),spec.name.c_str());
