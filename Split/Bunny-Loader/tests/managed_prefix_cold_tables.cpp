@@ -273,6 +273,7 @@ int main() {
     custom.rollWeight = 1;
     custom.itemWeights[6199] = 0;
     custom.itemCanRoll[6199] = true;
+    custom.preferredTypes.insert(6199);
     custom.itemWeights[6198] = 0;
     descriptors = {guarded, mighty, custom};
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
@@ -283,6 +284,9 @@ int main() {
     assert(customRollable && customRollable->length == 3);
     for (uintptr_t i = 0; i < customRollable->length; ++i)
         assert(static_cast<const int32_t*>(arrayData(customRollable))[i] == 99);
+    int32_t autoChosen = -1;
+    assert(hookRoll(&weapon.object, &randomObject, &autoChosen, nullptr));
+    assert(autoChosen == 101 && nativeRolls == 0);
     bool reachedCustom = false;
     assert(applyManagedPrefixViaNativeRoll(&weapon.object, 101,
                                            &prefixMethod, &reachedCustom));
