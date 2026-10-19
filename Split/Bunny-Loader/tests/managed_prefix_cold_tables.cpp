@@ -247,8 +247,10 @@ int main() {
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 98);
     assert(nativeRolls == priorNativeRolls);
+    const int previousSelection = selectedMixed;
     randomDouble.value = std::numeric_limits<double>::quiet_NaN();
     assert(!hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == previousSelection);
     assert(nativeRolls == priorNativeRolls);
     randomDouble.value = 0.5;
     deniedView = std::make_shared<const std::map<int, std::set<int>>>(
