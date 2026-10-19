@@ -222,17 +222,11 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         g_rareOffset < 0 || requested == -3)
         return g_originalPrefix(item, requested, topTier, method);
     const int32_t base = bl::runtime::field<int32_t>(item, g_rareOffset);
-    uint32_t cached = 0;
-    if (!g_palette.read(base, &cached))
+    const auto identity = nativeRarities().identityForType(base);
+    if (!identity.managed || identity.mod.empty())
         return g_originalPrefix(item, requested, topTier, method);
     const bool succeeded = g_originalPrefix(item, requested, topTier, method);
     if (!succeeded) return false;
-
-    const auto identity = nativeRarities().identityForType(base);
-    if (!identity.managed || identity.mod.empty()) {
-        bl::runtime::field<int32_t>(item, g_rareOffset) = base;
-        return true;
-    }
 
     RarityMod owner;
     {
@@ -263,7 +257,9 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         const bool called = invokeManagedRarity(owner.id, owner.assembly, identity.name,
             1, payload + "," + std::to_string(vanilla), &response, 1800);
         int resultingType = base;
-        if (called && decodeRarityPrefixWire(response, &resultingType))
+        if (called && decodeRarityPrefixWire(response, &resultingType) &&
+            (resultingType < NativeRarityRegistry::kVanillaCount ||
+             !nativeRarities().stableKeyForType(resultingType).empty()))
             bl::runtime::field<int32_t>(item, g_rareOffset) = resultingType;
         else
             bl::runtime::field<int32_t>(item, g_rareOffset) = base;
