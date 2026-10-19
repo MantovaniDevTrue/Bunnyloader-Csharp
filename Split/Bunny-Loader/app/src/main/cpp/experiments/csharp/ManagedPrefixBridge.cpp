@@ -42,6 +42,20 @@ bool valid(const ManagedPrefixEntry& p) {
         if (!p.itemWeights.contains(type)) return false;
     for (const auto& [name, allowed] : p.itemNamesCanRoll)
         if (!p.itemNames.contains(name)) return false;
+    for (int type : p.preferredTypes) {
+        const auto weight = p.itemWeights.find(type);
+        const auto decision = p.itemCanRoll.find(type);
+        if (weight == p.itemWeights.end() ||
+            !(decision == p.itemCanRoll.end() ? weight->second > 0 : decision->second))
+            return false;
+    }
+    for (const auto& name : p.preferredNames) {
+        const auto weight = p.itemNames.find(name);
+        const auto decision = p.itemNamesCanRoll.find(name);
+        if (weight == p.itemNames.end() ||
+            !(decision == p.itemNamesCanRoll.end() ? weight->second > 0 : decision->second))
+            return false;
+    }
     if (p.category == 6) {
         bool anyAllowed = false;
         for (const auto& [type, weight] : p.itemWeights) {
@@ -99,9 +113,12 @@ bool applyManagedPrefixDescriptors(
             const auto decision = entry.itemNamesCanRoll.find(name);
             if (decision != entry.itemNamesCanRoll.end() &&
                 !resolved.itemCanRoll.emplace(type, decision->second).second) return false;
+            if (entry.preferredNames.contains(name) && !resolved.preferredTypes.insert(type).second)
+                return false;
         }
         resolved.itemNames.clear();
         resolved.itemNamesCanRoll.clear();
+        resolved.preferredNames.clear();
         if (!valid(resolved) || !staged.emplace(entry.type, std::move(resolved)).second)
             return false;
     }
@@ -110,6 +127,13 @@ bool applyManagedPrefixDescriptors(
         std::lock_guard<std::mutex> guard(g_prefixMutex);
         for (const auto& entry : staged)
             if (g_descriptors.contains(entry.first)) return false;
+        std::set<int> chosenItems;
+        for (const auto& entry : g_descriptors)
+            for (int item : entry.second.preferredTypes)
+                chosenItems.insert(item);
+        for (const auto& entry : staged)
+            for (int item : entry.second.preferredTypes)
+                if (!chosenItems.insert(item).second) return false;
         auto next = std::make_shared<std::vector<ManagedPrefixEntry>>();
         next->reserve(g_descriptors.size() + staged.size());
         for (const auto& entry : g_descriptors) next->push_back(entry.second);
