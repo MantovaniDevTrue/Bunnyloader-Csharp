@@ -743,6 +743,28 @@ bool applyManagedSourceDefaults(
             anglerQuests.push_back(std::move(quest));
             continue;
         }
+        if(!fields.empty()&&fields[0]=="QUEST_LOCALE") {
+            if(fields.size()!=5 || !angler::validCulture(fields[2])) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeLocale Reason=InvalidCultureOrFieldCount";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& q) { return q.name==fields[1]; });
+            std::string description, location;
+            if(quest==anglerQuests.end()||
+               !angler::decodeHex(fields[3],&description) ||
+               !angler::decodeHex(fields[4],&location) ||
+               (description.empty()&&location.empty()) ||
+               quest->locales.size()>=8 ||
+               !quest->locales.emplace(fields[2],std::make_pair(
+                    std::move(description),std::move(location))).second) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=DecodeLocale Reason=InvalidTranslationOrDuplicate";
+                return false;
+            }
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="QUEST_CATCH") {
             int rules = -1;
             if(fields.size()!=4 ||
