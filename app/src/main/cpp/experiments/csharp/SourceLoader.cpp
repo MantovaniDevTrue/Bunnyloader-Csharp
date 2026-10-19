@@ -642,6 +642,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
     std::vector<angler::Quest> anglerQuests;
+    std::map<std::string, bool> anglerPlayerRules;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
     std::vector<useSounds::Entry> useSounds;
@@ -723,6 +724,28 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             anglerQuests.push_back(std::move(quest));
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_CATCH") {
+            int rules = -1;
+            if(fields.size()!=4 ||
+               std::find(mod->playerClasses.begin(),mod->playerClasses.end(),
+                         fields.size()>1?fields[1]:"") == mod->playerClasses.end() ||
+               !integer(fields[3],&rules) || rules<0 || rules>3 ||
+               !anglerPlayerRules.emplace(fields[2],true).second) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=ResolveFishingPlayer Reason=InvalidPlayerOrDuplicateCatchRule";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& q) { return q.name==fields[2]; });
+            if(quest==anglerQuests.end() ||
+               (quest->catchRules!=0&&quest->catchRules!=rules)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=ResolveFishingPlayer Reason=QuestFishMissingOrConflictingPolicy";
+                return false;
+            }
+            quest->catchRules=rules;
             continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
