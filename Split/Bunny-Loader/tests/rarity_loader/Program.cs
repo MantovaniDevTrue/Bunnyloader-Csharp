@@ -187,10 +187,10 @@ Check("compiler.emits-rarity-declarations-without-executing-static-defaults", ()
         Equal("BUNNY_MANAGED_DEFAULTS_V2", rows[0]);
         var declared = rows.Skip(1).OrderBy(s => s, StringComparer.Ordinal).ToArray();
         Equal(4, declared.Length);
-        Equal("RARITY\\tFailingRarity".Replace("\\\\t", "\\t"), declared[0]);
-        Equal("RARITY\\tFallingRarity".Replace("\\\\t", "\\t"), declared[1]);
-        Equal("RARITY\\tFixedRarity".Replace("\\\\t", "\\t"), declared[2]);
-        Equal("RARITY\\tRisingRarity".Replace("\\\\t", "\\t"), declared[3]);
+        Equal("RARITY\tFailingRarity", declared[0]);
+        Equal("RARITY\tFallingRarity", declared[1]);
+        Equal("RARITY\tFixedRarity", declared[2]);
+        Equal("RARITY\tRisingRarity", declared[3]);
         Equal(true, File.ReadAllText(diagnostics).Contains("ASSEMBLY_EXEC_OK", StringComparison.Ordinal));
     }
     finally
