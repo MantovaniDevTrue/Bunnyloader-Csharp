@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedLocalizationEpochFence.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -299,7 +300,7 @@ struct LocalizationJob {
 };
 std::deque<LocalizationJob> g_localizationQueue;
 std::deque<std::string> g_localizationUnloads;
-std::map<std::string, uint64_t> g_localizationEpochFloor;
+ManagedLocalizationEpochFence g_localizationEpochFence;
 void* g_localizationDispatchMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
 std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
@@ -1577,7 +1578,7 @@ void* pinnedMonoWorker(void*) {
                         job = std::move(g_localizationQueue.front());
                         g_localizationQueue.pop_front();
                     }
-                    if (!job.unload && g_localizationEpochFloor[job.modId] != job.generation)
+                    if (!job.unload && !g_localizationEpochFence.current(job.modId, job.generation))
                         continue;
                     lock.unlock();
                     std::string result = executeManagedLocalizationOnWorker(job);
@@ -2078,17 +2079,14 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
         assemblyPath.empty() || assemblyPath.size() > 2048 ||
         culture.size() < 2 || culture.size() > 20 || generation == 0) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    uint64_t& floor = g_localizationEpochFloor[modId];
-    if (generation < floor) return false;
+    if (!g_localizationEpochFence.permits(modId, generation)) return false;
+    g_localizationQueue.erase(std::remove_if(
+        g_localizationQueue.begin(), g_localizationQueue.end(),
+        [&](const LocalizationJob& job) {
+            return job.modId == modId && job.generation < generation;
+        }), g_localizationQueue.end());
     if (g_localizationQueue.size() >= 64) return false;
-    if (generation > floor) {
-        floor = generation;
-        g_localizationQueue.erase(std::remove_if(
-            g_localizationQueue.begin(), g_localizationQueue.end(),
-            [&](const LocalizationJob& job) {
-                return job.modId == modId && job.generation < generation;
-            }), g_localizationQueue.end());
-    }
+    g_localizationEpochFence.activate(modId, generation);
     g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false});
     g_pinnedWake.notify_one();
     return true;
@@ -2101,8 +2099,7 @@ void unloadManagedLocalizationCallbacks(const std::string& modId) {
         g_localizationQueue.end(), [&](const LocalizationJob& job) {
             return job.modId == modId;
         }), g_localizationQueue.end());
-    uint64_t& floor = g_localizationEpochFloor[modId];
-    if (floor != UINT64_MAX) ++floor;
+    g_localizationEpochFence.retire(modId);
     if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
         == g_localizationUnloads.end())
         g_localizationUnloads.push_back(modId);
