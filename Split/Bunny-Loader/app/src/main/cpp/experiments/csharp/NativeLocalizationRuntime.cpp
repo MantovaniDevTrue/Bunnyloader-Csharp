@@ -33,6 +33,7 @@ std::set<std::string> pendingManagedNotification;
 std::map<std::string, uint64_t> managedEpochs;
 uint64_t nextManagedEpoch = 0;
 uint64_t lastDynamicRevision = 0;
+std::map<std::string, std::map<std::string, std::string>> vanillaOriginals;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -240,7 +241,7 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
             if(entry.culture=="en-US")selected[entry.key]=entry.value;
         for(const auto& entry:entries)
             if(entry.culture==culture)selected[entry.key]=entry.value;
-        all.insert(selected.begin(),selected.end());
+        for(const auto& [key,value]:selected)all[key]=value;
     }
     const GameTextLookup vanilla=[&](const std::string& key,std::string* output)->bool {
         if(!r.exists||!r.getValue)return false;
@@ -256,7 +257,27 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
         *output=textToUtf8(value);
         return !output->empty()||value->length==0;
     };
-    for (const auto& key : retired) all[key]=key;
+    auto& originals = vanillaOriginals[culture];
+    for (const auto& [key, value] : all) {
+        if (key.rfind("Mods.", 0) == 0 || originals.contains(key)) continue;
+        std::string native;
+        if (!vanilla(key, &native)) return false;
+        originals.emplace(key, std::move(native));
+    }
+    std::map<std::string, std::string> retiredValues;
+    SessionSnapshot ownedRetirement = current;
+    ownedRetirement.retired.clear();
+    for (const auto& key : retired) {
+        if (key.rfind("Mods.", 0) == 0) {
+            ownedRetirement.retired.insert(key);
+            retiredValues[key] = key;
+        } else if (!all.contains(key)) {
+            auto previous = originals.find(key);
+            if (previous != originals.end())
+                retiredValues[key] = previous->second;
+        }
+    }
+    for (const auto& [key,value] : retiredValues) all[key]=value;
     const auto resolved=resolveLocaleReferences(std::move(all),vanilla);
     const auto publishOne=[&](const std::string& owner,
                               const std::map<std::string,std::string>& entries)->bool {
@@ -294,12 +315,9 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
         }
         return true;
     };
-    if(!retired.empty()) {
-        std::map<std::string,std::string> neutral;
-        for(const auto& key:retired)neutral.emplace(key,key);
-        if(!publishOne("retired",neutral))return false;
-        if(!removeRetiredKeys(manager,current))return false;
-    }
+    if(!retiredValues.empty() && !publishOne("retired",retiredValues)) return false;
+    if(!ownedRetirement.retired.empty() &&
+       !removeRetiredKeys(manager,ownedRetirement))return false;
     for(const auto& [modId,entries]:selectedByMod)
         if(!publishOne(modId,entries))return false;
     return true;
@@ -339,6 +357,7 @@ void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const M
     auto& r=refs();
     const std::string name=cultureName(culture,r.name);
     if(name.empty())return;
+    vanillaOriginals.erase(name);
     SessionSnapshot current;
     {
         std::lock_guard<std::mutex> lock(gate);
@@ -379,13 +398,15 @@ bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,
     if(fields.size()!=4||fields[0]!="LOCALE"||!identifier(modId,false)||
        !cultureId(fields[1])||
        !hex(fields[2],&result->key,280)||!hex(fields[3],&result->value,8192)||
-       result->key.rfind("Mods.source.",0)!=0||
-       !identifier(result->key.substr(12),true)) {
+       !identifier(result->key,true) ||
+       (result->key.rfind("Mods.",0)==0 &&
+        result->key.rfind("Mods.source.",0)!=0)) {
         *error="[CSharp][ERROR][Localization] Stage=Decode Result=Rejected Reason=InvalidLocaleWire";
         return false;
     }
     result->culture=fields[1];
-    result->key="Mods."+modId+"."+result->key.substr(12);
+    if (result->key.rfind("Mods.source.",0)==0)
+        result->key="Mods."+modId+"."+result->key.substr(12);
     const std::string sourcePrefix="{$Mods.source.";
     size_t index=0;
     while((index=result->value.find(sourcePrefix,index))!=std::string::npos) {
@@ -429,8 +450,9 @@ bool decodeManagedWire(const std::string& wire, const std::string& modId,
         if (!cultureId(entry.culture) ||
             !hex(line.substr(b + 1, c - b - 1), &entry.key, 280) ||
             !hex(line.substr(c + 1), &entry.value, 8192) ||
-            entry.key.rfind(prefix, 0) != 0 ||
-            !identifier(entry.key.substr(prefix.size()), true) ||
+            !identifier(entry.key, true) ||
+            (entry.key.rfind("Mods.", 0) == 0 &&
+             entry.key.rfind(prefix, 0) != 0) ||
             !seen.emplace(entry.key, entry.culture).second)
             return reject("InvalidDynamicWireIdentity");
         entries.push_back(std::move(entry));
