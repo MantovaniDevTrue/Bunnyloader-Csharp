@@ -135,7 +135,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('fields[0] == "PREFIX_POST"', source)
         self.assertIn("prefixPostPolicies.erase(post)", source)
         self.assertIn("const auto* prefixPolicy = prefixView ? byType(*prefixView, prefix)", gameplay)
-        self.assertIn("selected->extraTooltip.c_str()", gameplay)
+        self.assertIn("append(selected->extraTooltip);", gameplay)
         self.assertIn("requireEffectiveStats", gameplay)
         self.assertIn("effects.DamageBonus = 3;", fixture)
         playable = (ROOT / "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs").read_text(encoding="utf-8")
