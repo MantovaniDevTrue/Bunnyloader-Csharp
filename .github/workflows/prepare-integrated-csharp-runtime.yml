@@ -66,6 +66,11 @@ jobs:
           test -s "$DEST/Microsoft.CodeAnalysis.dll"
           test -s "$DEST/Microsoft.CodeAnalysis.CSharp.dll"
           grep -a -q MoveSpeedPercent "$DEST/BunnySourceSdk.dll"
+          grep -a -q BunnySoundStyle "$DEST/BunnySourceSdk.dll"
+          grep -a -q BunnyNativeDefaults "$DEST/BunnySourceSdk.dll"
+          grep -a -q CustomUseSound "$DEST/BunnySourceSdk.dll"
+          test -s samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg
+          echo "BUNNY_LATEST_CSHARP_EXAMPLE_AUDIO_IN_SDK=YES"
 
       - name: Verify all preinstalled assets and generate exact APK manifest
         shell: bash
