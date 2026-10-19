@@ -901,14 +901,17 @@ class; base: `System.Object`.
 BunnyPrefixItemConditions()
 int MaxDamage { get; }
 int MaxMana { get; }
+int MaxStack { get; }
 int MinDamage { get; }
 int MinMana { get; }
+int MinStack { get; }
 ```
 
 | Method | Execution |
 | --- | --- |
 | `void RequireDamageBetween(int minimum, int maximum)` | compile_policy |
 | `void RequireManaBetween(int minimum, int maximum)` | compile_policy |
+| `void RequireStackBetween(int minimum, int maximum)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyPrefixRollRules
 

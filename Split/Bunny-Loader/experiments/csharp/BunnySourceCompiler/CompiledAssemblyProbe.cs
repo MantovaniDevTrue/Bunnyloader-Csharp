@@ -962,16 +962,22 @@ public static class CompiledAssemblyProbe
             int maxDamage = Value<int>(conditions, "MaxDamage");
             int minMana = Value<int>(conditions, "MinMana");
             int maxMana = Value<int>(conditions, "MaxMana");
+            int minStack = Value<int>(conditions, "MinStack");
+            int maxStack = Value<int>(conditions, "MaxStack");
             if (minDamage < 0 || maxDamage < minDamage || maxDamage > 100000 ||
-                minMana < 0 || maxMana < minMana || maxMana > 10000)
+                minMana < 0 || maxMana < minMana || maxMana > 10000 ||
+                minStack < 0 || maxStack < minStack || maxStack > 999999)
                 throw new InvalidOperationException("Invalid runtime prefix item conditions: " + name);
             if (minDamage != 0 || maxDamage != 100000 ||
-                minMana != 0 || maxMana != 10000)
+                minMana != 0 || maxMana != 10000 ||
+                minStack != 0 || maxStack != 999999)
                 lines.Add(string.Join("\t", "PREFIX_CONDITION", name,
                     minDamage.ToString(CultureInfo.InvariantCulture),
                     maxDamage.ToString(CultureInfo.InvariantCulture),
                     minMana.ToString(CultureInfo.InvariantCulture),
-                    maxMana.ToString(CultureInfo.InvariantCulture)));
+                    maxMana.ToString(CultureInfo.InvariantCulture),
+                    minStack.ToString(CultureInfo.InvariantCulture),
+                    maxStack.ToString(CultureInfo.InvariantCulture)));
             MethodInfo applyPrefix = type.GetMethod("Apply",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");

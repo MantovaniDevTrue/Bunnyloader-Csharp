@@ -45,6 +45,7 @@ struct Refs {
     int damage = -1;
     int useAnimation = -1;
     int mana = -1;
+    int stack = -1;
     int knockBack = -1;
     int ammo = -1;
     int accessory = -1;
@@ -191,6 +192,11 @@ bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRo
         if (r.mana < 0) return false;
         const int mana = bl::runtime::field<int32_t>(item, r.mana);
         if (mana < p.minItemMana || mana > p.maxItemMana) return false;
+    }
+    if (p.minItemStack != 0 || p.maxItemStack != 999999) {
+        if (r.stack < 0) return false;
+        const int stack = bl::runtime::field<int32_t>(item, r.stack);
+        if (stack < p.minItemStack || stack > p.maxItemStack) return false;
     }
     if (p.category == 6) {
         const int type = bl::runtime::field<int32_t>(item, r.type);
@@ -918,6 +924,7 @@ bool installManagedPrefixGameplayHooks() {
     r.damage = fieldOffset(item, "damage");
     r.useAnimation = fieldOffset(item, "useAnimation");
     r.mana = fieldOffset(item, "mana");
+    r.stack = fieldOffset(item, "stack");
     r.knockBack = fieldOffset(item, "knockBack");
     r.ammo = fieldOffset(item, "ammo");
     r.accessory = fieldOffset(item, "accessory");

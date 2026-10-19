@@ -26,6 +26,10 @@ O `ExampleMightyPrefix` demonstra `ExtraTooltip` mais `AddTooltipLine` para acre
 
 O exemplo jogável `ExampleWand.cs` usa `ConfigurePrefixRules(BunnyItemPrefixRules)` para bloquear o prefixo vanilla ID 71 e o prefixo local `ExampleGuardedPrefix`. A política é resolvida no carregamento e aplicada nos hooks nativos, não invoca o MonoVM por reforja. Funciona como um subconjunto estático de `AllowPrefix`; não substitui os callbacks dinâmicos por instância do loader JS. CI C#/C++ e compilação ARM64 não equivalem a testes no dispositivo.
 
+## Condições atuais por instância no PrefixLoader C#
+
+O exemplo `ExampleMightyPrefix` usa `RequireDamageBetween`, `RequireManaBetween` e `RequireStackBetween(1, 10)`. O último é avaliado nativamente em `Terraria.Item.stack` a cada tentativa de rolagem, sem chamada síncrona à MonoVM. O descritor `PREFIX_CONDITION` de 6 campos permanece válido; os novos registros de 8 campos incluem os limites da pilha. A condição regula novas rolagens, não invalida prefixos recuperados de saves anteriores. Trata-se de condição declarativa por estado do item, não de `CanRoll(item)` C# arbitrário. Não houve teste de gameplay Android neste lote.
+
 ## Diferença entre três rotas
 
 1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.

@@ -1629,8 +1629,10 @@
       "properties": [
         "int MaxDamage { get; }",
         "int MaxMana { get; }",
+        "int MaxStack { get; }",
         "int MinDamage { get; }",
-        "int MinMana { get; }"
+        "int MinMana { get; }",
+        "int MinStack { get; }"
       ],
       "values": [],
       "methods": [
@@ -1640,6 +1642,10 @@
         },
         {
           "signature": "void RequireManaBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void RequireStackBetween(int minimum, int maximum)",
           "execution": "compile_policy"
         }
       ]

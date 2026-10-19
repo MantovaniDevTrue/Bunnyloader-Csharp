@@ -504,6 +504,8 @@ public sealed class BunnyPrefixItemConditions
     public int MaxDamage { get; private set; } = 100000;
     public int MinMana { get; private set; } = 0;
     public int MaxMana { get; private set; } = 10000;
+    public int MinStack { get; private set; } = 0;
+    public int MaxStack { get; private set; } = 999999;
 
     public void RequireDamageBetween(int minimum, int maximum)
     {
@@ -519,6 +521,14 @@ public sealed class BunnyPrefixItemConditions
             throw new System.ArgumentOutOfRangeException(nameof(minimum));
         MinMana = minimum;
         MaxMana = maximum;
+    }
+
+    public void RequireStackBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinStack = minimum;
+        MaxStack = maximum;
     }
 }
 

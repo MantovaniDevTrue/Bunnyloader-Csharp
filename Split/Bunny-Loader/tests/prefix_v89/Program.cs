@@ -24,7 +24,7 @@ try
         throw new InvalidOperationException("Managed item PrefixChance policy missing");
     if (data.Count(row => row == "PREFIX_APPLY\tTestWand\t4\t125") != 1)
         throw new InvalidOperationException("Managed item ApplyPrefix policy missing");
-    if (data.Count(row => row == "PREFIX_CONDITION\tTestMightyPrefix\t10\t25\t0\t8") != 1)
+    if (data.Count(row => row == "PREFIX_CONDITION\tTestMightyPrefix\t10\t25\t0\t8\t1\t10") != 1)
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
@@ -120,8 +120,14 @@ try
     if (!invalidMana) throw new InvalidOperationException("Negative mana range accepted");
     predicates.RequireDamageBetween(10, 25);
     predicates.RequireManaBetween(0, 8);
+    bool invalidStack = false;
+    try { predicates.RequireStackBetween(11, 10); }
+    catch (ArgumentOutOfRangeException) { invalidStack = true; }
+    if (!invalidStack) throw new InvalidOperationException("Inverted stack range accepted");
+    predicates.RequireStackBetween(1, 10);
     if (predicates.MinDamage != 10 || predicates.MaxDamage != 25 ||
-        predicates.MinMana != 0 || predicates.MaxMana != 8)
+        predicates.MinMana != 0 || predicates.MaxMana != 8 ||
+        predicates.MinStack != 1 || predicates.MaxStack != 10)
         throw new InvalidOperationException("Item condition assignment lost");
     var denied = new BunnyLoader.Source.BunnyItemPrefixRules();
     denied.Deny("TestMightyPrefix");

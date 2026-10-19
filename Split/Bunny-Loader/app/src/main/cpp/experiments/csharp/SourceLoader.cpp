@@ -714,15 +714,21 @@ bool applyManagedSourceDefaults(
                 ? sourceIdentityForWire("PREFIX", fields[1]) : "";
             const auto registered = mod->registeredKindTypes.find(key);
             ManagedPrefixEntry bounds;
-            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+            if ((fields.size() != 6 && fields.size() != 8) ||
+                registered == mod->registeredKindTypes.end() ||
                 runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
                 !integer(fields[2], &bounds.minItemDamage) ||
                 !integer(fields[3], &bounds.maxItemDamage) ||
                 !integer(fields[4], &bounds.minItemMana) ||
                 !integer(fields[5], &bounds.maxItemMana) ||
+                (fields.size() == 8 &&
+                    (!integer(fields[6], &bounds.minItemStack) ||
+                     !integer(fields[7], &bounds.maxItemStack))) ||
                 bounds.minItemDamage < 0 || bounds.maxItemDamage < bounds.minItemDamage ||
                 bounds.maxItemDamage > 100000 || bounds.minItemMana < 0 ||
                 bounds.maxItemMana < bounds.minItemMana || bounds.maxItemMana > 10000 ||
+                bounds.minItemStack < 0 || bounds.maxItemStack < bounds.minItemStack ||
+                bounds.maxItemStack > 999999 ||
                 !prefixItemConditions.emplace(fields[1], bounds).second) {
                 *error = "[CSharp][ERROR][PrefixCondition] InvalidPrefixOrBounds";
                 return false;
@@ -1419,6 +1425,8 @@ bool applyManagedSourceDefaults(
             prefix.maxItemDamage = condition->second.maxItemDamage;
             prefix.minItemMana = condition->second.minItemMana;
             prefix.maxItemMana = condition->second.maxItemMana;
+            prefix.minItemStack = condition->second.minItemStack;
+            prefix.maxItemStack = condition->second.maxItemStack;
             prefixItemConditions.erase(condition);
         }
         const auto post = prefixPostPolicies.find(prefix.name);

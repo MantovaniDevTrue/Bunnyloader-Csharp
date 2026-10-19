@@ -61,6 +61,7 @@ public sealed class TestMightyPrefix : BunnyPrefix
     {
         conditions.RequireDamageBetween(10, 25);
         conditions.RequireManaBetween(0, 8);
+        conditions.RequireStackBetween(1, 10);
     }
 
     public override void SetStats(ref PrefixStats stats)

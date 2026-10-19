@@ -112,6 +112,8 @@ int main() {
     mighty.maxItemDamage = 25;
     mighty.minItemMana = 0;
     mighty.maxItemMana = 8;
+    mighty.minItemStack = 1;
+    mighty.maxItemStack = 10;
     mighty.applyDamageBonus = 3;
     mighty.applyValueBonus = 40;
     mighty.requireEffectiveStats = false;
@@ -127,6 +129,14 @@ int main() {
     assert(managedPrefixView() == second);
     invalidPost = mighty;
     invalidPost.maxItemMana = 10001;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.maxItemStack = 0;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.maxItemStack = 1000000;
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
     assert(managedPrefixView() == second);
     invalidPost = mighty;
@@ -150,6 +160,8 @@ int main() {
     assert(third->at(1).minItemDamage == 10);
     assert(third->at(1).maxItemDamage == 25);
     assert(third->at(1).maxItemMana == 8);
+    assert(third->at(1).minItemStack == 1);
+    assert(third->at(1).maxItemStack == 10);
     assert(third->at(1).applyValueBonus == 40);
     assert(!third->at(1).requireEffectiveStats);
     assert(third->at(1).extraTooltip == "Bonus adicional do prefixo");

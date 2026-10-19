@@ -35,7 +35,7 @@ std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
     std::make_shared<const std::map<int, std::set<int>>>();
 struct Item {
     Il2CppObject object{};
-    int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0, value = 100;
+    int type = 6199, damage = 12, useAnimation = 20, mana = 0, stack = 1, ammo = 0, value = 100;
     float knockBack = 2;
     uint8_t accessory = 0, consumable = 0, ranged = 1, prefix = 0;
 };
@@ -164,7 +164,7 @@ int main() {
     g_refs.rollableMethod = &rollableMethod;
     g_refs.nextDoubleMethod = &nextDoubleMethod;
 #define OFFSET(member) g_refs.member = offsetof(Item, member)
-    OFFSET(type); OFFSET(damage); OFFSET(useAnimation); OFFSET(mana);
+    OFFSET(type); OFFSET(damage); OFFSET(useAnimation); OFFSET(mana); OFFSET(stack);
     OFFSET(ammo); OFFSET(knockBack); OFFSET(accessory); OFFSET(consumable);
     OFFSET(ranged); OFFSET(prefix);
 #undef OFFSET
@@ -327,6 +327,8 @@ int main() {
     mighty.maxItemDamage = 25;
     mighty.minItemMana = 0;
     mighty.maxItemMana = 8;
+    mighty.minItemStack = 1;
+    mighty.maxItemStack = 10;
     mighty.itemWeights[6199] = 3;
     mighty.itemWeights[6198] = 0;
     descriptors = {guarded, mighty};
@@ -351,8 +353,18 @@ int main() {
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     weapon.mana = 8;
     assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.stack = 0;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    weapon.stack = 10;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.stack = 11;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.stack = 1;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
     weapon.damage = 9;
     weapon.mana = 9;
+    weapon.stack = 11;
     weapon.prefix = 0;
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     g_restoreRoll = {&weapon.object, 99, false};
@@ -373,6 +385,7 @@ int main() {
     weapon.prefix = 0;
     weapon.damage = 12;
     weapon.mana = 0;
+    weapon.stack = 1;
     weapon.type = 6198;
     assert(hookRollable(&weapon.object, nullptr) == nullptr);
     assert(!hookCanRoll(&weapon.object, 99, nullptr));

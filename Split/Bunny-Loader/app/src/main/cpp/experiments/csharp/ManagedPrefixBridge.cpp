@@ -43,6 +43,8 @@ bool valid(const ManagedPrefixEntry& p) {
         p.minItemDamage < 0 || p.maxItemDamage < p.minItemDamage ||
         p.maxItemDamage > 100000 || p.minItemMana < 0 ||
         p.maxItemMana < p.minItemMana || p.maxItemMana > 10000 ||
+        p.minItemStack < 0 || p.maxItemStack < p.minItemStack ||
+        p.maxItemStack > 999999 ||
         p.applyDamageBonus < 0 || p.applyDamageBonus > 1000 ||
         p.applyValueBonus < 0 || p.applyValueBonus > 100000 ||
         p.extraTooltip.size() > 120 ||

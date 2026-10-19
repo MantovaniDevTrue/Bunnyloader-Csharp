@@ -32,6 +32,8 @@ struct ManagedPrefixEntry {
     int maxItemDamage = 100000;
     int minItemMana = 0;
     int maxItemMana = 10000;
+    int minItemStack = 0;
+    int maxItemStack = 999999;
     bool requireEffectiveStats = true;
     std::string extraTooltip;
     std::vector<std::string> tooltipLines;
