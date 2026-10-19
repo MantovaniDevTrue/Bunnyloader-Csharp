@@ -298,7 +298,7 @@ public sealed class MinionStaff : BunnyWeapon
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 48)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 53)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -306,8 +306,8 @@ public sealed class MinionStaff : BunnyWeapon
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 53 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
-        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=53Rows,V2Header ActualRows=" +
+    if (defaultRows.Length != 64 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=64Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {
         "PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n",
@@ -339,6 +339,13 @@ public sealed class MinionStaff : BunnyWeapon
         "PREFIX\tExampleMightyPrefix\t4\t5\t1.2",
         "PREFIX\tExampleGuardedPrefix\t5\t1\t1",
         "ITEM\tExampleWings\t",
+        "ITEM\tExampleMeleeWeapon\t0\t0\t1\t50000\t2\t50\t6\t20\t20\t1\t",
+        "ITEM\tExampleBullet\t0\t0\t9999\t5000\t2\t12\t",
+        "ITEM\tExampleRocketLauncher\t0\t0\t1\t400000\t8\t55\t",
+        "HOLDOUT\tExampleBulletLauncher\t-18\t0\n",
+        "HOLDOUT\tExampleRocketLauncher\t-2\t-2\n",
+        "NATIVE_ITEM\tExampleBullet\tammo:d:AmmoID:Bullet;ranged:b:1;shoot:p:ExampleBulletProjectile;shootSpeed:f:4.5\n",
+        "NATIVE_PROJECTILE\tExampleBulletProjectile\textraUpdates:i:1;hostile:b:0;light:f:0.5;localNPCHitCooldown:i:-1;ranged:b:1;scale:f:1;usesLocalNPCImmunity:b:1\n",
     };
     foreach (string expectedDefault in expectedDefaults) {
         if (independentDefaults.Contains(expectedDefault, StringComparison.Ordinal)) continue;

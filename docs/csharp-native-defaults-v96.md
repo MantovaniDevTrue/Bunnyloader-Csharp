@@ -31,3 +31,5 @@ Fixtures executam binder/publicadores/hooks reais com metadata e funções IL2CP
 A captura posterior à entrega .95.2 mostra `Killed Reason=BuffCancelled` e baseline30/incoming36/item30. O usuário informou que funcionou; a imagem não exibe versão/PID. Registrar evidência parcial de cancelamento e origem do dano, sem promover o minion inteiro nem afirmar FPS.
 
 Próximos grupos: mecanismos de disparo/ModifyShootStats/Shoot, consumo mana/ammo e sons customizados para ExampleGun/Shotgun; IA/draw completos da magia animada; demais famílias de armas/projéteis. Seguem abertos todos os outros lotes e os206 exemplos. O loader completo não está concluído.
+
+CI39186174513 bloqueou a entrega no smoke independente que ainda exigia48 classes e53 linhas anteriores. O pacote novo produz53 classes e64 linhas; o smoke foi atualizado e ampliado para verificar preços, munição simbólica e offsets reais dos novos exemplos. Execução completa local do mesmo smoke passou, incluindo recompilação por edição e segundo mod independente. Nenhum artefato dessa tentativa foi publicado.
