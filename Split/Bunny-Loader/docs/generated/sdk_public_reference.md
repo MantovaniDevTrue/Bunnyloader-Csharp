@@ -26,6 +26,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+Nullable<bool> PrefixChance { get; set; }
 UInt32 VisualColor { get; set; }
 float VisualOpacity { get; set; }
 float VisualScale { get; set; }
@@ -138,6 +139,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyNativeDefaults NativeDefaults { get; }
+Nullable<bool> PrefixChance { get; set; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
@@ -533,6 +535,7 @@ BunnyItemBehavior Behavior { get; }
 BunnyNativeDefaults NativeDefaults { get; }
 BunnySoundStyle CustomUseSound { get; set; }
 Dictionary<string, string> TooltipTranslations { get; }
+Nullable<bool> PrefixChance { get; set; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
@@ -1324,6 +1327,7 @@ abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 ```csharp
 BunnyHoldout Holdout { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+Nullable<bool> PrefixChance { get; set; }
 BunnySoundStyle CustomUseSound { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
