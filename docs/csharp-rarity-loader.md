@@ -174,18 +174,21 @@ Isso é teste de integridade de arquivos no host, **não** confirmação de salv
 - Mensagens `itens gravados` do personagem e do mundo agora dependem da confirmação da escrita. Os diagnósticos de falha específicos continuam disponíveis.
 - Os testes de host do lote anterior validam movimento de itens, remoção, reconciliação e carregamento via selector original do Bunny. O arquivo de integração nativa é compilado com `-Werror`; o fluxo IL2CPP real ainda depende de QA no aparelho.
 
-## Bloqueios para declarar o loader completo
+## Estado da implementação do RarityLoader C#
 
-1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
-2. Aplicar `Rare` de armas, acessórios e itens às novas identidades; suportar `TypeOf` cruzado e persistência/reidratação sem perda de ID.
-3. Registrar cores de raridade em `Terraria.GameContent.UI.ItemRarity.Initialize` no C++/IL2CPP, incluindo chamadas de reinicialização.
-4. Implementar `Item.GetPopupRarityColor` para textos flutuantes e `Item.Prefix` com out/ref, multiplicadores e caso `Prefix(-1)` que não pode voltar a roxo.
-5. Validar em Android o hook nativo `Main.MouseTextInner` (fail-closed) e completar a cor do nome em tooltips sem alterar a lógica vanilla.
-6. Dar suporte a cores animadas do `Main.DiscoR/G/B` sem MonoVM bloqueante por draw; estabelecer a periodicidade de atualização e orçamento de renderização.
-7. Portar os dois exemplos originais com assets e um item utilizável, cobrindo prefixos bons/ruins, chão, coleta, tooltip e etiqueta de chat `[i:]`.
-8. Validar ABI, ciclo de carregamento, troca de mundo, descarregamento, mais de um mod, saves e multiplayer; rodar CI nativo e testes reais de Android, verificar fidelidade visual, memória e 60 FPS.
+O código de host abrange os recursos de raridade do ExampleModBunny original:
 
-**Regra de entrega:** nem esta etapa nem um teste de host aprovado contam como `RarityLoader` completo. A política de cinco loaders completos com exemplo original e validação Android antes de APK permanece. Não modificar workflow de build nem disparar `workflow_dispatch` de APK.
+- Descoberta de classes `BunnyRarity`, reserva de ID compartilhada entre C# e JS e registro gerenciado por `mod/classe`. `SetStaticDefaults` e `TypeOf<T>(modId)` são atendidos pelo worker C# após a associação dos IDs nativos.
+- `SetRarity<T>()` para `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion`, com aplicação do ID pelo host.
+- Cache de cor C++ sem callback gerenciado no desenho, suporte a `Main.DiscoR/G/B`, tabela `ItemRarity.Initialize` e popup de coleta.
+- `Item.Prefix` restaura raridade mesmo antes da amostragem da cor; atualização por multiplicador e mudança para raridade superior/inferior, com resultado validado pelo registro.
+- Texto do item no chão e nome no tooltip através dos métodos de desenho originais do jogo, com validação de ABI e fallback nativo se incompatível. A tabela de cores também fornece a cor para etiquetas `[i:]` quando usada pelo Terraria.
+- Persistência opt-in v3 para personagens e baús por chave estável, backups imutáveis dos formatos antigos, preflight estrito antes de sobrescrever e tratamento de raridades pendentes quando o mod não está carregado ou o item se move.
+- As classes `ExampleModRarity` (cor 200, 215, 230) e `ExampleHigherTierModRarity` (Disco animado) estão nos **fontes jogáveis** de `samples/ExampleModCSharp/Playable`. As duas usam os mesmos cálculos e mudanças de tier do ExampleModBunny JS. Itens, espada, acessório, arma e poção do exemplo utilizam `SetRarity<T>()` sem recriar sprites ou efeitos.
+
+**Ainda não é aprovação no Terraria Android.** Bloqueios externos à implementação do host: confirmar assinaturas/hook chain IL2CPP e cores reais, testes de drops/chão/coleta/tooltips/chat, salva e reabre personagens/baús v1/v2/v3, desabilitação/reabilitação de mods, ID misto JS/C#, mudança de mundo, multiplayer, memória e 60 FPS. Não há prova de compatibilidade de saves v3 com Bunny Loader antigo, que precisa usar backup para rollback.
+
+**Política:** o RarityLoader permanece em PR draft até o QA; não gerar APK ou publicar release enquanto os cinco loaders e o ciclo de validação Android não forem concluídos.
 
 ## Verificação segura (host)
 
