@@ -10,6 +10,10 @@ on:
       - experiments/csharp/BunnyDustTests/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
+      - tests/csharp/native_dust_parser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - .github/workflows/check-csharp-dust.yml
   pull_request:
     paths:
@@ -36,3 +40,9 @@ jobs:
         run: |
           c++ -std=c++17 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
           "$RUNNER_TEMP/dust_contract"
+      - name: Verify Roslyn source compiler assembly
+        run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Verify DustLoader source parser
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp             tests/csharp/native_dust_parser.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o "$RUNNER_TEMP/dust_parser"
+          "$RUNNER_TEMP/dust_parser"
