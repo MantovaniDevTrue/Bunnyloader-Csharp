@@ -2053,13 +2053,6 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
         assemblyPath.empty() || assemblyPath.size() > 2048 ||
         culture.size() < 2 || culture.size() > 20) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (!g_localizationQueue.empty()) {
-        auto& last = g_localizationQueue.back();
-        if (!last.unload && last.modId == modId && last.assemblyPath == assemblyPath) {
-            last.culture = culture;
-            return true;
-        }
-    }
     if (g_localizationQueue.size() >= 64) return false;
     g_localizationQueue.push_back({modId, assemblyPath, culture, false});
     g_pinnedWake.notify_one();
