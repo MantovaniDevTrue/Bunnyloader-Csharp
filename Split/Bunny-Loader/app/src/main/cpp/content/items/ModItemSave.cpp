@@ -891,39 +891,76 @@ void retryPendingManagedRaritiesInWorld() {
     const std::string path = localPath(file);
     auto* player = objectAt(file, g_refs.filePlayer);
     if (path.empty() || !player) return;
-    std::map<std::string, PendingPrefix> pending;
+
+    std::map<std::string, PendingPrefix> pendingBySlot;
+    std::map<Il2CppObject*, PendingPrefix> pendingByItem;
     {
         std::lock_guard<std::mutex> lock(g_mx);
-        const auto it = g_pendingRarity.find(path);
-        if (it == g_pendingRarity.end() || it->second.empty()) return;
-        pending = it->second;
+        const auto slots = g_pendingRarity.find(path);
+        if (slots != g_pendingRarity.end()) pendingBySlot = slots->second;
+        const auto items = g_pendingRarityByItem.find(path);
+        if (items != g_pendingRarityByItem.end()) pendingByItem = items->second;
     }
-    std::vector<std::string> completed;
+    if (pendingBySlot.empty() && pendingByItem.empty()) return;
+
+    struct Completed {
+        std::string origin;
+        Il2CppObject* item;
+        int type;
+        std::string key;
+    };
+    std::vector<Completed> completed;
     for (const Container& container : containersOf(player)) {
         for (int slot = 0; slot < container.size(); ++slot) {
-            const auto key = placeKey(container.name, slot);
-            const auto it = pending.find(key);
-            if (it == pending.end()) continue;
             auto* item = container.at(slot);
-            if (item && field<int32_t>(item, g_refs.type) == it->second.type &&
-                restoreRarity(item, it->second.key))
-                completed.push_back(key);
+            if (!item) continue;
+            const int type = field<int32_t>(item, g_refs.type);
+            const auto byItem = pendingByItem.find(item);
+            const std::string slotKey = placeKey(container.name, slot);
+            PendingPrefix desired;
+            std::string origin;
+            if (byItem != pendingByItem.end() && byItem->second.type == type) {
+                desired = byItem->second;
+                origin = desired.origin;
+            } else {
+                const auto bySlot = pendingBySlot.find(slotKey);
+                if (bySlot == pendingBySlot.end() || bySlot->second.type != type) continue;
+                desired = bySlot->second;
+                bool belongsElsewhere = false;
+                for (const auto& [tracked, state] : pendingByItem)
+                    if (tracked != item && state.type == type &&
+                        state.key == desired.key && state.origin == slotKey) {
+                        belongsElsewhere = true;
+                        break;
+                    }
+                if (belongsElsewhere) continue;
+                origin = slotKey;
+            }
+            if (restoreRarity(item, desired.key))
+                completed.push_back({origin, item, desired.type, desired.key});
         }
     }
-    {
-        std::lock_guard<std::mutex> lock(g_mx);
-        auto active = g_pendingRarity.find(path);
-        if (active == g_pendingRarity.end()) return;
-        for (const auto& key : completed) {
-            auto original = pending.find(key);
-            auto current = active->second.find(key);
-            if (original != pending.end() && current != active->second.end() &&
-                current->second.type == original->second.type &&
-                current->second.key == original->second.key)
-                active->second.erase(current);
+    if (completed.empty()) return;
+
+    std::lock_guard<std::mutex> lock(g_mx);
+    auto slots = g_pendingRarity.find(path);
+    auto items = g_pendingRarityByItem.find(path);
+    for (const auto& done : completed) {
+        if (slots != g_pendingRarity.end() && !done.origin.empty()) {
+            auto at = slots->second.find(done.origin);
+            if (at != slots->second.end() && at->second.type == done.type &&
+                at->second.key == done.key) slots->second.erase(at);
         }
-        if (active->second.empty()) g_pendingRarity.erase(active);
+        if (items != g_pendingRarityByItem.end()) {
+            auto at = items->second.find(done.item);
+            if (at != items->second.end() && at->second.type == done.type &&
+                at->second.key == done.key) items->second.erase(at);
+        }
     }
+    if (slots != g_pendingRarity.end() && slots->second.empty())
+        g_pendingRarity.erase(slots);
+    if (items != g_pendingRarityByItem.end() && items->second.empty())
+        g_pendingRarityByItem.erase(items);
 }
 
 // ------------------------------ mundo ------------------------------
