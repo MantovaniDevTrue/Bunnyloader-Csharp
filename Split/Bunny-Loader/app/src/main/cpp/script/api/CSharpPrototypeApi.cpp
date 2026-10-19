@@ -7,6 +7,7 @@
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
@@ -67,6 +68,19 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
     return out;
+}
+
+JSValue jsManagedRarityColor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc != 1) return JS_ThrowTypeError(ctx, "rarityColor(type)");
+    int32_t type = -1;
+    if (JS_ToInt32(ctx, &type, argv[0]) < 0) return JS_EXCEPTION;
+    uint32_t argb = 0;
+    if (!bl::csharp::nativeManagedRarityColor(type, &argb)) return JS_NULL;
+    JSValue channels = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, channels, 0, JS_NewInt32(ctx, (argb >> 16) & 255));
+    JS_SetPropertyUint32(ctx, channels, 1, JS_NewInt32(ctx, (argb >> 8) & 255));
+    JS_SetPropertyUint32(ctx, channels, 2, JS_NewInt32(ctx, argb & 255));
+    return channels;
 }
 
 JSValue jsRarityCount(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2906,6 +2920,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
     JS_SetPropertyStr(ctx, api, "reserveRarityId", JS_NewCFunction(ctx, jsReserveRarityId, "reserveRarityId", 0));
     JS_SetPropertyStr(ctx, api, "rarityCount", JS_NewCFunction(ctx, jsRarityCount, "rarityCount", 0));
+    JS_SetPropertyStr(ctx, api, "rarityColor", JS_NewCFunction(ctx, jsManagedRarityColor, "rarityColor", 1));
     JS_SetPropertyStr(ctx, api, "managedAvailable",
                       JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
