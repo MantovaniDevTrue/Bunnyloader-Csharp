@@ -15,6 +15,7 @@ public sealed class ExampleItem : BunnyItem
         Texture = "Content/Items/ExampleItem.png";
         MaxStack = 9999; // ModItem.CommonMaxStack, como no original JS.
         Value = 100;    // buyPrice(0,0,1,0): valor interno em moedas de cobre.
+        SetRarity<ExampleModRarity>();
     }
 
     public override void AddRecipes()
