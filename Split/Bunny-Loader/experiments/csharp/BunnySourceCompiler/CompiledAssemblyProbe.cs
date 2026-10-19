@@ -66,6 +66,9 @@ public static class CompiledAssemblyProbe
     }
 
     public static int Verify(string assemblyPath, string diagnosticsPath)
+        => Verify(assemblyPath, diagnosticsPath, "");
+
+    public static int Verify(string assemblyPath, string diagnosticsPath, string modRoot)
     {
         try
         {
@@ -156,6 +159,9 @@ public static class CompiledAssemblyProbe
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, walls, diagnosticsPath);
+            if (modRoot.Length != 0)
+                AppendManagedLocalization(modRoot, diagnosticsPath);
+
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -186,6 +192,29 @@ public static class CompiledAssemblyProbe
             return -1;
         }
     }
+
+
+    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath)
+    {
+        string source = Path.Combine(modRoot, "content");
+        var catalog = new BunnyLoader.Source.BunnyLocalizationCatalog();
+        int cultures = catalog.LoadFromContent("source", source);
+        if (cultures == 0) return;
+        IReadOnlyList<string> rows = catalog.ExportWireRows();
+        if (rows.Count > 8192 * 32)
+            throw new InvalidDataException("Localization wire exceeds row limit");
+        string output = Path.Combine(Path.GetDirectoryName(diagnosticsPath) ??
+            throw new InvalidOperationException("Missing diagnostics directory"), "source-runtime-values.txt");
+        using (var stream = new FileStream(output, FileMode.Append, FileAccess.Write, FileShare.None))
+        using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false)))
+        {
+            foreach (string row in rows)
+                writer.WriteLine(row);
+        }
+        File.AppendAllText(diagnosticsPath,
+            "\nMANAGED_LOCALIZATION_WIRE cultures=" + cultures + " rows=" + rows.Count);
+    }
+
 
     private static object CreateContent(Type type)
     {
