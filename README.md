@@ -46,7 +46,7 @@ O ponto de partida C# é o **Bunny Loader C# `0.1.10.16.90.29.95.2`**, com **Exa
 
 ### Antes de compilar
 
-Incluí **o patch do Mono ARM64** em [`tools/mono/patch_mono_android_signals.py`](tools/mono/patch_mono_android_signals.py) e **o script completo de recompilação pública** em [`tools/mono/build_patched_mono_arm64.sh`](tools/mono/build_patched_mono_arm64.sh), usando o código aberto do .NET 8.0.23. Assim, a correção não depende exclusivamente do binário guardado numa build privada antiga. O Mono gerado dessa forma ainda precisa de validação no Android; os arquivos proprietários do Terraria/Unity e a assinatura oficial não fazem parte desta fonte. Veja [como compilar o Mono modificado](tools/mono/README.md) e [o guia técnico](POTATO-C-SHARP-HANDOFF.md).
+Incluí **a biblioteca MonoVM ARM64 modificada** em [`tools/mono/prebuilt/arm64-v8a/`](tools/mono/prebuilt/arm64-v8a/), com SHA-256, licença e procedência. Também compartilhei [o patch de sinais](tools/mono/patch_mono_android_signals.py), [o script de recompilação](tools/mono/build_patched_mono_arm64.sh) a partir do .NET 8.0.23 e [a instalação com validação](tools/mono/install_patched_mono_arm64.sh). **Após preparar o framework Mono oficial, execute o instalador por último**, para não sobrescrever a biblioteca corrigida com a versão genérica. Veja [instruções completas](tools/mono/README.md) e [guia técnico](POTATO-C-SHARP-HANDOFF.md). Arquivos proprietários do Terraria/Unity e chaves de assinatura não fazem parte desta fonte.
 
 **Identidade de aplicativo:** a fonte mantém o `applicationId = "com.bunnyloader.csharptest"` usado nos testes Android do C#. A adaptação para o ID e a assinatura oficiais do Bunny precisa de uma nova compilação e verificação dos caminhos que dependem do pacote.
 
