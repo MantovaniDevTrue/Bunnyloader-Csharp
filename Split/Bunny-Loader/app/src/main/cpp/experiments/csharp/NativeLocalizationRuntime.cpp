@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "experiments/csharp/NativeLocalizationSession.h"
+#include "experiments/csharp/NativeLocalizationRetirePolicy.h"
 #include "experiments/csharp/LocalizationResolve.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -167,8 +168,40 @@ Refs& refs() {
     return reference;
 }
 
-bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,
-                   const std::set<std::string>& retired,const std::string& culture) {
+bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current) {
+    if (current.retired.empty()) return true;
+    if (!safeToRetireAll(current)) return false;
+    auto& api=il2cpp::api();
+    auto* lm=il2cpp::findClass({"Terraria.Localization","LanguageManager",{}});
+    if (!manager || !lm || !api.object_get_class || !api.method_is_instance ||
+        !api.runtime_invoke || !api.string_new) return false;
+    const int32_t offset=il2cpp::fieldOffset(lm,"_localizedTexts");
+    if (offset < 0) return false;
+    auto* dictionary=*reinterpret_cast<Il2CppObject**>(
+        reinterpret_cast<char*>(manager)+offset);
+    if (!dictionary) return false;
+    auto* dictionaryClass=api.object_get_class(dictionary);
+    if (!dictionaryClass) return false;
+    const auto* remove=il2cpp::findMethodBySignature(
+        dictionaryClass,il2cpp::parseSignature("bool Remove(string key)"));
+    if (!remove || !api.method_is_instance(remove)) return false;
+    for (const auto& key:current.retired) {
+        void* args[]={api.string_new(key.c_str())};
+        if (!args[0]) return false;
+        Il2CppObject* exception=nullptr;
+        api.runtime_invoke(remove,dictionary,args,&exception);
+        if (exception) {
+            BL_WARN("[CSharp][Localization] Stage=Unload Key=%s Result=DictionaryRemoveFailed",
+                    key.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
+    const auto& catalog=current.active;
+    const auto& retired=current.retired;
     auto& api=il2cpp::api();auto& r=refs();
     if(!r.valid)return false;
     Il2CppObject* manager=nullptr;
@@ -241,6 +274,7 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,
         std::map<std::string,std::string> neutral;
         for(const auto& key:retired)neutral.emplace(key,key);
         if(!publishOne("retired",neutral))return false;
+        if(!removeRetiredKeys(manager,current))return false;
     }
     for(const auto& [modId,entries]:selectedByMod)
         if(!publishOne(modId,entries))return false;
@@ -267,7 +301,7 @@ void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const M
     }
     if(current.active.empty() && current.retired.empty())return;
     const uint64_t revision=current.revision;
-    if(!publishToGame(current.active,current.retired,name))return;
+    if(!publishToGame(current,name))return;
     invalidateGameTooltips();
     std::lock_guard<std::mutex> lock(gate);
     if(revision==session.revision()) {
@@ -335,7 +369,7 @@ void pumpOnGameThread() {
         current=session.snapshot();
     }
     const uint64_t revision=current.revision;
-    if(!publishToGame(current.active,current.retired,culture))return;
+    if(!publishToGame(current,culture))return;
     invalidateGameTooltips();
     {
         std::lock_guard<std::mutex> lock(gate);
