@@ -1036,7 +1036,7 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
-        } else if (fields[0] == "PREFIX" && fields.size() == 16) {
+        } else if (fields[0] == "PREFIX" && (fields.size() == 16 || fields.size() == 17)) {
             ManagedPrefixEntry record;
             record.name = fields[1];
             record.displayName = fields[15];
@@ -1057,6 +1057,35 @@ bool applyManagedSourceDefaults(
                     *error = "Multiplicador de prefixo C# invalido: " + record.name;
                     return false;
                 }
+            if (fields.size() == 17) {
+                if (fields[16].empty() || fields[16].size() > 320) {
+                    *error = "Regras de prefixo C# invalidas: " + record.name;
+                    return false;
+                }
+                size_t start = 0;
+                while (start < fields[16].size()) {
+                    const size_t comma = fields[16].find(',', start);
+                    const size_t end = comma == std::string::npos ? fields[16].size() : comma;
+                    const size_t colon = fields[16].find(':', start);
+                    int itemType = 0;
+                    int weight = -1;
+                    if (colon == std::string::npos || colon >= end ||
+                        !integer(fields[16].substr(start, colon - start), &itemType) ||
+                        !integer(fields[16].substr(colon + 1, end - colon - 1), &weight) ||
+                        itemType < 1 || itemType > 32767 || weight < 0 || weight > 20 ||
+                        record.itemWeights.size() >= 32 ||
+                        !record.itemWeights.emplace(itemType, weight).second) {
+                        *error = "Regra por item invalida no prefixo C#: " + record.name;
+                        return false;
+                    }
+                    if (comma == std::string::npos) break;
+                    start = comma + 1;
+                    if (start == fields[16].size()) {
+                        *error = "Regra de prefixo C# com virgula final: " + record.name;
+                        return false;
+                    }
+                }
+            }
             prefixes.push_back(std::move(record));
         } else if (fields[0] == "NPC" && fields.size() == 10) {
             ManagedNpcEntry record;
