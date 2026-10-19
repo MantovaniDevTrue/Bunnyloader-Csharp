@@ -41,6 +41,16 @@ Revisão interna `.90.29.99-world-loaders-wip`, ExampleMod0.1.58. Novo caminho d
 
 O protocolo TILE aceita os13 campos anteriores e uma14ª coluna opcional AnimationFrameHeight (0..4096); o compilador C# gera14 campos. O decoder mantém compatibilidade com13. A máscara aceita16bits conhecidos. Cache Roslyn v32 invalida o anterior. A altura nativa de frame não substitui AnimateTile, ainda pendente. Novo esquema16 campos: AnimationFrames (1..64) e AnimationFrameTicks (0..600), com frames>1 exigindo altura e ticks positivos. O C++ passa a atualizar Main.tileFrame/tileFrameCounter no hook nativo AnimateTiles, depois da animação vanilla, validando os arrays IL2CPP Int32[] e habilitando somente tipos C# registrados. O formato13/14 permanece aceito. O protocolo17 campos acrescenta AdjacentTiles: até16 aliases vanilla validados, ordenados e sem duplicatas; o registro nativo mantém todos os pares por tile, em vez de sobrescrever o anterior. A rotina Player.AdjTiles busca pares ordenados por tipo e marca todas as estações equivalentes, sem JS por frame. O formato16 também permanece aceito. O contrato arbitrário AnimateTile e desenho/interações dinâmicos ainda não estão completos; nenhum APK liberado. Não há execução QuickJS, IDs fixos de mod, alteração dos IDs existentes ou shaders novos.
 
+
+### TileLoader — complemento nativo, ainda em desenvolvimento
+
+O SDK C# mantém o contrato de animação por altura, quadros e ticks com validações e atualiza o motor por Main.AnimateTiles. O SDK também aceita até16 equivalências AdjacentTiles por tile, mantendo a propriedade antiga AdjacentTile. As listas são ordenadas e consultadas no hook nativo Player.AdjTiles, com a mesma tabela de tipos da engine. O wire TILE aceita13/14/16/17 colunas; o compilador novo escreve17. Cache Roslyn v34. Nenhum caminho exige JavaScript para executar essas duas políticas.
+
+Arquivos de teste adicionais: `tests/world_loaders/tile_animation_test.cpp` e `tests/world_loaders/tile_adjacency_test.cpp`. As respectivas políticas foram reproduzidas e compiladas isoladamente com G++20, -Wall, -Wextra, -Werror, ASan e UBSan, retornando PASS. Isso **não** valida ainda a compilação do código completo da branch, o ABI dos campos Main.tileFrame/tileFrameCounter no Terraria Android nem o comportamento dentro do jogo. O CI/Android desta revisão ainda não foi executado e o APK continua bloqueado.
+
+Pendências principais: callbacks de TileDrawLoader (PreDraw, PostDraw, DrawEffects, ModifyLight dinâmico e afins), TileUseLoader (RightClick, smart-interact, mouseover, resting e móveis), TileWorldLoader (PlaceInWorld, RandomUpdate, wires, nearby, slope), hooks de quebra e drop modificáveis pela lógica C# e testes reais de save/reload/multiplayer. A animação por cadência fixa não equivale ao callback livre AnimateTile. Portanto, **TileLoader não está certificado completo**.
+
+
 ## Critério e gate de entrega
 
 `tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.
