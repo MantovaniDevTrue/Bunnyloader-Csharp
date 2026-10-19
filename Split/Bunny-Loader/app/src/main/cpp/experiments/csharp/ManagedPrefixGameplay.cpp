@@ -210,7 +210,12 @@ bool restoreCompatible(Il2CppObject* item, const ManagedPrefixEntry& p) {
     const auto& r = g_refs;
     if (!item || r.type < 0) return false;
     const int type = bl::runtime::field<int32_t>(item, r.type);
-    if (p.category == 6) return p.itemWeights.contains(type);
+    if (p.category == 6) {
+        const auto weight = p.itemWeights.find(type);
+        if (weight == p.itemWeights.end()) return false;
+        const auto allowed = p.itemCanRoll.find(type);
+        return allowed == p.itemCanRoll.end() ? weight->second > 0 : allowed->second;
+    }
     if (p.category == 5)
         return r.accessory >= 0 &&
                bl::runtime::field<uint8_t>(item, r.accessory) != 0;
