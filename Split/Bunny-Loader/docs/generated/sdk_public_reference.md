@@ -955,6 +955,19 @@ int RarityCount { get; }
 | `int TypeOf<T>(string modId)` | managed_helper |
 | `static int PrefixOffset(float valueMultiplier)` | managed_helper |
 
+## BunnyLoader.Source.BunnyRarityRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor DiscoColor { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static int TypeOf<T>(string modId)` | managed_helper |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyRecipe
 
 class; base: `System.Object`.

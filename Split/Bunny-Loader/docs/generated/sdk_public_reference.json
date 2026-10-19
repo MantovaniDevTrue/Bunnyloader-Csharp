@@ -1718,6 +1718,26 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyRarityRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyColor DiscoColor { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static int TypeOf\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyRecipe",
       "kind": "class",
       "baseType": "System.Object",
