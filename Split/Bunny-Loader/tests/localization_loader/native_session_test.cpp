@@ -107,6 +107,7 @@ int main() {
     assert(globals.retainOnly({"modB"}));
     assert(globals.snapshot().active.contains("modB"));
     assert(globals.snapshot().active.at("modB")[0].value=="B");
+    assert(!globals.snapshot().retired.contains("LegacyInterface.28"));
     globals.replace("modB",{});
     assert(globals.snapshot().retired.contains("LegacyInterface.28"));
     return 0;
