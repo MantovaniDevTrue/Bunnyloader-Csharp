@@ -24,6 +24,7 @@ on:
       - Split/Bunny-Loader/docs/generated/sdk_public_reference.md
       - Split/Bunny-Loader/tools/sdk_reference/Program.cs
       - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
+      - Split/Bunny-Loader/tests/prefix_v89/guard_reforge_v90_2.py
       - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
       - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs
       - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
@@ -42,6 +43,7 @@ on:
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h
       - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
       - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
+      - Split/Bunny-Loader/tests/prefix_v89/guard_reforge_v90_2.py
       - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
       - docs/equipment-loader-preflight.md
       - Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/**
