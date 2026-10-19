@@ -216,4 +216,26 @@ Test("locale-wire-culture-utf8-deterministic", () =>
     Equal(true, wire.All(value => value.Split('\t').Length == 4));
 });
 
+Test("language-manager-variants", () =>
+{
+    var catalog = new BunnyLocalizationCatalog();
+    catalog.RegisterCulture("variantmod", "en-US", new Dictionary<string, string>
+    {
+        ["ItemName.ExampleItem"] = "Default",
+        ["ItemName.ExampleItem$Alt"] = "Alternative"
+    });
+    Equal("Alternative", catalog.Translate("ItemName.ExampleItem$Alt", "variantmod"));
+    var wire = catalog.ExportWireRows();
+    Equal(2, wire.Count);
+    Equal(true, wire.Any(row => System.Text.Encoding.UTF8.GetString(
+        Convert.FromHexString(row.Split('\t')[2])).EndsWith("ExampleItem$Alt", StringComparison.Ordinal)));
+    Reject(() => catalog.RegisterCulture("variantmod", "en-US",
+        new Dictionary<string, string> { ["ItemName.A$"] = "bad" }));
+    Reject(() => catalog.RegisterCulture("variantmod", "en-US",
+        new Dictionary<string, string> { ["ItemName.A$B.Other"] = "bad" }));
+    Reject(() => catalog.RegisterCulture("variantmod", "en-US",
+        new Dictionary<string, string> { ["ItemName.A$B$C"] = "bad" }));
+    Equal(2, catalog.Count);
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
