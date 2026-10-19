@@ -16,6 +16,12 @@ public sealed class ExampleWand : BunnyWeapon
         ShootSpeed = 11f;
         Shoot = nameof(ExampleBolt);
     }
+    public override void ConfigurePrefixRules(BunnyItemPrefixRules rules)
+    {
+        rules.Deny(71);
+        rules.Deny(nameof(ExampleGuardedPrefix));
+    }
+
     public override void AddRecipes()
     {
         // A mesma API atende armas, acessórios e poções. O tipo resolve a bancada
