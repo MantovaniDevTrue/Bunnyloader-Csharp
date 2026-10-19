@@ -18,7 +18,7 @@ inline bool canReplaceExisting(const std::string& path) {
     std::ifstream input(path, std::ios::binary);
     if (!input) return false;
     std::vector<SavedItem> verified;
-    return read(input, verified);
+    return read(input, verified, true);
 }
 
 inline bool preserveLegacyBeforeRaritySave(const std::string& path,
@@ -37,7 +37,7 @@ inline bool preserveLegacyBeforeRaritySave(const std::string& path,
         source.clear();
         source.seekg(0);
         std::vector<SavedItem> verified;
-        return read(source, verified);
+        return read(source, verified, true);
     }
     if (header != "bunnyloader itens 1" && header != "bunnyloader itens 2") return false;
     const std::string backup = path + ".before-rarity-v3.bak";
