@@ -276,41 +276,22 @@ bool writeQuestIds(const std::vector<Quest>& quests) {
     if (!original || original->length == 0 || original->length > 65536)
         return false;
     const auto* data = static_cast<const int32_t*>(arrayData(original));
-    std::vector<int> retained;
-    retained.reserve(original->length + quests.size());
-    std::set<int> included;
-    std::set<int> upcoming;
-    for (const auto& quest : quests) upcoming.insert(quest.type);
-    for (uintptr_t i = 0; i < original->length; ++i) {
-        const int id = data[i];
-        if (g_ownedTypes.contains(id) && !upcoming.contains(id)) continue;
-        retained.push_back(id);
-        included.insert(id);
-    }
-    for (const auto& quest : quests)
-        if (included.insert(quest.type).second) retained.push_back(quest.type);
-    if (retained.size() > 65536) return false;
-    bool changed = retained.size() != original->length;
-    if (!changed)
-        for (size_t i = 0; i < retained.size(); ++i)
-            if (retained[i] != data[i]) { changed = true; break; }
-    if (!changed) return true;
-
     int32_t selected = -1;
     a.field_static_get_value(g_questIndex, &selected);
-    const int activeId = selected >= 0 &&
-        static_cast<uintptr_t>(selected) < original->length
-            ? data[selected] : -1;
+    const std::vector<int> originalIds(data, data + original->length);
+    const QuestListUpdate update = Registry::reconcileIds(
+        originalIds, g_ownedTypes, quests, selected);
+    if (update.ids.empty() || update.ids.size() > 65536) return false;
+    if (!update.changed) return true;
     Il2CppClass* element = a.class_get_element_class(
         a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
-    Il2CppArray* updated = a.array_new(element, retained.size());
+    if (!element) return false;
+    Il2CppArray* updated = a.array_new(element, update.ids.size());
     if (!updated) return false;
-    std::copy(retained.begin(), retained.end(),
+    std::copy(update.ids.begin(), update.ids.end(),
               static_cast<int32_t*>(arrayData(updated)));
+    int32_t next = update.selected;
     a.field_static_set_value(g_questItems, &updated);
-    auto where = std::find(retained.begin(), retained.end(), activeId);
-    int32_t next = where == retained.end() ? 0 :
-        static_cast<int32_t>(where - retained.begin());
     a.field_static_set_value(g_questIndex, &next);
     return true;
 }
