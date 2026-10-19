@@ -15,8 +15,9 @@ assert "maxStack) != 1" not in game
 assert "field<int32_t>(item, r.damage) <= 0" in game
 assert "field<int32_t>(item, r.ammo) != 0" in game
 assert "field<uint8_t>(item, r.consumable)" in game
-assert "hasOtherMod" in game
-assert "vanillaPrefixCount()" in game
+assert "hasOtherMod" not in game
+assert "if (!hasManaged && !hasDeny)" in game
+assert "for (uintptr_t i = 0; i < list->length; ++i)" in game
 assert "g_originalRoll(item, random, rolled, method)" in game
 assert "std::isfinite(draw)" in header
 print("BUNNY_CSHARP_PREFIX_REFORGE_ROLL_NATIVE=PASS game_runtime=not_tested")
