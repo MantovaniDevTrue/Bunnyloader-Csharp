@@ -45,6 +45,7 @@ int tileTypeCount();
 
 /** O hook do TileDrawing.GetTileDrawData (de uma vez so): as arvores de mod precisam dele mesmo sem tile de mod. */
 void ensureTileDrawHook();
+bool tileDrawHooksReady();
 
 /** Instala o registrado quando o jogo ja criou as tabelas; vigia as refeitas. Thread do jogo. */
 void tickModTiles();

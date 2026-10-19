@@ -811,7 +811,6 @@ DrawShape readDrawShape(Il2CppObject* data) {
 void hookDrawData() {
     static bool done = false;
     if (done) return;
-    done = true;
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
@@ -830,13 +829,16 @@ void hookDrawData() {
         if (drawTile) special = m;
     }
 
-    if (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData))
+    if (!g_origSpecialDrawData &&
+        (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData)))
         BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
-    if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
+    if (!g_origDrawData &&
+        (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData))) {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
         return;
     }
 
+    done = true;
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* square = worldGen ? a.class_get_method_from_name(worldGen, "SquareTileFrame", 3) : nullptr;
     const MethodInfo* range = worldGen ? a.class_get_method_from_name(worldGen, "RangeFrame", 4) : nullptr;
@@ -1108,6 +1110,9 @@ void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* m
 
 void ensureTileDrawHook() {
     hookDrawData();
+}
+bool tileDrawHooksReady() {
+    return g_origDrawData && g_origSpecialDrawData;
 }
 
 bool modObjectShape(int type, ModObjectShape* out) {
