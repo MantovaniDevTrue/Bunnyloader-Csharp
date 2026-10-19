@@ -22,6 +22,7 @@ struct Sprite {
     int offsetX = 0;
     int offsetY = 0;
     uint32_t argb = 0xffffffffu;
+    int effects = 0;
 };
 
 struct Batch {
@@ -39,7 +40,8 @@ inline bool valid(const Sprite& s) {
            s.frameX + s.width <= 32768 &&
            s.frameY + s.height <= 32768 &&
            s.offsetX >= -256 && s.offsetX <= 256 &&
-           s.offsetY >= -256 && s.offsetY <= 256;
+           s.offsetY >= -256 && s.offsetY <= 256 &&
+           s.effects >= 0 && s.effects <= 3;
 }
 
 inline bool integer(std::string_view text, int32_t* out) {
@@ -68,10 +70,17 @@ inline bool parseSprite(std::string_view text, Sprite* output) {
             return false;
         from = end + 1;
     }
-    if (text.find(',', from) != std::string_view::npos) return false;
     uint32_t argb = 0;
-    if (!color(text.substr(from), &argb)) return false;
-    Sprite candidate{n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8],argb};
+    int32_t effects = 0;
+    const size_t separator = text.find(',',from);
+    if(separator == std::string_view::npos) {
+        if(!color(text.substr(from),&argb))return false;
+    } else {
+        if(!color(text.substr(from,separator-from),&argb) ||
+           text.find(',',separator+1)!=std::string_view::npos ||
+           !integer(text.substr(separator+1),&effects))return false;
+    }
+    Sprite candidate{n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8],argb,effects};
     if (!valid(candidate)) return false;
     *output = candidate;
     return true;

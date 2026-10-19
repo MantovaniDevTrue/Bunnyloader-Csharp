@@ -77,11 +77,16 @@ bool bind(std::string* error) {
     void* it = nullptr;
     while (auto* m = a.class_get_methods(batch,&it)) {
         if (std::strcmp(a.method_get_name(m),"Draw") != 0 ||
-            a.method_get_param_count(m) != 4 ||
+            a.method_get_param_count(m) != 9 ||
             !a.method_is_instance(m) ||
             !hasName(a.method_get_param(m,0),"Microsoft.Xna.Framework.Graphics.Texture2D") ||
             !hasName(a.method_get_param(m,1),"Microsoft.Xna.Framework.Vector2") ||
-            !hasName(a.method_get_param(m,3),"Microsoft.Xna.Framework.Color")) continue;
+            !hasName(a.method_get_param(m,3),"Microsoft.Xna.Framework.Color") ||
+            !hasName(a.method_get_param(m,4),"System.Single") ||
+            !hasName(a.method_get_param(m,5),"Microsoft.Xna.Framework.Vector2") ||
+            !hasName(a.method_get_param(m,6),"System.Single") ||
+            !hasName(a.method_get_param(m,7),"Microsoft.Xna.Framework.Graphics.SpriteEffects") ||
+            !hasName(a.method_get_param(m,8),"System.Single")) continue;
         auto* nullable = a.class_from_il2cpp_type(a.method_get_param(m,2));
         auto* field = nullable ? findField(nullable,"value") : nullptr;
         if (!field) continue;
@@ -105,7 +110,7 @@ bool bind(std::string* error) {
         break;
     }
     if (!draw) {
-        if (error) *error = "Stage=BindSpriteBatch Reason=DrawTextureVectorNullableRectangleColorUnavailable";
+        if (error) *error = "Stage=BindSpriteBatch Reason=DrawNineArgumentSpriteEffectsUnavailable";
         return false;
     }
     g.draw = draw;
@@ -142,8 +147,8 @@ bool drawNativeTileSprite(Il2CppObject* batch,const Sprite& command,
     auto* asset=static_cast<Il2CppObject**>(arrayData(tiles))[command.type];
     auto* texture=asset?runtime::content::textureAssetValue(asset):nullptr;
     if (!texture) return false;
-    const Vec pos{static_cast<float>(command.x*16 + command.offsetX)-std::floor(screenX),
-                  static_cast<float>(command.y*16 + command.offsetY)-std::floor(screenY)};
+    Vec pos{static_cast<float>(command.x*16 + command.offsetX)-std::floor(screenX),
+            static_cast<float>(command.y*16 + command.offsetY)-std::floor(screenY)};
     std::array<uint8_t,64> source{};
     if (g.source.bytes>source.size()) return false;
     source[g.source.sourceValid]=1;
@@ -153,7 +158,11 @@ bool drawNativeTileSprite(Il2CppObject* batch,const Sprite& command,
         std::memcpy(source.data()+g.source.sourceValue+offsets[index],
                     &rect[index],sizeof(int));
     uint32_t color=g.color.fromArgb(command.argb);
-    void* arguments[]={&texture,const_cast<Vec*>(&pos),source.data(),&color};
+    float rotation=0.f,scale=1.f,depth=0.f;
+    Vec origin{};
+    int32_t effect=command.effects;
+    void* arguments[]={&texture,&pos,source.data(),&color,
+                       &rotation,&origin,&scale,&effect,&depth};
     Il2CppObject* exception=nullptr;
     a.runtime_invoke(g.draw,batch,arguments,&exception);
     return exception==nullptr;

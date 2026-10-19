@@ -14,6 +14,12 @@ int main() {
            batch.sprites[0].offsetY==-3 && batch.sprites[0].argb==0xffffffffu);
     assert(parse("SPRITES|2|755,12,34,0,16,16,16,2,-3,4294967295|756,0,0,18,36,16,16,0,0,2164195328",&batch));
     assert(batch.count==2 && batch.sprites[1].argb==2164195328u);
+    assert(parse("SPRITES|1|755,12,34,0,16,16,16,2,-3,4294967295,1",&batch));
+    assert(batch.count==1 && batch.sprites[0].effects==1);
+    assert(parse("SPRITES|1|755,12,34,0,16,16,16,2,-3,4294967295,3",&batch));
+    assert(batch.sprites[0].effects==3);
+    assert(parse("SPRITES|1|755,12,34,0,16,16,16,2,-3,4294967295",&batch));
+    assert(batch.sprites[0].effects==0);
     const std::string sprite="755,12,34,0,0,16,16,0,0,4294967295";
     std::string eight="SPRITES|8";
     for(int i=0;i<8;++i)eight+="|"+sprite;
@@ -31,7 +37,9 @@ int main() {
         "SPRITES|1|755,12,34,0,0,16,16,257,0,4294967295",
         "SPRITES|1|755,12,34,0,0,16,16,0,0,4294967296",
         "SPRITES|1|755,12,34,0,0,16,16,0,0,-1",
-        "SPRITES|1|755,12,34,0,0,16,16,0,0,0,0",
+        "SPRITES|1|755,12,34,0,0,16,16,0,0,0,4",
+        "SPRITES|1|755,12,34,0,0,16,16,0,0,0,-1",
+        "SPRITES|1|755,12,34,0,0,16,16,0,0,0,0,0",
         "SPRITES|2|755,12,34,0,0,16,16,0,0,0",
         "SPRITES|1|755,12,34,0,0,16,16,0,0,x"
     }) assert(!parse(malformed,&batch));
