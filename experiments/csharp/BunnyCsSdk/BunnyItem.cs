@@ -36,6 +36,11 @@ public abstract class BunnyItem : BunnyRecipeSource
     public int MaxStack { get; set; } = 1;
     public int Value { get; set; }
     public int Rare { get; set; }
+    public bool QuestFish { get; set; }
+    public bool QuestAvailableInPreHardmode { get; set; } = true;
+    public bool QuestAvailableInHardmode { get; set; } = true;
+    public string QuestDescription { get; set; } = "";
+    public string QuestCatchLocation { get; set; } = "";
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
     public int Crit { get; set; }
@@ -82,6 +87,13 @@ public abstract class BunnyItem : BunnyRecipeSource
         UseStyle=1;UseAnimation=15;UseTime=10;MaxStack=9999;
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
+    public void DefaultToQuestFish()
+    {
+        QuestFish = true;
+        MaxStack = 1;
+        Value = 0;
+    }
+
     public abstract void SetDefaults();
 }
 
