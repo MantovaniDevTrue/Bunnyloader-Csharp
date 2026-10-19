@@ -29,5 +29,19 @@ int main() {
     assert(!decodeWire(row,"bad/mod",&valid,&error));
     assert(!decodeWire(row,"examplemodcsharp",nullptr,&error));
     assert(!decodeWire(row,"examplemodcsharp",&valid,nullptr));
+    auto rebased=row;
+    const std::string ownerReference="{$Mods.source.ItemName.ExampleItem}";
+    const char digits[]="0123456789ABCDEF";
+    std::string encoded;
+    for(unsigned char ch:ownerReference) {
+        encoded+=digits[ch>>4];
+        encoded+=digits[ch&15];
+    }
+    rebased[3]=encoded;
+    assert(decodeWire(rebased,"examplemodcsharp",&valid,&error));
+    assert(valid.value=="{$Mods.examplemodcsharp.ItemName.ExampleItem}");
+    assert(decodeWire(row,"source",&valid,&error));
+    assert(valid.key=="Mods.source.ItemName.ExampleItem");
+
     return 0;
 }
