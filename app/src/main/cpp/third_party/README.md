@@ -14,19 +14,18 @@ CMake consumes it with `find_package(shadowhook REQUIRED CONFIG)`.
 
 ## QuickJS (mod engine)
 
-**Not versioned** — clone it locally into `third_party/quickjs/`. We use the
-**quickjs-ng** fork (maintained, builds with the NDK):
+**QuickJS-ng v0.17.0 is already included in this integrated Bunny source.**
+No manual clone, download, initialization or installation is necessary.
 
-```bash
-git clone --depth 1 --branch v0.17.0   https://github.com/quickjs-ng/quickjs.git   app/src/main/cpp/third_party/quickjs
-```
+The vendored engine lives in [quickjs/](quickjs/) and is the exact source
+release `quickjs-ng/quickjs@6d46d07d04041b40f4f49eaa7fdebe44c314c699`
+(tag `v0.17.0`). The original MIT license is shipped at
+[quickjs/LICENSE](quickjs/LICENSE).
 
-Our `CMakeLists.txt` builds the quickjs-ng v0.17 sources: `quickjs.c`,
-`libregexp.c`, `libunicode.c`, `dtoa.c` (with `_GNU_SOURCE`). `quickjs.c` comes
-in through our `script/bridge/QuickJsExt.c`, which includes it and adds access
-to the runtime's frame stack (the engine shared between threads, see
-`JsSuspend`); the clone stays untouched. There is no `cutils.c`/`libbf` anymore
-as in classic QuickJS.
+The project's existing `CMakeLists.txt` detects `quickjs/quickjs.c` and
+enables `BL_HAVE_QUICKJS=1`, compiling `QuickJsExt.c`, `libregexp.c`,
+`libunicode.c` and `dtoa.c`. The C# MonoVM runtime is independent, and
+both C# and JavaScript engines remain available.
 
-Without the folder, the build still works: `ScriptEngine` compiles in stub mode
-(`BL_HAVE_QUICKJS` off) and the game boots without mods.
+A future upgrade of QuickJS should update all the engine files together,
+review CMake/QuickJsExt compatibility, and test both JS and C# mods.
