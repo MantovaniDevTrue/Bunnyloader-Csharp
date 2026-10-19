@@ -58,7 +58,8 @@ public static class BunnyTileRuntime {
             if (kind == 2) return "READY";
             if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            if (fields.Length != 2) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
+            int expected = index == 11 ? 3 : 2;
+            if (fields.Length != expected) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
             int y = int.Parse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
             if (x < 0 || y < 0 || x > 100000 || y > 100000)
@@ -70,11 +71,23 @@ public static class BunnyTileRuntime {
                 case 3: tile.RandomUpdate(x, y); return "1";
                 case 4: return tile.RightClick(x, y) ? "1" : "0";
                 case 5: return tile.PreDraw(x, y) ? "1" : "0";
+                case 6:
+                    float red=0f,green=0f,blue=0f;
+                    tile.ModifyLight(x,y,ref red,ref green,ref blue);
+                    if(!float.IsFinite(red)||!float.IsFinite(green)||!float.IsFinite(blue)||
+                       red<0f||green<0f||blue<0f||red>4f||green>4f||blue>4f)
+                        return "ERROR|Stage=ValidateTileLight Reason=NonFiniteOrOutsideRange";
+                    return "LIGHT|"+((int)MathF.Round(red*1000f)).ToString(CultureInfo.InvariantCulture)+"|"+
+                        ((int)MathF.Round(green*1000f)).ToString(CultureInfo.InvariantCulture)+"|"+
+                        ((int)MathF.Round(blue*1000f)).ToString(CultureInfo.InvariantCulture);
                 case 7: tile.PlaceInWorld(x, y); return "1";
                 case 8: return tile.Slope(x, y) ? "1" : "0";
                 case 9: tile.MouseOver(x, y); return "1";
                 case 10: tile.MouseOverFar(x, y); return "1";
-                case 11: tile.NearbyEffects(x, y, false); return "1";
+                case 11:
+                    if(fields[2]!="0"&&fields[2]!="1")
+                        return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
+                    tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
                 case 12:
                     int frame = x, counter = y;
                     tile.AnimateTile(ref frame, ref counter);
