@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <memory>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,7 @@ struct ManagedPrefixEntry {
     int type = -1;
     int category = -1;
     float rollWeight = 0.f;
+    std::map<int, int> itemWeights;
     std::array<float, 6> multipliers{1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
     int crit = 0;
     int tagDamage = 0;
