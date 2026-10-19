@@ -1,3 +1,9 @@
+# Regra vigente — cinco loaders completos por APK
+
+O pedido mais recente de19/10/2026 substitui a exigência anterior de aguardar o port integral antes de cada entrega: **cinco loaders completos por APK e um exemplo original completo por loader**. Preservar todos os exemplos existentes e a meta global. Plano operacional: [grupos, critérios e continuidade](csharp-loader-batches.md); inventário executável: [csharp-loader-batches.json](csharp-loader-batches.json). Primeiro grupo: Tile, Wall, Tree, TileEntity e GlobalTile. Auxiliares não contam como loaders extras. Nenhum dos cinco está certificado; publicações são condicionadas ao gate dos cinco, às regressões e à build. Não há nova validação Android nesta revisão.
+
+As entradas anteriores abaixo são histórico, incluindo as proibições de entrega parcial e a antiga ordem de lotes. Para novas entregas, prevalece esta regra; as matrizes de206 JS e do ExampleMod PC continuam no escopo.
+
 > [Evidência final interna .98](validation/csharp-v98-internal-2026-10-19.json): código367488d9, APK compilado/validado, nenhuma publicação de APK/.bmod. Port integral continua em desenvolvimento.
 
 > Continuidade .98: nomes Example em todo conteúdo, callbacks C# CanShoot/ModifyShootStats/OnShoot com bridge real e ExampleShotgun; testes de host e matriz atualizados; CI Android39236367596 e nove suítes aprovados no código367488d9, gameplay Android pendente. Publicação permanece bloqueada. O usuário aprovou a .96 com ExampleMod de forma geral; registro em [evidência Android](validation/csharp-v96-android-user-2026-10-19.json).

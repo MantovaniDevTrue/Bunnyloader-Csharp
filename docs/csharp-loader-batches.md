@@ -1,0 +1,59 @@
+# Entregas de cinco loaders
+
+Regra atual do usuário em19/10/2026: desenvolver todos os loaders, entregando **cinco loaders completos por APK**, com **um exemplo original completo por loader**. Esta regra substitui a espera pelo port integral de todos os exemplos antes da próxima entrega. O objetivo global de portar todos os exemplos permanece; nenhum fonte existente será removido.
+
+Um exemplo de teste pode precisar de item colocável, tile, buff, projétil, textura ou classe auxiliar. Essas dependências pertencem ao mesmo exemplo e precisam funcionar; não contam como loaders extras. Também não vamos contar TileDraw/TileUse/TileWorld como três loaders prontos: seus contratos fazem parte de TileLoader. A API precisa atender ao contrato completo do sistema, além do exemplo selecionado.
+
+O plano executável está em [csharp-loader-batches.json](csharp-loader-batches.json). Contabiliza os88 módulos originais, distribuídos inicialmente entre49 sistemas, mais DustLoader do inventário PC. São dez grupos de cinco. É um inventário inicial: sistemas adicionais identificados na auditoria PC deverão entrar em novos grupos, sem desaparecer do escopo. Não é declaração de paridade com toda a API PC.
+
+| Grupo | Cinco sistemas |
+| --- | --- |
+| 1 — mundo | Tile, Wall, Tree, TileEntity, GlobalTile |
+| 2 — equipamentos | Item, Equip, ArmorSet, Wing, Prefix |
+| 3 — combate | Projectile, DamageClass, GlobalProjectile, Buff, GlobalItem |
+| 4 — NPCs | NPC, TownNPC, GlobalNPC, BossBar, GlobalLoot |
+| 5 — conteúdo | Recipe, Rarity, Localization, Command, Config |
+| 6 — ambiente | Biome, SceneEffect, SurfaceBackground, UndergroundBackground, MapBackground |
+| 7 — efeitos | WaterStyle, WaterfallStyle, Cloud, Gore, Dust |
+| 8 — interação | Mount, AnglerQuest, Pylon, Banner, Bestiary |
+| 9 — jogador/UI | Achievement, EmoteBubble, Hair, TouchButton, Keybind |
+| 10 — execução | Player, System, ServerSync, Sound, Menu |
+
+A ordem pode mudar por dependências, sem dividir uma entrega em menos de cinco loaders completos. Serviços necessários de grupos posteriores podem ser implementados antes; não são anunciados como loader concluído só por desbloquear outro sistema.
+
+## Grupo1 e exemplos escolhidos
+
+| Loader | Exemplo principal | Dependências e contrato ainda pendente |
+| --- | --- | --- |
+| TileLoader | ExampleTile | Item colocável/receita/textura incluídos. Completar callbacks gerais de tile, interação, desenho/luz, frames e mundo; o bloco sozinho não certifica o loader. |
+| WallLoader | ExampleWallAdvanced | Item, frames, dust condicional, animação, luz noturna, colocação/quebra e persistência. |
+| TreeLoader | ExampleTree | Chão ExampleTile, ExampleSapling, folhas originais, crescimento, copa/galhos, madeira ExampleItem, bolotas e shake. |
+| TileEntityLoader | BasicTileEntity | Barril de chuva original: instância por posição,3600ticks, toque/picareta/balde, reset, persistência e sincronização. Nome exibido terá prefixo Example; identidade preservada. |
+| GlobalTileLoader | ShakeTrees do ExampleMod PC | Referência PC pinada; o pacote JS não contém uma classe que estenda GlobalTile. Auditar comportamento antes do port, incluindo composição de hooks e regras de drops. |
+
+[Contratos de origem](generated/csharp-world-loader-contracts.json) registram os membros públicos declarados e hashes dos cinco tipos originais. São âncoras para revisão manual, não um parser semântico nem prova de execução. Chamadas internas, propriedades nativas usadas pelos exemplos, dependências e funcionalidades PC adicionais também precisam da auditoria; a lista lexical não limita o contrato.
+
+## Estado desta execução
+
+Revisão interna `.90.29.99-world-loaders-wip`, ExampleMod0.1.58. Novo caminho de flags tipadas para terreno e port de ExampleTile/ExampleTileItem com assets originais. Nenhum dos cinco loaders inteiros está certificado; portanto, **nenhum APK é entregue como grupo1 concluído**.
+
+`BunnyTile.Flags` adiciona Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge e Cut. O publicador das flags booleanas resolve todos os arrays solicitados antes de escrever, valida campo estático, tipo Boolean[], rank1, elemento de1byte e índice. Falha de uma flag booleana preserva as demais sem escrita parcial desse conjunto. CountsAsTable utiliza separadamente a lista nativa Int32[] de RoomNeeds, sem exigir uma tabela bool fictícia; valida cópia, limite e duplicações antes de publicar a lista. As transações de outros sistemas continuam sendo contratos separados.
+
+O protocolo TILE mantém suas13 colunas; a máscara agora aceita16bits conhecidos. Cache Roslyn v31 invalida resultados anteriores com segurança. Não há execução QuickJS, IDs fixos de mod, alteração dos IDs existentes ou shaders novos.
+
+## Critério e gate de entrega
+
+`tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.
+
+Os recibos documentam a revisão humana; não substituem execução. Depois desse gate, continuam obrigatórias as suítes independentes no mesmo SHA, build Android, assinatura e destino privado existentes. O CI não publica enquanto o grupo estiver incompleto. O publicador direto também executa o gate antes de acessar credenciais/rede. `--stable` exige adicionalmente evidência Android para cada loader. A entrega inicial para testes continua explicitamente experimental e não certifica FPS.
+
+## Continuidade exata
+
+1. Preservar o caminho nativo de bancada/receitas/armaduras e os demais sistemas estáveis; .96 continua sendo a aprovação geral mais recente do usuário.
+2. Completar o contrato TileLoader com seus auxiliares TileDraw/Use/World e revisar colocação/quebra/drop/mapa/save do ExampleTile no Android quando o grupo estiver disponível.
+3. Criar registro público de paredes C# usando o serviço nativo de paredes, com callbacks reais necessários a ExampleWallAdvanced; não registrar só a textura.
+4. Integrar TreeLoader ao serviço compartilhado ModTrees e implementar crescimento/sapling/shake/folhas sem QuickJS. Não publicar uma árvore sem suas dependências.
+5. Implementar entidades de tile e globais com ciclo de vida, estados, serialização e sincronização. Auditar o exemplo PC pinado antes de adaptar seu comportamento.
+6. Adicionar testes de execução de cada integração, concluir os recibos, executar regressões e build. Somente os cinco completos desbloqueiam o próximo APK.
+
+As matrizes206 JS e o inventário PC permanecem oficiais. Implementado, teste automatizado, build Android e validação no telefone são estados separados.

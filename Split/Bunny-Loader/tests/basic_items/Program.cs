@@ -243,6 +243,14 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var blockRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
+  Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
+  Equal("0",blockTile[7]);Equal("200",blockTile[8]);Equal("255",blockTile[9]);
+  var blockItem=blockRows.Single(row=>row.StartsWith("ITEM\tExampleTileItem\t",StringComparison.Ordinal)).Split('\t');
+  Equal("12",blockItem[2]);Equal("12",blockItem[3]);
+  Equal("10,18,mExampleItem:1",blockItem[19]);Equal("mExampleTile:0",blockItem[21]);
+
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
@@ -376,6 +384,16 @@ try {
   if(!records.Any(line=>line.StartsWith("ITEM\tExampleWorkbench\t")) ||
      !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))
       throw new Exception("native domain identity dropped a class");
+ });
+ Check("tiles.unknown-flags-rejected-by-real-compiler-probe",()=>{
+  string root=Path.Combine(scratch,"bad-tile-flags");Directory.CreateDirectory(Path.Combine(root,"content"));
+  string output=Path.Combine(scratch,"bad-tile.dll"),diag=Path.Combine(scratch,"bad-tile.txt");
+  foreach(int flags in new[]{-1,65536,int.MaxValue}) {
+   File.WriteAllText(Path.Combine(root,"content","InvalidTile.cs"),
+    "using BunnyLoader.Source;public sealed class InvalidTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"InvalidTile.png\";DisplayName=\"Example Invalid\";Flags=(BunnyTileFlags)("+flags+");}}");
+   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+   if(!File.ReadAllText(diag).Contains("native tile defaults out of bounds"))throw new Exception("Missing tile diagnostic");
+  }
  });
  Check("tiles.original-bench-and-item-same-name-wire",()=>{
   string root="tests/basic_items/tile_fixture";

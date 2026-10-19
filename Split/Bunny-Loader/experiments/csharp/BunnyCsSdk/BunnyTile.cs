@@ -13,7 +13,19 @@ public enum BunnyTileFlags {
     DisableSmartCursor = 32,
     HasOutlines = 64,
     IgnoredByNpcStepUp = 128,
-    CountsAsTable = 256
+    CountsAsTable = 256,
+    /// <summary>Colisão sólida do terreno, calculada pelo Terraria.</summary>
+    Solid = 512,
+    /// <summary>O bloco bloqueia luz; não é a emissão de luz.</summary>
+    BlockLight = 1024,
+    /// <summary>Mesclagem dos frames com terra.</summary>
+    MergeDirt = 2048,
+    /// <summary>Habilita o processamento de iluminação; não define uma cor.</summary>
+    Lighted = 4096,
+    WaterDeath = 8192,
+    /// <summary>Inclui o tile na verificação nativa de junção com vizinhos.</summary>
+    ChecksForMerge = 16384,
+    Cut = 32768
 }
 
 public enum BunnyTileShape {

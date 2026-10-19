@@ -229,3 +229,8 @@ ainda precisa de contratos adicionais; nao foi exposta uma falsa BunnyTile nem
 foi promovido ExampleWorkbench. Policies de equipamento continuam dependendo
 do caminho JS existente. Eight suites e Android build 38617948804 aprovados;
 validacao da nova API no Android pendente.
+
+
+## Grupo de mundo .99
+
+BunnyTile.Flags → TILE → SourceLoader → NativeTileFlags/NativeContent → arrays Terraria. API C# com bridge nativa própria; registro/persistência usam serviços nativos independentes compartilhados. O teste world_loaders/tile_flags_test.cpp executa o publicador de produção com metadata controlada e wire do ExampleMod compilado, BL_HAVE_QUICKJS=0. Não inicializa VM JS. Isso comprova esse caminho de flags, não a independência integral dos loaders de tile/árvore/parede ainda pendentes. TreeLoader/TileEntity/GlobalTile C# completos não existem nesta revisão; não se expõem fachadas vazias.

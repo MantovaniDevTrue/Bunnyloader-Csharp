@@ -1,6 +1,8 @@
-# Port integral — desenvolvimento sem entregas parciais
+# Histórico do port integral e continuidade por cinco loaders
 
-Regra vigente de19/10/2026: não publicar novo APK ou .bmod enquanto o port completo estiver pendente. A entrega .96 é histórica e o usuário confirmou seu funcionamento geral com ExampleMod em19/10; isso não valida as adições posteriores. A branch atual preserva seus commits; políticas de publicação push/PR foram removidas para essa branch, o publicador também recusa invocação direta e o export de pacotes depende da mesma política. CI, compilação e relatórios técnicos continuam disponíveis. Não reabilitar publicação para entregar outro subconjunto.
+Regra atualizada pelo usuário em19/10/2026: cinco loaders completos por APK, um exemplo original completo por loader. A regra anterior de esperar todo o port foi substituída. [Plano operacional atual](csharp-loader-batches.md) e [manifesto](csharp-loader-batches.json). Grupo1: Tile, Wall, Tree, TileEntity, GlobalTile. Revisão interna .99/ExampleMod0.1.58 inicia terreno sólido e mantém a .96 aprovada. O gate de publicação já exige os cinco contratos, exemplos e recibos; o grupo ainda está incompleto.
+
+As seções .97/.98 abaixo registram o histórico e suas regras de entrega à época. Não são ordens para interromper os novos grupos. Nenhuma build interna passada se torna uma entrega de cinco loaders por mudança do planejamento.
 
 ## Estado de implementação
 
@@ -81,3 +83,8 @@ Publicação de APK, exportação de .bmod e job de conferência de entrega pula
 [Evidência completa com jobs, passos, suítes, contagens e cobertura](validation/csharp-v98-internal-2026-10-19.json). O commit posterior é apenas documentação e matrizes. Não confundir esse commit com o SHA de código testado acima.
 
 Continuidade: implementar as dependências reais de CanUseItem, contagens por dono, IA/draw e spawns em outros ciclos antes de promover lança/chicote/sentry/holdouts. Auditar também o compartilhamento de assemblies/estado entre os dispatchers antes de exemplos que dependam de estáticos entre sistemas. Nenhuma dependência ainda não investigada é declarada limitação técnica comprovada. Preservar todos os206 JS, o inventário oficial PC e o bloqueio de entregas parciais.
+
+
+## Continuidade atual .99 — mundo em cinco sistemas
+
+Ver csharp-loader-batches.md. ExampleTile e ExampleTileItem portados com flags booleanas nativas tipadas/atômicas por conjunto, mapa, dust, colocação e receita original. Assets preservados. SDK amplia sete flags; TILE mantém13 colunas e cache Roslyn passa a v31. Nenhum loader inteiro é promovido. Todas as88 entradas do inventário permanecem distribuídas no plano; DustLoader também está no escopo PC. Primeiro concluir contrato TileLoader, depois paredes, árvores completas, entidades e globais. As suítes e o gate devem ser executados antes de qualquer entrega.

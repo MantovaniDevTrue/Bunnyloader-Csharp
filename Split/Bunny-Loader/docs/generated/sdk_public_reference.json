@@ -2037,7 +2037,14 @@
         "DisableSmartCursor",
         "HasOutlines",
         "IgnoredByNpcStepUp",
-        "CountsAsTable"
+        "CountsAsTable",
+        "Solid",
+        "BlockLight",
+        "MergeDirt",
+        "Lighted",
+        "WaterDeath",
+        "ChecksForMerge",
+        "Cut"
       ],
       "methods": []
     },

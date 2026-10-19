@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+output="${RUNNER_TEMP:-/tmp}/bunny-world-tile-flags"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/world_loaders/tile_flags_test.cpp -o "$output"
+"$output" build/basic-items/full-source-runtime-values.txt

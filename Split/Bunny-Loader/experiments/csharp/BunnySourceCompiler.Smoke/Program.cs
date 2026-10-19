@@ -298,7 +298,7 @@ public sealed class MinionStaff : BunnyWeapon
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 55)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 57)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -306,8 +306,8 @@ public sealed class MinionStaff : BunnyWeapon
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 72 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
-        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=72Rows,V2Header ActualRows=" +
+    if (defaultRows.Length != 74 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=74Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {
         "PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n",

@@ -1211,6 +1211,63 @@
         "42 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],
       "deviceEvidence": []
+    },
+    "Content/Tiles/ExampleTile.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "tileSolid/tileBlockLight/tileMergeDirt/ChecksForMerge originais por arrays IL2CPP tipados, sem QuickJS.",
+        "Dust Stone e mapa RGB(0,200,255); textura original, drop via item correspondente e persistência no serviço existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "manualTests": [
+        "Usar ExampleTileItem: fabricar dez, colocar, caminhar sobre o bloco, observar junção/luz/mapa, quebrar e recolher.",
+        "Salvar/sair/reabrir; repetir com mods JS habilitados e ordem de registro alterada."
+      ],
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleTileItem.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "DefaultToPlaceableTile por chave local, Width/Height12.",
+        "Receita original: um ExampleItem produz dez blocos, estação WorkBenches.",
+        "Textura original e nome exibido Example Block, sem alterar UID ou conteúdo existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "manualTests": [
+        "Usar ExampleTileItem: fabricar dez, colocar, caminhar sobre o bloco, observar junção/luz/mapa, quebrar e recolher.",
+        "Salvar/sair/reabrir; repetir com mods JS habilitados e ordem de registro alterada."
+      ],
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {

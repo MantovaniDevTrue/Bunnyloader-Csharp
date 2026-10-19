@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 78
+    "cSharpSourceFiles": 80
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -417,19 +417,19 @@
     "Placeable": {
       "total": 36,
       "states": {
-        "Não implementado": 35,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 34,
+        "Implementado, aguardando validação": 2
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 0,
-      "implementedPercent": 2.78,
+      "implementedPercent": 5.56,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 35
+      "missingExamples": 34
     },
     "Players": {
       "total": 7,
@@ -551,19 +551,19 @@
     "Tiles": {
       "total": 37,
       "states": {
-        "Não implementado": 36,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 2
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 0,
-      "implementedPercent": 2.7,
+      "implementedPercent": 5.41,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 36
+      "missingExamples": 35
     },
     "Tools": {
       "total": 5,
@@ -6755,31 +6755,42 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Placeable/ExampleTileItem.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "preservedFeatures": [
+        "DefaultToPlaceableTile por chave local, Width/Height12.",
+        "Receita original: um ExampleItem produz dez blocos, estação WorkBenches.",
+        "Textura original e nome exibido Example Block, sem alterar UID ou conteúdo existente."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -14367,30 +14378,40 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
       "requiredApis": [
         "ModTile",
         "SetStaticDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Tiles/ExampleTile.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModTile"
+      "preservedFeatures": [
+        "tileSolid/tileBlockLight/tileMergeDirt/ChecksForMerge originais por arrays IL2CPP tipados, sem QuickJS.",
+        "Dust Stone e mapa RGB(0,200,255); textura original, drop via item correspondente e persistência no serviço existente."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModTile.js"
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -16690,6 +16711,17 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs",
+      "classes": [
+        "ExampleTileItem"
+      ],
+      "mappedToJs": [
+        "Content/Items/Placeable/ExampleTileItem.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs",
       "classes": [
         "ExampleWorkbench"
@@ -16884,6 +16916,17 @@
         "ExampleWorkbenchRecipeBehavior"
       ],
       "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs",
+      "classes": [
+        "ExampleTile"
+      ],
+      "mappedToJs": [
+        "Content/Tiles/ExampleTile.js"
+      ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
