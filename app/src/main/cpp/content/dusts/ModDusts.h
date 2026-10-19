@@ -53,6 +53,7 @@ int modDustTypeByName(const std::string& mod, const std::string& name);
 
 /** O ModDust.UpdateType: o tipo do jogo cujo comportamento a poeira copia (-1 = nenhum). */
 void setModDustUpdateType(int type, int updateType);
+bool setModDustManagedHooks(int type, unsigned hooks);
 
 /** O Asset<Texture2D> do tipo (o da folha do jogo para textura ""), ou nullptr antes da instalacao. */
 Il2CppObject* modDustTextureAsset(int type);
