@@ -795,6 +795,10 @@ bool applyManagedSourceDefaults(
                     " Stage=BindCallbacks Result=Rejected Reason=MonoDustBridgeNotConnected";
                 return false;
             }
+            if (!runtime::setModDustManagedHooks(native->second, static_cast<unsigned>(hooks))) {
+                *error = "[CSharp][ERROR][DustLoader] Stage=Publish Reason=NativeHookMaskRejected";
+                return false;
+            }
             runtime::setModDustUpdateType(native->second, updateType);
             mod->dustMasks[fields[1]] = static_cast<unsigned>(hooks);
             ++dustRows;
