@@ -518,6 +518,12 @@ int main() {
         assert(static_cast<uint8_t*>(arrayData(modifier))[index] == 1);
         assert(static_cast<uint8_t*>(arrayData(bad))[index] == 0);
     }
+    lineCount = 5;
+    hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 6);
+    assert(static_cast<Il2CppString**>(arrayData(lines))[5]->chars[0] == 'B');
     Item ineffective{};
     ineffective.type = 6199;
     ineffective.damage = 12;
