@@ -278,6 +278,10 @@ int main() {
     assert(hookRollable(&weapon.object, nullptr) == nullptr);
     weapon.damage = 26;
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.damage = 25;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.damage = 10;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
     weapon.damage = 12;
     weapon.mana = 9;
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
