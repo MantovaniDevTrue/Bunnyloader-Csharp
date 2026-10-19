@@ -1,4 +1,5 @@
 #include "content/dusts/ModDusts.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
@@ -8,6 +9,7 @@
 #include "il2cpp/Resolver.h"
 
 #include <atomic>
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <mutex>
@@ -65,6 +67,7 @@ struct Refs {
     FieldInfo* dustCount = nullptr;       // DustID.Count
     FieldInfo* texture = nullptr;         // TextureAssets.Dust
     int32_t active = -1, type = -1, frame = -1, velocity = -1, fullBright = -1;
+    int32_t dustIndex = -1, position = -1, scale = -1, rotation = -1, alpha = -1, color = -1;
     const MethodInfo* newDust = nullptr;
     const MethodInfo* updateDust = nullptr;
     const MethodInfo* drawDust = nullptr;
@@ -101,6 +104,12 @@ Refs& refs() {
     r.frame = fieldOffset(dust, "frame");
     r.velocity = fieldOffset(dust, "velocity");
     r.fullBright = fieldOffset(dust, "fullBright");
+    r.dustIndex = fieldOffset(dust, "dustIndex");
+    r.position = fieldOffset(dust, "position");
+    r.scale = fieldOffset(dust, "scale");
+    r.rotation = fieldOffset(dust, "rotation");
+    r.alpha = fieldOffset(dust, "alpha");
+    r.color = fieldOffset(dust, "color");
 
     void* it = nullptr;
     while (const MethodInfo* m = a.class_get_methods(dust, &it)) {
@@ -259,6 +268,7 @@ GetAlphaRefFn g_origGetAlphaRef = nullptr;
 GetAlphaValueFn g_origGetAlphaValue = nullptr;
 
 int g_frame = 0;
+std::array<int, kDustSlots> g_dustGenerations{};
 Scan g_scan;
 std::vector<Il2CppObject*> g_list;
 std::vector<bool> g_flags;
@@ -319,6 +329,114 @@ void endKillTracking(const std::vector<Il2CppObject*>& list) {
 
 // Como o DustLoader.SetupDust: a moldura no topo da textura propria (o jogo
 // a calculou pela posicao do tipo na folha) e o OnSpawn.
+bool managedFieldsReady() {
+    const Refs& r = refs();
+    return r.dustIndex > 0 && r.position > 0 && r.scale > 0 &&
+           r.rotation > 0 && r.alpha > 0 && r.color > 0;
+}
+
+int managedIndex(Il2CppObject* dust) {
+    if (!dust || !managedFieldsReady()) return -1;
+    const int index = field<int32_t>(dust, refs().dustIndex);
+    return index >= 0 && index < kDustSlots ? index : -1;
+}
+
+csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int generation) {
+    const Refs& r = refs();
+    const Vec2& position = field<Vec2>(dust, r.position);
+    const Vec2& velocity = field<Vec2>(dust, r.velocity);
+    const Rect& rect = field<Rect>(dust, r.frame);
+    csharp::ManagedDustState state{};
+    state.slot = slot;
+    state.type = typeOf(dust);
+    state.generation = generation;
+    state.active = activeOf(dust) ? 1 : 0;
+    state.x = position.x;
+    state.y = position.y;
+    state.velocityX = velocity.x;
+    state.velocityY = velocity.y;
+    state.scale = field<float>(dust, r.scale);
+    state.rotation = field<float>(dust, r.rotation);
+    state.alpha = field<int32_t>(dust, r.alpha);
+    state.frameX = rect.x;
+    state.frameY = rect.y;
+    state.frameWidth = rect.w;
+    state.frameHeight = rect.h;
+    state.color = field<Color32>(dust, r.color).packed;
+    return state;
+}
+
+void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state) {
+    if (!activeOf(dust)) return;
+    if (state.active == 0) {
+        setNotActive(dust);
+        return;
+    }
+    const Refs& r = refs();
+    Vec2& pos = field<Vec2>(dust, r.position);
+    Vec2& velocity = field<Vec2>(dust, r.velocity);
+    pos = {state.x, state.y};
+    velocity = {state.velocityX, state.velocityY};
+    field<float>(dust, r.scale) = state.scale;
+    field<float>(dust, r.rotation) = state.rotation;
+    field<int32_t>(dust, r.alpha) = state.alpha;
+    Rect& rect = field<Rect>(dust, r.frame);
+    rect = {state.frameX, state.frameY, state.frameWidth, state.frameHeight};
+    field<Color32>(dust, r.color).packed = state.color;
+}
+
+struct ManagedDustCached {
+    int generation = 0;
+    int type = -1;
+    std::uint64_t frame = 0;
+    std::uint32_t flags = 0;
+    std::uint32_t color = 0;
+    bool ready = false;
+};
+std::array<ManagedDustCached, kDustSlots * csharp::ManagedDustMailbox::kPhases> g_dustCached{};
+
+bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
+                      std::uint32_t* argColor = nullptr) {
+    if (!dust || !activeOf(dust) || phase < 0 ||
+        phase >= static_cast<int>(csharp::ManagedDustMailbox::kPhases) ||
+        !csharp::hasManagedDustType(typeOf(dust))) return false;
+    const int slot = managedIndex(dust);
+    if (slot < 0) return false;
+    int& generation = g_dustGenerations[static_cast<size_t>(slot)];
+    if (generation <= 0) generation = 1;
+    auto& cache = g_dustCached[static_cast<size_t>(slot) *
+        csharp::ManagedDustMailbox::kPhases + static_cast<size_t>(phase)];
+    if (cache.generation != generation || cache.type != typeOf(dust))
+        cache = {};
+    csharp::ManagedDustMailbox::Response response{};
+    if (csharp::receiveManagedDustCallback(typeOf(dust), phase, slot, generation,
+                                            static_cast<uint64_t>(g_frame), &response)) {
+        applyManagedDust(dust, response.state);
+        cache.generation = generation;
+        cache.type = response.state.type;
+        cache.frame = static_cast<std::uint64_t>(g_frame);
+        cache.flags = response.flags;
+        cache.color = response.state.color;
+        cache.ready = true;
+    }
+    if (activeOf(dust)) {
+        auto state = captureManagedDust(dust, slot, generation);
+        if (argColor) state.color = *argColor;
+        csharp::queueManagedDustCallback(state.type, phase, state,
+                                          static_cast<std::uint64_t>(g_frame));
+    }
+    const bool valid = cache.ready &&
+        cache.generation == generation && cache.type == typeOf(dust) &&
+        static_cast<uint64_t>(g_frame) >= cache.frame &&
+        static_cast<uint64_t>(g_frame) - cache.frame <=
+            csharp::ManagedDustMailbox::kMaxResultAgeFrames;
+    if (valid) {
+        if (flags) *flags = cache.flags;
+        if (argColor && (cache.flags & 8u) != 0u) *argColor = cache.color;
+    }
+    return valid;
+}
+
 int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float sy, int32_t alpha,
                   Color32 color, float scale, const MethodInfo* m) {
     const int32_t index = g_origNewDust(pos, w, h, type, sx, sy, alpha, color, scale, m);
