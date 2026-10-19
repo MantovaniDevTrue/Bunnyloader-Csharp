@@ -232,6 +232,23 @@ int main() {
     assert(text[0] && text[0]->chars[0] == '+' && text[0]->chars[1] == '8');
     assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 0);
 
+    mighty.itemWeights[6199] = 3;
+    mighty.itemWeights[6198] = 0;
+    descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    auto* weighted = hookRollable(&weapon.object, nullptr);
+    assert(weighted && weighted->length == 3);
+    for (uintptr_t i = 0; i < weighted->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(weighted))[i] == 99);
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.type = 6198;
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.type = 6199;
+    assert(itemRollWeight(&weapon.object, mighty) == 3);
+    assert(itemRollWeight(&accessory.object, mighty) == 5);
+
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
     chances.value=allocate(98,1);
