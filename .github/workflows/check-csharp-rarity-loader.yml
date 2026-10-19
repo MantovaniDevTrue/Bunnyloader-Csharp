@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   rarity-host:
@@ -41,21 +41,16 @@ jobs:
             app/src/main/cpp/experiments/csharp/SourceParser.cpp \
             -o /tmp/bunny-rarity-native
           /tmp/bunny-rarity-native
-      - name: Export deterministic public SDK reference for source review
-        if: success()
+      - name: Commit compiled public SDK reference
+        if: github.event_name == 'push' && success()
         run: |
           cd Split/Bunny-Loader
           dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --write
-          python3 - <<'PY'
-          import base64
-          from pathlib import Path
-          for label, filename in (
-              ("JSON", "docs/generated/sdk_public_reference.json"),
-              ("MARKDOWN", "docs/generated/sdk_public_reference.md"),
-          ):
-              encoded = base64.b64encode(Path(filename).read_bytes()).decode("ascii")
-              chunks = [encoded[i:i + 4096] for i in range(0, len(encoded), 4096)]
-              for i, chunk in enumerate(chunks):
-                  print(f"BUNNY_REF_{label}_{i:03d}={chunk}")
-              print(f"BUNNY_REF_{label}_END={len(chunks)}")
-          PY
+          cd ../..
+          git add Split/Bunny-Loader/docs/generated/sdk_public_reference.json Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "docs(csharp): regenerate public SDK reference from compiled rarity API"
+            git push origin "HEAD:refs/heads/feat/csharp-rarity-loader-core-20261019"
+          fi
