@@ -130,6 +130,16 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **QA ainda necessário:** observar o comportamento no jogo com mods faltando, abrir e salvar personagens e baús reais, testar migração/rollback v1/v2/v3 e captura visual. O bloqueio do Android não se resolve apenas com teste C++ de host.
 
+## Auditoria de segurança dos saves e prefixos (continuação, 19/10)
+
+- A leitura de arquivos v3 é atômica: uma linha inválida rejeita a leitura completa; versões anteriores mantêm sua política antiga de leitura para compatibilidade. O vetor de registros anterior é preservado se houver erro.
+- O autosave consulta `item_save::canReplaceExisting` antes de sobrescrever ou remover um sidecar. Se o arquivo existente estiver corrompido ou inacessível, nenhuma gravação é feita por esse caminho.
+- A rotina `preserveLegacyBeforeRaritySave` foi isolada em `ModItemSaveSafety.h`, permitindo testar a cópia v2→v3 com arquivos reais em disco. O backup `.before-rarity-v3.bak` continua imutável após a primeira criação; arquivo v3 existente precisa estar íntegro.
+- Os testes de host exercitam ida e volta de formatos, entrada v3 corrompida após uma linha válida, recusa de substituição, migração v2→v3 e verificação do backup real após a conversão.
+- O hook nativo `Item.Prefix` preserva as raridades C# mesmo quando a amostragem da cor ainda não aconteceu. Usa a identidade registrada, não a presença do cache visual, restaurando o ID original se a tentativa de prefixo falhar ou o C# não responder. IDs de raridade externa não reconhecidos são recusados.
+
+**Não equivale a validação Android:** ainda faltam testes no processo IL2CPP real, em personagens e baús, compatibilidade de mods desativados, restauração de backup e perfilamento de FPS. Não gerar APK nem promover a PR a release apenas com os testes de host.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
