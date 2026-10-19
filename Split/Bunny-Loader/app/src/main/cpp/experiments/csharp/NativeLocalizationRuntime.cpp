@@ -288,6 +288,12 @@ bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,
     }
     result->culture=fields[1];
     result->key="Mods."+modId+"."+result->key.substr(12);
+    const std::string sourcePrefix="{$Mods.source.";
+    size_t index=0;
+    while((index=result->value.find(sourcePrefix,index))!=std::string::npos) {
+        result->value.replace(index+7,6,modId);
+        index+=7+modId.size();
+    }
     return true;
 }
 
