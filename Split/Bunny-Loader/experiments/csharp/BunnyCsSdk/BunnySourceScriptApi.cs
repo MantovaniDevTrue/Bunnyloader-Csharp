@@ -324,6 +324,9 @@ public sealed class BunnyPrefixRollRules
     private readonly System.Collections.Generic.SortedDictionary<int, int> rules = new();
     private readonly System.Collections.Generic.SortedDictionary<string, int> namedRules =
         new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<int, bool> canRoll = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, bool> namedCanRoll =
+        new(System.StringComparer.Ordinal);
 
     private void Reserve(bool exists)
     {
@@ -352,8 +355,31 @@ public sealed class BunnyPrefixRollRules
         namedRules[itemName] = weight;
     }
 
-    public void Deny(int itemType) => SetWeight(itemType, 0);
-    public void Deny(string itemName) => SetWeight(itemName, 0);
+    public void SetCanRoll(int itemType, bool allowed)
+    {
+        if (!rules.ContainsKey(itemType))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        canRoll[itemType] = allowed;
+    }
+
+    public void SetCanRoll(string itemName, bool allowed)
+    {
+        if (string.IsNullOrEmpty(itemName) || !namedRules.ContainsKey(itemName))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        namedCanRoll[itemName] = allowed;
+    }
+
+    public void Deny(int itemType)
+    {
+        SetWeight(itemType, 0);
+        canRoll.Remove(itemType);
+    }
+
+    public void Deny(string itemName)
+    {
+        SetWeight(itemName, 0);
+        namedCanRoll.Remove(itemName);
+    }
     public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
     public void Allow(string itemName, int weight = 1) => SetWeight(itemName, weight);
 
@@ -361,11 +387,21 @@ public sealed class BunnyPrefixRollRules
     {
         var fields = new System.Collections.Generic.List<string>(rules.Count + namedRules.Count);
         foreach (var entry in rules)
-            fields.Add(entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        {
+            string key = entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (canRoll.TryGetValue(entry.Key, out bool allowed))
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
         foreach (var entry in namedRules)
-            fields.Add(entry.Key + ":" +
-                entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        {
+            string key = entry.Key + ":" +
+                entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (namedCanRoll.TryGetValue(entry.Key, out bool allowed))
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
         return string.Join(",", fields);
     }
 }
