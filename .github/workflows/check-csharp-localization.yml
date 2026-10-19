@@ -6,6 +6,7 @@ on:
       - feat/csharp-content-localization-loader-20261019
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalizationModule.cs'
       - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.json'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.md'
@@ -18,11 +19,15 @@ on:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
+      - 'Split/Bunny-Loader/tools/sdk_reference/Program.cs'
+      - 'Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs'
       - 'Split/Bunny-Loader/tests/localization_loader/**'
       - '.github/workflows/check-csharp-localization.yml'
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalizationModule.cs'
       - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.json'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.md'
@@ -35,6 +40,9 @@ on:
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
+      - 'Split/Bunny-Loader/tools/sdk_reference/Program.cs'
+      - 'Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs'
       - 'Split/Bunny-Loader/tests/localization_loader/**'
       - '.github/workflows/check-csharp-localization.yml'
   workflow_dispatch:
