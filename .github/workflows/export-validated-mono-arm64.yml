@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+      INPUTS_RELEASE_TAG: bunny-private-build-inputs-v1
       APK_NAME: BunnyLoader-CSharp-Test-v0.1.10.16.72-ManagedIngress.apk
       EXPECTED_APK_SHA256: 84dd410f1054690cfb4bf6a74078c0bd2c92c7ee0ab431b345e0d5c84f353feb
     steps:
@@ -42,7 +43,7 @@ jobs:
           test -n "$GH_TOKEN"
           test "$(gh api "repos/$PRIVATE_INPUTS_REPO" --jq '.private')" = "true"
           mkdir -p "$RUNNER_TEMP/source-apk" "$RUNNER_TEMP/mono-only"
-          gh release download \
+          gh release download "$INPUTS_RELEASE_TAG" \
             --repo "$PRIVATE_INPUTS_REPO" \
             --pattern "$APK_NAME" \
             --dir "$RUNNER_TEMP/source-apk"
