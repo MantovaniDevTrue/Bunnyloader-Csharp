@@ -314,6 +314,7 @@ int main() {
     assert(applyManagedPrefixViaNativeRoll(&weapon.object, 99,
                                             &prefixMethod, &restoredDespiteNewConditions));
     assert(restoredDespiteNewConditions && weapon.prefix == 99);
+    assert(!g_restoreRoll.item);
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     weapon.prefix = 0;
     weapon.damage = 12;
