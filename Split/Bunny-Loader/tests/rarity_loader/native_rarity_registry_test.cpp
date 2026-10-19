@@ -76,4 +76,28 @@ int main() {
     reader.join();
     assert(ids.snapshot()->size() == 132);
     assert(observed.load(std::memory_order_relaxed) >= 0);
+
+    bl::csharp::NativeRarityRegistry shared;
+    assert(shared.reserveExternalType() == 12);
+    assert(shared.registerType("csharpMod", "FirstRarity") == 13);
+    assert(shared.reserveExternalType() == 14);
+    assert(shared.registerType("otherCsharp", "SecondRarity") == 15);
+    assert(shared.registerType("csharpMod", "ThirdRarity") == 16);
+    const auto sharedSnapshot = shared.snapshot();
+    assert(sharedSnapshot->size() == 5);
+    assert(!(*sharedSnapshot)[0].managed);
+    assert((*sharedSnapshot)[1].managed);
+    assert(!(*sharedSnapshot)[2].managed);
+    assert((*sharedSnapshot)[3].managed);
+    assert((*sharedSnapshot)[4].managed);
+    assert(shared.findType("csharpMod", "FirstRarity") == 13);
+    assert(shared.findType("otherCsharp", "SecondRarity") == 15);
+    assert(shared.findType("missing", "FirstRarity") == -1);
+    assert(shared.reserveExternalType() == 17);
+    assert(shared.registerType("otherCsharp", "SecondRarity") == -1);
+    bl::csharp::NativeRarityRegistry full;
+    for (int id = 12; id < 4108; ++id) assert(full.reserveExternalType() == id);
+    assert(full.reserveExternalType() == -1);
+    assert(full.registerType("csharp", "Overflow") == -1);
+    assert(full.snapshot()->size() == 4096);
 }
