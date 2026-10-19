@@ -7,7 +7,7 @@
 namespace bl::csharp::localization {
 
 inline bool validOwnedLocaleKey(std::string_view key) {
-    if (key.size() < 9 || key.size() > 280 || key.substr(0, 5) != "Mods.") return false;
+    if (key.size() < 8 || key.size() > 280 || key.substr(0, 5) != "Mods.") return false;
     const size_t idEnd = key.find('.', 5);
     if (idEnd == std::string_view::npos || idEnd == 5 || idEnd + 1 >= key.size()) return false;
     const auto safeChar=[](char c) {
@@ -33,8 +33,12 @@ inline bool safeToRetire(const SessionSnapshot& state, const std::string& key) {
 }
 
 inline bool safeToRetireAll(const SessionSnapshot& state) {
+    std::set<std::string> active;
+    for (const auto& [id,entries]:state.active)
+        for (const auto& entry:entries)
+            active.insert(entry.key);
     for (const auto& key:state.retired)
-        if (!safeToRetire(state,key)) return false;
+        if (!validOwnedLocaleKey(key) || active.contains(key)) return false;
     return true;
 }
 }
