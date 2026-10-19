@@ -2093,6 +2093,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void PostDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void RandomUpdate(int x, int y)",
           "execution": "managed_helper"
         },

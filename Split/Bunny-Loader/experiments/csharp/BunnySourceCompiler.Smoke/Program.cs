@@ -738,6 +738,29 @@ public sealed class MinionStaff : BunnyWeapon
         throw new InvalidOperationException("CSharp PreDraw sprite wire mismatch: " + spriteDraw);
     if ((new TileSpriteSmoke().TileCallbackMask & (1 << 5)) == 0)
         throw new InvalidOperationException("CSharp PreDraw context overload undetected");
+    string postOnly = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (postOnly != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,1,3,4294967295,0")
+        throw new InvalidOperationException("PostDraw-only wire mismatch: "+postOnly);
+    if ((new TilePostOnlySmoke().TileCallbackMask & (1 << 16)) == 0)
+        throw new InvalidOperationException("PostDraw callback missing");
+    string specialPost = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,1,754");
+    if (specialPost != "DRAW|0|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("PostDraw ran during special pass: "+specialPost);
+    string legacyPost = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0");
+    if (legacyPost != "ERROR|Stage=DecodeTileDraw Reason=PostDrawRequiresTileType")
+        throw new InvalidOperationException("PostDraw without native type: "+legacyPost);
+    string both = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-prepost-tile",
+        tileSmokeAssembly, nameof(TilePrePostSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (both != "DRAW|0|0|16|16|0|0|0|0|0\nSPRITES|2|754,3,4,0,0,16,16,0,0,4294967295,1|754,3,4,16,0,16,16,0,0,4294967295,2")
+        throw new InvalidOperationException("PreDraw + PostDraw order: "+both);
+    Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_SPRITE_CONTEXT=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_ANIMATION_TYPE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
@@ -779,5 +802,27 @@ sealed class TileSpriteSmoke : BunnyLoader.Source.BunnyTile
     {
         draw.DrawTileTexture(0,0,16,16,0,2,0xffffffffu,1);
         return false;
+    }
+}
+
+sealed class TilePostOnlySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,1,3);
+    }
+}
+sealed class TilePrePostSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override bool PreDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,0,0,0xffffffffu,1);
+        return false;
+    }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(16,0,16,16,0,0,0xffffffffu,2);
     }
 }

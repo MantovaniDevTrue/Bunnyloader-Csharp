@@ -1153,6 +1153,7 @@ string Texture { get; set; }
 | `void MouseOverFar(int x, int y)` | managed_helper |
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
 | `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
 | `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |

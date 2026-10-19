@@ -73,6 +73,7 @@ public abstract class BunnyTile {
     public virtual bool PreDraw(int x, int y) => true;
     public virtual bool PreDraw(int x, int y, BunnyTileDrawContext draw)
         => PreDraw(x, y);
+    public virtual void PostDraw(int x, int y, BunnyTileDrawContext draw) { }
     public virtual void ModifyLight(int x, int y, ref float r, ref float g, ref float b) { }
     public virtual void PlaceInWorld(int x, int y) { }
     public virtual bool Slope(int x, int y) => true;
@@ -93,7 +94,8 @@ public abstract class BunnyTile {
                 nameof(CanKillTile), nameof(CanDrop), nameof(HitWire), nameof(RandomUpdate),
                 nameof(RightClick), nameof(PreDraw), nameof(ModifyLight), nameof(PlaceInWorld),
                 nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile),
-                nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects)
+                nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
+                nameof(PostDraw)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {

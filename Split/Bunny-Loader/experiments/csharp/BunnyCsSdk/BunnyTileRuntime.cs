@@ -25,7 +25,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.Slope), nameof(BunnyTile.MouseOver),
         nameof(BunnyTile.MouseOverFar), nameof(BunnyTile.NearbyEffects),
         nameof(BunnyTile.AnimateTile), nameof(BunnyTile.SetDrawPositions),
-        nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects)
+        nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects),
+        nameof(BunnyTile.PostDraw)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -59,7 +60,7 @@ public static class BunnyTileRuntime {
             }
             if (kind == 2) return "READY";
             if (index == 13) {
-                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5))) == 0) return "DEFAULT";
+                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (1 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
@@ -97,15 +98,21 @@ public static class BunnyTileRuntime {
                     tile.SetSpriteEffects(x, y, ref effects);
                 bool drawDefault = true;
                 bool hasPreDraw = (mod.Masks[owner] & (1 << 5)) != 0 && fields[10] == "0";
+                bool hasPostDraw = (mod.Masks[owner] & (1 << 16)) != 0 && fields[10] == "0";
                 BunnyTileDrawContext? context = null;
-                if (hasPreDraw) {
+                if (hasPreDraw || hasPostDraw) {
                     if (tileType >= 754) {
                         if (!mod.DrawContexts.TryGetValue(owner, out context)) {
                             context = new BunnyTileDrawContext(tileType, x, y);
                             mod.DrawContexts.Add(owner, context);
                         } else context.Reset(tileType, x, y);
-                        drawDefault = tile.PreDraw(x, y, context);
-                    } else drawDefault = tile.PreDraw(x, y);
+                        if (hasPreDraw) drawDefault = tile.PreDraw(x, y, context);
+                        if (hasPostDraw) tile.PostDraw(x, y, context);
+                    } else {
+                        if (hasPostDraw)
+                            return "ERROR|Stage=DecodeTileDraw Reason=PostDrawRequiresTileType";
+                        if (hasPreDraw) drawDefault = tile.PreDraw(x, y);
+                    }
                 }
                 if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||
                     width < 1 || width > 512 || height < 1 || height > 512 ||
