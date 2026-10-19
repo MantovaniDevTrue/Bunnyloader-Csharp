@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -728,7 +729,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14 || fields.size() == 16 || fields.size() == 17)) {
+        if (fields[0] == "TILE" && tile_wire::supported(fields.size())) {
             const auto it = mod->registeredKindTypes.find(identity);
             if (it == mod->registeredKindTypes.end() ||
                 runtime::modTileTypeByName(modId, fields[1]) != it->second) {
@@ -754,8 +755,8 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
-                (fields.size() >= 14 && !integer(fields[13], &tile.animationFrameHeight)) ||
-                (fields.size() == 16 &&
+                (tile_wire::hasAnimationHeight(fields.size()) && !integer(fields[13], &tile.animationFrameHeight)) ||
+                (tile_wire::hasAnimationPolicy(fields.size()) &&
                  (!integer(fields[14], &tile.animationFrames) ||
                   !integer(fields[15], &tile.animationFrameTicks))) ||
                 tile.shape < 0 || tile.shape > 1 ||
@@ -790,7 +791,7 @@ bool applyManagedSourceDefaults(
                     tile.mapName.push_back(static_cast<char>(left * 16 + right));
                 }
             }
-            if (fields.size() == 17 && fields[16] != "-") {
+            if (tile_wire::hasAdjacencies(fields.size()) && fields[16] != "-") {
                 std::istringstream adjacentStream(fields[16]);
                 std::string token;
                 while (std::getline(adjacentStream, token, ',')) {
