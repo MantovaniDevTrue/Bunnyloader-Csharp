@@ -187,7 +187,7 @@ assert "playerHealthPercent" in wave_events
 assert "return 1000000 + buffId * 1000 + durationTicks;" in wave_events
 assert "return 2000000 + direction * 100 + strengthTenths;" in wave_events
 welcome = (playable / "content/Common/Players/ExampleWelcomePlayer.cs").read_text(encoding="utf-8")
-assert "C# Hook QA 0.1.58:" in welcome
+assert f"C# Hook QA {catalog['exampleModCSharpVersion']}:" in welcome
 assert "consulte os estados H1-H5 no relatorio" in welcome
 for name in hook_examples:
     example = (hook_dir / (name + ".cs")).read_text(encoding="utf-8")
