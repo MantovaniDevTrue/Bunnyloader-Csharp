@@ -247,7 +247,7 @@ bool writeQuestIds(const std::vector<Quest>& quests) {
               static_cast<int32_t*>(arrayData(updated)));
     a.field_static_set_value(g_questItems, &updated);
     auto where = std::find(retained.begin(), retained.end(), activeId);
-    const int32_t next = where == retained.end() ? 0 :
+    int32_t next = where == retained.end() ? 0 :
         static_cast<int32_t>(where - retained.begin());
     a.field_static_set_value(g_questIndex, &next);
     return true;
