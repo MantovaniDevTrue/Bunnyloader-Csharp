@@ -11,6 +11,7 @@ public sealed class ExampleQuestFish : BunnyItem
         DefaultToQuestFish();
         QuestAvailableInPreHardmode = false;
         QuestAvailableInHardmode = true;
+        QuestCatchRules = BunnyQuestCatchRules.InvertedGravity | BunnyQuestCatchRules.Uncommon;
         QuestDescription = "I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!";
         QuestCatchLocation = "Caught anywhere while standing upside-down.";
     }
