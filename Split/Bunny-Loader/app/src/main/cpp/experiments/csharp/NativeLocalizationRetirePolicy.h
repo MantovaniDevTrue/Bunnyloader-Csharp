@@ -66,6 +66,7 @@ inline bool safeToRetireAll(const SessionSnapshot& state) {
 ,idEnd+1);
     if(variant!=std::string_view::npos &&
        (variant==idEnd+1 || variant==key.size()-1 ||
+        key[variant-1]=='.' || key[variant-1]=='/' ||
         key.find('
 }
 
