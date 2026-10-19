@@ -6,6 +6,7 @@
 #include "experiments/csharp/ProjectileWriteTest.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
@@ -66,6 +67,13 @@ JSValue makeManagedStatus(JSContext* ctx, const bl::csharp::ManagedRuntimeStatus
     JS_SetPropertyStr(ctx, out, "phase", JS_NewString(ctx, s.phase.c_str()));
     JS_SetPropertyStr(ctx, out, "error", JS_NewString(ctx, s.error.c_str()));
     return out;
+}
+
+JSValue jsReserveRarityId(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
+    if (argc != 0) return JS_ThrowTypeError(ctx, "reserveRarityId()");
+    const int id = bl::csharp::nativeRarities().reserveExternalType();
+    if (id < 0) return JS_ThrowRangeError(ctx, "rarity ID capacity exhausted");
+    return JS_NewInt32(ctx, id);
 }
 
 JSValue jsManagedNativeEquipTextures(JSContext* ctx, JSValueConst, int argc, JSValueConst*) {
@@ -2891,6 +2899,7 @@ JSValue makeSuite(JSContext* ctx) {
 void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JSValue api = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, api, "available", JS_NewCFunction(ctx, jsAvailable, "available", 0));
+    JS_SetPropertyStr(ctx, api, "reserveRarityId", JS_NewCFunction(ctx, jsReserveRarityId, "reserveRarityId", 0));
     JS_SetPropertyStr(ctx, api, "managedAvailable",
                       JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
