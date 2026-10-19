@@ -74,6 +74,7 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 
 ## Paridade adicional da API gerenciada
 
+- `Register` tem precedência por cultura sobre entradas do JSON na mesma chave. Uma recarga de `RegisterCulture` ou `ReplaceModCultures` não perde essas substituições; `RemoveMod` limpa os registros pertencentes ao namespace desse mod. O comportamento é validado sob troca de idioma, snapshots e desativação.
 - `BunnyLocalizationCatalog.Register(fullKey, cultures)` aceita um mapa de culturas como `ModLocalization.Register(key, { cultura: texto })` do Bunny JS: valida todas as entradas antes de publicar o snapshot, mantém outras culturas da chave e atualiza os valores por idioma sem publicar estado parcial.
 - `BunnyLocalizationCatalog.Key(path, callerModId)` retorna `Mods.<id>.<path>` somente para uma chave já declarada pelo mod chamador, como o `ModLocalization.Key` do ExampleModBunny; chaves ausentes continuam inalteradas.
 - `BunnyLocalizationCatalog.Texts(path, callerModId)` retorna uma cópia das traduções nas culturas realmente declaradas, com referências `{$...}` resolvidas em cada cultura sem alterar a cultura ativa.
