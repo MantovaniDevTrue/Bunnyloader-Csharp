@@ -68,6 +68,8 @@ Teste de regressão de localizações + ciclo de vida (CI, sem APK): https://git
 - O parser de `Localization/*.json` passou a rejeitar números inválidos mesmo em propriedades ignoradas, mantendo catálogos anteriores intactos quando a carga falha.
 - A baseline atual da PR #98 foi integrada preservando os contratos de Tile, inclusive `CacheDrawData` e os novos métodos de desenho nativo. Os arquivos de referência gerados foram combinados em vez de reverter a base.
 
+O método de descarregamento agora é *fail-safe*: se a API nativa de remoção do dicionário não estiver disponível, ele neutraliza os textos sem repetir invocações de erro a cada 30 atualizações. A primeira falha estrutural é registrada uma única vez; não elimina traduções de outros mods.
+
 **Limite de certificação:** a API interna `_localizedTexts`, os métodos genéricos `Remove` e a preservação de referências são verificados estaticamente por contrato e política de host; ainda não existe teste real na libil2cpp do Terraria 1.4.5.8.6. Esse lote não declara descarregamento físico nem atualização de tooltips como validados em gameplay.
 
 ## Pendências obrigatórias para declarar completo
