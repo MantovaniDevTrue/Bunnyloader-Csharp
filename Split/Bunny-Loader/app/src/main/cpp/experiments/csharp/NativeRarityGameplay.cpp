@@ -619,6 +619,127 @@ bool installRarityGroundTextHook(std::string* error) {
     return true;
 }
 
+using RarityTooltipStaticFn = void (*)(Il2CppObject*, int32_t, uint8_t,
+    int32_t, int32_t, const MethodInfo*);
+using RarityTooltipInstanceFn = void (*)(Il2CppObject*, Il2CppObject*, int32_t,
+    uint8_t, int32_t, int32_t, const MethodInfo*);
+using RarityAffixNameFn = Il2CppString* (*)(Il2CppObject*, const MethodInfo*);
+RarityTooltipStaticFn g_originalRarityTooltipStatic = nullptr;
+RarityTooltipInstanceFn g_originalRarityTooltipInstance = nullptr;
+const MethodInfo* g_rarityAffixMethod = nullptr;
+RarityAffixNameFn g_rarityAffixName = nullptr;
+int g_rarityTooltipExpertOffset = -1;
+std::atomic<bool> g_tooltipHookReady{false};
+
+template <typename F>
+void rarityTooltipScope(int32_t rare, uint8_t diff, F&& original) {
+    if (!g_tooltipHookReady.load(std::memory_order_acquire) || diff != 0) {
+        original();
+        return;
+    }
+    uint32_t color = 0;
+    if (!g_palette.read(rare, &color) || !g_rarityAffixName) {
+        original();
+        return;
+    }
+    Il2CppObject* item = nullptr;
+    if (!native_static::read(g_hoverItem, &item, sizeof(item)) || !item ||
+        bl::runtime::field<int32_t>(item, g_hoverItemTypeOffset) < 1 ||
+        bl::runtime::field<uint8_t>(item, g_rarityTooltipExpertOffset) != 0) {
+        original();
+        return;
+    }
+    Il2CppString* name = g_rarityAffixName(item, g_rarityAffixMethod);
+    if (!name || name->length <= 0 || name->length > 256) {
+        original();
+        return;
+    }
+    const auto priorText = g_rarityTextTarget;
+    const auto priorColor = g_rarityTextColor;
+    const bool priorMatch = g_rarityTextMatchByContent;
+    g_rarityTextTarget = name;
+    g_rarityTextColor = color;
+    g_rarityTextMatchByContent = true;
+    original();
+    g_rarityTextTarget = priorText;
+    g_rarityTextColor = priorColor;
+    g_rarityTextMatchByContent = priorMatch;
+}
+
+void rarityTooltipStatic(Il2CppObject* cache, int32_t rare, uint8_t diff,
+    int32_t x, int32_t y, const MethodInfo* method) {
+    rarityTooltipScope(rare, diff, [&] {
+        if (g_originalRarityTooltipStatic)
+            g_originalRarityTooltipStatic(cache, rare, diff, x, y, method);
+    });
+}
+
+void rarityTooltipInstance(Il2CppObject* self, Il2CppObject* cache,
+    int32_t rare, uint8_t diff, int32_t x, int32_t y, const MethodInfo* method) {
+    rarityTooltipScope(rare, diff, [&] {
+        if (g_originalRarityTooltipInstance)
+            g_originalRarityTooltipInstance(self, cache, rare, diff, x, y, method);
+    });
+}
+
+bool installRarityTooltipHook(std::string* error) {
+    using namespace bl::il2cpp;
+    if (g_tooltipHookReady.load(std::memory_order_acquire)) return true;
+    if (!g_groundTextHookReady.load(std::memory_order_acquire) ||
+        !g_rarityDrawStringHookInstalled || !g_hoverItem) {
+        *error = "Reason=RarityTextDrawHookNotReady";
+        return false;
+    }
+    auto& a = api();
+    auto* main = findClass({"Terraria", "Main", {}});
+    auto* item = findClass({"Terraria", "Item", {}});
+    auto* cache = main ? findNested(main, "MouseTextCache") : nullptr;
+    const auto* method = main ? findMethodBySignature(main, parseSignature(
+        "void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)")) : nullptr;
+    const auto* affix = item ? findMethodBySignature(item,
+        parseSignature("string AffixName()")) : nullptr;
+    const auto* boolType = findClass({"System", "Boolean", {}});
+    const auto* stringType = findClass({"System", "String", {}});
+    if (!method || !affix || !cache || !item || !boolType || !stringType ||
+        !a.method_get_param_count || a.method_get_param_count(method) != 5 ||
+        !a.method_is_instance || !a.method_is_instance(affix) ||
+        a.method_get_param_count(affix) != 0 ||
+        !isReturn(method, "System", "Void") ||
+        !isReturn(affix, "System", "String") ||
+        !parameterIs(cache, method, 0, "Terraria", "MouseTextCache") ||
+        !parameterIs(nullptr, method, 1, "System", "Int32") ||
+        !parameterIs(nullptr, method, 2, "System", "Byte") ||
+        !parameterIs(nullptr, method, 3, "System", "Int32") ||
+        !parameterIs(nullptr, method, 4, "System", "Int32")) {
+        *error = "Reason=RarityTooltipSignatureMismatch";
+        return false;
+    }
+    int expert = -1;
+    if (!validateRarityTextField(item, "expert",
+            const_cast<Il2CppClass*>(boolType), &expert)) {
+        *error = "Reason=RarityExpertItemLayoutMismatch";
+        return false;
+    }
+    auto affixPointer = methodPointer(affix);
+    if (!affixPointer) {
+        *error = "Reason=RarityAffixNamePointerMissing";
+        return false;
+    }
+    g_rarityAffixMethod = affix;
+    g_rarityAffixName = reinterpret_cast<RarityAffixNameFn>(affixPointer);
+    g_rarityTooltipExpertOffset = expert;
+    const bool hooked = a.method_is_instance(method)
+        ? bl::hook::install(method, rarityTooltipInstance, &g_originalRarityTooltipInstance)
+        : bl::hook::install(method, rarityTooltipStatic, &g_originalRarityTooltipStatic);
+    if (!hooked) {
+        *error = "Reason=RarityTooltipHookRejected";
+        return false;
+    }
+    g_tooltipHookReady.store(true, std::memory_order_release);
+    BL_INFO("[CSharp][RarityLoader] Stage=InstallHook API=Main.MouseText_DrawItemTooltip Result=Ready");
+    return true;
+}
+
 struct DiscoField {
     FieldInfo* field = nullptr;
     int bytes = 0;
@@ -752,6 +873,13 @@ void pumpNativeRarityGameplay() {
         std::string error;
         if (!installRarityGroundTextHook(&error))
             BL_WARN("[CSharp][RarityLoader] Stage=InstallGroundText Result=Pending Detail=%s",
+                error.c_str());
+    }
+    if (g_groundTextHookReady.load(std::memory_order_acquire) &&
+        !g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+        std::string error;
+        if (!installRarityTooltipHook(&error))
+            BL_WARN("[CSharp][RarityLoader] Stage=InstallTooltip Result=Pending Detail=%s",
                 error.c_str());
     }
     if (g_hookReady.load(std::memory_order_acquire) &&
