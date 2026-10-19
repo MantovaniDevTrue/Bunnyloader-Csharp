@@ -7,8 +7,12 @@ on:
     paths:
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestRegistry.h'
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.h'
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'tests/angler_quest/**'
