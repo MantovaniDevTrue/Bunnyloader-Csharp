@@ -170,6 +170,9 @@ assert 'rules.Allow("ExampleWand", 3);' in prefix_example
 assert 'effects.DamageBonus = 3;' in prefix_example
 assert 'effects.ValueBonus = 40;' in prefix_example
 assert 'ExtraTooltip = "Bonus adicional do prefixo";' in prefix_example
+item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
+assert 'rules.Deny(71);' in item_deny_example
+assert 'rules.Deny(nameof(ExampleGuardedPrefix));' in item_deny_example
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")
