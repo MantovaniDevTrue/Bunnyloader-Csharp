@@ -1,5 +1,9 @@
 # Bunny Loader C#
 
+**[Fonte integrada atual — Bunny Loader C# 1.0](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/entrega/potato-bunny-original-com-csharp-20261018)** · [ExampleMod C# atualizado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/entrega/potato-bunny-original-com-csharp-20261018/samples/ExampleModCSharp/Playable) · [Instruções para integrar ao Bunny original](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/entrega/potato-bunny-original-com-csharp-20261018/IMPORTAR-NO-GITHUB-DO-POTATO.md)
+
+A `main` mantém os arquivos históricos de desenvolvimento. **A cópia completa atualizada para revisão e integração está na branch acima**, com os motores e assemblies incluídos no projeto Android.
+
 Mods C# em **Terraria Mobile**, com fontes `.cs` compilados no Android por
 Roslyn e executados pelo MonoVM. O host C++ integra o código ao Terraria IL2CPP.
 Não precisa de compilador externo nem de uma `.so` por mod.
