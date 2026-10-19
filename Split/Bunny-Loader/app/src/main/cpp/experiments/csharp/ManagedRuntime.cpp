@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -294,6 +295,7 @@ struct LocalizationJob {
     std::string modId;
     std::string assemblyPath;
     std::string culture;
+    uint64_t generation = 0;
     bool unload = false;
 };
 std::deque<LocalizationJob> g_localizationQueue;
@@ -1469,8 +1471,8 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
     if (!utf8 || !release) return "ERROR|MonoStringExportsMissing";
     char* text = utf8(value);
     if (!text) return "ERROR|MonoStringDecode";
-    const size_t length = strnlen(text, 257);
-    std::string result = length <= 256 ? std::string(text, length) : "ERROR|ResponseTooLarge";
+    const size_t length = strnlen(text, 262145);
+    std::string result = length <= 262144 ? std::string(text, length) : "ERROR|ResponseTooLarge";
     release(text);
     return result;
 }
@@ -1567,7 +1569,13 @@ void* pinnedMonoWorker(void*) {
                     LocalizationJob job = std::move(g_localizationQueue.front());
                     g_localizationQueue.pop_front();
                     lock.unlock();
-                    const std::string result = executeManagedLocalizationOnWorker(job);
+                    std::string result = executeManagedLocalizationOnWorker(job);
+                    if (!job.unload && result.rfind("OK|", 0) == 0) {
+                        if (!localization::acceptManagedWire(
+                                job.modId, job.assemblyPath, job.culture,
+                                job.generation, result))
+                            result = "ERROR|DynamicWireRejectedOrStale";
+                    }
                     if (result.rfind("OK|", 0) != 0) {
 #ifdef __ANDROID__
                         __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
@@ -2048,13 +2056,14 @@ void* pinnedMonoWorker(void*) {
 
 bool queueManagedLocalizationLoaded(const std::string& modId,
                                     const std::string& assemblyPath,
-                                    const std::string& culture) {
+                                    const std::string& culture,
+                                    uint64_t generation) {
     if (modId.empty() || modId.size() > 64 ||
         assemblyPath.empty() || assemblyPath.size() > 2048 ||
         culture.size() < 2 || culture.size() > 20) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     if (g_localizationQueue.size() >= 64) return false;
-    g_localizationQueue.push_back({modId, assemblyPath, culture, false});
+    g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false});
     g_pinnedWake.notify_one();
     return true;
 }
@@ -2067,7 +2076,7 @@ void unloadManagedLocalizationCallbacks(const std::string& modId) {
             return job.modId == modId;
         }), g_localizationQueue.end());
     if (g_localizationQueue.size() < 64)
-        g_localizationQueue.push_back({modId, "", "", true});
+        g_localizationQueue.push_back({modId, "", "", 0, true});
     g_pinnedWake.notify_one();
 }
 
