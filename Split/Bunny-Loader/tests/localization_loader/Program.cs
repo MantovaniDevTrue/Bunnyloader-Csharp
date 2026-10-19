@@ -433,7 +433,8 @@ Test("localization-module-without-static-json-emits-marker", () =>
 {
     string root = Path.Combine(Path.GetTempPath(), "bunny-locale-only-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(Path.Combine(root, "content"));
-    HostLocalizationModule.CompileWithoutRows = true;
+    string? prior = Environment.GetEnvironmentVariable("BUNNY_TEST_LOCALE_ONLY");
+    Environment.SetEnvironmentVariable("BUNNY_TEST_LOCALE_ONLY", "1");
     try
     {
         string diagnostics = Path.Combine(root, "diagnostics.txt");
@@ -445,7 +446,7 @@ Test("localization-module-without-static-json-emits-marker", () =>
     }
     finally
     {
-        HostLocalizationModule.CompileWithoutRows = false;
+        Environment.SetEnvironmentVariable("BUNNY_TEST_LOCALE_ONLY", prior);
         Directory.Delete(root, true);
     }
 });
@@ -512,7 +513,6 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public static bool ShouldFail;
     public static bool DynamicTranslations;
     public static bool RegisterForeign;
-    public static bool CompileWithoutRows;
     public static string LastCulture = "";
 
     public override void OnLocalizationsLoaded()
@@ -533,7 +533,7 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
 
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
     {
-        if (CompileWithoutRows) return;
+        if (Environment.GetEnvironmentVariable("BUNNY_TEST_LOCALE_ONLY") == "1") return;
         catalog.Register("Mods.source.ItemName.HostModule",
             new Dictionary<string, string>
             {
