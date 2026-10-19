@@ -270,15 +270,17 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
 
     const bool accepted = g_originalItemPrefix(item, request, topTier, method);
     if (!accepted || !ready || want == -3 || !hasPolicy) {
-        if (removedPrevious && !accepted &&
-            bl::runtime::field<int32_t>(item, g_chanceDamageOffset) ==
-                originalDamage - previous->damageBonus &&
-            bl::runtime::field<int32_t>(item, g_chanceValueOffset) ==
-                originalValue - previous->valueBonus) {
-            bl::runtime::field<int32_t>(item, g_chanceDamageOffset) = originalDamage;
-            bl::runtime::field<int32_t>(item, g_chanceValueOffset) = originalValue;
+        if (removedPrevious && !accepted) {
+            if (bl::runtime::field<int32_t>(item, g_chanceDamageOffset) ==
+                    originalDamage - previous->damageBonus &&
+                bl::runtime::field<int32_t>(item, g_chanceValueOffset) ==
+                    originalValue - previous->valueBonus) {
+                bl::runtime::field<int32_t>(item, g_chanceDamageOffset) = originalDamage;
+                bl::runtime::field<int32_t>(item, g_chanceValueOffset) = originalValue;
+            } else {
+                previous->item = nullptr;
+            }
         }
-        if (previous && removedPrevious && !accepted) previous->item = nullptr;
         return accepted;
     }
 
