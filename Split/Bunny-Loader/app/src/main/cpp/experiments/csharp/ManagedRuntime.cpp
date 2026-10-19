@@ -1561,6 +1561,7 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
                     !g_localizationQueue.empty()) {
                     LocalizationJob job = std::move(g_localizationQueue.front());
@@ -1581,8 +1582,7 @@ void* pinnedMonoWorker(void*) {
                     lock.lock();
                     continue;
                 }
-                // Bounded synchronous callbacks must not wait behind polling, event or AI backlogs.
-                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
