@@ -7,6 +7,8 @@
     <LangVersion>12</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="ExampleRarities/**/*.cs" />
+    <ProjectReference Include="ExampleRarities/ExampleRarities.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
   </ItemGroup>
