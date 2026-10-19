@@ -158,6 +158,7 @@ void initializeRarityTable(const MethodInfo* method) {
     if (!g_tableHookReady.load(std::memory_order_acquire)) return;
     const auto entries = nativeRarities().snapshot();
     for (const auto& entry : *entries) {
+        if (!entry.managed) continue;
         uint32_t color = 0;
         if (g_palette.read(entry.type, &color))
             writeRarityTable(entry.type, color);
@@ -225,7 +226,7 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
 
     const auto rarities = nativeRarities().snapshot();
     const auto found = std::find_if(rarities->begin(), rarities->end(),
-        [base](const NativeRarityIdentity& identity) { return identity.type == base; });
+        [base](const NativeRarityIdentity& identity) { return identity.managed && identity.type == base; });
     if (found == rarities->end()) return true;
 
     RarityMod owner;
@@ -410,7 +411,7 @@ bool registerNativeRaritySampling(const std::string& mod, const std::string& ass
     entry.assembly = assembly;
     const auto snapshot = nativeRarities().snapshot();
     for (const auto& rarity : *snapshot)
-        if (rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
+        if (rarity.managed && rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
     if (entry.rarities.empty()) return false;
     std::lock_guard guard(g_mutex);
     for (const auto& previous : g_mods)
