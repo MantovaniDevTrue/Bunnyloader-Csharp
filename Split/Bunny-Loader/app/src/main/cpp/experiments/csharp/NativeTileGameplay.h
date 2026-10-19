@@ -17,6 +17,7 @@ struct NativeTileGameplaySpec {
     bool allowBreaking = true;
     bool allowDrops = true;
     int callbackMask = 0;
+    bool cacheDrawData = true;
     std::string assembly;
 };
 

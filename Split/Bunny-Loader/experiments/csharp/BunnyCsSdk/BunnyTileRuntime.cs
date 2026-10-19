@@ -23,7 +23,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.ModifyLight), nameof(BunnyTile.PlaceInWorld),
         nameof(BunnyTile.Slope), nameof(BunnyTile.MouseOver),
         nameof(BunnyTile.MouseOverFar), nameof(BunnyTile.NearbyEffects),
-        nameof(BunnyTile.AnimateTile)
+        nameof(BunnyTile.AnimateTile), nameof(BunnyTile.SetDrawPositions),
+        nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -56,14 +57,50 @@ public static class BunnyTileRuntime {
                 mod.Masks.Add(owner, tile.TileCallbackMask);
             }
             if (kind == 2) return "READY";
-            if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
+            if (index == 13) {
+                if ((mod.Masks[owner] & (7 << 13)) == 0) return "DEFAULT";
+            } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            int expected = index == 11 ? 3 : 2;
+            int expected = index == 11 ? 3 : index == 13 ? 11 : 2;
             if (fields.Length != expected) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
             int y = int.Parse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
             if (x < 0 || y < 0 || x > 100000 || y > 100000)
                 return "ERROR|Stage=DecodeTileSnapshot Reason=CoordinatesOutOfBounds";
+            if (index == 13) {
+                int frameX = int.Parse(fields[2], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int frameY = int.Parse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int width = int.Parse(fields[4], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int height = int.Parse(fields[5], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int top = int.Parse(fields[6], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int addFrameX = int.Parse(fields[7], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int addFrameY = int.Parse(fields[8], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                int effects = int.Parse(fields[9], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                if (fields[10] != "0" && fields[10] != "1")
+                    return "ERROR|Stage=DecodeTileDraw Reason=InvalidSpecialPass";
+                if ((mod.Masks[owner] & (1 << 13)) != 0)
+                    tile.SetDrawPositions(x, y, ref width, ref top, ref height, ref frameX, ref frameY);
+                if ((mod.Masks[owner] & (1 << 14)) != 0)
+                    tile.AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
+                if ((mod.Masks[owner] & (1 << 15)) != 0)
+                    tile.SetSpriteEffects(x, y, ref effects);
+                if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||
+                    width < 1 || width > 512 || height < 1 || height > 512 ||
+                    top < -128 || top > 128 || addFrameX < -8192 || addFrameX > 8192 ||
+                    addFrameY < -8192 || addFrameY > 8192 ||
+                    frameX + addFrameX < 0 || frameY + addFrameY < 0 ||
+                    effects < 0 || effects > 3)
+                    return "ERROR|Stage=ValidateTileDraw Reason=InvalidDrawData";
+                return string.Join("|", "DRAW",
+                    frameX.ToString(CultureInfo.InvariantCulture),
+                    frameY.ToString(CultureInfo.InvariantCulture),
+                    width.ToString(CultureInfo.InvariantCulture),
+                    height.ToString(CultureInfo.InvariantCulture),
+                    top.ToString(CultureInfo.InvariantCulture),
+                    addFrameX.ToString(CultureInfo.InvariantCulture),
+                    addFrameY.ToString(CultureInfo.InvariantCulture),
+                    effects.ToString(CultureInfo.InvariantCulture));
+            }
             switch (index) {
                 case 0: return tile.CanKillTile(x, y) ? "1" : "0";
                 case 1: return tile.CanDrop(x, y) ? "1" : "0";

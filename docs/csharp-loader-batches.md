@@ -77,6 +77,32 @@ Testes host:39 casos de itens/fontes, suítes de tiro/summon/receitas/projéteis
 
 **Estado:** TileLoader e WallLoader parciais; TreeLoader, TileEntityLoader e GlobalTileLoader seguem pendentes. A matriz preserva todos os206 exemplos. Faltam callbacks gerenciados arbitrários de parede e os contratos restantes dos cinco sistemas; portanto, nenhum APK/.bmod é exportado como entrega do grupo. O gate não foi afrouxado. Compilação Android e validação no telefone continuam estados separados dos testes host.
 
+### Integração CI e ciclo de vida TileLoader (19/10)
+
+O lote do Codex em `08c83e1` adicionou WallLoader parcial e elevou ExampleMod CSharp para 0.1.59; os jobs de SDK/combat falhavam por verificações de versão anteriores e foram corrigidos. O workflow Android também tentava empacotar `examplemodcsharp-0.1.58.bl`; o pipeline foi alinhado a 0.1.59 (commit `a50447f`). Os hooks de quebra do TileLoader agora preservam cada instalação bem-sucedida e permitem retentar apenas os hooks faltantes após falha parcial (`6fe269e`), evitando instalar novamente o mesmo trampoline. O cache RGB agora associa a cor ao tipo de tile e expira ao substituir por outro tipo de mod (`8260d96`). A compilação Android, os hooks gráficos e a validação em aparelho continuam pendentes; a PR permanece draft sem publicação de APK.
+
+### TileLoader C# — draw-data nativo independente
+
+Os callbacks C# `SetDrawPositions`, `AnimateIndividualTile` e `SetSpriteEffects` agora usam a entrada do hook real `TileDrawing.GetTileDrawData` do Bunny original. A publicação dessas três políticas ocorre pelo MonoVM com um pacote tipado `DRAW`; o decoder nativo valida os oito campos de frame, tamanho, deslocamento e efeito antes de escrever na célula. O cache existente de desenho de tiles é reutilizado, sem atravessar QuickJS nem sobrescrever o callback de desenho de mods JS. O loader só ativa a máscara específica de cada tipo após conferir a instalação dos hooks de desenho padrão/especial, com tentativa segura de recuperar falhas parciais.
+
+O contrato SDK C# agora comporta16 overrides verificáveis e o compilador Roslyn usa o cache v38 (conservando os defaults de paredes do Codex). A máscara ocupa16 bits no registro TILE de20 colunas, sem mudar as colunas de mods existentes. Foram adicionados testes de integração do dispatcher C# para os três callbacks, passagem de desenho especial e rejeição de transporte inválido, além de `tests/world_loaders/tile_draw_wire_test.cpp` para validar a rotina real de resposta C++. Os novos testes de C++ são executados por `tests/world_loaders/run.sh`.
+
+**Ainda pendentes:** `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` com acesso real ao contexto `SpriteBatch`/partículas. O `SetDrawPositions` não substitui esse contexto nem torna completo o TileLoader. A build anterior (SHA `8260d96`) foi concluída com sucesso antes desses commits; a build/QA atual e os testes de jogo Android ainda precisam aprovar esse caminho. Nenhum APK de teste deve ser liberado enquanto os callbacks gráficos restantes e o gate de cinco loaders não estiverem concluídos.
+
+### TileLoader — publicação gráfica imutável e compatibilidade com o NDK
+
+Os métodos C# de transformação de desenho (`SetDrawPositions`, `AnimateIndividualTile`, `SetSpriteEffects`) publicam snapshots imutáveis por tipo no cache de desenho do Bunny, sem chamadas JavaScript. A verificação Android do SHA `dc4390527` falhou durante a compilação C++ de `NativeTileGameplay.cpp`: o NDK libc++ rejeitou `std::atomic<std::shared_ptr<const TileBehavior>>` por não ser um tipo trivial. O código passou a usar `PublishedBindings`, que protege apenas a cópia/publicação de `std::shared_ptr<const T>` com `std::shared_mutex`. Depois de liberar a trava, o renderizador mantém seu próprio snapshot imutável; não mantém o mutex preso durante o callback MonoVM.
+
+O teste `tile_draw_bindings_test.cpp` reproduz atualização de um tipo enquanto outra thread lê o snapshot, checa consistência dos campos, limites de ID e vida útil das instâncias antigas. A compilação e execução isoladas passaram localmente em G++ 14 e Clang++ 17 com `-std=c++20 -Wall -Wextra -Werror -pthread -fsanitize=address,undefined`. O teste entra em `tests/world_loaders/run.sh`. **Ainda falta a confirmação pela build NDK no novo SHA, além de jogo real**. `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` com `SpriteBatch` permanecem sem paridade completa, e o gate de APK segue fechado.
+
+### CacheDrawData C# e compatibilidade do wire — revisão 21
+
+O SDK C# agora expõe `BunnyTile.CacheDrawData` (padrão true), como o ModTile original do ExampleModBunny. Quando false, somente o tipo C# marcado evita reutilizar a saída do cache de `TileDrawing.GetTileDrawData`. Os mods JS continuam usando sua marca original `tile.drawdata.uncached`, sem alteração de comportamento. A política nativa `NativeTileDrawCachePolicy.h` combina o passe especial e as duas marcas sem desativar o cache dos demais tiles. A opção é declarada durante `SetStaticDefaults`; isso não implementa sozinho `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` nem o contexto `SpriteBatch`.
+
+O protocolo `TILE` acrescenta o21º campo opcional `CacheDrawData=0|1`, conservando suporte a13/14/16/17/19/20 colunas. O compilador Roslyn v39 emite21 campos, o registrador copia a política para os metadados nativos e a publicação de marcas segue os bindings imutáveis, sincronizados com a thread de desenho. O teste `tile_draw_cache_test.cpp` é executado pelo gate de world loaders. Os fixtures do ExampleWorkbench e do tile animado validam respectivamente o cache padrão ligado e o cache desativado. A primeira rodada de auditoria encontrou uma expectativa antiga de20 campos no teste original de bancada, corrigida no commit e95cdff.
+
+**Gate continua fechado:** os callbacks gráficos que desenham sprites/partículas ainda não estão implementados com paridade completa; APK de teste e declaração de TileLoader completo dependem da compilação Android do SHA atual e da validação no aparelho.
+
 ## Critério e gate de entrega
 
 `tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.

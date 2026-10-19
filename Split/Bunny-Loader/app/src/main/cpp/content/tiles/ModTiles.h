@@ -45,6 +45,7 @@ int tileTypeCount();
 
 /** O hook do TileDrawing.GetTileDrawData (de uma vez so): as arvores de mod precisam dele mesmo sem tile de mod. */
 void ensureTileDrawHook();
+bool tileDrawHooksReady();
 
 /** Instala o registrado quando o jogo ja criou as tabelas; vigia as refeitas. Thread do jogo. */
 void tickModTiles();
@@ -112,6 +113,9 @@ struct TileDrawData {
  */
 using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d, bool special);
 void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached);
+void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks,
+                                const std::atomic<uint8_t>* uncached);
+void invalidateManagedTileDrawCache();
 
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */
 std::vector<ModTileInfo> modTiles();

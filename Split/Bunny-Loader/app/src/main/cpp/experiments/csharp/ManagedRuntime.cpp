@@ -2363,6 +2363,16 @@ bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     return invokeManagedCallback(false,mod,assembly,owner,callback,0,
         std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
 }
+bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if(snapshot.size()>512||snapshot.empty()) {
+        if (output) *output = "ERROR|Stage=TileDraw Reason=InvalidSnapshot";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,13,0,
+        snapshot,output,budgetMicroseconds,true);
+}
 bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y) {
     if(callback<2||callback>12||x<0||y<0||x>100000||y>100000||assembly.empty())return false;

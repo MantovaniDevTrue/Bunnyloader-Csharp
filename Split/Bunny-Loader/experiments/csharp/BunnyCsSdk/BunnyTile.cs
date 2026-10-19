@@ -46,6 +46,7 @@ public abstract class BunnyTile {
     public int[] AdjacentTiles { get; set; } = Array.Empty<int>();
     public bool AllowBreaking { get; set; } = true;
     public bool AllowDrops { get; set; } = true;
+    public bool CacheDrawData { get; set; } = true;
     public string DustName { get; set; } = "";
     public int MapR { get; private set; } = 200;
     public int MapG { get; private set; } = 200;
@@ -77,13 +78,18 @@ public abstract class BunnyTile {
     public virtual void MouseOverFar(int x, int y) { }
     public virtual void NearbyEffects(int x, int y, bool closer) { }
     public virtual void AnimateTile(ref int frame, ref int frameCounter) { }
+    public virtual void SetDrawPositions(int x, int y, ref int width, ref int top,
+        ref int height, ref int frameX, ref int frameY) { }
+    public virtual void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY) { }
+    public virtual void SetSpriteEffects(int x, int y, ref int effects) { }
     public int TileCallbackMask {
         get {
             var type = GetType();
             string[] methods = {
                 nameof(CanKillTile), nameof(CanDrop), nameof(HitWire), nameof(RandomUpdate),
                 nameof(RightClick), nameof(PreDraw), nameof(ModifyLight), nameof(PlaceInWorld),
-                nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile)
+                nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile),
+                nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
