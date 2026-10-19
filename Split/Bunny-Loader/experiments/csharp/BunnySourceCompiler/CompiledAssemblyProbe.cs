@@ -214,9 +214,10 @@ public static class CompiledAssemblyProbe
 
         if (cultures == 0 && modules.Length == 0) return;
         foreach (string key in catalog.SnapshotForGame().Keys)
-            if (!key.StartsWith("Mods.source.", StringComparison.Ordinal))
+            if (key.StartsWith("Mods.", StringComparison.Ordinal) &&
+                !key.StartsWith("Mods.source.", StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    "Only mod-owned Mods.source.* keys may be registered by BunnyLocalizationModule: " + key);
+                    "BunnyLocalizationModule cannot register keys owned by other mods: " + key);
 
         IReadOnlyList<string> rows = catalog.ExportWireRows();
         if (rows.Count > 16384)
