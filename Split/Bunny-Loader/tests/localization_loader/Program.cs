@@ -446,10 +446,15 @@ Test("managed-localization-callback-lifecycle", () =>
     Equal(2, HostLocalizationModule.CallbackCount);
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("../other", assembly, "en-US"));
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("examplemod", "../bad.dll", "en-US"));
+    HostLocalizationModule.ShouldFail = true;
+    Equal("ERROR|CallbackFaults=1",
+        BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+    HostLocalizationModule.ShouldFail = false;
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
     Equal(false, BunnyLocalizationRuntime.Unload("examplemod"));
     Equal("OK|1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    Equal(3, HostLocalizationModule.CallbackCount);
+    Equal(4, HostLocalizationModule.CallbackCount);
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
 });
 
@@ -458,12 +463,14 @@ Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 public sealed class HostLocalizationModule : BunnyLocalizationModule
 {
     public static int CallbackCount;
+    public static bool ShouldFail;
     public static string LastCulture = "";
 
     public override void OnLocalizationsLoaded()
     {
         CallbackCount++;
         LastCulture = BunnyLocalizationRuntime.ActiveCultureName;
+        if (ShouldFail) throw new InvalidOperationException("Callback test fault");
     }
 
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
