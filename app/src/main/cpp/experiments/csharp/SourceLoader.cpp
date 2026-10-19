@@ -482,8 +482,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->error=def.name+": propriedades BunnyPlayer nao suportadas para pesca";
             return false;
         }
-        if (link == def.properties.end()) {
-        } else {
+        if (link != def.properties.end()) {
             bool valid = false;
             for (const auto& other : defs)
                 if (other.base == "BunnyAccessory" && other.name == link->second &&
