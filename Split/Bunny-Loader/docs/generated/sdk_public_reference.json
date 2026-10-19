@@ -1527,10 +1527,16 @@
       "properties": [
         "PrefixCategory Category { get; set; }",
         "float RollWeight { get; set; }",
-        "string DisplayName { get; set; }"
+        "string DisplayName { get; set; }",
+        "bool RequireEffectiveStats { get; set; }",
+        "string ExtraTooltip { get; set; }"
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void Apply(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void ApplyAccessoryEffects(ref int defenseBonus)",
           "execution": "compile_policy"
