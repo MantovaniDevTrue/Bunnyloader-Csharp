@@ -468,6 +468,7 @@ bool acceptManagedWire(const std::string& modId, const std::string& assemblyPath
 void bindManagedAssembly(const std::string& modId, const std::string& assemblyPath) {
     if (modId.empty() || modId.size() > 64 ||
         assemblyPath.empty() || assemblyPath.size() > 2048) return;
+    bl::csharp::setManagedLocalizationResultSink(&acceptManagedWire);
     std::string pendingCulture;
     bool replaced = false;
     {
