@@ -97,7 +97,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("std::atomic_store_explicit(&g_itemChanceView", bridge)
         self.assertIn("bool hookItemPrefixChance(", gameplay)
         self.assertIn("g_restoreRoll.item == item", gameplay)
-        self.assertIn("want == -1 ? -2 : want", gameplay)
+        self.assertIn("if (want == -1) request = -2;", gameplay)
 
     def test_item_apply_prefix_policy_is_sampled_and_native_post_success(self):
         sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
