@@ -38,6 +38,13 @@ bool g_slopeInstalled=false;
 bool g_poundInstalled=false;
 bool g_playerPlacementInstalled=false;
 bool g_placeTileInstalled=false;
+bool g_mouseOverInstalled=false;
+bool g_mouseOverFarInstalled=false;
+FieldInfo* g_tileTargetX=nullptr;
+FieldInfo* g_tileTargetY=nullptr;
+FieldInfo* g_mouseFrame=nullptr;
+std::map<Il2CppObject*,uint64_t> g_mouseOverFrames;
+std::map<Il2CppObject*,uint64_t> g_mouseOverFarFrames;
 thread_local int g_playerPlaceDepth=0;
 int g_useAttempt=-1,g_useRelease=-1,g_useHappened=-1;
 FieldInfo* g_gameUpdateField=nullptr;
@@ -82,6 +89,8 @@ using PlaceThingFn=void (*)(Il2CppObject*,bool,const MethodInfo*);
 using PlaceTileFn=bool (*)(int32_t,int32_t,int32_t,bool,bool,int32_t,int32_t,const MethodInfo*);
 PlaceThingFn g_origPlaceThing=nullptr;
 PlaceTileFn g_origPlaceTile=nullptr;
+UseFn g_origMouseOver=nullptr;
+UseFn g_origMouseOverFar=nullptr;
 CanKillFn g_origCanKill = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
@@ -608,6 +617,77 @@ bool setupTilePlacementHooks() {
     }
     return true;
 }
+
+void hkTileMouseOver(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
+    if(g_origMouseOver)g_origMouseOver(player,x,y,method);
+    if(!player||!g_mouseOverInstalled)return;
+    auto& a=il2cpp::api();
+    int32_t targetX=-1,targetY=-1;
+    a.field_static_get_value(g_tileTargetX,&targetX);
+    a.field_static_get_value(g_tileTargetY,&targetY);
+    if(targetX!=x||targetY!=y)return;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<9))==0)return;
+    uint64_t frame=0;
+    a.field_static_get_value(g_mouseFrame,&frame);
+    const auto found=g_mouseOverFrames.find(player);
+    if(found!=g_mouseOverFrames.end()&&found->second==frame)return;
+    g_mouseOverFrames[player]=frame;
+    dispatchTileEvent(it->second.spec,9,x,y);
+}
+void hkTileMouseOverFar(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
+    if(g_origMouseOverFar)g_origMouseOverFar(player,x,y,method);
+    if(!player||!g_mouseOverFarInstalled)return;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<10))==0)return;
+    uint64_t frame=0;
+    il2cpp::api().field_static_get_value(g_mouseFrame,&frame);
+    const auto found=g_mouseOverFarFrames.find(player);
+    if(found!=g_mouseOverFarFrames.end()&&found->second==frame)return;
+    g_mouseOverFarFrames[player]=frame;
+    dispatchTileEvent(it->second.spec,10,x,y);
+}
+bool setupTileMouseOverHooks(bool near,bool far) {
+    if((!near||g_mouseOverInstalled)&&(!far||g_mouseOverFarInstalled))return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param||!a.method_get_param_count||
+       !a.method_get_return_type||!a.field_static_get_value)return false;
+    auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    std::string error;
+    FieldInfo* frame=nullptr;
+    if(!il2cpp::nativeFieldContract(main,"GameUpdateCount","System.UInt64",
+           true,8,&frame,nullptr,&error))return false;
+    FieldInfo* targetX=nullptr;
+    FieldInfo* targetY=nullptr;
+    if(near&&(!il2cpp::nativeFieldContract(player,"tileTargetX","System.Int32",
+          true,4,&targetX,nullptr,&error)||
+       !il2cpp::nativeFieldContract(player,"tileTargetY","System.Int32",
+          true,4,&targetY,nullptr,&error)))return false;
+    const auto resolve=[&](const char* name)->const MethodInfo* {
+        const auto* method=player?a.class_get_method_from_name(player,name,2):nullptr;
+        if(!method||a.method_get_param_count(method)!=2||
+           !nameOf(a.method_get_param(method,0),"System.Int32")||
+           !nameOf(a.method_get_param(method,1),"System.Int32")||
+           !nameOf(a.method_get_return_type(method),"System.Void")||
+           !il2cpp::methodPointer(method))return nullptr;
+        return method;
+    };
+    const auto* nearMethod=near&&!g_mouseOverInstalled?resolve("TileInteractionsMouseOver"):nullptr;
+    const auto* farMethod=far&&!g_mouseOverFarInstalled?resolve("TileInteractionsCheckLongDistance"):nullptr;
+    if((near&&!g_mouseOverInstalled&&!nearMethod)||(far&&!g_mouseOverFarInstalled&&!farMethod))
+        return false;
+    if(near&&!g_mouseOverInstalled) {
+        if(!hook::install(nearMethod,hkTileMouseOver,&g_origMouseOver))return false;
+        g_tileTargetX=targetX;g_tileTargetY=targetY;g_mouseOverInstalled=true;
+    }
+    if(far&&!g_mouseOverFarInstalled) {
+        if(!hook::install(farMethod,hkTileMouseOverFar,&g_origMouseOverFar))return false;
+        g_mouseOverFarInstalled=true;
+    }
+    g_mouseFrame=frame;
+    return true;
+}
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -683,6 +763,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     }
     if((spec.callbackMask&(1<<4))&&!setupTileInteractHook())return false;
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
+    if(!setupTileMouseOverHooks((spec.callbackMask&(1<<9))!=0,
+                                (spec.callbackMask&(1<<10))!=0))return false;
     if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
     if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
         BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
