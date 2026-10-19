@@ -3,6 +3,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bl::runtime::item_save {
 
@@ -25,6 +26,35 @@ std::optional<State> selectTrackedRarity(
     State result = saved->second;
     result.origin = slot;
     return result;
+}
+
+template <typename Pointer>
+struct LiveRarityItem {
+    Pointer item;
+    std::string slot;
+    int type;
+    bool resolved;
+};
+
+template <typename Pointer, typename State>
+void reconcileTrackedRarities(
+    const std::map<Pointer, State>& previousItems,
+    const std::map<std::string, State>& previousSlots,
+    const std::vector<LiveRarityItem<Pointer>>& current,
+    std::map<Pointer, State>* nextItems,
+    std::map<std::string, State>* nextSlots) {
+    if (!nextItems || !nextSlots) return;
+    nextItems->clear();
+    nextSlots->clear();
+    for (const auto& entry : current) {
+        if (!entry.item || entry.type <= 0 || entry.resolved) continue;
+        auto pending = selectTrackedRarity(
+            previousItems, previousSlots, entry.item, entry.slot, entry.type);
+        if (!pending) continue;
+        pending->origin = entry.slot;
+        nextItems->emplace(entry.item, *pending);
+        nextSlots->emplace(entry.slot, *pending);
+    }
 }
 
 }
