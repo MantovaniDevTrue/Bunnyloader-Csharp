@@ -215,13 +215,13 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" && base != "BunnyWall" &&
-        base != "BunnyScreenEffect") return true;
+        base != "BunnyScreenEffect" && base != "BunnyRarity") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
     def.properties = declaredProperties;
-    bool foundDefaults = false;
+    bool foundDefaults = base == "BunnyRarity";
     size_t member = begin + 1;
     while (member < end) {
         bool advanced = false;
@@ -234,10 +234,10 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                     return false;
                 }
                 if (i > member && (tokens[i - 1].value == "SetDefaults" ||
-                    ((base == "BunnyTile" || base == "BunnyWall") && tokens[i - 1].value == "SetStaticDefaults")) &&
+                    ((base == "BunnyTile" || base == "BunnyWall" || base == "BunnyRarity") && tokens[i - 1].value == "SetStaticDefaults")) &&
                     parametersEnd == i + 1 && parametersEnd + 1 < end &&
                     tokens[parametersEnd + 1].value == "{") {
-                    if (foundDefaults) {
+                    if (foundDefaults && base != "BunnyRarity") {
                         *error = name + ": SetDefaults duplicado";
                         return false;
                     }
@@ -246,7 +246,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         *error = name + ": corpo SetDefaults sem fechamento";
                         return false;
                     }
-                    if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyWall" || base == "BunnyProjectile") {
+                    if (base == "BunnyRarity") {
+                    } else if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyWall" || base == "BunnyProjectile") {
                         // So recursos/nomes sao necessarios ANTES do Mono. Todos
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.
@@ -438,7 +439,7 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyWall" || base == "BunnyScreenEffect")) {
+            base == "BunnyTile" || base == "BunnyWall" || base == "BunnyRarity" || base == "BunnyScreenEffect")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
