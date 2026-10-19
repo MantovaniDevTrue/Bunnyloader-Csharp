@@ -213,6 +213,27 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("assert(!hookCanRoll(&weapon.object, 99, nullptr));", cold)
         self.assertIn("assert(player.defense == 14);", cold)
 
+    def test_native_prefix_tooltip_multiple_lines_and_capacity(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        by_type = {entry["name"]: entry for entry in sdk["types"]}
+        methods = {entry["signature"] for entry in
+                   by_type["BunnyLoader.Source.BunnyPrefix"]["methods"]}
+        self.assertIn("void AddTooltipLine(string text)", methods)
+        self.assertIn("string SerializeTooltipLines()", methods)
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        source = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
+        self.assertIn('"PREFIX_TOOLTIP"', compiler)
+        self.assertIn('fields[0] == "PREFIX_TOOLTIP"', source)
+        self.assertIn("prefixTooltipPolicies.erase(lines)", source)
+        self.assertIn("p.tooltipLines.size() > 4", bridge)
+        self.assertIn("for (const auto& line : selected->tooltipLines)", gameplay)
+        self.assertIn("static_cast<uintptr_t>(*count) >= capacity", gameplay)
+        self.assertIn('AddTooltipLine("First line")', fixture)
+        self.assertIn('AddTooltipLine("Second line")', fixture)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
