@@ -903,6 +903,58 @@ struct; base: `System.ValueType`.
 bool HasTarget { get; }
 ```
 
+## BunnyLoader.Source.BunnyRarity
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor RarityColor { get; }
+int Type { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `int GetPrefixedRarity(int offset, float valueMultiplier)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyRarityEntry
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyRarityEntry(int Type, string ModId, string ClassName, BunnyRarity Instance)
+BunnyRarity Instance { get; set; }
+int Type { get; set; }
+string ClassName { get; set; }
+string ModId { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyRarityEntry other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Type, out string ModId, out string ClassName, out BunnyRarity Instance)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarityRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRarityRegistry(int firstCustomType)
+int RarityCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<BunnyRarityEntry> Seal()` | managed_helper |
+| `bool TryGetColor(int type, out BunnyColor color)` | managed_helper |
+| `int Register(string modId, BunnyRarity rarity)` | managed_helper |
+| `int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)` | managed_helper |
+| `int TypeOf<T>(string modId)` | managed_helper |
+| `static int PrefixOffset(float valueMultiplier)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyRecipe
 
 class; base: `System.Object`.
@@ -1142,6 +1194,7 @@ string Texture { get; set; }
 | `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
@@ -1150,6 +1203,8 @@ string Texture { get; set; }
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
+| `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
+| `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags

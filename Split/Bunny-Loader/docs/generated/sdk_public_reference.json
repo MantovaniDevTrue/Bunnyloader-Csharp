@@ -1622,6 +1622,102 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyRarity",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyColor RarityColor { get; }",
+        "int Type { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "int GetPrefixedRarity(int offset, float valueMultiplier)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarityEntry",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyRarityEntry(int Type, string ModId, string ClassName, BunnyRarity Instance)"
+      ],
+      "properties": [
+        "BunnyRarity Instance { get; set; }",
+        "int Type { get; set; }",
+        "string ClassName { get; set; }",
+        "string ModId { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyRarityEntry other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Type, out string ModId, out string ClassName, out BunnyRarity Instance)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarityRegistry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyRarityRegistry(int firstCustomType)"
+      ],
+      "properties": [
+        "int RarityCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IReadOnlyList\u003CBunnyRarityEntry\u003E Seal()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryGetColor(int type, out BunnyColor color)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Register(string modId, BunnyRarity rarity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int TypeOf\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int PrefixOffset(float valueMultiplier)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyRecipe",
       "kind": "class",
       "baseType": "System.Object",
@@ -2052,6 +2148,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void AnimateTile(ref int frame, ref int frameCounter)",
           "execution": "managed_helper"
         },
@@ -2081,6 +2181,14 @@
         },
         {
           "signature": "void RandomUpdate(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetSpriteEffects(int x, int y, ref int effects)",
           "execution": "managed_helper"
         },
         {
