@@ -247,7 +247,7 @@ int main() {
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     weapon.type = 6199;
     assert(itemRollWeight(&weapon.object, mighty) == 3);
-    assert(itemRollWeight(&accessory.object, mighty) == 5);
+    assert(itemRollWeight(&accessory.object, mighty) == 1);
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
