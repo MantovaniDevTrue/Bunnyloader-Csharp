@@ -2,6 +2,7 @@
 #include "experiments/csharp/SourceContentIdentity.h"
 #include "experiments/csharp/SourceParser.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <string>
@@ -100,4 +101,27 @@ int main() {
     assert(full.reserveExternalType() == -1);
     assert(full.registerType("csharp", "Overflow") == -1);
     assert(full.snapshot()->size() == 4096);
+
+    bl::csharp::NativeRarityRegistry simultaneous;
+    std::vector<int> external(100), managed(100);
+    std::thread jsWriter([&] {
+        for (int i = 0; i < 100; ++i)
+            external[static_cast<size_t>(i)] = simultaneous.reserveExternalType();
+    });
+    std::thread csharpWriter([&] {
+        for (int i = 0; i < 100; ++i)
+            managed[static_cast<size_t>(i)] =
+                simultaneous.registerType("concurrentCsharp", "Rarity" + std::to_string(i));
+    });
+    jsWriter.join();
+    csharpWriter.join();
+    std::vector<int> unique;
+    unique.insert(unique.end(), external.begin(), external.end());
+    unique.insert(unique.end(), managed.begin(), managed.end());
+    std::sort(unique.begin(), unique.end());
+    assert(unique.size() == 200);
+    for (size_t i = 0; i < unique.size(); ++i)
+        assert(unique[i] == 12 + static_cast<int>(i));
+    assert(simultaneous.nextType() == 212);
+    assert(simultaneous.snapshot()->size() == 200);
 }
