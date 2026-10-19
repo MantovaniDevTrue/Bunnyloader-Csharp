@@ -206,6 +206,16 @@ int main() {
     Player player;
     hookGrant(&player.object, &accessory.object, nullptr);
     assert(player.defense==14);
+    guarded.minItemDamage = 10;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
+    assert(!hookCanRoll(&accessory.object, 98, nullptr));
+    player.defense = 10;
+    hookGrant(&player.object, &accessory.object, nullptr);
+    assert(player.defense == 14);
+    guarded.minItemDamage = 0;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
     assert(!applyManagedPrefixViaNativeRoll(&accessory.object, 99, &prefixMethod, &reached));
     assert(!reached && accessory.prefix==98);
 
@@ -287,6 +297,26 @@ int main() {
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     weapon.mana = 8;
     assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.damage = 9;
+    weapon.mana = 9;
+    weapon.prefix = 0;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    g_restoreRoll = {&weapon.object, 99, false};
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    float restoreDamage=1, restoreKnockback=1, restoreSpeed=1;
+    float restoreSize=1, restoreShoot=1, restoreMana=1, restoreValue=1;
+    int restoreCrit=0, restoreTag=0, restorePen=0;
+    assert(hookStats(&weapon.object, 99, &restoreDamage, &restoreKnockback,
+                     &restoreSpeed, &restoreSize, &restoreShoot, &restoreMana,
+                     &restoreCrit, &restoreTag, &restorePen, &restoreValue, nullptr));
+    g_restoreRoll = {};
+    bool restoredDespiteNewConditions = false;
+    assert(applyManagedPrefixViaNativeRoll(&weapon.object, 99,
+                                            &prefixMethod, &restoredDespiteNewConditions));
+    assert(restoredDespiteNewConditions && weapon.prefix == 99);
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.prefix = 0;
+    weapon.damage = 12;
     weapon.mana = 0;
     weapon.type = 6198;
     assert(hookRollable(&weapon.object, nullptr) == nullptr);
