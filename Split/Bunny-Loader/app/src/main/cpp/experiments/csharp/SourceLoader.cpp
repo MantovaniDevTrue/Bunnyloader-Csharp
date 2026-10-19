@@ -660,6 +660,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
+    std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
     std::vector<std::pair<int, bool>> prefixChances;
     std::set<int> seenPrefixChances;
     std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
@@ -675,6 +676,32 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "PREFIX_POST") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry post;
+            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+                bl::runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &post.applyDamageBonus) ||
+                !integer(fields[3], &post.applyValueBonus) ||
+                post.applyDamageBonus < 0 || post.applyDamageBonus > 1000 ||
+                post.applyValueBonus < 0 || post.applyValueBonus > 100000 ||
+                (fields[4] != "0" && fields[4] != "1") ||
+                fields[5].size() > 120 ||
+                std::any_of(fields[5].begin(), fields[5].end(),
+                    [](unsigned char ch) { return ch < 32 || ch == 127; })) {
+                *error = "Politica PREFIX_POST invalida: " + (fields.size() > 1 ? fields[1] : "");
+                return false;
+            }
+            post.requireEffectiveStats = fields[4] == "1";
+            if (fields[5] != "-") post.extraTooltip = fields[5];
+            if (!prefixPostPolicies.emplace(fields[1], std::move(post)).second) {
+                *error = "PREFIX_POST duplicado: " + fields[1];
+                return false;
+            }
+            continue;
+        }
         if (!fields.empty() && fields[0] == "PREFIX_APPLY") {
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("ITEM", fields[1]) : "";
@@ -1277,6 +1304,19 @@ bool applyManagedSourceDefaults(
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
         seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
+        return false;
+    }
+    for (auto& prefix : prefixes) {
+        const auto post = prefixPostPolicies.find(prefix.name);
+        if (post == prefixPostPolicies.end()) continue;
+        prefix.applyDamageBonus = post->second.applyDamageBonus;
+        prefix.applyValueBonus = post->second.applyValueBonus;
+        prefix.requireEffectiveStats = post->second.requireEffectiveStats;
+        prefix.extraTooltip = post->second.extraTooltip;
+        prefixPostPolicies.erase(post);
+    }
+    if (!prefixPostPolicies.empty()) {
+        *error = "PREFIX_POST sem descritor de prefixo correspondente";
         return false;
     }
     for (size_t i = 0; i < weapons.size(); ++i) {
