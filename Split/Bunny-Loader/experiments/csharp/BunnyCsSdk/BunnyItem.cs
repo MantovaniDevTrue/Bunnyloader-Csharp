@@ -84,6 +84,7 @@ public abstract class BunnyItem : BunnyShootSource
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
     public abstract void SetDefaults();
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 /// <summary>Receita declarada em C# e instalada pelo host na thread do Terraria.</summary>
