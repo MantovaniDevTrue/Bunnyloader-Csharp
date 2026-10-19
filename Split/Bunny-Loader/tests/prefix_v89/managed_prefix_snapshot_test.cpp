@@ -51,6 +51,21 @@ int main() {
     assert(applyManagedItemPrefixChances({{6208, true}}));
     assert(managedItemPrefixChanceView()->at(6208));
     assert(firstChances->size() == 1);
+    assert(managedItemPrefixApplyView()->empty());
+    assert(!applyManagedItemPrefixEffects({{6207, {0, 0}}}));
+    assert(!applyManagedItemPrefixEffects({{6207, {1001, 0}}}));
+    assert(!applyManagedItemPrefixEffects({{6207, {4, 125}}, {6207, {5, 200}}}));
+    assert(managedItemPrefixApplyView()->empty());
+    assert(applyManagedItemPrefixEffects({{6207, {4, 125}}}));
+    auto firstEffects = managedItemPrefixApplyView();
+    assert(firstEffects->at(6207).damageBonus == 4);
+    assert(firstEffects->at(6207).valueBonus == 125);
+    assert(!applyManagedItemPrefixEffects({{6207, {1, 0}}}));
+    assert(managedItemPrefixApplyView() == firstEffects);
+    assert(applyManagedItemPrefixEffects({{6208, {2, 0}}}));
+    assert(managedItemPrefixApplyView()->at(6208).damageBonus == 2);
+    assert(firstEffects->size() == 1);
+
 
     reserveManagedPrefixDescriptor(98);
     assert(managedPrefixDescriptorPending(98));
