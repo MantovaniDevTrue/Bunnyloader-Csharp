@@ -16,7 +16,11 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 | BunnyPlayer.UpdateMovement(bool) | ExampleMomentumPlayer | .90.16 em validação; +6% aceleração nativa com acessório equipado |
 | BunnyPlayer.FrameEffects(bool) | ExampleShadowPlayer | .90.16 em validação; sombra do jogador enquanto equipado |
 | BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
-| BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects / ConfigureRollRules / Apply / ExtraTooltip / BunnyItemPrefixRules.Deny | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI nativo C# e objeto ARM64 aprovados; **gameplay Android ainda não validado** |
+| BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects / ConfigureRollRules / Apply / ExtraTooltip / BunnyItemPrefixRules.Deny / AddTooltipLine | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI nativo C# e objeto ARM64 aprovados; **gameplay Android ainda não validado** |
+
+## Tooltips adicionais do PrefixLoader C#
+
+O `ExampleMightyPrefix` demonstra `ExtraTooltip` mais `AddTooltipLine` para acrescentar linhas estáticas ao inventário. O C# registra até quatro linhas UTF-8 durante `SetDefaults`; os hooks nativos do Terraria as desenham sem executar MonoVM no frame. Este é o subconjunto declarativo, não `GetTooltipLines(item)` dinâmico. Gameplay Android, FPS e multiplayer permanecem sem validação.
 
 ## Filtro de prefixos por item no C#
 
