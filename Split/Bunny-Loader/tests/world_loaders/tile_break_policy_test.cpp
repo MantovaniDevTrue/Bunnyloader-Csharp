@@ -8,7 +8,9 @@ int main() {
     assert(validCallbackMask((1<<0)|(1<<3)|(1<<4)|(1<<12)));
     assert(!validCallbackMask(1<<5));
     assert(!validCallbackMask(1<<6));
-    assert(!validCallbackMask(1<<9));
+    assert(validCallbackMask(1<<9));
+    assert(validCallbackMask(1<<10));
+    assert(!validCallbackMask(1<<11));
     assert(!validCallbackMask(-1));
     assert(!blocksCanKillTile(true));
     assert(blocksCanKillTile(false));
