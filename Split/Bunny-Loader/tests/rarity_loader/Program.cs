@@ -222,16 +222,29 @@ Check("runtime.original-example-assembly-wire", () =>
     try
     {
         string diagnostic = Path.Combine(scratch, "diagnostics.txt");
-        Equal(2, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
+        Equal(3, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
         var descriptors = File.ReadAllLines(Path.Combine(scratch, "source-runtime-values.txt"));
-        Equal(3, descriptors.Length);
-        Equal("RARITY\tExampleHigherTierModRarity", descriptors[1]);
-        Equal("RARITY\tExampleModRarity", descriptors[2]);
+        Equal(5, descriptors.Length);
+        Equal(true, descriptors[1].StartsWith("ITEM\tExampleRarityItem\t", StringComparison.Ordinal));
+        Equal("RARITY\tExampleHigherTierModRarity", descriptors[2]);
+        Equal("RARITY\tExampleModRarity", descriptors[3]);
+        Equal("ITEM_RARITY\tExampleRarityItem\tExampleModRarity", descriptors[4]);
     }
     finally
     {
         Directory.Delete(scratch, recursive: true);
     }
+});
+
+Check("item.typed-rarity-uses-owner-identity-not-runtime-integer", () =>
+{
+    var item = new ExampleModCSharp.Rarities.ExampleRarityItem();
+    item.SetDefaults();
+    Equal(0, item.Rare);
+    Equal("ExampleModRarity", item.ModRarityClassName);
+    var second = new ExampleModCSharp.Rarities.ExampleRarityItem();
+    second.SetRarity<ExampleModCSharp.Rarities.ExampleHigherTierModRarity>();
+    Equal("ExampleHigherTierModRarity", second.ModRarityClassName);
 });
 
 Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
