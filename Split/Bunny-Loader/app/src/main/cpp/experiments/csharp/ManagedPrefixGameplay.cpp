@@ -340,7 +340,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const auto allowed = [denied](int prefix) {
         return !denied || !denied->contains(prefix);
     };
-    if (!descriptors->empty() && !ensurePrefixTables(*descriptors)) return base;
+    const bool tablesReady = descriptors->empty() || ensurePrefixTables(*descriptors);
     const bool vanillaHasRollable = base && base->length > 0;
     const uintptr_t oldCount = base ? base->length : 0;
     const auto* oldValues = oldCount ?
@@ -350,21 +350,21 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         if (allowed(oldValues[i])) ++retained;
     int extra = 0;
     for (const auto& p : *descriptors)
-        if (p.category != 6 && allowed(p.type) &&
+        if (tablesReady && p.category != 6 && allowed(p.type) &&
             eligible(item, p, vanillaHasRollable))
             extra += itemRollWeight(item, p);
     if (retained == oldCount && extra == 0) return base;
     const uintptr_t total = retained + static_cast<uintptr_t>(extra);
     if (total == 0) return nullptr;
-    if (total > 512 || !g_refs.intClass) return base;
+    if (total > 512 || !g_refs.intClass) return denied ? nullptr : base;
     Il2CppArray* out = bl::il2cpp::api().array_new(g_refs.intClass, total);
-    if (!out) return base;
+    if (!out) return denied ? nullptr : base;
     auto* values = static_cast<int32_t*>(arrayData(out));
     uintptr_t index = 0;
     for (uintptr_t i = 0; i < oldCount; ++i)
         if (allowed(oldValues[i])) values[index++] = oldValues[i];
     for (const auto& p : *descriptors)
-        if (p.category != 6 && allowed(p.type) &&
+        if (tablesReady && p.category != 6 && allowed(p.type) &&
             eligible(item, p, vanillaHasRollable))
             for (int i = 0; i < itemRollWeight(item, p); ++i)
                 values[index++] = p.type;
@@ -388,12 +388,17 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             }
         }
     }
-    if (descriptors->empty())
+    const auto banView = managedItemPrefixDenyView();
+    const int currentItemType = g_refs.type >= 0 ?
+        bl::runtime::field<int32_t>(item, g_refs.type) : -1;
+    const bool hasDeny = banView->contains(currentItemType);
+    if (descriptors->empty() && !hasDeny)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
     if (g_restoreRoll.item != item && g_refs.type >= 0) {
         const int type = bl::runtime::field<int32_t>(item, g_refs.type);
         for (const auto& policy : *descriptors) {
-            if (policy.preferredTypes.contains(type) && eligible(item, policy, true) &&
+            if (policy.preferredTypes.contains(type) && !isPrefixDenied(item, policy.type) &&
+                eligible(item, policy, true) &&
                 ensurePrefixTables(*descriptors)) {
                 *rolled = policy.type;
                 return true;
@@ -406,7 +411,8 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     auto* list = reinterpret_cast<Il2CppArray*>(
         api.runtime_invoke(g_refs.rollableMethod, item, nullptr, &error));
     if (error || !list || list->length == 0 || list->length > 512)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+        return hasDeny ? false :
+            (g_originalRoll ? g_originalRoll(item, random, rolled, method) : false);
 
     const auto* values = static_cast<const int32_t*>(arrayData(list));
     bool hasManaged = false;
@@ -420,7 +426,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             break;
         }
     }
-    if (!hasManaged || hasOtherMod)
+    if ((!hasManaged && !hasDeny) || hasOtherMod)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
     error = nullptr;
