@@ -545,7 +545,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     if (recoveredPrefixes) {
         BL_INFO("save de itens de mod: %d prefixo(s) preservados antes do save original", recoveredPrefixes);
     }
-    if (!items.empty()) {
+    if (!items.empty() && sidecarSaved) {
         // Diz quem mandou salvar: o jogo salva o personagem tambem com a
         // gravacao automatica desligada (ao morrer, no multijogador, ao sair),
         // e sem isto parecia que o Bunny Loader salvava por conta propria.
@@ -1266,8 +1266,8 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 }
             }
         }
-        writeFile(path + kSuffix, items);
-        if (!items.empty()) {
+        const bool sidecarSaved = writeFile(path + kSuffix, items);
+        if (!items.empty() && sidecarSaved) {
             BL_INFO("save de itens de mod: mundo: %zu item(ns) em bau gravado(s) (%zu so no arquivo)",
                     items.size(), kept);
         }
