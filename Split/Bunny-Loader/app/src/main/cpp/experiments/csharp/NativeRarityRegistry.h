@@ -63,6 +63,11 @@ public:
         return it == keys_.end() ? -1 : it->second;
     }
 
+    int nextType() const {
+        const auto current = std::atomic_load_explicit(&published_, std::memory_order_acquire);
+        return kVanillaCount + static_cast<int>(current->size());
+    }
+
     std::shared_ptr<const std::vector<NativeRarityIdentity>> snapshot() const {
         return std::atomic_load_explicit(&published_, std::memory_order_acquire);
     }
