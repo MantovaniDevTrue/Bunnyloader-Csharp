@@ -430,7 +430,9 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
     cursor%=total;
     const size_t first=cursor;
     int sent=0;
-    for(size_t visited=0;visited<total&&sent<6;++visited) {
+    size_t visited=0;
+    const size_t budget=tile_scan::scanBudget(total);
+    for(;visited<budget&&sent<6;++visited) {
         const size_t index=(first+visited)%total;
         const int x=region.left+static_cast<int>(index%region.width);
         const int y=region.top+static_cast<int>(index/region.width);
@@ -443,9 +445,8 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
               it->second.spec.name,x,y,visual))break;
         g_tileNearbyEvents[key]=g_tileScanTick;
         ++sent;
-        cursor=(index+1)%total;
     }
-    if(!sent)cursor=(first+std::min<size_t>(total,512))%total;
+    cursor=tile_scan::nextCursor(first,visited,total);
     if(g_tileNearbyEvents.size()>2048)g_tileNearbyEvents.clear();
 }
 void scanTileLighting(const runtime::TileArrays& world) {
@@ -455,7 +456,9 @@ void scanTileLighting(const runtime::TileArrays& world) {
     g_tileScanLightCursor%=total;
     const size_t first=g_tileScanLightCursor;
     int evaluated=0;
-    for(size_t visited=0;visited<total&&evaluated<3;++visited) {
+    size_t visited=0;
+    const size_t budget=tile_scan::scanBudget(total);
+    for(;visited<budget&&evaluated<3;++visited) {
         const size_t index=(first+visited)%total;
         const int x=region.left+static_cast<int>(index%region.width);
         const int y=region.top+static_cast<int>(index/region.width);
@@ -472,9 +475,8 @@ void scanTileLighting(const runtime::TileArrays& world) {
             if(tile_scan::parseLight(reply,&red,&green,&blue))
                 g_tileLightCache[key]={x,y,red,green,blue,g_tileScanTick};
         }
-        g_tileScanLightCursor=(index+1)%total;
     }
-    if(!evaluated)g_tileScanLightCursor=(first+std::min<size_t>(total,512))%total;
+    g_tileScanLightCursor=tile_scan::nextCursor(first,visited,total);
     auto& a=il2cpp::api();
     for(auto it=g_tileLightCache.begin();it!=g_tileLightCache.end();) {
         auto& entry=it->second;
