@@ -40,6 +40,9 @@ bool valid(const ManagedPrefixEntry& p) {
         p.armorPenetration < -100 || p.armorPenetration > 100 ||
         p.accessoryDefense < -100 || p.accessoryDefense > 100 ||
         (p.category != 5 && p.accessoryDefense != 0) ||
+        p.minItemDamage < 0 || p.maxItemDamage < p.minItemDamage ||
+        p.maxItemDamage > 100000 || p.minItemMana < 0 ||
+        p.maxItemMana < p.minItemMana || p.maxItemMana > 10000 ||
         p.applyDamageBonus < 0 || p.applyDamageBonus > 1000 ||
         p.applyValueBonus < 0 || p.applyValueBonus > 100000 ||
         p.extraTooltip.size() > 120 ||
