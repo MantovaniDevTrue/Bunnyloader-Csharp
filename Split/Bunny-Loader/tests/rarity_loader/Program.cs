@@ -214,6 +214,66 @@ Check("compiler.emits-rarity-declarations-without-executing-static-defaults", ()
     }
 });
 
+Check("runtime.original-example-assembly-wire", () =>
+{
+    string assembly = typeof(ExampleModCSharp.Rarities.ExampleModRarity).Assembly.Location;
+    string scratch = Path.Combine(Path.GetTempPath(), "bunny-original-rarity-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(scratch);
+    try
+    {
+        string diagnostic = Path.Combine(scratch, "diagnostics.txt");
+        Equal(2, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
+        var descriptors = File.ReadAllLines(Path.Combine(scratch, "source-runtime-values.txt"));
+        Equal(3, descriptors.Length);
+        Equal("RARITY\tExampleHigherTierModRarity", descriptors[1]);
+        Equal("RARITY\tExampleModRarity", descriptors[2]);
+    }
+    finally
+    {
+        Directory.Delete(scratch, recursive: true);
+    }
+});
+
+Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
+{
+    string assembly = typeof(ExampleModCSharp.Rarities.ExampleModRarity).Assembly.Location;
+    Equal("ERROR|Stage=ResolveRarity Reason=OwnerNotBound",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 0, "200,125,150"));
+    Equal("ERROR|Stage=BindRarity Reason=ClassCountMismatch",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 2, "ExampleModRarity:14"));
+    Equal("ERROR|Stage=BindRarity Reason=AmbiguousClassOrId",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 2,
+            "ExampleModRarity:14;ExampleHigherTierModRarity:14"));
+    Equal("READY|2", BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 2,
+        "ExampleModRarity:14;ExampleHigherTierModRarity:15"));
+    Equal(14, BunnyRarityRuntime.TypeOf<ExampleModCSharp.Rarities.ExampleModRarity>("examplemodcsharp"));
+    Equal(15, BunnyRarityRuntime.TypeOf<ExampleModCSharp.Rarities.ExampleHigherTierModRarity>("examplemodcsharp"));
+    Equal("COLOR|200|215|230|255",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 0, "200,125,150"));
+    Equal("COLOR|100|100|100|255",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleHigherTierModRarity", 0, 0, "200,125,150"));
+    Equal("RARITY|15",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 1, "1.2,11"));
+    Equal("RARITY|14",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleHigherTierModRarity", 0, 1, "0.8,11"));
+    Equal("RARITY|14",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 1, "1,11"));
+    Equal("ERROR|Stage=PrefixRarity Reason=InvalidPrefixData",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 1, "NaN,11"));
+    Equal("ERROR|Stage=ReadRarityColor Reason=InvalidDiscoChannels",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 0, "300,0,0"));
+    Equal("ERROR|Stage=BindRarity Reason=EmptyOrAlreadyBound",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 2,
+            "ExampleModRarity:14;ExampleHigherTierModRarity:15"));
+    Equal("CLEARED", BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 3, ""));
+    Throws<KeyNotFoundException>(() =>
+        BunnyRarityRuntime.TypeOf<ExampleModCSharp.Rarities.ExampleModRarity>("examplemodcsharp"));
+    Equal("READY|2", BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 2,
+        "ExampleModRarity:18;ExampleHigherTierModRarity:19"));
+    Equal(19, BunnyRarityRuntime.TypeOf<ExampleModCSharp.Rarities.ExampleHigherTierModRarity>("examplemodcsharp"));
+    Equal("CLEARED", BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "", 0, 3, ""));
+});
+
 Console.WriteLine("RarityLoader host tests: passed=" + passed + " failed=" + failed);
 return failed == 0 ? 0 : 1;
 
