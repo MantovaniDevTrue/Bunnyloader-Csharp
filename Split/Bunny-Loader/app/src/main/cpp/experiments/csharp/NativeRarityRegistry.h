@@ -63,6 +63,26 @@ public:
         return it == keys_.end() ? -1 : it->second;
     }
 
+    NativeRarityIdentity identityForType(int type) const {
+        const auto current = snapshot();
+        const int index = type - kVanillaCount;
+        if (index < 0 || static_cast<size_t>(index) >= current->size()) return {};
+        return (*current)[static_cast<size_t>(index)];
+    }
+
+    std::string stableKeyForType(int type) const {
+        const auto identity = identityForType(type);
+        return identity.managed && !identity.mod.empty()
+            ? identity.mod + "/" + identity.name : std::string();
+    }
+
+    int typeForStableKey(std::string_view stableKey) const {
+        const size_t slash = stableKey.find('/');
+        if (slash == std::string_view::npos ||
+            stableKey.find('/', slash + 1) != std::string_view::npos) return -1;
+        return findType(stableKey.substr(0, slash), stableKey.substr(slash + 1));
+    }
+
     int nextType() const {
         const auto current = std::atomic_load_explicit(&published_, std::memory_order_acquire);
         return kVanillaCount + static_cast<int>(current->size());
