@@ -34,23 +34,27 @@ public static class BunnyLocalizationRuntime
 
     public static string ActiveCultureName => activeCulture ?? "";
 
-    public static void Register(string key, string culture, string value)
+    private static void ValidateRegistrationOwner(string key)
     {
         if (activeRegistrations == null || activeModId == null)
             throw new InvalidOperationException("Localization registration requires OnLocalizationsLoaded");
-        if (key == null || !key.StartsWith("Mods." + activeModId + ".", StringComparison.Ordinal))
-            throw new ArgumentException("Only the active mod may register localization keys", nameof(key));
-        activeRegistrations.Register(key, culture, value);
+        if (string.IsNullOrEmpty(key) ||
+            (key.StartsWith("Mods.", StringComparison.Ordinal) &&
+             !key.StartsWith("Mods." + activeModId + ".", StringComparison.Ordinal)))
+            throw new ArgumentException("Cannot register a key owned by another mod", nameof(key));
+    }
+
+    public static void Register(string key, string culture, string value)
+    {
+        ValidateRegistrationOwner(key);
+        activeRegistrations!.Register(key, culture, value);
         if (activeRegistrations.ExportWireRows().Count > 256)
             throw new InvalidOperationException("Dynamic localization row limit exceeded");
     }
 
     public static void Register(string key, IReadOnlyDictionary<string, string> cultures)
     {
-        if (activeRegistrations == null || activeModId == null)
-            throw new InvalidOperationException("Localization registration requires OnLocalizationsLoaded");
-        if (key == null || !key.StartsWith("Mods." + activeModId + ".", StringComparison.Ordinal))
-            throw new ArgumentException("Only the active mod may register localization keys", nameof(key));
+        ValidateRegistrationOwner(key);
         if (cultures == null || cultures.Count > 32)
             throw new ArgumentOutOfRangeException(nameof(cultures));
         var next = activeRegistrations.ExportWireRows().Count;
