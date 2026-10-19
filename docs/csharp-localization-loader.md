@@ -82,6 +82,14 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 
 **Limitação importante:** esses métodos funcionam no catálogo C# gerenciado e estão expostos no SDK, mas alterações dinâmicas feitas dentro de uma sessão MonoVM ainda não são transmitidas ao publicador IL2CPP; também falta acionar `OnLocalizationsLoaded` no assembly C# após aplicação real. Não chamar essas duas partes de completas.
 
+## Registro de traduções em classes C# — compilação, não callback ao vivo
+
+- `BunnyLocalizationModule` foi adicionado ao SDK e pode ser implementado diretamente como `public sealed class MinhaLocalizacao : BunnyLocalizationModule`. O método obrigatório `RegisterTranslations(BunnyLocalizationCatalog catalog)` é chamado uma vez durante o verificador da montagem C#.
+- O verificador usa a mesma descoberta por tipos de conteúdo do ExampleModCSharp, com limite de 32 módulos, ordem por nome completo e exigência de construtor público sem parâmetros. Ele junta JSON e traduções dos módulos em um único catálogo, preservando a precedência do `Register` e exportando as culturas ao protocolo nativo já existente.
+- Neste lote, só se aceitam entradas sob `Mods.source.*`, posteriormente adaptadas ao identificador real do mod. Tentativas de alterar chaves vanilla/globais pelo módulo são rejeitadas antes de publicar. O wire suporta assemblies que contenham exclusivamente módulos de localização.
+- Exemplo canônico: `samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs`, com `en-US` e `pt-BR`. O teste `compiled-localization-module-publishes-wire-without-json` chama diretamente `CompiledAssemblyProbe.Verify` usando uma montagem C# gerenciada com um módulo, sem APK. A matriz oficial de exemplos recebeu o novo arquivo, sem promoção artificial de status de validação Android.
+- **Não é uma implementação de `OnLocalizationsLoaded` ao vivo.** Essa etapa executa o registro na compilação/verificação e deixa o resultado cacheado para o publicador nativo. O callback de idioma na montagem MonoVM, invocado novamente após o recarregamento de cultura, continua pendente e deverá preservar a thread proprietária e evitar reentrância.
+
 ## Pendências obrigatórias para declarar completo
 
 1. **Validar no Terraria Android** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
