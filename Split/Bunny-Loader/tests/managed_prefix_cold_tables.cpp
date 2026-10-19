@@ -407,6 +407,10 @@ int main() {
     assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
     assert(weapon.damage == 74 && weapon.value == 1025);
     nativePrefixCumulative = false;
+    nativePrefixValue = INT32_MAX - 100;
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 12 && weapon.value == INT32_MAX - 100);
+    nativePrefixValue = 100;
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
