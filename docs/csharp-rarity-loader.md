@@ -121,6 +121,15 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Limites:** nenhuma escrita real de saves Android foi executada; os testes não provam que arquivos de personagens e mundos reais preservam todos os estados. Mods JS continuam com seus registros próprios; o armazenamento de raridade neste lote é do **C# nativo**. Restam QA Android de backup/rollback, baús, inventário, prefixos, restauração com mod desabilitado, reabertura e multiplayer. A publicação e o APK permanecem bloqueados até a validação integral.
 
+## Revisão de integridade pós-save v3 (19/10)
+
+- O leitor v3 agora é **atômico** quanto às linhas: a primeira linha de item inválida invalida a leitura inteira, sem aceitar um subconjunto que perderia itens silenciosamente.
+- `ModItemSave.cpp` valida o arquivo existente antes de **substituí-lo ou apagá-lo** no autosave; um v3 danificado é preservado para recuperação manual ou a partir do backup em vez de ser descartado.
+- Adicionados testes de v3 danificado após uma linha válida, raridade de nome inválido e quantidade inválida. Os testes verificam que o vetor anterior não é modificado quando a leitura falha.
+- `Item.Prefix` passa a identificar o ID pertencente ao C# pelo **registro nativo**, não pela existência prévia da cor cacheada. A raridade original é restaurada se o prefixo falhar, se o callback não estiver pronto ou se retornar um ID externo não registrado como raridade C#; IDs vanilla ainda são válidos.
+
+**QA ainda necessário:** observar o comportamento no jogo com mods faltando, abrir e salvar personagens e baús reais, testar migração/rollback v1/v2/v3 e captura visual. O bloqueio do Android não se resolve apenas com teste C++ de host.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
