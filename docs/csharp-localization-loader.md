@@ -139,3 +139,17 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 - A suíte C# exercita callbacks e descarregamentos concorrentes (256 iterações), preservando o contexto da cultura por thread.
 
 **Validação atual:** verificações de host e sintaxe C++ apenas. Não está demonstrado em Android/arm64 que `InvalidateTooltips` exista com essa assinatura na build alvo nem que `LocalizedText` mantidos pelos consumidores da UI sejam atualizados após unload. Não há medição de FPS real. Manter bloqueio de APK, `.bmod` e merge.
+
+
+## Continuação — paridade de `Register` com chaves vanilla
+
+A fonte de referência foi `Bunny-Loader-main/app/src/main/cpp/script/js/mod/ModLocalization.js` e seu `LocalizationLoader.js` do Bunny Loader original, que permitem `Register` em chaves do jogo, além de `Mods.<id>.*`.
+
+- `BunnyLocalizationRuntime.Register` durante `OnLocalizationsLoaded()` aceita agora chaves do jogo, inclusive `LegacyInterface.28`, mas continua rejeitando qualquer `Mods.<outroId>.*` e registros fora do callback.
+- `CompiledAssemblyProbe` permite que `BunnyLocalizationModule.RegisterTranslations` produza chaves vanilla no wire original. A validação `decodeWire` preserva a chave vanilla sem rebase, enquanto `Mods.source.*` continua sendo convertido para o mod proprietário.
+- `NativeLocalizationRuntime` captura o valor original de cada chave externa no idioma correspondente antes de aplicar a substituição; no unload ela restaura o valor preexistente. Um valor inexistente é marcado separadamente e só pode ser removido fisicamente mediante a política de criação e verificação de assinatura nativa de `Remove(string)`.
+- O retorno de callback `BUNNY_DYNAMIC_LOCALES_V1` aceita a mesma chave vanilla e rejeita chaves de outros mods. O limite de proveniência de novos textos externos é 16.384 entradas; erros de lookup nativo nunca são tratados como prova de inexistência.
+- `NativeLocalizationSession` deixa chaves externas intactas quando ainda pertencem ao catálogo de outro mod ativo, com precedência determinística por mod.
+- Foram acrescentados testes para registros vanilla compilados e dinâmicos, rejeição de `Mods.other.*`, restauração e descarregamento de chaves compartilhadas, além de remoção permitida somente para chaves externas cuja criação foi registrada.
+
+**Limite:** a fidelidade de substituição global por `Register` foi implementada em fontes e contratos de host, mas ainda falta teste end-to-end com o dicionário e os `LocalizedText` do Terraria ARM64. Alterações gerenciadas realizadas arbitrariamente fora de `RegisterTranslations`/`OnLocalizationsLoaded` ainda não têm um transporte de publicação nativo validado. A atualização de caches privados de NPCs, buffs e UI permanece pendente quando não é feita automaticamente pelo `LanguageManager`. Nenhum APK nem `.bmod` foi gerado.
