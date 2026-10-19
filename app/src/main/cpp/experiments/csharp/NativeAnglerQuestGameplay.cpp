@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
+#include "experiments/csharp/NativeAnglerQuestFishing.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -285,6 +286,8 @@ void pumpOnGameThread() {
     g_resolveFailures = 0;
     g_appliedGeneration = revision;
     g_active = quests;
+    if (!quests.empty() && !installFishingOnGameThread(&g_active) && g_resolveFailures++ == 0)
+        BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
     if (pending)
         BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Hooks=2 Result=Installed",
                 quests.size());
