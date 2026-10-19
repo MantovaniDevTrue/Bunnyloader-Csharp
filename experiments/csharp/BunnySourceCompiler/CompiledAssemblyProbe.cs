@@ -570,9 +570,13 @@ public static class CompiledAssemblyProbe
                 }
                 static string EncodeQuestText(string value) =>
                     value.Length == 0 ? "-" : Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(value));
+                int rules = Convert.ToInt32(Value<object>(item, "QuestCatchRules"), CultureInfo.InvariantCulture);
+                if ((rules & ~3) != 0)
+                    throw new InvalidOperationException("Unknown quest catch requirements: " + name);
                 lines.Add(string.Join("\t", "QUEST_FISH", name,
                     pre ? "1" : "0", hard ? "1" : "0",
-                    EncodeQuestText(description), EncodeQuestText(location)));
+                    EncodeQuestText(description), EncodeQuestText(location),
+                    rules.ToString(CultureInfo.InvariantCulture)));
             }
         }
         foreach (object projectile in projectiles)
