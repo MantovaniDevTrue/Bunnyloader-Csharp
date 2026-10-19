@@ -1,6 +1,6 @@
 # Bunny Loader C#
 
-**[Fonte integrada atual — Bunny Loader C# 1.0](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/entrega/potato-bunny-original-com-csharp-20261018)** · [ExampleMod C# atualizado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/entrega/potato-bunny-original-com-csharp-20261018/samples/ExampleModCSharp/Playable) · [Instruções para integrar ao Bunny original](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/entrega/potato-bunny-original-com-csharp-20261018/IMPORTAR-NO-GITHUB-DO-POTATO.md)
+**[Fonte integrada atual — Bunny Loader C# 1.0](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/v1.0)** · [ExampleMod C# atualizado](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/v1.0/samples/ExampleModCSharp/Playable) · [Instruções para integrar ao Bunny original](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/v1.0/IMPORTAR-NO-GITHUB-DO-POTATO.md)
 
 A `main` mantém os arquivos históricos de desenvolvimento. **A cópia completa atualizada para revisão e integração está na branch acima**, com os motores e assemblies incluídos no projeto Android.
 
