@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedDustContract.h"
 
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeDefaults.h"
@@ -786,6 +787,12 @@ bool applyManagedSourceDefaults(
                 *error = "[CSharp][ERROR][DustLoader] Mod=" + modId +
                     " Class=" + fields[1] +
                     " Stage=ApplyDefaults Reason=NativeIdentityOrDescriptorMismatch";
+                return false;
+            }
+            if (hooks != 0 && !managedDustCallbacksConnected()) {
+                *error = "[CSharp][ERROR][DustLoader] Mod=" + modId +
+                    " Class=" + fields[1] +
+                    " Stage=BindCallbacks Result=Rejected Reason=MonoDustBridgeNotConnected";
                 return false;
             }
             runtime::setModDustUpdateType(native->second, updateType);
