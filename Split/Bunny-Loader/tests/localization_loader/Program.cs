@@ -337,8 +337,8 @@ Test("register-precedence-survives-json-reload-and-unload", () =>
     {
         ["Items.Label"] = "File original"
     });
-    catalog.Register("Mods.owner.Items.Label", "en-US", "Explicit");
     var held = catalog.SnapshotForGame();
+    catalog.Register("Mods.owner.Items.Label", "en-US", "Explicit");
     catalog.RegisterCulture("owner", "en-US", new Dictionary<string, string>
     {
         ["Items.Label"] = "File changed"
