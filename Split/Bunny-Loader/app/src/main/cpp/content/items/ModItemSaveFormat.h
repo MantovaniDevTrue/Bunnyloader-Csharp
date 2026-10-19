@@ -100,7 +100,11 @@ inline bool read(std::istream& stream, std::vector<SavedItem>& out) {
     while (std::getline(stream, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         SavedItem value;
-        if (decode(line, value, version3)) records.push_back(std::move(value));
+        if (decode(line, value, version3)) {
+            records.push_back(std::move(value));
+        } else if (version3) {
+            return false;
+        }
     }
 
     if (stream.bad()) return false;
