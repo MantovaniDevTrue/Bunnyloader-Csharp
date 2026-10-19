@@ -22,6 +22,7 @@
 #include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <filesystem>
 #include <cstdlib>
 #include <map>
 #include <mutex>
@@ -274,7 +275,14 @@ bool preserveLegacyBeforeRaritySave(const std::string& path,
 
 /** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
 void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
+    std::error_code statError;
+    const bool fileExists = std::filesystem::exists(path, statError);
     std::ifstream existing(path, std::ios::binary);
+    if (statError || (fileExists && !existing)) {
+        BL_ERROR("save de itens de mod: arquivo existente inacessivel em %s; gravacao cancelada",
+            path.c_str());
+        return;
+    }
     if (existing) {
         std::vector<SavedItem> verified;
         if (!item_save::read(existing, verified)) {
