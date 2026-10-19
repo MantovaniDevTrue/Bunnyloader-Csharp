@@ -19,8 +19,13 @@ public sealed partial class BunnyLocalizationCatalog
             return 0;
         }
 
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Localization directory cannot be a symbolic link");
+
         var cultures = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
-        foreach (string path in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
+        string[] files = Directory.GetFiles(directory, "*.json", SearchOption.TopDirectoryOnly);
+        Array.Sort(files, StringComparer.Ordinal);
+        foreach (string path in files)
         {
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("Localization file cannot be a symbolic link");
