@@ -318,3 +318,11 @@ public override void ConfigureItemConditions(BunnyPrefixItemConditions condition
 Os testes C# verificam os valores do descritor e os limites inválidos, e os testes C++ exercitam dano 9/12/26 e mana 0/8/9 no mesmo item. Não existe varredura de itens, heap por reforja ou callback MonoVM nesse caminho.
 
 **Limite:** trata-se de um predicado nativo configurável em C#, não de execução arbitrária de `CanRoll(item)` ou `RollChance(item)` no MonoVM. O callback gerenciado completo precisaria de uma ABI estável de snapshots, agendamento do worker, política de timeout, tratamento de concorrência e validação Android. Sem isso, não afirmar paridade integral, saves ou 60 FPS comprovados.
+
+## Restauração de saves e bônus de acessórios após mudança de condições
+
+As condições `ConfigureItemConditions` limitam **novas** rolagens, não a existência de um prefixo já atribuído. A rota de restauração `ModItemSave` usa `applyManagedPrefixViaNativeRoll` e, em casos limitados, `applyManagedPrefixStatFallback`. Esses caminhos não devem rejeitar um prefixo previamente salvo porque o dano, mana ou as regras atuais mudaram. Os hooks `RollAPrefix`, `CanRollPrefix` e `TryGetPrefixStatMultipliersForItem` agora reconhecem explicitamente o escopo de restauração e permitem o descritor registrado sem usar a elegibilidade de novas rolagens; o filtro de prefixos negados permanece obrigatório para novas aplicações.
+
+Da mesma forma, `hookGrant` de acessórios consulta o prefixo **já equipado**, não sua elegibilidade para sorteios novos. Um bônus `ApplyAccessoryEffects` não deve desaparecer apenas porque o item equipado mudou de atributos após a aquisição do prefixo.
+
+Os testes host exercitam prefixo salvo 99 em item com dano 9/mana 9 (fora dos limites atuais 10–25 e 0–8) e verificam que novas rolagens o rejeitam, mas a restauração e os multiplicadores nativos continuam válidos. Um acessório com prefixo atribuído recebe seu bônus de defesa mesmo quando uma condição posterior bloqueia novas rolagens. Restauração de objetos Android, save real e multiplayer ainda precisam de QA no dispositivo.
