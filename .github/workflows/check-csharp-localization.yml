@@ -50,11 +50,11 @@ jobs:
         run: dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --check
       - name: Syntax-check native language publisher
         working-directory: Split/Bunny-Loader
-        run: g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp
+        run: g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp
       - name: Test native locale wire without Android or APK
         working-directory: Split/Bunny-Loader
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -Wl,--gc-sections \
-            -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp \
+            -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp \
             tests/localization_loader/native_wire_test.cpp -o /tmp/bunny-native-localization-test
           /tmp/bunny-native-localization-test
