@@ -286,16 +286,6 @@ std::string localPath(Il2CppObject* fileData) {
  * Prefixo de mod ausente num item do jogo: a linha segue no arquivo enquanto o
  * mesmo item estiver no lugar, sem prefixo (o jogo tira o que nao conhece).
  */
-bool stillWaitingForPrefix(const std::vector<Container>& containers, const SavedItem& k) {
-    for (const Container& c : containers) {
-        if (c.name != k.container) continue;
-        Il2CppObject* item = c.at(k.slot);
-        return item && field<int32_t>(item, g_refs.type) == vanillaPrefixEntryType(k) &&
-               field<uint8_t>(item, g_refs.prefix) == 0;
-    }
-    return false;
-}
-
 bool csharpPrefixSourcePending(const std::string& key) {
     const auto slash = key.find('/');
     if (slash == std::string::npos) return false;
@@ -471,9 +461,20 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         if (it != g_kept.end()) {
             const std::vector<Container> containers = containersOf(player);
             for (const SavedItem& k : it->second) {
-                if (isVanillaPrefixEntry(k) && !stillWaitingForPrefix(containers, k)) continue;
-                if (!item_save::mergePending(items, k))
-                    items.push_back(k);
+                SavedItem remaining = k;
+                if (isVanillaPrefixEntry(k)) {
+                    Il2CppObject* matching = nullptr;
+                    for (const Container& c : containers)
+                        if (c.name == k.container) matching = c.at(k.slot);
+                    if (!matching ||
+                        field<int32_t>(matching, g_refs.type) != vanillaPrefixEntryType(k))
+                        continue;
+                    remaining = item_save::remainingVanillaMetadata(k,
+                        field<uint8_t>(matching, g_refs.prefix), rarityFor(matching));
+                    if (!item_save::hasRemainingVanillaMetadata(remaining)) continue;
+                }
+                if (!item_save::mergePending(items, remaining))
+                    items.push_back(std::move(remaining));
                 ++kept;
             }
         }
@@ -1153,14 +1154,18 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 std::map<std::string, Il2CppArray*> byName;
                 forEachChest([&](Il2CppObject* chest, Il2CppArray* a) { byName[chestName(chest)] = a; });
                 for (const SavedItem& k : it->second) {
+                    SavedItem remaining = k;
                     if (isVanillaPrefixEntry(k)) {
-                        // Enquanto o mesmo item seguir no lugar, sem prefixo.
                         auto c = byName.find(k.container);
-                        const ChestSlot s = c == byName.end() ? ChestSlot{} : slotOf(c->second, k.slot);
-                        if (!s.data || s.type() != vanillaPrefixEntryType(k) || s.prefix() != 0) continue;
+                        const ChestSlot slot = c == byName.end() ?
+                            ChestSlot{} : slotOf(c->second, k.slot);
+                        if (!slot.data || slot.type() != vanillaPrefixEntryType(k)) continue;
+                        remaining = item_save::remainingVanillaMetadata(k,
+                            slot.prefix(), chestRarity(slot.data, slot.type()));
+                        if (!item_save::hasRemainingVanillaMetadata(remaining)) continue;
                     }
-                    if (!item_save::mergePending(items, k))
-                        items.push_back(k);
+                    if (!item_save::mergePending(items, remaining))
+                        items.push_back(std::move(remaining));
                     ++kept;
                 }
             }
