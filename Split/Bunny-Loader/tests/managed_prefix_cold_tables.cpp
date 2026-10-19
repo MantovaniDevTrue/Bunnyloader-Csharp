@@ -443,6 +443,7 @@ int main() {
     onlyPrefix.value = 100;
     assert(hookItemPrefixChance(&onlyPrefix.object, 99, &chanceTier, nullptr));
     assert(onlyPrefix.damage == 15 && onlyPrefix.value == 140);
+    assert(onlyPrefix.prefix == 99);
     assert(hookItemPrefixChance(&onlyPrefix.object, 99, &chanceTier, nullptr));
     assert(onlyPrefix.damage == 15 && onlyPrefix.value == 140);
     nativePrefixCumulative = false;
