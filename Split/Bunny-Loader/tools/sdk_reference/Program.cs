@@ -51,7 +51,8 @@ string Mode(Type type, MethodInfo method)
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
     if (type == typeof(BunnyPrefix) || type == typeof(BunnyPrefixRollRules) ||
-        type == typeof(BunnyItemPrefixRules)) return "compile_policy";
+        type == typeof(BunnyItemPrefixRules) ||
+        type == typeof(BunnyPrefixItemConditions)) return "compile_policy";
     if ((type == typeof(BunnyItem) || type == typeof(BunnyWeapon) ||
          type == typeof(BunnyAccessory) || type == typeof(BunnyBuffPotion)) &&
         method.Name == "ApplyPrefix") return "compile_policy";
