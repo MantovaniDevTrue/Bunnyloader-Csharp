@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -26,4 +27,5 @@ bool managedPrefixDescriptorPending(int type);
 bool managedPrefixDescriptorReady(int type);
 int registeredManagedPrefixCount();
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes();
+std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView();
 }
