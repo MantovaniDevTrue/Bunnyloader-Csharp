@@ -77,5 +77,10 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "docs(csharp): regenerate public SDK reference from compiled rarity API"
-            git push origin "HEAD:refs/heads/feat/csharp-rarity-loader-core-20261019"
+            REMOTE_HEAD="$(git ls-remote origin refs/heads/feat/csharp-rarity-loader-core-20261019 | cut -f1)"
+            if [ "$REMOTE_HEAD" != "$GITHUB_SHA" ]; then
+              echo "SDK_REFERENCE_SYNC_SKIPPED newer-source-commit-on-branch"
+            elif ! git push origin "HEAD:refs/heads/feat/csharp-rarity-loader-core-20261019"; then
+              echo "SDK_REFERENCE_SYNC_SKIPPED parallel-newer-commit"
+            fi
           fi
