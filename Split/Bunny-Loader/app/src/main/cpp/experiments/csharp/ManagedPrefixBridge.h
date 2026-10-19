@@ -34,6 +34,7 @@ struct ManagedPrefixEntry {
     int maxItemMana = 10000;
     bool requireEffectiveStats = true;
     std::string extraTooltip;
+    std::vector<std::string> tooltipLines;
 };
 
 struct ManagedItemPrefixApply {
