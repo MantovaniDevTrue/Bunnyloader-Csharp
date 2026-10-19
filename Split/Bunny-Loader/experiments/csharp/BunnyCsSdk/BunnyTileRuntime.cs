@@ -58,7 +58,7 @@ public static class BunnyTileRuntime {
             }
             if (kind == 2) return "READY";
             if (index == 13) {
-                if ((mod.Masks[owner] & (7 << 13)) == 0) return "DEFAULT";
+                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
@@ -93,6 +93,9 @@ public static class BunnyTileRuntime {
                 }
                 if ((mod.Masks[owner] & (1 << 15)) != 0)
                     tile.SetSpriteEffects(x, y, ref effects);
+                bool drawDefault = true;
+                bool hasPreDraw = (mod.Masks[owner] & (1 << 5)) != 0 && fields[10] == "0";
+                if (hasPreDraw) drawDefault = tile.PreDraw(x, y);
                 if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||
                     width < 1 || width > 512 || height < 1 || height > 512 ||
                     top < -128 || top > 128 || addFrameX < -8192 || addFrameX > 8192 ||
@@ -108,7 +111,8 @@ public static class BunnyTileRuntime {
                     top.ToString(CultureInfo.InvariantCulture),
                     addFrameX.ToString(CultureInfo.InvariantCulture),
                     addFrameY.ToString(CultureInfo.InvariantCulture),
-                    effects.ToString(CultureInfo.InvariantCulture));
+                    effects.ToString(CultureInfo.InvariantCulture)) +
+                    (hasPreDraw ? (drawDefault ? "|1" : "|0") : "");
             }
             switch (index) {
                 case 0: return tile.CanKillTile(x, y) ? "1" : "0";
