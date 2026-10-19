@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeLocalizationRuntime.h"
+#include "experiments/csharp/LocalizationResolve.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -98,11 +99,43 @@ std::string cultureName(Il2CppObject* culture, const MethodInfo* getter) {
     return name;
 }
 
+std::string textToUtf8(Il2CppString* text) {
+    if (!text || text->length > 8192) return {};
+    std::string out;
+    out.reserve(static_cast<size_t>(text->length));
+    for (int i=0;i<text->length;i++) {
+        uint32_t c=static_cast<uint32_t>(text->chars[i]);
+        if(c>=0xD800&&c<=0xDBFF) {
+            if(++i>=text->length)return {};
+            const uint32_t low=static_cast<uint32_t>(text->chars[i]);
+            if(low<0xDC00||low>0xDFFF)return {};
+            c=0x10000+((c-0xD800)<<10)+(low-0xDC00);
+        } else if(c>=0xDC00&&c<=0xDFFF) return {};
+        if(c<0x80)out.push_back(static_cast<char>(c));
+        else if(c<0x800) {
+            out.push_back(static_cast<char>(0xC0|(c>>6)));
+            out.push_back(static_cast<char>(0x80|(c&63)));
+        } else if(c<0x10000) {
+            out.push_back(static_cast<char>(0xE0|(c>>12)));
+            out.push_back(static_cast<char>(0x80|((c>>6)&63)));
+            out.push_back(static_cast<char>(0x80|(c&63)));
+        } else {
+            out.push_back(static_cast<char>(0xF0|(c>>18)));
+            out.push_back(static_cast<char>(0x80|((c>>12)&63)));
+            out.push_back(static_cast<char>(0x80|((c>>6)&63)));
+            out.push_back(static_cast<char>(0x80|(c&63)));
+        }
+    }
+    return out;
+}
+
 struct Refs {
     FieldInfo* manager=nullptr;
     const MethodInfo* active=nullptr;
     const MethodInfo* name=nullptr;
     const MethodInfo* load=nullptr;
+    const MethodInfo* exists=nullptr;
+    const MethodInfo* getValue=nullptr;
     bool valid=false;
 };
 Refs& refs() {
@@ -116,6 +149,8 @@ Refs& refs() {
     reference.active=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("GameCulture get_ActiveCulture()"));
     reference.name=il2cpp::findMethodBySignature(culture,il2cpp::parseSignature("string get_Name()"));
     reference.load=il2cpp::findMethodBySignature(lm,il2cpp::parseSignature("void LoadLanguageFromFileText(string fileText)"));
+    reference.exists=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("bool Exists(string key)"));
+    reference.getValue=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("string GetTextValue(string key)"));
     auto& api=il2cpp::api();
     reference.valid=reference.manager&&reference.active&&reference.name&&reference.load&&
         api.method_is_instance&&api.method_is_instance(reference.load)&&
@@ -129,19 +164,40 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const
     Il2CppObject* manager=nullptr;
     api.field_static_get_value(r.manager,&manager);
     if(!manager)return false;
+    std::map<std::string,std::map<std::string,std::string>> selectedByMod;
+    std::map<std::string,std::string> all;
     for(const auto& [modId,entries]:catalog) {
+        auto& selected=selectedByMod[modId];
+        for(const auto& entry:entries)selected.try_emplace(entry.key,entry.value);
+        for(const auto& entry:entries)
+            if(entry.culture=="en-US")selected[entry.key]=entry.value;
+        for(const auto& entry:entries)
+            if(entry.culture==culture)selected[entry.key]=entry.value;
+        all.insert(selected.begin(),selected.end());
+    }
+    const GameTextLookup vanilla=[&](const std::string& key,std::string* output)->bool {
+        if(!r.exists||!r.getValue)return false;
+        void* args[]={api.string_new(key.c_str())};
+        if(!args[0])return false;
+        Il2CppObject* exception=nullptr;
+        Il2CppObject* boxed=api.runtime_invoke(r.exists,nullptr,args,&exception);
+        if(exception||!boxed||!(*reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(boxed)+sizeof(Il2CppObject))))
+            return false;
+        exception=nullptr;
+        auto* value=reinterpret_cast<Il2CppString*>(api.runtime_invoke(r.getValue,nullptr,args,&exception));
+        if(exception||!value)return false;
+        *output=textToUtf8(value);
+        return !output->empty()||value->length==0;
+    };
+    const auto resolved=resolveLocaleReferences(std::move(all),vanilla);
+    for(const auto& [modId,entries]:selectedByMod) {
         std::map<std::string,std::map<std::string,std::string>> categories;
-        std::map<std::string,std::string> first;
-        for(const auto& entry:entries)
-            first.try_emplace(entry.key,entry.value);
-        for(const auto& entry:entries)
-            if(entry.culture=="en-US")first[entry.key]=entry.value;
-        for(const auto& entry:entries)
-            if(entry.culture==culture)first[entry.key]=entry.value;
-        for(const auto& [key,value]:first) {
+        for(const auto& [key,raw]:entries) {
+            auto match=resolved.find(key);
+            if(match==resolved.end())return false;
             auto pos=key.rfind('.');
             if(pos==std::string::npos||pos==0||pos==key.size()-1)continue;
-            categories[key.substr(0,pos)][key.substr(pos+1)]=value;
+            categories[key.substr(0,pos)][key.substr(pos+1)]=match->second;
         }
         if(categories.empty())continue;
         std::string serialized="{";
