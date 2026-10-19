@@ -7,6 +7,8 @@
 
 namespace bl::csharp {
 
+inline constexpr bool managedDustCallbacksConnected() noexcept { return false; }
+
 enum ManagedDustHook : std::uint32_t {
     DustOnSpawn = 1u,
     DustUpdate = 2u,
