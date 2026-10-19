@@ -99,6 +99,12 @@ inline bool read(std::istream& stream, std::vector<SavedItem>& out, bool strict 
 
     while (std::getline(stream, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (version3) {
+            size_t delimiters = 0;
+            for (char ch : line)
+                if (ch == '\t') ++delimiters;
+            if (delimiters != 7) return false;
+        }
         SavedItem value;
         if (decode(line, value, version3)) {
             records.push_back(std::move(value));
