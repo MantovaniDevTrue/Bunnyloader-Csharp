@@ -35,6 +35,7 @@ std::map<std::string, uint64_t> managedEpochs;
 uint64_t nextManagedEpoch = 0;
 uint64_t lastDynamicRevision = 0;
 std::map<std::string, std::map<std::string, std::optional<std::string>>> vanillaOriginals;
+std::set<std::string> originallyAbsentGlobalKeys;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -265,8 +266,10 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
         std::string native;
         if (vanilla(key, &native))
             originals.emplace(key, std::move(native));
-        else
+        else {
             originals.emplace(key, std::nullopt);
+            originallyAbsentGlobalKeys.insert(key);
+        }
     }
     std::map<std::string, std::string> retiredValues;
     SessionSnapshot ownedRetirement = current;
@@ -278,10 +281,10 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
             retiredValues[key] = key;
         } else if (!all.contains(key)) {
             auto previous = originals.find(key);
-            if (previous == originals.end()) continue;
-            if (previous->second.has_value()) {
+            if (previous != originals.end() && previous->second.has_value()) {
                 retiredValues[key] = *previous->second;
-            } else {
+            } else if ((previous != originals.end() && !previous->second.has_value()) ||
+                       originallyAbsentGlobalKeys.contains(key)) {
                 retiredValues[key] = key;
                 createdExternalKeys.insert(key);
                 ownedRetirement.retired.insert(key);
