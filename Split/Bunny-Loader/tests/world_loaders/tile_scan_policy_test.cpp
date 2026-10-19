@@ -18,6 +18,15 @@ int main() {
         "LIGHT|0|0|0000000000000000000000000000000000000000000000"
     })assert(!parseLight(bad,&r,&g,&b));
     assert(!parseLight("LIGHT|0|0|0",nullptr,&g,&b));
+    assert(scanBudget(0)==0);
+    assert(scanBudget(17)==17);
+    assert(scanBudget(512)==512);
+    assert(scanBudget(65536)==512);
+    assert(nextCursor(0,0,0)==0);
+    assert(nextCursor(32,512,2048)==544);
+    assert(nextCursor(2040,512,2048)==504);
+    assert(nextCursor(17,17,17)==0);
+    assert(nextCursor(7,0,10)==7);
     assert(cellKey(1,2,false)!=cellKey(1,2,true));
     assert(cellKey(1,2,false)!=cellKey(2,1,false));
     assert(cellKey(1,2,false)!=cellKey(1,3,false));
