@@ -11,22 +11,22 @@ try
     string diagnostics = Path.Combine(temp, "diagnostics.txt");
     File.WriteAllText(diagnostics, "");
     int classes = CompiledAssemblyProbe.Verify(args[0], diagnostics);
-    if (classes != 4)
-        throw new InvalidOperationException("Expected two content types and two managed prefixes, got " + classes);
+    if (classes != 5)
+        throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 5 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 6 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     var byName = data.Skip(1).Select(row => row.Split('\t'))
         .ToDictionary(fields => fields[1], StringComparer.Ordinal);
-    if (byName.Count != 4 || !byName.ContainsKey("TestBolt") || !byName.ContainsKey("TestWand"))
+    if (byName.Count != 5 || !byName.ContainsKey("TestBolt") || !byName.ContainsKey("TestWand"))
         throw new InvalidOperationException("Source content lost in prefix handoff");
 
     void Check(string name, int category, float weight, float damage, float value, int defense)
     {
         string[] fields = byName[name];
-        int expectedLength = name == "TestMightyPrefix" ? 17 : 16;
+        int expectedLength = name == "TestMightyPrefix" || name == "TestCustomPrefix" ? 17 : 16;
         if (fields.Length != expectedLength || fields[0] != "PREFIX" ||
             int.Parse(fields[2], CultureInfo.InvariantCulture) != category ||
             MathF.Abs(float.Parse(fields[3], CultureInfo.InvariantCulture) - weight) > .0001f ||
@@ -41,6 +41,9 @@ try
     if (byName["TestMightyPrefix"][16] != "1:3,2:0,512:7,TestWand:2")
         throw new InvalidOperationException("Managed prefix per-item rules are not canonical");
     Check("TestGuardedPrefix", 5, 1f, 1f, 1.2f, 4);
+    Check("TestCustomPrefix", 6, 1f, 1f, 1f, 0);
+    if (byName["TestCustomPrefix"][16] != "1:0,TestWand:2")
+        throw new InvalidOperationException("Custom prefix must keep explicit item rules only");
     var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
     rules.Deny(12);
     rules.Allow(12, 5);
@@ -61,7 +64,7 @@ try
     catch (ArgumentOutOfRangeException) { invalidNameRejected = true; }
     if (!invalidNameRejected)
         throw new InvalidOperationException("Unsafe stable item name accepted");
-    Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=2 callbacks=4 content=2");
+    Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2");
 }
 finally
 {
