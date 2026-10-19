@@ -36,7 +36,12 @@ bool valid(const ManagedPrefixEntry& p) {
         p.tagDamage < -100 || p.tagDamage > 100 ||
         p.armorPenetration < -100 || p.armorPenetration > 100 ||
         p.accessoryDefense < -100 || p.accessoryDefense > 100 ||
-        (p.category != 5 && p.accessoryDefense != 0)) return false;
+        (p.category != 5 && p.accessoryDefense != 0) ||
+        p.applyDamageBonus < 0 || p.applyDamageBonus > 1000 ||
+        p.applyValueBonus < 0 || p.applyValueBonus > 100000 ||
+        p.extraTooltip.size() > 120 ||
+        std::any_of(p.extraTooltip.begin(), p.extraTooltip.end(),
+                    [](unsigned char ch) { return ch < 32 || ch == 127; })) return false;
     for (float value : p.multipliers)
         if (!std::isfinite(value) || value < 0.1f || value > 10.f) return false;
     if (p.itemWeights.size() + p.itemNames.size() > 32) return false;
