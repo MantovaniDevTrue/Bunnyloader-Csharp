@@ -39,6 +39,38 @@ unsigned g_resolveFailures = 0;
 std::vector<Quest> g_active;
 std::set<int> g_ownedTypes;
 std::map<int, bool> g_previousFlags;
+bool g_fishingWarning = false;
+
+std::string utf8(Il2CppString* input) {
+    if (!input || input->length < 0 || input->length > 256) return {};
+    std::string out;
+    out.reserve(static_cast<size_t>(input->length));
+    for (int i = 0; i < input->length; ++i) {
+        char32_t c = input->chars[i];
+        if (c >= 0xD800 && c <= 0xDBFF && i + 1 < input->length) {
+            const char32_t low = input->chars[i + 1];
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                c = 0x10000 + ((c - 0xD800) << 10) + low - 0xDC00;
+                ++i;
+            }
+        }
+        if (c < 0x80) out += static_cast<char>(c);
+        else if (c < 0x800) {
+            out += static_cast<char>(0xC0 | (c >> 6));
+            out += static_cast<char>(0x80 | (c & 0x3F));
+        } else if (c < 0x10000) {
+            out += static_cast<char>(0xE0 | (c >> 12));
+            out += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+            out += static_cast<char>(0x80 | (c & 0x3F));
+        } else {
+            out += static_cast<char>(0xF0 | (c >> 18));
+            out += static_cast<char>(0x80 | ((c >> 12) & 0x3F));
+            out += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+            out += static_cast<char>(0x80 | (c & 0x3F));
+        }
+    }
+    return out;
+}
 
 bool typeName(const Il2CppType* type, const char* name) {
     auto& a = il2cpp::api();
@@ -79,7 +111,8 @@ bool findContracts() {
     auto& a = il2cpp::api();
     if (!a.field_static_get_value || !a.field_static_set_value ||
         !a.array_new || !a.object_get_class || !a.string_new ||
-        !a.class_get_method_from_name || !a.method_get_param_count)
+        !a.class_get_method_from_name || !a.method_get_param_count ||
+        !a.runtime_invoke)
         return false;
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
@@ -159,12 +192,9 @@ bool findContracts() {
             Il2CppObject* exception = nullptr;
             auto* result = reinterpret_cast<Il2CppString*>(api.runtime_invoke(
                 g_nameMethod, nullptr, args, &exception));
-            if (!exception && result && result->length > 0 && result->length < 256) {
-                name.clear();
-                for (int i = 0; i < result->length; ++i) {
-                    if (result->chars[i] > 127) { name = it->name; break; }
-                    name.push_back(static_cast<char>(result->chars[i]));
-                }
+            if (!exception && result && result->length > 0) {
+                std::string localized = utf8(result);
+                if (!localized.empty()) name = std::move(localized);
             }
         }
         Il2CppString* output = api.string_new(Registry::chat(*it, name).c_str());
@@ -286,8 +316,11 @@ void pumpOnGameThread() {
     g_resolveFailures = 0;
     g_appliedGeneration = revision;
     g_active = quests;
-    if (!quests.empty() && !installFishingOnGameThread(&g_active) && g_resolveFailures++ == 0)
-        BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
+    if (!quests.empty() && !installFishingOnGameThread(&g_active)) {
+        if (!g_fishingWarning)
+            BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
+        g_fishingWarning = true;
+    } else g_fishingWarning = false;
     if (pending)
         BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Hooks=2 Result=Installed",
                 quests.size());
