@@ -661,6 +661,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
     std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
+    std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
     std::vector<std::pair<int, bool>> prefixChances;
@@ -705,6 +706,26 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             prefixDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CONDITION") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry bounds;
+            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &bounds.minItemDamage) ||
+                !integer(fields[3], &bounds.maxItemDamage) ||
+                !integer(fields[4], &bounds.minItemMana) ||
+                !integer(fields[5], &bounds.maxItemMana) ||
+                bounds.minItemDamage < 0 || bounds.maxItemDamage < bounds.minItemDamage ||
+                bounds.maxItemDamage > 100000 || bounds.minItemMana < 0 ||
+                bounds.maxItemMana < bounds.minItemMana || bounds.maxItemMana > 10000 ||
+                !prefixItemConditions.emplace(fields[1], bounds).second) {
+                *error = "[CSharp][ERROR][PrefixCondition] InvalidPrefixOrBounds";
+                return false;
+            }
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_POST") {
@@ -1338,6 +1359,14 @@ bool applyManagedSourceDefaults(
         return false;
     }
     for (auto& prefix : prefixes) {
+        const auto condition = prefixItemConditions.find(prefix.name);
+        if (condition != prefixItemConditions.end()) {
+            prefix.minItemDamage = condition->second.minItemDamage;
+            prefix.maxItemDamage = condition->second.maxItemDamage;
+            prefix.minItemMana = condition->second.minItemMana;
+            prefix.maxItemMana = condition->second.maxItemMana;
+            prefixItemConditions.erase(condition);
+        }
         const auto post = prefixPostPolicies.find(prefix.name);
         if (post == prefixPostPolicies.end()) continue;
         prefix.applyDamageBonus = post->second.applyDamageBonus;
@@ -1348,6 +1377,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixPostPolicies.empty()) {
         *error = "PREFIX_POST sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixItemConditions.empty()) {
+        *error = "PREFIX_CONDITION sem descritor de prefixo correspondente";
         return false;
     }
     for (size_t i = 0; i < weapons.size(); ++i) {
