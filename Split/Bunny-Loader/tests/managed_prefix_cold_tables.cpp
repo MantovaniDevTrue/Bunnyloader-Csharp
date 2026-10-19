@@ -249,13 +249,30 @@ int main() {
     weapon.type = 6199;
     assert(itemRollWeight(&weapon.object, mighty) == 3);
     assert(itemRollWeight(&accessory.object, mighty) == 1);
+    mighty.itemCanRoll[6199] = false;
+    mighty.itemCanRoll[6198] = true;
+    descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    weapon.type = 6198;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    bool reachedZeroWeight = false;
+    assert(applyManagedPrefixViaNativeRoll(&weapon.object, 99,
+                                           &prefixMethod, &reachedZeroWeight));
+    assert(reachedZeroWeight && weapon.prefix == 99);
+    weapon.prefix = 0;
+    mighty.itemCanRoll.erase(6199);
 
     ManagedPrefixEntry custom;
     custom.name = "Custom";
     custom.type = 101;
     custom.category = 6;
     custom.rollWeight = 1;
-    custom.itemWeights[6199] = 2;
+    custom.itemWeights[6199] = 0;
+    custom.itemCanRoll[6199] = true;
     custom.itemWeights[6198] = 0;
     descriptors = {guarded, mighty, custom};
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
