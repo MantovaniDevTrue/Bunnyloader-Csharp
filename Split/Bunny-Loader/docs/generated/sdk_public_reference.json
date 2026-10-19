@@ -48,6 +48,7 @@
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "Nullable\\u003Cbool\\u003E PrefixChance { get; set; }",
         "UInt32 VisualColor { get; set; }",
         "float VisualOpacity { get; set; }",
         "float VisualScale { get; set; }",
@@ -230,6 +231,7 @@
       "constructors": [],
       "properties": [
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "Nullable\\u003Cbool\\u003E PrefixChance { get; set; }",
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
@@ -956,6 +958,7 @@
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
+        "Nullable\\u003Cbool\\u003E PrefixChance { get; set; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -2455,6 +2458,7 @@
       "properties": [
         "BunnyHoldout Holdout { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "Nullable\\u003Cbool\\u003E PrefixChance { get; set; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
