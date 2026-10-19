@@ -24,6 +24,7 @@ struct Quest {
     std::string location;
     int catchRules = 0;
     std::map<std::string, std::pair<std::string, std::string>> locales{};
+    bool catchEnabled = false;
     bool operator==(const Quest&) const = default;
 };
 
