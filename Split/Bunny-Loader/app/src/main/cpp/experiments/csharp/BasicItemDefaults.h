@@ -54,7 +54,7 @@ inline bool validBasicAccessoryEffect(const BasicAccessoryEffect& e) {
 }
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
     const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
-    const int max[]={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000,127};
+    const int max[]={256,256,9999,100000000,4107,1000,100,600,600,20,1000,200,1000,127};
     for(size_t i=0;i<BasicFieldCount;++i) if(item.values[i]<min[i]||item.values[i]>max[i]) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
     }
@@ -169,6 +169,10 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
     if((fields.size()<20||fields.size()>26)||fields[0]!="ITEM") {*error="ITEM requer 20 a 26 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
+    if (out.values[BasicRare] > 11) {
+        *error = out.name + ": Rare nativo de origem precisa ser vanilla; use SetRarity<T>()";
+        return false;
+    }
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
     if(errno||!end||*end||fields[16].empty()) {*error=out.name+": KnockBack invalido";return false;}
     out.useSound=fields[17]=="-"?"":fields[17];
