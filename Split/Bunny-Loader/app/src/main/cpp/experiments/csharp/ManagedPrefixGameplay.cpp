@@ -229,6 +229,16 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     }
     if (descriptors->empty())
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+    if (g_restoreRoll.item != item && g_refs.type >= 0) {
+        const int type = bl::runtime::field<int32_t>(item, g_refs.type);
+        for (const auto& policy : *descriptors) {
+            if (policy.preferredTypes.contains(type) && eligible(item, policy, true) &&
+                ensurePrefixTables(*descriptors)) {
+                *rolled = policy.type;
+                return true;
+            }
+        }
+    }
 
     auto& api = bl::il2cpp::api();
     Il2CppObject* error = nullptr;
