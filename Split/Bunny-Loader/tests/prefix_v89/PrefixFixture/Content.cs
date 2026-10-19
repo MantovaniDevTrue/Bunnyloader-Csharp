@@ -42,6 +42,8 @@ public sealed class TestMightyPrefix : BunnyPrefix
         RollWeight = 5f;
         DisplayName = "Poderoso";
         ExtraTooltip = "Bonus adicional do prefixo";
+        AddTooltipLine("First line");
+        AddTooltipLine("Second line");
         RequireEffectiveStats = false;
     }
 
