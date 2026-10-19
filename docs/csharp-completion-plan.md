@@ -1,3 +1,5 @@
+> Verificação interna sem entrega: [CI do port em desenvolvimento](validation/csharp-full-port-wip-2026-10-19.json), fonte `e11f5279`, nove suítes e Android build aprovados. Publicação e export dos pacotes pulados; nenhuma release nova. Port integral ainda aberto.
+
 > Preservar também o inventário oficial PC (449 ativos/112 legados e ExampleLibraryMod); a matriz de206 JS não substitui nem reduz esse escopo. Não há equivalência automática com assemblies tModLoader.
 
 > Continuidade do port integral: [estado, APIs de áudio e próximo sistema compartilhado](csharp-full-example-port-progress.md). Revisão de desenvolvimento .97/ExampleMod0.1.56 sem publicação.

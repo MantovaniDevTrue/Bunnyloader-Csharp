@@ -37,6 +37,12 @@ Portar ExampleShotgun e todos os outros exemplos que essa infraestrutura desbloq
 
 Configurações de som registradas são imutáveis durante a sessão: repetir a mesma definição reutiliza o registro; mudar asset/opções requer reiniciar o jogo. A recusa explícita evita reutilizar um style ID ainda referenciado por itens antigos. Não é suporte a hot reload de áudio.
 
-Sanitizers dos novos testes de áudio (ASan/UBSan) passaram no host. CI Android ainda deve ser registrado no commit exato; não há validação nova no dispositivo.
+Sanitizers dos novos testes de áudio (ASan/UBSan) passaram no host. CI Android registrado abaixo no commit exato; não há validação nova no dispositivo.
 
 O cache nativo reutiliza o asset por caminho canônico e o marker por arquivo/opções; conteúdos que compartilham a mesma configuração compartilham também o limite de instâncias, como no Bunny original. O cache de markers é fraco, sem reter objetos de lotes recusados. Falha assíncrona de decode é registrada no logcat com ID, caminho quando disponível e status real do SoundPool.
+
+## Verificação interna concluída, sem entrega
+
+Fonte `e11f5279b1ed4a573fb08e999cc3228c8cd2dc19`: [CI39190838803](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39190838803) e nove suítes independentes no mesmo SHA aprovados. Gradle executou testes unitários e assembleDebug; assinatura/APK verificados. Etapas de publicação, export dos .bmod e probe puladas; job de conferência de entrega pulado. Repositório Builds acessível, tag correspondente ausente (HTTP404). Não existe nova release para recomendar ao usuário.
+
+[Registro técnico completo](validation/csharp-full-port-wip-2026-10-19.json). Os testes de host e a build Android não substituem gameplay. ExampleGun aguarda validação, demais exemplos e o inventário PC continuam no escopo, zero loaders inteiros certificados. O commit posterior só documenta a evidência; não modifica os binários internos.
