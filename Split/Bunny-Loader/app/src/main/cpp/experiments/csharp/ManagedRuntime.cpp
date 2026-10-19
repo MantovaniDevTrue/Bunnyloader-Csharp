@@ -2367,7 +2367,8 @@ bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,
     std::string* output,int budgetMicroseconds) {
     if(snapshot.size()>512||snapshot.empty()) {
-        if(output)*output="ERROR|Stage=TileDraw Reason=InvalidSnapshot";return false;
+        if(output)*output="ERROR|Stage=TileDraw Reason=InvalidSnapshot";
+        return false;
     }
     return invokeManagedCallback(false,mod,assembly,owner,13,0,
         snapshot,output,budgetMicroseconds,true);
