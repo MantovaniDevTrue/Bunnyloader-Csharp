@@ -385,10 +385,9 @@ bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
     if (!text || !target) return false;
     if (target == text) return true;
-    if (!g_rarityTextMatchByContent || text->length != target->length ||
-        text->length <= 0 || text->length > 256) return false;
-    return std::memcmp(text->chars, target->chars,
-        static_cast<size_t>(text->length) * sizeof(char16_t)) == 0;
+    if (!g_rarityTextMatchByContent) return false;
+    return sameNativeRarityName(text->chars, text->length,
+        target->chars, target->length);
 }
 
 uint32_t nativeRarityToArgb(uint32_t native) {
