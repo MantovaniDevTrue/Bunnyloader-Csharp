@@ -2,7 +2,7 @@
 
 # Bunny Loader com suporte C#
 
-**Código-fonte integrado — mantido por Mantovani, a partir do Bunny Loader de Jonata Oliveira.**
+**Código-fonte integrado — a partir do Bunny Loader de Jonata Oliveira.**
 
 Integrei ao [Bunny Loader original](https://github.com/JonataOliveiraa/Bunny-Loader) a implementação C# desenvolvida para Terraria Mobile. Esta árvore contém o **projeto Android completo**, com as alterações já aplicadas ao núcleo: Roslyn, MonoVM, serviços Android, C++/IL2CPP, exemplos e QuickJS funcionando como motores independentes. Não é necessário reconstruir o port copiando classes isoladas.
 
@@ -42,7 +42,7 @@ Para manter o histórico do repositório original, a importação pode ser feita
 
 Eu comparei esta cópia com a `main` do seu repositório no commit **[a370a664](https://github.com/JonataOliveiraa/Bunny-Loader/commit/a370a664aa3b808c87e4e4f570b27504d20df723)**, de **15/10/2026**. Todos os arquivos rastreados nessa versão estão presentes. Os arquivos diferentes e os que acrescentei estão no [inventário](docs/POTATO-UPSTREAM-FILE-MAP.json), identificados pelo hash de cada conteúdo.
 
-Esta cópia está identificada como **Bunny Loader C# 1.0**. Integrei a fonte C# mais recente do desenvolvimento, incluindo o **ExampleMod C# atualizado**, novos exemplos de armas, definições nativas, projéteis e áudio próprio de mods. O código C# passou nas verificações automatizadas da linha de desenvolvimento, mas a jogabilidade dessas mudanças recentes ainda não foi homologada no Android físico. A revisão e os testes continuam necessários antes de tratar esta entrega como uma versão oficial estável.
+Esta cópia está identificada como **Bunny Loader C# 1.0**. Integrei a fonte C# mais recente do desenvolvimento, incluindo o **ExampleMod C# atualizado**, novos exemplos de armas, definições nativas, projéteis e áudio próprio de mods. 
 
 ### Antes de compilar
 
@@ -76,6 +76,6 @@ Bunny-Loader/
 └── IMPORTAR-NO-GITHUB-DO-POTATO.md
 ~~~
 
-Eu mantive os arquivos e as licenças do Bunny original. **Jonata Oliveira é o autor do Bunny Loader original; a integração C# é meu trabalho de extensão.** Respeito a licença PolyForm Noncommercial e os avisos de terceiros do projeto. Nada aqui implica uma release oficial ou substitui sua validação como mantenedor.
+Eu mantive os arquivos e as licenças do Bunny original. **Jonata Oliveira é o autor do Bunny Loader original; a integração C# é meu trabalho de extensão.** Respeito a licença PolyForm Noncommercial e os avisos de terceiros do projeto. Nada aqui implica uma release oficial.
 
-*Extensão C# por Mantovani · Bunny Loader original por Jonata Oliveira.*
+· Bunny Loader original por Jonata Oliveira.*
