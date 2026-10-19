@@ -72,6 +72,14 @@ public static class BunnyTileRuntime {
                 case 8: return tile.Slope(x, y) ? "1" : "0";
                 case 9: tile.MouseOver(x, y); return "1";
                 case 10: tile.MouseOverFar(x, y); return "1";
+                case 11: tile.NearbyEffects(x, y, false); return "1";
+                case 12:
+                    int frame = x, counter = y;
+                    tile.AnimateTile(ref frame, ref counter);
+                    if (frame < 0 || frame > 127 || counter < 0 || counter > 600)
+                        return "ERROR|Stage=ValidateTileAnimation Reason=FrameOrCounterOutOfBounds";
+                    return frame.ToString(CultureInfo.InvariantCulture) + "," +
+                        counter.ToString(CultureInfo.InvariantCulture);
                 default: return "ERROR|Stage=TileCallback Reason=ContextRequired";
             }
         } catch (Exception error) {
