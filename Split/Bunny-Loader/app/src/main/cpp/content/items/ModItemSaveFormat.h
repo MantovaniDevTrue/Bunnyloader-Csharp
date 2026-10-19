@@ -16,7 +16,7 @@ struct SavedItem {
     bool favorited = false;
     std::string key;
     std::string prefixKey;
-    std::string data;
+    std::string data{};
     std::string rarityKey{};
 };
 
