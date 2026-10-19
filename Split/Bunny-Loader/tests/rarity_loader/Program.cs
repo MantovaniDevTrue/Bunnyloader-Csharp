@@ -43,6 +43,21 @@ Check("ids.begin-after-vanilla-and-lookup-by-mod", () =>
     Throws<KeyNotFoundException>(() => registry.TypeOf<RisingRarity>("othermod"));
 });
 
+Check("ids.host-assigned-offset-for-multiple-mods", () =>
+{
+    var first = new BunnyRarityRegistry();
+    var second = new BunnyRarityRegistry(20);
+    Equal(12, first.Register("mod-a", new RisingRarity()));
+    Equal(20, second.Register("mod-b", new FallingRarity()));
+    Equal(21, second.RarityCount);
+    second.Seal();
+    Equal(false, second.TryGetColor(12, out _));
+    Equal(true, second.TryGetColor(20, out _));
+    Equal(20, second.ResolvePrefixedRarity(20, 1.0f, 11));
+    Throws<ArgumentOutOfRangeException>(() => new BunnyRarityRegistry(11));
+    Throws<ArgumentOutOfRangeException>(() => new BunnyRarityRegistry(4110));
+});
+
 Check("ids.same-class-isolated-between-mods", () =>
 {
     var registry = new BunnyRarityRegistry();
