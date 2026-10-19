@@ -974,10 +974,12 @@ ChestSetFn g_origChestSet = nullptr;
 void hkChestSet(void* slot, Il2CppObject* item, const MethodInfo* method) {
     std::string data;
     const int type = item ? field<int32_t>(item, g_refs.type) : 0;
+    const std::string rarity = rarityFor(item);
     if (isModItem(type)) script::saveModItemData(item, data);
 
     g_origChestSet(slot, item, method);
     setChestData(slot, type, std::move(data));
+    setChestRarity(slot, type, rarity);
 }
 
 using ChestExpandFn = Il2CppObject* (*)(void*, const MethodInfo*);
@@ -988,7 +990,8 @@ Il2CppObject* hkChestExpand(void* slot, const MethodInfo* method) {
         const std::string data = chestData(slot, field<int32_t>(item, g_refs.type));
         script::loadModItemData(item, data);
     }
-
+    if (item)
+        restoreRarity(item, chestRarity(slot, field<int32_t>(item, g_refs.type)));
     return item;
 }
 
@@ -1049,7 +1052,8 @@ std::vector<ChestData> snapshotChest(Il2CppObject* chest, bool erase) {
 
     for (uintptr_t i = 0; i < items->length; ++i) {
         const ChestSlot slot = slotOf(items, static_cast<int>(i));
-        snapshot.push_back({slot.type(), chestData(slot.data, slot.type())});
+        snapshot.push_back({slot.type(), chestData(slot.data, slot.type()),
+            chestRarity(slot.data, slot.type())});
         if (erase) setChestData(slot.data, 0, {});
     }
 
@@ -1062,7 +1066,9 @@ void restoreChestData(Il2CppObject* chest, const std::vector<ChestData>& snapsho
 
     for (uintptr_t i = 0; i < items->length; ++i) {
         const ChestSlot slot = slotOf(items, static_cast<int>(i));
-        setChestData(slot.data, slot.type(), i < snapshot.size() && slot.type() == snapshot[i].type ? snapshot[i].data : "");
+        const bool matching = i < snapshot.size() && slot.type() == snapshot[i].type;
+        setChestData(slot.data, slot.type(), matching ? snapshot[i].data : "");
+        setChestRarity(slot.data, slot.type(), matching ? snapshot[i].rarityKey : "");
     }
 }
 
