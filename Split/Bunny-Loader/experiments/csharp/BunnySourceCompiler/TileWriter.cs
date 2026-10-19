@@ -20,6 +20,7 @@ internal static class TileWriter {
         int[] aliases = Get<int[]>("AdjacentTiles");
         bool allowBreaking = Get<bool>("AllowBreaking");
         bool allowDrops = Get<bool>("AllowDrops");
+        int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
         int r = Get<int>("MapR"), g = Get<int>("MapG"), b = Get<int>("MapB");
@@ -70,7 +71,8 @@ internal static class TileWriter {
             animationTicks.ToString(CultureInfo.InvariantCulture),
             adjacentList,
             allowBreaking ? "1" : "0",
-            allowDrops ? "1" : "0");
+            allowDrops ? "1" : "0",
+            callbackMask.ToString(CultureInfo.InvariantCulture));
     }
 
     private static bool Safe(string value) {
