@@ -8,15 +8,15 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
         Texture="Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.png";
         DisplayName="Example Campfire Visual Probe (1x1)";
         Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
-              BunnyTileFlags.NoAttach|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
+              BunnyTileFlags.HasOutlines|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;
         Shape=BunnyTileShape.Style3x2;
         AddMapEntry(254,121,2,"Campfire Visual Probe");
     }
     public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b)
     {
-        float pulse=(Environment.TickCount64/200L%6L)*0.01f;
-        r=0.18f+pulse;g=0.98f+pulse;b=0.38f+pulse;
+        float pulse=0.14f+(Environment.TickCount64/200L%14L)*0.005f;
+        r=0.1f+pulse;g=0.9f+pulse;b=0.3f+pulse;
     }
     public override void DrawEffects(int x,int y,int frameX,int frameY,
                                      BunnyTileDrawContext draw)
