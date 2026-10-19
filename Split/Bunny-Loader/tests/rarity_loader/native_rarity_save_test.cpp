@@ -86,6 +86,13 @@ int main() {
     std::stringstream legacyWithExtension("bunnyloader itens 2\ninventory\t0\t1\t0\t1\told/Item\t{}\trmod/Example\n");
     restored.clear();
     assert(read(legacyWithExtension, restored) && restored.empty());
+    legacyWithExtension.clear();
+    legacyWithExtension.seekg(0);
+    const std::vector<SavedItem> savedBeforeStrict = modern;
+    restored = savedBeforeStrict;
+    assert(!read(legacyWithExtension, restored, true));
+    assert(restored.size() == savedBeforeStrict.size());
+    assert(restored[0].rarityKey == savedBeforeStrict[0].rarityKey);
 
     std::stringstream mixed("bunnyloader itens 3\ninventory\t0\t1\t0\t1\told/Item\t{}\t\n"
                             "inventory\t1\t1\t0\t0\told/Staff\t{}\trmod/Example\n");
@@ -146,6 +153,13 @@ int main() {
     }
     assert(!canReplaceExisting(path));
     assert(!preserveLegacyBeforeRaritySave(path, modern));
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        output << "bunnyloader itens 2\n";
+        output << "inventory\t0\t1\t0\t0\tmod/Original\t{}\n";
+        output << "inventory\t1\t1\t0\t0\tmod/Broken\t{}\tmod/Rarity\n";
+    }
+    assert(!canReplaceExisting(path));
     std::filesystem::remove_all(directory);
 
     bl::csharp::NativeRarityRegistry first;
