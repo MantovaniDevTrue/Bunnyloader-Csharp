@@ -107,3 +107,29 @@ As versões `Allow(string, int)`, `Deny(string)` e `SetWeight(string, int)` acei
 Nomes inexistentes, colisão entre regra numérica e regra por nome resolvida para o mesmo tipo, peso fora de 0–20 ou mais de 32 regras provocam rejeição completa; nunca publicação parcial. A consulta em gameplay permanece exclusivamente por ID nativo resolvido, em visão imutável, sem busca textual nem chamada gerenciada por tentativa. A resolução por nome, nesta etapa, é deliberadamente limitada a itens do próprio mod; referenciar itens de terceiros exigirá um contrato separado de ordem de dependências/carregamento.
 
 O teste host `tests/prefix_v89/managed_prefix_snapshot_test.cpp` cobre sucesso e falha de resolução, colisões e rollback. O teste managed de `PrefixFixture` cobre o serializador que combina `int` e `string` e mantém um prefixo legado com 16 campos.
+
+## PrefixCategory.Custom — seleção explícita
+
+A categoria `PrefixCategory.Custom` (valor 6) da API C# agora é validada e registrada pelo MonoVM/native. Assim como no `PrefixLoader.js` original, ela **não entra na lista natural** de `GetRollablePrefixes`. Para oferecer `CanRoll` e permitir aplicação direta/restauração em um item, exige pelo menos uma regra positiva em `ConfigureRollRules` com ID vanilla ou nome de item do próprio mod. Regras de peso zero negam o item e não bastam, sozinhas, para habilitar um prefixo `Custom`.
+
+```csharp
+public sealed class ExampleCustomPrefix : BunnyPrefix
+{
+    public override void SetDefaults()
+    {
+        Category = PrefixCategory.Custom;
+        DisplayName = "Especial";
+        RollWeight = 1;
+    }
+
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Allow("ExampleGun", 1);
+        rules.Deny("ExampleCharm");
+    }
+}
+```
+
+A lógica nativa consulta somente o mapa de tipos já resolvidos, sem JS nem callback Mono por reforja. Um pedido explícito permitido pode atravessar o caminho nativo de `CanRollPrefix`, `RollAPrefix` forçado e aplicação de status, mas a categoria nunca é acrescentada à rolagem natural. Isso é uma **interpretação declarativa restrita** dos contratos originais `CanRoll(item)`/`RollChance(item)`, não suporte a predicados C# arbitrários por instância. A integração real com um item que escolha um prefixo (`ChoosePrefix`) ainda requer suporte e validação separados.
+
+Os testes de host cobrem um prefixo `Custom` gerenciado (5 classes compiladas), uma regra positiva por nome, uma negativa por tipo, impedimento de rolagem natural, aplicação direta do prefixo permitido e rejeição do não permitido. Não declarar suporte completo antes de validar persistência, multiplayer, gameplay e FPS no Android.
