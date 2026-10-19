@@ -508,12 +508,16 @@ int main() {
     hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
                          &lineCount, lines, modifier, bad, nullptr, nullptr,
                          nullptr, nullptr);
-    assert(lineCount == 1);
+    assert(lineCount == 3);
     auto** prefixTooltip = static_cast<Il2CppString**>(arrayData(lines));
     assert(prefixTooltip[0] && prefixTooltip[0]->length > 5);
     assert(prefixTooltip[0]->chars[0] == 'B');
-    assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 1);
-    assert(static_cast<uint8_t*>(arrayData(bad))[0] == 0);
+    assert(prefixTooltip[1] && prefixTooltip[1]->chars[0] == 'F');
+    assert(prefixTooltip[2] && prefixTooltip[2]->chars[0] == 'S');
+    for (int index = 0; index < 3; ++index) {
+        assert(static_cast<uint8_t*>(arrayData(modifier))[index] == 1);
+        assert(static_cast<uint8_t*>(arrayData(bad))[index] == 0);
+    }
     Item ineffective{};
     ineffective.type = 6199;
     ineffective.damage = 12;
