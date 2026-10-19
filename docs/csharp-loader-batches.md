@@ -77,6 +77,10 @@ Testes host:39 casos de itens/fontes, suítes de tiro/summon/receitas/projéteis
 
 **Estado:** TileLoader e WallLoader parciais; TreeLoader, TileEntityLoader e GlobalTileLoader seguem pendentes. A matriz preserva todos os206 exemplos. Faltam callbacks gerenciados arbitrários de parede e os contratos restantes dos cinco sistemas; portanto, nenhum APK/.bmod é exportado como entrega do grupo. O gate não foi afrouxado. Compilação Android e validação no telefone continuam estados separados dos testes host.
 
+### Integração CI e ciclo de vida TileLoader (19/10)
+
+O lote do Codex em `08c83e1` adicionou WallLoader parcial e elevou ExampleMod CSharp para 0.1.59; os jobs de SDK/combat falhavam por verificações de versão anteriores e foram corrigidos. O workflow Android também tentava empacotar `examplemodcsharp-0.1.58.bl`; o pipeline foi alinhado a 0.1.59 (commit `a50447f`). Os hooks de quebra do TileLoader agora preservam cada instalação bem-sucedida e permitem retentar apenas os hooks faltantes após falha parcial (`6fe269e`), evitando instalar novamente o mesmo trampoline. O cache RGB agora associa a cor ao tipo de tile e expira ao substituir por outro tipo de mod (`8260d96`). A compilação Android, os hooks gráficos e a validação em aparelho continuam pendentes; a PR permanece draft sem publicação de APK.
+
 ## Critério e gate de entrega
 
 `tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.
