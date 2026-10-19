@@ -78,6 +78,9 @@ PrefixChanceFn g_originalItemPrefix = nullptr;
 std::mutex g_chanceInstallMutex;
 std::atomic<bool> g_chanceReady{false};
 int g_chanceItemTypeOffset = -1;
+int g_chancePrefixOffset = -1;
+int g_chanceDamageOffset = -1;
+int g_chanceValueOffset = -1;
 ReforgeFn g_originalReforge = nullptr;
 InventoryTooltipFn g_originalInventoryTooltip = nullptr;
 std::atomic<bool> g_inventoryTooltipReady{false};
@@ -191,17 +194,41 @@ bool ensurePrefixTables(const std::vector<ManagedPrefixEntry>& prefixes) {
 bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
                           const MethodInfo* method) {
     if (!g_originalItemPrefix) return false;
-    if (!g_chanceReady.load(std::memory_order_acquire) || !item ||
-        g_chanceItemTypeOffset < 0 || g_restoreRoll.item == item ||
-        (want != -1 && want != -2))
-        return g_originalItemPrefix(item, want, topTier, method);
-    const auto rules = managedItemPrefixChanceView();
+    int32_t request = want;
+    if (g_chanceReady.load(std::memory_order_acquire) && item &&
+        g_chanceItemTypeOffset >= 0 && g_restoreRoll.item != item &&
+        (want == -1 || want == -2)) {
+        const auto chances = managedItemPrefixChanceView();
+        const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
+        const auto decision = chances->find(type);
+        if (decision != chances->end()) {
+            if (!decision->second) return false;
+            if (want == -1) request = -2;
+        }
+    }
+    const bool accepted = g_originalItemPrefix(item, request, topTier, method);
+    if (!accepted || !item || want == -3 ||
+        !g_chanceReady.load(std::memory_order_acquire) ||
+        g_chanceItemTypeOffset < 0 || g_chancePrefixOffset < 0 ||
+        g_chanceDamageOffset < 0 || g_chanceValueOffset < 0)
+        return accepted;
     const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
-    const auto decision = rules->find(type);
-    if (decision == rules->end())
-        return g_originalItemPrefix(item, want, topTier, method);
-    if (!decision->second) return false;
-    return g_originalItemPrefix(item, want == -1 ? -2 : want, topTier, method);
+    const auto effects = managedItemPrefixApplyView();
+    const auto policy = effects->find(type);
+    if (policy == effects->end() ||
+        bl::runtime::field<uint8_t>(item, g_chancePrefixOffset) == 0)
+        return accepted;
+    const int damage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
+    const int value = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
+    if (damage < 0 || value < 0 ||
+        damage > INT32_MAX - policy->second.damageBonus ||
+        value > INT32_MAX - policy->second.valueBonus)
+        return accepted;
+    bl::runtime::field<int32_t>(item, g_chanceDamageOffset) =
+        damage + policy->second.damageBonus;
+    bl::runtime::field<int32_t>(item, g_chanceValueOffset) =
+        value + policy->second.valueBonus;
+    return accepted;
 }
 
 Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
@@ -652,12 +679,19 @@ bool installManagedPrefixChanceHook() {
     auto* item = bl::il2cpp::findClass({"Terraria", "Item", {}});
     if (!item) return false;
     const int typeOffset = bl::il2cpp::fieldOffset(item, "type");
+    const int prefixOffset = bl::il2cpp::fieldOffset(item, "prefix");
+    const int damageOffset = bl::il2cpp::fieldOffset(item, "damage");
+    const int valueOffset = bl::il2cpp::fieldOffset(item, "value");
     const auto* method = bl::il2cpp::findMethodBySignature(
         item, bl::il2cpp::parseSignature(
             "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)"));
-    if (typeOffset < 0 || !method ||
+    if (typeOffset < 0 || prefixOffset < 0 || damageOffset < 0 ||
+        valueOffset < 0 || !method ||
         !bl::hook::install(method, hookItemPrefixChance, &g_originalItemPrefix))
         return false;
+    g_chancePrefixOffset = prefixOffset;
+    g_chanceDamageOffset = damageOffset;
+    g_chanceValueOffset = valueOffset;
     g_chanceItemTypeOffset = typeOffset;
     g_chanceReady.store(true, std::memory_order_release);
     BL_INFO("csharp prefix: PrefixChance nativo por item instalado");
