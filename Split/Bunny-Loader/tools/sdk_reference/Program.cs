@@ -53,7 +53,8 @@ string Mode(Type type, MethodInfo method)
     if (type == typeof(BunnyPrefix)) return "compile_policy";
     if (type == typeof(BunnyLocalizationModule))
         return method.Name == "OnLocalizationsLoaded" ? "worker_async_localization" : "compile_policy";
-    if (type == typeof(BunnyLocalizationRuntime)) return "worker_async_localization";
+    if (type == typeof(BunnyLocalizationRuntime))
+        return method.Name == "Register" ? "worker_callback_registration" : "worker_async_localization";
     if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes" or "NumDust") return "compile_policy";
     if (type == typeof(BunnyVisual)) return "managed_command_queue";
     return "managed_helper";
