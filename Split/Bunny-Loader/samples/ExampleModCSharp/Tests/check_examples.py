@@ -170,6 +170,8 @@ assert 'rules.Allow("ExampleWand", 3);' in prefix_example
 assert 'effects.DamageBonus = 3;' in prefix_example
 assert 'effects.ValueBonus = 40;' in prefix_example
 assert 'ExtraTooltip = "Bonus adicional do prefixo";' in prefix_example
+assert 'AddTooltipLine("Dano extra do prefixo");' in prefix_example
+assert 'AddTooltipLine("Valor adicional");' in prefix_example
 assert 'conditions.RequireDamageBetween(10, 25);' in prefix_example
 assert 'conditions.RequireManaBetween(0, 8);' in prefix_example
 item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
