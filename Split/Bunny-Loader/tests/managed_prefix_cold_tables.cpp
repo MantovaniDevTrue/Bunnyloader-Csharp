@@ -27,6 +27,7 @@ FieldInfo names{&lang, nullptr, sizeof(void*)}, chances{&sets, nullptr, 1};
 MethodInfo prefixMethod, rollableMethod, nextDoubleMethod;
 Il2CppObject localized{}, randomObject{};
 std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
+std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0;
@@ -90,7 +91,8 @@ namespace bl::runtime {
 bool isModItem(int type) { return type >= 6196; }
 int vanillaPrefixCount() { return 98; }
 std::string modPrefixKey(int type) {
-    return type == 98 ? "fixture/Guarded" : type == 99 ? "fixture/Mighty" : "";
+    return type == 98 ? "fixture/Guarded" : type == 99 ? "fixture/Mighty" :
+           type == 101 ? "fixture/Custom" : "";
 }
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old, uintptr_t size) {
     const size_t stride = strides.at(old);
@@ -109,6 +111,7 @@ bool setTableElement(FieldInfo* f, int index, Il2CppObject* value) {
 }
 namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
+std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -143,6 +146,8 @@ int main() {
     mighty.name = "Mighty"; mighty.type = 99; mighty.category = 4;
     mighty.rollWeight = 1; mighty.multipliers[0] = 1.2f;
     descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    assert(managedPrefixView() == descriptorView);
 
     // Regression: first prefix access, before ANY vanilla natural roll.
     assert(!names.value && !chances.value);
@@ -228,11 +233,76 @@ int main() {
     assert(text[0] && text[0]->chars[0] == '+' && text[0]->chars[1] == '8');
     assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 0);
 
+    mighty.itemWeights[6199] = 3;
+    mighty.itemWeights[6198] = 0;
+    descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    auto* weighted = hookRollable(&weapon.object, nullptr);
+    assert(weighted && weighted->length == 3);
+    for (uintptr_t i = 0; i < weighted->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(weighted))[i] == 99);
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.type = 6198;
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.type = 6199;
+    assert(itemRollWeight(&weapon.object, mighty) == 3);
+    assert(itemRollWeight(&accessory.object, mighty) == 1);
+    mighty.itemCanRoll[6199] = false;
+    mighty.itemCanRoll[6198] = true;
+    descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    weapon.type = 6198;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    bool reachedZeroWeight = false;
+    assert(applyManagedPrefixViaNativeRoll(&weapon.object, 99,
+                                           &prefixMethod, &reachedZeroWeight));
+    assert(reachedZeroWeight && weapon.prefix == 99);
+    weapon.prefix = 0;
+    mighty.itemCanRoll.erase(6199);
+
+    ManagedPrefixEntry custom;
+    custom.name = "Custom";
+    custom.type = 101;
+    custom.category = 6;
+    custom.rollWeight = 1;
+    custom.itemWeights[6199] = 0;
+    custom.itemCanRoll[6199] = true;
+    custom.preferredTypes.insert(6199);
+    custom.itemWeights[6198] = 0;
+    descriptors = {guarded, mighty, custom};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    weapon.prefix = 0;
+    assert(hookCanRoll(&weapon.object, 101, nullptr));
+    auto* customRollable = hookRollable(&weapon.object, nullptr);
+    assert(customRollable && customRollable->length == 3);
+    for (uintptr_t i = 0; i < customRollable->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(customRollable))[i] == 99);
+    int32_t autoChosen = -1;
+    assert(hookRoll(&weapon.object, &randomObject, &autoChosen, nullptr));
+    assert(autoChosen == 101 && nativeRolls == 0);
+    bool reachedCustom = false;
+    assert(applyManagedPrefixViaNativeRoll(&weapon.object, 101,
+                                           &prefixMethod, &reachedCustom));
+    assert(reachedCustom && weapon.prefix == 101 && nativeRolls == 0);
+    weapon.type = 6198;
+    weapon.prefix = 0;
+    assert(!hookCanRoll(&weapon.object, 101, nullptr));
+    assert(!applyManagedPrefixViaNativeRoll(&weapon.object, 101,
+                                            &prefixMethod, &reachedCustom));
+    assert(!reachedCustom && weapon.prefix == 0);
+
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
     chances.value=allocate(98,1);
     assert(ensurePrefixTables(descriptors));
-    assert(names.value->length==100 && chances.value->length==100 && constructorRuns==2);
+    assert(names.value->length==102 && chances.value->length==102 && constructorRuns==2);
     // Genuine unavailability is not turned into a fake successful restoration.
     auto saved=api.runtime_class_init;
     api.runtime_class_init=nullptr;

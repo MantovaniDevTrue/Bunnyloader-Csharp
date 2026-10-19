@@ -1530,6 +1530,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "void ConfigureRollRules(BunnyPrefixRollRules rules)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void ModifyValue(ref float valueMultiplier)",
           "execution": "compile_policy"
         },
@@ -1539,6 +1543,62 @@
         },
         {
           "signature": "void SetStats(ref PrefixStats stats)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixRollRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyPrefixRollRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Allow(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Allow(string itemName, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void PreferFor(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void PreferFor(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetCanRoll(int itemType, bool allowed)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetCanRoll(string itemName, bool allowed)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(string itemName, int weight)",
           "execution": "compile_policy"
         }
       ]

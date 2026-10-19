@@ -319,6 +319,131 @@ public struct PrefixStats
     };
 }
 
+public sealed class BunnyPrefixRollRules
+{
+    private readonly System.Collections.Generic.SortedDictionary<int, int> rules = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, int> namedRules =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<int, bool> canRoll = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, bool> namedCanRoll =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedSet<int> preferredItems = new();
+    private readonly System.Collections.Generic.SortedSet<string> namedPreferredItems =
+        new(System.StringComparer.Ordinal);
+
+    private void Reserve(bool exists)
+    {
+        if (!exists && rules.Count + namedRules.Count >= 32)
+            throw new System.InvalidOperationException("BunnyPrefix supports at most 32 item-specific rules");
+    }
+
+    public void SetWeight(int itemType, int weight)
+    {
+        if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(itemType));
+        Reserve(rules.ContainsKey(itemType));
+        rules[itemType] = weight;
+    }
+
+    public void SetWeight(string itemName, int weight)
+    {
+        if (string.IsNullOrEmpty(itemName) || itemName.Length > 64 ||
+            weight < 0 || weight > 20 ||
+            !(itemName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        foreach (char c in itemName)
+            if (!(c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        Reserve(namedRules.ContainsKey(itemName));
+        namedRules[itemName] = weight;
+    }
+
+    public void SetCanRoll(int itemType, bool allowed)
+    {
+        if (!rules.ContainsKey(itemType))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        canRoll[itemType] = allowed;
+        if (!allowed) preferredItems.Remove(itemType);
+    }
+
+    public void SetCanRoll(string itemName, bool allowed)
+    {
+        if (string.IsNullOrEmpty(itemName) || !namedRules.ContainsKey(itemName))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        namedCanRoll[itemName] = allowed;
+        if (!allowed) namedPreferredItems.Remove(itemName);
+    }
+
+    public void PreferFor(int itemType)
+    {
+        if (!rules.TryGetValue(itemType, out int weight) ||
+            !(canRoll.TryGetValue(itemType, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        preferredItems.Add(itemType);
+    }
+
+    public void PreferFor(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName) ||
+            !namedRules.TryGetValue(itemName, out int weight) ||
+            !(namedCanRoll.TryGetValue(itemName, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        namedPreferredItems.Add(itemName);
+    }
+
+    public void Deny(int itemType)
+    {
+        SetWeight(itemType, 0);
+        canRoll.Remove(itemType);
+        preferredItems.Remove(itemType);
+    }
+
+    public void Deny(string itemName)
+    {
+        SetWeight(itemName, 0);
+        namedCanRoll.Remove(itemName);
+        namedPreferredItems.Remove(itemName);
+    }
+    public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
+    public void Allow(string itemName, int weight = 1) => SetWeight(itemName, weight);
+
+    public string Serialize()
+    {
+        var fields = new System.Collections.Generic.List<string>(rules.Count + namedRules.Count);
+        foreach (var entry in rules)
+        {
+            string key = entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            bool overrideExists = canRoll.TryGetValue(entry.Key, out bool allowed);
+            if (preferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
+        foreach (var entry in namedRules)
+        {
+            string key = entry.Key + ":" +
+                entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            bool overrideExists = namedCanRoll.TryGetValue(entry.Key, out bool allowed);
+            if (namedPreferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
+        return string.Join(",", fields);
+    }
+}
+
 public abstract class BunnyPrefix
 {
     public string DisplayName { get; set; } = "";
@@ -326,6 +451,7 @@ public abstract class BunnyPrefix
     public float RollWeight { get; set; } = 1f;
 
     public abstract void SetDefaults();
+    public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
     public virtual void SetStats(ref PrefixStats stats) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }

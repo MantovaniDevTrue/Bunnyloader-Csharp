@@ -1053,7 +1053,7 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
-        } else if (fields[0] == "PREFIX" && fields.size() == 16) {
+        } else if (fields[0] == "PREFIX" && (fields.size() == 16 || fields.size() == 17)) {
             ManagedPrefixEntry record;
             record.name = fields[1];
             record.displayName = fields[15];
@@ -1074,6 +1074,73 @@ bool applyManagedSourceDefaults(
                     *error = "Multiplicador de prefixo C# invalido: " + record.name;
                     return false;
                 }
+            if (fields.size() == 17) {
+                if (fields[16].empty() || fields[16].size() > 320) {
+                    *error = "Regras de prefixo C# invalidas: " + record.name;
+                    return false;
+                }
+                size_t start = 0;
+                while (start < fields[16].size()) {
+                    const size_t comma = fields[16].find(',', start);
+                    const size_t end = comma == std::string::npos ? fields[16].size() : comma;
+                    const size_t colon = fields[16].find(':', start);
+                    const size_t secondColon = colon == std::string::npos
+                        ? std::string::npos : fields[16].find(':', colon + 1);
+                    const bool hasCanRoll = secondColon != std::string::npos && secondColon < end;
+                    const size_t thirdColon = hasCanRoll ? fields[16].find(':', secondColon + 1) : std::string::npos;
+                    const bool hasPreferred = thirdColon != std::string::npos && thirdColon < end;
+                    const size_t weightEnd = hasCanRoll ? secondColon : end;
+                    const size_t allowEnd = hasPreferred ? thirdColon : end;
+                    int allowValue = -1;
+                    int preferredValue = 0;
+                    int itemType = 0;
+                    int weight = -1;
+                    const std::string token = fields[16].substr(start, colon == std::string::npos ? 0 : colon - start);
+                    if (colon == std::string::npos || colon >= end ||
+                        !integer(fields[16].substr(colon + 1, weightEnd - colon - 1), &weight) ||
+                        weight < 0 || weight > 20 ||
+                        (hasCanRoll &&
+                         (!integer(fields[16].substr(secondColon + 1, allowEnd - secondColon - 1), &allowValue) ||
+                          (allowValue != 0 && allowValue != 1))) ||
+                        (hasPreferred &&
+                         (!integer(fields[16].substr(thirdColon + 1, end - thirdColon - 1), &preferredValue) ||
+                          preferredValue != 1 || allowValue != 1)) ||
+                        record.itemWeights.size() + record.itemNames.size() >= 32) {
+                        *error = "Regra por item invalida no prefixo C#: " + record.name;
+                        return false;
+                    }
+                    if (integer(token, &itemType)) {
+                        if (itemType < 1 || itemType > 32767 ||
+                            !record.itemWeights.emplace(itemType, weight).second) {
+                            *error = "Tipo numerico repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
+                        if (hasCanRoll) record.itemCanRoll.emplace(itemType, allowValue == 1);
+                        if (hasPreferred) record.preferredTypes.insert(itemType);
+                    } else {
+                        bool validName = !token.empty() && token.size() <= 64 &&
+                            ((token[0] >= 'A' && token[0] <= 'Z') ||
+                             (token[0] >= 'a' && token[0] <= 'z') || token[0] == '_');
+                        for (unsigned char ch : token)
+                            if (!((ch >= 'A' && ch <= 'Z') ||
+                                  (ch >= 'a' && ch <= 'z') ||
+                                  (ch >= '0' && ch <= '9') || ch == '_'))
+                                validName = false;
+                        if (!validName || !record.itemNames.emplace(token, weight).second) {
+                            *error = "Nome de item repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
+                        if (hasCanRoll) record.itemNamesCanRoll.emplace(token, allowValue == 1);
+                        if (hasPreferred) record.preferredNames.insert(token);
+                    }
+                    if (comma == std::string::npos) break;
+                    start = comma + 1;
+                    if (start == fields[16].size()) {
+                        *error = "Regra de prefixo C# com virgula final: " + record.name;
+                        return false;
+                    }
+                }
+            }
             prefixes.push_back(std::move(record));
         } else if (fields[0] == "NPC" && fields.size() == 10) {
             ManagedNpcEntry record;

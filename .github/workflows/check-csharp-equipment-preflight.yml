@@ -1,0 +1,105 @@
+name: Equipment CSharp preflight
+
+on:
+  push:
+    branches:
+      - feat/csharp-equipment-preflight-*
+    paths:
+      - Split/Bunny-Loader/tools/equipment_preflight.py
+      - Split/Bunny-Loader/tools/equipment_contract_surface.py
+      - Split/Bunny-Loader/tests/equipment_preflight_test.py
+      - Split/Bunny-Loader/tests/equipment_contract_surface_test.py
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - Split/Bunny-Loader/tests/prefix_v89/PrefixFixture/Content.cs
+      - Split/Bunny-Loader/tests/prefix_v89/Program.cs
+      - Split/Bunny-Loader/tests/prefix_v89/guard_native_bridge.py
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+      - Split/Bunny-Loader/tools/sdk_reference/Program.cs
+      - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
+      - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
+      - docs/equipment-loader-preflight.md
+      - .github/workflows/check-csharp-equipment-preflight.yml
+  pull_request:
+    paths:
+      - Split/Bunny-Loader/tools/equipment_preflight.py
+      - Split/Bunny-Loader/tests/equipment_preflight_test.py
+      - Split/Bunny-Loader/tools/equipment_contract_surface.py
+      - Split/Bunny-Loader/tests/equipment_contract_surface_test.py
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h
+      - Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
+      - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
+      - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
+      - docs/equipment-loader-preflight.md
+      - Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/**
+      - Split/Bunny-Loader/samples/ExampleMod/**
+      - Split/Bunny-Loader/samples/ExampleModCSharp/**
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+      - docs/csharp-loader-batches.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  equipment-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify equipment preflight
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
+          python3 -m unittest discover -s tests -p equipment_contract_surface_test.py -v
+          mkdir -p build/equipment-preflight
+          python3 tools/equipment_preflight.py --json --output build/equipment-preflight/sources.json
+          python3 tools/equipment_contract_surface.py --json --output build/equipment-preflight/callbacks.json
+          python3 tools/equipment_contract_surface.py --output build/equipment-preflight/callbacks.md
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Execute managed prefix policy and descriptor handoff
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+          python3 tests/prefix_v89/guard_native_bridge.py
+      - name: Compile and test native prefix snapshot path
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/equipment-headers/android"
+          printf '#pragma once\n#define ANDROID_LOG_DEBUG 3\n#define ANDROID_LOG_INFO 4\n#define ANDROID_LOG_WARN 5\n#define ANDROID_LOG_ERROR 6\n' > "$RUNNER_TEMP/equipment-headers/android/log.h"
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread \
+            -I "$RUNNER_TEMP/equipment-headers" -I app/src/main/cpp \
+            tests/prefix_v89/managed_prefix_snapshot_test.cpp \
+            -o "$RUNNER_TEMP/prefix-snapshot-test"
+          "$RUNNER_TEMP/prefix-snapshot-test"
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I "$RUNNER_TEMP/equipment-headers" -I app/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
+            -I "$RUNNER_TEMP/equipment-headers" -I app/src/main/cpp \
+            tests/managed_prefix_cold_tables.cpp -Wl,--gc-sections \
+            -o "$RUNNER_TEMP/prefix-cold-tables"
+          "$RUNNER_TEMP/prefix-cold-tables"
+          python3 tests/prefix_v89/guard_gameplay_v90.py
+          python3 tests/prefix_v89/guard_reforge_v90_2.py
+      - name: Retain equipment source and callback audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunny-csharp-equipment-audit
+          path: Split/Bunny-Loader/build/equipment-preflight/
+          retention-days: 30

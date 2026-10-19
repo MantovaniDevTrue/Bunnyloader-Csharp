@@ -882,7 +882,7 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");
-            if (category < 0 || category > 5 || !float.IsFinite(weight) ||
+            if (category < 0 || category > 6 || !float.IsFinite(weight) ||
                 weight <= 0f || weight > 20f || weight != MathF.Truncate(weight))
                 throw new InvalidOperationException("Unsupported managed prefix category or weight: " + name);
             MethodInfo setStats = type.GetMethod("SetStats",
@@ -943,6 +943,21 @@ public static class CompiledAssemblyProbe
             if (display.Length > 80 || display.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# prefix name");
             fields.Add(display);
+            MethodInfo configureRules = type.GetMethod("ConfigureRollRules",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.ConfigureRollRules");
+            Type rulesType = configureRules.GetParameters().Single().ParameterType;
+            object rules = Activator.CreateInstance(rulesType)
+                ?? throw new InvalidOperationException("BunnyPrefixRollRules unavailable");
+            configureRules.Invoke(prefix, new object[] { rules });
+            string ruleWire = (string)(rulesType.GetMethod("Serialize",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyPrefixRollRules serialization missing"));
+            if (category == 6 && string.IsNullOrEmpty(ruleWire))
+                throw new InvalidOperationException("Custom managed prefix requires explicit item rules: " + name);
+            if (ruleWire.Length > 320)
+                throw new InvalidOperationException("Managed prefix item rules too long: " + name);
+            if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
             lines.Add(string.Join("\t", fields));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)

@@ -30,6 +30,16 @@ public sealed class TestMightyPrefix : BunnyPrefix
         DisplayName = "Poderoso";
     }
 
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Allow(1, 3);
+        rules.SetCanRoll(1, false);
+        rules.Deny(2);
+        rules.SetCanRoll(2, true);
+        rules.Allow(512, 7);
+        rules.Allow("TestWand", 2);
+    }
+
     public override void SetStats(ref PrefixStats stats)
     {
         stats.DamageMultiplier *= 1.2f;
@@ -38,6 +48,24 @@ public sealed class TestMightyPrefix : BunnyPrefix
     public override void ModifyValue(ref float valueMultiplier)
     {
         valueMultiplier *= 1.05f;
+    }
+}
+
+public sealed class TestCustomPrefix : BunnyPrefix
+{
+    public override void SetDefaults()
+    {
+        Category = PrefixCategory.Custom;
+        RollWeight = 1f;
+        DisplayName = "Sob medida";
+    }
+
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Deny(1);
+        rules.Allow("TestWand", 0);
+        rules.SetCanRoll("TestWand", true);
+        rules.PreferFor("TestWand");
     }
 }
 
