@@ -26,6 +26,8 @@ inline bool valid(const Data& d) {
            d.top >= -128 && d.top <= 128 &&
            d.addFrameX >= -8192 && d.addFrameX <= 8192 &&
            d.addFrameY >= -8192 && d.addFrameY <= 8192 &&
+           d.frameX + d.addFrameX >= 0 &&
+           d.frameY + d.addFrameY >= 0 &&
            d.effects >= 0 && d.effects <= 3;
 }
 
