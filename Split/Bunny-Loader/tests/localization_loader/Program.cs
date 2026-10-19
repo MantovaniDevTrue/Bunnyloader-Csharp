@@ -305,4 +305,29 @@ Test("register-language-map-atomic-and-key-identity", () =>
     Equal("Updated", catalog.Translate("LegacyInterface.28"));
 });
 
+Test("texts-by-culture-expanded-without-mutation", () =>
+{
+    var catalog = new BunnyLocalizationCatalog("pt-BR");
+    catalog.RegisterCulture("owner", "en-US", new Dictionary<string, string>
+    {
+        ["Common.Welcome"] = "Hello {0}",
+        ["Items.Foo.Tooltip"] = "{$Common.Welcome@1}"
+    });
+    catalog.RegisterCulture("owner", "pt-BR", new Dictionary<string, string>
+    {
+        ["Common.Welcome"] = "Olá {0}",
+        ["Items.Foo.Tooltip"] = "{$Common.Welcome@1}"
+    });
+    var translations = catalog.Texts("Items.Foo.Tooltip", "owner");
+    Equal(true, translations != null);
+    Equal("Hello {1}", translations!["en-US"]);
+    Equal("Olá {1}", translations["pt-BR"]);
+    Equal(2, translations.Count);
+    Equal(true, catalog.Texts("Items.Unknown", "owner") == null);
+    Equal("Olá {1}", catalog.Translate("Items.Foo.Tooltip", "owner"));
+    translations = catalog.Texts("Mods.owner.Items.Foo.Tooltip", "owner");
+    Equal("Hello {1}", translations!["en-US"]);
+    Equal("pt-BR", catalog.ActiveCultureName);
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
