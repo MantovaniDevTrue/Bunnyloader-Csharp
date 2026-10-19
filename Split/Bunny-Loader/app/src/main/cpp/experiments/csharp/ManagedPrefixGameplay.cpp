@@ -170,6 +170,14 @@ bool itemCanRoll(Il2CppObject* item, const ManagedPrefixEntry& p) {
     return decision == p.itemCanRoll.end() ? itemRollWeight(item, p) > 0 : decision->second;
 }
 
+bool isPrefixDenied(Il2CppObject* item, int prefix) {
+    if (!item || g_refs.type < 0 || prefix <= 0) return false;
+    const auto policies = managedItemPrefixDenyView();
+    const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
+    const auto found = policies->find(itemType);
+    return found != policies->end() && found->second.contains(prefix);
+}
+
 bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
     const auto& r = g_refs;
     if (!item || !itemCanRoll(item, p)) return false;
@@ -230,6 +238,9 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         g_chanceDamageOffset >= 0 && g_chanceValueOffset >= 0;
     const int type = ready
         ? bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset) : 0;
+
+    if (ready && want > 0 && g_restoreRoll.item != item &&
+        isPrefixDenied(item, want)) return false;
 
     if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
         const auto chances = managedItemPrefixChanceView();
@@ -321,28 +332,44 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     Il2CppArray* base = g_originalRollable ? g_originalRollable(item, method) : nullptr;
     if (!g_hooksReady || !item) return base;
     const auto descriptors = managedPrefixView();
-    if (descriptors->empty() || !ensurePrefixTables(*descriptors)) return base;
+    const auto bans = managedItemPrefixDenyView();
+    const int itemType = g_refs.type >= 0 ?
+        bl::runtime::field<int32_t>(item, g_refs.type) : -1;
+    const auto ban = bans->find(itemType);
+    const std::set<int>* denied = ban == bans->end() ? nullptr : &ban->second;
+    const auto allowed = [denied](int prefix) {
+        return !denied || !denied->contains(prefix);
+    };
+    if (!descriptors->empty() && !ensurePrefixTables(*descriptors)) return base;
     const bool vanillaHasRollable = base && base->length > 0;
+    const uintptr_t oldCount = base ? base->length : 0;
+    const auto* oldValues = oldCount ?
+        static_cast<const int32_t*>(arrayData(base)) : nullptr;
+    uintptr_t retained = 0;
+    for (uintptr_t i = 0; i < oldCount; ++i)
+        if (allowed(oldValues[i])) ++retained;
     int extra = 0;
     for (const auto& p : *descriptors)
-        if (p.category != 6 && eligible(item, p, vanillaHasRollable))
+        if (p.category != 6 && allowed(p.type) &&
+            eligible(item, p, vanillaHasRollable))
             extra += itemRollWeight(item, p);
-    if (extra == 0) return base;
-    const uintptr_t old = base ? base->length : 0;
-    const uintptr_t total = old + static_cast<uintptr_t>(extra);
+    if (retained == oldCount && extra == 0) return base;
+    const uintptr_t total = retained + static_cast<uintptr_t>(extra);
+    if (total == 0) return nullptr;
     if (total > 512 || !g_refs.intClass) return base;
     Il2CppArray* out = bl::il2cpp::api().array_new(g_refs.intClass, total);
     if (!out) return base;
     auto* values = static_cast<int32_t*>(arrayData(out));
-    if (old) std::memcpy(values, arrayData(base), old * sizeof(int32_t));
-    uintptr_t index = old;
+    uintptr_t index = 0;
+    for (uintptr_t i = 0; i < oldCount; ++i)
+        if (allowed(oldValues[i])) values[index++] = oldValues[i];
     for (const auto& p : *descriptors)
-        if (p.category != 6 && eligible(item, p, vanillaHasRollable))
+        if (p.category != 6 && allowed(p.type) &&
+            eligible(item, p, vanillaHasRollable))
             for (int i = 0; i < itemRollWeight(item, p); ++i)
                 values[index++] = p.type;
     return out;
 }
-
 
 bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
               const MethodInfo* method) {
@@ -422,6 +449,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
 }
 
 bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
+    if (g_hooksReady && isPrefixDenied(item, prefix)) return false;
     if (g_hooksReady) {
         const auto list = managedPrefixView();
         if (const auto* p = byType(*list, prefix))
