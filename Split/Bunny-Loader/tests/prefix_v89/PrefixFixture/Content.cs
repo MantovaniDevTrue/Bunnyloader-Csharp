@@ -20,6 +20,12 @@ public sealed class TestWand : BunnyWeapon
         Shoot = nameof(TestBolt);
         PrefixChance = false;
     }
+
+    public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = 4;
+        effects.ValueBonus = 125;
+    }
 }
 
 public sealed class TestMightyPrefix : BunnyPrefix
