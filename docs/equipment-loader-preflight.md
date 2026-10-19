@@ -24,7 +24,7 @@ python3 tools/equipment_preflight.py --json --output /tmp/equipment-preflight.js
 python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
 ```
 
-O verificador lê `docs/csharp-loader-batches.json`, os cinco sistemas do grupo 2, todos os módulos JS atribuídos no plano, os sete exemplos originais, as sete fontes C# correspondentes e a referência pública compilada do SDK. Registra SHA-256 de cada fonte e confirma que os símbolos indicados existem nos exemplos JS. Não altera nem reescreve nenhum desses arquivos. Uma fonte ausente causa falha explícita.
+O verificador lê `docs/csharp-loader-batches.json`, os cinco sistemas do grupo 2, todos os módulos JS atribuídos no plano, os oito arquivos dos exemplos originais, as oito fontes C# correspondentes e a referência pública compilada do SDK. Registra SHA-256 de cada fonte e confirma que os símbolos indicados existem nos exemplos JS. Não altera nem reescreve nenhum desses arquivos. Uma fonte ausente causa falha explícita.
 
 **Limite importante:** localizar um nome de método em JS, uma classe em C# ou um arquivo na pasta não comprova equivalência funcional. A auditoria semântica hook a hook, os testes nativos com QuickJS desabilitado, os testes do exemplo e a validação Android ainda são obrigatórios antes de chamar qualquer um dos cinco loaders de completo.
 
