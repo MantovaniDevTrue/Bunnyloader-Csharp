@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeTileGameplay.h"
 #include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
@@ -862,10 +863,11 @@ void run() {
         }
         if (defaultsApplied) {
             bindNativeRecipeAssembly(mod.id,assembly);
+            bindNativeTileAssembly(mod.id,assembly);
             if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id))&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
