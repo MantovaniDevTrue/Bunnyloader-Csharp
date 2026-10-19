@@ -1557,11 +1557,23 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "void Allow(string itemName, int weight)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void Deny(int itemType)",
           "execution": "compile_policy"
         },
         {
+          "signature": "void Deny(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void SetWeight(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(string itemName, int weight)",
           "execution": "compile_policy"
         }
       ]
