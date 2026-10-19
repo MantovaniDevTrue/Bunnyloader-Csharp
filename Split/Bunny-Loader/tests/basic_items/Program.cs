@@ -451,7 +451,7 @@ try {
   Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
-  Equal(20,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal(21,tile.Length);Equal("1",tile[20]); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);
