@@ -143,6 +143,28 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('ExtraTooltip = "Bonus adicional do prefixo";', playable)
 
 
+    def test_item_owned_native_prefix_denial_contract(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        typed = {entry["name"]: entry for entry in sdk["types"]}
+        for name in ("BunnyItem", "BunnyWeapon", "BunnyAccessory", "BunnyBuffPotion"):
+            signatures = {method["signature"] for method in
+                          typed["BunnyLoader.Source." + name]["methods"]}
+            self.assertIn("void ConfigurePrefixRules(BunnyItemPrefixRules rules)", signatures)
+        self.assertIn("BunnyLoader.Source.BunnyItemPrefixRules", typed)
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        parser = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        hooks = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn('"PREFIX_DENY"', compiler)
+        self.assertIn('fields[0] == "PREFIX_DENY"', parser)
+        self.assertIn("applyManagedItemPrefixDenials(modId, prefixDenials)", parser)
+        self.assertIn("std::atomic_store_explicit(&g_itemDenyView", bridge)
+        self.assertIn("bool isPrefixDenied(Il2CppObject* item, int prefix)", hooks)
+        self.assertIn("g_restoreRoll.item != item", hooks)
+        self.assertIn("const std::set<int>* denied =", hooks)
+        fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
+        self.assertIn('rules.Deny("TestMightyPrefix");', fixture)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
