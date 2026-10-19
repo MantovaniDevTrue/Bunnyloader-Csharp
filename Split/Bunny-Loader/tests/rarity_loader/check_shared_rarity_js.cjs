@@ -11,6 +11,7 @@ const reserved = [];
 const context = {
     Ready: { Add() {} },
     Hooks: { Once() {} },
+    TooltipLoader: { Install() {} },
     bl: { csharp: { reserveRarityId() {
         const id = nextId++;
         reserved.push(id);
@@ -43,7 +44,7 @@ assert.equal(loader.GetRarity(14), second);
 context.bl.csharp.reserveRarityId = () => 4108;
 assert.throws(() => loader.Add({}), /invalid shared rarity ID/);
 
-const old = { Ready: { Add() {} }, Hooks: { Once() {} } };
+const old = { Ready: { Add() {} }, Hooks: { Once() {} }, TooltipLoader: { Install() {} } };
 old.globalThis = old;
 vm.runInNewContext(source + '\nglobalThis.sharedRarityLoader = RarityLoader;', old);
 const legacy = old.sharedRarityLoader;
