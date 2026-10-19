@@ -175,6 +175,30 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('rules.Deny(nameof(ExampleGuardedPrefix));', playable)
         self.assertIn("rules.Deny(71);", playable)
 
+    def test_prefix_runtime_item_state_conditions_from_csharp_to_native(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        typed = {entry["name"]: entry for entry in sdk["types"]}
+        prefix_methods = {method["signature"] for method in
+                          typed["BunnyLoader.Source.BunnyPrefix"]["methods"]}
+        self.assertIn("void ConfigureItemConditions(BunnyPrefixItemConditions conditions)", prefix_methods)
+        condition_methods = {method["signature"] for method in
+                             typed["BunnyLoader.Source.BunnyPrefixItemConditions"]["methods"]}
+        self.assertIn("void RequireDamageBetween(int minimum, int maximum)", condition_methods)
+        self.assertIn("void RequireManaBetween(int minimum, int maximum)", condition_methods)
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        parser = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
+        self.assertIn('"PREFIX_CONDITION"', compiler)
+        self.assertIn('fields[0] == "PREFIX_CONDITION"', parser)
+        self.assertIn("prefixItemConditions.erase(condition)", parser)
+        self.assertIn("p.maxItemMana > 10000", bridge)
+        self.assertIn("if (damage < p.minItemDamage || damage > p.maxItemDamage)", gameplay)
+        self.assertIn("if (mana < p.minItemMana || mana > p.maxItemMana)", gameplay)
+        self.assertIn("conditions.RequireDamageBetween(10, 25);", fixture)
+        self.assertIn("conditions.RequireManaBetween(0, 8);", fixture)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
