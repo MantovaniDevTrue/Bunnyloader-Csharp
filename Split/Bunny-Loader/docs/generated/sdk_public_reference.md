@@ -575,10 +575,10 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
-| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
-| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -609,6 +609,20 @@ string NativeArmorDefinition { get; }
 | `void SetWingStats(int flyTime, float flySpeed, float acceleration, float ascentWhenFalling, float ascentWhenRising, float maxCanAscendMultiplier, float maxAscentMultiplier, float constantAscend)` | managed_helper |
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
+
+## BunnyLoader.Source.BunnyItemPrefixRules
+
+class; base: `System.Object`.
+
+```csharp
+BunnyItemPrefixRules()
+```
+
+| Method | Execution |
+| --- | --- |
+| `string Serialize()` | compile_policy |
+| `void Deny(int prefixType)` | compile_policy |
+| `void Deny(string ownModPrefixName)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
@@ -845,20 +859,6 @@ abstract class; base: `System.Object`.
 | `static int Register(string modId, string assemblyPath)` | managed_helper |
 | `static string GetHookSnapshot()` | managed_helper |
 | `static string GetLastError(int slot)` | managed_helper |
-
-## BunnyLoader.Source.BunnyItemPrefixRules
-
-class; base: `System.Object`.
-
-```csharp
-BunnyItemPrefixRules()
-```
-
-| Method | Execution |
-| --- | --- |
-| `void Deny(int prefixType)` | compile_policy |
-| `void Deny(string ownModPrefixName)` | compile_policy |
-| `string Serialize()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyPrefix
 
