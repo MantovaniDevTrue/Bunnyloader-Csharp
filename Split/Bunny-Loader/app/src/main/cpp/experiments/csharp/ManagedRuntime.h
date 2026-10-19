@@ -12,6 +12,13 @@ namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
 bool managedRecipeRuntimeReady();
+bool invokeManagedTile(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
+bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y);
+bool queueManagedTileWarmup(const std::string& mod,const std::string& assembly,const std::string& owner);
+int managedTileWarmupState(const std::string& mod,const std::string& assembly,
+    const std::string& owner,std::string* error);
 // Shares the bounded worker transport, with its own dispatcher and prewarmed content instances.
 bool queueManagedShootWarmup(const std::string& mod,const std::string& assembly,const std::string& owner);
 int managedShootWarmupState(const std::string& mod,const std::string& assembly,const std::string& owner,std::string* error);
