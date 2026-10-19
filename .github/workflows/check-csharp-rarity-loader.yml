@@ -44,10 +44,13 @@ jobs:
       - name: Compile rarity native host integration and lifecycle regressions
         run: |
           cd Split/Bunny-Loader
+          JAVA_INCLUDES="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
             -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
             app/src/main/cpp/experiments/csharp/SourceLoader.cpp
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
             -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
             app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
           python3 tests/run_managed_lifecycle_regressions.py
