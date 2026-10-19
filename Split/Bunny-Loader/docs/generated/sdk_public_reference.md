@@ -1154,6 +1154,8 @@ string Texture { get; set; }
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
 | `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+| `void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
+| `void SpecialDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
 | `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
 | `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
@@ -1172,6 +1174,7 @@ int Count { get; }
 | `void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void RequestSpecialDraw()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileFlags
 

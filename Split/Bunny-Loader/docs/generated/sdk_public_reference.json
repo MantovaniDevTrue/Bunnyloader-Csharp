@@ -2097,6 +2097,14 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void RandomUpdate(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2134,6 +2142,10 @@
         },
         {
           "signature": "void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RequestSpecialDraw()",
           "execution": "managed_helper"
         }
       ]

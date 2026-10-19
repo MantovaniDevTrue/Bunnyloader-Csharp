@@ -55,8 +55,10 @@ void postDraw(Il2CppObject* renderer,bool solidLayer,bool forRenderTargets,
     if(!pending.take(frame,&sprites,&count)) {
         endNativeTileBatch(batch,started);return;
     }
-    for(size_t i=0;i<count;++i)
-        drawNativeTileSprite(batch,sprites[i],screen.x,screen.y);
+    for(int phase=0;phase<=1;++phase)
+        for(size_t i=0;i<count;++i)
+            if(sprites[i].phase==phase)
+                drawNativeTileSprite(batch,sprites[i],screen.x,screen.y);
     endNativeTileBatch(batch,started);
 }
 }

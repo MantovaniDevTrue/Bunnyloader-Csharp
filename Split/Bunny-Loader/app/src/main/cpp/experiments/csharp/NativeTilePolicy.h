@@ -2,8 +2,8 @@
 #include <cstdint>
 
 namespace bl::csharp::tile_policy {
-inline constexpr int kSupportedManagedCallbacks = (1<<17)-1;
-inline constexpr int kManagedDrawCallbacks = (7<<13)|(1<<5)|(1<<16);
+inline constexpr int kSupportedManagedCallbacks = (1<<19)-1;
+inline constexpr int kManagedDrawCallbacks = (7<<13)|(1<<5)|(7<<16);
 inline bool validCallbackMask(int mask) { return mask >= 0 && (mask & ~kSupportedManagedCallbacks) == 0; }
 
 

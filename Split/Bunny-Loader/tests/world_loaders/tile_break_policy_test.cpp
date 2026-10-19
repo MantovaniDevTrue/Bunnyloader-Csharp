@@ -11,7 +11,9 @@ int main() {
     assert(validCallbackMask(1<<15));
     assert(validCallbackMask(1<<16));
     assert(validCallbackMask((1<<16)|(1<<5)));
-    assert(!validCallbackMask(1<<17));
+    assert(validCallbackMask(1<<17));
+    assert(validCallbackMask(1<<18));
+    assert(!validCallbackMask(1<<19));
     assert(validCallbackMask((1<<13)|(1<<14)|(1<<15)));
     assert(validCallbackMask(1<<5));
     assert(validCallbackMask(1<<6));

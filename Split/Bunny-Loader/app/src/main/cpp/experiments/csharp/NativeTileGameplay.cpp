@@ -1100,7 +1100,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if((spec.callbackMask & tile_policy::kManagedDrawCallbacks) != 0) {
-        if((spec.callbackMask & ((1 << 5) | (1 << 16))) != 0) {
+        if((spec.callbackMask & ((1 << 5) | (7 << 16))) != 0) {
             std::string drawingError;
             if(!tile_sprite::installNativeTileSpritePass(&drawingError))
                 BL_WARN("[CSharp][TileDraw] Stage=BindSpritePass Mod=%s Class=%s Result=DefaultFallback Detail=%s",

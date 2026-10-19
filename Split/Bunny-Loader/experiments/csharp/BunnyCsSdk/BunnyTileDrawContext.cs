@@ -10,15 +10,17 @@ public sealed class BunnyTileDrawContext {
     private int y;
     private readonly Sprite[] sprites = new Sprite[8];
     private int count;
+    private bool specialRequested;
+    private bool specialPhase;
 
     private readonly struct Sprite {
         public readonly int FrameX, FrameY, Width, Height, OffsetX, OffsetY, Effects;
         public readonly uint Color;
-        public readonly int Layer;
+        public readonly int Layer, Phase;
         public Sprite(int frameX, int frameY, int width, int height, int offsetX,
-                      int offsetY, uint color, int effects,int layer) {
+                      int offsetY, uint color, int effects,int layer,int phase) {
             FrameX=frameX; FrameY=frameY; Width=width; Height=height;
-            OffsetX=offsetX; OffsetY=offsetY; Color=color; Effects=effects; Layer=layer;
+            OffsetX=offsetX; OffsetY=offsetY; Color=color; Effects=effects; Layer=layer; Phase=phase;
         }
     }
 
@@ -31,9 +33,15 @@ public sealed class BunnyTileDrawContext {
            cellX > 100000 || cellY > 100000)
             throw new ArgumentOutOfRangeException(nameof(tileType));
         type=tileType; x=cellX; y=cellY; count=0;
+        specialRequested=false; specialPhase=false;
     }
 
     public int Count => count;
+
+    public void RequestSpecialDraw() => specialRequested=true;
+
+    internal bool SpecialRequested => specialRequested;
+    internal void BeginSpecialDraw() => specialPhase=true;
 
     public void DrawTileTexture(int frameX,int frameY,int width,int height,
                                 int offsetX=0,int offsetY=0,uint argb=0xffffffffu,int effects=0)
@@ -56,7 +64,7 @@ public sealed class BunnyTileDrawContext {
            offsetX < -256||offsetX>256||offsetY < -256||offsetY>256||
            effects<0||effects>3)
             throw new ArgumentOutOfRangeException(nameof(frameX));
-        sprites[count++]=new Sprite(frameX,frameY,width,height,offsetX,offsetY,argb,effects,layer);
+        sprites[count++]=new Sprite(frameX,frameY,width,height,offsetX,offsetY,argb,effects,layer,specialPhase?1:0);
     }
 
     internal string Encode() {
@@ -70,7 +78,8 @@ public sealed class BunnyTileDrawContext {
                 .Append(',').Append(s.OffsetX).Append(',').Append(s.OffsetY)
                 .Append(',').Append(s.Color.ToString(CultureInfo.InvariantCulture))
                 .Append(',').Append(s.Effects);
-            if(s.Layer!=0)result.Append(',').Append(s.Layer);
+            if(s.Layer!=0 || s.Phase!=0)result.Append(',').Append(s.Layer);
+            if(s.Phase!=0)result.Append(',').Append(s.Phase);
         }
         return result.ToString();
     }

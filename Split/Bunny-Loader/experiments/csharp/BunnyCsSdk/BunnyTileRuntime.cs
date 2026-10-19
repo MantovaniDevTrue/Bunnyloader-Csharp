@@ -26,7 +26,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.MouseOverFar), nameof(BunnyTile.NearbyEffects),
         nameof(BunnyTile.AnimateTile), nameof(BunnyTile.SetDrawPositions),
         nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects),
-        nameof(BunnyTile.PostDraw)
+        nameof(BunnyTile.PostDraw), nameof(BunnyTile.DrawEffects),
+        nameof(BunnyTile.SpecialDraw)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -60,7 +61,7 @@ public static class BunnyTileRuntime {
             }
             if (kind == 2) return "READY";
             if (index == 13) {
-                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (1 << 16))) == 0) return "DEFAULT";
+                if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (7 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
@@ -81,6 +82,7 @@ public static class BunnyTileRuntime {
                 int effects = int.Parse(fields[9], NumberStyles.Integer, CultureInfo.InvariantCulture);
                 if (fields[10] != "0" && fields[10] != "1")
                     return "ERROR|Stage=DecodeTileDraw Reason=InvalidSpecialPass";
+                int sourceFrameX = frameX, sourceFrameY = frameY;
                 int tileType = fields.Length == 12
                     ? int.Parse(fields[11], NumberStyles.Integer, CultureInfo.InvariantCulture) : -1;
                 if (tileType != -1 && (tileType < 754 || tileType > 65535))
@@ -99,18 +101,25 @@ public static class BunnyTileRuntime {
                 bool drawDefault = true;
                 bool hasPreDraw = (mod.Masks[owner] & (1 << 5)) != 0 && fields[10] == "0";
                 bool hasPostDraw = (mod.Masks[owner] & (1 << 16)) != 0 && fields[10] == "0";
+                bool hasDrawEffects = (mod.Masks[owner] & (1 << 17)) != 0 && fields[10] == "0";
+                bool hasSpecialDraw = (mod.Masks[owner] & (1 << 18)) != 0 && fields[10] == "0";
                 BunnyTileDrawContext? context = null;
-                if (hasPreDraw || hasPostDraw) {
+                if (hasPreDraw || hasPostDraw || hasDrawEffects || hasSpecialDraw) {
                     if (tileType >= 754) {
                         if (!mod.DrawContexts.TryGetValue(owner, out context)) {
                             context = new BunnyTileDrawContext(tileType, x, y);
                             mod.DrawContexts.Add(owner, context);
                         } else context.Reset(tileType, x, y);
                         if (hasPreDraw) drawDefault = tile.PreDraw(x, y, context);
+                        if (hasDrawEffects) tile.DrawEffects(x, y, sourceFrameX, sourceFrameY, context);
                         if (hasPostDraw) tile.PostDraw(x, y, context);
+                        if (hasSpecialDraw && context.SpecialRequested) {
+                            context.BeginSpecialDraw();
+                            tile.SpecialDraw(x, y, context);
+                        }
                     } else {
-                        if (hasPostDraw)
-                            return "ERROR|Stage=DecodeTileDraw Reason=PostDrawRequiresTileType";
+                        if (hasPostDraw || hasDrawEffects || hasSpecialDraw)
+                            return "ERROR|Stage=DecodeTileDraw Reason=VisualCallbacksRequireTileType";
                         if (hasPreDraw) drawDefault = tile.PreDraw(x, y);
                     }
                 }

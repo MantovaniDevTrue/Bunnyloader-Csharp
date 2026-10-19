@@ -765,6 +765,24 @@ public sealed class MinionStaff : BunnyWeapon
         "3,4,0,0,16,16,0,0,0,0,0,754");
     if(overlayWire!="DRAW|0|0|16|16|0|0|0|0\nSPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
         throw new InvalidOperationException("Tile glow/flame source wire mismatch: "+overlayWire);
+    string effects=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(effects!="DRAW|0|0|16|16|0|0|0|0\nSPRITES|2|754,3,4,0,0,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,4294967295,1,2,1")
+        throw new InvalidOperationException("DrawEffects special pass incorrect: "+effects);
+    if((new TileEffectsSmoke().TileCallbackMask&((1<<17)|(1<<18)))!=((1<<17)|(1<<18)))
+        throw new InvalidOperationException("DrawEffects/SpecialDraw override mask missing");
+    string inactive=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,18,0,16,16,0,0,0,0,0,754");
+    if(inactive!="DRAW|18|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("SpecialDraw executed without request: "+inactive);
+    string noSpecial=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,1,754");
+    if(noSpecial!="DRAW|0|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("SpecialDraw invoked in special pass: "+noSpecial);
+    Console.WriteLine("BUNNY_CSHARP_TILE_DRAW_EFFECTS_SPECIAL=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_SPRITE_CONTEXT=PASS");
@@ -841,5 +859,21 @@ sealed class TileOverlaySmoke : BunnyLoader.Source.BunnyTile
         draw.DrawTileTexture(0,0,16,16);
         draw.DrawGlowTexture(0,56,16,16);
         draw.DrawFlameTexture(0,36,16,16,0,2,0x00ffffffu);
+    }
+}
+
+sealed class TileEffectsSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void DrawEffects(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameX!=0)return;
+        draw.DrawGlowTexture(0,0,16,16);
+        draw.RequestSpecialDraw();
+    }
+    public override void SpecialDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawFlameTexture(0,36,16,16,0,2,0xffffffffu,1);
     }
 }
