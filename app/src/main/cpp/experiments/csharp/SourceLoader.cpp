@@ -460,11 +460,29 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     for (const auto& def : defs) {
         if (def.base != "BunnyPlayer") continue;
         const auto link = def.properties.find("Accessory");
-        if (link == def.properties.end()) {
-            if (!def.properties.empty()) {
-                status->error = def.name + ": BunnyPlayer global deve ter SetDefaults vazio";
-                return false;
+        bool validFishing = true;
+        bool hasFishingName = false;
+        bool hasFishingRules = false;
+        for(const auto& [property,value]:def.properties) {
+            if(property=="Accessory")continue;
+            if(property=="FishingQuestFishName") {
+                hasFishingName=!value.empty();
+                continue;
             }
+            if(property=="FishingCatchRules") {
+                hasFishingRules=true;
+                validFishing=validFishing &&
+                    (value=="None"||value=="InvertedGravity"||
+                     value=="Uncommon"||value=="InvertedGravityAndUncommon");
+                continue;
+            }
+            validFishing=false;
+        }
+        if(!validFishing||(hasFishingRules&&!hasFishingName)) {
+            status->error=def.name+": propriedades BunnyPlayer nao suportadas para pesca";
+            return false;
+        }
+        if (link == def.properties.end()) {
         } else {
             bool valid = false;
             for (const auto& other : defs)
@@ -472,7 +490,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     typed.contains(sourceIdentityForBase("BunnyAccessory", link->second)) &&
                     typed[sourceIdentityForBase("BunnyAccessory", link->second)] >= 0)
                     valid = true;
-            if (!valid || def.properties.size() != 1) {
+            if (!valid) {
                 status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
                 return false;
             }
