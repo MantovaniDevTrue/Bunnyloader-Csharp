@@ -19,7 +19,7 @@ int main() {
     assert(parse("SPRITES|1|755,12,34,0,16,16,16,2,-3,4294967295,3",&batch));
     assert(batch.sprites[0].effects==3);
     assert(parse("SPRITES|1|755,12,34,0,16,16,16,2,-3,4294967295",&batch));
-    assert(batch.sprites[0].effects==0);
+    assert(batch.sprites[0].effects==0 && batch.sprites[0].textureLayer==0);
     const std::string sprite="755,12,34,0,0,16,16,0,0,4294967295";
     std::string eight="SPRITES|8";
     for(int i=0;i<8;++i)eight+="|"+sprite;

@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeTileSpritePassQueue.h"
 #include "experiments/csharp/NativeTileSpriteBatch.h"
 #include "experiments/csharp/NativeTileSpriteBatchLifecycle.h"
+#include "content/tiles/ModTiles.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/FieldContract.h"
@@ -117,6 +118,11 @@ bool stageNativeTileSprites(uint64_t frame,const Batch& batch) {
 
 bool stageNativeTileSpritesForCurrentFrame(const Batch& batch) {
     if(!ready || !frameField)return false;
+    for(size_t i=0;i<batch.count;++i) {
+        const auto& s=batch.sprites[i];
+        if(s.textureLayer!=0&&!runtime::modTileOverlayAvailable(s.type,s.textureLayer,
+                s.frameX,s.frameY,s.width,s.height))return false;
+    }
     uint64_t frame=0;
     il2cpp::api().field_static_get_value(frameField,&frame);
     return frame!=0 && pending.stage(frame,batch);

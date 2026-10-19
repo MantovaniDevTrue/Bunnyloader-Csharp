@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTileSpriteBatch.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "content/common/ContentAssets.h"
+#include "content/tiles/ModTiles.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/ValueLayout.h"
@@ -141,10 +142,13 @@ bool drawNativeTileSprite(Il2CppObject* batch,const Sprite& command,
         screenX > 2000000.f || screenY > 2000000.f) return false;
     auto& a = api();
     if (!nativeSpriteBatchIsOpen(batch)) return false;
-    Il2CppArray* tiles=nullptr;
-    a.field_static_get_value(g.tileAssets,&tiles);
-    if (!tiles || static_cast<uintptr_t>(command.type)>=tiles->length) return false;
-    auto* asset=static_cast<Il2CppObject**>(arrayData(tiles))[command.type];
+    Il2CppObject* asset=nullptr;
+    if(command.textureLayer==0) {
+        Il2CppArray* tiles=nullptr;
+        a.field_static_get_value(g.tileAssets,&tiles);
+        if (!tiles || static_cast<uintptr_t>(command.type)>=tiles->length) return false;
+        asset=static_cast<Il2CppObject**>(arrayData(tiles))[command.type];
+    } else asset=runtime::modTileOverlayAsset(command.type,command.textureLayer);
     auto* texture=asset?runtime::content::textureAssetValue(asset):nullptr;
     if (!texture) return false;
     Vec pos{static_cast<float>(command.x*16 + command.offsetX)-std::floor(screenX),

@@ -1169,6 +1169,8 @@ int Count { get; }
 
 | Method | Execution |
 | --- | --- |
+| `void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileFlags

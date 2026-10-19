@@ -1119,6 +1119,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         }
     }
     g_tiles[spec.type] = behavior;
+    if(spec.callbackMask&((1<<5)|(1<<16)))
+        runtime::requestModTileOverlays(spec.type);
     if((spec.callbackMask & tile_policy::kManagedDrawCallbacks) != 0 && !behavior.spec.assembly.empty()) {
         g_managedDrawBindings.publish(spec.type,behavior);
         g_managedDrawUncached[spec.type].store(!spec.cacheDrawData,std::memory_order_release);

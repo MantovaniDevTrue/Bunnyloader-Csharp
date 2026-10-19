@@ -2125,6 +2125,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
           "execution": "managed_helper"
         }
