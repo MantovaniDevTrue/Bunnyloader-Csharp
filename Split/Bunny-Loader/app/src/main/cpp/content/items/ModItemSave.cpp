@@ -265,26 +265,29 @@ std::vector<SavedItem> readFile(const std::string& path) {
 }
 
 /** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
-void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
+bool writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     if (!item_save::canReplaceExisting(path)) {
         BL_ERROR("save de itens de mod: arquivo existente invalido ou inacessivel em %s; gravacao cancelada",
             path.c_str());
-        return;
+        return false;
     }
     if (items.empty()) {
-        std::remove(path.c_str());
-        return;
+        std::error_code error;
+        std::filesystem::remove(path, error);
+        if (error)
+            BL_ERROR("save de itens de mod: nao consegui remover %s", path.c_str());
+        return !error;
     }
     if (!item_save::preserveLegacyBeforeRaritySave(path, items)) {
         BL_ERROR("save de raridade: backup v1/v2 falhou em %s; gravacao v3 abortada",
             path.c_str());
-        return;
+        return false;
     }
     const std::string tmp = path + ".tmp";
     std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
     if (!f) {
         BL_ERROR("save de itens de mod: nao consegui escrever %s", tmp.c_str());
-        return;
+        return false;
     }
     const bool encoded = item_save::write(f, items);
     f.flush();
@@ -293,7 +296,9 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
         BL_ERROR("save de itens de mod: falha ao gravar %s", path.c_str());
         std::remove(tmp.c_str());
+        return false;
     }
+    return true;
 }
 
 /** Caminho do .plr, ou "" para personagem na nuvem (nao ha arquivo local ao lado). */
@@ -501,14 +506,14 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             }
         }
     }
-    writeFile(path + kSuffix, items);
+    const bool sidecarSaved = writeFile(path + kSuffix, items);
     bool hasRarityPending = false;
     {
         std::lock_guard<std::mutex> guard(g_mx);
         hasRarityPending = g_pendingRarity.find(path) != g_pendingRarity.end() ||
             g_pendingRarityByItem.find(path) != g_pendingRarityByItem.end();
     }
-    if (hasRarityPending) {
+    if (sidecarSaved && hasRarityPending) {
         std::vector<item_save::LiveRarityItem<Il2CppObject*>> liveRarityItems;
         for (const Container& container : containersOf(player)) {
             for (int slot = 0; slot < container.size(); ++slot) {
