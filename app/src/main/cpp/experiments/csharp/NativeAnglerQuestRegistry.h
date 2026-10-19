@@ -34,9 +34,30 @@ inline bool validKey(const std::string& key) {
 
 inline bool validText(const std::string& text) {
     if (text.size() > 512) return false;
-    return std::none_of(text.begin(), text.end(), [](unsigned char c) {
-        return c == 0 || c == '\r' || c == '\t' || c == 127;
-    });
+    for (size_t i = 0; i < text.size();) {
+        const auto c = static_cast<unsigned char>(text[i]);
+        if (c == 0 || c == '\r' || c == '\t' || c == 127) return false;
+        if (c < 0x80) { ++i; continue; }
+        unsigned length = 0;
+        uint32_t codepoint = 0;
+        if (c >= 0xC2 && c <= 0xDF) { length = 2; codepoint = c & 0x1F; }
+        else if (c >= 0xE0 && c <= 0xEF) { length = 3; codepoint = c & 0x0F; }
+        else if (c >= 0xF0 && c <= 0xF4) { length = 4; codepoint = c & 0x07; }
+        else return false;
+        if (length > text.size() - i) return false;
+        for (unsigned k = 1; k < length; ++k) {
+            auto tail = static_cast<unsigned char>(text[i + k]);
+            if ((tail & 0xC0) != 0x80) return false;
+            codepoint = (codepoint << 6) | (tail & 0x3F);
+        }
+        if ((length == 2 && codepoint < 0x80) ||
+            (length == 3 && codepoint < 0x800) ||
+            (length == 4 && codepoint < 0x10000) ||
+            (codepoint >= 0xD800 && codepoint <= 0xDFFF) ||
+            codepoint > 0x10FFFF) return false;
+        i += length;
+    }
+    return true;
 }
 
 class Registry {
@@ -47,7 +68,7 @@ public:
         std::unordered_set<int> stagedTypes;
         std::unordered_set<std::string> stagedNames;
         for (const auto& quest : quests) {
-            if (quest.mod != mod || !validKey(quest.name) || quest.type < 0 ||
+            if (quest.mod != mod || !validKey(quest.name) || quest.type < 0 || quest.type >= 65536 ||
                 (!quest.preHardmode && !quest.hardmode) ||
                 (quest.catchRules & ~3) != 0 ||
                 !validText(quest.description) || !validText(quest.location))
