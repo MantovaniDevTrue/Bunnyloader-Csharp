@@ -978,6 +978,14 @@ public static class CompiledAssemblyProbe
             if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
                 Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));
         }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            object? chance = item.GetType().GetProperty("PrefixChance",
+                BindingFlags.Public | BindingFlags.Instance)?.GetValue(item);
+            if (chance is bool allow)
+                lines.Add(string.Join("\t", "PREFIX_CHANCE", item.GetType().Name,
+                    allow ? "1" : "0"));
+        }
         // A single public typed bridge serves all item families and projectiles.
         foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)
             .Select(value=>(Value:value,Kind:"NATIVE_ITEM"))
