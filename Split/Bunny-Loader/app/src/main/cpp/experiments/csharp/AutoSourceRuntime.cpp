@@ -748,7 +748,13 @@ void run() {
     bool runtimeChecked=false;
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
-    for (const auto& mod : sourceModStatuses()) {
+    const auto loadedMods=sourceModStatuses();
+    std::set<std::string> activeLocales;
+    for (const auto& mod : loadedMods)
+        if (mod.loaded && mod.sourceFiles && mod.id != kFixtureId && safeId(mod.id))
+            activeLocales.insert(mod.id);
+    localization::retainActiveMods(activeLocales);
+    for (const auto& mod : loadedMods) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
