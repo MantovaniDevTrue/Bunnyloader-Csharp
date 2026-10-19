@@ -202,6 +202,16 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("conditions.RequireDamageBetween(10, 25);", example)
         self.assertIn("conditions.RequireManaBetween(0, 8);", example)
 
+    def test_saved_prefix_ignores_new_roll_predicates(self):
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        cold = (ROOT / "tests/managed_prefix_cold_tables.cpp").read_text(encoding="utf-8")
+        self.assertIn("g_restoreRoll.item == item && g_restoreRoll.prefix == prefix", gameplay)
+        self.assertIn("if (ensurePrefixTables(*descriptors))", gameplay)
+        self.assertIn("if (!requested || !ensurePrefixTables(*descriptors))", gameplay)
+        self.assertIn("if (!found || found->category != 5) return;", gameplay)
+        self.assertIn("restoredDespiteNewConditions", cold)
+        self.assertIn("assert(player.defense == 14);", cold)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
