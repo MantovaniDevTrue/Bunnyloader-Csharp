@@ -7,7 +7,7 @@ Preparei uma cópia **completa** do Bunny Loader original com o suporte C# já i
 No terminal com Git e Python 3 instalados:
 
 ~~~bash
-git clone --branch entrega/potato-bunny-original-com-csharp-20261018 --single-branch \
+git clone --branch v1.0 --single-branch \
   https://github.com/MantovaniDevTrue/Bunnyloader-Csharp.git bunny-csharp-entrega
 
 git clone https://github.com/JonataOliveiraa/Bunny-Loader.git bunny-original
