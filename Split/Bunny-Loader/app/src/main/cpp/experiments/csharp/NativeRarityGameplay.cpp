@@ -56,6 +56,7 @@ using RarityInitFn = void (*)(const MethodInfo*);
 RarityInitFn g_originalRarityInitialize = nullptr;
 std::atomic<bool> g_tableHookReady{false};
 std::array<bool, NativeRarityPalette::kMaximumCustom> g_tableOwned{};
+Il2CppObject* g_lastRarityTable = nullptr;
 
 bool parameterIs(Il2CppClass* cls, const MethodInfo* method, uint32_t index,
     const char* ns, const char* name) {
@@ -138,6 +139,10 @@ bool writeRarityTable(int type, uint32_t argb) {
     Il2CppObject* table = nullptr;
     a.field_static_get_value(g_table.field, &table);
     if (!table) return false;
+    if (table != g_lastRarityTable) {
+        g_tableOwned.fill(false);
+        g_lastRarityTable = table;
+    }
     const int slot = type - NativeRarityPalette::kFirstCustom;
     int32_t key = type;
     void* hasArgs[] = {&key};
@@ -158,6 +163,7 @@ bool writeRarityTable(int type, uint32_t argb) {
 
 void initializeRarityTable(const MethodInfo* method) {
     g_tableOwned.fill(false);
+    g_lastRarityTable = nullptr;
     if (g_originalRarityInitialize) g_originalRarityInitialize(method);
     if (!g_tableHookReady.load(std::memory_order_acquire)) return;
     const auto entries = nativeRarities().snapshot();
