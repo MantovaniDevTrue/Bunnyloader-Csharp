@@ -28,6 +28,9 @@ struct ManagedPrefixEntry {
     int accessoryDefense = 0;
 };
 
+bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies);
+std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView();
+
 bool applyManagedPrefixDescriptors(const std::string& modId,
                                    const std::vector<ManagedPrefixEntry>& prefixes);
 void reserveManagedPrefixDescriptor(int type);
