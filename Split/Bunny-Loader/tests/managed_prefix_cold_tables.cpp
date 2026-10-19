@@ -27,6 +27,7 @@ FieldInfo names{&lang, nullptr, sizeof(void*)}, chances{&sets, nullptr, 1};
 MethodInfo prefixMethod, rollableMethod, nextDoubleMethod;
 Il2CppObject localized{}, randomObject{};
 std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
+std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0;
@@ -109,6 +110,7 @@ bool setTableElement(FieldInfo* f, int index, Il2CppObject* value) {
 }
 namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
+std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -143,6 +145,8 @@ int main() {
     mighty.name = "Mighty"; mighty.type = 99; mighty.category = 4;
     mighty.rollWeight = 1; mighty.multipliers[0] = 1.2f;
     descriptors = {guarded, mighty};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    assert(managedPrefixView() == descriptorView);
 
     // Regression: first prefix access, before ANY vanilla natural roll.
     assert(!names.value && !chances.value);
