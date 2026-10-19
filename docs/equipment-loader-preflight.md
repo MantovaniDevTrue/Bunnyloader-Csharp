@@ -21,7 +21,10 @@ A partir da raiz de `Split/Bunny-Loader`:
 ```bash
 python3 tools/equipment_preflight.py
 python3 tools/equipment_preflight.py --json --output /tmp/equipment-preflight.json
+python3 tools/equipment_contract_surface.py
+python3 tools/equipment_contract_surface.py --json --output /tmp/equipment-contract-surface.json
 python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
+python3 -m unittest discover -s tests -p equipment_contract_surface_test.py -v
 ```
 
 O verificador lê `docs/csharp-loader-batches.json`, os cinco sistemas do grupo 2, todos os módulos JS atribuídos no plano, os oito arquivos dos exemplos originais, as oito fontes C# correspondentes e a referência pública compilada do SDK. Registra SHA-256 de cada fonte e confirma que os símbolos indicados existem nos exemplos JS. Não altera nem reescreve nenhum desses arquivos. Uma fonte ausente causa falha explícita.
@@ -41,3 +44,11 @@ Todos os efeitos originais devem permanecer. Medir FPS/GC e reconhecer separadam
 ## Integração posterior
 
 Este branch não altera o gate de publicação dos cinco loaders. Ao concluir o grupo World, aplicar somente a ferramenta e o documento de pré-auditoria, conferir hashes novamente e iniciar o grupo Equipamentos sem refazer a investigação dos arquivos-base. Nenhum loader fica marcado como completo automaticamente.
+
+## Inventário dos callbacks originais
+
+O segundo verificador lê os métodos de `ModItem.js` e `ModPrefix.js` diretamente dos fontes reais do Bunny e compara **somente os nomes** com a referência compilada do SDK C#. Seu foco atual são 35 callbacks selecionados dos cinco sistemas; a API inteira requer auditoria adicional.
+
+Por exemplo, `BunnyPrefix.SetStats` e `ModifyValue` aparecem na referência C#, enquanto `RollChance`, `CanRoll`, `AllStatChangesHaveEffectOn`, `Apply` e `GetTooltipLines` não têm um método com o mesmo nome em `BunnyPrefix`. Isso não demonstra que não exista um serviço nativo correspondente: a próxima implementação deve conferir o host C++, o tratamento de prefixos no Terraria IL2CPP e os casos do ExampleModBunny. `WingUpdate` também não aparece como método público de nome idêntico nos tipos C# analisados, mesmo que o SDK exponha `SetWingStats`.
+
+A ferramenta registra o número de linha e SHA-256 da fonte JS e do SDK. Se um callback original for renomeado ou um tipo público deixar de existir, o teste falha explicitamente. Nenhuma rotina altera o runtime, instala hooks ou afirma equivalência PC.
