@@ -68,7 +68,8 @@ public:
         if (request.session != session_ ||
             !managedDustStateValid(state) ||
             !managedDustSameInstance(request.state, state) ||
-            (flags & ~63u) != 0u) return false;
+            (flags & ~63u) != 0u ||
+            (((flags & 32u) != 0u) != (state.active != 0))) return false;
         Slot& slot = slots_[static_cast<std::size_t>(state.slot)];
         if (!slot.pending || slot.type != state.type ||
             slot.generation != state.generation ||
