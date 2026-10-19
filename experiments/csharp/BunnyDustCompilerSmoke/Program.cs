@@ -58,7 +58,43 @@ public sealed class ExampleDust : BunnyDust
         !wire.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 2)
         throw new Exception("Dust defaults wire mismatch:\n" + wire);
+    int modSlot = BunnyDustSourceDispatcher.Register("smoke_dust", output);
+    if (modSlot < 0)
+        throw new Exception("Dust dispatcher register failed: " +
+            BunnyDustSourceDispatcher.LastRegistrationError);
+    if (!BunnyDustSourceDispatcher.Bind(modSlot, 332, "ExampleDust") ||
+        BunnyDustSourceDispatcher.Bind(modSlot, 333, "ExampleDust"))
+        throw new Exception("Dust dispatcher native binding failed");
+    BunnyDustState state = new()
+    {
+        Slot = 15, Type = 332, Generation = 1, Active = 1,
+        X = 5, Y = 8, Scale = 1, FrameWidth = 8, FrameHeight = 8
+    };
+    unsafe
+    {
+        int flags = BunnyDustSourceDispatcher.Tick(modSlot, (IntPtr)(&state));
+        int expected = BunnyDustSourceDispatcher.Accepted |
+            BunnyDustSourceDispatcher.VanillaUpdate |
+            BunnyDustSourceDispatcher.KeepHorizontalSpeed |
+            BunnyDustSourceDispatcher.Draw |
+            BunnyDustSourceDispatcher.Active;
+        if (flags != expected || Math.Abs(state.Scale - 1.2f) > 0.00001f)
+            throw new Exception("Dust callback flags/OnSpawn mismatch");
+        if (BunnyDustSourceDispatcher.Tick(modSlot, (IntPtr)(&state)) != expected ||
+            Math.Abs(state.Scale - 1.2f) > 0.00001f)
+            throw new Exception("Dust OnSpawn repeated in same instance");
+        state.Generation++;
+        if (BunnyDustSourceDispatcher.Tick(modSlot, (IntPtr)(&state)) != expected ||
+            Math.Abs(state.Scale - 1.44f) > 0.00001f)
+            throw new Exception("Dust generation did not spawn fresh");
+        BunnyDustSourceDispatcher.ResetWorld();
+        if (BunnyDustSourceDispatcher.Tick(modSlot, (IntPtr)(&state)) != expected ||
+            Math.Abs(state.Scale - 1.728f) > 0.00001f)
+            throw new Exception("Dust world reset lifecycle mismatch");
+    }
+    BunnyDustSourceDispatcher.Unload();
     Console.WriteLine("DUST_SOURCE_ROSLYN_SMOKE=PASS");
+    Console.WriteLine("DUST_MANAGED_MONOVM_DISPATCH_SMOKE=PASS");
 }
 finally
 {
