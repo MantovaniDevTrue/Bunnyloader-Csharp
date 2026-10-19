@@ -28,6 +28,11 @@ try
     if (!description.Contains("fish that swims upside-down", StringComparison.Ordinal) ||
         location != "Caught anywhere while standing upside-down.")
         throw new InvalidOperationException("Original Bunny fish dialogue did not survive compiler wire");
+    string[] locale = lines.Single(line => line.StartsWith("QUEST_LOCALE\t", StringComparison.Ordinal)).Split('\t');
+    if (locale.Length != 5 || locale[1] != "ExampleQuestFish" || locale[2] != "pt-BR" ||
+        !Encoding.UTF8.GetString(Convert.FromHexString(locale[3])).Contains("peixe que nada de ponta-cabeça", StringComparison.Ordinal) ||
+        Encoding.UTF8.GetString(Convert.FromHexString(locale[4])) != "Pescado em qualquer lugar, de ponta-cabeça.")
+        throw new InvalidOperationException("Original Portuguese quest dialogue missing from compiled wire");
     string[] catchRow = lines.Single(line => line.StartsWith("QUEST_CATCH\t", StringComparison.Ordinal)).Split('\t');
     if (catchRow.Length != 4 || catchRow[1] != "ExampleFishingPlayer" ||
         catchRow[2] != "ExampleQuestFish" || catchRow[3] != "3")
