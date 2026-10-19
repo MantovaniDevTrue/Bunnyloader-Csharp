@@ -24,6 +24,7 @@ struct Quest {
     std::string location;
     int catchRules = 0;
     std::map<std::string, std::pair<std::string, std::string>> locales{};
+    bool operator==(const Quest&) const = default;
 };
 
 inline bool validKey(const std::string& key) {
@@ -134,6 +135,7 @@ public:
         for (const auto& old : registered_)
             if (old.mod != mod) next.push_back(old);
         next.insert(next.end(), quests.begin(), quests.end());
+        if (next == registered_) return true;
         registered_.swap(next);
         generation_.fetch_add(1, std::memory_order_release);
         return true;
