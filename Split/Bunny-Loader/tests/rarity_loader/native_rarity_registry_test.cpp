@@ -92,6 +92,22 @@ int main() {
     assert((*sharedSnapshot)[3].managed);
     assert((*sharedSnapshot)[4].managed);
     assert(shared.findType("csharpMod", "FirstRarity") == 13);
+    assert(shared.identityForType(12).managed == false);
+    assert(shared.identityForType(13).managed);
+    assert(shared.identityForType(13).name == "FirstRarity");
+    assert(shared.identityForType(11).type == -1);
+    assert(shared.identityForType(4108).type == -1);
+    assert(shared.stableKeyForType(12).empty());
+    assert(shared.stableKeyForType(13) == "csharpMod/FirstRarity");
+    assert(shared.stableKeyForType(14).empty());
+    assert(shared.stableKeyForType(15) == "otherCsharp/SecondRarity");
+    assert(shared.typeForStableKey("csharpMod/FirstRarity") == 13);
+    assert(shared.typeForStableKey("otherCsharp/SecondRarity") == 15);
+    assert(shared.typeForStableKey("csharpMod/MissingRarity") == -1);
+    assert(shared.typeForStableKey("csharpMod/FirstRarity/more") == -1);
+    assert(shared.typeForStableKey("csharpMod/") == -1);
+    assert(shared.typeForStableKey("/FirstRarity") == -1);
+
     assert(shared.findType("otherCsharp", "SecondRarity") == 15);
     assert(shared.findType("missing", "FirstRarity") == -1);
     assert(shared.reserveExternalType() == 17);
