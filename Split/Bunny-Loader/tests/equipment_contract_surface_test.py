@@ -234,6 +234,19 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('AddTooltipLine("First line")', fixture)
         self.assertIn('AddTooltipLine("Second line")', fixture)
 
+    def test_mixed_mod_prefix_rolls_use_native_weights_and_denials(self):
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        fixture = (ROOT / "tests/managed_prefix_cold_tables.cpp").read_text(encoding="utf-8")
+        self.assertIn("if (!hasManaged && !hasDeny)", gameplay)
+        self.assertNotIn("|| hasOtherMod)", gameplay)
+        self.assertIn("weightedPrefixCandidate(", gameplay)
+        self.assertIn("mixedPrefixCandidates = true;", fixture)
+        self.assertIn('type == 100 ? "other/External"', fixture)
+        self.assertIn("guarded.rollWeight = 3;", fixture)
+        self.assertIn("assert(mixed && mixed->length == 5);", fixture)
+        self.assertIn("assert(mixedFiltered && mixedFiltered->length == 4);", fixture)
+        self.assertIn("assert(nativeRolls == priorNativeRolls);", fixture)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
