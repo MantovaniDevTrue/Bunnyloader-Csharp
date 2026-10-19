@@ -226,6 +226,8 @@ public static class CompiledAssemblyProbe
         using (var stream = new FileStream(output, FileMode.Append, FileAccess.Write, FileShare.None))
         using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false)))
         {
+            if (modules.Length != 0)
+                writer.WriteLine("LOCALE_MODULES\t" + modules.Length);
             foreach (string row in rows)
                 writer.WriteLine(row);
         }
