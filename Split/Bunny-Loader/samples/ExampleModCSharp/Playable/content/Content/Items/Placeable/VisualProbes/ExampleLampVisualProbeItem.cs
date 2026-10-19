@@ -5,7 +5,7 @@ public sealed class ExampleLampVisualProbeItem : BunnyItem
     public override void SetDefaults()
     {
         Texture="Content/Items/Placeable/VisualProbes/ExampleLampVisualProbeItem.png";
-        DisplayName="Lamp Visual Probe (1x1)";
+        DisplayName="Example Lamp Visual Probe (1x1)";
         Tooltip="C# special drawing and dust test; not the original 1x3 lamp.";
         DefaultToPlaceableTile("ExampleLampVisualProbe");
         Width=12;Height=34;

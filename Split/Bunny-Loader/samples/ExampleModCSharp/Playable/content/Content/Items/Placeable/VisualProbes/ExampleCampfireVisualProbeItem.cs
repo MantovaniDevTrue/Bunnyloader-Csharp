@@ -5,7 +5,7 @@ public sealed class ExampleCampfireVisualProbeItem : BunnyItem
     public override void SetDefaults()
     {
         Texture="Content/Items/Placeable/VisualProbes/ExampleCampfireVisualProbeItem.png";
-        DisplayName="Campfire Visual Probe (1x1)";
+        DisplayName="Example Campfire Visual Probe (1x1)";
         Tooltip="C# flame and dust test; not the original 3x2 campfire.";
         DefaultToPlaceableTile("ExampleCampfireVisualProbe");
         Width=30;Height=18;
