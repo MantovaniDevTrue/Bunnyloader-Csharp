@@ -22,6 +22,8 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
+std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> g_itemApplyView =
+    std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
@@ -82,6 +84,33 @@ bool valid(const ManagedPrefixEntry& p) {
     return true;
 }
 
+}
+
+bool applyManagedItemPrefixEffects(
+    const std::vector<std::pair<int, ManagedItemPrefixApply>>& effects) {
+    if (effects.size() > 4096) return false;
+    std::map<int, ManagedItemPrefixApply> staged;
+    for (const auto& [type, effect] : effects)
+        if (type < 1 || type > 32767 ||
+            effect.damageBonus < 0 || effect.damageBonus > 1000 ||
+            effect.valueBonus < 0 || effect.valueBonus > 100000 ||
+            (effect.damageBonus == 0 && effect.valueBonus == 0) ||
+            !staged.emplace(type, effect).second) return false;
+    if (staged.empty()) return true;
+    if (!installManagedPrefixChanceHook()) return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    auto previous = std::atomic_load_explicit(&g_itemApplyView, std::memory_order_acquire);
+    for (const auto& [type, effect] : staged)
+        if (previous->contains(type)) return false;
+    auto updated = std::make_shared<std::map<int, ManagedItemPrefixApply>>(*previous);
+    updated->insert(staged.begin(), staged.end());
+    std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> published = updated;
+    std::atomic_store_explicit(&g_itemApplyView, std::move(published), std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() {
+    return std::atomic_load_explicit(&g_itemApplyView, std::memory_order_acquire);
 }
 
 bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies) {
