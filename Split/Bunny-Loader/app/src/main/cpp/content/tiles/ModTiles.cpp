@@ -1108,6 +1108,9 @@ void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* m
     g_managedDrawDataHook.store(hook, std::memory_order_release);
     invalidateDrawCache();
 }
+void invalidateManagedTileDrawCache() {
+    invalidateDrawCache();
+}
 
 void ensureTileDrawHook() {
     hookDrawData();

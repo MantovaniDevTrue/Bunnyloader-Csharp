@@ -1047,6 +1047,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
         if(behavior.spec.callbackMask)
             queueManagedTileWarmup(mod,assembly,behavior.spec.name);
     }
+    if(g_managedDrawBound)runtime::invalidateManagedTileDrawCache();
 }
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.type >= 65536 ||
