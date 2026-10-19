@@ -174,3 +174,29 @@ O método `PreferFor` só aceita itens já declarados em `Allow` ou `SetWeight` 
 Os testes C# de `PrefixFixture` exercitam `PreferFor`, serialização, cancelamento e rejeição de itens não autorizados. Os testes C++ cobrem resolução por nome, exclusividade, rollback e a escolha real no hook nativo, inclusive peso natural zero.
 
 **Limites:** esta é uma escolha declarativa por tipo, não a API `ModItem.ChoosePrefix(item, rand)` completa do ExampleModBunny; RNG customizado, `GlobalItem`, estado por instância, `PrefixChance`, `ApplyPrefix` e comportamento multiplayer não foram implementados nesta etapa. A verificação do SDK global pode apresentar diferenças relacionadas à PR de Tiles em paralelo; nenhum teste de host equivale a validar APK/FPS no Android.
+
+## PrefixChance por item — política nativa de geração
+
+O `PrefixLoader.js` original executa `ModItem.PrefixChance(item, pre, rand)` e `GlobalItem.PrefixChance(item, pre, rand)` no método `Terraria.Item.Prefix(int, out bool)`. Este lote adiciona a primeira variante **declarativa e exclusiva dos itens C#**, sem callback gerenciado por tentativa:
+
+```csharp
+public sealed class ExampleWand : BunnyWeapon
+{
+    public override void SetDefaults()
+    {
+        Damage = 22;
+        Shoot = "ExampleBolt";
+        PrefixChance = true;
+    }
+}
+```
+
+`PrefixChance` é um `bool?` e pertence às classes `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion`. `null` (padrão) não interfere no Terraria; `true` transforma o pedido de geração `-1` em `-2`, pulando a chance de sair sem prefixo; `false` rejeita tentativas de geração `-1` e `-2`. Os pedidos explícitos de tipo de prefixo continuam com o comportamento original.
+
+O compilador gerenciado acrescenta somente quando há política um registro `PREFIX_CHANCE\tNomeDoItem\t0|1`, mantendo as linhas anteriores `ITEM`, `WEAPON`, `ACCESSORY` e `POTION` inalteradas. O SourceLoader valida a identidade e a unicidade do item já registrado. A ponte nativa publica o mapa imutável por tipo de item após verificar o hook. O método `bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)` é interceptado nativamente, com leitura do snapshot, sem bloquear a execução ou chamar o MonoVM por rolagem.
+
+O caminho interno `applyManagedPrefixViaNativeRoll`, usado na restauração de prefixos salvos, conserva prioridade e **não é bloqueado** por essa política de geração. Isso evita perda de prefixo durante o carregamento de personagem. Nenhuma regra não configurada altera a geração vanilla.
+
+Os testes `tests/prefix_v89/PrefixFixture` verificam serialização de `PrefixChance=false`. `tests/prefix_v89/managed_prefix_snapshot_test.cpp` valida duplicatas e snapshots imutáveis, enquanto `tests/managed_prefix_cold_tables.cpp` verifica os pedidos `-1`, `-2`, explícitos, sem política e de restauração.
+
+**Limitação:** esta é a política estática por tipo, não os callbacks C# dinâmicos `PrefixChance(item, pre, rand)` com RNG, estado de instância ou composição com `GlobalItem`. `ApplyPrefix(item, pre)` não faz parte deste lote. A compilação host e a documentação não substituem validação de APK, multiplayer, saves reais ou FPS no Android.
