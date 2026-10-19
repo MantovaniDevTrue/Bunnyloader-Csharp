@@ -1,0 +1,29 @@
+using BunnyLoader.Source;
+using ExampleModCSharp;
+
+static void Check(bool success, string reason)
+{
+    if (!success) throw new InvalidOperationException(reason);
+}
+
+var basic = new ExampleModRarity { Type = 12 };
+var higher = new ExampleHigherTierModRarity { Type = 13 };
+Check(basic.RarityColor.R == 200 && basic.RarityColor.G == 215 &&
+    basic.RarityColor.B == 230, "Base rarity must match ExampleModBunny");
+Check(higher.RarityColor.R == 127 && higher.RarityColor.G == 204 &&
+    higher.RarityColor.B == 170, "Animated rarity must sample Bunny native DiscoColor");
+
+var material = new ExampleItem();
+material.SetDefaults();
+Check(material.ModRarityClassName == nameof(ExampleModRarity),
+    "Basic item rarity is not registered");
+var sword = new ExampleMeleeWeapon();
+sword.SetDefaults();
+Check(sword.ModRarityClassName == nameof(ExampleModRarity),
+    "Melee sword rarity is not registered");
+var accessory = new ExampleStatAccessory();
+accessory.SetDefaults();
+Check(accessory.ModRarityClassName == nameof(ExampleHigherTierModRarity),
+    "Higher-tier accessory rarity is not registered");
+
+Console.WriteLine("PLAYABLE_RARITY_EXAMPLES=PASS");
