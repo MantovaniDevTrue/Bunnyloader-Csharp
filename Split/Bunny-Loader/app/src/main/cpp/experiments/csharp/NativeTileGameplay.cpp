@@ -60,6 +60,8 @@ bool g_canKillInstalled = false;
 bool g_animationInstalled = false;
 bool g_tileScanReady=false;
 bool g_tileLightReady=false;
+bool g_usesManagedNearby=false;
+bool g_usesManagedLight=false;
 FieldInfo* g_screenPositionField=nullptr;
 FieldInfo* g_screenWidthField=nullptr;
 FieldInfo* g_screenHeightField=nullptr;
@@ -487,7 +489,7 @@ void scanTileLighting(const runtime::TileArrays& world) {
     auto& a=il2cpp::api();
     for(auto it=g_tileLightCache.begin();it!=g_tileLightCache.end();) {
         auto& entry=it->second;
-        if(g_tileScanTick-entry.frame>12||entry.x<region.left||
+        if(g_tileScanTick-entry.frame>180||entry.x<region.left||
            entry.y<region.top||entry.x>=region.left+region.width||
            entry.y>=region.top+region.height||
            runtime::tileTypeAt(entry.x,entry.y)<runtime::kVanillaTileCount) {
@@ -506,19 +508,14 @@ void scanTileLighting(const runtime::TileArrays& world) {
 void scanManagedTileWorld() {
     ++g_tileScanTick;
     if(!g_tileScanReady||g_tiles.empty())return;
-    bool nearby=false,lighting=false;
-    for(const auto& [type,tile]:g_tiles) {
-        nearby|=(tile.spec.callbackMask&(1<<11))!=0;
-        lighting|=(tile.spec.callbackMask&(1<<6))!=0;
-    }
-    if(!nearby&&!lighting)return;
+    if(!g_usesManagedNearby&&!g_usesManagedLight)return;
     runtime::TileArrays world{};
     if(!runtime::tileArrays(&world))return;
-    if(nearby&&(g_tileScanTick%6==0)) {
+    if(g_usesManagedNearby&&(g_tileScanTick%6==0)) {
         scanTileNearby(world,false);
         scanTileNearby(world,true);
     }
-    if(lighting)scanTileLighting(world);
+    if(g_usesManagedLight)scanTileLighting(world);
 }
 void hkAnimateTiles(const MethodInfo* method) {
     if (g_originalAnimate) g_originalAnimate(method);
@@ -1015,6 +1012,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     g_tiles[spec.type] = behavior;
+    g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;
+    g_usesManagedLight|=(spec.callbackMask&(1<<6))!=0;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
         queueManagedTileWarmup(spec.mod,behavior.spec.assembly,spec.name);
     if (spec.animationFrames > 1 || (spec.callbackMask & (1 << 12)))
