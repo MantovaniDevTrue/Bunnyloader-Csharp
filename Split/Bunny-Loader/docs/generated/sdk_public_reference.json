@@ -2133,7 +2133,7 @@
       "constructors": [],
       "properties": [
         "int Count { get; }",
-        "int ParticleCount { get; }
+        "int ParticleCount { get; }"
       ],
       "values": [],
       "methods": [
