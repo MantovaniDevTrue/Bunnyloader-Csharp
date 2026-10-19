@@ -53,7 +53,7 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.bunnyloader.csharptest"
+        applicationId = "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
         versionCode = 272
