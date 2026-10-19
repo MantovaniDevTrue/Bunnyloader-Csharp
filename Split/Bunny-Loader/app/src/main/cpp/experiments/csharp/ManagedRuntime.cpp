@@ -2372,6 +2372,18 @@ bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
         callback,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),result,false,true});
     g_pinnedWake.notify_one();return true;
 }
+bool queueManagedTileNearby(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool closer) {
+    if(x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,
+        std::to_string(x)+","+std::to_string(y)+","+(closer?"1":"0"),
+        11,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),
+        result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
 bool queueManagedTileWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
     if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
     std::lock_guard lock(g_pinnedMutex);
