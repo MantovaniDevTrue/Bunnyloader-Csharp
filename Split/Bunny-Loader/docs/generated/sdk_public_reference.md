@@ -620,8 +620,10 @@ string ActiveCultureName { get; }
 | `IReadOnlyList<string> ExportWireRows()` | managed_helper |
 | `bool Exists(string path, string callerModId)` | managed_helper |
 | `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
+| `string Key(string path, string callerModId)` | managed_helper |
 | `string Translate(string path, string callerModId)` | managed_helper |
 | `string TryTranslate(string path, string callerModId)` | managed_helper |
+| `void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)` | managed_helper |
 | `void Register(string fullKey, string culture, string text)` | managed_helper |
 | `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
 | `void RemoveMod(string modId)` | managed_helper |
