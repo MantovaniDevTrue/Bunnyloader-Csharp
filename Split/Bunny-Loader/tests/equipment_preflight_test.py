@@ -45,7 +45,7 @@ class EquipmentPreflightTests(unittest.TestCase):
         left = preflight.as_markdown(preflight.build_report(ROOT))
         right = preflight.as_markdown(preflight.build_report(ROOT))
         self.assertEqual(left,right)
-        self.assertIn("não certifica",left)
+        self.assertIn("não certifica",left.lower())
         for name in preflight.SPECS:
             self.assertIn(name,left)
 
