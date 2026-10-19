@@ -16,6 +16,8 @@ struct NativeTileGameplaySpec {
     int animationFrameTicks = 0;
     bool allowBreaking = true;
     bool allowDrops = true;
+    int callbackMask = 0;
+    std::string assembly;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);
