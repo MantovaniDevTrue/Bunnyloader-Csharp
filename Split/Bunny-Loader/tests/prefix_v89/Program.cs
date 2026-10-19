@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 10 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 11 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -24,9 +24,12 @@ try
         throw new InvalidOperationException("Managed item PrefixChance policy missing");
     if (data.Count(row => row == "PREFIX_APPLY\tTestWand\t4\t125") != 1)
         throw new InvalidOperationException("Managed item ApplyPrefix policy missing");
+    if (data.Count(row => row == "PREFIX_CONDITION\tTestMightyPrefix\t10\t25\t0\t8") != 1)
+        throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
     var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_APPLY\t", StringComparison.Ordinal))
@@ -100,6 +103,20 @@ try
     catch (ArgumentOutOfRangeException) { invalidNameRejected = true; }
     if (!invalidNameRejected)
         throw new InvalidOperationException("Unsafe stable item name accepted");
+    var predicates = new BunnyLoader.Source.BunnyPrefixItemConditions();
+    bool invalidDamage = false;
+    try { predicates.RequireDamageBetween(30, 10); }
+    catch (ArgumentOutOfRangeException) { invalidDamage = true; }
+    if (!invalidDamage) throw new InvalidOperationException("Inverted damage range accepted");
+    bool invalidMana = false;
+    try { predicates.RequireManaBetween(-1, 4); }
+    catch (ArgumentOutOfRangeException) { invalidMana = true; }
+    if (!invalidMana) throw new InvalidOperationException("Negative mana range accepted");
+    predicates.RequireDamageBetween(10, 25);
+    predicates.RequireManaBetween(0, 8);
+    if (predicates.MinDamage != 10 || predicates.MaxDamage != 25 ||
+        predicates.MinMana != 0 || predicates.MaxMana != 8)
+        throw new InvalidOperationException("Item condition assignment lost");
     var denied = new BunnyLoader.Source.BunnyItemPrefixRules();
     denied.Deny("TestMightyPrefix");
     denied.Deny(71);
