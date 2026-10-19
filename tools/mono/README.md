@@ -1,34 +1,49 @@
-# MonoVM ARM64 — fonte do patch e compilação
+# MonoVM modificado — fonte, biblioteca e instalação
 
-A modificação que fiz no Mono Android ARM64 está **presente neste código-fonte**. Não é necessário descobrir de onde veio o `libmonosgen-2.0.so` antigo nem ter acesso a um repositório privado para **reproduzir a alteração em código-fonte aberto**.
+A integração C# inclui **a biblioteca ARM64 corrigida que já era usada nos testes Android anteriores**, além do código da alteração e do processo de recompilação. Não é necessário ter acesso ao armazenamento privado das builds de teste para baixar a biblioteca.
 
-Arquivos desta pasta:
+## Arquivos incluídos
 
-- [`patch_mono_android_signals.py`](patch_mono_android_signals.py): aplica, de forma verificável e restrita, meu ajuste no `mono-threads-posix-signals.c` do `dotnet/runtime` `v8.0.23`.
-- [`build_patched_mono_arm64.sh`](build_patched_mono_arm64.sh): clona o .NET Runtime `v8.0.23`, aplica o patch, executa o teste de fonte, compila o Mono ARM64, confere os símbolos exportados, copia a biblioteca e gera SHA-256.
-- [`tests/test_mono_android_signals_patch.py`](../../tests/test_mono_android_signals_patch.py): confirma que os três sinais de suspensão/reinício/abort no ARM64 usam a seleção de sinais RT alternativa e preserva o comportamento Android 32 bits.
+| Arquivo | Finalidade |
+| --- | --- |
+| [Biblioteca `libmonosgen-2.0.so`](prebuilt/arm64-v8a/libmonosgen-2.0.so) | MonoVM ARM64 `8.0.23` com a política de sinais validada na build `.72` |
+| [SHA-256](prebuilt/arm64-v8a/libmonosgen-2.0.so.sha256) | Integridade verificável da biblioteca |
+| [Licença .NET Runtime](prebuilt/arm64-v8a/DOTNET_RUNTIME_LICENSE.txt) | Licença do projeto público que originou o Mono |
+| [Proveniência da biblioteca](prebuilt/arm64-v8a/README.txt) | Versão, símbolos obrigatórios e origem verificada |
+| [`patch_mono_android_signals.py`](patch_mono_android_signals.py) | Código que aplica a modificação de sinais no Mono 8.0.23 |
+| [`build_patched_mono_arm64.sh`](build_patched_mono_arm64.sh) | Recompila o Mono modificado da fonte pública |
+| [`install_patched_mono_arm64.sh`](install_patched_mono_arm64.sh) | Confere SHA, ARM64 e símbolos, depois instala na pasta do Android |
+| [Teste da alteração](../../tests/test_mono_android_signals_patch.py) | Verifica os três pontos de modificação de sinais no código do Mono |
 
-## Dependências da recompilação
+## Uso direto da biblioteca incluída
 
-- Linux (a receita anterior foi feita em runner Ubuntu).
-- Git, Python 3, `readelf` do binutils, .NET SDK adequado ao `dotnet/runtime v8.0.23` e ferramentas nativas exigidas pelo repositório .NET.
-- Android SDK + **NDK 30.0.16248370**, configuração usada no workflow que produziu o runtime modificado pela primeira vez.
-- Espaço em disco e tempo suficientes para compilar o runtime Mono. A receita baixa os fontes públicos do .NET.
+O Mono modificado vai para a pasta **`app/src/main/jniLibs/arm64-v8a/`**. Primeiro preparo o runtime padrão (DLLs e demais bibliotecas) do pacote NuGet `Microsoft.NETCore.App.Runtime.Mono.android-arm64 8.0.23` usando `tools/stage_mono_runtime.py`.
 
-Definir `ANDROID_HOME` ou `ANDROID_SDK_ROOT`, além de `ANDROID_NDK_ROOT` se não usar a versão padrão. A partir da raiz do Bunny Loader integrado:
+Depois de preparar o runtime oficial, executo **por último**:
+
+~~~bash
+bash tools/mono/install_patched_mono_arm64.sh
+~~~
+
+O script verifica a integridade do `.so`, exige arquitetura ARM64 e os símbolos `mono_bunny_android_signal_policy_v1`, `mono_jit_init` e `mono_thread_attach`. Só então copia a biblioteca para:
+
+~~~text
+app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so
+~~~
+
+**Ordem importante:** `stage_mono_runtime.py` coloca o Mono genérico do NuGet no mesmo destino. A instalação da biblioteca modificada deve ser o **último passo da preparação do runtime**, ou a versão corrigida será substituída.
+
+A biblioteca original usada no CI foi obtida de um APK experimental privado **sem compartilhar o APK**. A entrega pública contém somente esta biblioteca do Mono, SHA, licença e fontes da modificação. Não há Terraria/Unity, tokens ou chaves nesse diretório.
+
+## Recompilação independente (opcional)
+
+Para reconstruir a biblioteca a partir do código aberto do `dotnet/runtime v8.0.23`, use Linux, Git, Python 3, binutils, .NET SDK e Android SDK/NDK, com NDK `30.0.16248370` (versão usada no procedimento histórico). Configure `ANDROID_HOME` ou `ANDROID_SDK_ROOT` e, se necessário, `ANDROID_NDK_ROOT`.
 
 ~~~bash
 bash tools/mono/build_patched_mono_arm64.sh
 ~~~
 
-Ou com saída explícita:
-
-~~~bash
-ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/30.0.16248370" \
-  bash tools/mono/build_patched_mono_arm64.sh out/mono-android-arm64-8.0.23
-~~~
-
-Arquivos esperados após uma execução **bem-sucedida**:
+Isso clona o .NET Runtime `v8.0.23`, aplica `patch_mono_android_signals.py`, executa o teste, compila ARM64, verifica símbolos e escreve:
 
 ~~~text
 out/mono-android-arm64-8.0.23/
@@ -37,23 +52,12 @@ out/mono-android-arm64-8.0.23/
   DOTNET_RUNTIME_LICENSE.txt
 ~~~
 
-Depois de preparar o framework oficial `Microsoft.NETCore.App.Runtime.Mono.android-arm64 8.0.23` com `tools/stage_mono_runtime.py`, substituir **somente** `app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so` pela versão recompilada, mantendo as DLLs e demais bibliotecas ARM64 correspondentes do pacote oficial.
+Uma recompilação independente não precisa resultar em SHA idêntico ao da biblioteca incluída, pois o NDK/toolchain e o ambiente podem influenciar os bytes. Também não substitui testes reais de compatibilidade Android.
 
-~~~bash
-cp out/mono-android-arm64-8.0.23/libmonosgen-2.0.so \
-  app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so
-readelf -Ws app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so \
-  | grep mono_bunny_android_signal_policy_v1
-~~~
+## Validação e limites
 
-O símbolo `mono_bunny_android_signal_policy_v1` identifica a versão com seleção de sinais para ARM64. O host MonoVM do Bunny verifica esse símbolo ao iniciar. A biblioteca recompilada deve também exportar as APIs Mono `mono_jit_init` e `mono_thread_attach`.
+A biblioteca incluída deriva do Mono ARM64 modificado que já tinha sido usado na `.72`. Na `.95.2`, esse mesmo artefato foi usado no [pipeline Android com build, assinatura e suítes de CI aprovadas](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39171952411).
 
-## Histórico e limites reais
+Também executei a [extração e conferência pública da biblioteca isolada](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39184151091), sem redistribuir o APK de origem. **Não considero automaticamente validada a correção mais recente de minions da .95.2 no aparelho só por isso.**
 
-A build Android da `.95.2` **foi validada pelo CI** usando uma `libmonosgen-2.0.so` previamente recompilada e extraída de um APK experimental privado `.72`. A receita de compilação pública foi executada antes, numa linha histórica da `.57`, e é por isso que o patch e as verificações estão nesta fonte. A reprodução em outra máquina **não garante uma biblioteca byte a byte idêntica**, nem comprova que o APK final continuará estável com outros toolchains. É obrigatório testar no Android o bootstrap, jogo e mods C#.
-
-A modificação atua na seleção de sinais do **Mono**, não nos binários do Terraria. Nenhum `libil2cpp.so`, `libunity.so`, asset do jogo, chave, token ou segredo faz parte do script.
-
-O código original do .NET Runtime e a biblioteca Mono compilada continuam sujeitos às licenças e avisos originais do projeto [dotnet/runtime](https://github.com/dotnet/runtime/tree/v8.0.23). Ao redistribuir a biblioteca, preserve os avisos aplicáveis. O script copia a licença principal da árvore original quando ela está disponível.
-
-**Observação:** este é um caminho de **build de fonte**, não uma declaração de que a biblioteca final já foi recompilada nesta branch de entrega. Para reproduzir o binário no GitHub Actions, a mesma receita pode ser executada em um runner com Android NDK instalado.
+O .NET Runtime original continua sujeito à licença e aos avisos aplicáveis do [dotnet/runtime](https://github.com/dotnet/runtime/tree/v8.0.23). Os componentes proprietários de Terraria e Unity permanecem fora do Git.
