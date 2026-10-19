@@ -31,6 +31,7 @@ float VisualOpacity { get; set; }
 float VisualScale { get; set; }
 int DefenseBonus { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -40,6 +41,7 @@ string VisualTexture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
 
@@ -141,6 +143,7 @@ BunnyNativeDefaults NativeDefaults { get; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
@@ -148,6 +151,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyColor
 
@@ -1435,6 +1439,7 @@ int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
 string MinionBuff { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Shoot { get; set; }
 string Texture { get; set; }
@@ -1443,6 +1448,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyWorldLight
 

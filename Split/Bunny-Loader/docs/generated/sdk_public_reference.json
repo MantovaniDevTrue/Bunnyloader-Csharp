@@ -53,6 +53,7 @@
         "float VisualScale { get; set; }",
         "int DefenseBonus { get; set; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }",
         "string Tooltip { get; set; }",
@@ -63,6 +64,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -233,6 +238,7 @@
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }"
       ],
@@ -241,6 +247,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -2657,6 +2667,7 @@
         "int UseTime { get; set; }",
         "string DisplayName { get; set; }",
         "string MinionBuff { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Shoot { get; set; }",
         "string Texture { get; set; }"
@@ -2666,6 +2677,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
