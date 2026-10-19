@@ -28,6 +28,22 @@ int main() {
            "An odd upside-down fish.\n\n(Underground)");
     assert(Registry::chat(Quest{"x","Fallback",852,true,true,"",""}, "Fallback Name")
            == "Fallback Name");
+    Quest translated = fish;
+    translated.locales.emplace("pt-BR",
+        std::make_pair("Um peixe de ponta-cabeça", "Pescado ao contrário"));
+    assert(Registry::chat(translated, "fallback", "pt-BR") ==
+           "Um peixe de ponta-cabeça\\n\\n(Pescado ao contrário)");
+    assert(Registry::chat(translated, "fallback", "pt-PT") ==
+           "Um peixe de ponta-cabeça\\n\\n(Pescado ao contrário)");
+    assert(Registry::chat(translated, "fallback", "en-US") ==
+           "An odd upside-down fish.\\n\\n(Underground)");
+    assert(registry.publish("examplemodcsharp", {translated}, &error));
+    assert(!registry.publish("examplemodcsharp",
+        {Quest{"examplemodcsharp","BadLocale",860,true,true,"","",0,
+               {{"!!!",{"x","y"}}}}}, &error));
+    assert(error == "InvalidQuestTranslation");
+    assert(registry.snapshot().front().locales.size() == 1);
+    assert(registry.publish("examplemodcsharp", {fish}, &error));
 
     auto merged = Registry::mergeIds({1, 2, 850, 2}, {fish,
         Quest{"secondmod", "ExtraQuest", 851, true, true, "", ""}});
@@ -55,7 +71,7 @@ int main() {
         {Quest{"examplemodcsharp", "InvalidUtf8", 860, true, true,
                std::string({char(0xC0), char(0xAF)}), ""}}, &error));
     assert(error == "InvalidQuestDescriptor");
-    assert(registry.generation() == 1);
+    assert(registry.generation() == 3);
     assert(!registry.publish("bad",
         {Quest{"different", "WrongOwner", 860, true, true, "", ""}}, &error));
     assert(error == "InvalidQuestDescriptor");
