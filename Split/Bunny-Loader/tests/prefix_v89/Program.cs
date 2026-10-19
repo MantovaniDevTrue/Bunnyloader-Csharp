@@ -15,10 +15,13 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 6 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 7 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
-    var byName = data.Skip(1).Select(row => row.Split('\t'))
+    if (data.Count(row => row == "PREFIX_CHANCE\tTestWand\t0") != 1)
+        throw new InvalidOperationException("Managed item PrefixChance policy missing");
+    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal))
+        .Select(row => row.Split('\t'))
         .ToDictionary(fields => fields[1], StringComparer.Ordinal);
     if (byName.Count != 5 || !byName.ContainsKey("TestBolt") || !byName.ContainsKey("TestWand"))
         throw new InvalidOperationException("Source content lost in prefix handoff");
