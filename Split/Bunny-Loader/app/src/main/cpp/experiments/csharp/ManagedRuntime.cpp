@@ -2,7 +2,6 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
-#include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -301,6 +300,7 @@ struct LocalizationJob {
 std::deque<LocalizationJob> g_localizationQueue;
 void* g_localizationDispatchMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
+std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
@@ -1571,9 +1571,9 @@ void* pinnedMonoWorker(void*) {
                     lock.unlock();
                     std::string result = executeManagedLocalizationOnWorker(job);
                     if (!job.unload && result.rfind("OK|", 0) == 0) {
-                        if (!localization::acceptManagedWire(
-                                job.modId, job.assemblyPath, job.culture,
-                                job.generation, result))
+                        auto sink = g_localizationResultSink.load(std::memory_order_acquire);
+                        if (!sink || !sink(job.modId, job.assemblyPath, job.culture,
+                                           job.generation, result))
                             result = "ERROR|DynamicWireRejectedOrStale";
                     }
                     if (result.rfind("OK|", 0) != 0) {
@@ -2053,6 +2053,10 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+
+void setManagedLocalizationResultSink(ManagedLocalizationResultSink sink) {
+    g_localizationResultSink.store(sink, std::memory_order_release);
+}
 
 bool queueManagedLocalizationLoaded(const std::string& modId,
                                     const std::string& assemblyPath,
