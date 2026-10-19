@@ -90,6 +90,8 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
         self.assertIn('"PREFIX_CHANCE"', compiler)
         self.assertIn('fields[0] == "PREFIX_CHANCE"', source)
+        self.assertIn('(basic || weapon || accessory || potion) && key == "PrefixChance"', source)
+        self.assertIn('PrefixChance requer literal true/false', source)
         self.assertIn("seenPrefixChances.insert", source)
         self.assertIn("applyManagedItemPrefixChances(prefixChances)", source)
         self.assertIn("std::atomic_store_explicit(&g_itemChanceView", bridge)
