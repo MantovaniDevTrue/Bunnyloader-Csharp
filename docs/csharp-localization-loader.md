@@ -80,7 +80,7 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 - `BunnyLocalizationCatalog.Texts(path, callerModId)` retorna uma cópia das traduções nas culturas realmente declaradas, com referências `{$...}` resolvidas em cada cultura sem alterar a cultura ativa.
 - A suíte gerenciada verifica registro de várias culturas, colisão, fallback `en-US`, entrada inválida, atomicidade, resolução `Key`, expansão de `Texts` e identidade do idioma.
 
-**Limitação importante:** esses métodos funcionam no catálogo C# gerenciado e estão expostos no SDK, mas alterações dinâmicas feitas dentro de uma sessão MonoVM ainda não são transmitidas ao publicador IL2CPP. O despacho do `OnLocalizationsLoaded` foi integrado em código, porém não foi testado no jogo ou em Android.
+**Limitação importante:** o caminho de retorno de registros dinâmicos da MonoVM até o publicador IL2CPP foi implementado em fontes, mas ainda exige comprovação integrada e teste real no Terraria Android. Registros arbitrários fora de `OnLocalizationsLoaded` e alterações globais/vanilla não estão autorizados nessa fase.
 
 ## Registro de traduções em classes C# e callback no MonoVM
 
@@ -94,13 +94,26 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 
 - `BunnyLocalizationModule.OnLocalizationsLoaded()` tem implementação virtual vazia por padrão. O módulo do ExampleModCSharp mostra uma implementação que lê `BunnyLocalizationRuntime.ActiveCultureName` somente dentro do callback.
 - `BunnyLocalizationRuntime.Dispatch(modId, assemblyPath, culture)` descobre até 32 módulos concretos da montagem C#, armazena instâncias isoladas por mod e invoca os callbacks na sequência determinada pelos nomes completos. `Unload(modId)` descarta as instâncias ao desativar o mod.
-- `NativeLocalizationRuntime` agenda as notificações **depois** de publicar `LanguageManager.LoadLanguageFromFileText`, tanto no hook `LoadFilesForCulture` quanto na checagem de fallback, enviando apenas strings para a ponte. Módulos sem entradas `LOCALE` ainda não possuem detecção específica para ativar o callback.
+- `NativeLocalizationRuntime` agenda as notificações **depois** de publicar `LanguageManager.LoadLanguageFromFileText`, tanto no hook `LoadFilesForCulture` quanto na checagem de fallback, enviando apenas strings para a ponte. O marcador `LOCALE_MODULES` habilita também módulos sem linhas estáticas `LOCALE`.
 - `ManagedRuntime` processa as notificações na thread MonoVM fixa, com fila de até 64 eventos, priorizando o despacho síncrono existente de receitas. O worker não executa a cada frame por causa da localização; uma fila cheia recebe tentativa de reenvio no polling nativo posterior, sem republicar todas as traduções.
 - `AutoSourceRuntime` liga as montagens C# depois da aplicação dos defaults e prepara o MonoVM uma vez quando há registros de localização. `retainActiveMods` desregistra callbacks de mods inativos.
 - A suíte C# aumentou para **20 cenários**, com teste de execução, cultura ativa, descarregamento e recarga do módulo. O compilador e o catálogo ainda são testados separadamente.
 - CI de host: as verificações de C# e C++ podem validar assinaturas, sintaxe, protocolos e contratos de fila, mas **não** ABI IL2CPP/ARM64, comportamento real das chamadas MonoVM, consumo de memória ou FPS.
 
-**Ainda incompleto:** o resultado do callback não registra novas traduções dinamicamente no `LanguageManager`; callbacks em andamento durante um unload e o comportamento com vários módulos/idiomas exigem testes adicionais. Nenhum APK foi construído ou autorizado. A PR permanece draft.
+**Ainda incompleto:** o resultado dos registros dinâmicos agora é recebido pelo catálogo nativo e publicado na fase apropriada, mas a integração real MonoVM → IL2CPP, os callbacks durante unload e a ABI exigem teste Android. Nenhum APK foi construído ou autorizado. A PR permanece draft.
+
+## Continuação — registro dinâmico na sessão
+
+- Dentro de `BunnyLocalizationModule.OnLocalizationsLoaded()`, `BunnyLocalizationRuntime.Register(key, culture, text)` ou `Register(key, cultures)` aceita somente chaves próprias `Mods.<modId>.*`. Fora do callback o registro é rejeitado; tradução vanilla/global não é substituída arbitrariamente.
+- O callback monta um catálogo isolado por invocação, validado antes da entrega. Sua resposta utiliza `BUNNY_DYNAMIC_LOCALES_V1` com linhas `LOCALE` em hex UTF-8; máximo de 256 linhas e 256 KiB, com rollback quando qualquer callback falha.
+- O worker MonoVM transfere apenas texto/identidade para `NativeLocalizationRuntime::acceptManagedWire`; nenhuma chamada IL2CPP acontece na thread MonoVM. O parser confere versão, UTF-8, tamanho, duplicatas, cultura, chave e o namespace exato do mod.
+- `NativeLocalizationSession` preserva separadamente registros compilados e dinâmicos: uma atualização dinâmica não apaga traduções do JSON; uma resposta idêntica não incrementa revisão. Chaves dinâmicas ausentes no próximo lote são retiradas sem afetar valores compilados.
+- Cada mod vinculado possui geração de ativação. Respostas assíncronas cuja montagem ou geração não corresponda à ativação atual são descartadas, inclusive após unload/reativação; o descarregamento também remove mensagens ainda na fila.
+- Quando uma alteração dinâmica modifica a sessão, o próximo pump de jogo reaplica as traduções sem provocar outro callback só pela mudança de revisão. Uma troca real de cultura mantém a notificação.
+- `LOCALE_MODULES\tN` foi incorporado ao wire de defaults para habilitar módulos que registram traduções somente no callback. `SourceLoader` valida o marcador e `AutoSourceRuntime` prepara o worker nesses casos.
+- O ExampleModCSharp demonstra `Register` dinâmico em `en-US` e `pt-BR`; testes de host exercitam a serialização, isolamento por namespace e sobreposição com fallback estático.
+
+**Gate preservado:** nenhum APK, `.bmod` nem merge. Testes no host ainda não validam `LanguageManager` real no Android, referências `LocalizedText`, caches externos, ABI arm64 ou FPS.
 
 ## Pendências obrigatórias para declarar completo
 
