@@ -62,16 +62,20 @@ public static class BunnyLocalizationRuntime
 
                 string? previous = activeCulture;
                 activeCulture = culture;
+                int faults = 0;
                 try
                 {
                     foreach (BunnyLocalizationModule module in state.Modules)
-                        module.OnLocalizationsLoaded();
+                    {
+                        try { module.OnLocalizationsLoaded(); }
+                        catch (Exception) { faults++; }
+                    }
                 }
                 finally
                 {
                     activeCulture = previous;
                 }
-                return "OK|" + state.Modules.Length;
+                return faults == 0 ? "OK|" + state.Modules.Length : "ERROR|CallbackFaults=" + faults;
             }
         }
         catch (Exception exception)
