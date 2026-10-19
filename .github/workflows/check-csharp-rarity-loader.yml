@@ -9,6 +9,11 @@ on:
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarityReference.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/BasicItemDefaults.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeDefaults.h'
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarityRuntime.cs'
       - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
       - 'Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js'
