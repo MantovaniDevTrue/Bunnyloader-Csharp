@@ -88,7 +88,7 @@ inline bool decode(const std::string& line, SavedItem& out, bool allowRarity = t
     return true;
 }
 
-inline bool read(std::istream& stream, std::vector<SavedItem>& out) {
+inline bool read(std::istream& stream, std::vector<SavedItem>& out, bool strict = false) {
     std::string line;
     if (!std::getline(stream, line)) return false;
     if (!line.empty() && line.back() == '\r') line.pop_back();
@@ -102,7 +102,7 @@ inline bool read(std::istream& stream, std::vector<SavedItem>& out) {
         SavedItem value;
         if (decode(line, value, version3)) {
             records.push_back(std::move(value));
-        } else if (version3) {
+        } else if (version3 || strict) {
             return false;
         }
     }
