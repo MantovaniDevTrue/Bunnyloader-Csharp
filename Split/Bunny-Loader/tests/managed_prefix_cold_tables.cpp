@@ -259,6 +259,10 @@ int main() {
     assert(text[0] && text[0]->chars[0] == '+' && text[0]->chars[1] == '8');
     assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 0);
 
+    mighty.minItemDamage = 10;
+    mighty.maxItemDamage = 25;
+    mighty.minItemMana = 0;
+    mighty.maxItemMana = 8;
     mighty.itemWeights[6199] = 3;
     mighty.itemWeights[6198] = 0;
     descriptors = {guarded, mighty};
@@ -269,6 +273,17 @@ int main() {
     for (uintptr_t i = 0; i < weighted->length; ++i)
         assert(static_cast<const int32_t*>(arrayData(weighted))[i] == 99);
     assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.damage = 9;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    weapon.damage = 26;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.damage = 12;
+    weapon.mana = 9;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.mana = 8;
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.mana = 0;
     weapon.type = 6198;
     assert(hookRollable(&weapon.object, nullptr) == nullptr);
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
