@@ -15,6 +15,8 @@ class RarityLoader {
     static #DRAW_STRING = 'void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)';
 
     static get RarityCount() {
+        const shared = globalThis.bl?.csharp?.rarityCount;
+        if (typeof shared === 'function') return shared();
         let maximum = RarityLoader.VanillaCount - 1;
         for (const id of RarityLoader.ByType.keys()) if (id > maximum) maximum = id;
         return maximum + 1;
