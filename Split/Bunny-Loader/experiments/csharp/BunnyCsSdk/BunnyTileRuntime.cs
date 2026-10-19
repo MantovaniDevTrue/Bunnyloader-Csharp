@@ -79,13 +79,14 @@ public static class BunnyTileRuntime {
                 int effects = int.Parse(fields[9], NumberStyles.Integer, CultureInfo.InvariantCulture);
                 if (fields[10] != "0" && fields[10] != "1")
                     return "ERROR|Stage=DecodeTileDraw Reason=InvalidSpecialPass";
+                int tileType = fields.Length == 12
+                    ? int.Parse(fields[11], NumberStyles.Integer, CultureInfo.InvariantCulture) : -1;
+                if (tileType != -1 && (tileType < 754 || tileType > 65535))
+                    return "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType";
                 if ((mod.Masks[owner] & (1 << 13)) != 0)
                     tile.SetDrawPositions(x, y, ref width, ref top, ref height, ref frameX, ref frameY);
                 if ((mod.Masks[owner] & (1 << 14)) != 0) {
                     if (fields.Length == 12) {
-                        int tileType = int.Parse(fields[11], NumberStyles.Integer, CultureInfo.InvariantCulture);
-                        if (tileType < 754 || tileType > 65535)
-                            return "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType";
                         tile.AnimateIndividualTile(tileType, x, y, ref addFrameX, ref addFrameY);
                     } else {
                         tile.AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
@@ -95,7 +96,13 @@ public static class BunnyTileRuntime {
                     tile.SetSpriteEffects(x, y, ref effects);
                 bool drawDefault = true;
                 bool hasPreDraw = (mod.Masks[owner] & (1 << 5)) != 0 && fields[10] == "0";
-                if (hasPreDraw) drawDefault = tile.PreDraw(x, y);
+                BunnyTileDrawContext? context = null;
+                if (hasPreDraw) {
+                    if (tileType >= 754) {
+                        context = new BunnyTileDrawContext(tileType, x, y);
+                        drawDefault = tile.PreDraw(x, y, context);
+                    } else drawDefault = tile.PreDraw(x, y);
+                }
                 if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||
                     width < 1 || width > 512 || height < 1 || height > 512 ||
                     top < -128 || top > 128 || addFrameX < -8192 || addFrameX > 8192 ||
@@ -103,7 +110,7 @@ public static class BunnyTileRuntime {
                     frameX + addFrameX < 0 || frameY + addFrameY < 0 ||
                     effects < 0 || effects > 3)
                     return "ERROR|Stage=ValidateTileDraw Reason=InvalidDrawData";
-                return string.Join("|", "DRAW",
+                string drawWire = string.Join("|", "DRAW",
                     frameX.ToString(CultureInfo.InvariantCulture),
                     frameY.ToString(CultureInfo.InvariantCulture),
                     width.ToString(CultureInfo.InvariantCulture),
@@ -113,6 +120,8 @@ public static class BunnyTileRuntime {
                     addFrameY.ToString(CultureInfo.InvariantCulture),
                     effects.ToString(CultureInfo.InvariantCulture)) +
                     (hasPreDraw ? (drawDefault ? "|1" : "|0") : "");
+                return context != null && context.Count > 0
+                    ? drawWire + "\n" + context.Encode() : drawWire;
             }
             switch (index) {
                 case 0: return tile.CanKillTile(x, y) ? "1" : "0";

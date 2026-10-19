@@ -71,6 +71,8 @@ public abstract class BunnyTile {
     public virtual void RandomUpdate(int x, int y) { }
     public virtual bool RightClick(int x, int y) => false;
     public virtual bool PreDraw(int x, int y) => true;
+    public virtual bool PreDraw(int x, int y, BunnyTileDrawContext draw)
+        => PreDraw(x, y);
     public virtual void ModifyLight(int x, int y, ref float r, ref float g, ref float b) { }
     public virtual void PlaceInWorld(int x, int y) { }
     public virtual bool Slope(int x, int y) => true;
@@ -95,6 +97,17 @@ public abstract class BunnyTile {
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
+                if (i == 5) {
+                    var legacyDraw = type.GetMethod(methods[i], new[] {typeof(int), typeof(int)});
+                    var contextDraw = type.GetMethod(methods[i], new[] {typeof(int), typeof(int), typeof(BunnyTileDrawContext)});
+                    if (legacyDraw == null || contextDraw == null ||
+                        legacyDraw.GetBaseDefinition().DeclaringType != typeof(BunnyTile) ||
+                        contextDraw.GetBaseDefinition().DeclaringType != typeof(BunnyTile))
+                        throw new InvalidOperationException(type.FullName + ": invalid callback " + methods[i]);
+                    if (legacyDraw.DeclaringType != typeof(BunnyTile) ||
+                        contextDraw.DeclaringType != typeof(BunnyTile)) mask |= 1 << i;
+                    continue;
+                }
                 if (i == 14) {
                     Type integer = typeof(int);
                     Type byRef = integer.MakeByRefType();

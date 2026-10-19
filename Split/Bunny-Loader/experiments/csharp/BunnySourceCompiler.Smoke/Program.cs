@@ -731,6 +731,14 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string spriteDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-sprite-tile",
+        tileSmokeAssembly, nameof(TileSpriteSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (spriteDraw != "DRAW|0|0|16|16|0|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,0,2,4294967295,1")
+        throw new InvalidOperationException("CSharp PreDraw sprite wire mismatch: " + spriteDraw);
+    if ((new TileSpriteSmoke().TileCallbackMask & (1 << 5)) == 0)
+        throw new InvalidOperationException("CSharp PreDraw context overload undetected");
+    Console.WriteLine("BUNNY_CSHARP_TILE_SPRITE_CONTEXT=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_ANIMATION_TYPE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
@@ -761,5 +769,15 @@ sealed class TileAnimatedLegacySmoke : BunnyLoader.Source.BunnyTile
     {
         addFrameX += x;
         addFrameY += y;
+    }
+}
+
+sealed class TileSpriteSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override bool PreDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,0,2,0xffffffffu,1);
+        return false;
     }
 }

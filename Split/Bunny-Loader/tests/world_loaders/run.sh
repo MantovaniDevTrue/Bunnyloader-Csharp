@@ -42,6 +42,9 @@ cache="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw-cache"
 sprites="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-wire"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_wire_test.cpp -o "$sprites"
 "$sprites"
+reply="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-reply"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_reply_test.cpp -o "$reply"
+"$reply"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpriteBatch.cpp
 
 pass="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-pass"

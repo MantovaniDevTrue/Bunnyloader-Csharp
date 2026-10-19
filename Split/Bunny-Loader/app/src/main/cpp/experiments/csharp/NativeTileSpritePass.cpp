@@ -115,5 +115,12 @@ bool stageNativeTileSprites(uint64_t frame,const Batch& batch) {
     return ready&&pending.stage(frame,batch);
 }
 
+bool stageNativeTileSpritesForCurrentFrame(const Batch& batch) {
+    if(!ready || !frameField)return false;
+    uint64_t frame=0;
+    il2cpp::api().field_static_get_value(frameField,&frame);
+    return frame!=0 && pending.stage(frame,batch);
+}
+
 void resetNativeTileSpritePass() {pending.clear();}
 }

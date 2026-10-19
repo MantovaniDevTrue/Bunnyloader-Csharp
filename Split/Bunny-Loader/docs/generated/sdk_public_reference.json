@@ -2033,6 +2033,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool PreDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool PreDraw(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2103,6 +2107,22 @@
         {
           "signature": "void SetStaticDefaults()",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileDrawContext",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int Count { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, uint argb, int effects)",
+          "execution": "managed_helper"
         }
       ]
     },

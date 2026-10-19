@@ -5,6 +5,8 @@
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
 #include "experiments/csharp/NativeTileDrawBindings.h"
+#include "experiments/csharp/NativeTileSpriteReply.h"
+#include "experiments/csharp/NativeTileSpritePass.h"
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
@@ -216,9 +218,18 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
         return false;
     }
     tile_draw::Data draw{};
-    if(!tile_draw::parse(reply,&draw)) {
+    tile_sprite::Batch sprites{};
+    bool hasSprites=false;
+    if(!tile_sprite::parseDrawWithSprites(reply,&draw,&sprites,&hasSprites)) {
         reportTileCallbackFailure(spec,13,"Stage=DecodeDraw Reason=InvalidReply");
         return false;
+    }
+    if(hasSprites) {
+        if(special||!tile_sprite::ownTileSprites(sprites,type,x,y)||
+           !tile_sprite::stageNativeTileSpritesForCurrentFrame(sprites)) {
+            reportTileCallbackFailure(spec,13,"Stage=QueueSprites Reason=InvalidOrUnavailable");
+            return false;
+        }
     }
     data->frameX=draw.frameX;
     data->frameY=draw.frameY;
@@ -1025,6 +1036,7 @@ bool setupHooks() {
 }
 
 void resetNativeTileSessionState() {
+    tile_sprite::resetNativeTileSpritePass();
     g_tileScanTick=0;
     g_tileScanVisualCursor=0;
     g_tileScanBuffCursor=0;
@@ -1088,6 +1100,12 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if((spec.callbackMask & ((7 << 13) | (1 << 5))) != 0) {
+        if((spec.callbackMask & (1 << 5)) != 0) {
+            std::string drawingError;
+            if(!tile_sprite::installNativeTileSpritePass(&drawingError))
+                BL_WARN("[CSharp][TileDraw] Stage=BindSpritePass Mod=%s Class=%s Result=DefaultFallback Detail=%s",
+                        spec.mod.c_str(),spec.name.c_str(),drawingError.c_str());
+        }
         runtime::ensureTileDrawHook();
         if(!runtime::tileDrawHooksReady()) {
             BL_ERROR("[CSharp][TileDraw] Mod=%s Class=%s Stage=Bind Result=DrawHookUnavailable",
