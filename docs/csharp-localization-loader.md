@@ -126,3 +126,16 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 ## Bloqueio de entrega
 
 **Não gerar APK, não exportar `.bmod` de entrega, não marcar o loader como pronto nem mesclar antecipadamente com as PRs #98/#100.** Qualquer falha nas suítes abrangentes deve ser explicada e corrigida na branch proprietária antes de avançar o gate.
+
+
+## Continuação — unload atômico, fence de gerações e cache de tooltip
+
+- `notifyManagedApplied`, `bindManagedAssembly` e `retainActiveMods` agora serializam a verificação da sessão/geração e o enfileiramento sob o mesmo lock da localização; evita que callbacks do mod removido sejam enfileirados depois da desativação.
+- A fila de descarregamentos da MonoVM foi separada da fila limitada de 64 notificações normais, priorizada após receitas síncronas, com deduplicação por mod. Um unload já não é descartado quando a fila de localização está cheia.
+- `ManagedLocalizationEpochFence` mantém um tombstone monotônico por identificador de mod: rejeita registros enfileirados sob uma geração anterior, inclusive se um mod for descarregado e reativado. A mesma política impede executar notificações antigas ainda pendentes no worker.
+- Ao enfileirar uma montagem mais nova, notificações antigas do mesmo mod são eliminadas antes de verificar o limite de capacidade. Testes host cobrem isolamento entre mods, tombstones e reativação com gerações sucessivas.
+- O polling de auditoria da MonoVM só desperta para notificações de localização quando o runtime estiver pronto; não fica ocupado consumindo CPU enquanto o Mono ainda está inicializando.
+- A resolução de `Terraria.UI.ItemTooltip.InvalidateTooltips()` passou a exigir a assinatura `void InvalidateTooltips()` e método estático; somente então o `LanguageManager` pode invalidar o cache de tooltips após publicação bem-sucedida. Outros caches internos de NPCs, buffs e itens não receberam hooks especulativos.
+- A suíte C# exercita callbacks e descarregamentos concorrentes (256 iterações), preservando o contexto da cultura por thread.
+
+**Validação atual:** verificações de host e sintaxe C++ apenas. Não está demonstrado em Android/arm64 que `InvalidateTooltips` exista com essa assinatura na build alvo nem que `LocalizedText` mantidos pelos consumidores da UI sejam atualizados após unload. Não há medição de FPS real. Manter bloqueio de APK, `.bmod` e merge.
