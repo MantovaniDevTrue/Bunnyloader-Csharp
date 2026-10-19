@@ -380,6 +380,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     const Refs& r = g_refs;
     Il2CppObject* beforePlayer = objectAt(fileData, r.filePlayer);
     std::map<Il2CppObject*, std::pair<int, int>> before;
+    std::map<Il2CppObject*, std::pair<int, std::string>> beforeRarity;
     if (beforePlayer) {
         for (const Container& container : containersOf(beforePlayer)) {
             for (int slot = 0; slot < container.size(); ++slot) {
@@ -387,6 +388,9 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                 if (!item) continue;
                 const int type = field<int32_t>(item, r.type);
                 const int prefix = field<uint8_t>(item, r.prefix);
+                const std::string stableRarity = rarityFor(item);
+                if (type > 0 && !stableRarity.empty())
+                    beforeRarity.emplace(item, std::make_pair(type, stableRarity));
                 if (type > 0 && prefix >= vanillaPrefixCount() &&
                     !modPrefixKey(prefix).empty()) {
                     before.emplace(item, std::make_pair(type, prefix));
@@ -415,9 +419,23 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                     ++recoveredPrefixes;
                 }
             }
+            std::string stableRarity = rarityFor(item);
+            if (stableRarity.empty()) {
+                const auto previousRarity = beforeRarity.find(item);
+                if (previousRarity != beforeRarity.end() &&
+                    previousRarity->second.first == type)
+                    stableRarity = previousRarity->second.second;
+            }
+            if (stableRarity.empty())
+                stableRarity = pendingRarityFor(path, c.name, slot, type);
             if (!isModItem(type)) {
-                if (prefix >= vanillaPrefixCount() && !modPrefixKey(prefix).empty()) {
-                    items.push_back(vanillaPrefixEntry(c.name, slot, type, prefix));
+                const bool customPrefix = prefix >= vanillaPrefixCount() &&
+                    !modPrefixKey(prefix).empty();
+                if (customPrefix || !stableRarity.empty()) {
+                    SavedItem record = vanillaPrefixEntry(c.name, slot, type,
+                        customPrefix ? prefix : 0);
+                    record.rarityKey = stableRarity;
+                    items.push_back(std::move(record));
                 }
                 continue;
             }
@@ -425,6 +443,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             const std::string pendingKey = pendingPrefixFor(path, c.name, slot, type);
             if (!pendingKey.empty()) it.prefixKey = pendingKey;
             else encodePrefix(it, prefix);
+            it.rarityKey = stableRarity;
             items.push_back(std::move(it));
         }
     }
