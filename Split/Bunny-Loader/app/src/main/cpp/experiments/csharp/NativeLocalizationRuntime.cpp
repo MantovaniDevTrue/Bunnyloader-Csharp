@@ -552,15 +552,17 @@ void pumpOnGameThread() {
     if(!publishToGame(current,culture))return;
     invalidateGameTooltips();
     bool applied = false;
+    bool dynamicOnly = false;
     {
         std::lock_guard<std::mutex> lock(gate);
         if(session.revision()==revision) {
+            dynamicOnly = revision == lastDynamicRevision && culture == lastCulture;
             lastAppliedGeneration=revision;
             lastCulture=culture;
             applied = true;
         }
     }
-    if (applied && revision != lastDynamicRevision)
+    if (applied && !dynamicOnly)
         notifyManagedApplied(current, culture, false);
 }
 }
