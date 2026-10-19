@@ -10,7 +10,8 @@ public enum BunnyQuestCatchRules
 {
     None = 0,
     InvertedGravity = 1,
-    Uncommon = 2
+    Uncommon = 2,
+    InvertedGravityAndUncommon = InvertedGravity | Uncommon
 }
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
