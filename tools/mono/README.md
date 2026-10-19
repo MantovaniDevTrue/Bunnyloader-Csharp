@@ -2,6 +2,8 @@
 
 A integração C# inclui **a biblioteca ARM64 corrigida que já era usada nos testes Android anteriores**, além do código da alteração e do processo de recompilação. Não é necessário ter acesso ao armazenamento privado das builds de teste para baixar a biblioteca.
 
+**A biblioteca MonoVM ARM64, as dependências nativas e todas as DLLs do framework/SDK C# já estão nos caminhos finais do aplicativo nesta branch. Não há instalação manual necessária para usar a fonte.** O Gradle verifica os hashes antes do build. As instruções abaixo são opcionais e servem apenas para recompilação ou atualização futura.
+
 ## Arquivos incluídos
 
 | Arquivo | Finalidade |
@@ -15,7 +17,7 @@ A integração C# inclui **a biblioteca ARM64 corrigida que já era usada nos te
 | [`install_patched_mono_arm64.sh`](install_patched_mono_arm64.sh) | Confere SHA, ARM64 e símbolos, depois instala na pasta do Android |
 | [Teste da alteração](../../tests/test_mono_android_signals_patch.py) | Verifica os três pontos de modificação de sinais no código do Mono |
 
-## Uso direto da biblioteca incluída
+## Manutenção opcional: reinstalar a biblioteca incluída
 
 O Mono modificado vai para a pasta **`app/src/main/jniLibs/arm64-v8a/`**. Primeiro preparo o runtime padrão (DLLs e demais bibliotecas) do pacote NuGet `Microsoft.NETCore.App.Runtime.Mono.android-arm64 8.0.23` usando `tools/stage_mono_runtime.py`.
 
