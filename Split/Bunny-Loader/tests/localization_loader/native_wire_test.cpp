@@ -52,6 +52,12 @@ int main() {
     assert(valid.value=="{$Mods.examplemodcsharp.ItemName.ExampleItem}");
     assert(decodeWire(row,"source",&valid,&error));
     assert(valid.key=="Mods.source.ItemName.ExampleItem");
+    auto global=row;
+    global[2]=std::string("4C6567616379496E746572666163652E3238");
+    assert(decodeWire(global,"examplemodcsharp",&valid,&error));
+    assert(valid.key=="LegacyInterface.28");
+    global[2]=std::string("4D6F64732E6F746865722E4974656D4E616D652E466F6F");
+    assert(!decodeWire(global,"examplemodcsharp",&valid,&error));
 
     std::vector<Entry> managed;
     const std::string key="Mods.examplemodcsharp.Common.Dynamic";
