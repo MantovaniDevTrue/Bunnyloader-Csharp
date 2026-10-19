@@ -2113,6 +2113,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)",
           "execution": "managed_helper"
         },

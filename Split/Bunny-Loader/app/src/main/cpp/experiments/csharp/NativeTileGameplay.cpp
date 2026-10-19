@@ -179,7 +179,7 @@ void reportTileCallbackFailure(const NativeTileGameplaySpec& spec,int bit,const 
         static_cast<unsigned long long>(count),actual.c_str());
 }
 bool managedTileReady(const NativeTileGameplaySpec& spec,int bit) {
-    const int selected = bit == 13 ? (spec.callbackMask & (7 << 13)) :
+    const int selected = bit == 13 ? (spec.callbackMask & ((7 << 13) | (1 << 5))) :
                          (spec.callbackMask & (1 << bit));
     if(!selected||spec.assembly.empty())return false;
     std::string error;
@@ -205,9 +205,9 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
     if(!binding || !managedTileReady(binding->spec,13))return false;
     const auto& spec=binding->spec;
     char snapshot[192]{};
-    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
         x,y,data->frameX,data->frameY,data->width,data->height,
-        data->top,data->addFrX,data->addFrY,data->effects,special?1:0);
+        data->top,data->addFrX,data->addFrY,data->effects,special?1:0,type);
     if(length<=0||static_cast<size_t>(length)>=sizeof(snapshot))return false;
     std::string reply;
     if(!invokeManagedTileDraw(spec.mod,spec.assembly,spec.name,
@@ -228,6 +228,7 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
     data->addFrX=draw.addFrameX;
     data->addFrY=draw.addFrameY;
     data->effects=draw.effects;
+    if (!draw.drawDefault) { data->width=0; data->height=0; }
     return true;
 }
 void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
@@ -1040,7 +1041,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
     for(auto& [type,behavior]:g_tiles) {
         if(behavior.spec.mod!=mod)continue;
         behavior.spec.assembly=assembly;
-        if((behavior.spec.callbackMask & (7<<13))!=0 &&
+        if((behavior.spec.callbackMask & ((7<<13)|(1<<5)))!=0 &&
            type>=runtime::kVanillaTileCount && type<65536 && g_managedDrawBound) {
             g_managedDrawBindings.publish(type,behavior);
             g_managedDrawUncached[type].store(!behavior.spec.cacheDrawData,std::memory_order_release);
@@ -1086,7 +1087,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(),spec.name.c_str());
         return false;
     }
-    if((spec.callbackMask & (7 << 13)) != 0) {
+    if((spec.callbackMask & ((7 << 13) | (1 << 5))) != 0) {
         runtime::ensureTileDrawHook();
         if(!runtime::tileDrawHooksReady()) {
             BL_ERROR("[CSharp][TileDraw] Mod=%s Class=%s Stage=Bind Result=DrawHookUnavailable",
@@ -1100,7 +1101,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         }
     }
     g_tiles[spec.type] = behavior;
-    if((spec.callbackMask & (7 << 13)) != 0 && !behavior.spec.assembly.empty()) {
+    if((spec.callbackMask & ((7 << 13) | (1 << 5))) != 0 && !behavior.spec.assembly.empty()) {
         g_managedDrawBindings.publish(spec.type,behavior);
         g_managedDrawUncached[spec.type].store(!spec.cacheDrawData,std::memory_order_release);
         g_managedDrawMarks[spec.type].store(1,std::memory_order_release);

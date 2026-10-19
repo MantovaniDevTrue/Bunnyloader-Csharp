@@ -1168,6 +1168,7 @@ string Texture { get; set; }
 | `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |

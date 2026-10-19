@@ -9,10 +9,15 @@ int main() {
     assert(valid(d));
     assert(parse("DRAW|16|32|16|16|-4|0|36|1", &d));
     assert(d.frameX == 16 && d.frameY == 32 && d.top == -4 &&
-           d.addFrameY == 36 && d.effects == 1);
+           d.addFrameY == 36 && d.effects == 1 && d.drawDefault);
+    assert(parse("DRAW|16|32|16|16|-4|0|36|1|0", &d));
+    assert(!d.drawDefault && d.width == 16 && d.height == 16);
+    assert(parse("DRAW|16|32|16|16|-4|0|36|1|1", &d) && d.drawDefault);
     for (std::string_view bad : {
         "", "READY", "DRAW|", "DRAW|0|0|16|16|0|0|0",
-        "DRAW|0|0|16|16|0|0|0|0|0",
+        "DRAW|0|0|16|16|0|0|0|0|2",
+        "DRAW|0|0|16|16|0|0|0|0|",
+        "DRAW|0|0|16|16|0|0|0|0|1|0",
         "DRAW|-1|0|16|16|0|0|0|0",
         "DRAW|0|0|0|16|0|0|0|0",
         "DRAW|0|0|16|0|0|0|0|0",

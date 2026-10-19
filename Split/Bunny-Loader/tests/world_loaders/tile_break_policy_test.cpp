@@ -10,7 +10,7 @@ int main() {
     assert(validCallbackMask(1<<14));
     assert(validCallbackMask(1<<15));
     assert(validCallbackMask((1<<13)|(1<<14)|(1<<15)));
-    assert(!validCallbackMask(1<<5));
+    assert(validCallbackMask(1<<5));
     assert(validCallbackMask(1<<6));
     assert(validCallbackMask(1<<9));
     assert(validCallbackMask(1<<10));
