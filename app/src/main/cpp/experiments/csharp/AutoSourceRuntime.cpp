@@ -11,6 +11,7 @@
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
@@ -1232,6 +1233,7 @@ void noteAutoGameUpdate() {
     }
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
+    angler::pumpOnGameThread();
     pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
