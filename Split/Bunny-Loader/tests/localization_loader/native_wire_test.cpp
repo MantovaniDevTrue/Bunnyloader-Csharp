@@ -53,5 +53,31 @@ int main() {
     assert(decodeWire(row,"source",&valid,&error));
     assert(valid.key=="Mods.source.ItemName.ExampleItem");
 
+    std::vector<Entry> managed;
+    const std::string key="Mods.examplemodcsharp.Common.Dynamic";
+    const std::string value="Olá durante execução";
+    auto toHex=[](const std::string& value) {
+        const char digits[]="0123456789ABCDEF";
+        std::string hex;
+        for(unsigned char c:value) { hex+=digits[c>>4]; hex+=digits[c&15]; }
+        return hex;
+    };
+    const std::string protocol="OK|1\nBUNNY_DYNAMIC_LOCALES_V1\nLOCALE\tpt-BR\t"+
+        toHex(key)+"\t"+toHex(value);
+    assert(bl::csharp::localization::decodeManagedWire(protocol,"examplemodcsharp",&managed,&error));
+    assert(managed.size()==1 && managed[0].value==value);
+    assert(!bl::csharp::localization::decodeManagedWire(protocol,"other",&managed,&error));
+    assert(!bl::csharp::localization::decodeManagedWire(
+        protocol+"\nLOCALE\tpt-BR\t"+toHex(key)+"\t"+toHex(value),
+        "examplemodcsharp",&managed,&error));
+    assert(!bl::csharp::localization::decodeManagedWire(
+        "OK|1\nBUNNY_DYNAMIC_LOCALES_V0","examplemodcsharp",&managed,&error));
+    assert(!bl::csharp::localization::decodeManagedWire(
+        protocol+"\nLOCALE\tpt_BR\t"+toHex(key)+"\t"+toHex(value),
+        "examplemodcsharp",&managed,&error));
+    assert(bl::csharp::localization::decodeManagedWire(
+        "OK|0\nBUNNY_DYNAMIC_LOCALES_V1","examplemodcsharp",&managed,&error));
+    assert(managed.empty());
+
     return 0;
 }
