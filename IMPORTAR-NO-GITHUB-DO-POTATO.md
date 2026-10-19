@@ -1,6 +1,6 @@
-# Como eu preparei a fonte para você colocar no seu GitHub
+# Importação da fonte C# integrada no Bunny Loader original
 
-Potato, já deixei uma cópia **completa** do seu Bunny original com o meu suporte a C# integrado. Você não precisa abrir cada arquivo para fazer o port: os arquivos estão nas mesmas pastas do projeto Android original. Escrevi este guia para você trazer a fonte para **uma branch do seu próprio repositório**, sem perder seu histórico de commits nem sobrescrever a sua `main` antes de avaliar o resultado.
+Preparei uma cópia **completa** do Bunny Loader original com o suporte C# já integrado: o código Android e C# está nos mesmos caminhos que o projeto original. Este guia mostra como importar os arquivos para **uma branch do repositório oficial**, preservando o histórico Git e sem mexer na `main` durante a revisão. Não é necessário portar cada classe manualmente.
 
 ## 1. Baixe os dois repositórios lado a lado
 
@@ -68,10 +68,10 @@ Se preferir baixar um ZIP pelo GitHub, selecione a branch `entrega/potato-bunny-
 Eu preservei o código da build experimental para manter a fidelidade com a versão que passou nos testes automatizados. Isso implica alguns cuidados:
 
 - **ID do pacote:** a versão C# usa `com.bunnyloader.csharptest` em `app/build.gradle.kts`. Não alterei diretamente para o ID oficial sem uma nova rodada de build e teste. Você decide quando substituir pelo `com.bunnyloader` do seu projeto oficial, incluindo os caminhos internos e a assinatura.
-- **MonoVM:** os fontes usam uma `libmonosgen-2.0.so` modificada para o Android, com a política `mono_bunny_android_signal_policy_v1`, recuperada por um workflow privado. Essa biblioteca não é incluída como binário no Git público; não substitua por uma Mono genérica sem testar.
+- **MonoVM:** compartilhei o [patch de sinais ARM64](tools/mono/patch_mono_android_signals.py) e a [compilação completa a partir do .NET 8.0.23 público](tools/mono/build_patched_mono_arm64.sh). Consulte [as instruções](tools/mono/README.md) para gerar a `libmonosgen-2.0.so` modificada. A biblioteca binária usada no CI `.95.2` vinha de uma build anterior; uma nova compilação exige validação em Android antes de ser considerada equivalente.
 - **Roslyn:** DLLs do compilador/SDK e do framework precisam ser geradas, empacotadas e conferidas no `assets/managed/framework.sha256`.
 - **Terraria/Unity:** os binários e assets proprietários do jogo e a classe Unity permanecem fora deste Git, como já acontece no Bunny original.
-- **CI:** o meu pipeline privado de referência está no [repositório de desenvolvimento](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/.github/workflows/build-bunny-csharp-source-loader.yml), não faz parte da build GitHub oficial e precisa ser adaptado às suas credenciais e dependências, se você quiser automatizar a compilação.
+- **CI:** o [workflow histórico de APK](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/.github/workflows/build-bunny-csharp-source-loader.yml) mostra o pipeline usado nos testes C#, mas inclui dependências de jogo e assinatura que não são nossa propriedade. **A correção do Mono está disponível independentemente** em código e script de compilação, sem secrets para gerar esse componente.
 
 
 O inventário detalhado dos arquivos da integração está em [docs/POTATO-UPSTREAM-FILE-MAP.json](docs/POTATO-UPSTREAM-FILE-MAP.json). Minha explicação sobre startup, hook de entidades, Mono, Roslyn, JNI, CMake, SDK e testes fica no [manual completo](POTATO-C-SHARP-HANDOFF.md).
