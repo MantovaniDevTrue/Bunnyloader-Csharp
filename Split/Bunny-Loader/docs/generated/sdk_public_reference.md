@@ -867,8 +867,11 @@ BunnyPrefixRollRules()
 | --- | --- |
 | `string Serialize()` | compile_policy |
 | `void Allow(int itemType, int weight)` | compile_policy |
+| `void Allow(string itemName, int weight)` | compile_policy |
 | `void Deny(int itemType)` | compile_policy |
+| `void Deny(string itemName)` | compile_policy |
 | `void SetWeight(int itemType, int weight)` | compile_policy |
+| `void SetWeight(string itemName, int weight)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyProjectile
 
