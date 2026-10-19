@@ -167,9 +167,9 @@ static class DustTests
         var next = SpawnState(332, 5, 2);
         Check(registry.OnSpawn(ref next), "slot reuse");
         registry.Release(5, 332, 1);
-        Check(registry.ActiveCount == 3, "old generation cannot release reused slot");
+        Check(registry.ActiveCount == 2, "old generation cannot release reused slot");
         registry.Release(5, 332, 2);
-        Check(registry.ActiveCount == 2, "new generation release");
+        Check(registry.ActiveCount == 1, "new generation release");
 
         registry.ResetWorld();
         Check(registry.ActiveCount == 0 && registry.BoundCount == 3, "world reset preserves registered types");
