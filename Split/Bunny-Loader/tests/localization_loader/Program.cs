@@ -132,4 +132,71 @@ Test("concurrent-culture-updates", () =>
     });
 });
 
+Test("original-examplemod-json-both-cultures", () =>
+{
+    string content = Path.Combine(Directory.GetCurrentDirectory(),
+        "Split", "Bunny-Loader", "samples", "ExampleModCSharp", "Playable", "content");
+    var catalog = new BunnyLocalizationCatalog("en-US");
+    Equal(2, catalog.LoadFromContent("examplemodcsharp", content));
+    Equal(308, catalog.Count);
+    Equal("Example Item", catalog.Translate("ItemName.ExampleItem", "examplemodcsharp"));
+    catalog.SetCulture("pt-BR");
+    Equal("Exemplo de Item", catalog.Translate("ItemName.ExampleItem", "examplemodcsharp"));
+    catalog.SetCulture("fr-FR");
+    Equal("Example Item", catalog.Translate("ItemName.ExampleItem", "examplemodcsharp"));
+});
+
+Test("atomic-mod-replace-removes-stale-keys", () =>
+{
+    var catalog = new BunnyLocalizationCatalog();
+    catalog.RegisterCulture("example", "en-US", new Dictionary<string, string> { ["Stale"] = "old" });
+    catalog.ReplaceModCultures("example",
+        new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en-US"] = new Dictionary<string, string> { ["Current"] = "now" },
+            ["pt-BR"] = new Dictionary<string, string> { ["Current"] = "agora" }
+        });
+    Equal(false, catalog.Exists("Stale", "example"));
+    Equal("now", catalog.Translate("Current", "example"));
+    var immutable = catalog.SnapshotForGame();
+    Reject(() => catalog.ReplaceModCultures("example",
+        new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en-US"] = new Dictionary<string, string> { ["Change"] = "invalid" },
+            ["pt-BR"] = new Dictionary<string, string> { ["Bad..Key"] = "bad" }
+        }));
+    Equal("now", catalog.Translate("Current", "example"));
+    Equal(true, immutable.ContainsKey("Mods.example.Current"));
+});
+
+Test("malformed-json-does-not-poison-existing-mod", () =>
+{
+    string temp = Path.Combine(Path.GetTempPath(), "bunny-localization-" + Guid.NewGuid().ToString("N"));
+    string localization = Path.Combine(temp, "Localization");
+    Directory.CreateDirectory(localization);
+    try
+    {
+        var catalog = new BunnyLocalizationCatalog();
+        catalog.RegisterCulture("sample", "en-US", new Dictionary<string, string> { ["Name"] = "intact" });
+        File.WriteAllText(Path.Combine(localization, "en-US.json"),
+            "{ \"ItemName\": { \"ExampleItem\": \"Olá \\uD83D\\uDE03\" }, \"Ignore\": [1, 2, null] }");
+        Equal(1, catalog.LoadFromContent("sample", temp));
+        Equal("Olá 😃", catalog.Translate("ItemName.ExampleItem", "sample"));
+        File.WriteAllText(Path.Combine(localization, "pt-BR.json"), "{ \"ItemName\": {\"Key\": \"Unclosed\" ");
+        bool rejected = false;
+        try { catalog.LoadFromContent("sample", temp); }
+        catch (InvalidDataException) { rejected = true; }
+        Equal(true, rejected);
+        Equal("Olá 😃", catalog.Translate("ItemName.ExampleItem", "sample"));
+        File.Delete(Path.Combine(localization, "pt-BR.json"));
+        File.WriteAllText(Path.Combine(localization, "en-US.json"), "{ \"Bad\": \"\\uDE03\" }");
+        rejected = false;
+        try { catalog.LoadFromContent("sample", temp); }
+        catch (InvalidDataException) { rejected = true; }
+        Equal(true, rejected);
+        Equal("Olá 😃", catalog.Translate("ItemName.ExampleItem", "sample"));
+    }
+    finally { Directory.Delete(temp, true); }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
