@@ -319,6 +319,33 @@ public struct PrefixStats
     };
 }
 
+public sealed class BunnyPrefixRollRules
+{
+    private readonly System.Collections.Generic.SortedDictionary<int, int> rules = new();
+
+    public void SetWeight(int itemType, int weight)
+    {
+        if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(itemType));
+        if (!rules.ContainsKey(itemType) && rules.Count >= 32)
+            throw new System.InvalidOperationException("BunnyPrefix supports at most 32 item-specific rules");
+        rules[itemType] = weight;
+    }
+
+    public void Deny(int itemType) => SetWeight(itemType, 0);
+
+    public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
+
+    public string Serialize()
+    {
+        var fields = new System.Collections.Generic.List<string>(rules.Count);
+        foreach (var entry in rules)
+            fields.Add(entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return string.Join(",", fields);
+    }
+}
+
 public abstract class BunnyPrefix
 {
     public string DisplayName { get; set; } = "";
@@ -326,6 +353,7 @@ public abstract class BunnyPrefix
     public float RollWeight { get; set; } = 1f;
 
     public abstract void SetDefaults();
+    public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
     public virtual void SetStats(ref PrefixStats stats) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
