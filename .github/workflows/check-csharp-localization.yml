@@ -7,12 +7,16 @@ on:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
       - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.json'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.md'
       - 'Split/Bunny-Loader/tests/localization_loader/**'
       - '.github/workflows/check-csharp-localization.yml'
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
       - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.json'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.md'
       - 'Split/Bunny-Loader/tests/localization_loader/**'
       - '.github/workflows/check-csharp-localization.yml'
   workflow_dispatch:
