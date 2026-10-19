@@ -35,6 +35,8 @@ public sealed class TestMightyPrefix : BunnyPrefix
         Category = PrefixCategory.AnyWeapon;
         RollWeight = 5f;
         DisplayName = "Poderoso";
+        ExtraTooltip = "Bonus adicional do prefixo";
+        RequireEffectiveStats = false;
     }
 
     public override void ConfigureRollRules(BunnyPrefixRollRules rules)
@@ -55,6 +57,12 @@ public sealed class TestMightyPrefix : BunnyPrefix
     public override void ModifyValue(ref float valueMultiplier)
     {
         valueMultiplier *= 1.05f;
+    }
+
+    public override void Apply(ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = 3;
+        effects.ValueBonus = 40;
     }
 }
 
