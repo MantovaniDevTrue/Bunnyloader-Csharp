@@ -485,8 +485,21 @@ int main() {
     const int previousCalls = chanceOriginalCalls;
     assert(!hookItemPrefixChance(&rejected.object, 99, &chanceTier, nullptr));
     assert(chanceOriginalCalls == previousCalls);
+    g_restoreRoll = {&rejected.object, 99, false};
+    assert(hookItemPrefixChance(&rejected.object, 99, &chanceTier, nullptr));
+    assert(chanceOriginalCalls == previousCalls + 1);
+    g_restoreRoll = {};
     rejected.accessory = 0;
     assert(hookRollable(&rejected.object, nullptr) == nullptr);
+    auto oldView = descriptorView;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>();
+    rejected.accessory = 1;
+    const int vanillaAttempts = nativeRolls;
+    int32_t none = 0;
+    assert(hookRollable(&rejected.object, nullptr) == nullptr);
+    assert(!hookRoll(&rejected.object, &randomObject, &none, nullptr));
+    assert(nativeRolls == vanillaAttempts);
+    descriptorView = oldView;
     deniedView = std::make_shared<const std::map<int, std::set<int>>>();
     assert(hookCanRoll(&rejected.object, 99, nullptr));
 
