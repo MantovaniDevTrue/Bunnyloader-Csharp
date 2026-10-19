@@ -68,7 +68,6 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     const auto found = std::find_if(quests.begin(), quests.end(),
         [&](const Quest& quest) { return quest.type == questId; });
     if (found == quests.end()) return;
-    if ((found->catchRules & 2) != 0 && !uncommon) return;
     int32_t owner = -1;
     std::memcpy(&owner, reinterpret_cast<const char*>(bobber) + g_owner, sizeof(owner));
     auto& a = il2cpp::api();
@@ -78,11 +77,9 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
         return;
     auto* player = static_cast<Il2CppObject**>(arrayData(players))[owner];
     if (!player) return;
-    if ((found->catchRules & 1) != 0) {
-        float gravity = 1.f;
-        std::memcpy(&gravity, reinterpret_cast<const char*>(player) + g_gravity, sizeof(gravity));
-        if (!(gravity < 0.f)) return;
-    }
+    float gravity = 1.f;
+    std::memcpy(&gravity, reinterpret_cast<const char*>(player) + g_gravity, sizeof(gravity));
+    if (!Registry::canCatch(*found, gravity < 0.f, uncommon != 0)) return;
     const int32_t result = questId;
     std::memcpy(static_cast<char*>(attempt) + g_rolledItem, &result, sizeof(result));
 }
