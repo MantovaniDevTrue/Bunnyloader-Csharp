@@ -91,7 +91,8 @@ namespace bl::runtime {
 bool isModItem(int type) { return type >= 6196; }
 int vanillaPrefixCount() { return 98; }
 std::string modPrefixKey(int type) {
-    return type == 98 ? "fixture/Guarded" : type == 99 ? "fixture/Mighty" : "";
+    return type == 98 ? "fixture/Guarded" : type == 99 ? "fixture/Mighty" :
+           type == 101 ? "fixture/Custom" : "";
 }
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old, uintptr_t size) {
     const size_t stride = strides.at(old);
@@ -249,11 +250,38 @@ int main() {
     assert(itemRollWeight(&weapon.object, mighty) == 3);
     assert(itemRollWeight(&accessory.object, mighty) == 1);
 
+    ManagedPrefixEntry custom;
+    custom.name = "Custom";
+    custom.type = 101;
+    custom.category = 6;
+    custom.rollWeight = 1;
+    custom.itemWeights[6199] = 2;
+    custom.itemWeights[6198] = 0;
+    descriptors = {guarded, mighty, custom};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
+    weapon.type = 6199;
+    weapon.prefix = 0;
+    assert(hookCanRoll(&weapon.object, 101, nullptr));
+    auto* customRollable = hookRollable(&weapon.object, nullptr);
+    assert(customRollable && customRollable->length == 3);
+    for (uintptr_t i = 0; i < customRollable->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(customRollable))[i] == 99);
+    bool reachedCustom = false;
+    assert(applyManagedPrefixViaNativeRoll(&weapon.object, 101,
+                                           &prefixMethod, &reachedCustom));
+    assert(reachedCustom && weapon.prefix == 101 && nativeRolls == 0);
+    weapon.type = 6198;
+    weapon.prefix = 0;
+    assert(!hookCanRoll(&weapon.object, 101, nullptr));
+    assert(!applyManagedPrefixViaNativeRoll(&weapon.object, 101,
+                                            &prefixMethod, &reachedCustom));
+    assert(!reachedCustom && weapon.prefix == 0);
+
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
     chances.value=allocate(98,1);
     assert(ensurePrefixTables(descriptors));
-    assert(names.value->length==100 && chances.value->length==100 && constructorRuns==2);
+    assert(names.value->length==102 && chances.value->length==102 && constructorRuns==2);
     // Genuine unavailability is not turned into a fake successful restoration.
     auto saved=api.runtime_class_init;
     api.runtime_class_init=nullptr;
