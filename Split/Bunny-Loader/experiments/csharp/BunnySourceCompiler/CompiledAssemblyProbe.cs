@@ -951,6 +951,30 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Managed prefix item rules too long: " + name);
             if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
             lines.Add(string.Join("\t", fields));
+            MethodInfo applyPrefix = type.GetMethod("Apply",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");
+            Type effectType = applyPrefix.GetParameters().Single().ParameterType.GetElementType()
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats requires ref");
+            object effectState = Activator.CreateInstance(effectType)
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats unavailable");
+            object?[] applyArgs = { effectState };
+            applyPrefix.Invoke(prefix, applyArgs);
+            effectState = applyArgs[0] ?? throw new InvalidOperationException("Missing prefix effect result");
+            int applyDamage = Value<int>(effectState, "DamageBonus");
+            int applyValue = Value<int>(effectState, "ValueBonus");
+            bool effectiveStats = Value<bool>(prefix, "RequireEffectiveStats");
+            string extraTooltip = Value<string>(prefix, "ExtraTooltip");
+            if (applyDamage < 0 || applyDamage > 1000 ||
+                applyValue < 0 || applyValue > 100000 ||
+                extraTooltip.Length > 120 || extraTooltip.Any(char.IsControl))
+                throw new InvalidOperationException("Invalid prefix post-apply policy: " + name);
+            if (applyDamage != 0 || applyValue != 0 || !effectiveStats || extraTooltip.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_POST", name,
+                    applyDamage.ToString(CultureInfo.InvariantCulture),
+                    applyValue.ToString(CultureInfo.InvariantCulture),
+                    effectiveStats ? "1" : "0",
+                    extraTooltip.Length == 0 ? "-" : extraTooltip));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
