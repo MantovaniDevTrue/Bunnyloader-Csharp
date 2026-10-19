@@ -48,3 +48,9 @@ print("CSHARP_BUILD_POLICY_EVENTS_REFS_FORKS_OUTPUT_AND_EXPRESSION_LIMIT=PASS")
 # GitHub also limits the expanded literal of each interpolated step, not only expressions.
 run_blocks=re.findall(r"(?m)^        run: \|\n((?: {10}.*\n|\n)*)",workflow)
 assert max((len(block) for block in run_blocks if '${{' in block),default=0)<18000, 'Extract large interpolated run steps before GitHub 21000 limit'
+
+# User requires the full example port before the next release; CI remains enabled.
+for event in ("push", "workflow_dispatch", "pull_request"):
+    held=module.classify(event,"refs/heads/feat/csharp-summon-lifecycle-v95","feat/csharp-summon-lifecycle-v95",repo,repo)
+    assert held["aot"] and held["lights"] and not held["publish"]
+assert "needs.build.outputs.publish == 'true'" in workflow
