@@ -21,5 +21,6 @@ struct NativeTileGameplaySpec {
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);
+void bindNativeTileAssembly(const std::string& mod,const std::string& assembly);
 
 }
