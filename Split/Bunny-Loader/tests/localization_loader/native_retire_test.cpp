@@ -18,7 +18,11 @@ int main() {
     assert(!validOwnedLocaleKey("Mods.foo."));
     assert(!validOwnedLocaleKey("Mods.foo.Items..Name"));
     assert(!validOwnedLocaleKey("Mods.foo.Items.Name\n"));
-    assert(!validOwnedLocaleKey("Mods.foo.Items.Name$Variant"));
+    assert(validOwnedLocaleKey("Mods.foo.Items.Name$Variant"));
+    assert(!validOwnedLocaleKey("Mods.foo.Items.$Variant"));
+    assert(!validOwnedLocaleKey("Mods.foo.Items.Name$Variant$Again"));
+    assert(!validOwnedLocaleKey("Mods.foo.Items.Name$Variant.Sub"));
+    assert(!validOwnedLocaleKey("Mods.foo.Items.Name$"));
     assert(!validOwnedLocaleKey("Mods.foo.Items.Name\x01"));
     NativeLocalizationSession session;
     session.replace("one",{{"en-US","Mods.one.ItemName.Foo","English"},
@@ -35,7 +39,7 @@ int main() {
     assert(!safeToRetireAll(retired));
     retired.retired.erase("Mods.two.ItemName.Bar");
     retired.retired.insert("Mods.one.ItemName.Bad$Variant");
-    assert(!safeToRetireAll(retired));
+    assert(safeToRetireAll(retired));
     retired.retired.erase("Mods.one.ItemName.Bad$Variant");
     assert(safeToRetireAll(retired));
     session.replace("one",{{"pt-BR","Mods.one.ItemName.Foo","New"}});
