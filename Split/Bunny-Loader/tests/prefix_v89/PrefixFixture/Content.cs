@@ -65,6 +65,7 @@ public sealed class TestCustomPrefix : BunnyPrefix
         rules.Deny(1);
         rules.Allow("TestWand", 0);
         rules.SetCanRoll("TestWand", true);
+        rules.PreferFor("TestWand");
     }
 }
 
