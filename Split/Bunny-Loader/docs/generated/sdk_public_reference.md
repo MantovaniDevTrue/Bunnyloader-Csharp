@@ -850,9 +850,25 @@ string DisplayName { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
+| `void ConfigureRollRules(BunnyPrefixRollRules rules)` | compile_policy |
 | `void ModifyValue(ref float valueMultiplier)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 | `void SetStats(ref PrefixStats stats)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixRollRules
+
+class; base: `System.Object`.
+
+```csharp
+BunnyPrefixRollRules()
+```
+
+| Method | Execution |
+| --- | --- |
+| `string Serialize()` | compile_policy |
+| `void Allow(int itemType, int weight)` | compile_policy |
+| `void Deny(int itemType)` | compile_policy |
+| `void SetWeight(int itemType, int weight)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyProjectile
 
