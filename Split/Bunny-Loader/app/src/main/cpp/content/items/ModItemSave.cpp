@@ -1135,8 +1135,14 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 const ChestSlot s = slotOf(chestItems, i);
                 if (s.type() <= 0 || s.stack() <= 0) continue;
                 if (s.type() < kVanillaItemCount) {
-                    if (s.prefix() >= vanillaPrefixCount() && !modPrefixKey(s.prefix()).empty()) {
-                        items.push_back(vanillaPrefixEntry(chestName(chest), i, s.type(), s.prefix()));
+                    const auto stable = chestRarity(s.data, s.type());
+                    const bool customPrefix = s.prefix() >= vanillaPrefixCount() &&
+                        !modPrefixKey(s.prefix()).empty();
+                    if (customPrefix || !stable.empty()) {
+                        SavedItem record = vanillaPrefixEntry(chestName(chest), i, s.type(),
+                            customPrefix ? s.prefix() : 0);
+                        record.rarityKey = stable;
+                        items.push_back(std::move(record));
                     }
                     continue;
                 }
@@ -1145,6 +1151,7 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 SavedItem it{chestName(chest), i, s.stack(), 0, s.favorited() != 0, std::move(key), {}};
                 encodePrefix(it, s.prefix());
                 it.data = chestData(s.data, s.type());
+                it.rarityKey = chestRarity(s.data, s.type());
                 if (s.prefix() == 0) it.prefixKey = pendingPrefixFor(path, it.container, i, s.type());
                 items.push_back(std::move(it));
             }
@@ -1208,8 +1215,9 @@ void hkFixAgainstExploits(const MethodInfo* m) {
             cov[static_cast<size_t>(s.slot)] = true;
             const int prefix = decodePrefix(s);
             slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
+            setChestRarity(slot.data, slot.type(), s.rarityKey);
             if (prefix > 0) ++prefixes;
-            else kept.push_back(s);
+            else if (!s.prefixKey.empty()) kept.push_back(s);
             continue;
         }
         const int type = it == byName.end() ? -1 : typeForKey(s.key);
@@ -1226,6 +1234,7 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
         slot.favorited() = s.favorited ? 1 : 0;
         setChestData(slot.data, type, s.data);
+        setChestRarity(slot.data, type, s.rarityKey);
         if (prefix < 0 && !s.prefixKey.empty()) pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
         std::vector<bool>& cov = covered[s.container];
         cov.resize(it->second->length);
