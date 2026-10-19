@@ -1111,11 +1111,19 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "string Key(string path, string callerModId)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "string Translate(string path, string callerModId)",
           "execution": "managed_helper"
         },
         {
           "signature": "string TryTranslate(string path, string callerModId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Register(string fullKey, IReadOnlyDictionary\u003Cstring, string\u003E cultures)",
           "execution": "managed_helper"
         },
         {
