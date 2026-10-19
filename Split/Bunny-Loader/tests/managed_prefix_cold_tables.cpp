@@ -331,6 +331,10 @@ int main() {
     mighty.maxItemStack = 10;
     mighty.itemWeights[6199] = 3;
     mighty.itemWeights[6198] = 0;
+    mighty.hasStackRollWeight = true;
+    mighty.minWeightStack = 3;
+    mighty.maxWeightStack = 5;
+    mighty.weightInsideStackRange = 6;
     descriptors = {guarded, mighty};
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(descriptors);
     weapon.type = 6199;
@@ -338,6 +342,27 @@ int main() {
     assert(weighted && weighted->length == 3);
     for (uintptr_t i = 0; i < weighted->length; ++i)
         assert(static_cast<const int32_t*>(arrayData(weighted))[i] == 99);
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.stack = 3;
+    auto* dynamicWeighted = hookRollable(&weapon.object, nullptr);
+    assert(dynamicWeighted && dynamicWeighted->length == 6);
+    for (uintptr_t i = 0; i < dynamicWeighted->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(dynamicWeighted))[i] == 99);
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    weapon.stack = 5;
+    assert(itemRollWeight(&weapon.object, mighty) == 6);
+    weapon.stack = 6;
+    assert(itemRollWeight(&weapon.object, mighty) == 3);
+    mighty.weightInsideStackRange = 0;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
+    weapon.stack = 4;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    assert(hookRollable(&weapon.object, nullptr) == nullptr);
+    mighty.weightInsideStackRange = 6;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
+    weapon.stack = 1;
     assert(hookCanRoll(&weapon.object, 99, nullptr));
     weapon.damage = 9;
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
@@ -363,9 +388,11 @@ int main() {
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     mighty.minItemStack = 0;
     mighty.maxItemStack = 999999;
+    mighty.hasStackRollWeight = false;
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
         std::vector<ManagedPrefixEntry>{guarded, mighty});
     assert(hookCanRoll(&weapon.object, 99, nullptr));
+    mighty.hasStackRollWeight = true;
     mighty.minItemStack = 1;
     mighty.maxItemStack = 10;
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(

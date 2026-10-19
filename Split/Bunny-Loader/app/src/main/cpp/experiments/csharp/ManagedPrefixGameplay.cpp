@@ -162,7 +162,13 @@ int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
     if (!item || g_refs.type < 0) return 0;
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
     const auto rule = p.itemWeights.find(itemType);
-    return rule == p.itemWeights.end() ? static_cast<int>(p.rollWeight) : rule->second;
+    const int baseWeight =
+        rule == p.itemWeights.end() ? static_cast<int>(p.rollWeight) : rule->second;
+    if (!p.hasStackRollWeight) return baseWeight;
+    if (g_refs.stack < 0) return 0;
+    const int stack = bl::runtime::field<int32_t>(item, g_refs.stack);
+    return stack >= p.minWeightStack && stack <= p.maxWeightStack
+        ? p.weightInsideStackRange : baseWeight;
 }
 
 bool itemCanRoll(Il2CppObject* item, const ManagedPrefixEntry& p) {

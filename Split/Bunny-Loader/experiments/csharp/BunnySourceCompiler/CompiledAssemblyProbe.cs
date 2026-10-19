@@ -964,6 +964,14 @@ public static class CompiledAssemblyProbe
             int maxMana = Value<int>(conditions, "MaxMana");
             int minStack = Value<int>(conditions, "MinStack");
             int maxStack = Value<int>(conditions, "MaxStack");
+            bool hasStackRollWeight = Value<bool>(conditions, "HasStackRollWeight");
+            int minWeightStack = Value<int>(conditions, "RollWeightMinStack");
+            int maxWeightStack = Value<int>(conditions, "RollWeightMaxStack");
+            int weightInRange = Value<int>(conditions, "RollWeightInRange");
+            if (hasStackRollWeight &&
+                (minWeightStack < 0 || maxWeightStack < minWeightStack ||
+                 maxWeightStack > 999999 || weightInRange < 0 || weightInRange > 20))
+                throw new InvalidOperationException("Invalid stack prefix roll weight: " + name);
             if (minDamage < 0 || maxDamage < minDamage || maxDamage > 100000 ||
                 minMana < 0 || maxMana < minMana || maxMana > 10000 ||
                 minStack < 0 || maxStack < minStack || maxStack > 999999)
@@ -978,6 +986,11 @@ public static class CompiledAssemblyProbe
                     maxMana.ToString(CultureInfo.InvariantCulture),
                     minStack.ToString(CultureInfo.InvariantCulture),
                     maxStack.ToString(CultureInfo.InvariantCulture)));
+            if (hasStackRollWeight)
+                lines.Add(string.Join("\t", "PREFIX_STACK_WEIGHT", name,
+                    minWeightStack.ToString(CultureInfo.InvariantCulture),
+                    maxWeightStack.ToString(CultureInfo.InvariantCulture),
+                    weightInRange.ToString(CultureInfo.InvariantCulture)));
             MethodInfo applyPrefix = type.GetMethod("Apply",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");

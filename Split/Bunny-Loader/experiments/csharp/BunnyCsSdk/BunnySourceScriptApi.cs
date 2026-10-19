@@ -506,6 +506,10 @@ public sealed class BunnyPrefixItemConditions
     public int MaxMana { get; private set; } = 10000;
     public int MinStack { get; private set; } = 0;
     public int MaxStack { get; private set; } = 999999;
+    public bool HasStackRollWeight { get; private set; }
+    public int RollWeightMinStack { get; private set; }
+    public int RollWeightMaxStack { get; private set; }
+    public int RollWeightInRange { get; private set; }
 
     public void RequireDamageBetween(int minimum, int maximum)
     {
@@ -529,6 +533,19 @@ public sealed class BunnyPrefixItemConditions
             throw new System.ArgumentOutOfRangeException(nameof(minimum));
         MinStack = minimum;
         MaxStack = maximum;
+    }
+
+    public void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999 ||
+            weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (HasStackRollWeight)
+            throw new System.InvalidOperationException("Only one stack-weight rule is supported");
+        HasStackRollWeight = true;
+        RollWeightMinStack = minimum;
+        RollWeightMaxStack = maximum;
+        RollWeightInRange = weight;
     }
 }
 

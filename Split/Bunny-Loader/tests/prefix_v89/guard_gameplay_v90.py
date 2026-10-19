@@ -18,6 +18,11 @@ assert "registeredManagedPrefixCount" in bridge
 assert "installManagedPrefixGameplayHooks()" in bridge
 assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
+assert "PREFIX_STACK_WEIGHT" in source
+assert "prefix.hasStackRollWeight = true;" in source
+assert "p.hasStackRollWeight" in game
+assert "stack >= p.minWeightStack && stack <= p.maxWeightStack" in game
+assert "OverrideRollWeightWhenStackBetween" in (root / "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
 assert 'r.stack = fieldOffset(item, "stack");' in game
 assert "if (p.minItemStack != 0 || p.maxItemStack != 999999)" in game
 assert "fields.size() != 6 && fields.size() != 8" in source

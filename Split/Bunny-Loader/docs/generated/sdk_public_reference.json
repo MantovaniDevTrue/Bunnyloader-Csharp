@@ -1627,15 +1627,23 @@
         "BunnyPrefixItemConditions()"
       ],
       "properties": [
+        "bool HasStackRollWeight { get; }",
         "int MaxDamage { get; }",
         "int MaxMana { get; }",
         "int MaxStack { get; }",
         "int MinDamage { get; }",
         "int MinMana { get; }",
-        "int MinStack { get; }"
+        "int MinStack { get; }",
+        "int RollWeightInRange { get; }",
+        "int RollWeightMaxStack { get; }",
+        "int RollWeightMinStack { get; }"
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void RequireDamageBetween(int minimum, int maximum)",
           "execution": "compile_policy"

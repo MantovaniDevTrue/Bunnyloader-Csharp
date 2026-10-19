@@ -663,6 +663,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
     std::map<std::string, std::vector<std::string>> prefixTooltipPolicies;
     std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
+    std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
     std::vector<std::pair<int, bool>> prefixChances;
@@ -731,6 +732,25 @@ bool applyManagedSourceDefaults(
                 bounds.maxItemStack > 999999 ||
                 !prefixItemConditions.emplace(fields[1], bounds).second) {
                 *error = "[CSharp][ERROR][PrefixCondition] InvalidPrefixOrBounds";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_STACK_WEIGHT") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry rule;
+            if (fields.size() != 5 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &rule.minWeightStack) ||
+                !integer(fields[3], &rule.maxWeightStack) ||
+                !integer(fields[4], &rule.weightInsideStackRange) ||
+                rule.minWeightStack < 0 || rule.maxWeightStack < rule.minWeightStack ||
+                rule.maxWeightStack > 999999 || rule.weightInsideStackRange < 0 ||
+                rule.weightInsideStackRange > 20 ||
+                !prefixStackWeights.emplace(fields[1], rule).second) {
+                *error = "[CSharp][ERROR][PrefixStackWeight] InvalidPrefixOrBounds";
                 return false;
             }
             continue;
@@ -1429,6 +1449,14 @@ bool applyManagedSourceDefaults(
             prefix.maxItemStack = condition->second.maxItemStack;
             prefixItemConditions.erase(condition);
         }
+        const auto stackWeight = prefixStackWeights.find(prefix.name);
+        if (stackWeight != prefixStackWeights.end()) {
+            prefix.hasStackRollWeight = true;
+            prefix.minWeightStack = stackWeight->second.minWeightStack;
+            prefix.maxWeightStack = stackWeight->second.maxWeightStack;
+            prefix.weightInsideStackRange = stackWeight->second.weightInsideStackRange;
+            prefixStackWeights.erase(stackWeight);
+        }
         const auto post = prefixPostPolicies.find(prefix.name);
         if (post == prefixPostPolicies.end()) continue;
         prefix.applyDamageBonus = post->second.applyDamageBonus;
@@ -1443,6 +1471,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixItemConditions.empty()) {
         *error = "PREFIX_CONDITION sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixStackWeights.empty()) {
+        *error = "PREFIX_STACK_WEIGHT sem descritor de prefixo correspondente";
         return false;
     }
     if (!prefixTooltipPolicies.empty()) {

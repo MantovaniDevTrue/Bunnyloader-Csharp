@@ -899,16 +899,21 @@ class; base: `System.Object`.
 
 ```csharp
 BunnyPrefixItemConditions()
+bool HasStackRollWeight { get; }
 int MaxDamage { get; }
 int MaxMana { get; }
 int MaxStack { get; }
 int MinDamage { get; }
 int MinMana { get; }
 int MinStack { get; }
+int RollWeightInRange { get; }
+int RollWeightMaxStack { get; }
+int RollWeightMinStack { get; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)` | compile_policy |
 | `void RequireDamageBetween(int minimum, int maximum)` | compile_policy |
 | `void RequireManaBetween(int minimum, int maximum)` | compile_policy |
 | `void RequireStackBetween(int minimum, int maximum)` | compile_policy |

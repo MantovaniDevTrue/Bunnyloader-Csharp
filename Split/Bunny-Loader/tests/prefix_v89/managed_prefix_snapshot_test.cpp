@@ -114,6 +114,10 @@ int main() {
     mighty.maxItemMana = 8;
     mighty.minItemStack = 1;
     mighty.maxItemStack = 10;
+    mighty.hasStackRollWeight = true;
+    mighty.minWeightStack = 3;
+    mighty.maxWeightStack = 5;
+    mighty.weightInsideStackRange = 6;
     mighty.applyDamageBonus = 3;
     mighty.applyValueBonus = 40;
     mighty.requireEffectiveStats = false;
@@ -129,6 +133,14 @@ int main() {
     assert(managedPrefixView() == second);
     invalidPost = mighty;
     invalidPost.maxItemMana = 10001;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.minWeightStack = 6;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.weightInsideStackRange = 21;
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
     assert(managedPrefixView() == second);
     invalidPost = mighty;
@@ -162,6 +174,10 @@ int main() {
     assert(third->at(1).maxItemMana == 8);
     assert(third->at(1).minItemStack == 1);
     assert(third->at(1).maxItemStack == 10);
+    assert(third->at(1).hasStackRollWeight);
+    assert(third->at(1).minWeightStack == 3);
+    assert(third->at(1).maxWeightStack == 5);
+    assert(third->at(1).weightInsideStackRange == 6);
     assert(third->at(1).applyValueBonus == 40);
     assert(!third->at(1).requireEffectiveStats);
     assert(third->at(1).extraTooltip == "Bonus adicional do prefixo");

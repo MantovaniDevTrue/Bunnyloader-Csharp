@@ -30,6 +30,10 @@ O exemplo jogável `ExampleWand.cs` usa `ConfigurePrefixRules(BunnyItemPrefixRul
 
 O exemplo `ExampleMightyPrefix` usa `RequireDamageBetween`, `RequireManaBetween` e `RequireStackBetween(1, 10)`. O último é avaliado nativamente em `Terraria.Item.stack` a cada tentativa de rolagem, sem chamada síncrona à MonoVM. O descritor `PREFIX_CONDITION` de 6 campos permanece válido; os novos registros de 8 campos incluem os limites da pilha. A condição regula novas rolagens, não invalida prefixos recuperados de saves anteriores. Trata-se de condição declarativa por estado do item, não de `CanRoll(item)` C# arbitrário. Não houve teste de gameplay Android neste lote.
 
+## Peso de prefixo conforme a pilha do item
+
+O `ExampleMightyPrefix` também demonstra `OverrideRollWeightWhenStackBetween(3, 5, 6)`. Uma pilha com 3 a 5 unidades ganha peso nativo 6; fora do intervalo, continua valendo o peso padrão do prefixo ou o peso configurado por tipo de item. Um peso zero desativa a rolagem automática enquanto a condição se aplica, mas um `SetCanRoll` explícito continua tendo prioridade para aplicação direta. O contrato `PREFIX_STACK_WEIGHT` opcional é separado do `PREFIX_CONDITION`; o formato antigo segue aceito. A publicação do descritor é imutável e não exige callbacks MonoVM durante a reforja. É um subconjunto declarativo de `RollChance(item)`, não execução arbitrária de C#.
+
 ## Diferença entre três rotas
 
 1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.

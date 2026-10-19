@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 12 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 13 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -26,6 +26,8 @@ try
         throw new InvalidOperationException("Managed item ApplyPrefix policy missing");
     if (data.Count(row => row == "PREFIX_CONDITION\tTestMightyPrefix\t10\t25\t0\t8\t1\t10") != 1)
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
+    if (data.Count(row => row == "PREFIX_STACK_WEIGHT\tTestMightyPrefix\t3\t5\t6") != 1)
+        throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
     string tipsHex = string.Join(",",
@@ -36,6 +38,7 @@ try
     var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_APPLY\t", StringComparison.Ordinal))
@@ -125,6 +128,18 @@ try
     catch (ArgumentOutOfRangeException) { invalidStack = true; }
     if (!invalidStack) throw new InvalidOperationException("Inverted stack range accepted");
     predicates.RequireStackBetween(1, 10);
+    bool invalidWeight = false;
+    try { predicates.OverrideRollWeightWhenStackBetween(5, 3, 6); }
+    catch (ArgumentOutOfRangeException) { invalidWeight = true; }
+    if (!invalidWeight) throw new InvalidOperationException("Inverted stack weight range accepted");
+    predicates.OverrideRollWeightWhenStackBetween(3, 5, 6);
+    bool duplicateWeight = false;
+    try { predicates.OverrideRollWeightWhenStackBetween(3, 5, 2); }
+    catch (InvalidOperationException) { duplicateWeight = true; }
+    if (!duplicateWeight) throw new InvalidOperationException("Duplicate stack weight policy accepted");
+    if (!predicates.HasStackRollWeight || predicates.RollWeightMinStack != 3 ||
+        predicates.RollWeightMaxStack != 5 || predicates.RollWeightInRange != 6)
+        throw new InvalidOperationException("Dynamic stack weight was not kept");
     if (predicates.MinDamage != 10 || predicates.MaxDamage != 25 ||
         predicates.MinMana != 0 || predicates.MaxMana != 8 ||
         predicates.MinStack != 1 || predicates.MaxStack != 10)

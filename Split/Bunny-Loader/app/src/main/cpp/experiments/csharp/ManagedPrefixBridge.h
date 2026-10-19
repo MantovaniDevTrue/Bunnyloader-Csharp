@@ -34,6 +34,10 @@ struct ManagedPrefixEntry {
     int maxItemMana = 10000;
     int minItemStack = 0;
     int maxItemStack = 999999;
+    bool hasStackRollWeight = false;
+    int minWeightStack = 0;
+    int maxWeightStack = 0;
+    int weightInsideStackRange = 0;
     bool requireEffectiveStats = true;
     std::string extraTooltip;
     std::vector<std::string> tooltipLines;
