@@ -366,7 +366,7 @@ csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int ge
     return state;
 }
 
-void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state) {
+void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state, bool updateColor = true) {
     if (!activeOf(dust)) return;
     if (state.active == 0) {
         setNotActive(dust);
@@ -382,7 +382,7 @@ void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state)
     field<int32_t>(dust, r.alpha) = state.alpha;
     Rect& rect = field<Rect>(dust, r.frame);
     rect = {state.frameX, state.frameY, state.frameWidth, state.frameHeight};
-    field<Color32>(dust, r.color).packed = state.color;
+    if (updateColor) field<Color32>(dust, r.color).packed = state.color;
 }
 
 struct ManagedDustCached {
@@ -411,7 +411,7 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
     csharp::ManagedDustMailbox::Response response{};
     if (csharp::receiveManagedDustCallback(typeOf(dust), phase, slot, generation,
                                             static_cast<uint64_t>(g_frame), &response)) {
-        applyManagedDust(dust, response.state);
+        applyManagedDust(dust, response.state, phase != 3);
         cache.generation = generation;
         cache.type = response.state.type;
         cache.frame = static_cast<std::uint64_t>(g_frame);
@@ -445,6 +445,12 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
         if (free < g_minFree) g_minFree = free;
     }
     if (type < kVanillaDustCount || index < 0 || index >= kDustSlots) return index;
+    int& instance = g_dustGenerations[static_cast<size_t>(index)];
+    if (instance <= 0 || instance == INT32_MAX) instance = 1;
+    else ++instance;
+    for (size_t stage = 0; stage < csharp::ManagedDustMailbox::kPhases; ++stage)
+        g_dustCached[static_cast<size_t>(index) *
+                     csharp::ManagedDustMailbox::kPhases + stage] = {};
     Il2CppArray* dusts = readStatic<Il2CppArray*>(refs().mainDust);
     if (!dusts) return index;
     Il2CppObject* d = dustSlots(dusts)[index];
@@ -454,7 +460,12 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
     Rect& frame = field<Rect>(d, refs().frame);
     frame.x = 0;
     frame.y %= 30;
-    if ((g_hooks[mi] & kDustOnSpawn) && g_cb.spawn) g_cb.spawn(typeOf(d), d);
+    if (g_hooks[mi] & kDustOnSpawn) {
+        if (csharp::hasManagedDustType(typeOf(d)))
+            managedDustPhase(d, 0, nullptr);
+        else if (g_cb.spawn)
+            g_cb.spawn(typeOf(d), d);
+    }
     return index;
 }
 
@@ -482,7 +493,9 @@ void hkUpdateDust(const MethodInfo* m) {
     g_list.clear();
     if (g_anyHooks & kDustUpdate) {
         for (Il2CppObject* d : g_scan.mods) {
-            if (g_hooks[modIndex(typeOf(d))] & kDustUpdate) g_list.push_back(d);
+            if ((g_hooks[modIndex(typeOf(d))] & kDustUpdate) &&
+                !csharp::hasManagedDustType(typeOf(d)))
+                g_list.push_back(d);
         }
     }
     g_flags.assign(g_list.size(), true);
@@ -498,6 +511,14 @@ void hkUpdateDust(const MethodInfo* m) {
     for (Il2CppObject* d : g_scan.mods) {
         bool vanilla = true;
         if (next < g_list.size() && g_list[next] == d) vanilla = g_flags[next++];
+        const int managedType = typeOf(d);
+        const int managedMi = modIndex(managedType);
+        if (managedMi >= 0 && (g_hooks[managedMi] & kDustUpdate) &&
+            csharp::hasManagedDustType(managedType)) {
+            std::uint32_t response = 0;
+            if (managedDustPhase(d, 1, &response) && (response & 2u) == 0u)
+                vanilla = false;
+        }
         if (!activeOf(d)) continue;                        // o Update a apagou
         const int mi = modIndex(typeOf(d));
         if (mi < 0) continue;                              // o Update trocou o tipo
@@ -526,7 +547,8 @@ void hkUpdateDust(const MethodInfo* m) {
         for (Il2CppObject* d : g_scan.mods) {
             if (!activeOf(d)) continue;
             const int mi = modIndex(typeOf(d));
-            if (mi >= 0 && (g_hooks[mi] & kDustMidUpdate)) g_list.push_back(d);
+            if (mi >= 0 && (g_hooks[mi] & kDustMidUpdate) &&
+                !csharp::hasManagedDustType(typeOf(d))) g_list.push_back(d);
         }
         g_flags.assign(g_list.size(), false);
         if (!g_list.empty() && g_cb.midUpdate) {
@@ -537,10 +559,19 @@ void hkUpdateDust(const MethodInfo* m) {
         for (size_t i = 0; i < g_list.size(); ++i) {
             Il2CppObject* d = g_list[i];
             const int mi = modIndex(typeOf(d));
-            // So o caminho comum do jogo freia; o tipo copiado (UpdateType) tem o seu.
-            if (g_flags[i] && activeOf(d) && mi >= 0 && g_updateType[mi] < 0) {
+            if (g_flags[i] && activeOf(d) && mi >= 0 && g_updateType[mi] < 0)
                 field<Vec2>(d, refs().velocity).x /= 0.99f;
-            }
+        }
+        for (Il2CppObject* d : g_scan.mods) {
+            if (!activeOf(d)) continue;
+            const int type = typeOf(d);
+            const int mi = modIndex(type);
+            if (mi < 0 || (g_hooks[mi] & kDustMidUpdate) == 0 ||
+                !csharp::hasManagedDustType(type)) continue;
+            std::uint32_t flags = 0;
+            if (managedDustPhase(d, 2, &flags) && (flags & 4u) != 0u &&
+                activeOf(d) && g_updateType[mi] < 0)
+                field<Vec2>(d, refs().velocity).x /= 0.99f;
         }
     }
 }
@@ -563,9 +594,20 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     // ModDust.PreDraw, antes de tudo (o rastro fica por baixo). O lote e do JS.
     std::vector<Il2CppObject*> skip;
     if (g_anyHooks & kDustPreDraw) {
+        for (Il2CppObject* d : scan.mods) {
+            if (!activeOf(d)) continue;
+            const int type = typeOf(d);
+            const int mi = modIndex(type);
+            if (mi < 0 || (g_hooks[mi] & kDustPreDraw) == 0 ||
+                !csharp::hasManagedDustType(type)) continue;
+            std::uint32_t flags = 0;
+            if (managedDustPhase(d, 4, &flags) && (flags & 16u) == 0u)
+                skip.push_back(d);
+        }
         g_list.clear();
         for (Il2CppObject* d : scan.mods) {
-            if (g_hooks[modIndex(typeOf(d))] & kDustPreDraw) g_list.push_back(d);
+            if ((g_hooks[modIndex(typeOf(d))] & kDustPreDraw) &&
+                !csharp::hasManagedDustType(typeOf(d))) g_list.push_back(d);
         }
         g_flags.assign(g_list.size(), true);
         if (!g_list.empty() && g_cb.preDraw) {
@@ -629,13 +671,23 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
 bool wantsAlpha(Il2CppObject* self) {
     if (field<bool>(self, refs().fullBright)) return false;
     const int mi = modIndex(typeOf(self));
-    return mi >= 0 && (g_hooks[mi] & kDustGetAlpha) && g_cb.getAlpha;
+    return mi >= 0 && (g_hooks[mi] & kDustGetAlpha) &&
+           (g_cb.getAlpha || csharp::hasManagedDustType(typeOf(self)));
 }
 
 void hkGetAlphaRef(Il2CppObject* self, Color32* color, const MethodInfo* m) {
     if (color && wantsAlpha(self)) {
         uint32_t c = color->packed;
-        if (g_cb.getAlpha(self, c)) { color->packed = c; return; }
+        if (csharp::hasManagedDustType(typeOf(self))) {
+            uint32_t flags = 0;
+            if (managedDustPhase(self, 3, &flags, &c) && (flags & 8u)) {
+                color->packed = c;
+                return;
+            }
+        } else if (g_cb.getAlpha && g_cb.getAlpha(self, c)) {
+            color->packed = c;
+            return;
+        }
     }
     g_origGetAlphaRef(self, color, m);
 }
@@ -643,7 +695,12 @@ void hkGetAlphaRef(Il2CppObject* self, Color32* color, const MethodInfo* m) {
 Color32 hkGetAlphaValue(Il2CppObject* self, Color32 color, const MethodInfo* m) {
     if (wantsAlpha(self)) {
         uint32_t c = color.packed;
-        if (g_cb.getAlpha(self, c)) return Color32{c};
+        if (csharp::hasManagedDustType(typeOf(self))) {
+            uint32_t flags = 0;
+            if (managedDustPhase(self, 3, &flags, &c) && (flags & 8u))
+                return Color32{c};
+        } else if (g_cb.getAlpha && g_cb.getAlpha(self, c))
+            return Color32{c};
     }
     return g_origGetAlphaValue(self, color, m);
 }
