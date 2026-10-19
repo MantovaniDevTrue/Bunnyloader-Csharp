@@ -551,6 +551,16 @@ bool installRarityGroundTextHook(std::string* error) {
         *error = "Reason=MouseTextDrawSignaturesUnavailable";
         return false;
     }
+    auto* font = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteFont", {}});
+    auto* floatType = findClass({"System", "Single", {}});
+    if (!font || !floatType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 0)) != font ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 4)) != floatType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 6)) != floatType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 8)) != floatType) {
+        *error = "Reason=MouseTextDrawScalarAbiMismatch";
+        return false;
+    }
     auto* vector = a.class_from_il2cpp_type(a.method_get_param(draw, 2));
     auto* origin = a.class_from_il2cpp_type(a.method_get_param(draw, 5));
     auto* color = a.class_from_il2cpp_type(a.method_get_param(draw, 3));
@@ -559,6 +569,8 @@ bool installRarityGroundTextHook(std::string* error) {
     if (vector != origin || !validateRarityTextVec2(vector, error) ||
         !layout.bind(color, error) || !effects ||
         !a.class_is_enum || !a.class_is_enum(effects) ||
+        !a.class_value_size || !a.class_enum_basetype ||
+        a.class_value_size(effects, nullptr) != 4 ||
         !a.class_get_namespace || !a.class_get_name ||
         std::strcmp(a.class_get_namespace(effects), "Microsoft.Xna.Framework.Graphics") ||
         std::strcmp(a.class_get_name(effects), "SpriteEffects")) {
