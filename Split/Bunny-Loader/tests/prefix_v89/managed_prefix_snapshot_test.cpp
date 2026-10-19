@@ -80,6 +80,14 @@ int main() {
     ManagedPrefixEntry swift = invalid;
     swift.category = 1;
     swift.rollWeight = 2.f;
+    swift.itemWeights[1] = -1;
+    assert(!applyManagedPrefixDescriptors("test", {swift}));
+    assert(managedPrefixView() == third);
+    swift.itemWeights[1] = 21;
+    assert(!applyManagedPrefixDescriptors("test", {swift}));
+    assert(managedPrefixView() == third);
+    swift.itemWeights[1] = 0;
+    swift.itemWeights[512] = 7;
 
     std::atomic<bool> go{false};
     std::atomic<int> snapshots{0};
@@ -102,6 +110,8 @@ int main() {
 
     auto final = managedPrefixView();
     assert(final->size() == 3 && final->at(2).name == "Swift");
+    assert(final->at(2).itemWeights.at(1) == 0);
+    assert(final->at(2).itemWeights.at(512) == 7);
     assert(third->size() == 2);
     assert(second->size() == 1);
     assert(first->empty());
