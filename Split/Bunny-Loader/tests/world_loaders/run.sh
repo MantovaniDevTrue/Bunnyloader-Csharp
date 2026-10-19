@@ -17,6 +17,10 @@ break_test="${RUNNER_TEMP:-/tmp}/bunny-world-tile-break"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_break_policy_test.cpp -o "$break_test"
 "$break_test"
 
+shape_test="${RUNNER_TEMP:-/tmp}/bunny-world-tile-shapes"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_shape_policy_test.cpp -o "$shape_test"
+"$shape_test"
+
 scan="${RUNNER_TEMP:-/tmp}/bunny-world-tile-scan"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_scan_policy_test.cpp -o "$scan"
 "$scan"

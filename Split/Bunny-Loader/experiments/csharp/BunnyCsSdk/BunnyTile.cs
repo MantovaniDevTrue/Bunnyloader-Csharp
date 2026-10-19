@@ -30,7 +30,9 @@ public enum BunnyTileFlags {
 
 public enum BunnyTileShape {
     Single = 0,
-    Style2x1 = 1
+    Style2x1 = 1,
+    Style3x2 = 2,
+    Style1x3 = 3
 }
 
 public abstract class BunnyTile {

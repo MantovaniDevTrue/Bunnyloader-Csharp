@@ -2127,31 +2127,73 @@ Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
 
 bool applyTileShape(int type, const ManagedTileEntry& e) {
     if (e.shape == 0) return true;
-    if (e.shape != 1) return false;
-    auto& a = il2cpp::api();
-    Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
-    Il2CppObject* tile = tileStaticObject(cls, "newTile");
-    Il2CppObject* shape = tileStaticObject(cls, "Style2x1");
-    if (!tile || !shape) return false;
-    Il2CppClass* tileClass = a.object_get_class(tile);
-    const MethodInfo* copy = a.class_get_method_from_name(tileClass, "CopyFrom", 1);
-    const MethodInfo* setHeights = a.class_get_method_from_name(tileClass, "set_CoordinateHeights", 1);
-    const MethodInfo* addTile = cls ? a.class_get_method_from_name(cls, "addTile", 1) : nullptr;
-    Il2CppClass* intClass = il2cpp::findClass({"System", "Int32", {}});
-    if (!copy || !setHeights || !addTile || !intClass) return false;
-    Il2CppArray* heights = a.array_new(intClass, 1);
-    if (!heights) return false;
-    *static_cast<int32_t*>(arrayData(heights)) = e.coordinateHeight;
-    Il2CppObject* exc = nullptr;
-    void* copyArgs[1] = {shape};
-    a.runtime_invoke(copy, tile, copyArgs, &exc);
-    if (exc) return false;
-    void* heightArgs[1] = {heights};
-    a.runtime_invoke(setHeights, tile, heightArgs, &exc);
-    if (exc) return false;
-    int32_t id = type;
-    void* addArgs[1] = {&id};
-    a.runtime_invoke(addTile, nullptr, addArgs, &exc);
+    if (!tile_policy::validShape(e.shape)) return false;
+    auto& a=il2cpp::api();
+    auto* cls=il2cpp::findClass({"Terraria.ObjectData","TileObjectData",{}});
+    auto* tile=tileStaticObject(cls,"newTile");
+    if (!tile || !cls || !a.object_get_class || !a.method_get_param_count ||
+        !a.method_get_param || !a.method_get_return_type || !a.method_is_instance)
+        return false;
+    auto* tileClass=a.object_get_class(tile);
+    const auto* copy=a.class_get_method_from_name(tileClass,"CopyFrom",1);
+    const auto* addTile=a.class_get_method_from_name(cls,"addTile",1);
+    if(!copy||!addTile||!il2cpp::methodPointer(copy)||!il2cpp::methodPointer(addTile))
+        return false;
+    Il2CppObject* source=nullptr;
+    if(e.shape==2) {
+        const auto* get=a.class_get_method_from_name(cls,"GetTileData",3);
+        if(!get||!il2cpp::methodPointer(get)||a.method_is_instance(get)||
+           a.method_get_param_count(get)!=3||
+           !il2cpp::sameType(a.method_get_return_type(get),"Terraria.ObjectData.TileObjectData"))
+            return false;
+        for(unsigned i=0;i<3;++i)
+            if(!il2cpp::sameType(a.method_get_param(get,i),"System.Int32"))return false;
+        int32_t campfire=215,style=0,alternate=0;
+        void* args[]={&campfire,&style,&alternate};
+        Il2CppObject* exc=nullptr;
+        source=a.runtime_invoke(get,nullptr,args,&exc);
+        if(exc||!source||a.object_get_class(source)!=tileClass)return false;
+    } else {
+        source=tileStaticObject(cls,e.shape==1?"Style2x1":"Style1xX");
+    }
+    if(!source)return false;
+    const char* setters[]= {"set_StyleLineSkip","set_DrawYOffset","set_DrawFlipHorizontal"};
+    const auto* line=e.shape==1?nullptr:a.class_get_method_from_name(tileClass,setters[0],1);
+    const auto* yoff=e.shape==3?a.class_get_method_from_name(tileClass,setters[1],1):nullptr;
+    const auto* flip=e.shape==3?a.class_get_method_from_name(tileClass,setters[2],1):nullptr;
+    const auto* setHeights=e.shape==1?a.class_get_method_from_name(tileClass,"set_CoordinateHeights",1):nullptr;
+    if((e.shape!=1&&!line)||(e.shape==3&&(!yoff||!flip))||
+       (e.shape==1&&!setHeights))return false;
+    if(line&&(!il2cpp::methodPointer(line)||!il2cpp::sameType(a.method_get_param(line,0),"System.Int32")))return false;
+    if(yoff&&(!il2cpp::methodPointer(yoff)||!il2cpp::sameType(a.method_get_param(yoff,0),"System.Int32")))return false;
+    if(flip&&(!il2cpp::methodPointer(flip)||!il2cpp::sameType(a.method_get_param(flip,0),"System.Boolean")))return false;
+    auto callSetter=[&](const MethodInfo* method,void* value)->bool {
+        if(!method)return true;
+        void* args[]={value};
+        Il2CppObject* exc=nullptr;
+        a.runtime_invoke(method,tile,args,&exc);
+        return exc==nullptr;
+    };
+    void* copyArgs[]={source};
+    Il2CppObject* exc=nullptr;
+    a.runtime_invoke(copy,tile,copyArgs,&exc);
+    if(exc)return false;
+    if(e.shape==1) {
+        auto* intClass=il2cpp::findClass({"System","Int32",{}});
+        if(!intClass||!a.array_new)return false;
+        auto* heights=a.array_new(intClass,1);
+        if(!heights)return false;
+        *static_cast<int32_t*>(arrayData(heights))=e.coordinateHeight;
+        if(!callSetter(setHeights,heights))return false;
+    } else {
+        int32_t skip=e.shape==2?9:2,offset=2;
+        bool drawFlip=true;
+        if(!callSetter(line,&skip)||!callSetter(yoff,&offset)||!callSetter(flip,&drawFlip))
+            return false;
+    }
+    int32_t id=type;
+    void* addArgs[]={&id};
+    a.runtime_invoke(addTile,nullptr,addArgs,&exc);
     return !exc;
 }
 
@@ -2326,7 +2368,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
         if (entry.type < runtime::kVanillaTileCount ||
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
-            entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
+            entry.shape < 0 || entry.shape > 3 || entry.coordinateHeight != 18 ||
             entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
             entry.animationFrames < 1 || entry.animationFrames > 64 ||
             entry.animationFrameTicks < 0 || entry.animationFrameTicks > 600 ||

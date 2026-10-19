@@ -12,8 +12,39 @@ inline int leftOf2x1(int x, int frameX) {
     return x - ((frameX % 36) / 18);
 }
 
+struct TileFootprint {
+    int width=0, height=0, frameWidth=0, frameHeight=0;
+};
+inline TileFootprint footprint(int shape) {
+    switch(shape) {
+        case 1: return {2,1,36,18};
+        case 2: return {3,2,54,36};
+        case 3: return {1,3,18,54};
+        default: return {};
+    }
+}
+inline bool validShape(int shape) {return shape>=0&&shape<=3;}
+inline bool origin(int shape,int x,int y,int frameX,int frameY,int* left,int* top) {
+    const auto size=footprint(shape);
+    if(size.width==0||frameX<0||frameY<0||!left||!top)return false;
+    const int dx=(frameX%size.frameWidth)/18;
+    const int dy=(frameY%size.frameHeight)/18;
+    if(x<dx||y<dy)return false;
+    *left=x-dx;*top=y-dy;return true;
+}
+inline bool frameMatches(int shape,int frameX,int frameY,int anchorX,int anchorY,
+                         int dx,int dy) {
+    const auto size=footprint(shape);
+    if(size.width==0||dx<0||dy<0||dx>=size.width||dy>=size.height||
+       frameX<0||frameY<0||anchorX<0||anchorY<0)return false;
+    return frameX%size.frameWidth==dx*18 &&
+           frameY%size.frameHeight==dy*18 &&
+           frameX/size.frameWidth==anchorX/size.frameWidth &&
+           frameY/size.frameHeight==anchorY/size.frameHeight;
+}
+
 inline bool shouldDrop(int shape, bool includeLargeObjectDrops) {
-    return shape == 0 || includeLargeObjectDrops;
+    return validShape(shape)&&(shape == 0 || includeLargeObjectDrops);
 }
 
 inline bool shouldDrop(int shape, bool large, bool allowDrops) {

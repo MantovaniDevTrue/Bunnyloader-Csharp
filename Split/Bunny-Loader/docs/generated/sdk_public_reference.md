@@ -1198,7 +1198,7 @@ abstract class; base: `System.Object`.
 
 enum; base: `System.Enum`.
 
-Values: Single, Style2x1.
+Values: Single, Style2x1, Style3x2, Style1x3.
 
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 

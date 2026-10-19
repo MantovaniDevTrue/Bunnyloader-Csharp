@@ -2212,7 +2212,9 @@
       "properties": [],
       "values": [
         "Single",
-        "Style2x1"
+        "Style2x1",
+        "Style3x2",
+        "Style1x3"
       ],
       "methods": []
     },

@@ -30,5 +30,9 @@ int main() {
     assert(shouldDrop(1, true, true));
     assert(!shouldDrop(1, true, false));
     assert(!shouldDrop(99, false, false));
+    assert(!shouldDrop(2,false,true));
+    assert(!shouldDrop(3,false,true));
+    assert(shouldDrop(2,true,true));
+    assert(shouldDrop(3,true,true));
     std::cout << "CSHARP_TILE_BREAK_AND_DROP_POLICIES=PASS\n";
 }

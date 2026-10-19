@@ -328,51 +328,73 @@ int32_t hkMakeDust(int32_t x, int32_t y, uint32_t tile, const MethodInfo* method
 void hkTileFrame(int32_t x, int32_t y, int32_t type, uint32_t tile,
                  bool reset, const MethodInfo* method) {
     const auto it = g_tiles.find(type);
-    if (!g_frameInstalled || it == g_tiles.end() ||
-        it->second.spec.shape != 1 || g_frameCleanup) {
-        if (g_origFrame) g_origFrame(x, y, type, tile, reset, method);
+    const auto shape=it==g_tiles.end()?tile_policy::TileFootprint{}:
+        tile_policy::footprint(it->second.spec.shape);
+    if(!g_frameInstalled||shape.width==0||g_frameCleanup) {
+        if(g_origFrame)g_origFrame(x,y,type,tile,reset,method);
         return;
     }
     runtime::TileArrays world{};
-    if (!runtime::tileArrays(&world) || x < 0 || y < 0 ||
-        x >= world.width || y >= world.height || !world.frameX) {
-        if (g_origFrame) g_origFrame(x, y, type, tile, reset, method);
+    if(!runtime::tileArrays(&world)||x<0||y<0||
+       x>=world.width||y>=world.height||!world.lookup||
+       !world.frameX||!world.frameY) {
+        if(g_origFrame)g_origFrame(x,y,type,tile,reset,method);
         return;
     }
-    const int32_t index = y * world.width + x;
-    const int left = tile_policy::leftOf2x1(x, world.frameX[world.lookup[index]]);
-    const bool leftExists = cellIs(left, y, type, world);
-    const bool rightExists = cellIs(left + 1, y, type, world);
-    const bool supportedLeft = supports(left, y + 1, world);
-    const bool supportedRight = supports(left + 1, y + 1, world);
-    if (!tile_policy::incomplete2x1(leftExists, rightExists,
-                                    supportedLeft, supportedRight)) return;
-    g_frameCleanup = true;
-    const int sourceX = leftExists ? left : left + 1;
-    auto& a = il2cpp::api();
-    if ((leftExists || rightExists) && g_largeDropMethod) {
-        int32_t dropX = sourceX, dropY = y;
-        int32_t sourceTile = y * world.width + sourceX;
-        bool large = true;
-        void* args[] = {&dropX, &dropY, &sourceTile, &large};
-        Il2CppObject* exc = nullptr;
-        a.runtime_invoke(g_largeDropMethod, nullptr, args, &exc);
-        if (exc)
-            BL_ERROR("[CSharp][Tile] Falha ao produzir drop de objeto 2x1");
+    const size_t index=static_cast<size_t>(y)*world.width+x;
+    const int frameX=world.frameX[world.lookup[index]];
+    const int frameY=world.frameY[world.lookup[index]];
+    int left=0,top=0;
+    if(!tile_policy::origin(it->second.spec.shape,x,y,frameX,frameY,&left,&top)||
+       left+shape.width>world.width||top+shape.height>world.height) {
+        if(g_origFrame)g_origFrame(x,y,type,tile,reset,method);
+        return;
     }
-    if (g_killMethod) {
-        for (int dx = 0; dx < 2; ++dx) {
-            if (dx == 0 ? !leftExists : !rightExists) continue;
-            int32_t killX = left + dx, killY = y;
-            bool fail = false, effectOnly = false, noItem = true;
-            void* args[] = {&killX, &killY, &fail, &effectOnly, &noItem};
-            Il2CppObject* exc = nullptr;
-            a.runtime_invoke(g_killMethod, nullptr, args, &exc);
-            if (exc)
-                BL_ERROR("[CSharp][Tile] Falha ao remover metade de objeto 2x1");
+    std::array<bool,9> cells{};
+    bool intact=true;
+    int firstX=-1,firstY=-1;
+    for(int dy=0;dy<shape.height;++dy) {
+        for(int dx=0;dx<shape.width;++dx) {
+            const int px=left+dx,py=top+dy;
+            const size_t lookupIndex=static_cast<size_t>(py)*world.width+px;
+            const bool occupied=cellIs(px,py,type,world);
+            const bool matched=occupied&&tile_policy::frameMatches(
+                it->second.spec.shape,world.frameX[world.lookup[lookupIndex]],
+                world.frameY[world.lookup[lookupIndex]],frameX,frameY,dx,dy);
+            cells[static_cast<size_t>(dy)*shape.width+dx]=matched;
+            if(matched&&firstX<0){firstX=px;firstY=py;}
+            if(!matched)intact=false;
         }
     }
-    g_frameCleanup = false;
+    for(int dx=0;dx<shape.width;++dx)
+        if(!supports(left+dx,top+shape.height,world))intact=false;
+    if(intact)return;
+    if(firstX<0)return;
+    g_frameCleanup=true;
+    auto& a=il2cpp::api();
+    if(g_largeDropMethod) {
+        int32_t dropX=firstX,dropY=firstY;
+        uint32_t sourceTile=static_cast<uint32_t>(firstY*world.width+firstX);
+        bool large=true;
+        void* args[]={&dropX,&dropY,&sourceTile,&large};
+        Il2CppObject* exc=nullptr;
+        a.runtime_invoke(g_largeDropMethod,nullptr,args,&exc);
+        if(exc)BL_ERROR("[CSharp][Tile] Drop de objeto composto falhou shape=%d",
+                         it->second.spec.shape);
+    }
+    if(g_killMethod) {
+        for(int dy=0;dy<shape.height;++dy)for(int dx=0;dx<shape.width;++dx) {
+            if(!cells[static_cast<size_t>(dy)*shape.width+dx])continue;
+            int32_t killX=left+dx,killY=top+dy;
+            bool fail=false,effectOnly=false,noItem=true;
+            void* args[]={&killX,&killY,&fail,&effectOnly,&noItem};
+            Il2CppObject* exc=nullptr;
+            a.runtime_invoke(g_killMethod,nullptr,args,&exc);
+            if(exc)BL_ERROR("[CSharp][Tile] Remocao de objeto composto falhou shape=%d",
+                             it->second.spec.shape);
+        }
+    }
+    g_frameCleanup=false;
 }
 
 int resolveDustId(const std::string& name) {
@@ -1075,7 +1097,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
 }
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.type >= 65536 ||
-        spec.shape < 0 || spec.shape > 1 ||
+        spec.shape < 0 || spec.shape > 3 ||
         spec.failDust < 0 || spec.failDust > 20 ||
         spec.normalDust < 0 || spec.normalDust > 20 ||
         !tile_policy::validCallbackMask(spec.callbackMask) ||
