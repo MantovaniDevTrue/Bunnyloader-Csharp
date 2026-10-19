@@ -72,6 +72,12 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
+public struct BunnyPrefixApplyStats
+{
+    public int DamageBonus;
+    public int ValueBonus;
+}
+
 public abstract class BunnyWeapon : BunnyShootSource
 {
     public BunnyHoldout? Holdout { get; set; }
@@ -90,6 +96,7 @@ public abstract class BunnyWeapon : BunnyShootSource
     public string MinionBuff { get; set; } = "";
     public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public abstract class BunnyBuff
@@ -124,6 +131,7 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public int Duration { get; set; } = 600;
     public bool? PrefixChance { get; set; }
     public abstract void SetDefaults();
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public enum BunnyAccessoryVisualMode
@@ -149,6 +157,7 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public float VisualOpacity { get; set; } = 1f;
     public uint VisualColor { get; set; } = 0xFFFFFFFF;
     public abstract void SetDefaults();
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public abstract class BunnyPlayer
