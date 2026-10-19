@@ -310,32 +310,23 @@ void invalidateGameTooltips() {
 }
 
 void notifyManagedApplied(const SessionSnapshot& snapshot, const std::string& culture, bool force) {
-    std::vector<std::tuple<std::string, std::string, uint64_t>> callbacks;
     const std::string token = std::to_string(snapshot.revision) + "|" + culture;
-    {
-        std::lock_guard<std::mutex> lock(gate);
-        if (snapshot.revision != session.revision()) return;
-        for (const auto& [modId, assembly] : managedAssemblies) {
-            if (!force && lastManagedNotification[modId] == token) continue;
+    std::lock_guard<std::mutex> lock(gate);
+    if (snapshot.revision != session.revision() || lastCulture != culture) return;
+    for (const auto& [modId, assembly] : managedAssemblies) {
+        const auto generation = managedEpochs.find(modId);
+        if (generation == managedEpochs.end() ||
+            (!force && lastManagedNotification[modId] == token)) continue;
+        if (bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture,
+                                                       generation->second)) {
             lastManagedNotification[modId] = token;
-            callbacks.emplace_back(modId, assembly, managedEpochs[modId]);
-        }
-    }
-    for (const auto& [modId, assembly, epoch] : callbacks) {
-        const bool queued = bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture, epoch);
-        {
-            std::lock_guard<std::mutex> lock(gate);
-            if (queued)
-                pendingManagedNotification.erase(modId);
-            else {
-                if (lastManagedNotification[modId] == token)
-                    lastManagedNotification.erase(modId);
-                pendingManagedNotification.insert(modId);
-            }
-        }
-        if (!queued)
-            BL_WARN("[CSharp][Localization] Mod=%s Stage=CallbackQueue Reason=QueueFull",
+            pendingManagedNotification.erase(modId);
+        } else {
+            lastManagedNotification.erase(modId);
+            pendingManagedNotification.insert(modId);
+            BL_WARN("[CSharp][Localization] Mod=%s Stage=CallbackQueue Reason=QueueFullOrStale",
                     modId.c_str());
+        }
     }
 }
 
@@ -469,35 +460,23 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
     if (modId.empty() || modId.size() > 64 ||
         assemblyPath.empty() || assemblyPath.size() > 2048) return;
     bl::csharp::setManagedLocalizationResultSink(&acceptManagedWire);
-    std::string pendingCulture;
-    bool replaced = false;
-    {
-        std::lock_guard<std::mutex> lock(gate);
-        auto previous = managedAssemblies.find(modId);
-        if (previous != managedAssemblies.end() && previous->second == assemblyPath)
-            return;
-        replaced = previous != managedAssemblies.end();
-        managedAssemblies[modId] = assemblyPath;
-        managedEpochs[modId] = ++nextManagedEpoch;
-        lastManagedNotification.erase(modId);
-        pendingManagedNotification.erase(modId);
-        if (lastAppliedGeneration == session.revision() && !lastCulture.empty()) {
-            pendingCulture = lastCulture;
-            lastManagedNotification[modId] =
-                std::to_string(session.revision()) + "|" + lastCulture;
-        }
-    }
-    if (replaced) bl::csharp::unloadManagedLocalizationCallbacks(modId);
-    uint64_t epoch = 0;
-    {
-        std::lock_guard<std::mutex> lock(gate);
-        epoch = managedEpochs[modId];
-    }
-    if (!pendingCulture.empty() &&
-        !bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, pendingCulture, epoch)) {
-        std::lock_guard<std::mutex> lock(gate);
-        lastManagedNotification.erase(modId);
-        pendingManagedNotification.insert(modId);
+    std::lock_guard<std::mutex> lock(gate);
+    auto previous = managedAssemblies.find(modId);
+    if (previous != managedAssemblies.end() && previous->second == assemblyPath)
+        return;
+    if (previous != managedAssemblies.end())
+        bl::csharp::unloadManagedLocalizationCallbacks(modId);
+    managedAssemblies[modId] = assemblyPath;
+    const uint64_t epoch = ++nextManagedEpoch;
+    managedEpochs[modId] = epoch;
+    lastManagedNotification.erase(modId);
+    pendingManagedNotification.erase(modId);
+    if (lastAppliedGeneration == session.revision() && !lastCulture.empty()) {
+        const std::string token = std::to_string(session.revision()) + "|" + lastCulture;
+        if (bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, lastCulture, epoch))
+            lastManagedNotification[modId] = token;
+        else
+            pendingManagedNotification.insert(modId);
     }
 }
 
@@ -507,24 +486,19 @@ void stage(const std::string& modId,std::vector<Entry> entries) {
 }
 
 void retainActiveMods(const std::set<std::string>& activeIds) {
-    std::vector<std::string> removed;
-    {
-        std::lock_guard<std::mutex> lock(gate);
-        session.retainOnly(activeIds);
-        for (auto it = managedAssemblies.begin(); it != managedAssemblies.end();) {
-            if (activeIds.contains(it->first)) {
-                ++it;
-                continue;
-            }
-            removed.push_back(it->first);
-            lastManagedNotification.erase(it->first);
-            pendingManagedNotification.erase(it->first);
-            managedEpochs.erase(it->first);
-            it = managedAssemblies.erase(it);
+    std::lock_guard<std::mutex> lock(gate);
+    session.retainOnly(activeIds);
+    for (auto it = managedAssemblies.begin(); it != managedAssemblies.end();) {
+        if (activeIds.contains(it->first)) {
+            ++it;
+            continue;
         }
+        bl::csharp::unloadManagedLocalizationCallbacks(it->first);
+        lastManagedNotification.erase(it->first);
+        pendingManagedNotification.erase(it->first);
+        managedEpochs.erase(it->first);
+        it = managedAssemblies.erase(it);
     }
-    for (const auto& modId : removed)
-        bl::csharp::unloadManagedLocalizationCallbacks(modId);
 }
 
 void pumpOnGameThread() {
