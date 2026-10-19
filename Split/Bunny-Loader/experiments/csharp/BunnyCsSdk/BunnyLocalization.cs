@@ -462,6 +462,7 @@ public sealed partial class BunnyLocalizationCatalog
 );
         if (variant >= 0 &&
             (variant == 0 || variant == key.Length - 1 ||
+             key[variant - 1] == '.' || key[variant - 1] == '/' ||
              key.IndexOf('
     }
 
