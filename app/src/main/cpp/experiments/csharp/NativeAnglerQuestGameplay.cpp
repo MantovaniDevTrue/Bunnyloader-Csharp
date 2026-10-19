@@ -32,6 +32,7 @@ FieldInfo* g_questFinished = nullptr;
 FieldInfo* g_hardMode = nullptr;
 FieldInfo* g_chatCorner = nullptr;
 FieldInfo* g_questFlag = nullptr;
+FieldInfo* g_weaponRackFlag = nullptr;
 const MethodInfo* g_nameMethod = nullptr;
 const MethodInfo* g_activeCultureMethod = nullptr;
 const MethodInfo* g_cultureNameMethod = nullptr;
@@ -41,6 +42,7 @@ unsigned g_resolveFailures = 0;
 std::vector<Quest> g_active;
 std::set<int> g_ownedTypes;
 std::map<int, bool> g_previousFlags;
+std::map<int, bool> g_previousRackFlags;
 bool g_fishingWarning = false;
 
 std::string utf8(Il2CppString* input) {
@@ -156,6 +158,9 @@ bool findContracts() {
     g_hardMode = il2cpp::findField(main, "hardMode");
     g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
     g_questFlag = il2cpp::findField(sets, "IsQuestFish");
+    g_weaponRackFlag = il2cpp::findField(sets, "CanBePlacedOnWeaponRacks");
+    if (!arrayType(g_weaponRackFlag, "Boolean"))
+        g_weaponRackFlag = nullptr;
     if (!arrayType(g_questItems, "Int32") || !arrayType(g_questFlag, "Boolean") ||
         !staticField(g_questIndex) || !staticField(g_questFinished) ||
         !staticField(g_hardMode) || !staticField(g_chatCorner) ||
@@ -243,10 +248,12 @@ bool findContracts() {
     return g_swapHooked && g_chatHooked;
 }
 
-bool writeFlags(const std::vector<Quest>& quests) {
+bool writeFlagTable(FieldInfo* field, std::map<int, bool>* saved,
+                    const std::vector<Quest>& quests) {
+    if (!field || !saved) return false;
     auto& a = il2cpp::api();
     Il2CppArray* flags = nullptr;
-    a.field_static_get_value(g_questFlag, &flags);
+    a.field_static_get_value(field, &flags);
     if (!flags || flags->length == 0 || flags->length > 65536) return false;
     int largest = -1;
     for (const auto& quest : quests) largest = std::max(largest, quest.type);
@@ -254,7 +261,7 @@ bool writeFlags(const std::vector<Quest>& quests) {
     if (largest >= 0 && static_cast<uintptr_t>(largest) >= flags->length) {
         Il2CppArray* expanded = runtime::TypeTables::resizedCopy(flags, largest + 1);
         if (!expanded) return false;
-        a.field_static_set_value(g_questFlag, &expanded);
+        a.field_static_set_value(field, &expanded);
         flags = expanded;
     }
     auto* values = static_cast<uint8_t*>(arrayData(flags));
@@ -263,13 +270,13 @@ bool writeFlags(const std::vector<Quest>& quests) {
     for (int former : g_ownedTypes)
         if (!upcoming.contains(former) &&
             former >= 0 && static_cast<uintptr_t>(former) < flags->length) {
-            const auto saved = g_previousFlags.find(former);
-            if (saved != g_previousFlags.end()) values[former] = saved->second ? 1 : 0;
-            g_previousFlags.erase(former);
+            const auto before = saved->find(former);
+            if (before != saved->end()) values[former] = before->second ? 1 : 0;
+            saved->erase(former);
         }
     for (const auto& quest : quests) {
-        if (!g_previousFlags.contains(quest.type))
-            g_previousFlags[quest.type] = values[quest.type] != 0;
+        if (!saved->contains(quest.type))
+            (*saved)[quest.type] = values[quest.type] != 0;
         values[quest.type] = 1;
     }
     return true;
@@ -304,7 +311,10 @@ bool writeQuestIds(const std::vector<Quest>& quests) {
 
 bool updateQuests(const std::vector<Quest>& quests) {
     if (!writeQuestIds(quests)) return false;
-    if (!writeFlags(quests)) return false;
+    if (!writeFlagTable(g_questFlag, &g_previousFlags, quests)) return false;
+    if (g_weaponRackFlag &&
+        !writeFlagTable(g_weaponRackFlag, &g_previousRackFlags, quests))
+        return false;
     std::set<int> upcoming;
     for (const auto& quest : quests) upcoming.insert(quest.type);
     g_ownedTypes = std::move(upcoming);
