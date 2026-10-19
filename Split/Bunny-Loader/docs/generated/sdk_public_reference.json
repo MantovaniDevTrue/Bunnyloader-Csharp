@@ -1570,6 +1570,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "string SerializeTooltipLines()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void AddTooltipLine(string text)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void Apply(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
