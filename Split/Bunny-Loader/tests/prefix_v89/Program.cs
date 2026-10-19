@@ -38,11 +38,11 @@ try
     }
 
     Check("TestMightyPrefix", 4, 5f, 1.2f, 1.26f, 0);
-    if (byName["TestMightyPrefix"][16] != "1:3,2:0,512:7,TestWand:2")
+    if (byName["TestMightyPrefix"][16] != "1:3:0,2:0:1,512:7,TestWand:2")
         throw new InvalidOperationException("Managed prefix per-item rules are not canonical");
     Check("TestGuardedPrefix", 5, 1f, 1f, 1.2f, 4);
     Check("TestCustomPrefix", 6, 1f, 1f, 1f, 0);
-    if (byName["TestCustomPrefix"][16] != "1:0,TestWand:2")
+    if (byName["TestCustomPrefix"][16] != "1:0,TestWand:0:1")
         throw new InvalidOperationException("Custom prefix must keep explicit item rules only");
     var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
     rules.Deny(12);
@@ -54,11 +54,20 @@ try
     catch (ArgumentOutOfRangeException) { invalidRejected = true; }
     if (!invalidRejected)
         throw new InvalidOperationException("Invalid item type accepted");
+    bool prematureRejected = false;
+    try { rules.SetCanRoll(18, true); }
+    catch (InvalidOperationException) { prematureRejected = true; }
+    if (!prematureRejected)
+        throw new InvalidOperationException("CanRoll override without item rule accepted");
     var named = new BunnyLoader.Source.BunnyPrefixRollRules();
     named.Deny("ExampleWand");
     named.Allow("ExampleWand", 6);
-    if (named.Serialize() != "ExampleWand:6")
-        throw new InvalidOperationException("Named item rule replacement failed");
+    named.SetCanRoll("ExampleWand", false);
+    if (named.Serialize() != "ExampleWand:6:0")
+        throw new InvalidOperationException("Named item eligibility override failed");
+    named.Deny("ExampleWand");
+    if (named.Serialize() != "ExampleWand:0")
+        throw new InvalidOperationException("Deny must clear explicit eligibility");
     bool invalidNameRejected = false;
     try { named.Deny("examplemod/ExampleWand"); }
     catch (ArgumentOutOfRangeException) { invalidNameRejected = true; }
