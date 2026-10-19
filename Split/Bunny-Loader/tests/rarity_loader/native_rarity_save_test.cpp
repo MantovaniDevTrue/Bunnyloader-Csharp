@@ -77,6 +77,17 @@ int main() {
     assert(protectedRecords[0].key == "stable/Existing");
     assert(protectedRecords[0].rarityKey == "rarity/Original");
 
+    std::stringstream missingLastColumn("bunnyloader itens 3\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity\n"
+        "inventory\t1\t1\t0\t0\tmod/NoRarityColumn\t{}\n");
+    assert(!read(missingLastColumn, protectedRecords));
+    assert(protectedRecords.size() == 1);
+    assert(protectedRecords[0].rarityKey == "rarity/Original");
+
+    std::stringstream missingDataColumn("bunnyloader itens 3\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\tmod/Rarity\n");
+    assert(!read(missingDataColumn, protectedRecords));
+
     std::stringstream truncatedV3("bunnyloader itens 3\n"
         "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity\n"
         "inventory\t1\tone\t0\t0\tmod/Broken\t{}\tmod/Rarity\n");
