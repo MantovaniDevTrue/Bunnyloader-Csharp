@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTileSpritePass.h"
 #include "experiments/csharp/NativeTileSpritePassQueue.h"
 #include "experiments/csharp/NativeTileSpriteBatch.h"
+#include "experiments/csharp/NativeTileSpriteBatchLifecycle.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/FieldContract.h"
@@ -40,17 +41,23 @@ void postDraw(Il2CppObject* renderer,bool solidLayer,bool forRenderTargets,
     if(!eligibleDrawPass(solidLayer,intoRenderTargets,menu!=0))return;
     Il2CppObject* batch=nullptr;
     a.field_static_get_value(spriteBatchField,&batch);
-    if(!nativeSpriteBatchIsOpen(batch))return;
+    bool started=false;
+    if(!beginNativeTileBatch(batch,&started))return;
     uint64_t frame=0;
     Vec screen{};
     a.field_static_get_value(frameField,&frame);
     a.field_static_get_value(screenField,&screen);
-    if(!std::isfinite(screen.x)||!std::isfinite(screen.y))return;
+    if(!std::isfinite(screen.x)||!std::isfinite(screen.y)) {
+        endNativeTileBatch(batch,started);return;
+    }
     std::array<Sprite,kMaxStagedSprites> sprites{};
     size_t count=0;
-    if(!pending.take(frame,&sprites,&count))return;
+    if(!pending.take(frame,&sprites,&count)) {
+        endNativeTileBatch(batch,started);return;
+    }
     for(size_t i=0;i<count;++i)
         drawNativeTileSprite(batch,sprites[i],screen.x,screen.y);
+    endNativeTileBatch(batch,started);
 }
 }
 
@@ -94,7 +101,7 @@ bool installNativeTileSpritePass(std::string* error) {
         if(error)*error="Stage=BindPostDrawTiles Reason=MainFields:"+actual;
         return false;
     }
-    if(!bindNativeSpriteBatch(error))return false;
+    if(!bindNativeSpriteBatch(error)||!bindNativeTileBatchLifecycle(error))return false;
     if(!hook::install(post,postDraw,&originalPostDraw)) {
         if(error)*error="Stage=BindPostDrawTiles Reason=HookFailed";
         return false;

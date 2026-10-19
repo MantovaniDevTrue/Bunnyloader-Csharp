@@ -48,3 +48,8 @@ pass="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-pass"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_pass_test.cpp -o "$pass"
 "$pass"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpritePass.cpp
+
+lifecycle="${RUNNER_TEMP:-/tmp}/bunny-world-tile-batch-lifecycle"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_batch_lifecycle_test.cpp -o "$lifecycle"
+"$lifecycle"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpriteBatchLifecycle.cpp
