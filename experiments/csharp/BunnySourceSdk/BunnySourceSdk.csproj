@@ -22,6 +22,7 @@
     <Compile Include="../BunnyCsSdk/BunnyHoldout.cs" Link="BunnyHoldout.cs" />
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDust.cs" Link="BunnyDust.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
