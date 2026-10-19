@@ -40,6 +40,11 @@ struct ManagedItemPrefixApply {
 bool applyManagedItemPrefixEffects(const std::vector<std::pair<int, ManagedItemPrefixApply>>& effects);
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView();
 
+bool applyManagedItemPrefixDenials(
+    const std::string& modId,
+    const std::vector<std::pair<int, std::vector<std::string>>>& policies);
+std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView();
+
 bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies);
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView();
 
