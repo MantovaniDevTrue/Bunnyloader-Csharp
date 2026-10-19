@@ -22,7 +22,7 @@ struct Quest {
     std::string description;
     std::string location;
     int catchRules = 0;
-    std::map<std::string, std::pair<std::string, std::string>> locales;
+    std::map<std::string, std::pair<std::string, std::string>> locales{};
 };
 
 inline bool validKey(const std::string& key) {
