@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityPalette.h"
+#include "experiments/csharp/NativeRarityTextColor.h"
 
 #include <atomic>
 #include <cassert>
@@ -33,6 +34,15 @@ int main() {
         "RARITY|2147483648", "RARITY|15\\n"
     }) assert(!bl::csharp::decodeRarityPrefixWire(invalid, &rarity));
     assert(!bl::csharp::decodeRarityPrefixWire("RARITY|14", nullptr));
+
+    assert(bl::csharp::tintNativeRarityText(0xffc8d7e6u, 255) == 0xffc8d7e6u);
+    assert(bl::csharp::tintNativeRarityText(0xffc8d7e6u, 0) == 0u);
+    assert(bl::csharp::tintNativeRarityText(0xffc8d7e6u, 128) == 0x80646b73u);
+    assert(bl::csharp::tintNativeRarityText(0x8099ff11u, 255) == 0x8099ff11u);
+    assert(!bl::csharp::shouldTintNativeRarityText(0xff000000u, 255));
+    assert(!bl::csharp::shouldTintNativeRarityText(0xff0a0a0au, 255));
+    assert(bl::csharp::shouldTintNativeRarityText(0xff808080u, 255));
+    assert(!bl::csharp::shouldTintNativeRarityText(0xff808080u, 0));
 
     bl::csharp::NativeRarityPalette palette;
     assert(!palette.read(11, &color));
