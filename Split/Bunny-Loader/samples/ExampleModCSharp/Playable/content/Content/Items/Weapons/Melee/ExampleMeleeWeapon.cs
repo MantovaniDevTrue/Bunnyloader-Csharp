@@ -15,5 +15,6 @@ public sealed class ExampleMeleeWeapon : BunnyItem
         // Swing conserva o ataque corpo a corpo; não substituímos a espada por um tiro.
         UseStyle = 1; UseTime = 20; UseAnimation = 20; AutoReuse = true;
         Value = SellPrice(gold: 1); Rare = 2; UseSound = "Item1";
+        SetRarity<ExampleModRarity>();
     }
 }
