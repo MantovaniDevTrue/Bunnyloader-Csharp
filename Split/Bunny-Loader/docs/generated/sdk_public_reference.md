@@ -631,6 +631,14 @@ string ActiveCultureName { get; }
 | `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
 | `void SetCulture(string culture)` | managed_helper |
 
+## BunnyLoader.Source.BunnyLocalizationModule
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void RegisterTranslations(BunnyLocalizationCatalog catalog)` | compile_policy |
+
 ## BunnyLoader.Source.BunnyMethodHook
 
 class; base: `System.Object`.
