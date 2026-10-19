@@ -470,7 +470,7 @@ bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
     if (g_hooksReady) {
         const auto list = managedPrefixView();
         if (const auto* p = byType(*list, prefix))
-            return (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix ||
+            return ((g_restoreRoll.item == item && g_restoreRoll.prefix == prefix) ||
                     eligible(item, *p, true)) && ensurePrefixTables(*list);
     }
     return g_originalCanRoll ? g_originalCanRoll(item, prefix, method) : false;
