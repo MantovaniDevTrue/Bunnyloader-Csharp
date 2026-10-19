@@ -40,6 +40,7 @@ string VisualTexture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
@@ -149,6 +150,7 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyColor
@@ -571,6 +573,7 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
@@ -857,6 +860,15 @@ string DisplayName { get; set; }
 | `void ModifyValue(ref float valueMultiplier)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 | `void SetStats(ref PrefixStats stats)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixApplyStats
+
+struct; base: `System.ValueType`.
+
+```csharp
+int DamageBonus { get; set; }
+int ValueBonus { get; set; }
+```
 
 ## BunnyLoader.Source.BunnyPrefixRollRules
 
@@ -1343,6 +1355,7 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.PrefixCategory
