@@ -56,6 +56,8 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         rules = by_type["BunnyLoader.Source.BunnyPrefixRollRules"]
         signatures = {entry["signature"]: entry["execution"] for entry in rules["methods"]}
         for signature in (
+            "void PreferFor(int itemType)",
+            "void PreferFor(string itemName)",
             "void SetCanRoll(int itemType, bool allowed)",
             "void SetCanRoll(string itemName, bool allowed)",
             "void SetWeight(int itemType, int weight)",
