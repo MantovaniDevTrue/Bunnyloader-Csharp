@@ -13,6 +13,16 @@ Fontes de contrato: `Split/Bunny-Loader/app/src/main/cpp/script/js/mod/ModLocali
 - JSONs originais da referência incluem **308 caminhos de tradução por idioma** (a quantidade corresponde à fonte do repositório, não necessariamente a cada `Item/NPC/Tile` jogável do port).
 - Métodos públicos foram incluídos em `BunnySourceSdk.csproj` e atualizados em `docs/generated/sdk_public_reference.json` e `.md`.
 
+## Ponte integrada neste lote
+
+- `CompiledAssemblyProbe.Verify(assembly, diagnostics, modRoot)` lê os JSONs através do `BunnyLocalizationCatalog` próprio do SDK, mantendo a sobrecarga de duas entradas para os testes antigos. Exporta `LOCALE\tculture\thex(key)\thex(text)` para `source-runtime-values.txt`, que já é persistido junto às políticas no cache nativo.
+- `ManagedRuntime.cpp` passa `modRoot` ao verificador; `SourceLoader.cpp` só aceita entradas com chave `Mods.source.*`, UTF-8 válido, cultura e identificador válidos, sem repetição e dentro do limite, e publica o lote após os outros defaults válidos.
+- `AutoSourceRuntime.cpp` inclui os JSONs sob `content/Localization/` na impressão digital do cache C#. A alteração de uma tradução invalida os dados antigos do loader sem alterar a identidade do assembly Roslyn nem exigir recompilar todas as classes C# por cada tradução.
+- `NativeLocalizationRuntime.cpp` usa apenas C++/IL2CPP para construir o formato de `LanguageManager.LoadLanguageFromFileText`, registrar as entradas a partir da thread do jogo, detectar idioma ativo e reprocessar mudanças com consulta amortizada a cada 30 updates (não há execução JS por tradução/frame).
+- A ordem de fallback do publicador nativo é cultura exata → `en-US` → primeira cultura disponível. O código usa os contratos de `LanguageManager`, `GameCulture` e `Language` presentes nas fontes originais. Nenhum binário Android foi construído neste lote.
+
+**A ponte existe em código, mas ainda não foi validada no Android.** Não confundir integração de fontes com uma afirmação de funcionamento real. O caminho de troca de idioma usa detecção periódica, não é equivalente ao hook original de recarga imediatamente após `LoadFilesForCulture`.
+
 ## Comprovação em host
 
 `dotnet run --project Split/Bunny-Loader/tests/localization_loader/LocalizationLoader.csproj --configuration Release`
@@ -23,11 +33,11 @@ Os testes cobrem fallback, namespaces entre mods, referências e ciclos, offsets
 
 ## Pendências obrigatórias para declarar completo
 
-1. Ligar o importador ao ciclo real de carregamento automático C# no MonoVM e à persistência de runtime, tanto em cache quente quanto em compilação fria, incluindo descarte por mod/desativação.
-2. Publicar os textos no `Terraria.Localization.LanguageManager` na thread adequada, preservar instâncias já existentes de `LocalizedText`, reprocessar ao alterar a cultura e invalidar caches de tooltips sem VM JS.
-3. Resolver referências a traduções vanilla e cross-mod que ainda não estão no catálogo C#, variantes `$...`, expansão exata de templates e a precedência de `Register` em alterações de idioma.
-4. Validar todos os consumidores: nomes/descrições de itens, NPCs, projéteis, buffs, mapa, comandos, configurações e interfaces; checar entrada tardia, troca de mundo, unload e isolamento por mod.
-5. Criar testes de bridge C++ e de integração, compilar sem APK primeiro e **somente quando todo o lote exigido estiver completo** realizar a etapa Android autorizada pelo usuário. Sem afirmar 60 FPS sem teste do aparelho.
+1. **Compilar e testar** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
+2. Garantir que `LoadLanguageFromFileText` preserva todas as instâncias `LocalizedText` existentes em 301720, invalida os tooltips e atualiza itens/NPCs/buffs que guardam caches próprios. Testar troca repetida pt-BR/en-US/fr-FR.
+3. Resolver referências de texto cruzando mods e chaves vanilla antes da publicação, variantes `$...`, expansões recursivas, precedência de `Register` e os últimos detalhes do ciclo de vida `OnLocalizationsLoaded`.
+4. Tratar desativação, unload e recarga em tempo de jogo: limpar textos de mods desativados, preservar mods terceiros e não deixar referências antigas na UI.
+5. Testar Android em aparelho, concorrência de carregamento, multiplayer e FPS; nenhum desses testes foi feito neste lote. **Proibido gerar APK ou `.bmod` antes de completar o escopo exigido**.
 
 ## Bloqueio de entrega
 
