@@ -38,7 +38,7 @@ try
     }
 
     Check("TestMightyPrefix", 4, 5f, 1.2f, 1.26f, 0);
-    if (byName["TestMightyPrefix"][16] != "1:3,2:0,512:7")
+    if (byName["TestMightyPrefix"][16] != "1:3,2:0,512:7,TestWand:2")
         throw new InvalidOperationException("Managed prefix per-item rules are not canonical");
     Check("TestGuardedPrefix", 5, 1f, 1f, 1.2f, 4);
     var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
@@ -51,6 +51,16 @@ try
     catch (ArgumentOutOfRangeException) { invalidRejected = true; }
     if (!invalidRejected)
         throw new InvalidOperationException("Invalid item type accepted");
+    var named = new BunnyLoader.Source.BunnyPrefixRollRules();
+    named.Deny("ExampleWand");
+    named.Allow("ExampleWand", 6);
+    if (named.Serialize() != "ExampleWand:6")
+        throw new InvalidOperationException("Named item rule replacement failed");
+    bool invalidNameRejected = false;
+    try { named.Deny("examplemod/ExampleWand"); }
+    catch (ArgumentOutOfRangeException) { invalidNameRejected = true; }
+    if (!invalidNameRejected)
+        throw new InvalidOperationException("Unsafe stable item name accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=2 callbacks=4 content=2");
 }
 finally
