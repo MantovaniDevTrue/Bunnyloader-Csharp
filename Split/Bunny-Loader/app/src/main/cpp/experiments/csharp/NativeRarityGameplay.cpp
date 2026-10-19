@@ -1,6 +1,9 @@
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
+#include "experiments/csharp/NativeRarityTextColor.h"
+#include "experiments/csharp/NativeStaticValue.h"
+#include "il2cpp/ValueLayout.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/ManagedRuntime.h"
@@ -353,6 +356,239 @@ bool installPopupRarityHook(std::string* error) {
     return true;
 }
 
+struct RarityTextVec2 { float x, y; };
+using RarityDrawStringFn = void (*)(Il2CppObject*, Il2CppObject*, Il2CppString*,
+    RarityTextVec2, uint32_t, float, RarityTextVec2, float, int32_t, float,
+    const MethodInfo*);
+using RarityMouseStaticFn = void (*)(Il2CppObject*, bool, const MethodInfo*);
+using RarityMouseInstanceFn = void (*)(Il2CppObject*, Il2CppObject*, bool, const MethodInfo*);
+
+RarityDrawStringFn g_originalRarityDrawString = nullptr;
+RarityMouseStaticFn g_originalRarityMouseStatic = nullptr;
+RarityMouseInstanceFn g_originalRarityMouseInstance = nullptr;
+std::atomic<bool> g_groundTextHookReady{false};
+bool g_rarityDrawStringHookInstalled = false;
+NativeColorLayout g_rarityDrawColor;
+int g_cacheRareOffset = -1;
+int g_cacheTextOffset = -1;
+int g_cacheBuffOffset = -1;
+int g_cacheDiffOffset = -1;
+int g_cacheDiffWidth = 0;
+int g_hoverItemTypeOffset = -1;
+native_static::Value g_hoverItem;
+thread_local Il2CppString* g_rarityTextTarget = nullptr;
+thread_local uint32_t g_rarityTextColor = 0;
+
+uint32_t nativeRarityToArgb(uint32_t native) {
+    std::array<uint8_t, 4> bytes{};
+    std::memcpy(bytes.data(), &native, bytes.size());
+    return (static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[3]]) << 24) |
+        (static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[0]]) << 16) |
+        (static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[1]]) << 8) |
+        static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[2]]);
+}
+
+void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
+    RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
+    float scale, int32_t effects, float depth, const MethodInfo* method) {
+    if (g_groundTextHookReady.load(std::memory_order_acquire) &&
+        g_rarityTextTarget && text == g_rarityTextTarget) {
+        const uint32_t original = nativeRarityToArgb(color);
+        const uint8_t opacity = static_cast<uint8_t>(original >> 24);
+        if (shouldTintNativeRarityText(original, opacity))
+            color = g_rarityDrawColor.fromArgb(
+                tintNativeRarityText(g_rarityTextColor, opacity));
+    }
+    if (g_originalRarityDrawString)
+        g_originalRarityDrawString(batch, font, text, position, color, rotation,
+            origin, scale, effects, depth, method);
+}
+
+template <typename F>
+void rarityMouseScope(Il2CppObject* info, F&& original) {
+    if (!g_groundTextHookReady.load(std::memory_order_acquire) || !info) {
+        original();
+        return;
+    }
+    Il2CppString* text = bl::runtime::field<Il2CppString*>(info, g_cacheTextOffset);
+    Il2CppString* buff = bl::runtime::field<Il2CppString*>(info, g_cacheBuffOffset);
+    const int rarity = bl::runtime::field<int32_t>(info, g_cacheRareOffset);
+    const int diff = g_cacheDiffWidth == 1
+        ? static_cast<int>(bl::runtime::field<uint8_t>(info, g_cacheDiffOffset))
+        : bl::runtime::field<int32_t>(info, g_cacheDiffOffset);
+    uint32_t color = 0;
+    if (!text || !g_palette.read(rarity, &color) || diff != 0 ||
+        (buff && buff->length > 0)) {
+        original();
+        return;
+    }
+    Il2CppObject* hover = nullptr;
+    if (!native_static::read(g_hoverItem, &hover, sizeof(hover))) {
+        original();
+        return;
+    }
+    if (hover && bl::runtime::field<int32_t>(hover, g_hoverItemTypeOffset) >= 1) {
+        original();
+        return;
+    }
+    const auto previousText = g_rarityTextTarget;
+    const auto previousColor = g_rarityTextColor;
+    g_rarityTextTarget = text;
+    g_rarityTextColor = color;
+    original();
+    g_rarityTextTarget = previousText;
+    g_rarityTextColor = previousColor;
+}
+
+void rarityMouseStatic(Il2CppObject* info, bool worldMouse, const MethodInfo* method) {
+    rarityMouseScope(info, [&] {
+        if (g_originalRarityMouseStatic)
+            g_originalRarityMouseStatic(info, worldMouse, method);
+    });
+}
+
+void rarityMouseInstance(Il2CppObject* self, Il2CppObject* info,
+    bool worldMouse, const MethodInfo* method) {
+    rarityMouseScope(info, [&] {
+        if (g_originalRarityMouseInstance)
+            g_originalRarityMouseInstance(self, info, worldMouse, method);
+    });
+}
+
+bool validateRarityTextField(Il2CppClass* cls, const char* name,
+    Il2CppClass* expected, int* offset) {
+    using namespace bl::il2cpp;
+    auto& a = api();
+    auto* field = findField(cls, name);
+    if (!field || !a.field_get_flags || (a.field_get_flags(field) & 0x10u) ||
+        !a.field_get_type || !a.class_from_il2cpp_type ||
+        a.class_from_il2cpp_type(a.field_get_type(field)) != expected) return false;
+    *offset = fieldOffset(cls, name);
+    return *offset >= static_cast<int>(sizeof(Il2CppObject));
+}
+
+bool validateRarityTextVec2(Il2CppClass* type, std::string* error) {
+    using namespace bl::il2cpp;
+    auto& a = api();
+    ValueLayout layout;
+    if (!type || !a.class_get_name || !a.class_get_namespace ||
+        std::strcmp(a.class_get_namespace(type), "Microsoft.Xna.Framework") ||
+        std::strcmp(a.class_get_name(type), "Vector2") ||
+        !resolveValueLayout(type, &layout, error) || layout.size != 8) return false;
+    for (const auto& [name, expected] :
+        {std::pair{"X", size_t{0}}, std::pair{"Y", size_t{4}}}) {
+        auto* field = findField(type, name);
+        if (!field || !parameterIs(nullptr, nullptr, 0, "", "") && !a.field_get_type) return false;
+        auto* primitive = a.class_from_il2cpp_type(a.field_get_type(field));
+        const char* ns = primitive ? a.class_get_namespace(primitive) : nullptr;
+        const char* kind = primitive ? a.class_get_name(primitive) : nullptr;
+        size_t actual = 0;
+        if (!ns || !kind || std::strcmp(ns, "System") ||
+            std::strcmp(kind, "Single") ||
+            !layout.offset(a.field_get_offset(field), 4, &actual) ||
+            actual != expected) return false;
+    }
+    return true;
+}
+
+bool installRarityGroundTextHook(std::string* error) {
+    using namespace bl::il2cpp;
+    if (g_groundTextHookReady.load(std::memory_order_acquire)) return true;
+    auto& a = api();
+    Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    Il2CppClass* cache = main ? findNested(main, "MouseTextCache") : nullptr;
+    Il2CppClass* item = findClass({"Terraria", "Item", {}});
+    Il2CppClass* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
+    Il2CppClass* stringType = findClass({"System", "String", {}});
+    Il2CppClass* intType = findClass({"System", "Int32", {}});
+    Il2CppClass* byteType = findClass({"System", "Byte", {}});
+    Il2CppClass* boolType = findClass({"System", "Boolean", {}});
+    if (!main || !cache || !item || !batch || !stringType || !intType ||
+        !byteType || !boolType || !a.class_is_valuetype ||
+        a.class_is_valuetype(cache) || !a.method_is_instance ||
+        !a.method_get_param_count || !a.method_get_param ||
+        !a.class_from_il2cpp_type) {
+        *error = "Reason=MouseTextCacheReferenceAbiUnavailable";
+        return false;
+    }
+    int rare = -1, text = -1, buff = -1, diff = -1, hoverType = -1;
+    if (!validateRarityTextField(cache, "rare", intType, &rare) ||
+        !validateRarityTextField(cache, "cursorText", stringType, &text) ||
+        !validateRarityTextField(cache, "buffTooltip", stringType, &buff) ||
+        !validateRarityTextField(item, "type", intType, &hoverType)) {
+        *error = "Reason=MouseTextCacheFieldsUnavailable";
+        return false;
+    }
+    int diffWidth = 1;
+    if (!validateRarityTextField(cache, "diff", byteType, &diff)) {
+        if (!validateRarityTextField(cache, "diff", intType, &diff)) {
+            *error = "Reason=MouseTextDiffAbiUnavailable";
+            return false;
+        }
+        diffWidth = 4;
+    }
+    auto hover = native_static::resolve(main, "HoverItem");
+    if (!hover || hover.type != item ||
+        native_static::size(hover) != sizeof(Il2CppObject*)) {
+        *error = "Reason=HoverItemReferenceUnavailable";
+        return false;
+    }
+    const auto* mouse = findMethodBySignature(main,
+        parseSignature("void MouseTextInner(Main.MouseTextCache info, bool worldMouse)"));
+    const auto* draw = findMethodBySignature(batch,
+        parseSignature("void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"));
+    if (!mouse || !draw || !a.method_is_instance(draw) ||
+        a.method_get_param_count(mouse) != 2 ||
+        a.method_get_param_count(draw) != 9 ||
+        a.class_from_il2cpp_type(a.method_get_param(mouse, 0)) != cache ||
+        a.class_from_il2cpp_type(a.method_get_param(mouse, 1)) != boolType ||
+        !isReturn(mouse, "System", "Void") ||
+        !isReturn(draw, "System", "Void") ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 1)) != stringType) {
+        *error = "Reason=MouseTextDrawSignaturesUnavailable";
+        return false;
+    }
+    auto* vector = a.class_from_il2cpp_type(a.method_get_param(draw, 2));
+    auto* origin = a.class_from_il2cpp_type(a.method_get_param(draw, 5));
+    auto* color = a.class_from_il2cpp_type(a.method_get_param(draw, 3));
+    auto* effects = a.class_from_il2cpp_type(a.method_get_param(draw, 7));
+    NativeColorLayout layout;
+    if (vector != origin || !validateRarityTextVec2(vector, error) ||
+        !layout.bind(color, error) || !effects ||
+        !a.class_is_enum || !a.class_is_enum(effects) ||
+        !a.class_get_namespace || !a.class_get_name ||
+        std::strcmp(a.class_get_namespace(effects), "Microsoft.Xna.Framework.Graphics") ||
+        std::strcmp(a.class_get_name(effects), "SpriteEffects")) {
+        if (error->empty()) *error = "Reason=MouseTextDrawValueAbiMismatch";
+        return false;
+    }
+    if (!g_rarityDrawStringHookInstalled) {
+        g_rarityDrawColor = layout;
+        if (!bl::hook::install(draw, rarityDrawString, &g_originalRarityDrawString)) {
+            *error = "Reason=MouseDrawStringHookRejected";
+            return false;
+        }
+        g_rarityDrawStringHookInstalled = true;
+    }
+    g_cacheRareOffset = rare;
+    g_cacheTextOffset = text;
+    g_cacheBuffOffset = buff;
+    g_cacheDiffOffset = diff;
+    g_cacheDiffWidth = diffWidth;
+    g_hoverItemTypeOffset = hoverType;
+    g_hoverItem = hover;
+    const bool hooked = a.method_is_instance(mouse)
+        ? bl::hook::install(mouse, rarityMouseInstance, &g_originalRarityMouseInstance)
+        : bl::hook::install(mouse, rarityMouseStatic, &g_originalRarityMouseStatic);
+    if (!hooked) {
+        *error = "Reason=MouseTextInnerHookRejected";
+        return false;
+    }
+    g_groundTextHookReady.store(true, std::memory_order_release);
+    BL_INFO("[CSharp][RarityLoader] Stage=InstallHook API=Main.MouseTextInner Result=Ready");
+    return true;
+}
+
 struct DiscoField {
     FieldInfo* field = nullptr;
     int bytes = 0;
@@ -479,6 +715,13 @@ void pumpNativeRarityGameplay() {
         std::string error;
         if (!installPopupRarityHook(&error))
             BL_WARN("[CSharp][RarityLoader] Stage=InstallPopup Result=Pending Detail=%s",
+                error.c_str());
+    }
+    if (g_hookReady.load(std::memory_order_acquire) &&
+        !g_groundTextHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+        std::string error;
+        if (!installRarityGroundTextHook(&error))
+            BL_WARN("[CSharp][RarityLoader] Stage=InstallGroundText Result=Pending Detail=%s",
                 error.c_str());
     }
     if (g_hookReady.load(std::memory_order_acquire) &&
