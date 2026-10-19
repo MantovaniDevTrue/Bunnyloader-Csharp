@@ -61,6 +61,27 @@ int main() {
         assert(inventory[0].rarityKey == "missing/Rarity");
     }
 
+    {
+        const SavedItem rarityOnly{"chest:5,9", 3, 1, 0, false,
+            "vanilla:98", {}, {}, "mod/CustomRarity"};
+        const SavedItem prefixOnly{"chest:5,9", 3, 1, 0, false,
+            "vanilla:98", "mod/CustomPrefix"};
+        const SavedItem vanillaPrefix{"chest:5,9", 3, 1, 19, false,
+            "vanilla:98"};
+        assert(!hasSavedVanillaPrefix(rarityOnly));
+        assert(hasRemainingVanillaMetadata(rarityOnly));
+        assert(hasSavedVanillaPrefix(prefixOnly));
+        assert(hasSavedVanillaPrefix(vanillaPrefix));
+        const uint8_t originalPrefix = 22;
+        uint8_t rarityOnlyPrefix = originalPrefix;
+        if (hasSavedVanillaPrefix(rarityOnly)) rarityOnlyPrefix = 0;
+        assert(rarityOnlyPrefix == originalPrefix);
+        uint8_t requestedPrefix = originalPrefix;
+        if (hasSavedVanillaPrefix(vanillaPrefix))
+            requestedPrefix = static_cast<uint8_t>(vanillaPrefix.prefix);
+        assert(requestedPrefix == 19);
+    }
+
     std::stringstream legacy;
     assert(write(legacy, old));
     assert(legacy.str().starts_with("bunnyloader itens 2\n"));
