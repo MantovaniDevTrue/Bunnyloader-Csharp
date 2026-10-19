@@ -120,15 +120,19 @@ public static class CompiledAssemblyProbe
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var localizationTypes = contentTypes
+                .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
+                    type.BaseType?.FullName == "BunnyLoader.Source.BunnyLocalizationModule")
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + localizationTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -160,7 +164,7 @@ public static class CompiledAssemblyProbe
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, walls, diagnosticsPath);
             if (modRoot.Length != 0)
-                AppendManagedLocalization(modRoot, diagnosticsPath);
+                AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes);
 
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
@@ -178,12 +182,12 @@ public static class CompiledAssemblyProbe
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
-                " screenEffects=" + screenEffects.Length +
+                " screenEffects=" + screenEffects.Length + " localizationModules=" + localizationTypes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + screenEffects.Length + localizationTypes.Length;
         }
         catch (Exception exception)
         {
@@ -194,14 +198,28 @@ public static class CompiledAssemblyProbe
     }
 
 
-    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath)
+    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath, Type[] modules)
     {
         string source = Path.Combine(modRoot, "content");
         var catalog = new BunnyLoader.Source.BunnyLocalizationCatalog();
         int cultures = catalog.LoadFromContent("source", source);
-        if (cultures == 0) return;
+        foreach (Type type in modules)
+        {
+            if (type.GetConstructor(Type.EmptyTypes) == null)
+                throw new InvalidOperationException("BunnyLocalizationModule requires a public parameterless constructor: " + type.FullName);
+            var module = Activator.CreateInstance(type) as BunnyLoader.Source.BunnyLocalizationModule
+                ?? throw new InvalidOperationException("Failed to instantiate localization module: " + type.FullName);
+            module.RegisterTranslations(catalog);
+        }
+
+        if (cultures == 0 && modules.Length == 0) return;
+        foreach (string key in catalog.SnapshotForGame().Keys)
+            if (!key.StartsWith("Mods.source.", StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Only mod-owned Mods.source.* keys may be registered by BunnyLocalizationModule: " + key);
+
         IReadOnlyList<string> rows = catalog.ExportWireRows();
-        if (rows.Count > 8192 * 32)
+        if (rows.Count > 16384)
             throw new InvalidDataException("Localization wire exceeds row limit");
         string output = Path.Combine(Path.GetDirectoryName(diagnosticsPath) ??
             throw new InvalidOperationException("Missing diagnostics directory"), "source-runtime-values.txt");
@@ -212,7 +230,8 @@ public static class CompiledAssemblyProbe
                 writer.WriteLine(row);
         }
         File.AppendAllText(diagnosticsPath,
-            "\nMANAGED_LOCALIZATION_WIRE cultures=" + cultures + " rows=" + rows.Count);
+            "\nMANAGED_LOCALIZATION_WIRE cultures=" + cultures +
+            " modules=" + modules.Length + " rows=" + rows.Count);
     }
 
 
