@@ -14,6 +14,7 @@ namespace bl::csharp {
 class ManagedDustMailbox {
 public:
     static constexpr std::size_t kSlots = 6000;
+    static constexpr std::size_t kPhases = 6;
     static constexpr std::size_t kPendingLimit = 128;
     static constexpr std::uint64_t kMaxResultAgeFrames = 3;
 
@@ -42,7 +43,7 @@ public:
             ++drops_;
             return false;
         }
-        Slot& slot = slots_[static_cast<std::size_t>(state.slot)];
+        Slot& slot = slots_[static_cast<std::size_t>(state.slot) * kPhases + static_cast<size_t>(phase)];
         if (slot.pending && slot.type == state.type &&
             slot.generation == state.generation &&
             frame >= slot.frame && frame - slot.frame <= kMaxResultAgeFrames)
@@ -77,7 +78,7 @@ public:
             !managedDustSameInstance(request.state, state) ||
             (flags & ~63u) != 0u ||
             (((flags & 32u) != 0u) != (state.active != 0))) return false;
-        Slot& slot = slots_[static_cast<std::size_t>(state.slot)];
+        Slot& slot = slots_[static_cast<std::size_t>(state.slot) * kPhases + static_cast<size_t>(request.phase)];
         if (!slot.pending || slot.type != state.type ||
             slot.generation != state.generation ||
             slot.binding != request.binding ||
@@ -98,7 +99,7 @@ public:
             generation <= 0) return false;
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock) return false;
-        Slot& state = slots_[static_cast<std::size_t>(slot)];
+        Slot& state = slots_[static_cast<std::size_t>(slot) * kPhases + static_cast<size_t>(phase)];
         if (!state.ready) return false;
         Response result = state.result;
         state.ready = false;
@@ -109,6 +110,20 @@ public:
             return false;
         *out = result;
         return true;
+    }
+
+    void discard(const Request& request) {
+        if (request.phase < 0 || static_cast<size_t>(request.phase) >= kPhases ||
+            request.state.slot < 0 || static_cast<size_t>(request.state.slot) >= kSlots)
+            return;
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (request.session != session_) return;
+        Slot& slot = slots_[static_cast<size_t>(request.state.slot) * kPhases +
+                            static_cast<size_t>(request.phase)];
+        if (slot.pending && slot.type == request.state.type &&
+            slot.generation == request.state.generation &&
+            slot.frame == request.frame && slot.binding == request.binding)
+            slot.pending = false;
     }
 
     void resetWorld() {
@@ -144,7 +159,7 @@ private:
     mutable std::mutex mutex_;
     std::uint64_t session_ = 1;
     std::uint64_t drops_ = 0;
-    std::array<Slot, kSlots> slots_{};
+    std::array<Slot, kSlots * kPhases> slots_{};
     std::deque<Request> requests_;
 };
 
