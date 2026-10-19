@@ -560,7 +560,6 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved, bool* prefixR
     field<int32_t>(item, r.stack) = saved.stack > 0 ? saved.stack : 1;
     const bool applied = restoreSavedPrefix(item, saved);
     if (prefixRestored) *prefixRestored = applied;
-    restoreRarity(item, saved.rarityKey);
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
     script::loadModItemData(item, saved.data);
     return true;
@@ -851,6 +850,54 @@ void retryPendingManagedPrefixesInWorld() {
     }
     BL_INFO("csharp prefix: recuperacao apos mundo pronto tentados=%d repostos=%d falhos=%d pendentes=%zu",
             attempted, restored, unresolved, remaining);
+}
+
+void retryPendingManagedRaritiesInWorld() {
+    if (!g_refs.ok || g_refs.rare < 0) return;
+    auto& api = il2cpp::api();
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main
+        ? api.class_get_method_from_name(main, "get_ActivePlayerFileData", 0) : nullptr;
+    if (!getter) return;
+    Il2CppObject* exception = nullptr;
+    auto* file = api.runtime_invoke(getter, nullptr, nullptr, &exception);
+    if (exception || !file) return;
+    const std::string path = localPath(file);
+    auto* player = objectAt(file, g_refs.filePlayer);
+    if (path.empty() || !player) return;
+    std::map<std::string, PendingPrefix> pending;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        const auto it = g_pendingRarity.find(path);
+        if (it == g_pendingRarity.end() || it->second.empty()) return;
+        pending = it->second;
+    }
+    std::vector<std::string> completed;
+    for (const Container& container : containersOf(player)) {
+        for (int slot = 0; slot < container.size(); ++slot) {
+            const auto key = placeKey(container.name, slot);
+            const auto it = pending.find(key);
+            if (it == pending.end()) continue;
+            auto* item = container.at(slot);
+            if (item && field<int32_t>(item, g_refs.type) == it->second.type &&
+                restoreRarity(item, it->second.key))
+                completed.push_back(key);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        auto active = g_pendingRarity.find(path);
+        if (active == g_pendingRarity.end()) return;
+        for (const auto& key : completed) {
+            auto original = pending.find(key);
+            auto current = active->second.find(key);
+            if (original != pending.end() && current != active->second.end() &&
+                current->second.type == original->second.type &&
+                current->second.key == original->second.key)
+                active->second.erase(current);
+        }
+        if (active->second.empty()) g_pendingRarity.erase(active);
+    }
 }
 
 // ------------------------------ mundo ------------------------------
@@ -1339,6 +1386,7 @@ int pendingManagedPrefixCountForActivePlayer() {
 
 void retryPendingManagedPrefixesOnWorldReady() {
     retryPendingManagedPrefixesInWorld();
+    retryPendingManagedRaritiesInWorld();
 }
 
 void installModItemSave() {
