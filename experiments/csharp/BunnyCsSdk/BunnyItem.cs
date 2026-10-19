@@ -5,6 +5,14 @@ using System.Linq;
 
 namespace BunnyLoader.Source;
 
+[Flags]
+public enum BunnyQuestCatchRules
+{
+    None = 0,
+    InvertedGravity = 1,
+    Uncommon = 2
+}
+
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
 public abstract class BunnyItem : BunnyRecipeSource
 {
@@ -41,6 +49,7 @@ public abstract class BunnyItem : BunnyRecipeSource
     public bool QuestAvailableInHardmode { get; set; } = true;
     public string QuestDescription { get; set; } = "";
     public string QuestCatchLocation { get; set; } = "";
+    public BunnyQuestCatchRules QuestCatchRules { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
     public int Crit { get; set; }
