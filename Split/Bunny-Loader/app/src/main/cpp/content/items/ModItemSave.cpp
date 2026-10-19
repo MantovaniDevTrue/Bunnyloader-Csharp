@@ -1209,7 +1209,8 @@ void hkFixAgainstExploits(const MethodInfo* m) {
             cov.resize(it->second->length);
             cov[static_cast<size_t>(s.slot)] = true;
             const int prefix = decodePrefix(s);
-            slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
+            if (s.prefix > 0 || !s.prefixKey.empty())
+                slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
             setChestRarity(slot.data, slot.type(), s.rarityKey);
             if (prefix > 0) ++prefixes;
             else if (!s.prefixKey.empty()) kept.push_back(s);
