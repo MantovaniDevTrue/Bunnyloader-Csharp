@@ -1099,6 +1099,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "IReadOnlyList\u003Cstring\u003E ExportWireRows()",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool Exists(string path, string callerModId)",
           "execution": "managed_helper"
         },
