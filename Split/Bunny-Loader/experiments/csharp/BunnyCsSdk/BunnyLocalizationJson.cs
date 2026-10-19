@@ -234,9 +234,16 @@ internal sealed class BunnyLocalizationJson
 
     private void Number()
     {
-        if (Next('-') && offset == json.Length) throw new InvalidDataException("Invalid JSON number");
-        if (!Next('0'))
+        Next('-');
+        if (Next('0'))
         {
+            if (offset < json.Length && json[offset] >= '0' && json[offset] <= '9')
+                throw new InvalidDataException("Leading zero in JSON number");
+        }
+        else
+        {
+            if (offset >= json.Length || json[offset] < '1' || json[offset] > '9')
+                throw new InvalidDataException("Invalid JSON number");
             Digits(true);
         }
         if (Next('.')) Digits(true);
@@ -245,6 +252,10 @@ internal sealed class BunnyLocalizationJson
             if (!Next('+')) Next('-');
             Digits(true);
         }
+        if (offset < json.Length && json[offset] != ',' && json[offset] != '}' &&
+            json[offset] != ']' && json[offset] != ' ' && json[offset] != '\r' &&
+            json[offset] != '\n' && json[offset] != '\t')
+            throw new InvalidDataException("Unexpected JSON number suffix");
     }
 
     private void Digits(bool firstRequired)
