@@ -1138,8 +1138,8 @@ string Texture { get; set; }
 | --- | --- |
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
-| `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `bool PreDraw(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `bool RightClick(int x, int y)` | managed_helper |
 | `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
@@ -1168,7 +1168,7 @@ int Count { get; }
 
 | Method | Execution |
 | --- | --- |
-| `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, uint argb, int effects)` | managed_helper |
+| `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileFlags
 
