@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeLocalizationRuntime.h"
+#include "experiments/csharp/NativeLocalizationSession.h"
 #include "experiments/csharp/LocalizationResolve.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -17,8 +18,7 @@
 namespace bl::csharp::localization {
 namespace {
 std::mutex gate;
-std::map<std::string, std::vector<Entry>> mods;
-uint64_t generation = 0;
+NativeLocalizationSession session;
 uint64_t lastAppliedGeneration = 0;
 std::string lastCulture;
 uint32_t frameCounter = 0;
@@ -167,7 +167,8 @@ Refs& refs() {
     return reference;
 }
 
-bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const std::string& culture) {
+bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,
+                   const std::set<std::string>& retired,const std::string& culture) {
     auto& api=il2cpp::api();auto& r=refs();
     if(!r.valid)return false;
     Il2CppObject* manager=nullptr;
@@ -198,6 +199,7 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const
         *output=textToUtf8(value);
         return !output->empty()||value->length==0;
     };
+    for (const auto& key : retired) all[key]=key;
     const auto resolved=resolveLocaleReferences(std::move(all),vanilla);
     for(const auto& [modId,entries]:selectedByMod) {
         std::map<std::string,std::map<std::string,std::string>> categories;
@@ -248,18 +250,17 @@ void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const M
     auto& r=refs();
     const std::string name=cultureName(culture,r.name);
     if(name.empty())return;
-    std::map<std::string,std::vector<Entry>> current;
-    uint64_t revision=0;
+    SessionSnapshot current;
     {
         std::lock_guard<std::mutex> lock(gate);
-        if(mods.empty())return;
-        current=mods;
-        revision=generation;
+        current=session.snapshot();
     }
-    if(!publishToGame(current,name))return;
+    if(current.active.empty() && current.retired.empty())return;
+    const uint64_t revision=current.revision;
+    if(!publishToGame(current.active,current.retired,name))return;
     invalidateGameTooltips();
     std::lock_guard<std::mutex> lock(gate);
-    if(revision==generation) {
+    if(revision==session.revision()) {
         lastAppliedGeneration=revision;
         lastCulture=name;
     }
@@ -299,8 +300,12 @@ bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,
 
 void stage(const std::string& modId,std::vector<Entry> entries) {
     std::lock_guard<std::mutex> lock(gate);
-    mods[modId]=std::move(entries);
-    ++generation;
+    session.replace(modId,std::move(entries));
+}
+
+void retainActiveMods(const std::set<std::string>& activeIds) {
+    std::lock_guard<std::mutex> lock(gate);
+    session.retainOnly(activeIds);
 }
 
 void pumpOnGameThread() {
@@ -313,18 +318,18 @@ void pumpOnGameThread() {
     if(exception)return;
     const std::string culture=cultureName(active,r.name);
     if(culture.empty())return;
-    std::map<std::string,std::vector<Entry>> current;
-    uint64_t revision=0;
+    SessionSnapshot current;
     {
         std::lock_guard<std::mutex> lock(gate);
-        if(generation==lastAppliedGeneration && culture==lastCulture)return;
-        current=mods;revision=generation;
+        if(session.revision()==lastAppliedGeneration && culture==lastCulture)return;
+        current=session.snapshot();
     }
-    if(!publishToGame(current,culture))return;
+    const uint64_t revision=current.revision;
+    if(!publishToGame(current.active,current.retired,culture))return;
     invalidateGameTooltips();
     {
         std::lock_guard<std::mutex> lock(gate);
-        if(generation==revision) {
+        if(session.revision()==revision) {
             lastAppliedGeneration=revision;
             lastCulture=culture;
         }
