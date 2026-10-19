@@ -1,6 +1,7 @@
 #include "content/items/ModItemSave.h"
 #include "content/items/ModItemSaveFormat.h"
 #include "content/items/ModItemSaveSafety.h"
+#include "content/items/NativeRarityPending.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -915,29 +916,11 @@ void retryPendingManagedRaritiesInWorld() {
             auto* item = container.at(slot);
             if (!item) continue;
             const int type = field<int32_t>(item, g_refs.type);
-            const auto byItem = pendingByItem.find(item);
-            const std::string slotKey = placeKey(container.name, slot);
-            PendingPrefix desired;
-            std::string origin;
-            if (byItem != pendingByItem.end() && byItem->second.type == type) {
-                desired = byItem->second;
-                origin = desired.origin;
-            } else {
-                const auto bySlot = pendingBySlot.find(slotKey);
-                if (bySlot == pendingBySlot.end() || bySlot->second.type != type) continue;
-                desired = bySlot->second;
-                bool belongsElsewhere = false;
-                for (const auto& [tracked, state] : pendingByItem)
-                    if (tracked != item && state.type == type &&
-                        state.key == desired.key && state.origin == slotKey) {
-                        belongsElsewhere = true;
-                        break;
-                    }
-                if (belongsElsewhere) continue;
-                origin = slotKey;
-            }
-            if (restoreRarity(item, desired.key))
-                completed.push_back({origin, item, desired.type, desired.key});
+            const auto desired = item_save::selectTrackedRarity(
+                pendingByItem, pendingBySlot, item, placeKey(container.name, slot), type);
+            if (!desired) continue;
+            if (restoreRarity(item, desired->key))
+                completed.push_back({desired->origin, item, desired->type, desired->key});
         }
     }
     if (completed.empty()) return;
