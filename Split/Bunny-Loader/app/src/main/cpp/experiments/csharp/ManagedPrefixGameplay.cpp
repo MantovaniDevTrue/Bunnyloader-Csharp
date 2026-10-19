@@ -391,7 +391,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     const auto descriptors = managedPrefixView();
     if (g_restoreRoll.item == item && g_restoreRoll.prefix > 0) {
         if (const auto* target = byType(*descriptors, g_restoreRoll.prefix)) {
-            if (eligible(item, *target, true) && ensurePrefixTables(*descriptors)) {
+            if (ensurePrefixTables(*descriptors)) {
                 *rolled = target->type;
                 g_restoreRoll.used = true;
                 return true;
@@ -465,11 +465,13 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
 }
 
 bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
-    if (g_hooksReady && isPrefixDenied(item, prefix)) return false;
+    if (g_hooksReady && g_restoreRoll.item != item &&
+        isPrefixDenied(item, prefix)) return false;
     if (g_hooksReady) {
         const auto list = managedPrefixView();
         if (const auto* p = byType(*list, prefix))
-            return eligible(item, *p, true) && ensurePrefixTables(*list);
+            return (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix ||
+                    eligible(item, *p, true)) && ensurePrefixTables(*list);
     }
     return g_originalCanRoll ? g_originalCanRoll(item, prefix, method) : false;
 }
@@ -483,7 +485,9 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
         if (const auto* p = byType(*list, prefix)) {
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
-                !ensurePrefixTables(*list) || !eligible(item, *p, true))
+                !ensurePrefixTables(*list) ||
+                (g_restoreRoll.item != item || g_restoreRoll.prefix != prefix) &&
+                    !eligible(item, *p, true))
                 return false;
             *dmg = p->multipliers[0];
             *kb = p->multipliers[1];
@@ -504,7 +508,8 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                 return mult == 1.f ||
                     std::nearbyint(static_cast<float>(current) * mult) != static_cast<float>(current);
             };
-            return !p->requireEffectiveStats ||
+            return (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix) ||
+                   !p->requireEffectiveStats ||
                    (changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
                     changes(itemMana, *mana) && (*kb == 1.f || itemKnockBack != 0.f));
         }
@@ -520,7 +525,7 @@ void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* metho
     const int prefix = bl::runtime::field<uint8_t>(item, g_refs.prefix);
     const auto list = managedPrefixView();
     const auto* found = byType(*list, prefix);
-    if (!found || found->category != 5 || !eligible(item, *found, true)) return;
+    if (!found || found->category != 5) return;
     bl::runtime::field<int32_t>(player, g_refs.playerDefense) += found->accessoryDefense;
 }
 
@@ -757,8 +762,7 @@ bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
         !itemPrefixMethod || g_restoreRoll.item) return false;
     const auto descriptors = managedPrefixView();
     const auto* requested = byType(*descriptors, prefix);
-    if (!requested || !eligible(item, *requested, true) ||
-        !ensurePrefixTables(*descriptors)) return false;
+    if (!requested || !ensurePrefixTables(*descriptors)) return false;
     const RestoreRoll previous = g_restoreRoll;
     g_restoreRoll = {item, prefix, false};
     int32_t request = -2;
