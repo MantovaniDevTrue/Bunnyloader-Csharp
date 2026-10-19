@@ -1067,12 +1067,20 @@ bool applyManagedSourceDefaults(
                     const size_t comma = fields[16].find(',', start);
                     const size_t end = comma == std::string::npos ? fields[16].size() : comma;
                     const size_t colon = fields[16].find(':', start);
+                    const size_t secondColon = colon == std::string::npos
+                        ? std::string::npos : fields[16].find(':', colon + 1);
+                    const bool hasCanRoll = secondColon != std::string::npos && secondColon < end;
+                    const size_t weightEnd = hasCanRoll ? secondColon : end;
+                    int allowValue = -1;
                     int itemType = 0;
                     int weight = -1;
                     const std::string token = fields[16].substr(start, colon == std::string::npos ? 0 : colon - start);
                     if (colon == std::string::npos || colon >= end ||
-                        !integer(fields[16].substr(colon + 1, end - colon - 1), &weight) ||
+                        !integer(fields[16].substr(colon + 1, weightEnd - colon - 1), &weight) ||
                         weight < 0 || weight > 20 ||
+                        (hasCanRoll &&
+                         (!integer(fields[16].substr(secondColon + 1, end - secondColon - 1), &allowValue) ||
+                          (allowValue != 0 && allowValue != 1))) ||
                         record.itemWeights.size() + record.itemNames.size() >= 32) {
                         *error = "Regra por item invalida no prefixo C#: " + record.name;
                         return false;
@@ -1083,6 +1091,7 @@ bool applyManagedSourceDefaults(
                             *error = "Tipo numerico repetido ou invalido no prefixo C#: " + record.name;
                             return false;
                         }
+                        if (hasCanRoll) record.itemCanRoll.emplace(itemType, allowValue == 1);
                     } else {
                         bool validName = !token.empty() && token.size() <= 64 &&
                             ((token[0] >= 'A' && token[0] <= 'Z') ||
@@ -1096,6 +1105,7 @@ bool applyManagedSourceDefaults(
                             *error = "Nome de item repetido ou invalido no prefixo C#: " + record.name;
                             return false;
                         }
+                        if (hasCanRoll) record.itemNamesCanRoll.emplace(token, allowValue == 1);
                     }
                     if (comma == std::string::npos) break;
                     start = comma + 1;
