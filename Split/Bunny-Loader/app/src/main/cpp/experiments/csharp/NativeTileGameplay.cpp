@@ -205,9 +205,9 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
     if(!binding || !managedTileReady(binding->spec,13))return false;
     const auto& spec=binding->spec;
     char snapshot[192]{};
-    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
         x,y,data->frameX,data->frameY,data->width,data->height,
-        data->top,data->addFrX,data->addFrY,data->effects,special?1:0);
+        data->top,data->addFrX,data->addFrY,data->effects,special?1:0,type);
     if(length<=0||static_cast<size_t>(length)>=sizeof(snapshot))return false;
     std::string reply;
     if(!invokeManagedTileDraw(spec.mod,spec.assembly,spec.name,

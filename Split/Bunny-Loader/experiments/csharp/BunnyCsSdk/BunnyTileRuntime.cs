@@ -48,9 +48,9 @@ public static class BunnyTileRuntime {
                     matches[0].GetProperty("Texture")!.SetValue(tile, declaration.Texture);
                 }
                 tile.SetStaticDefaults();
-                foreach (string name in Names) {
-                    var method = matches[0].GetMethod(name, BindingFlags.Public | BindingFlags.Instance)!;
-                    if (method.DeclaringType != typeof(BunnyTile))
+                foreach (var method in matches[0].GetMethods(BindingFlags.Public | BindingFlags.Instance)) {
+                    if (Array.IndexOf(Names, method.Name) >= 0 &&
+                        method.DeclaringType != typeof(BunnyTile))
                         RuntimeHelpers.PrepareMethod(method.MethodHandle);
                 }
                 mod.Tiles.Add(owner, tile);
@@ -61,8 +61,9 @@ public static class BunnyTileRuntime {
                 if ((mod.Masks[owner] & (7 << 13)) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            int expected = index == 11 ? 3 : index == 13 ? 11 : 2;
-            if (fields.Length != expected) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
+            int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
+            if (fields.Length != expected && !(index == 13 && fields.Length == 11))
+                return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
             int y = int.Parse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
             if (x < 0 || y < 0 || x > 100000 || y > 100000)
@@ -80,8 +81,16 @@ public static class BunnyTileRuntime {
                     return "ERROR|Stage=DecodeTileDraw Reason=InvalidSpecialPass";
                 if ((mod.Masks[owner] & (1 << 13)) != 0)
                     tile.SetDrawPositions(x, y, ref width, ref top, ref height, ref frameX, ref frameY);
-                if ((mod.Masks[owner] & (1 << 14)) != 0)
-                    tile.AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
+                if ((mod.Masks[owner] & (1 << 14)) != 0) {
+                    if (fields.Length == 12) {
+                        int tileType = int.Parse(fields[11], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                        if (tileType < 754 || tileType > 65535)
+                            return "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType";
+                        tile.AnimateIndividualTile(tileType, x, y, ref addFrameX, ref addFrameY);
+                    } else {
+                        tile.AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
+                    }
+                }
                 if ((mod.Masks[owner] & (1 << 15)) != 0)
                     tile.SetSpriteEffects(x, y, ref effects);
                 if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||

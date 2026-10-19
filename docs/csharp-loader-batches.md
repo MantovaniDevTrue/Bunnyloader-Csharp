@@ -125,3 +125,9 @@ As matrizes206 JS e o inventário PC permanecem oficiais. Implementado, teste au
 Código `f70caa8044c2d6ae8a27716c6526a40080446601`: [CI39246685678](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685678) aprovado, incluindo ARM64, testes Gradle, APK e assinatura. Nove suítes independentes de push aprovadas no mesmo SHA. Publicação, exportação de .bmod e job de conferência privada pulados; somente artefatos de resultados de testes/medições exportados. Repositório Builds privado confirmado e tag deste run ausente (HTTP404).
 
 [Registro completo](validation/csharp-world-loaders-v99-2026-10-19.json), com etapas, suítes, contagens e hashes dos dois assets originais. O commit posterior só registra essa evidência; o código compilado é o SHA acima. Gameplay Android/FPS pendentes e zero loaders inteiros certificados. Próxima execução continua os contratos do grupo1; não remove a .96 nem publica um subconjunto.
+
+### AnimateIndividualTile C# — paridade de assinatura e wire
+
+A API do Bunny original fornece `AnimateIndividualTile(type, i, j, frameXOffset, frameYOffset)`. A versão C# passou a disponibilizar a sobrecarga com `type` e preservou a assinatura anterior como compatibilidade. O callback completo delega ao antigo quando o mod apenas sobrescreve a assinatura legada. A máscara de overrides e o prewarm reconhecem ambas as sobrecargas sem `GetMethod` ambíguo.
+
+O snapshot da célula no MonoVM agora inclui o tipo nativo registrado como décimo segundo campo. O dispatcher também aceita os onze campos anteriores para a assinatura legada, valida o tipo novo dentro do intervalo de tiles de mod e repassa o valor sem JS. A referência pública do SDK foi sincronizada com a nova sobrecarga. Este avanço não implementa nem certifica `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` ou `EmitParticles`; continua proibido gerar APK antes de completar os cinco loaders.

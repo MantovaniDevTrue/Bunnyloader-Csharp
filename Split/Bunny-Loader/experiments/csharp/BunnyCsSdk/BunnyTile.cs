@@ -81,6 +81,8 @@ public abstract class BunnyTile {
     public virtual void SetDrawPositions(int x, int y, ref int width, ref int top,
         ref int height, ref int frameX, ref int frameY) { }
     public virtual void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY) { }
+    public virtual void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)
+        => AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
     public virtual void SetSpriteEffects(int x, int y, ref int effects) { }
     public int TileCallbackMask {
         get {
@@ -93,6 +95,19 @@ public abstract class BunnyTile {
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
+                if (i == 14) {
+                    Type integer = typeof(int);
+                    Type byRef = integer.MakeByRefType();
+                    var legacy = type.GetMethod(methods[i], new[] {integer, integer, byRef, byRef});
+                    var original = type.GetMethod(methods[i], new[] {integer, integer, integer, byRef, byRef});
+                    if (legacy == null || original == null ||
+                        legacy.GetBaseDefinition().DeclaringType != typeof(BunnyTile) ||
+                        original.GetBaseDefinition().DeclaringType != typeof(BunnyTile))
+                        throw new InvalidOperationException(type.FullName + ": invalid callback " + methods[i]);
+                    if (legacy.DeclaringType != typeof(BunnyTile) ||
+                        original.DeclaringType != typeof(BunnyTile)) mask |= 1 << i;
+                    continue;
+                }
                 var callback = type.GetMethod(methods[i], System.Reflection.BindingFlags.Public |
                     System.Reflection.BindingFlags.Instance);
                 if (callback == null || callback.GetBaseDefinition().DeclaringType != typeof(BunnyTile))
