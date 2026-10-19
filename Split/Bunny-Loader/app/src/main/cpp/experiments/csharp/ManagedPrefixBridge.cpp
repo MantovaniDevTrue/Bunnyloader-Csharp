@@ -34,6 +34,9 @@ bool valid(const ManagedPrefixEntry& p) {
         (p.category != 5 && p.accessoryDefense != 0)) return false;
     for (float value : p.multipliers)
         if (!std::isfinite(value) || value < 0.1f || value > 10.f) return false;
+    if (p.itemWeights.size() > 32) return false;
+    for (const auto& [itemType, weight] : p.itemWeights)
+        if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20) return false;
     return true;
 }
 
