@@ -448,17 +448,12 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
 
     const auto* values = static_cast<const int32_t*>(arrayData(list));
     bool hasManaged = false;
-    bool hasOtherMod = false;
-    const int vanillaCount = bl::runtime::vanillaPrefixCount();
-    for (uintptr_t i = 0; i < list->length; ++i) {
-        if (byType(*descriptors, values[i])) hasManaged = true;
-        else if (values[i] >= vanillaCount &&
-                 !bl::runtime::modPrefixKey(values[i]).empty()) {
-            hasOtherMod = true;
+    for (uintptr_t i = 0; i < list->length; ++i)
+        if (byType(*descriptors, values[i])) {
+            hasManaged = true;
             break;
         }
-    }
-    if ((!hasManaged && !hasDeny) || hasOtherMod)
+    if (!hasManaged && !hasDeny)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
     error = nullptr;
