@@ -46,6 +46,7 @@ public abstract class BunnyTile {
     public int[] AdjacentTiles { get; set; } = Array.Empty<int>();
     public bool AllowBreaking { get; set; } = true;
     public bool AllowDrops { get; set; } = true;
+    public bool CacheDrawData { get; set; } = true;
     public string DustName { get; set; } = "";
     public int MapR { get; private set; } = 200;
     public int MapG { get; private set; } = 200;

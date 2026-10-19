@@ -837,6 +837,12 @@ bool applyManagedSourceDefaults(
                 (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 65535)) {
                 *error = fields[1] + ": TileCallbackMask invalido"; return false;
             }
+            if (tile_wire::hasDrawCachePolicy(fields.size())) {
+                if (fields[20] != "0" && fields[20] != "1") {
+                    *error = fields[1] + ": CacheDrawData deve ser 0 ou 1"; return false;
+                }
+                tile.cacheDrawData = fields[20] == "1";
+            }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
                 *error = "[CSharp][ERROR][Tile] Mod="+modId+" Stage=Decode Expected=AtMost"+std::to_string(kSourceMaxCategory)+" Actual="+std::to_string(tiles.size())+" Reason=CategoryCapacityExceeded Result=ModRejected"; return false;

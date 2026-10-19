@@ -37,6 +37,7 @@ struct TileBehavior {
 };
 std::map<int, TileBehavior> g_tiles;
 std::array<std::atomic<uint8_t>, 65536> g_managedDrawMarks{};
+std::array<std::atomic<uint8_t>, 65536> g_managedDrawUncached{};
 tile_draw::PublishedBindings<TileBehavior, 65536> g_managedDrawBindings;
 bool g_managedDrawBound = false;
 std::map<std::string,std::string> g_assemblyByMod;
@@ -1042,6 +1043,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
         if((behavior.spec.callbackMask & (7<<13))!=0 &&
            type>=runtime::kVanillaTileCount && type<65536 && g_managedDrawBound) {
             g_managedDrawBindings.publish(type,behavior);
+            g_managedDrawUncached[type].store(!behavior.spec.cacheDrawData,std::memory_order_release);
             g_managedDrawMarks[type].store(1,std::memory_order_release);
         }
         if(behavior.spec.callbackMask)
@@ -1092,13 +1094,15 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
             return false;
         }
         if(!g_managedDrawBound) {
-            runtime::setManagedTileDrawDataHook(applyManagedTileDraw,g_managedDrawMarks.data());
+            runtime::setManagedTileDrawDataHook(applyManagedTileDraw,g_managedDrawMarks.data(),
+                                                g_managedDrawUncached.data());
             g_managedDrawBound=true;
         }
     }
     g_tiles[spec.type] = behavior;
     if((spec.callbackMask & (7 << 13)) != 0 && !behavior.spec.assembly.empty()) {
         g_managedDrawBindings.publish(spec.type,behavior);
+        g_managedDrawUncached[spec.type].store(!spec.cacheDrawData,std::memory_order_release);
         g_managedDrawMarks[spec.type].store(1,std::memory_order_release);
     }
     g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;

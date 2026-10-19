@@ -34,3 +34,7 @@ draw="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw"
 bindings="${RUNNER_TEMP:-/tmp}/bunny-world-tile-bindings"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_bindings_test.cpp -o "$bindings"
 "$bindings"
+
+cache="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw-cache"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_cache_test.cpp -o "$cache"
+"$cache"

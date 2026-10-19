@@ -113,7 +113,8 @@ struct TileDrawData {
  */
 using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d, bool special);
 void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached);
-void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks);
+void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks,
+                                const std::atomic<uint8_t>* uncached);
 void invalidateManagedTileDrawCache();
 
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */

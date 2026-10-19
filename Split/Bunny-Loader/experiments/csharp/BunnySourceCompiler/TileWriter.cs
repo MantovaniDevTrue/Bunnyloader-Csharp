@@ -20,6 +20,7 @@ internal static class TileWriter {
         int[] aliases = Get<int[]>("AdjacentTiles");
         bool allowBreaking = Get<bool>("AllowBreaking");
         bool allowDrops = Get<bool>("AllowDrops");
+        bool cacheDrawData = Get<bool>("CacheDrawData");
         int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
@@ -72,7 +73,8 @@ internal static class TileWriter {
             adjacentList,
             allowBreaking ? "1" : "0",
             allowDrops ? "1" : "0",
-            callbackMask.ToString(CultureInfo.InvariantCulture));
+            callbackMask.ToString(CultureInfo.InvariantCulture),
+            cacheDrawData ? "1" : "0");
     }
 
     private static bool Safe(string value) {

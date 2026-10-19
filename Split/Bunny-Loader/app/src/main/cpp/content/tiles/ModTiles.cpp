@@ -1,5 +1,6 @@
 #include "content/tiles/TileRegistryInternal.h"
 #include "content/tiles/ModTiles.h"
+#include "experiments/csharp/NativeTileDrawCachePolicy.h"
 #include "content/tiles/ModTrees.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -545,6 +546,7 @@ FieldInfo* g_tileFrameField = nullptr;   // Main.tileFrame
 std::atomic<DrawDataHook> g_drawDataHook{nullptr};
 std::atomic<DrawDataHook> g_managedDrawDataHook{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_managedDrawDataMarks{nullptr};
+std::atomic<const std::atomic<uint8_t>*> g_managedDrawDataUncached{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataMarks{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataUncached{nullptr};   // CacheDrawData = false
 
@@ -737,7 +739,13 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     const DrawEpoch epoch = drawEpochAt(x, y);
     const int64_t now = coarseNowNs();
     const std::atomic<uint8_t>* uncached = g_drawDataUncached.load(std::memory_order_acquire);
-    const bool cached = !special && (!uncached || !uncached[type].load(std::memory_order_relaxed));
+    const std::atomic<uint8_t>* managedUncached =
+        g_managedDrawDataUncached.load(std::memory_order_acquire);
+    const bool jsSkipCache = toMod && uncached &&
+        uncached[type].load(std::memory_order_relaxed);
+    const bool managedSkipCache = toManaged && managedUncached &&
+        managedUncached[type].load(std::memory_order_relaxed);
+    const bool cached = tile_draw_cache::enabled(special, jsSkipCache, managedSkipCache);
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
@@ -1103,7 +1111,9 @@ void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const
     invalidateDrawCache();
 }
 
-void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks) {
+void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks,
+                                const std::atomic<uint8_t>* uncached) {
+    g_managedDrawDataUncached.store(uncached, std::memory_order_release);
     g_managedDrawDataMarks.store(marks, std::memory_order_release);
     g_managedDrawDataHook.store(hook, std::memory_order_release);
     invalidateDrawCache();

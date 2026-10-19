@@ -224,13 +224,13 @@ try {
  });
  Check("roslyn.tile-animation-native-wire",()=>{
   string folder=Path.Combine(scratch,"animated-tile");Directory.CreateDirectory(Path.Combine(folder,"content"));
-  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;}public override bool CanKillTile(int x,int y){if(x==99)throw new System.InvalidOperationException(\"Independent tile error\");return false;}public override bool CanDrop(int x,int y)=>x<3;public override void HitWire(int x,int y){}public override void RandomUpdate(int x,int y){}public override void AnimateTile(ref int frame,ref int counter){frame=(frame+1)%4;counter=0;}public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b){r=0.2f;g=0.4f;b=0.8f;}public override void NearbyEffects(int x,int y,bool closer){}public override void SetDrawPositions(int x,int y,ref int width,ref int top,ref int height,ref int frameX,ref int frameY){top=-4;frameX+=18;}public override void AnimateIndividualTile(int x,int y,ref int addFrameX,ref int addFrameY){addFrameY+=36;}public override void SetSpriteEffects(int x,int y,ref int effects){effects=1;} }");
+  File.WriteAllText(Path.Combine(folder,"content","AnimatedExampleTile.cs"),"using BunnyLoader.Source;public sealed class AnimatedExampleTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"Content/Tiles/AnimatedExampleTile.png\";DisplayName=\"Example Animated Tile\";AnimationFrameHeight=36;AnimationFrames=4;AnimationFrameTicks=5;AdjacentTiles=new[]{18,16};AllowBreaking=false;AllowDrops=false;CacheDrawData=false;}public override bool CanKillTile(int x,int y){if(x==99)throw new System.InvalidOperationException(\"Independent tile error\");return false;}public override bool CanDrop(int x,int y)=>x<3;public override void HitWire(int x,int y){}public override void RandomUpdate(int x,int y){}public override void AnimateTile(ref int frame,ref int counter){frame=(frame+1)%4;counter=0;}public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b){r=0.2f;g=0.4f;b=0.8f;}public override void NearbyEffects(int x,int y,bool closer){}public override void SetDrawPositions(int x,int y,ref int width,ref int top,ref int height,ref int frameX,ref int frameY){top=-4;frameX+=18;}public override void AnimateIndividualTile(int x,int y,ref int addFrameX,ref int addFrameY){addFrameY+=36;}public override void SetSpriteEffects(int x,int y,ref int effects){effects=1;} }");
   string assemblyPath=Path.Combine(scratch,"animated-tile.dll"),diagPath=Path.Combine(scratch,"animated-tile.txt");
   Equal(1,Compiler.Compile(folder,assemblyPath,runtime,diagPath));
   Equal(1,CompiledAssemblyProbe.Verify(assemblyPath,diagPath));
   var tileWire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))
    .Single(line=>line.StartsWith("TILE\tAnimatedExampleTile\t",StringComparison.Ordinal)).Split('\t');
-  Equal(20,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63567",tileWire[19]);
+  Equal(21,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63567",tileWire[19]);Equal("0",tileWire[20]);
   Equal("READY",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,2,""));
   Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"3,4"));
   Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",1,0,"2,4"));
@@ -289,7 +289,7 @@ try {
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
   Equal("0",blockTile[7]);Equal("200",blockTile[8]);Equal("255",blockTile[9]);
-  Equal(20,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);
+  Equal(21,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
   var blockItem=blockRows.Single(row=>row.StartsWith("ITEM\tExampleTileItem\t",StringComparison.Ordinal)).Split('\t');
   Equal("12",blockItem[2]);Equal("12",blockItem[3]);
   Equal("10,18,mExampleItem:1",blockItem[19]);Equal("mExampleTile:0",blockItem[21]);
