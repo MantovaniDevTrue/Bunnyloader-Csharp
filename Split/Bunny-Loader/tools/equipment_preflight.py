@@ -84,7 +84,10 @@ def symbol_present(source, name):
 
 def build_report(root=ROOT, specs=SPECS):
     root = Path(root).resolve()
-    plan = read_json(root, root.parents[1] / "docs/csharp-loader-batches.json")
+    plan_path = root.parents[1] / "docs/csharp-loader-batches.json"
+    if not plan_path.is_file():
+        raise ValueError("Equipment batch plan not found")
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
     batches = [b for b in plan["batches"] if b["id"] == BATCH]
     if len(batches) != 1:
         raise ValueError("Equipment batch not found or duplicated")
