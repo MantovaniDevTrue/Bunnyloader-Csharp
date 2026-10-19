@@ -665,6 +665,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.shape < 0 || spec.shape > 1 ||
         spec.failDust < 0 || spec.failDust > 20 ||
         spec.normalDust < 0 || spec.normalDust > 20 ||
+        !tile_policy::validCallbackMask(spec.callbackMask) ||
         !tile_animation::valid(spec.animationFrameHeight,
                                {spec.animationFrames, spec.animationFrameTicks})) return false;
     TileBehavior behavior{};
