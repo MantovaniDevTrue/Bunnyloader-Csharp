@@ -20,6 +20,19 @@ struct SavedItem {
     std::string rarityKey{};
 };
 
+inline bool mergePending(std::vector<SavedItem>& saved, const SavedItem& pending) {
+    for (auto& current : saved) {
+        if (current.container != pending.container ||
+            current.slot != pending.slot || current.key != pending.key) continue;
+        if (current.prefix == 0 && current.prefixKey.empty())
+            current.prefixKey = pending.prefixKey;
+        if (current.rarityKey.empty())
+            current.rarityKey = pending.rarityKey;
+        return true;
+    }
+    return false;
+}
+
 inline bool integer(const std::string& text, int& value) {
     const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
     return result.ec == std::errc() && result.ptr == text.data() + text.size();
