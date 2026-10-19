@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <limits>
 #include <vector>
 
 #ifndef PREFIX_GAMEPLAY_SOURCE
@@ -246,6 +247,10 @@ int main() {
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 98);
     assert(nativeRolls == priorNativeRolls);
+    randomDouble.value = std::numeric_limits<double>::quiet_NaN();
+    assert(!hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(nativeRolls == priorNativeRolls);
+    randomDouble.value = 0.5;
     deniedView = std::make_shared<const std::map<int, std::set<int>>>(
         std::map<int, std::set<int>>{{6196, {71}}});
     auto* mixedFiltered = hookRollable(&accessory.object, nullptr);
