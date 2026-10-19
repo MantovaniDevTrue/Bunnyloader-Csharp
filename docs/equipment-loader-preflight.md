@@ -60,3 +60,32 @@ O `ManagedPrefixBridge` agora publica uma visão imutável de descritores após 
 `snapshotManagedPrefixes()` permanece disponível para chamadas de compatibilidade. O acesso otimizado por `managedPrefixView()` retém os dados anteriores até o último leitor terminar. Os novos descritores são validados e a nova visão é montada antes da publicação. A estrutura de prefixos existentes e os registros do loader original não são alterados.
 
 A regressão C++ em `tests/prefix_v89/managed_prefix_snapshot_test.cpp` verifica views antigas, publicação em duas etapas, duplicação/rejeição, ordem de tipo e leitura concorrente. O teste original de tabelas frias em `tests/managed_prefix_cold_tables.cpp` também continua executado. A compilação host é um gate preliminar: o Android não foi medido, e esta alteração não implementa por si só `RollChance(item)` e `CanRoll(item)` dinâmicos do ExampleModBunny.
+
+## Lote de regras C# por item: etapa nativa verificada
+
+`BunnyPrefix.ConfigureRollRules(BunnyPrefixRollRules rules)` é executado uma vez pelo compilador gerenciado, sem JavaScript. `rules.SetWeight(itemType, weight)` ajusta a frequência de um prefixo para um tipo específico; `rules.Deny(itemType)` determina peso zero e `rules.Allow(itemType, weight)` oferece a forma equivalente com peso positivo. Os tipos não configurados continuam usando `RollWeight` original.
+
+```csharp
+public sealed class ExampleSelectivePrefix : BunnyPrefix
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Seletivo";
+        Category = PrefixCategory.AnyWeapon;
+        RollWeight = 2;
+    }
+
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Allow(1, 3);
+        rules.Deny(2);
+        rules.SetWeight(512, 7);
+    }
+}
+```
+
+Regras são processadas na ordem de tipo e transportadas por um campo opcional (versão `PREFIX` de 17 colunas), preservando o formato anterior de 16. O `SourceLoader` valida tipos de 1 a 32767, pesos de 0 a 20, 32 regras no máximo por prefixo e proíbe IDs duplicados no wire. A política nativa respeita também as categorias e verificações de item já existentes; uma regra positiva **não** ignora categoria, munição ou consumo. A nova visão imutável anterior continua sendo usada.
+
+**Limites importantes:** números de tipo de conteúdo modificado podem variar entre sessões e ordens de carregamento, portanto este primeiro contrato é mais seguro para tipos vanilla estáveis. Ainda não há resolução de nomes de itens de mod, nem execução arbitrária de `RollChance(item)` ou `CanRoll(item)` no MonoVM para cada instância. A implementação é um subconjunto declarativo de elegibilidade e chance por tipo, não paridade integral do callback do ExampleModBunny. Os testes de host não substituem validação Android.
+
+Os testes `tests/prefix_v89/PrefixFixture/Content.cs`, `tests/prefix_v89/Program.cs`, `tests/managed_prefix_cold_tables.cpp` e `tests/prefix_v89/managed_prefix_snapshot_test.cpp` verificam serialização C#, retrocompatibilidade, seleção ponderada nativa, negação por item e rejeição de regras malformadas. Nenhum APK foi produzido automaticamente para esta etapa.
