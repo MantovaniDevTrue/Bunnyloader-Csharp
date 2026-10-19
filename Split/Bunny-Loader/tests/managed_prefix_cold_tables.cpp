@@ -447,6 +447,19 @@ int main() {
     assert(hookItemPrefixChance(&onlyPrefix.object, 99, &chanceTier, nullptr));
     assert(onlyPrefix.damage == 15 && onlyPrefix.value == 140);
     nativePrefixCumulative = false;
+    Item tooltipItem{};
+    tooltipItem.type = 6199;
+    tooltipItem.prefix = 99;
+    lineCount = 0;
+    hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 1);
+    auto** prefixTooltip = static_cast<Il2CppString**>(arrayData(lines));
+    assert(prefixTooltip[0] && prefixTooltip[0]->length > 5);
+    assert(prefixTooltip[0]->chars[0] == 'B');
+    assert(static_cast<uint8_t*>(arrayData(modifier))[0] == 1);
+    assert(static_cast<uint8_t*>(arrayData(bad))[0] == 0);
     Item ineffective{};
     ineffective.type = 6199;
     ineffective.damage = 1;
