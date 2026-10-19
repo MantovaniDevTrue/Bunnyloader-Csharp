@@ -210,6 +210,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("if (!requested || !restoreCompatible(item, *requested) ||", gameplay)
         self.assertIn("if (!found || found->category != 5) return;", gameplay)
         self.assertIn("restoredDespiteNewConditions", cold)
+        self.assertIn("assert(!hookCanRoll(&weapon.object, 99, nullptr));", cold)
         self.assertIn("assert(player.defense == 14);", cold)
 
     def test_report_render_is_stable_and_honest(self):
