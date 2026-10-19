@@ -73,7 +73,7 @@ FieldInfo* g_buffScanHeightField=nullptr;
 const MethodInfo* g_addTileLight=nullptr;
 uint64_t g_tileScanTick=0;
 size_t g_tileScanVisualCursor=0,g_tileScanBuffCursor=0,g_tileScanLightCursor=0;
-struct TileLightCache {int x=0,y=0,r=0,g=0,b=0;uint64_t frame=0;};
+struct TileLightCache {int x=0,y=0,type=0,r=0,g=0,b=0;uint64_t frame=0;};
 std::map<uint64_t,TileLightCache> g_tileLightCache;
 std::map<uint64_t,uint64_t> g_tileNearbyEvents;
 using AnimateFn = void (*)(const MethodInfo*);
@@ -475,7 +475,7 @@ void scanTileLighting(const runtime::TileArrays& world) {
            it->second.spec.name,6,x,y,&reply,600)) {
             int red=0,green=0,blue=0;
             if(tile_scan::parseLight(reply,&red,&green,&blue))
-                g_tileLightCache[key]={x,y,red,green,blue,g_tileScanTick};
+                g_tileLightCache[key]={x,y,it->first,red,green,blue,g_tileScanTick};
         }
     }
     g_tileScanLightCursor=tile_scan::nextCursor(first,visited,total);
@@ -485,7 +485,7 @@ void scanTileLighting(const runtime::TileArrays& world) {
         if(g_tileScanTick-entry.frame>180||entry.x<region.left||
            entry.y<region.top||entry.x>=region.left+region.width||
            entry.y>=region.top+region.height||
-           runtime::tileTypeAt(entry.x,entry.y)<runtime::kVanillaTileCount) {
+           runtime::tileTypeAt(entry.x,entry.y)!=entry.type) {
             it=g_tileLightCache.erase(it);continue;
         }
         if(entry.r||entry.g||entry.b) {
