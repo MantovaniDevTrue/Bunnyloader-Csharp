@@ -33,7 +33,12 @@ inline bool preserveLegacyBeforeRaritySave(const std::string& path,
     std::string header;
     if (!std::getline(source, header)) return false;
     if (!header.empty() && header.back() == '\r') header.pop_back();
-    if (header == "bunnyloader itens 3") return true;
+    if (header == "bunnyloader itens 3") {
+        source.clear();
+        source.seekg(0);
+        std::vector<SavedItem> verified;
+        return read(source, verified);
+    }
     if (header != "bunnyloader itens 1" && header != "bunnyloader itens 2") return false;
     const std::string backup = path + ".before-rarity-v3.bak";
     std::error_code error;
