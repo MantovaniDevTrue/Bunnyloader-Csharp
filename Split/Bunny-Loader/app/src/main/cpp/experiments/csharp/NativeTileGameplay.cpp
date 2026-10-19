@@ -946,6 +946,17 @@ bool setupHooks() {
 
 }
 
+void resetNativeTileSessionState() {
+    g_tileScanTick=0;
+    g_tileScanVisualCursor=0;
+    g_tileScanBuffCursor=0;
+    g_tileScanLightCursor=0;
+    g_tileLightCache.clear();
+    g_tileNearbyEvents.clear();
+    g_lastUseFrames.clear();
+    g_mouseOverFrames.clear();
+    g_mouseOverFarFrames.clear();
+}
 void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) {
     if(mod.empty()||assembly.empty())return;
     g_assemblyByMod[mod]=assembly;
