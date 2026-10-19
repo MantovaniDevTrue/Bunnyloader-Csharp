@@ -19,9 +19,12 @@ int main() {
     assert(!pending.stage(0,batch));
     assert(pending.stage(1,batch));
     assert(pending.pending());
+    assert(pending.pendingFor(1));
+    assert(!pending.pendingFor(2));
     std::array<Sprite,kMaxStagedSprites> result{};
     size_t length=0;
     assert(!pending.take(2,&result,&length));
+    assert(pending.pendingFor(1));
     assert(pending.take(1,&result,&length));
     assert(length==1 && result[0].x==8 && !pending.pending());
     assert(!pending.take(1,&result,&length));
@@ -41,6 +44,8 @@ int main() {
     assert(!pending.stage(4,batch));
     assert(!pending.take(4,&result,&length));
     assert(pending.stage(6,batch));
+    assert(!pending.pendingFor(5));
+    assert(pending.pendingFor(6));
     assert(pending.take(6,&result,&length)&&length==1);
     pending.clear();
     assert(!pending.pending());

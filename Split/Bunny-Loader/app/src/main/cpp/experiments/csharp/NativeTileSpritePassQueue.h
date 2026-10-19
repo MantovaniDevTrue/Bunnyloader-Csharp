@@ -27,6 +27,7 @@ public:
         for(size_t index=0;index<batch.count;++index)
             sprites_[count_+index]=batch.sprites[index];
         count_+=batch.count;
+        pendingFrame_.store(frame_,std::memory_order_release);
         pending_.store(count_!=0,std::memory_order_release);
         return true;
     }
@@ -44,17 +45,22 @@ public:
     }
 
     bool pending() const {return pending_.load(std::memory_order_acquire);}
+    bool pendingFor(uint64_t frame) const {
+        return pending() && pendingFrame_.load(std::memory_order_acquire)==frame;
+    }
 
     void clear() {
         std::lock_guard<std::mutex> lock(mutex_);
         frame_=0;
         count_=0;
         pending_.store(false,std::memory_order_release);
+        pendingFrame_.store(0,std::memory_order_release);
     }
 
 private:
     std::mutex mutex_;
     std::atomic<bool> pending_{false};
+    std::atomic<uint64_t> pendingFrame_{0};
     std::array<Sprite,kMaxStagedSprites> sprites_{};
     size_t count_=0;
     uint64_t frame_=0;

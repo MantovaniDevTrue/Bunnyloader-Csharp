@@ -159,3 +159,7 @@ O fluxo permanece opt-in, **sem produção de sprites C#** nesta revisão. Os te
 ### SpriteBatch — sobrecarga de nove parâmetros e SpriteEffects (revisão 27)
 
 O adaptador de sprites C# agora resolve exatamente a sobrecarga `SpriteBatch.Draw(Texture2D, Vector2, Nullable<Rectangle>, Color, float, Vector2, float, SpriteEffects, float)` utilizada nos exemplos originais do Bunny. A configuração básica usa rotação 0, origem (0,0), escala 1 e profundidade 0. O decoder `SPRITES` mantém os 10 campos anteriores (efeito 0) e aceita o 11º campo `SpriteEffects`, limitado a 0–3, incluindo espelhamento horizontal e vertical. A suíte C++ cobre os formatos e valores inválidos. Texturas glow independentes, iluminação nativa e emissão dos callbacks permanecem pendentes; nenhuma nova renderização será ativada antes da integração e validação Android.
+
+### Otimização da passada gráfica — verificação antecipada do frame (revisão 28)
+
+O `SpritePassQueue` publica um `pendingFrame` atômico e expõe `pendingFor(GameUpdateCount)`. O hook agora lê o frame primeiro e só consulta matriz, `SpriteBatch` ou executa `Begin` quando existem sprites para o mesmo quadro. Comandos atrasados permanecem na fila até serem substituídos ou até o reset, sem reabrir um lote vazio em todos os quadros. Os testes de host verificam frames antigos, leitura sem consumir, consumo e expiração, preservando o limite de 32 sprites por quadro. A integração segue opt-in e requer testes reais Android antes de ser ativada para mods.

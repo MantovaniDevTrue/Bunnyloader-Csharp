@@ -39,17 +39,16 @@ void postDraw(Il2CppObject* renderer,bool solidLayer,bool forRenderTargets,
     uint8_t menu=1;
     a.field_static_get_value(gameMenuField,&menu);
     if(!eligibleDrawPass(solidLayer,intoRenderTargets,menu!=0))return;
+    uint64_t frame=0;
+    a.field_static_get_value(frameField,&frame);
+    if(!pending.pendingFor(frame))return;
+    Vec screen{};
+    a.field_static_get_value(screenField,&screen);
+    if(!std::isfinite(screen.x)||!std::isfinite(screen.y))return;
     Il2CppObject* batch=nullptr;
     a.field_static_get_value(spriteBatchField,&batch);
     bool started=false;
     if(!beginNativeTileBatch(batch,&started))return;
-    uint64_t frame=0;
-    Vec screen{};
-    a.field_static_get_value(frameField,&frame);
-    a.field_static_get_value(screenField,&screen);
-    if(!std::isfinite(screen.x)||!std::isfinite(screen.y)) {
-        endNativeTileBatch(batch,started);return;
-    }
     std::array<Sprite,kMaxStagedSprites> sprites{};
     size_t count=0;
     if(!pending.take(frame,&sprites,&count)) {
