@@ -1153,6 +1153,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyLocalizationModule",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void RegisterTranslations(BunnyLocalizationCatalog catalog)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyMethodHook",
       "kind": "class",
       "baseType": "System.Object",
