@@ -54,11 +54,21 @@ Essa execução usa `dotnet build`, `dotnet run` e `g++ -fsyntax-only` / teste n
 - A branch da PR #101 foi reconciliada com a baseline atual de Tile (PR #98), preservando a propriedade `BunnyTile.CacheDrawData`, a serialização de 21 campos, a implementação de `NativeTile` e as alterações de MonoVM. O SDK público JSON e Markdown foi atualizado sem eliminar a classe `BunnyLocalizationCatalog`.
 - A checagem combinada de localização, SDK e auditoria de ExampleMod ficou verde nessa baseline; os erros antigos de 20/21 campos e documentação de Tile não foram suprimidos com testes permissivos.
 - `NativeLocalizationSession.h` mantém catálogos por mod e geração, substitui versões sem reter entradas obsoletas e retira da tabela ativa os mods não carregados no novo início de sessão.
-- A remoção guarda as chaves antigas num conjunto de *retired* e as neutraliza por `LanguageManager.LoadLanguageFromFileText` com seu próprio caminho como texto. Isso impede a exibição da tradução antiga sem invalidar abruptamente referências a `LocalizedText` guardadas pelo jogo. **Não remove fisicamente as chaves de `_localizedTexts`**: `Exists` pode continuar verdadeiro para elas. Descarregamento integral ainda precisa de política nativa de remoção segura e validação em jogo.
+- A remoção guarda as chaves antigas num conjunto de *retired* e as neutraliza por `LanguageManager.LoadLanguageFromFileText` com seu próprio caminho como texto. Isso impede a exibição da tradução antiga sem invalidar abruptamente referências a `LocalizedText` guardadas pelo jogo. O código agora tenta remover as chaves de `_localizedTexts` após neutralizar o texto, mas isso ainda exige validação no jogo. Descarregamento integral ainda precisa de política nativa de remoção segura e validação em jogo.
 - O reconciliador roda só no início do lote C# e reaplica o catálogo na thread do jogo. `native_session_test.cpp` cobre reinício, desativação, reativação, substituição e não alteração da revisão quando os mods ativos não mudam.
 - Compatibilidade da PR #100 (equipamentos) permanece **separada**: não incorporamos classes experimentais dessa PR nem sobrescrevemos as alterações de Prefix.
 
 Teste de regressão de localizações + ciclo de vida (CI, sem APK): https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39317201257
+
+## Lote de encerramento de sessão, variantes e JSON estrito
+
+- A remoção de um catálogo agora neutraliza os valores de `LocalizedText` via `LoadLanguageFromFileText` e procura `LanguageManager._localizedTexts` para remover fisicamente apenas suas antigas chaves `Mods.<id>.*`. O método nativo é validado por assinatura `bool Remove(string key)` antes de invocar; sem essa assinatura, não é considerado descarregamento confirmado. Os objetos já referenciados mantêm seu valor neutro e não são liberados diretamente.
+- `NativeLocalizationRetirePolicy.h` verifica que as chaves descartadas não estão presentes em nenhum catálogo ativo e que pertencem ao namespace de um mod. Inclui regressão para chave vanilla, chave de outro mod, referências ativas e identificadores inválidos.
+- A validação C# e nativa aceita a convenção `ItemName.Foo$Variant`, usada pelo loader original, sem liberar variantes vazias ou sufixos que mudem o namespace. Os testes cobrem serialização, decode e remoção dos mesmos IDs.
+- O parser de `Localization/*.json` passou a rejeitar números inválidos mesmo em propriedades ignoradas, mantendo catálogos anteriores intactos quando a carga falha.
+- A baseline atual da PR #98 foi integrada preservando os contratos de Tile, inclusive `CacheDrawData` e os novos métodos de desenho nativo. Os arquivos de referência gerados foram combinados em vez de reverter a base.
+
+**Limite de certificação:** a API interna `_localizedTexts`, os métodos genéricos `Remove` e a preservação de referências são verificados estaticamente por contrato e política de host; ainda não existe teste real na libil2cpp do Terraria 1.4.5.8.6. Esse lote não declara descarregamento físico nem atualização de tooltips como validados em gameplay.
 
 ## Pendências obrigatórias para declarar completo
 
