@@ -851,10 +851,13 @@ abstract class; base: `System.Object`.
 PrefixCategory Category { get; set; }
 float RollWeight { get; set; }
 string DisplayName { get; set; }
+bool RequireEffectiveStats { get; set; }
+string ExtraTooltip { get; set; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
 | `void ConfigureRollRules(BunnyPrefixRollRules rules)` | compile_policy |
 | `void ModifyValue(ref float valueMultiplier)` | compile_policy |
