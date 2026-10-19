@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -48,6 +49,30 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         alternate["PrefixLoader"]["types"] = ("ImaginarySdkType",)
         with self.assertRaisesRegex(ValueError, "Missing SDK type"):
             surface.audit(ROOT, alternate)
+
+    def test_compiled_prefix_canroll_policy_is_documented_without_claiming_live_callbacks(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        by_type = {entry["name"]: entry for entry in sdk["types"]}
+        rules = by_type["BunnyLoader.Source.BunnyPrefixRollRules"]
+        signatures = {entry["signature"]: entry["execution"] for entry in rules["methods"]}
+        for signature in (
+            "void SetCanRoll(int itemType, bool allowed)",
+            "void SetCanRoll(string itemName, bool allowed)",
+            "void SetWeight(int itemType, int weight)",
+            "void SetWeight(string itemName, int weight)",
+        ):
+            self.assertEqual(signatures[signature], "compile_policy")
+        prefix = by_type["BunnyLoader.Source.BunnyPrefix"]
+        self.assertIn(
+            "void ConfigureRollRules(BunnyPrefixRollRules rules)",
+            {entry["signature"] for entry in prefix["methods"]},
+        )
+        source = (ROOT / "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn("public void SetCanRoll(int itemType, bool allowed)", source)
+        self.assertIn("public void SetCanRoll(string itemName, bool allowed)", source)
+        self.assertIn("bool itemCanRoll(Il2CppObject* item", gameplay)
+        self.assertIn("if (!item || !itemCanRoll(item, p)) return false;", gameplay)
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
