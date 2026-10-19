@@ -31,3 +31,6 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Compile and run managed localization contract suite
         run: dotnet run --project Split/Bunny-Loader/tests/localization_loader/LocalizationLoader.csproj --configuration Release
+      - name: Check generated public SDK reference
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --check
