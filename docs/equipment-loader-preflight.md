@@ -200,3 +200,34 @@ O caminho interno `applyManagedPrefixViaNativeRoll`, usado na restauração de p
 Os testes `tests/prefix_v89/PrefixFixture` verificam serialização de `PrefixChance=false`. `tests/prefix_v89/managed_prefix_snapshot_test.cpp` valida duplicatas e snapshots imutáveis, enquanto `tests/managed_prefix_cold_tables.cpp` verifica os pedidos `-1`, `-2`, explícitos, sem política e de restauração.
 
 **Limitação:** esta é a política estática por tipo, não os callbacks C# dinâmicos `PrefixChance(item, pre, rand)` com RNG, estado de instância ou composição com `GlobalItem`. `ApplyPrefix(item, pre)` não faz parte deste lote. A compilação host e a documentação não substituem validação de APK, multiplayer, saves reais ou FPS no Android.
+
+## ApplyPrefix C# — efeitos de item após sucesso nativo
+
+O `PrefixLoader.js` do Bunny chama `p.Apply(item)` e depois `ModItem.ApplyPrefix(item, prefix)`/`GlobalItem.ApplyPrefix(item, prefix)`, **somente após** `Terraria.Item.Prefix` confirmar aplicação e haver um prefixo diferente de zero; o pedido `-3` nunca aplica efeitos.
+
+O SDK C# agora inclui `BunnyPrefixApplyStats` e o callback `virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects)` em `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion`. Nesta fase o MonoVM executa o callback na preparação do conteúdo e registra os dois bônus aditivos, sem chamar código gerenciado por reforja:
+
+```csharp
+public sealed class ExampleWand : BunnyWeapon
+{
+    public override void SetDefaults()
+    {
+        Damage = 22;
+        Shoot = "ExampleBolt";
+    }
+
+    public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = 4;
+        effects.ValueBonus = 125;
+    }
+}
+```
+
+O compilador cria a linha opcional `PREFIX_APPLY\tExampleWand\t4\t125` apenas quando há bônus. `SourceLoader` exige que o item já esteja registrado e limita os bônus a `DamageBonus` entre 0 e 1000 e `ValueBonus` entre 0 e 100000, rejeitando duplicatas. A ponte nativa publica um mapa imutável por ID de item, independente de `PrefixChance`.
+
+O hook `Item.Prefix(int, out bool)` chama primeiro a implementação anterior. Somente após sucesso, prefixo final não zero e pedido diferente de `-3`, soma os bônus a `Item.damage` e `Item.value` na thread do Terraria. Os dois campos são validados antes de qualquer escrita: números negativos e overflow de 32 bits anulam **ambas** as alterações. Sem política, o resultado vanilla fica intacto. Um prefixo salvo restaurado pela rota interna recebe o mesmo efeito de pós-aplicação; `PrefixChance=false` continua sem bloquear a restauração.
+
+O contrato C# é **deliberadamente limitado**: o callback é amostrado na preparação do mod, sem objeto `Item`, ID de prefixo, RNG, mundo ou jogador. Não representa o `ApplyPrefix(item, pre)` dinâmico do JS, não compõe `GlobalItem.ApplyPrefix` e não executa ainda `BunnyPrefix.Apply(item)`. O efeito pós-aplicação depende do Terraria recalcular os atributos-base em cada chamada válida; testar no Android aplicações repetidas, saves e reforja antes de confirmar ausência de acúmulo ou paridade PC.
+
+Os testes de host incluem execução real do override C#, wire de quatro colunas, registro nativo sem duplicatas, snapshots imutáveis, aplicação em item com e sem política, restauração, consulta `-3`, falha do original e proteção contra overflow. Nenhum resultado de teste de host implica estabilidade do APK, 60 FPS ou sincronização multiplayer.
