@@ -121,6 +121,12 @@ bool bindNativeSpriteBatch(std::string* error) {
     return bind(error);
 }
 
+bool nativeSpriteBatchIsOpen(Il2CppObject* batch) {
+    if (!g.ready || !batch) return false;
+    return *reinterpret_cast<const uint8_t*>(
+        reinterpret_cast<const char*>(batch)+g.beginOffset) != 0;
+}
+
 bool drawNativeTileSprite(Il2CppObject* batch,const Sprite& command,
                           float screenX,float screenY) {
     using namespace il2cpp;
@@ -129,8 +135,7 @@ bool drawNativeTileSprite(Il2CppObject* batch,const Sprite& command,
         screenX < -2000000.f || screenY < -2000000.f ||
         screenX > 2000000.f || screenY > 2000000.f) return false;
     auto& a = api();
-    if (!*reinterpret_cast<const uint8_t*>(reinterpret_cast<const char*>(batch)+g.beginOffset))
-        return false;
+    if (!nativeSpriteBatchIsOpen(batch)) return false;
     Il2CppArray* tiles=nullptr;
     a.field_static_get_value(g.tileAssets,&tiles);
     if (!tiles || static_cast<uintptr_t>(command.type)>=tiles->length) return false;

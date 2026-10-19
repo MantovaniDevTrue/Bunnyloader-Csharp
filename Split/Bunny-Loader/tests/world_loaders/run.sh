@@ -43,3 +43,8 @@ sprites="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-wire"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_wire_test.cpp -o "$sprites"
 "$sprites"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpriteBatch.cpp
+
+pass="${RUNNER_TEMP:-/tmp}/bunny-world-tile-sprite-pass"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_sprite_pass_test.cpp -o "$pass"
+"$pass"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeTileSpritePass.cpp
