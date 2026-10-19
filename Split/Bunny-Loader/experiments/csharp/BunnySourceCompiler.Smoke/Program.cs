@@ -760,12 +760,11 @@ public sealed class MinionStaff : BunnyWeapon
         "3,4,0,0,16,16,0,0,0,0,0,754");
     if (both != "DRAW|0|0|16|16|0|0|0|0|0\nSPRITES|2|754,3,4,0,0,16,16,0,0,4294967295,1|754,3,4,16,0,16,16,0,0,4294967295,2")
         throw new InvalidOperationException("PreDraw + PostDraw order: "+both);
-    var overlays=new BunnyLoader.Source.BunnyTileDrawContext(754,3,4);
-    overlays.DrawTileTexture(0,0,16,16);
-    overlays.DrawGlowTexture(0,56,16,16);
-    overlays.DrawFlameTexture(0,36,16,16,0,2,0x00ffffffu);
-    if(overlays.Encode()!="SPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
-        throw new InvalidOperationException("Tile glow/flame source wire mismatch");
+    string overlayWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-overlay-tile",
+        tileSmokeAssembly,nameof(TileOverlaySmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(overlayWire!="DRAW|0|0|16|16|0|0|0|0\\nSPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
+        throw new InvalidOperationException("Tile glow/flame source wire mismatch: "+overlayWire);
     Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_SPRITE_CONTEXT=PASS");
@@ -831,5 +830,16 @@ sealed class TilePrePostSmoke : BunnyLoader.Source.BunnyTile
     public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
     {
         draw.DrawTileTexture(16,0,16,16,0,0,0xffffffffu,2);
+    }
+}
+
+sealed class TileOverlaySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16);
+        draw.DrawGlowTexture(0,56,16,16);
+        draw.DrawFlameTexture(0,36,16,16,0,2,0x00ffffffu);
     }
 }
