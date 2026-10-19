@@ -161,8 +161,10 @@ static class DustTests
         float priorX = fault.X;
         Check(!registry.Update(ref fault, out bool fallback) && fallback, "safe vanilla fallback");
         Check(fault.X == priorX && registry.FaultCount == 1, "rollback on invalid state");
-        Check(!registry.PreDraw(ref fault, out bool visible) && visible, "draw fallback");
-        Check(registry.FaultCount == 2 && registry.LastError.Contains("PreDraw"), "error isolation");
+        Check(registry.PreDraw(ref fault, out bool visible) && visible, "quarantined draw fallback");
+        Check(registry.Update(ref fault, out bool quarantinedVanilla) && quarantinedVanilla,
+            "do not retry failed callbacks every frame");
+        Check(registry.FaultCount == 1 && registry.LastError.Contains("Update"), "per-instance isolation");
 
         var next = SpawnState(332, 5, 2);
         Check(registry.OnSpawn(ref next), "slot reuse");
