@@ -973,7 +973,7 @@ public static class CompiledAssemblyProbe
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
         }
-        foreach (object item in basicItems)
+        foreach (object item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
             string owner = item.GetType().Name;
             string rarity = Value<string>(item, "ModRarityClassName");
