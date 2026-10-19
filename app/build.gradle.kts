@@ -187,6 +187,63 @@ android {
 
 }
 
+val verifyBundledCSharpRuntime by tasks.registering {
+    val managedAssets = file("src/main/assets/managed")
+    val nativeAssets = file("src/main/jniLibs/arm64-v8a")
+    val prebuiltMono = rootProject.file("tools/mono/prebuilt/arm64-v8a/libmonosgen-2.0.so")
+    val prebuiltHash = rootProject.file("tools/mono/prebuilt/arm64-v8a/libmonosgen-2.0.so.sha256")
+    inputs.files(fileTree(managedAssets) { include("*.dll", "framework.sha256") })
+    inputs.files(fileTree(nativeAssets) { include("libmono*.so", "libSystem.*.so") })
+    inputs.files(prebuiltMono, prebuiltHash)
+
+    doLast {
+        val manifest = managedAssets.resolve("framework.sha256")
+        if (!manifest.isFile) throw GradleException("Missing bundled MonoVM CSharp manifest: $manifest")
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        fun hash(file: java.io.File): String =
+            digest.digest(file.readBytes()).joinToString("") { byte -> "%02x".format(byte) }
+        val required = setOf(
+            "System.Private.CoreLib.dll", "System.Runtime.dll",
+            "BunnyManagedProbe.dll", "BunnySourceSdk.dll", "BunnySourceCompiler.dll",
+            "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll",
+            "BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll"
+        )
+        val indexed = mutableSetOf<String>()
+        manifest.forEachLine { row ->
+            if (row.isNotBlank()) {
+                val columns = row.split('\t', limit = 2)
+                if (columns.size != 2 || !indexed.add(columns[0])) {
+                    throw GradleException("Invalid or duplicate managed assembly: $row")
+                }
+                val binary = managedAssets.resolve(columns[0])
+                if (!binary.isFile || hash(binary) != columns[1]) {
+                    throw GradleException("CSharp assembly missing or changed: ${columns[0]}")
+                }
+            }
+        }
+        val actual = managedAssets.listFiles()?.filter { it.extension == "dll" }
+            ?.map { it.name }?.toSet() ?: emptySet()
+        if (actual != indexed || !indexed.containsAll(required)) {
+            throw GradleException("Bundled CSharp assemblies incomplete or manifest out of sync")
+        }
+        val mono = nativeAssets.resolve("libmonosgen-2.0.so")
+        if (!mono.isFile || !prebuiltMono.isFile || hash(mono) != hash(prebuiltMono)) {
+            throw GradleException("Patched MonoVM ARM64 missing or mismatched")
+        }
+        if (!prebuiltHash.readText().startsWith(hash(mono))) {
+            throw GradleException("Patched MonoVM checksum differs from validated version")
+        }
+        if (!nativeAssets.resolve("libSystem.Native.so").isFile) {
+            throw GradleException("MonoVM ARM64 native runtime dependencies missing")
+        }
+        println("BUNNY_CSHARP_RUNTIME_READY=YES assemblies=${indexed.size}")
+    }
+}
+
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(verifyBundledCSharpRuntime)
+}
+
 /** Os mods de samples/ que vêm dentro do APK. */
 val BUNDLED_SAMPLES = listOf("ExampleMod")
 
