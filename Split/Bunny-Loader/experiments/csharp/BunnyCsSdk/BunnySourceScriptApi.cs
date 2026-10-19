@@ -498,6 +498,30 @@ public sealed class BunnyPrefixRollRules
     }
 }
 
+public sealed class BunnyPrefixItemConditions
+{
+    public int MinDamage { get; private set; } = 0;
+    public int MaxDamage { get; private set; } = 100000;
+    public int MinMana { get; private set; } = 0;
+    public int MaxMana { get; private set; } = 10000;
+
+    public void RequireDamageBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 100000)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinDamage = minimum;
+        MaxDamage = maximum;
+    }
+
+    public void RequireManaBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 10000)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinMana = minimum;
+        MaxMana = maximum;
+    }
+}
+
 public abstract class BunnyPrefix
 {
     public string DisplayName { get; set; } = "";
@@ -506,6 +530,7 @@ public abstract class BunnyPrefix
 
     public abstract void SetDefaults();
     public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
+    public virtual void ConfigureItemConditions(BunnyPrefixItemConditions conditions) { }
     public virtual void SetStats(ref PrefixStats stats) { }
     public bool RequireEffectiveStats { get; set; } = true;
     public string ExtraTooltip { get; set; } = "";
