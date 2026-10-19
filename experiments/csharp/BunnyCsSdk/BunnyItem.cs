@@ -50,6 +50,8 @@ public abstract class BunnyItem : BunnyRecipeSource
     public bool QuestAvailableInHardmode { get; set; } = true;
     public string QuestDescription { get; set; } = "";
     public string QuestCatchLocation { get; set; } = "";
+    public Dictionary<string,string> QuestDescriptionTranslations { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string,string> QuestCatchLocationTranslations { get; } = new(StringComparer.Ordinal);
     public BunnyQuestCatchRules QuestCatchRules { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
