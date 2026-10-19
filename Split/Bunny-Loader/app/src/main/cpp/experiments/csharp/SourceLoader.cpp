@@ -662,6 +662,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPrefixEntry> prefixes;
     std::vector<std::pair<int, bool>> prefixChances;
     std::set<int> seenPrefixChances;
+    std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
+    std::set<int> seenPrefixEffects;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -673,6 +675,27 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "PREFIX_APPLY") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedItemPrefixApply effect;
+            if (fields.size() != 4 || registered == mod->registeredKindTypes.end() ||
+                !integer(fields[2], &effect.damageBonus) ||
+                !integer(fields[3], &effect.valueBonus) ||
+                effect.damageBonus < 0 || effect.damageBonus > 1000 ||
+                effect.valueBonus < 0 || effect.valueBonus > 100000 ||
+                (effect.damageBonus == 0 && effect.valueBonus == 0) ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                prefixEffects.size() >= kSourceMaxCategory ||
+                !seenPrefixEffects.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][ApplyPrefix] Mod=" + modId +
+                    " Stage=Decode Reason=InvalidItemOrEffects";
+                return false;
+            }
+            prefixEffects.emplace_back(registered->second, effect);
+            continue;
+        }
         if (!fields.empty() && fields[0] == "PREFIX_CHANCE") {
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("ITEM", fields[1]) : "";
@@ -1306,6 +1329,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedItemPrefixChances(prefixChances)) {
         *error = "Politicas PrefixChance C# duplicadas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixEffects(prefixEffects)) {
+        *error = "Politicas ApplyPrefix C# invalidas ou hook nativo indisponivel";
         return false;
     }
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
