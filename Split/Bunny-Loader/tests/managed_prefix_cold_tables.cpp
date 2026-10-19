@@ -246,6 +246,7 @@ int main() {
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 98);
     assert(nativeRolls == priorNativeRolls);
+    assert(selectedMixed == 98);
     deniedView = std::make_shared<const std::map<int, std::set<int>>>(
         std::map<int, std::set<int>>{{6196, {71}}});
     auto* mixedFiltered = hookRollable(&accessory.object, nullptr);
