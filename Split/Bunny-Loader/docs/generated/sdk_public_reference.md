@@ -650,8 +650,8 @@ string ActiveCultureName { get; }
 
 | Method | Execution |
 | --- | --- |
-| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
 | `static bool Unload(string modId)` | worker_async_localization |
+| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
