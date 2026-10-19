@@ -201,16 +201,18 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,
     };
     for (const auto& key : retired) all[key]=key;
     const auto resolved=resolveLocaleReferences(std::move(all),vanilla);
-    for(const auto& [modId,entries]:selectedByMod) {
+    const auto publishOne=[&](const std::string& owner,
+                              const std::map<std::string,std::string>& entries)->bool {
         std::map<std::string,std::map<std::string,std::string>> categories;
-        for(const auto& [key,raw]:entries) {
+        for(const auto& pair:entries) {
+            const std::string& key=pair.first;
             auto match=resolved.find(key);
             if(match==resolved.end())return false;
             auto pos=key.rfind('.');
             if(pos==std::string::npos||pos==0||pos==key.size()-1)continue;
             categories[key.substr(0,pos)][key.substr(pos+1)]=match->second;
         }
-        if(categories.empty())continue;
+        if(categories.empty())return true;
         std::string serialized="{";
         for(const auto& [category,items]:categories) {
             if(serialized.size()>1)serialized+=",";
@@ -230,10 +232,18 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,
         Il2CppObject* exception=nullptr;
         api.runtime_invoke(r.load,manager,args,&exception);
         if(exception) {
-            BL_ERROR("[CSharp][ERROR][Localization] Mod=%s Stage=ApplyLanguage Reason=NativeException",modId.c_str());
+            BL_ERROR("[CSharp][ERROR][Localization] Mod=%s Stage=ApplyLanguage Reason=NativeException",owner.c_str());
             return false;
         }
+        return true;
+    };
+    if(!retired.empty()) {
+        std::map<std::string,std::string> neutral;
+        for(const auto& key:retired)neutral.emplace(key,key);
+        if(!publishOne("retired",neutral))return false;
     }
+    for(const auto& [modId,entries]:selectedByMod)
+        if(!publishOne(modId,entries))return false;
     return true;
 }
 
