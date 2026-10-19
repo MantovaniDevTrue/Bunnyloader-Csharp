@@ -138,6 +138,9 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("selected->extraTooltip.c_str()", gameplay)
         self.assertIn("requireEffectiveStats", gameplay)
         self.assertIn("effects.DamageBonus = 3;", fixture)
+        playable = (ROOT / "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs").read_text(encoding="utf-8")
+        self.assertIn('rules.Allow("ExampleWand", 3);', playable)
+        self.assertIn('ExtraTooltip = "Bonus adicional do prefixo";', playable)
 
 
     def test_report_render_is_stable_and_honest(self):
