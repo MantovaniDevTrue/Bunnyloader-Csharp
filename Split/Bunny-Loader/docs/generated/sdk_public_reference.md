@@ -41,6 +41,7 @@ string VisualTexture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
@@ -151,6 +152,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyColor
@@ -574,6 +576,7 @@ string UseSound { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
@@ -842,6 +845,20 @@ abstract class; base: `System.Object`.
 | `static int Register(string modId, string assemblyPath)` | managed_helper |
 | `static string GetHookSnapshot()` | managed_helper |
 | `static string GetLastError(int slot)` | managed_helper |
+
+## BunnyLoader.Source.BunnyItemPrefixRules
+
+class; base: `System.Object`.
+
+```csharp
+BunnyItemPrefixRules()
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Deny(int prefixType)` | compile_policy |
+| `void Deny(string ownModPrefixName)` | compile_policy |
+| `string Serialize()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyPrefix
 
@@ -1359,6 +1376,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.PrefixCategory
