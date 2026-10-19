@@ -1,0 +1,58 @@
+name: Vendor QuickJS engine into integrated Bunny source
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - entrega/potato-bunny-original-com-csharp-20261018
+    paths:
+      - .github/workflows/vendor-quickjs-into-bunny-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-upstream-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout integrated Bunny source
+        uses: actions/checkout@v4
+        with:
+          ref: entrega/potato-bunny-original-com-csharp-20261018
+          persist-credentials: true
+      - name: Fetch the exact original engine source, MIT-licensed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v0.17.0 \
+            https://github.com/quickjs-ng/quickjs.git "$RUNNER_TEMP/quickjs-0.17.0"
+          test "$(git -C "$RUNNER_TEMP/quickjs-0.17.0" rev-parse HEAD)" = 6d46d07d04041b40f4f49eaa7fdebe44c314c699
+          DEST=app/src/main/cpp/third_party/quickjs
+          mkdir -p "$DEST"
+          python3 - "$RUNNER_TEMP/quickjs-0.17.0" "$DEST" <<'PY'
+          import shutil
+          import sys
+          from pathlib import Path
+          src, target = map(Path, sys.argv[1:])
+          for file in src.iterdir():
+              if file.is_file() and (file.suffix in (".c", ".h", ".js") or file.name in ("LICENSE", "README.md")):
+                  shutil.copy2(file, target / file.name)
+          required = ("quickjs.c", "quickjs.h", "libregexp.c", "libunicode.c", "dtoa.c", "cutils.h", "LICENSE")
+          for name in required:
+              assert (target / name).is_file(), name
+          print("BUNNY_QUICKJS_SOURCE_VENDOR_READY=YES files=", len(list(target.iterdir())))
+          PY
+      - name: Commit vendored QuickJS so Bunny does not need a separate install
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -f app/src/main/cpp/third_party/quickjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "BUNNY_QUICKJS_ALREADY_IN_SOURCE=YES"
+          else
+            git commit -m "runtime: vendor MIT QuickJS-ng v0.17.0 for complete JS and CSharp Bunny source"
+            git push origin HEAD:refs/heads/entrega/potato-bunny-original-com-csharp-20261018
+          fi
