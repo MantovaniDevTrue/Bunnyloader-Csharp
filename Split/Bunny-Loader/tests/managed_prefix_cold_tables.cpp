@@ -484,7 +484,7 @@ int main() {
     assert(static_cast<uint8_t*>(arrayData(bad))[0] == 0);
     Item ineffective{};
     ineffective.type = 6199;
-    ineffective.damage = 1;
+    ineffective.damage = 12;
     ineffective.useAnimation = 0;
     float d=1, k=1, sp=1, si=1, sh=1, ma=1, val=1;
     int cr=0, tag=0, penetration=0;
