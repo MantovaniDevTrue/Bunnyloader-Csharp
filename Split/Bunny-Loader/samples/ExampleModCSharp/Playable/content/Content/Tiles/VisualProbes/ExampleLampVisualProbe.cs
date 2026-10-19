@@ -10,6 +10,7 @@ public sealed class ExampleLampVisualProbe : BunnyTile
         Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
               BunnyTileFlags.NoAttach|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;
+        Shape=BunnyTileShape.Style1x3;
         AddMapEntry(253,221,3,"Lamp Visual Probe");
     }
     public override void SetSpriteEffects(int x,int y,ref int effects)

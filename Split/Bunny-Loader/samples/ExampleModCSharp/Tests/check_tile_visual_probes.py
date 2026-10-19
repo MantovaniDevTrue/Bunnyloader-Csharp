@@ -14,6 +14,8 @@ for probe, original in TILES.items():
     body = tile.read_text(encoding="utf-8")
     assert f"class {probe} : BunnyTile" in body
     assert "CacheDrawData=false;" in body
+    assert ("Shape=BunnyTileShape.Style3x2;" if "Campfire" in probe
+            else "Shape=BunnyTileShape.Style1x3;") in body
     assert "DrawFlameTexture(" in body
     assert "EmitDustStyled(" in body
     assert "ModifyLight(" in body
@@ -32,6 +34,7 @@ for probe, original in TILES.items():
 
 camp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.cs").read_text()
 lamp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleLampVisualProbe.cs").read_text()
+assert "DrawFlameTexture(frameX,frameY+frame*36" in camp
 assert "Random.Shared.Next(3)" in camp
 assert "DrawEffects(" in lamp and "RequestSpecialDraw()" in lamp
 assert "SpecialDraw(" in lamp and "for(int i=0;i<7;i++)" in lamp

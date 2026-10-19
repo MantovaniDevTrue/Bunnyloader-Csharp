@@ -6,7 +6,7 @@ public sealed class ExampleCampfireVisualProbeItem : BunnyItem
     {
         Texture="Content/Items/Placeable/VisualProbes/ExampleCampfireVisualProbeItem.png";
         DisplayName="Example Campfire Visual Probe (1x1)";
-        Tooltip="C# flame and dust test; not the original 3x2 campfire.";
+        Tooltip="3x2 C# drawing and dust test; wire toggle and campfire buff pending.";
         DefaultToPlaceableTile("ExampleCampfireVisualProbe");
         Width=30;Height=18;
     }

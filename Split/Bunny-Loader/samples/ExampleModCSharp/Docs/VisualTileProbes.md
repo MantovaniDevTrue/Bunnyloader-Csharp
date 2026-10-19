@@ -1,17 +1,17 @@
-# Probes visuais de tiles C# — Android
+# Probes visuais com formas nativas 3×2 e 1×3 — Android
 
-Estes dois blocos de teste usam os PNGs originais do ExampleModBunny, sem editar os assets. Não são ports funcionais dos móveis inteiros: o registro público de `BunnyTileShape` aceita somente `Single` e `Style2x1`, enquanto a fogueira original é 3×2 e a luminária original é 1×3.
+Os dois tiles C# usam PNGs originais do ExampleModBunny, sem redimensioná-los ou alterar seus pixels. A fogueira usa `BunnyTileShape.Style3x2`, com TileObjectData copiado do campfire vanilla. A luminária usa `BunnyTileShape.Style1x3`, baseada em `Style1xX`, com offset de desenho, espelhamento e frames originais. A ponte cria as formas no Terraria usando a declaração de C#, sem JS.
 
-O pacote contém `ExampleCampfireVisualProbe` e `ExampleLampVisualProbe`, ambos em 1×1, e dois itens colocáveis com receitas: um `ExampleItem` e uma bancada vanilla (tile 18) para produzir cada item. Os probes são uma bancada de validação visual do `PostDraw`, do `DrawEffects`/`SpecialDraw`, de sprites espelhados e das propriedades nativas de `Dust`, não da mecânica de ativação por fios, da área do buff de fogueira nem do objeto composto.
+A geometria é equivalente à dos móveis originais, mas a portabilidade ainda é parcial: falta alternar ligado/desligado com `HitWire`/`RightClick`, sincronizar todos os frames nas trocas, reproduzir o buff da fogueira e validar a persistência. O alvo deste lote é validar desenho, placement, remoção integral, drops e partículas antes de implementar mudanças de estado com segurança.
 
-## Roteiro de validação
+Os itens `ExampleCampfireVisualProbeItem` e `ExampleLampVisualProbeItem` têm receitas com um `ExampleItem` e uma bancada vanilla (tile 18). Não são versões finais distribuíveis.
 
-1. Usar exclusivamente um APK experimental que contenha o commit desta PR, quando houver build de teste autorizada. Verificar que ExampleMod CSharp compila e carrega antes de entrar no mundo.
-2. Criar os dois itens nas receitas da bancada vanilla, colocar um de cada lado a lado e observar chamas, iluminação, partículas e reflexo horizontal entre posições pares/ímpares.
-3. Comparar os desenhos contra o ExampleModBunny com as mesmas texturas, observando que a geometria do objeto composto está intencionalmente ausente e que a trepidação usa offsets inteiros, não subpixel.
-4. Verificar os efeitos em blocos isolados, grupos de quatro e grupos de doze, medindo FPS durante a aproximação, permanência e quebra. Repetir com um mod JavaScript de tiles ativo.
-5. Validar pausa, retorno ao menu, nova entrada no mundo, retirada dos itens e persistência do tile. Guardar vídeo ou capturas com logs C# e FPS antes de classificar as funções como verificadas no Android.
+## Roteiro no Android
 
-**Critério de aprovação:** ausência de crash, desenho padrão preservado quando não houver overlay, efeitos visíveis quando válidos, partículas sem explosão de contagem, sem erros da ponte MonoVM e FPS sustentados perto de 60 no dispositivo usado para testes.
+1. Somente com build experimental que contenha esta PR: entrar no mundo e criar os dois itens na bancada, colocar a fogueira 3×2 e a luminária 1×3 em chão sólido. Conferir frames, hitbox, posição e disponibilidade no inventário.
+2. Verificar frame de chama da fogueira em cada uma das seis células, luz e velocidade do `Dust`; na luminária observar somente a célula superior emitindo chama especial, com espelhamento em coordenadas X pares.
+3. Remover primeiro o bloco de suporte sob cada móvel, depois repetir quebrando a própria peça, observando remoção de todas as células, drop único e ausência de objetos fantasmas. Testar com um segundo móvel encostado para detectar remoção incorreta de vizinhos.
+4. Testar quatro móveis simultâneos e depois doze; medir FPS, velocidade do desenho e quantidade de partículas e repetir com um mod JavaScript com tiles ativo.
+5. Salvar, sair, recarregar, remover os móveis, entrar no menu e retornar; registrar capturas do jogo, FPS e logs, principalmente erros de `TileObjectData`, `TileFrameImportant`, `GetTileDrawData` e MonoVM.
 
-O CI verifica compilação, presença e identidade dos PNGs e chamadas à API já existente, mas não executa Terraria nem mede FPS. O port completo só pode começar após suporte nativo validado a formas 3×2 e 1×3, sprites/flicker com coordenadas fracionárias e interações equivalentes às originais. A PR #98 segue draft; não distribuir APK nem .bmod como release.
+O CI cobre política de layout 3×2/1×3, parsing, compilação C#, imagens originais, contratos nativos e regressões. Não executa Terraria Android nem valida layout real de IL2CPP, FPS ou fidelidade total. PR #98 permanece draft, sem APK/.bmod de release.

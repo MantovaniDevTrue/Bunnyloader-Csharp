@@ -10,6 +10,7 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
         Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
               BunnyTileFlags.NoAttach|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;
+        Shape=BunnyTileShape.Style3x2;
         AddMapEntry(254,121,2,"Campfire Visual Probe");
     }
     public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b)
@@ -17,10 +18,12 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
         float pulse=(Environment.TickCount64/200L%6L)*0.01f;
         r=0.18f+pulse;g=0.98f+pulse;b=0.38f+pulse;
     }
-    public override void PostDraw(int x,int y,BunnyTileDrawContext draw)
+    public override void DrawEffects(int x,int y,int frameX,int frameY,
+                                     BunnyTileDrawContext draw)
     {
+        if(frameY>=36)return;
         int frame=(int)((Environment.TickCount64/68L)%8L);
-        draw.DrawFlameTexture(0,frame*36,16,16,0,2,0x00ffffffu);
+        draw.DrawFlameTexture(frameX,frameY+frame*36,16,16,0,2,0x00ffffffu);
     }
     public override void EmitParticles(int x,int y,int frameX,int frameY,BunnyTileDrawContext draw)
     {
