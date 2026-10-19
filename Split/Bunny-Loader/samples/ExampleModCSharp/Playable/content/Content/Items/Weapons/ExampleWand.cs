@@ -15,6 +15,7 @@ public sealed class ExampleWand : BunnyWeapon
         UseTime = 20;
         ShootSpeed = 11f;
         Shoot = nameof(ExampleBolt);
+        SetRarity<ExampleModRarity>();
     }
     public override void AddRecipes()
     {
