@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="ExampleRarities/**/*.cs" />
+    <Compile Remove="PlayableRarityProgram.cs" />
     <ProjectReference Include="ExampleRarities/ExampleRarities.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
