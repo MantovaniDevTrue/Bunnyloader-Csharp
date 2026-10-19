@@ -1521,6 +1521,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "void ConfigureRollRules(BunnyPrefixRollRules rules)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void ModifyValue(ref float valueMultiplier)",
           "execution": "compile_policy"
         },
@@ -1530,6 +1534,34 @@
         },
         {
           "signature": "void SetStats(ref PrefixStats stats)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixRollRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyPrefixRollRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Allow(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(int itemType, int weight)",
           "execution": "compile_policy"
         }
       ]
