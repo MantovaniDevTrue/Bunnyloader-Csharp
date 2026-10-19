@@ -114,6 +114,31 @@ std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingRarity;
 std::atomic<int> g_prefixRestoreFailureLogs{0};
 
+std::string rarityFor(Il2CppObject* item) {
+    if (!item || g_refs.rare < 0) return {};
+    return bl::csharp::nativeRarities().stableKeyForType(
+        field<int32_t>(item, g_refs.rare));
+}
+
+bool restoreRarity(Il2CppObject* item, const std::string& key) {
+    if (key.empty()) return true;
+    if (!item || g_refs.rare < 0) return false;
+    const int type = bl::csharp::nativeRarities().typeForStableKey(key);
+    if (type < bl::csharp::NativeRarityRegistry::kVanillaCount) return false;
+    field<int32_t>(item, g_refs.rare) = type;
+    return true;
+}
+
+std::string pendingRarityFor(const std::string& path, const std::string& container,
+    int slot, int type) {
+    std::lock_guard<std::mutex> l(g_mx);
+    const auto file = g_pendingRarity.find(path);
+    if (file == g_pendingRarity.end()) return {};
+    const auto it = file->second.find(container + "#" + std::to_string(slot));
+    return it != file->second.end() && it->second.type == type
+        ? it->second.key : std::string();
+}
+
 std::string placeKey(const std::string& container, int slot) {
     return container + "#" + std::to_string(slot);
 }
@@ -479,6 +504,7 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved, bool* prefixR
     field<int32_t>(item, r.stack) = saved.stack > 0 ? saved.stack : 1;
     const bool applied = restoreSavedPrefix(item, saved);
     if (prefixRestored) *prefixRestored = applied;
+    restoreRarity(item, saved.rarityKey);
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
     script::loadModItemData(item, saved.data);
     return true;
