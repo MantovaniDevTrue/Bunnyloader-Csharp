@@ -65,6 +65,15 @@ jobs:
             app/src/main/cpp/experiments/csharp/SourceParser.cpp \
             -o "$RUNNER_TEMP/angler_player_parser_test"
           "$RUNNER_TEMP/angler_player_parser_test"
+      - name: Execute angler quest hooks against host IL2CPP fixture
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            tests/angler_quest/native_il2cpp_integration_test.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
+            -o "$RUNNER_TEMP/angler_il2cpp_integration_test"
+          "$RUNNER_TEMP/angler_il2cpp_integration_test"
   managed-host:
     runs-on: ubuntu-latest
     timeout-minutes: 12
