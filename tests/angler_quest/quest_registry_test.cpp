@@ -12,6 +12,7 @@ int main() {
     Quest fish{"examplemodcsharp", "ExampleQuestFish", 850, false, true,
                "An odd upside-down fish.", "Underground"};
     assert(registry.publish("examplemodcsharp", {fish}, &error));
+    assert(registry.generation() == 1);
     assert(registry.snapshot().size() == 1);
     assert(!Registry::available(fish, false));
     assert(Registry::available(fish, true));
@@ -36,6 +37,17 @@ int main() {
         {Quest{"examplemodcsharp", "NoPhases", 860, false, false, "", ""}}, &error));
     assert(error == "InvalidQuestDescriptor");
     assert(registry.snapshot().size() == 1);
+    assert(!registry.publish("examplemodcsharp",
+        {Quest{"examplemodcsharp", "BadCatchRule", 860, true, true, "", "", 4}}, &error));
+    assert(error == "InvalidQuestDescriptor");
+    assert(!registry.publish("examplemodcsharp",
+        {Quest{"examplemodcsharp", "TooLargeId", 65536, true, true, "", ""}}, &error));
+    assert(error == "InvalidQuestDescriptor");
+    assert(!registry.publish("examplemodcsharp",
+        {Quest{"examplemodcsharp", "InvalidUtf8", 860, true, true,
+               std::string("\\xC0\\xAF", 2), ""}}, &error));
+    assert(error == "InvalidQuestDescriptor");
+    assert(registry.generation() == 1);
     assert(!registry.publish("bad",
         {Quest{"different", "WrongOwner", 860, true, true, "", ""}}, &error));
     assert(error == "InvalidQuestDescriptor");
@@ -51,7 +63,9 @@ int main() {
     assert(registry.snapshot().size() == 2);
     assert(registry.publish("examplemodcsharp", {fish}, &error));
     assert(registry.snapshot().size() == 2);
+    const auto version = registry.generation();
     registry.unload("examplemodcsharp");
+    assert(registry.generation() == version + 1);
     assert(registry.snapshot().size() == 1);
     assert(registry.snapshot().front().mod == "secondmod");
     registry.unload("secondmod");
@@ -65,6 +79,8 @@ int main() {
         assert(!decodeHex(bad, &decoded));
     }
     assert(!decodeHex(std::string(1026, 'A'), &decoded));
+    assert(!decodeHex("C0AF", &decoded));
+    assert(!decodeHex("EDA080", &decoded));
 
     int current = 850;
     int rollCount = 0;
