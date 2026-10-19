@@ -280,3 +280,23 @@ O compilador chama uma vez `Apply(ref BunnyPrefixApplyStats)` e envia a linha op
 O hook de `Item.Prefix` soma os efeitos do prefixo e do item original somente após sucesso, com checagem de overflow antes de escrever os dois atributos. A assinatura thread-local de 16 slots reconhece **o total aplicado**, para evitar somar repetidamente a combinação dos bônus. `RequireEffectiveStats=false` dispensa a condição nativa de que todos os multiplicadores alterem de fato o item; a opção padrão `true` mantém a regra anterior. `ExtraTooltip` é anexado após as linhas vanilla no hook de tooltip do inventário, respeitando capacidade, tipos IL2CPP e write barrier.
 
 **Não é paridade integral com os callbacks originais por instância:** `Apply(item)`, `AllStatChangesHaveEffectOn(item)` e `GetTooltipLines(item)` no JS podem acessar estado dinâmico, alterar outros campos ou retornar várias linhas; o novo contrato C# limita-se a ajustes estáticos de dano/valor, uma linha fixa e um sinalizador booleano. Não substitui validação no Android (itens clonados/salvos, multiplayer, GC, tooltips e FPS). Não declarar o PrefixLoader integralmente completo com base apenas nos testes de host.
+
+## AllowPrefix C# — bloqueio por item de prefixos vanilla e próprios
+
+O `PrefixLoader.js` do Bunny chama `ModItem.AllowPrefix(item, pre)` e `GlobalItem.AllowPrefix(item, pre)` para filtrar opções. O C# oferece agora um subconjunto **declarativo por tipo**, `ConfigurePrefixRules(BunnyItemPrefixRules)`, em `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion`. Ele é compilado uma vez e aplicado pelo C++ nativo em `GetRollablePrefixes`, `CanRollPrefix` e aplicações explícitas em `Item.Prefix`:
+
+```csharp
+public override void ConfigurePrefixRules(BunnyItemPrefixRules rules)
+{
+    rules.Deny(71);
+    rules.Deny(nameof(ExampleGuardedPrefix));
+}
+```
+
+`Deny(int)` aceita IDs 1–255, e `Deny(string)` aceita somente prefixos **do próprio mod**, registrados e resolvidos por nome estável. Cada item aceita até 32 bloqueios. Os dois tipos de nome são serializados em `PREFIX_DENY\tItemName\t71,ExampleGuardedPrefix`, preservando as linhas de itens e prefixos antigas. Fonte e compilador rejeitam IDs fora do limite, nomes externos, referências inexistentes, duplicatas e políticas inconsistentes. A ponte nativa faz resolução atômica dos IDs e publica snapshots imutáveis.
+
+O hook `GetRollablePrefixes` remove prefixos bloqueados das opções vanilla e adicionais, mantendo a distribuição dos demais. Caso tudo seja bloqueado, retorna lista vazia; na rolagem somente vanilla com política, a seleção nativa respeita a lista filtrada. `CanRollPrefix` e pedidos explícitos também rejeitam o prefixo bloqueado. **Restauração de um prefixo salvo** pela rota interna é preservada. Políticas ausentes não alteram a rolagem normal. Falhas de alocação da nova lista com bloqueios ativos evitam retornar candidatos que foram proibidos.
+
+A suíte C# compila `TestWand` com uma negação vanilla e outra por nome, enquanto os testes C++ conferem resolução por nome, publicação sem duplicatas, rollback, remoção da lista de prefixos, `CanRoll`, tentativa explícita e bypass de restauração. O `ExampleWand` jogável oferece a mesma API com `ExampleGuardedPrefix`.
+
+**Escopo real:** não equivale a `AllowPrefix(item, pre)` dinâmico com estado da instância, nem implementa composição de `GlobalItem` e hooks próprios de outros mods. A verificação host/ARM64 não confirma os dados reais do Terraria, saves/GC, netcode nem FPS.
