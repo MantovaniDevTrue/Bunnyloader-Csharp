@@ -830,7 +830,8 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 ||
+             defaults.find("LOCALE\t") != std::string::npos) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -877,6 +878,8 @@ void run() {
             bindNativeRecipeAssembly(mod.id,assembly);
             bindNativeTileAssembly(mod.id,assembly);
             if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
+            if (defaultsApplied && defaults.find("LOCALE\t") != std::string::npos)
+                localization::bindManagedAssembly(mod.id, assembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
             if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
