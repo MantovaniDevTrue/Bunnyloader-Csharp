@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import java.util.Properties
 
 // Fase 1 nao precisa da libbunny.so. Desligue o build nativo com
@@ -199,7 +200,7 @@ val verifyBundledCSharpRuntime by tasks.registering {
     doLast {
         val manifest = managedAssets.resolve("framework.sha256")
         if (!manifest.isFile) throw GradleException("Missing bundled MonoVM CSharp manifest: $manifest")
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = MessageDigest.getInstance("SHA-256")
         fun hash(file: java.io.File): String =
             digest.digest(file.readBytes()).joinToString("") { byte -> "%02x".format(byte) }
         val required = setOf(
