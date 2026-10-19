@@ -26,3 +26,7 @@ wall="${RUNNER_TEMP:-/tmp}/bunny-world-wall-runtime"
 registry="${RUNNER_TEMP:-/tmp}/bunny-world-wall-registry"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/world_loaders/wall_registry_test.cpp app/src/main/cpp/content/walls/ModWalls.cpp app/src/main/cpp/content/tiles/ModTileMap.cpp app/src/main/cpp/content/common/TypeTables.cpp -Wl,--gc-sections -o "$registry"
 "$registry"
+
+draw="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_wire_test.cpp -o "$draw"
+"$draw"
