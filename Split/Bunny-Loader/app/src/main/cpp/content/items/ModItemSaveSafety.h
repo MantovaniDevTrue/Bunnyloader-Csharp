@@ -42,8 +42,22 @@ inline bool preserveLegacyBeforeRaritySave(const std::string& path,
     if (header != "bunnyloader itens 1" && header != "bunnyloader itens 2") return false;
     const std::string backup = path + ".before-rarity-v3.bak";
     std::error_code error;
-    if (std::filesystem::exists(backup, error)) return !error;
+    const bool backupExists = std::filesystem::exists(backup, error);
     if (error) return false;
+    if (backupExists) {
+        std::ifstream preserved(backup, std::ios::binary);
+        if (!preserved) return false;
+        std::vector<SavedItem> verified;
+        if (!read(preserved, verified, true)) return false;
+        std::string backupHeader;
+        preserved.clear();
+        preserved.seekg(0);
+        if (!std::getline(preserved, backupHeader)) return false;
+        if (!backupHeader.empty() && backupHeader.back() == '\r')
+            backupHeader.pop_back();
+        return backupHeader == "bunnyloader itens 1" ||
+            backupHeader == "bunnyloader itens 2";
+    }
     const std::string temp = backup + ".tmp";
     std::ofstream output(temp, std::ios::binary | std::ios::trunc);
     if (!output) return false;
