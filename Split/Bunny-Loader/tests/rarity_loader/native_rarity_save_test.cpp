@@ -62,6 +62,23 @@ int main() {
     assert(read(legacyOne, restored) && restored.size() == 1);
     assert(restored[0].rarityKey.empty());
 
+    std::vector<SavedItem> protectedRecords{
+        {"inventory", 5, 1, 0, false, "stable/Existing", "", "payload", "rarity/Original"}
+    };
+    std::stringstream damagedV3("bunnyloader itens 3\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity\n"
+        "inventory\t1\t1\t0\t0\tmod/Broken\t{}\tmod/Bad-Name\n");
+    assert(!read(damagedV3, protectedRecords));
+    assert(protectedRecords.size() == 1);
+    assert(protectedRecords[0].key == "stable/Existing");
+    assert(protectedRecords[0].rarityKey == "rarity/Original");
+
+    std::stringstream truncatedV3("bunnyloader itens 3\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity\n"
+        "inventory\t1\tone\t0\t0\tmod/Broken\t{}\tmod/Rarity\n");
+    assert(!read(truncatedV3, protectedRecords));
+    assert(protectedRecords.size() == 1);
+
     std::stringstream legacyWithExtension("bunnyloader itens 2\ninventory\t0\t1\t0\t1\told/Item\t{}\trmod/Example\n");
     restored.clear();
     assert(read(legacyWithExtension, restored) && restored.empty());
