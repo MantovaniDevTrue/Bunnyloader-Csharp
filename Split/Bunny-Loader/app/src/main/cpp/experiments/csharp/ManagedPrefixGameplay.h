@@ -4,6 +4,7 @@
 #include <string>
 
 namespace bl::csharp {
+bool installManagedPrefixChanceHook();
 bool installManagedPrefixGameplayHooks();
 bool managedPrefixGameplayReady();
 bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string* reason);
