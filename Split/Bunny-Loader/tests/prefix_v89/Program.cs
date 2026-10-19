@@ -26,7 +26,8 @@ try
     void Check(string name, int category, float weight, float damage, float value, int defense)
     {
         string[] fields = byName[name];
-        if (fields.Length != 16 || fields[0] != "PREFIX" ||
+        int expectedLength = name == "TestMightyPrefix" ? 17 : 16;
+        if (fields.Length != expectedLength || fields[0] != "PREFIX" ||
             int.Parse(fields[2], CultureInfo.InvariantCulture) != category ||
             MathF.Abs(float.Parse(fields[3], CultureInfo.InvariantCulture) - weight) > .0001f ||
             MathF.Abs(float.Parse(fields[4], CultureInfo.InvariantCulture) - damage) > .0001f ||
@@ -37,7 +38,19 @@ try
     }
 
     Check("TestMightyPrefix", 4, 5f, 1.2f, 1.26f, 0);
+    if (byName["TestMightyPrefix"][16] != "1:3,2:0,512:7")
+        throw new InvalidOperationException("Managed prefix per-item rules are not canonical");
     Check("TestGuardedPrefix", 5, 1f, 1f, 1.2f, 4);
+    var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
+    rules.Deny(12);
+    rules.Allow(12, 5);
+    if (rules.Serialize() != "12:5")
+        throw new InvalidOperationException("Managed prefix item rule replace failed");
+    bool invalidRejected = false;
+    try { rules.SetWeight(0, 1); }
+    catch (ArgumentOutOfRangeException) { invalidRejected = true; }
+    if (!invalidRejected)
+        throw new InvalidOperationException("Invalid item type accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=2 callbacks=4 content=2");
 }
 finally
