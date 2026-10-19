@@ -652,6 +652,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
+    std::vector<std::pair<int, bool>> prefixChances;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -663,6 +664,21 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "PREFIX_CHANCE") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                (fields[2] != "0" && fields[2] != "1") ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                prefixChances.size() >= kSourceMaxCategory) {
+                *error = "[CSharp][ERROR][PrefixChance] Mod=" + modId +
+                    " Stage=Decode Reason=InvalidItemOrPolicy";
+                return false;
+            }
+            prefixChances.emplace_back(registered->second, fields[2] == "1");
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="RECIPES") {
             SourceRecipeOwner owner;
             if(!parseSourceRecipeOwner(fields,modId,&owner,error))return false;
@@ -1276,6 +1292,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedPrefixDescriptors(modId, prefixes)) {
         *error = "Falha ao validar descritores de prefixo C#";
+        return false;
+    }
+    if (!applyManagedItemPrefixChances(prefixChances)) {
+        *error = "Politicas PrefixChance C# duplicadas ou hook nativo indisponivel";
         return false;
     }
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
