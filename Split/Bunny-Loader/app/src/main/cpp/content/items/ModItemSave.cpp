@@ -502,6 +502,41 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         }
     }
     writeFile(path + kSuffix, items);
+    std::vector<item_save::LiveRarityItem<Il2CppObject*>> liveRarityItems;
+    {
+        std::lock_guard<std::mutex> guard(g_mx);
+        if (g_pendingRarity.find(path) != g_pendingRarity.end() ||
+            g_pendingRarityByItem.find(path) != g_pendingRarityByItem.end())
+            liveRarityItems.reserve(256);
+    }
+    if (!liveRarityItems.empty() || !items.empty()) {
+        for (const Container& container : containersOf(player)) {
+            for (int slot = 0; slot < container.size(); ++slot) {
+                auto* item = container.at(slot);
+                if (!item) continue;
+                liveRarityItems.push_back({item, placeKey(container.name, slot),
+                    field<int32_t>(item, r.type), !rarityFor(item).empty()});
+            }
+        }
+        std::lock_guard<std::mutex> guard(g_mx);
+        const auto oldSlots = g_pendingRarity.find(path);
+        const auto oldItems = g_pendingRarityByItem.find(path);
+        if (oldSlots != g_pendingRarity.end() ||
+            oldItems != g_pendingRarityByItem.end()) {
+            const std::map<std::string, PendingPrefix> emptySlots;
+            const std::map<Il2CppObject*, PendingPrefix> emptyItems;
+            std::map<std::string, PendingPrefix> nextSlots;
+            std::map<Il2CppObject*, PendingPrefix> nextItems;
+            item_save::reconcileTrackedRarities(
+                oldItems == g_pendingRarityByItem.end() ? emptyItems : oldItems->second,
+                oldSlots == g_pendingRarity.end() ? emptySlots : oldSlots->second,
+                liveRarityItems, &nextItems, &nextSlots);
+            if (nextSlots.empty()) g_pendingRarity.erase(path);
+            else g_pendingRarity[path] = std::move(nextSlots);
+            if (nextItems.empty()) g_pendingRarityByItem.erase(path);
+            else g_pendingRarityByItem[path] = std::move(nextItems);
+        }
+    }
     if (recoveredPrefixes) {
         BL_INFO("save de itens de mod: %d prefixo(s) preservados antes do save original", recoveredPrefixes);
     }
