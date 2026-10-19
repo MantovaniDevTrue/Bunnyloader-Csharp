@@ -45,6 +45,9 @@ std::vector<int> g_updateType;
 std::vector<int> g_group;           // 0 = folha do jogo; k = g_groupAssets[k - 1]
 std::vector<uint32_t> g_groupAssets;
 unsigned g_anyHooks = 0;
+std::atomic<bool> g_maskDirty{false};
+bool g_alphaRefHooked = false;
+bool g_alphaValueHooked = false;
 
 TypeTables g_tables("poeiras de mod", kVanillaDustCount, {
     {"Terraria", "Dust", ""},
@@ -537,14 +540,21 @@ void installPoolHook() {
     }
 }
 
+bool installDustAlphaHooks() {
+    if ((g_anyHooks & kDustGetAlpha) == 0) return true;
+    const Refs& r = refs();
+    if (!g_alphaRefHooked)
+        g_alphaRefHooked = hook::install(r.getAlphaRef, hkGetAlphaRef, &g_origGetAlphaRef);
+    if (!g_alphaValueHooked)
+        g_alphaValueHooked = hook::install(r.getAlphaValue, hkGetAlphaValue, &g_origGetAlphaValue);
+    return g_alphaRefHooked && g_alphaValueHooked;
+}
+
 bool installModHooks() {
     const Refs& r = refs();
     bool ok = hook::install(r.newDust, hkNewDust, &g_origNewDust);
     ok &= hook::install(r.drawDust, hkDrawDust, &g_origDrawDust);
-    if (g_anyHooks & kDustGetAlpha) {
-        ok &= hook::install(r.getAlphaRef, hkGetAlphaRef, &g_origGetAlphaRef);
-        ok &= hook::install(r.getAlphaValue, hkGetAlphaValue, &g_origGetAlphaValue);
-    }
+    ok &= installDustAlphaHooks();
     if (!ok) BL_ERROR("poeiras de mod: hooks do Dust/Main.DrawDust faltando");
     return ok;
 }
@@ -583,6 +593,16 @@ int modDustTypeByName(const std::string& mod, const std::string& name) {
     return -1;
 }
 
+bool setModDustManagedHooks(int type, unsigned hooks) {
+    if ((hooks & ~31u) != 0u) return false;
+    const int index = type - kVanillaDustCount;
+    std::lock_guard<std::mutex> lock(g_mx);
+    if (index < 0 || index >= static_cast<int>(g_regs.size())) return false;
+    g_regs[static_cast<size_t>(index)].def.hooks = hooks;
+    g_maskDirty.store(true, std::memory_order_release);
+    return true;
+}
+
 void setModDustUpdateType(int type, int updateType) {
     const int i = type - kVanillaDustCount;
     std::lock_guard<std::mutex> l(g_mx);
@@ -613,6 +633,18 @@ void tickModDusts() {
     const int from = kVanillaDustCount + installed;
     if (installed == total) {
         if (total > 0) {
+            if (g_maskDirty.exchange(false, std::memory_order_acq_rel)) {
+                {
+                    std::lock_guard<std::mutex> lock(g_mx);
+                    for (int i = 0; i < total; ++i)
+                        g_hooks[static_cast<size_t>(i)] =
+                            g_regs[static_cast<size_t>(i)].def.hooks;
+                    g_anyHooks = 0;
+                    for (unsigned mask : g_hooks) g_anyHooks |= mask;
+                }
+                if (!installDustAlphaHooks())
+                    BL_ERROR("[CSharp][DustLoader] Stage=AlphaHooks Reason=HookInstallFailed");
+            }
             g_tables.checkPending(from);
             static int frame = 0;
             if (++frame % 120 == 0) g_tables.watch(from, nullptr);
