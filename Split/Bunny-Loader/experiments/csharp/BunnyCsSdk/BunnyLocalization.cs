@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace BunnyLoader.Source;
 
-public sealed class BunnyLocalizationCatalog
+public sealed partial class BunnyLocalizationCatalog
 {
     private const int MaxEntries = 8192;
     private const int MaxTextBytes = 8192;
@@ -127,6 +127,56 @@ public sealed class BunnyLocalizationCatalog
                     [culture] = text
                 }, culture);
             if (next.Count > MaxEntries) throw new InvalidOperationException("Localization catalog exceeds its entry limit");
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
+        }
+    }
+
+    public void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)
+    {
+        ValidateModId(modId);
+        if (cultures == null) throw new ArgumentNullException(nameof(cultures));
+        if (cultures.Count == 0 || cultures.Count > 32)
+            throw new ArgumentOutOfRangeException(nameof(cultures));
+        var validated = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+        foreach (var culture in cultures)
+        {
+            ValidateCulture(culture.Key);
+            if (culture.Value == null || culture.Value.Count > MaxEntries)
+                throw new ArgumentException("Invalid localization culture content", nameof(cultures));
+            var texts = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var text in culture.Value)
+            {
+                ValidateKey(text.Key, true);
+                ValidateText(text.Value);
+                if (!texts.TryAdd(text.Key, text.Value))
+                    throw new ArgumentException("Duplicate localization key", nameof(cultures));
+            }
+            validated.Add(culture.Key, texts);
+        }
+
+        string prefix = "Mods." + modId + ".";
+        lock (gate)
+        {
+            State snapshot = current;
+            var next = new Dictionary<string, TextEntry>(snapshot.Entries, StringComparer.Ordinal);
+            foreach (string key in snapshot.Entries.Keys)
+                if (key.StartsWith(prefix, StringComparison.Ordinal)) next.Remove(key);
+            foreach (var culture in validated)
+            {
+                foreach (var text in culture.Value)
+                {
+                    string key = prefix + text.Key;
+                    if (next.TryGetValue(key, out TextEntry? previous))
+                        next[key] = previous.With(culture.Key, text.Value);
+                    else
+                        next.Add(key, new TextEntry(new Dictionary<string, string>(StringComparer.Ordinal)
+                        {
+                            [culture.Key] = text.Value
+                        }, culture.Key));
+                    if (next.Count > MaxEntries)
+                        throw new InvalidOperationException("Localization catalog exceeds its entry limit");
+                }
+            }
             Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1)));
         }
     }
