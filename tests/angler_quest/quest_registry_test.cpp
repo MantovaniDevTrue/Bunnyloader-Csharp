@@ -32,11 +32,11 @@ int main() {
     translated.locales.emplace("pt-BR",
         std::make_pair("Um peixe de ponta-cabeça", "Pescado ao contrário"));
     assert(Registry::chat(translated, "fallback", "pt-BR") ==
-           "Um peixe de ponta-cabeça\\n\\n(Pescado ao contrário)");
+           "Um peixe de ponta-cabeça\n\n(Pescado ao contrário)");
     assert(Registry::chat(translated, "fallback", "pt-PT") ==
-           "Um peixe de ponta-cabeça\\n\\n(Pescado ao contrário)");
+           "Um peixe de ponta-cabeça\n\n(Pescado ao contrário)");
     assert(Registry::chat(translated, "fallback", "en-US") ==
-           "An odd upside-down fish.\\n\\n(Underground)");
+           "An odd upside-down fish.\n\n(Underground)");
     assert(registry.publish("examplemodcsharp", {translated}, &error));
     assert(!registry.publish("examplemodcsharp",
         {Quest{"examplemodcsharp","BadLocale",860,true,true,"","",0,
