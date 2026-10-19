@@ -75,6 +75,7 @@ int receivedChanceWant = -999;
 int chanceOriginalCalls = 0;
 int nativePrefixDamage = 12, nativePrefixValue = 100;
 bool nativePrefixAccept = true;
+bool nativePrefixCumulative = false;
 bool vanillaPrefixChance(Il2CppObject* object, int32_t want, uint8_t*, const MethodInfo*) {
     receivedChanceWant = want;
     ++chanceOriginalCalls;
@@ -82,8 +83,10 @@ bool vanillaPrefixChance(Il2CppObject* object, int32_t want, uint8_t*, const Met
     auto* item = reinterpret_cast<Item*>(object);
     if (want != -3) {
         item->prefix = static_cast<uint8_t>(want > 0 ? want : 71);
-        item->damage = nativePrefixDamage;
-        item->value = nativePrefixValue;
+        if (!nativePrefixCumulative) {
+            item->damage = nativePrefixDamage;
+            item->value = nativePrefixValue;
+        }
     }
     return true;
 }
@@ -373,6 +376,37 @@ int main() {
     effectView = std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
     assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
     assert(weapon.damage == 12 && weapon.value == 100);
+    effectView = std::make_shared<const std::map<int, ManagedItemPrefixApply>>(
+        std::map<int, ManagedItemPrefixApply>{{6199, {4, 125}}});
+    chanceView = std::make_shared<const std::map<int, bool>>();
+    nativePrefixCumulative = true;
+    weapon.type = 6199;
+    weapon.damage = 12;
+    weapon.value = 100;
+    weapon.prefix = 0;
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 16 && weapon.value == 225);
+    for (int i = 0; i < 4; ++i) {
+        assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+        assert(weapon.damage == 16 && weapon.value == 225);
+    }
+    nativePrefixAccept = false;
+    assert(!hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 16 && weapon.value == 225);
+    nativePrefixAccept = true;
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 16 && weapon.value == 225);
+    Item other{};
+    other.type = 6199;
+    assert(hookItemPrefixChance(&other.object, 99, &chanceTier, nullptr));
+    assert(other.damage == 16 && other.value == 225);
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 16 && weapon.value == 225);
+    weapon.damage = 70;
+    weapon.value = 900;
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(weapon.damage == 74 && weapon.value == 1025);
+    nativePrefixCumulative = false;
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
