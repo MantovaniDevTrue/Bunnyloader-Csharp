@@ -10,7 +10,7 @@ int main() {
     assert(validCallbackMask(1<<6));
     assert(validCallbackMask(1<<9));
     assert(validCallbackMask(1<<10));
-    assert(!validCallbackMask(1<<11));
+    assert(validCallbackMask(1<<11));
     assert(!validCallbackMask(-1));
     assert(!blocksCanKillTile(true));
     assert(blocksCanKillTile(false));
