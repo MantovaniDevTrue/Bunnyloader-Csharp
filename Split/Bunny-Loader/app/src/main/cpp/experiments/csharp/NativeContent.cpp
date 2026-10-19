@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeTileFlags.h"
+#include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -2169,16 +2170,7 @@ std::array<std::pair<int, int>, kMaxNativeAdjacencies> g_adjPairs{};
 size_t g_adjCount = 0;
 
 bool addNativeAdjacency(int type, int vanilla) {
-    const auto entry = std::pair<int, int>{type, vanilla};
-    auto begin = g_adjPairs.begin();
-    auto end = begin + g_adjCount;
-    auto it = std::lower_bound(begin, end, entry);
-    if (it != end && *it == entry) return true;
-    if (g_adjCount == g_adjPairs.size()) return false;
-    for (auto cursor = end; cursor != it; --cursor) *cursor = *(cursor - 1);
-    *it = entry;
-    ++g_adjCount;
-    return true;
+    return tile_adjacency::add(g_adjPairs, g_adjCount, type, vanilla);
 }
 
 void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
@@ -2209,13 +2201,9 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
             const int type = world.type[definition];
             if (type < runtime::kVanillaTileCount ||
                 static_cast<uintptr_t>(type) >= adjacent->length) continue;
-            const auto end = g_adjPairs.begin() + g_adjCount;
-            const auto first = std::lower_bound(g_adjPairs.begin(), end,
-                                                 std::pair<int, int>{type, -1});
-            if (first == end || first->first != type) continue;
-            result[type] = 1;
-            for (auto it = first; it != end && it->first == type; ++it)
-                result[it->second] = 1;
+            if (tile_adjacency::forEach(g_adjPairs, g_adjCount, type,
+                    [&](int alias) { result[alias] = 1; }))
+                result[type] = 1;
         }
 }
 
