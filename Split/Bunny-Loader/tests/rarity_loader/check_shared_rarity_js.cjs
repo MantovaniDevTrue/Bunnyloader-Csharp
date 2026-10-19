@@ -12,7 +12,7 @@ const context = {
     Ready: { Add() {} },
     Hooks: { Once() {} },
     TooltipLoader: { Install() {} },
-    bl: { csharp: { reserveRarityId() {
+    bl: { csharp: { rarityCount() { return nextId; }, reserveRarityId() {
         const id = nextId++;
         reserved.push(id);
         return id;
@@ -29,6 +29,7 @@ assert.equal(loader.GetRarity(12), first);
 
 const reservedByCSharp = context.bl.csharp.reserveRarityId();
 assert.equal(reservedByCSharp, 13);
+assert.equal(loader.RarityCount, 14);
 const second = { SetStaticDefaults() {} };
 const idSecond = loader.Add(second);
 assert.equal(idSecond, 14);
