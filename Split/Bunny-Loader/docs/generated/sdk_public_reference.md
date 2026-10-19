@@ -623,8 +623,8 @@ string ActiveCultureName { get; }
 | `string TryTranslate(string path, string callerModId)` | managed_helper |
 | `void Register(string fullKey, string culture, string text)` | managed_helper |
 | `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
-| `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
 | `void RemoveMod(string modId)` | managed_helper |
+| `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
 | `void SetCulture(string culture)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyMethodHook
