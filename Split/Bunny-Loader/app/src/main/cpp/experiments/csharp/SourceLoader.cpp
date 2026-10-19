@@ -1070,8 +1070,12 @@ bool applyManagedSourceDefaults(
                     const size_t secondColon = colon == std::string::npos
                         ? std::string::npos : fields[16].find(':', colon + 1);
                     const bool hasCanRoll = secondColon != std::string::npos && secondColon < end;
+                    const size_t thirdColon = hasCanRoll ? fields[16].find(':', secondColon + 1) : std::string::npos;
+                    const bool hasPreferred = thirdColon != std::string::npos && thirdColon < end;
                     const size_t weightEnd = hasCanRoll ? secondColon : end;
+                    const size_t allowEnd = hasPreferred ? thirdColon : end;
                     int allowValue = -1;
+                    int preferredValue = 0;
                     int itemType = 0;
                     int weight = -1;
                     const std::string token = fields[16].substr(start, colon == std::string::npos ? 0 : colon - start);
@@ -1079,8 +1083,11 @@ bool applyManagedSourceDefaults(
                         !integer(fields[16].substr(colon + 1, weightEnd - colon - 1), &weight) ||
                         weight < 0 || weight > 20 ||
                         (hasCanRoll &&
-                         (!integer(fields[16].substr(secondColon + 1, end - secondColon - 1), &allowValue) ||
+                         (!integer(fields[16].substr(secondColon + 1, allowEnd - secondColon - 1), &allowValue) ||
                           (allowValue != 0 && allowValue != 1))) ||
+                        (hasPreferred &&
+                         (!integer(fields[16].substr(thirdColon + 1, end - thirdColon - 1), &preferredValue) ||
+                          preferredValue != 1 || allowValue != 1)) ||
                         record.itemWeights.size() + record.itemNames.size() >= 32) {
                         *error = "Regra por item invalida no prefixo C#: " + record.name;
                         return false;
@@ -1092,6 +1099,7 @@ bool applyManagedSourceDefaults(
                             return false;
                         }
                         if (hasCanRoll) record.itemCanRoll.emplace(itemType, allowValue == 1);
+                        if (hasPreferred) record.preferredTypes.insert(itemType);
                     } else {
                         bool validName = !token.empty() && token.size() <= 64 &&
                             ((token[0] >= 'A' && token[0] <= 'Z') ||
@@ -1106,6 +1114,7 @@ bool applyManagedSourceDefaults(
                             return false;
                         }
                         if (hasCanRoll) record.itemNamesCanRoll.emplace(token, allowValue == 1);
+                        if (hasPreferred) record.preferredNames.insert(token);
                     }
                     if (comma == std::string::npos) break;
                     start = comma + 1;
