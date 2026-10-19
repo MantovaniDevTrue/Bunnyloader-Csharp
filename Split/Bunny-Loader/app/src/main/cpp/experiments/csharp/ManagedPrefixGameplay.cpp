@@ -461,8 +461,8 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                     std::nearbyint(static_cast<float>(current) * mult) != static_cast<float>(current);
             };
             return !p->requireEffectiveStats ||
-                   changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
-                   changes(itemMana, *mana) && (*kb == 1.f || itemKnockBack != 0.f);
+                   (changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
+                    changes(itemMana, *mana) && (*kb == 1.f || itemKnockBack != 0.f));
         }
     }
     return g_originalStats ? g_originalStats(item, prefix, dmg, kb, spd, size,
@@ -573,6 +573,28 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
         g_originalInventoryTooltip(item, yoyo, research, materials, oldKb, count,
                                    lines, modifier, bad, setBonus, setColor,
                                    shared, method);
+    if (g_inventoryTooltipReady.load(std::memory_order_acquire) && item &&
+        count && lines && modifier && bad && g_refs.prefix >= 0) {
+        const int prefixId = bl::runtime::field<uint8_t>(item, g_refs.prefix);
+        const auto prefixes = managedPrefixView();
+        const auto* selected = byType(*prefixes, prefixId);
+        const uintptr_t capacity = std::min({lines->length, modifier->length, bad->length});
+        if (selected && !selected->extraTooltip.empty() && *count >= 0 &&
+            static_cast<uintptr_t>(*count) < capacity) {
+            auto& api = bl::il2cpp::api();
+            if (api.string_new && api.gc_wbarrier_set_field) {
+                Il2CppString* text = api.string_new(selected->extraTooltip.c_str());
+                if (text) {
+                    auto** output = static_cast<Il2CppString**>(arrayData(lines));
+                    api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(lines),
+                        reinterpret_cast<void**>(&output[*count]), text);
+                    static_cast<uint8_t*>(arrayData(modifier))[*count] = 1;
+                    static_cast<uint8_t*>(arrayData(bad))[*count] = 0;
+                    ++*count;
+                }
+            }
+        }
+    }
     if (!g_inventoryTooltipReady.load(std::memory_order_acquire) || !item ||
         !count || !lines || !modifier || !bad ||
         g_refs.accessory < 0 || g_refs.type < 0 || g_refs.prefix < 0 ||
