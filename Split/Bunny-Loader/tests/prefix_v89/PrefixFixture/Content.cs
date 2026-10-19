@@ -49,6 +49,22 @@ public sealed class TestMightyPrefix : BunnyPrefix
     }
 }
 
+public sealed class TestCustomPrefix : BunnyPrefix
+{
+    public override void SetDefaults()
+    {
+        Category = PrefixCategory.Custom;
+        RollWeight = 1f;
+        DisplayName = "Sob medida";
+    }
+
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Deny(1);
+        rules.Allow("TestWand", 2);
+    }
+}
+
 public sealed class TestGuardedPrefix : BunnyPrefix
 {
     public override void SetDefaults()
