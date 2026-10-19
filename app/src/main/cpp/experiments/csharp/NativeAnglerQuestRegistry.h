@@ -6,6 +6,7 @@
 #include <cctype>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -69,8 +70,38 @@ inline bool validCulture(const std::string& culture) {
     });
 }
 
+struct QuestListUpdate {
+    std::vector<int> ids;
+    int selected = 0;
+    bool changed = false;
+};
+
 class Registry {
 public:
+    static QuestListUpdate reconcileIds(const std::vector<int>& original,
+                                        const std::set<int>& formerlyOwned,
+                                        const std::vector<Quest>& quests,
+                                        int selected) {
+        QuestListUpdate result;
+        result.ids.reserve(original.size() + quests.size());
+        std::set<int> requested, existing;
+        for (const auto& quest : quests) requested.insert(quest.type);
+        int selectedType = selected >= 0 && static_cast<size_t>(selected) < original.size()
+            ? original[static_cast<size_t>(selected)] : -1;
+        for (int id : original) {
+            if (formerlyOwned.contains(id) && !requested.contains(id)) continue;
+            result.ids.push_back(id);
+            existing.insert(id);
+        }
+        for (const auto& quest : quests)
+            if (existing.insert(quest.type).second) result.ids.push_back(quest.type);
+        result.changed = result.ids != original;
+        auto it = std::find(result.ids.begin(), result.ids.end(), selectedType);
+        result.selected = it == result.ids.end() ? 0 :
+            static_cast<int>(it - result.ids.begin());
+        return result;
+    }
+
     bool publish(const std::string& mod, const std::vector<Quest>& quests, std::string* error) {
         if (mod.empty() || quests.size() > 4096) return fail(error, "InvalidModOrCapacity");
         std::lock_guard<std::mutex> lock(mutex_);
