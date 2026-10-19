@@ -231,3 +231,15 @@ O hook `Item.Prefix(int, out bool)` chama primeiro a implementação anterior. S
 O contrato C# é **deliberadamente limitado**: o callback é amostrado na preparação do mod, sem objeto `Item`, ID de prefixo, RNG, mundo ou jogador. Não representa o `ApplyPrefix(item, pre)` dinâmico do JS, não compõe `GlobalItem.ApplyPrefix` e não executa ainda `BunnyPrefix.Apply(item)`. O efeito pós-aplicação depende do Terraria recalcular os atributos-base em cada chamada válida; testar no Android aplicações repetidas, saves e reforja antes de confirmar ausência de acúmulo ou paridade PC.
 
 Os testes de host incluem execução real do override C#, wire de quatro colunas, registro nativo sem duplicatas, snapshots imutáveis, aplicação em item com e sem política, restauração, consulta `-3`, falha do original e proteção contra overflow. Nenhum resultado de teste de host implica estabilidade do APK, 60 FPS ou sincronização multiplayer.
+
+## Aplicação repetida — fingerprint nativo limitado
+
+O caminho `ApplyPrefix` agora guarda apenas as **16 aplicações recentes por thread**, sem heap, para reconhecer quando a mesma instância de item mantém exatamente o último tipo, ID de prefixo, dano e valor já ajustados. Antes de uma nova chamada válida a `Item.Prefix`, o hook remove **somente os próprios** bônus anteriores e deixa a rotina anterior trabalhar com os atributos normalizados. Após retorno bem-sucedido, reaplica uma única vez os bônus e renova a assinatura; em falha sem modificação de atributos, restaura o par anterior e mantém o fingerprint.
+
+A detecção compara ponteiro da instância, tipo, prefixo, dano e valor; se qualquer um mudar, a assinatura é descartada para não descontar bônus de um estado externo desconhecido. O cache é circular e thread-local: não faz varreduras da lista de itens em jogo, não cresce sem limite e não introduz comunicação com JavaScript/MonoVM no hook de reforja.
+
+**Limite:** esta é uma mitigação de acúmulo para reaplicações recentes com atributos correspondentes, não um sistema de identidade persistente para itens. Após expulsão do cache, recriação do objeto ou mudanças externas que imitarem a assinatura anterior, não há garantia universal de idempotência. A validação de itens reais, clones, troca de mundo, reforjas repetidas e multiplayer no Android ainda é obrigatória.
+
+O teste host usa uma implementação de `Item.Prefix` que **não reseta** dano/valor e comprova quatro reaplicações seguidas sem acumular bônus, falha/restauração, alternância entre instâncias e invalidação após alteração externa. Há ainda regressão independente de overflow em valor alto. A PR temporária [#104](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/104) executou o CI específico [#39317397028](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39317397028) com sucesso; as correções e testes foram copiados para a #100.
+
+A suíte global associada ao ramo de Tiles ainda falha em `tests/basic_items/Program.cs` por `expected=13 actual=20` e em `ManagedRuntime.cpp` por avisos `-Werror=misleading-indentation`. Esses arquivos não foram alterados neste lote.
