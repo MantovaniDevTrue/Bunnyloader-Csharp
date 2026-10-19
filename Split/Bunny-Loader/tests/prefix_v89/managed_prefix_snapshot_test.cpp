@@ -116,6 +116,7 @@ int main() {
     mighty.applyValueBonus = 40;
     mighty.requireEffectiveStats = false;
     mighty.extraTooltip = "Bonus adicional do prefixo";
+    mighty.tooltipLines = {"First line", "Second line"};
     auto invalidPost = mighty;
     invalidPost.applyDamageBonus = 1001;
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
@@ -126,6 +127,14 @@ int main() {
     assert(managedPrefixView() == second);
     invalidPost = mighty;
     invalidPost.maxItemMana = 10001;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.tooltipLines = std::vector<std::string>(5, "overflow");
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.tooltipLines = {"valid", std::string(121, 'A')};
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
     assert(managedPrefixView() == second);
     invalidPost = mighty;
@@ -144,6 +153,8 @@ int main() {
     assert(third->at(1).applyValueBonus == 40);
     assert(!third->at(1).requireEffectiveStats);
     assert(third->at(1).extraTooltip == "Bonus adicional do prefixo");
+    assert(third->at(1).tooltipLines.size() == 2);
+    assert(third->at(1).tooltipLines[0] == "First line");
     assert(snapshotManagedPrefixes().size() == 2);
     assert(registeredManagedPrefixCount() == 2);
     assert(managedPrefixView() == third);
