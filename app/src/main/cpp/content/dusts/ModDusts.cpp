@@ -366,7 +366,8 @@ csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int ge
     return state;
 }
 
-void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state, bool updateColor = true) {
+void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& before,
+                      const csharp::ManagedDustState& state, bool updateColor = true) {
     if (!activeOf(dust)) return;
     if (state.active == 0) {
         setNotActive(dust);
@@ -375,14 +376,27 @@ void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& state,
     const Refs& r = refs();
     Vec2& pos = field<Vec2>(dust, r.position);
     Vec2& velocity = field<Vec2>(dust, r.velocity);
-    pos = {state.x, state.y};
-    velocity = {state.velocityX, state.velocityY};
-    field<float>(dust, r.scale) = state.scale;
-    field<float>(dust, r.rotation) = state.rotation;
-    field<int32_t>(dust, r.alpha) = state.alpha;
+    if (state.x != before.x) pos.x += state.x - before.x;
+    if (state.y != before.y) pos.y += state.y - before.y;
+    if (state.velocityX != before.velocityX)
+        velocity.x += state.velocityX - before.velocityX;
+    if (state.velocityY != before.velocityY)
+        velocity.y += state.velocityY - before.velocityY;
+    if (state.scale != before.scale && before.scale > 0.f)
+        field<float>(dust, r.scale) *= state.scale / before.scale;
+    if (state.rotation != before.rotation)
+        field<float>(dust, r.rotation) += state.rotation - before.rotation;
+    if (state.alpha != before.alpha)
+        field<int32_t>(dust, r.alpha) =
+            std::clamp(field<int32_t>(dust, r.alpha) +
+                       state.alpha - before.alpha, 0, 255);
     Rect& rect = field<Rect>(dust, r.frame);
-    rect = {state.frameX, state.frameY, state.frameWidth, state.frameHeight};
-    if (updateColor) field<Color32>(dust, r.color).packed = state.color;
+    if (state.frameX != before.frameX) rect.x = state.frameX;
+    if (state.frameY != before.frameY) rect.y = state.frameY;
+    if (state.frameWidth != before.frameWidth) rect.w = state.frameWidth;
+    if (state.frameHeight != before.frameHeight) rect.h = state.frameHeight;
+    if (updateColor && state.color != before.color)
+        field<Color32>(dust, r.color).packed = state.color;
 }
 
 struct ManagedDustCached {
@@ -411,13 +425,18 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
     csharp::ManagedDustMailbox::Response response{};
     if (csharp::receiveManagedDustCallback(typeOf(dust), phase, slot, generation,
                                             static_cast<uint64_t>(g_frame), &response)) {
-        applyManagedDust(dust, response.state, phase != 3);
+        applyManagedDust(dust, response.before, response.state, phase != 3);
         cache.generation = generation;
         cache.type = response.state.type;
         cache.frame = static_cast<std::uint64_t>(g_frame);
         cache.flags = response.flags;
         cache.color = response.state.color;
         cache.ready = true;
+    }
+    if (phase == 0 && cache.ready &&
+        cache.generation == generation && cache.type == typeOf(dust)) {
+        if (flags) *flags = cache.flags;
+        return true;
     }
     if (activeOf(dust)) {
         auto state = captureManagedDust(dust, slot, generation);
@@ -513,6 +532,9 @@ void hkUpdateDust(const MethodInfo* m) {
         if (next < g_list.size() && g_list[next] == d) vanilla = g_flags[next++];
         const int managedType = typeOf(d);
         const int managedMi = modIndex(managedType);
+        if (managedMi >= 0 && (g_hooks[managedMi] & kDustOnSpawn) &&
+            csharp::hasManagedDustType(managedType))
+            managedDustPhase(d, 0, nullptr);
         if (managedMi >= 0 && (g_hooks[managedMi] & kDustUpdate) &&
             csharp::hasManagedDustType(managedType)) {
             std::uint32_t response = 0;
