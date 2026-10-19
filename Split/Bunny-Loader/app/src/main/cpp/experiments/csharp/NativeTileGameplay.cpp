@@ -2,6 +2,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
+#include "experiments/csharp/NativeTileScanPolicy.h"
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
@@ -334,11 +335,6 @@ int resolveDustId(const std::string& name) {
 
 
 
-uint64_t tileCellKey(int x,int y,bool visual=false) {
-    return (static_cast<uint64_t>(static_cast<uint32_t>(x))<<33)|
-           (static_cast<uint64_t>(static_cast<uint32_t>(y))<<1)|
-           (visual?1ull:0ull);
-}
 bool setupTileWorldScan(bool lighting,bool nearby) {
     auto& a=il2cpp::api();
     if(!a.field_static_get_value)return false;
@@ -430,7 +426,7 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
         const int y=region.top+static_cast<int>(index/region.width);
         const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
         if(it==g_tiles.end()||!managedTileReady(it->second.spec,11))continue;
-        const auto key=tileCellKey(x,y,visual);
+        const auto key=tile_scan::cellKey(x,y,visual);
         const auto previous=g_tileNearbyEvents.find(key);
         if(previous!=g_tileNearbyEvents.end()&&g_tileScanTick-previous->second<6)continue;
         if(!queueManagedTileNearby(it->second.spec.mod,it->second.spec.assembly,
@@ -441,23 +437,6 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
     }
     if(!sent)cursor=(first+std::min<size_t>(total,512))%total;
     if(g_tileNearbyEvents.size()>2048)g_tileNearbyEvents.clear();
-}
-bool parseTileLight(const std::string& reply,int* r,int* g,int* b) {
-    if(reply.rfind("LIGHT|",0)!=0||reply.size()>48)return false;
-    int values[3]{};
-    size_t begin=6;
-    for(int i=0;i<3;i++) {
-        const auto end=reply.find('|',begin);
-        if((i<2&&end==std::string::npos)||(i==2&&end!=std::string::npos))
-            return false;
-        const auto finish=i==2?reply.size():end;
-        const auto start=reply.data()+begin;
-        const auto parsed=std::from_chars(start,reply.data()+finish,values[i]);
-        if(parsed.ec!=std::errc{}||parsed.ptr!=reply.data()+finish||
-           values[i]<0||values[i]>4000)return false;
-        begin=finish+1;
-    }
-    *r=values[0];*g=values[1];*b=values[2];return true;
 }
 void scanTileLighting(const runtime::TileArrays& world) {
     const TileRect region=tileScreenRect(world,false);
@@ -472,7 +451,7 @@ void scanTileLighting(const runtime::TileArrays& world) {
         const int y=region.top+static_cast<int>(index/region.width);
         const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
         if(it==g_tiles.end()||!managedTileReady(it->second.spec,6))continue;
-        const uint64_t key=tileCellKey(x,y);
+        const uint64_t key=tile_scan::cellKey(x,y);
         const auto cached=g_tileLightCache.find(key);
         if(cached!=g_tileLightCache.end()&&g_tileScanTick-cached->second.frame<3)continue;
         evaluated++;
@@ -480,7 +459,7 @@ void scanTileLighting(const runtime::TileArrays& world) {
         if(invokeManagedTile(it->second.spec.mod,it->second.spec.assembly,
            it->second.spec.name,6,x,y,&reply,600)) {
             int red=0,green=0,blue=0;
-            if(parseTileLight(reply,&red,&green,&blue))
+            if(tile_scan::parseLight(reply,&red,&green,&blue))
                 g_tileLightCache[key]={x,y,red,green,blue,g_tileScanTick};
         }
         g_tileScanLightCursor=(index+1)%total;
