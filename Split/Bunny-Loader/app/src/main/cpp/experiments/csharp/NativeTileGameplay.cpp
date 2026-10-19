@@ -43,6 +43,8 @@ bool g_mouseOverFarInstalled=false;
 FieldInfo* g_tileTargetX=nullptr;
 FieldInfo* g_tileTargetY=nullptr;
 FieldInfo* g_mouseFrame=nullptr;
+int g_cursorEnabledOffset=-1;
+int g_cursorItemOffset=-1;
 std::map<Il2CppObject*,uint64_t> g_mouseOverFrames;
 std::map<Il2CppObject*,uint64_t> g_mouseOverFarFrames;
 thread_local int g_playerPlaceDepth=0;
@@ -482,12 +484,17 @@ bool setupTileWorldHooks(bool wire,bool random) {
 }
 
 void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
-    if(g_origUse)g_origUse(player,x,y,method);
-    if(!player||!g_interactInstalled)return;
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<4))==0)return;
+    if(!player||!g_interactInstalled||it==g_tiles.end()||
+       (it->second.spec.callbackMask&(1<<4))==0) {
+        if(g_origUse)g_origUse(player,x,y,method);
+        return;
+    }
     const auto* bytes=reinterpret_cast<const uint8_t*>(player);
-    if(!bytes[g_useAttempt])return;
+    if(!bytes[g_useAttempt]) {
+        if(g_origUse)g_origUse(player,x,y,method);
+        return;
+    }
     uint64_t frame=0;
     il2cpp::api().field_static_get_value(g_gameUpdateField,&frame);
     auto old=g_lastUseFrames.find(player);
@@ -497,9 +504,13 @@ void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method
     g_lastUseFrames[player]=frame;
     if(!fresh)return;
     bool handled=false;
-    if(invokeTileBool(it->second.spec,4,x,y,&handled)&&handled)
+    if(invokeTileBool(it->second.spec,4,x,y,&handled)&&handled) {
         reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
+        return;
+    }
+    if(g_origUse)g_origUse(player,x,y,method);
 }
+
 bool setupTileInteractHook() {
     if(g_interactInstalled)return true;
     auto& a=il2cpp::api();
@@ -627,7 +638,17 @@ void hkTileMouseOver(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* 
     a.field_static_get_value(g_tileTargetY,&targetY);
     if(targetX!=x||targetY!=y)return;
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<9))==0)return;
+    if(it==g_tiles.end())return;
+    if((it->second.spec.callbackMask&(1<<4))!=0&&
+       g_cursorEnabledOffset>=0&&g_cursorItemOffset>=0&&it->second.itemType>0) {
+        auto* pointer=reinterpret_cast<uint8_t*>(player);
+        if(!pointer[g_cursorEnabledOffset]) {
+            pointer[g_cursorEnabledOffset]=1;
+            const int32_t item=it->second.itemType;
+            std::memcpy(pointer+g_cursorItemOffset,&item,sizeof(item));
+        }
+    }
+    if((it->second.spec.callbackMask&(1<<9))==0)return;
     uint64_t frame=0;
     a.field_static_get_value(g_mouseFrame,&frame);
     const auto found=g_mouseOverFrames.find(player);
@@ -660,10 +681,21 @@ bool setupTileMouseOverHooks(bool near,bool far) {
            true,8,&frame,nullptr,&error))return false;
     FieldInfo* targetX=nullptr;
     FieldInfo* targetY=nullptr;
+    FieldInfo* cursorEnabled=nullptr;
+    FieldInfo* cursorItem=nullptr;
+    int cursorEnabledOffset=-1,cursorItemOffset=-1;
     if(near&&(!il2cpp::nativeFieldContract(player,"tileTargetX","System.Int32",
           true,4,&targetX,nullptr,&error)||
        !il2cpp::nativeFieldContract(player,"tileTargetY","System.Int32",
           true,4,&targetY,nullptr,&error)))return false;
+    if(near) {
+        if(!il2cpp::nativeFieldContract(player,"cursorItemIconEnabled","System.Boolean",
+             false,1,&cursorEnabled,&cursorEnabledOffset,&error)||
+           !il2cpp::nativeFieldContract(player,"cursorItemIconID","System.Int32",
+             false,4,&cursorItem,&cursorItemOffset,&error)) {
+            cursorEnabledOffset=-1;cursorItemOffset=-1;
+        }
+    }
     const auto resolve=[&](const char* name)->const MethodInfo* {
         const auto* method=player?a.class_get_method_from_name(player,name,2):nullptr;
         if(!method||a.method_get_param_count(method)!=2||
@@ -679,7 +711,10 @@ bool setupTileMouseOverHooks(bool near,bool far) {
         return false;
     if(near&&!g_mouseOverInstalled) {
         if(!hook::install(nearMethod,hkTileMouseOver,&g_origMouseOver))return false;
-        g_tileTargetX=targetX;g_tileTargetY=targetY;g_mouseOverInstalled=true;
+        g_tileTargetX=targetX;g_tileTargetY=targetY;
+        g_cursorEnabledOffset=cursorEnabledOffset;
+        g_cursorItemOffset=cursorItemOffset;
+        g_mouseOverInstalled=true;
     }
     if(far&&!g_mouseOverFarInstalled) {
         if(!hook::install(farMethod,hkTileMouseOverFar,&g_origMouseOverFar))return false;
@@ -763,7 +798,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     }
     if((spec.callbackMask&(1<<4))&&!setupTileInteractHook())return false;
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
-    if(!setupTileMouseOverHooks((spec.callbackMask&(1<<9))!=0,
+    if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0,
                                 (spec.callbackMask&(1<<10))!=0))return false;
     if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
     if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
