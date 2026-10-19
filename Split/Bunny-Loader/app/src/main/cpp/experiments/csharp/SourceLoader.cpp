@@ -673,6 +673,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
     size_t rarityCount = 0;
+    std::map<std::string, int> itemRarityOverrides;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -684,6 +685,27 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "ITEM_RARITY") {
+            if (fields.size() != 3) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Stage=DecodeItemRarity Reason=InvalidFieldCount";
+                return false;
+            }
+            const auto item = mod->registeredKindTypes.find(sourceIdentityForWire("ITEM", fields[1]));
+            const auto rarity = mod->registeredKindTypes.find(sourceIdentityForWire("RARITY", fields[2]));
+            if (item == mod->registeredKindTypes.end() || !isBasicItem(item->second) ||
+                rarity == mod->registeredKindTypes.end() ||
+                nativeRarities().findType(modId, fields[2]) != rarity->second ||
+                rarity->second < NativeRarityRegistry::kVanillaCount ||
+                rarity->second >= NativeRarityRegistry::kVanillaCount +
+                    NativeRarityRegistry::kMaximumCustom ||
+                !itemRarityOverrides.emplace(fields[1], rarity->second).second) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Class=" + fields[1] + " Stage=ResolveItemRarity Reason=UnknownOrDuplicateOwnerOrRarity";
+                return false;
+            }
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="RECIPES") {
             SourceRecipeOwner owner;
             if(!parseSourceRecipeOwner(fields,modId,&owner,error))return false;
@@ -1257,6 +1279,20 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
     if (!useSounds::publish(useSounds,error)) return false;
+    for (auto& item : basicItems) {
+        const auto overrideType = itemRarityOverrides.find(item.name);
+        if (overrideType != itemRarityOverrides.end())
+            item.values[BasicRare] = overrideType->second;
+    }
+    for (const auto& [name, rarity] : itemRarityOverrides) {
+        (void)rarity;
+        if (std::none_of(basicItems.begin(), basicItems.end(),
+            [&](const BasicItemEntry& item) { return item.name == name; })) {
+            *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                " Class=" + name + " Stage=ApplyRarity Reason=MissingBasicItem";
+            return false;
+        }
+    }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
