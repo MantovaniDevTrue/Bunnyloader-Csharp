@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
+namespace BunnyLoader.Source;
+
+public static class BunnyDustSourceDispatcher
+{
+    public const int Accepted = 1;
+    public const int VanillaUpdate = 2;
+    public const int KeepHorizontalSpeed = 4;
+    public const int OverrideAlpha = 8;
+    public const int Draw = 16;
+    public const int Active = 32;
+
+    private sealed class Context
+    {
+        public required string ModId;
+        public required string AssemblyPath;
+        public required BunnyDustRegistry Registry;
+        public readonly int[] Types = new int[BunnyDustRegistry.MaxDustSlots];
+        public readonly int[] Generations = new int[BunnyDustRegistry.MaxDustSlots];
+    }
+
+    private static readonly List<Context> Contexts = new(16);
+    public static string LastRegistrationError { get; private set; } = "";
+
+    public static int Register(string modId, string assemblyPath)
+    {
+        if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))
+            return -1;
+        for (int i = 0; i < Contexts.Count; i++)
+            if (Contexts[i].ModId == modId)
+                return Contexts[i].AssemblyPath == assemblyPath ? i : -1;
+        if (Contexts.Count >= 16)
+            return -1;
+        try
+        {
+            var registry = new BunnyDustRegistry(modId);
+            Assembly assembly = Assembly.LoadFrom(assemblyPath);
+            foreach (Type type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
+            {
+                if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
+                    !typeof(BunnyDust).IsAssignableFrom(type))
+                    continue;
+                BunnyDust instance = (BunnyDust)(Activator.CreateInstance(type) ??
+                    throw new InvalidOperationException("Cannot instantiate " + type.FullName));
+                registry.Register(type.Name, instance);
+            }
+            if (registry.RegisteredCount == 0)
+                throw new InvalidOperationException("No BunnyDust content in source assembly");
+            var context = new Context {
+                ModId = modId,
+                AssemblyPath = assemblyPath,
+                Registry = registry
+            };
+            Array.Fill(context.Types, -1);
+            Contexts.Add(context);
+            LastRegistrationError = "";
+            return Contexts.Count - 1;
+        }
+        catch (Exception error)
+        {
+            LastRegistrationError = error.GetType().Name + ": " + error.Message;
+            return -1;
+        }
+    }
+
+    public static bool Bind(int modSlot, int nativeType, string className)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count)
+            return false;
+        return Contexts[modSlot].Registry.Bind(nativeType, className);
+    }
+
+    public static unsafe int Tick(int modSlot, IntPtr statePointer)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || statePointer == IntPtr.Zero)
+            return 0;
+        ref BunnyDustState state = ref *(BunnyDustState*)statePointer.ToPointer();
+        if ((uint)state.Slot >= BunnyDustRegistry.MaxDustSlots ||
+            state.Generation <= 0 || state.Type < BunnyDustRegistry.VanillaDustCount ||
+            (state.Active != 0 && state.Active != 1))
+            return 0;
+        Context context = Contexts[modSlot];
+        int slot = state.Slot;
+        if (state.Active == 0)
+        {
+            context.Registry.Release(slot, context.Types[slot], context.Generations[slot]);
+            context.Types[slot] = -1;
+            context.Generations[slot] = 0;
+            return Accepted;
+        }
+        if (context.Types[slot] != state.Type ||
+            context.Generations[slot] != state.Generation)
+        {
+            if (!context.Registry.OnSpawn(ref state))
+                return 0;
+            context.Types[slot] = state.Type;
+            context.Generations[slot] = state.Generation;
+        }
+
+        bool vanilla = true;
+        bool keep = false;
+        bool draw = true;
+        bool alpha = false;
+        if (state.Active != 0)
+            context.Registry.Update(ref state, out vanilla);
+        if (state.Active != 0)
+            context.Registry.MidUpdate(ref state, out keep);
+        if (state.Active != 0)
+        {
+            uint color = state.Color;
+            alpha = context.Registry.GetAlpha(ref state, ref color);
+            state.Color = color;
+        }
+        if (state.Active != 0)
+            context.Registry.PreDraw(ref state, out draw);
+        if (state.Active == 0)
+        {
+            context.Types[slot] = -1;
+            context.Generations[slot] = 0;
+        }
+        return Accepted |
+            (vanilla ? VanillaUpdate : 0) |
+            (keep ? KeepHorizontalSpeed : 0) |
+            (alpha ? OverrideAlpha : 0) |
+            (draw ? Draw : 0) |
+            (state.Active != 0 ? Active : 0);
+    }
+
+    public static void ResetWorld()
+    {
+        foreach (Context context in Contexts)
+        {
+            context.Registry.ResetWorld();
+            Array.Fill(context.Types, -1);
+            Array.Clear(context.Generations);
+        }
+    }
+
+    public static void Unload()
+    {
+        foreach (Context context in Contexts)
+            context.Registry.Unload();
+        Contexts.Clear();
+        LastRegistrationError = "";
+    }
+}
