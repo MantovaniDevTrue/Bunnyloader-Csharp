@@ -89,6 +89,12 @@ O contrato SDK C# agora comporta16 overrides verificáveis e o compilador Roslyn
 
 **Ainda pendentes:** `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` com acesso real ao contexto `SpriteBatch`/partículas. O `SetDrawPositions` não substitui esse contexto nem torna completo o TileLoader. A build anterior (SHA `8260d96`) foi concluída com sucesso antes desses commits; a build/QA atual e os testes de jogo Android ainda precisam aprovar esse caminho. Nenhum APK de teste deve ser liberado enquanto os callbacks gráficos restantes e o gate de cinco loaders não estiverem concluídos.
 
+### TileLoader — publicação gráfica imutável e compatibilidade com o NDK
+
+Os métodos C# de transformação de desenho (`SetDrawPositions`, `AnimateIndividualTile`, `SetSpriteEffects`) publicam snapshots imutáveis por tipo no cache de desenho do Bunny, sem chamadas JavaScript. A verificação Android do SHA `dc4390527` falhou durante a compilação C++ de `NativeTileGameplay.cpp`: o NDK libc++ rejeitou `std::atomic<std::shared_ptr<const TileBehavior>>` por não ser um tipo trivial. O código passou a usar `PublishedBindings`, que protege apenas a cópia/publicação de `std::shared_ptr<const T>` com `std::shared_mutex`. Depois de liberar a trava, o renderizador mantém seu próprio snapshot imutável; não mantém o mutex preso durante o callback MonoVM.
+
+O teste `tile_draw_bindings_test.cpp` reproduz atualização de um tipo enquanto outra thread lê o snapshot, checa consistência dos campos, limites de ID e vida útil das instâncias antigas. A compilação e execução isoladas passaram localmente em G++ 14 e Clang++ 17 com `-std=c++20 -Wall -Wextra -Werror -pthread -fsanitize=address,undefined`. O teste entra em `tests/world_loaders/run.sh`. **Ainda falta a confirmação pela build NDK no novo SHA, além de jogo real**. `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` com `SpriteBatch` permanecem sem paridade completa, e o gate de APK segue fechado.
+
 ## Critério e gate de entrega
 
 `tools/loader_batch_gate.py` confere todos os88 módulos, duplicações, cinco sistemas por grupo e contratos de origem. `--delivery` exige cinco contratos e exemplos completos, ausência de funcionalidades pendentes e recibos de revisão com cobertura de cada membro, fontes SDK/nativas/testes e hashes de todos os módulos envolvidos. Mudança no original invalida o recibo. Não basta alterar um campo para complete.
