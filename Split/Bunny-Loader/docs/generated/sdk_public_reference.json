@@ -62,11 +62,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
         {
-          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
           "execution": "compile_policy"
         },
         {
@@ -249,11 +249,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
         {
-          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
           "execution": "compile_policy"
         },
         {
@@ -1010,20 +1010,20 @@
       "values": [],
       "methods": [
         {
-          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
-          "execution": "compile_policy"
-        },
-        {
-          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
-          "execution": "compile_policy"
-        },
-        {
           "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
         },
         {
           "signature": "static int SellPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
+        },
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "compile_policy"
         },
         {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
@@ -1095,6 +1095,30 @@
         {
           "signature": "void WorldLight(float red, float green, float blue, bool scaleByEssence)",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyItemPrefixRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyItemPrefixRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(int prefixType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
         }
       ]
     },
@@ -1528,30 +1552,6 @@
         {
           "signature": "static string GetLastError(int slot)",
           "execution": "managed_helper"
-        }
-      ]
-    },
-    {
-      "name": "BunnyLoader.Source.BunnyItemPrefixRules",
-      "kind": "class",
-      "baseType": "System.Object",
-      "constructors": [
-        "BunnyItemPrefixRules()"
-      ],
-      "properties": [],
-      "values": [],
-      "methods": [
-        {
-          "signature": "void Deny(int prefixType)",
-          "execution": "compile_policy"
-        },
-        {
-          "signature": "void Deny(string ownModPrefixName)",
-          "execution": "compile_policy"
-        },
-        {
-          "signature": "string Serialize()",
-          "execution": "compile_policy"
         }
       ]
     },
@@ -2540,11 +2540,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
         {
-          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
           "execution": "compile_policy"
         },
         {
