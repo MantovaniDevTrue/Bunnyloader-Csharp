@@ -368,7 +368,6 @@ void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const M
     auto& r=refs();
     const std::string name=cultureName(culture,r.name);
     if(name.empty())return;
-    vanillaOriginals.erase(name);
     SessionSnapshot current;
     {
         std::lock_guard<std::mutex> lock(gate);
