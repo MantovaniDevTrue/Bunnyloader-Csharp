@@ -56,6 +56,8 @@ std::map<Il2CppObject*,uint64_t> g_lastUseFrames;
 bool g_installed = false;
 bool g_dropInstalled = false;
 bool g_dustInstalled = false;
+bool g_killInstalled = false;
+bool g_makeDustInstalled = false;
 bool g_frameInstalled = false;
 bool g_canKillInstalled = false;
 bool g_animationInstalled = false;
@@ -916,8 +918,7 @@ bool setupTileMouseOverHooks(bool near,bool far) {
     return true;
 }
 bool setupHooks() {
-    if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
-    g_installed = true;
+    if (g_installed) return true;
     auto& a = il2cpp::api();
     Il2CppClass* world = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* drop = world ? a.class_get_method_from_name(world, "KillTile_GetItemDrops", 9) : nullptr;
@@ -937,23 +938,45 @@ bool setupHooks() {
     }
     g_killMethod = kill;
     g_largeDropMethod = largeDrop;
-    if (!il2cpp::methodPointer(largeDrop) ||
-        !hook::install(drop, hkGetItemDrops, &g_origDrop)) {
-        BL_ERROR("[CSharp][Tile] Nao foi possivel vincular os drops");
+    if (!il2cpp::methodPointer(largeDrop) || !il2cpp::methodPointer(drop) ||
+        !il2cpp::methodPointer(kill) || !il2cpp::methodPointer(dust) ||
+        !il2cpp::methodPointer(frame)) {
+        BL_ERROR("[CSharp][Tile] Assinatura ou ponte de hooks de quebra indisponivel");
         return false;
     }
-    g_dropInstalled = true;
-    g_dustInstalled = hook::install(kill, hkKillTile, &g_origKill) &&
-                      hook::install(dust, hkMakeDust, &g_origDust);
-    if (!g_dustInstalled)
-        BL_ERROR("[CSharp][Tile] Dust/NumDust indisponivel; usando caminho vanilla");
-    g_frameInstalled = g_dustInstalled &&
-                       hook::install(frame, hkTileFrame, &g_origFrame);
-    if (!g_frameInstalled)
-        BL_ERROR("[CSharp][Tile] TileFrameImportant nao vinculado; limpeza de moveis indisponivel");
+    if (!g_dropInstalled) {
+        if (!hook::install(drop, hkGetItemDrops, &g_origDrop)) {
+            BL_ERROR("[CSharp][Tile] Nao foi possivel vincular os drops");
+            return false;
+        }
+        g_dropInstalled = true;
+    }
+    if (!g_killInstalled) {
+        if (!hook::install(kill, hkKillTile, &g_origKill)) {
+            BL_ERROR("[CSharp][Tile] Hook KillTile indisponivel");
+            return false;
+        }
+        g_killInstalled = true;
+    }
+    if (!g_makeDustInstalled) {
+        if (!hook::install(dust, hkMakeDust, &g_origDust)) {
+            BL_ERROR("[CSharp][Tile] Hook KillTile_MakeTileDust indisponivel");
+            return false;
+        }
+        g_makeDustInstalled = true;
+    }
+    g_dustInstalled = g_killInstalled && g_makeDustInstalled;
+    if (!g_frameInstalled) {
+        if (!hook::install(frame, hkTileFrame, &g_origFrame)) {
+            BL_ERROR("[CSharp][Tile] Hook TileFrameImportant indisponivel");
+            return false;
+        }
+        g_frameInstalled = true;
+    }
     Il2CppClass* dustClass = il2cpp::findClass({"Terraria", "Dust", {}});
     g_newDust = dustClass ? a.class_get_method_from_name(dustClass, "NewDust", 9) : nullptr;
-    return g_dropInstalled && g_dustInstalled && g_frameInstalled;
+    g_installed = g_dropInstalled && g_dustInstalled && g_frameInstalled;
+    return g_installed;
 }
 
 }
