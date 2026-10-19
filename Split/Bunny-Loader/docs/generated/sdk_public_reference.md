@@ -1117,6 +1117,7 @@ BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
 bool AllowBreaking { get; set; }
 bool AllowDrops { get; set; }
+bool CacheDrawData { get; set; }
 int AdjacentTile { get; set; }
 int AnimationFrameHeight { get; set; }
 int AnimationFrameTicks { get; set; }
