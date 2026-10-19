@@ -44,6 +44,26 @@ jobs:
           set -euo pipefail
           cp experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
           cp experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/BunnySourceCompiler.dll app/src/main/assets/managed/BunnySourceCompiler.dll
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          updated = {'BunnySourceCompiler.dll', 'BunnySourceSdk.dll'}
+          lines = []
+          found = set()
+          for row in manifest.read_text().splitlines():
+              if not row:
+                  continue
+              name, digest = row.split('\t', 1)
+              if name in updated:
+                  digest = hashlib.sha256((folder / name).read_bytes()).hexdigest()
+                  found.add(name)
+              lines.append(f'{name}\t{digest}')
+          if found != updated:
+              raise SystemExit('Manifest is missing Bunny managed assembly entries')
+          manifest.write_text('\n'.join(lines) + '\n')
+          PY
           test -s app/src/main/assets/managed/BunnySourceSdk.dll
           test -s app/src/main/assets/managed/BunnySourceCompiler.dll
           if find . -type f -name '*.apk' -print -quit | grep -q .; then
@@ -55,7 +75,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceCompiler.dll
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceCompiler.dll app/src/main/assets/managed/framework.sha256
           if ! git diff --cached --quiet; then
             git commit -m "build(csharp): stage validated DustLoader managed assemblies only"
             git push origin HEAD:feat/csharp-dust-loader-20261019
