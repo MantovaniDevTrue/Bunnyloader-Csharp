@@ -22,6 +22,7 @@ struct Quest {
     std::string description;
     std::string location;
     int catchRules = 0;
+    std::map<std::string, std::pair<std::string, std::string>> locales;
 };
 
 inline bool validKey(const std::string& key) {
@@ -60,6 +61,14 @@ inline bool validText(const std::string& text) {
     return true;
 }
 
+inline bool validCulture(const std::string& culture) {
+    if (culture.size() < 2 || culture.size() > 20) return false;
+    return std::all_of(culture.begin(), culture.end(), [](unsigned char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') || c == '-';
+    });
+}
+
 class Registry {
 public:
     bool publish(const std::string& mod, const std::vector<Quest>& quests, std::string* error) {
@@ -71,8 +80,14 @@ public:
             if (quest.mod != mod || !validKey(quest.name) || quest.type < 0 || quest.type >= 65536 ||
                 (!quest.preHardmode && !quest.hardmode) ||
                 (quest.catchRules & ~3) != 0 ||
-                !validText(quest.description) || !validText(quest.location))
+                !validText(quest.description) || !validText(quest.location) ||
+                quest.locales.size() > 8)
                 return fail(error, "InvalidQuestDescriptor");
+            for (const auto& [culture, chat] : quest.locales)
+                if (!validCulture(culture) || !validText(chat.first) ||
+                    !validText(chat.second) ||
+                    (chat.first.empty() && chat.second.empty()))
+                    return fail(error, "InvalidQuestTranslation");
             if (!stagedTypes.insert(quest.type).second ||
                 !stagedNames.insert(quest.name).second)
                 return fail(error, "DuplicateQuestInMod");
@@ -126,9 +141,24 @@ public:
                ((quest.catchRules & 2) == 0 || uncommon);
     }
 
-    static std::string chat(const Quest& quest, const std::string& fallbackName) {
-        const std::string& description = quest.description.empty() ? fallbackName : quest.description;
-        return quest.location.empty() ? description : description + "\n\n(" + quest.location + ")";
+    static std::string chat(const Quest& quest, const std::string& fallbackName,
+                            const std::string& culture = "en-US") {
+        std::string description = quest.description.empty() ? fallbackName : quest.description;
+        std::string location = quest.location;
+        auto chosen = quest.locales.find(culture);
+        if (chosen == quest.locales.end()) {
+            const auto prefix = culture.substr(0, culture.find('-'));
+            for (auto it = quest.locales.begin(); it != quest.locales.end(); ++it)
+                if (it->first.substr(0, it->first.find('-')) == prefix) {
+                    chosen = it;
+                    break;
+                }
+        }
+        if (chosen != quest.locales.end()) {
+            if (!chosen->second.first.empty()) description = chosen->second.first;
+            if (!chosen->second.second.empty()) location = chosen->second.second;
+        }
+        return location.empty() ? description : description + "\n\n(" + location + ")";
     }
 
     template<typename Swap, typename ReadType, typename Finished>
