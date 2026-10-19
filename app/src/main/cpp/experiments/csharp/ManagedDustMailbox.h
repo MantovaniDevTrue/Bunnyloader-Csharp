@@ -28,6 +28,7 @@ public:
 
     struct Response {
         ManagedDustState state{};
+        ManagedDustState before{};
         std::uint32_t flags = 0;
         std::uint64_t session = 0;
         std::uint64_t frame = 0;
@@ -87,7 +88,7 @@ public:
         slot.pending = false;
         slot.ready = (flags & 1u) != 0u;
         if (slot.ready)
-            slot.result = {state, flags, request.session, request.frame, request.phase};
+            slot.result = {state, request.state, flags, request.session, request.frame, request.phase};
         return true;
     }
 
