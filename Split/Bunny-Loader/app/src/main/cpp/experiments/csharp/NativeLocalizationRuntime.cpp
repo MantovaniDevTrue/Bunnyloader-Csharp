@@ -298,8 +298,8 @@ void stage(const std::string& modId,std::vector<Entry> entries) {
 }
 
 void pumpOnGameThread() {
-    installLanguageReloadHook();
     if(++frameCounter%30!=0)return;
+    installLanguageReloadHook();
     auto& api=il2cpp::api();auto& r=refs();
     if(!r.valid)return;
     Il2CppObject* exception=nullptr;
