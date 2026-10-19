@@ -9,7 +9,7 @@ on:
       - .github/workflows/export-validated-mono-arm64.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish-only-open-source-mono:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: entrega/potato-bunny-original-com-csharp-20261018
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Check source patch included in handoff
         run: |
@@ -111,3 +111,26 @@ jobs:
             ${{ runner.temp }}/mono-only/README.txt
           if-no-files-found: error
           retention-days: 90
+
+
+      - name: Include the validated Mono runtime as a standalone source-repo binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST=tools/mono/prebuilt/arm64-v8a
+          mkdir -p "$DEST"
+          cp "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so" "$DEST/libmonosgen-2.0.so"
+          cp "$RUNNER_TEMP/mono-only/libmonosgen-2.0.so.sha256" "$DEST/libmonosgen-2.0.so.sha256"
+          cp "$RUNNER_TEMP/mono-only/DOTNET_RUNTIME_LICENSE.txt" "$DEST/DOTNET_RUNTIME_LICENSE.txt"
+          cp "$RUNNER_TEMP/mono-only/README.txt" "$DEST/README.txt"
+          (
+            cd "$DEST"
+            sha256sum -c libmonosgen-2.0.so.sha256
+          )
+          git add -f "$DEST/libmonosgen-2.0.so" "$DEST/libmonosgen-2.0.so.sha256" "$DEST/DOTNET_RUNTIME_LICENSE.txt" "$DEST/README.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "runtime: bundle standalone validated MonoVM ARM64 patch with license"
+            git push origin HEAD:refs/heads/entrega/potato-bunny-original-com-csharp-20261018
+          fi
