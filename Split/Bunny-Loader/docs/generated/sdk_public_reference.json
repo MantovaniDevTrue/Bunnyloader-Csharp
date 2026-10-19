@@ -1569,6 +1569,14 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "void PreferFor(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void PreferFor(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void SetCanRoll(int itemType, bool allowed)",
           "execution": "compile_policy"
         },
