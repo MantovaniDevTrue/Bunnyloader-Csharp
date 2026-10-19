@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
+#include "experiments/csharp/NativeTileDrawWire.h"
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
@@ -13,6 +14,8 @@
 #include "il2cpp/Resolver.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <cstdio>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -31,6 +34,8 @@ struct TileBehavior {
     int dustType = -1;
 };
 std::map<int, TileBehavior> g_tiles;
+std::array<std::atomic<uint8_t>, 65536> g_managedDrawMarks{};
+bool g_managedDrawBound = false;
 std::map<std::string,std::string> g_assemblyByMod;
 bool g_wireInstalled = false;
 bool g_overgroundInstalled = false;
@@ -170,7 +175,9 @@ void reportTileCallbackFailure(const NativeTileGameplaySpec& spec,int bit,const 
         static_cast<unsigned long long>(count),actual.c_str());
 }
 bool managedTileReady(const NativeTileGameplaySpec& spec,int bit) {
-    if((spec.callbackMask&(1<<bit))==0||spec.assembly.empty())return false;
+    const int selected = bit == 13 ? (spec.callbackMask & (7 << 13)) :
+                         (spec.callbackMask & (1 << bit));
+    if(!selected||spec.assembly.empty())return false;
     std::string error;
     const int state=managedTileWarmupState(spec.mod,spec.assembly,spec.name,&error);
     if(state<0)reportTileCallbackFailure(spec,bit,error);
@@ -187,6 +194,37 @@ bool invokeTileBool(const NativeTileGameplaySpec& spec,int bit,int x,int y,bool*
 void dispatchTileEvent(const NativeTileGameplaySpec& spec,int bit,int x,int y) {
     if(managedTileReady(spec,bit)&&!queueManagedTileEvent(spec.mod,spec.assembly,spec.name,bit,x,y))
         reportTileCallbackFailure(spec,bit,"Reason=EventSubmissionRejected");
+}
+bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool special) {
+    if(!data || type < runtime::kVanillaTileCount || type >= 65536)return false;
+    const auto it=g_tiles.find(type);
+    if(it==g_tiles.end() || !managedTileReady(it->second.spec,13))return false;
+    const auto& spec=it->second.spec;
+    char snapshot[192]{};
+    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        x,y,data->frameX,data->frameY,data->width,data->height,
+        data->top,data->addFrX,data->addFrY,data->effects,special?1:0);
+    if(length<=0||static_cast<size_t>(length)>=sizeof(snapshot))return false;
+    std::string reply;
+    if(!invokeManagedTileDraw(spec.mod,spec.assembly,spec.name,
+       std::string(snapshot,static_cast<size_t>(length)),&reply,1200)) {
+        reportTileCallbackFailure(spec,13,reply);
+        return false;
+    }
+    tile_draw::Data draw{};
+    if(!tile_draw::parse(reply,&draw)) {
+        reportTileCallbackFailure(spec,13,"Stage=DecodeDraw Reason=InvalidReply");
+        return false;
+    }
+    data->frameX=draw.frameX;
+    data->frameY=draw.frameY;
+    data->width=draw.width;
+    data->height=draw.height;
+    data->top=draw.top;
+    data->addFrX=draw.addFrameX;
+    data->addFrY=draw.addFrameY;
+    data->effects=draw.effects;
+    return true;
 }
 void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
                     int32_t* drop, int32_t* stack, int32_t* extra, int32_t* extraStack,
@@ -1036,7 +1074,21 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(),spec.name.c_str());
         return false;
     }
+    if((spec.callbackMask & (7 << 13)) != 0) {
+        runtime::ensureTileDrawHook();
+        if(!runtime::tileDrawHooksReady()) {
+            BL_ERROR("[CSharp][TileDraw] Mod=%s Class=%s Stage=Bind Result=DrawHookUnavailable",
+                spec.mod.c_str(),spec.name.c_str());
+            return false;
+        }
+        if(!g_managedDrawBound) {
+            runtime::setManagedTileDrawDataHook(applyManagedTileDraw,g_managedDrawMarks.data());
+            g_managedDrawBound=true;
+        }
+    }
     g_tiles[spec.type] = behavior;
+    if((spec.callbackMask & (7 << 13)) != 0)
+        g_managedDrawMarks[spec.type].store(1,std::memory_order_release);
     g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;
     g_usesManagedLight|=(spec.callbackMask&(1<<6))!=0;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
