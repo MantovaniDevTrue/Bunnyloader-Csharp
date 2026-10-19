@@ -8,6 +8,12 @@ int main() {
     tile_particle::Batch particles{};
     assert(tile_particle::parse("PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967295",&particles));
     assert(particles.count==1&&particles.items[0].speedYMilli==-1500);
+    assert(!particles.items[0].styled);
+    const auto styled="PARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4,63";
+    assert(tile_particle::parse(styled,&particles));
+    assert(particles.items[0].styled&&particles.items[0].noGravity==1);
+    assert(particles.items[0].fadeInMilli==500&&particles.items[0].velocityYScaleMilli==200);
+    assert(particles.items[0].velocityYAddMilli==-1000&&particles.items[0].alphaAdd==63);
     assert(tile_particle::owned(particles,754,3,4));
     assert(!tile_particle::owned(particles,755,3,4));
     assert(!tile_particle::owned(particles,754,3,5));
@@ -20,7 +26,11 @@ int main() {
         "PARTICLES|1|754,3,4,31,2,-4,0,8,0,-1500,100,1000,4294967295",
         "PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,256,1000,4294967295",
         "PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,3001,4294967295",
-        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967296"
+        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967296",
+        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4",
+        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4,63,0",
+        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,2,500,200,200,-1000,4,63",
+        "PARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4,101"
     })assert(!tile_particle::parse(invalid,&particles));
     tile_draw::Data draw{};
     tile_sprite::Batch sprites{};

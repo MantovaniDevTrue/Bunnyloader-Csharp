@@ -29,10 +29,17 @@ public sealed class BunnyTileDrawContext {
     private readonly struct Dust {
         public readonly int Type, OffsetX, OffsetY, Width, Height, SpeedX, SpeedY, Alpha, Scale;
         public readonly uint Argb;
+        public readonly int Styled, NoGravity, FadeInMilli, VelocityXScaleMilli;
+        public readonly int VelocityYScaleMilli, VelocityYAddMilli, PositionXAdd, AlphaAdd;
         public Dust(int type,int offsetX,int offsetY,int width,int height,
-                    int speedX,int speedY,int alpha,int scale,uint argb) {
+                    int speedX,int speedY,int alpha,int scale,uint argb,
+                    int styled,int noGravity,int fadeInMilli,int velocityXScaleMilli,
+                    int velocityYScaleMilli,int velocityYAddMilli,int positionXAdd,int alphaAdd) {
             Type=type;OffsetX=offsetX;OffsetY=offsetY;Width=width;Height=height;
             SpeedX=speedX;SpeedY=speedY;Alpha=alpha;Scale=scale;Argb=argb;
+            Styled=styled;NoGravity=noGravity;FadeInMilli=fadeInMilli;
+            VelocityXScaleMilli=velocityXScaleMilli;VelocityYScaleMilli=velocityYScaleMilli;
+            VelocityYAddMilli=velocityYAddMilli;PositionXAdd=positionXAdd;AlphaAdd=alphaAdd;
         }
     }
 
@@ -54,16 +61,44 @@ public sealed class BunnyTileDrawContext {
     public void EmitDust(int dustType,int offsetX,int offsetY,int width,int height,
                          int speedXMilli=0,int speedYMilli=0,int alpha=100,
                          int scaleMilli=1000,uint argb=0xffffffffu) {
+        AddDust(dustType,offsetX,offsetY,width,height,speedXMilli,speedYMilli,
+                alpha,scaleMilli,argb,0,0,0,1000,1000,0,0,0);
+    }
+
+    public void EmitDustStyled(int dustType,int offsetX,int offsetY,int width,int height,
+                               int speedXMilli,int speedYMilli,int alpha,int scaleMilli,uint argb,
+                               bool noGravity,int fadeInMilli,int velocityXScaleMilli,
+                               int velocityYScaleMilli,int velocityYAddMilli,
+                               int positionXAdd,int alphaAdd) {
+        AddDust(dustType,offsetX,offsetY,width,height,speedXMilli,speedYMilli,
+                alpha,scaleMilli,argb,1,noGravity?1:0,fadeInMilli,
+                velocityXScaleMilli,velocityYScaleMilli,velocityYAddMilli,
+                positionXAdd,alphaAdd);
+    }
+
+    private void AddDust(int dustType,int offsetX,int offsetY,int width,int height,
+                         int speedXMilli,int speedYMilli,int alpha,int scaleMilli,uint argb,
+                         int styled,int noGravity,int fadeInMilli,int velocityXScaleMilli,
+                         int velocityYScaleMilli,int velocityYAddMilli,
+                         int positionXAdd,int alphaAdd) {
         if (particleCount>=particles.Length)
             throw new InvalidOperationException("Tile particle limit exceeded");
         if (dustType<0||dustType>4095||offsetX < -64||offsetX>64||
             offsetY < -64||offsetY>64||width<1||width>32||height<1||height>32||
             speedXMilli < -10000||speedXMilli>10000||
             speedYMilli < -10000||speedYMilli>10000||
-            alpha<0||alpha>255||scaleMilli<100||scaleMilli>3000)
+            alpha<0||alpha>255||scaleMilli<100||scaleMilli>3000||
+            styled<0||styled>1||noGravity<0||noGravity>1||
+            fadeInMilli<0||fadeInMilli>3000||
+            velocityXScaleMilli<0||velocityXScaleMilli>3000||
+            velocityYScaleMilli<0||velocityYScaleMilli>3000||
+            velocityYAddMilli < -10000||velocityYAddMilli>10000||
+            positionXAdd < -32||positionXAdd>32||alphaAdd<0||alphaAdd>100)
             throw new ArgumentOutOfRangeException(nameof(dustType));
         particles[particleCount++]=new Dust(dustType,offsetX,offsetY,width,height,
-                                           speedXMilli,speedYMilli,alpha,scaleMilli,argb);
+                                           speedXMilli,speedYMilli,alpha,scaleMilli,argb,
+                                           styled,noGravity,fadeInMilli,velocityXScaleMilli,
+                                           velocityYScaleMilli,velocityYAddMilli,positionXAdd,alphaAdd);
     }
 
     internal string EncodeParticles() {
@@ -78,6 +113,14 @@ public sealed class BunnyTileDrawContext {
                 .Append(',').Append(p.SpeedY).Append(',').Append(p.Alpha)
                 .Append(',').Append(p.Scale).Append(',')
                 .Append(p.Argb.ToString(CultureInfo.InvariantCulture));
+            if(p.Styled!=0)
+                result.Append(',').Append(p.NoGravity)
+                    .Append(',').Append(p.FadeInMilli)
+                    .Append(',').Append(p.VelocityXScaleMilli)
+                    .Append(',').Append(p.VelocityYScaleMilli)
+                    .Append(',').Append(p.VelocityYAddMilli)
+                    .Append(',').Append(p.PositionXAdd)
+                    .Append(',').Append(p.AlphaAdd);
         }
         return result.ToString();
     }

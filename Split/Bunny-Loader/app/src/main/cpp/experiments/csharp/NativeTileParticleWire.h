@@ -14,6 +14,9 @@ struct Particle {
     int type=0,x=0,y=0,dustType=0,offsetX=0,offsetY=0;
     int width=0,height=0,speedXMilli=0,speedYMilli=0,alpha=0,scaleMilli=1000;
     uint32_t argb=0xffffffffu;
+    bool styled=false;
+    int noGravity=0,fadeInMilli=0,velocityXScaleMilli=1000;
+    int velocityYScaleMilli=1000,velocityYAddMilli=0,positionXAdd=0,alphaAdd=0;
 };
 
 struct Batch {
@@ -28,7 +31,12 @@ inline bool valid(const Particle& p) {
            p.width>=1 && p.width<=32 && p.height>=1 && p.height<=32 &&
            p.speedXMilli>=-10000 && p.speedXMilli<=10000 &&
            p.speedYMilli>=-10000 && p.speedYMilli<=10000 &&
-           p.alpha>=0 && p.alpha<=255 && p.scaleMilli>=100 && p.scaleMilli<=3000;
+           p.alpha>=0 && p.alpha<=255 && p.scaleMilli>=100 && p.scaleMilli<=3000 &&
+           p.noGravity>=0&&p.noGravity<=1&&p.fadeInMilli>=0&&p.fadeInMilli<=3000&&
+           p.velocityXScaleMilli>=0&&p.velocityXScaleMilli<=3000&&
+           p.velocityYScaleMilli>=0&&p.velocityYScaleMilli<=3000&&
+           p.velocityYAddMilli>=-10000&&p.velocityYAddMilli<=10000&&
+           p.positionXAdd>=-32&&p.positionXAdd<=32&&p.alphaAdd>=0&&p.alphaAdd<=100;
 }
 
 inline bool parseItem(std::string_view value,Particle* out) {
@@ -42,11 +50,33 @@ inline bool parseItem(std::string_view value,Particle* out) {
             return false;
         from=comma+1;
     }
-    if(value.find(',',from)!=std::string_view::npos)return false;
     uint32_t color=0;
-    if(!tile_sprite::color(value.substr(from),&color))return false;
+    const size_t separator=value.find(',',from);
+    if(!tile_sprite::color(value.substr(from,separator==std::string_view::npos?
+                                          separator:separator-from),&color))return false;
     Particle candidate{nums[0],nums[1],nums[2],nums[3],nums[4],nums[5],
                        nums[6],nums[7],nums[8],nums[9],nums[10],nums[11],color};
+    if(separator!=std::string_view::npos) {
+        std::array<int32_t,7> effects{};
+        size_t position=separator+1;
+        for(size_t i=0;i<effects.size();++i) {
+            const size_t next=value.find(',',position);
+            if((i+1<effects.size()&&next==std::string_view::npos)||
+               (i+1==effects.size()&&next!=std::string_view::npos))return false;
+            const size_t end=next==std::string_view::npos?value.size():next;
+            if(!tile_sprite::integer(value.substr(position,end-position),&effects[i]))
+                return false;
+            position=end+1;
+        }
+        candidate.styled=true;
+        candidate.noGravity=effects[0];
+        candidate.fadeInMilli=effects[1];
+        candidate.velocityXScaleMilli=effects[2];
+        candidate.velocityYScaleMilli=effects[3];
+        candidate.velocityYAddMilli=effects[4];
+        candidate.positionXAdd=effects[5];
+        candidate.alphaAdd=effects[6];
+    }
     if(!valid(candidate))return false;
     *out=candidate;
     return true;

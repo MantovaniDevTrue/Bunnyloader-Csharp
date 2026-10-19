@@ -1177,6 +1177,7 @@ int ParticleCount { get; }
 | `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
 | `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
+| `void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)` | managed_helper |
 | `void RequestSpecialDraw()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileFlags

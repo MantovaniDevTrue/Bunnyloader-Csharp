@@ -794,6 +794,12 @@ public sealed class MinionStaff : BunnyWeapon
         "3,4,0,18,16,16,0,0,0,0,0,754");
     if(noDust!="DRAW|0|18|16|16|0|0|0|0")
         throw new InvalidOperationException("EmitParticles ran with wrong tile frame: "+noDust);
+    string styledDust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-styled-dust",
+        tileSmokeAssembly,nameof(TileStyledDustSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(styledDust!="DRAW|0|0|16|16|0|0|0|0\nPARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4,63")
+        throw new InvalidOperationException("Styled Dust wire mismatch: "+styledDust);
+    Console.WriteLine("BUNNY_CSHARP_TILE_DUST_STYLE=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_PARTICLES=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_DRAW_EFFECTS_SPECIAL=PASS");
     Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
@@ -899,5 +905,17 @@ sealed class TileDustSmoke : BunnyLoader.Source.BunnyTile
     {
         if(tileFrameY!=0)return;
         draw.EmitDust(31,2,-4,4,8,0,-1500,100,1000);
+    }
+}
+
+sealed class TileStyledDustSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void EmitParticles(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameY!=0)return;
+        draw.EmitDustStyled(31,2,-4,4,8,0,0,100,1000,0xffffffffu,
+                            true,500,200,200,-1000,4,63);
     }
 }

@@ -2154,6 +2154,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void RequestSpecialDraw()",
           "execution": "managed_helper"
         }
