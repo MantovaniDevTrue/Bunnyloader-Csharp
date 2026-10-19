@@ -18,6 +18,7 @@ int modPrefixByKey(const std::string& key) {
     if (key == "test/Mighty") return 99;
     if (key == "test/Swift") return 100;
     if (key == "test/Custom") return 101;
+    if (key == "test/Alternate") return 102;
     return -1;
 }
 int modItemTypeByKey(const std::string& key) {
@@ -153,6 +154,7 @@ int main() {
     custom.rollWeight = 1.f;
     custom.itemNames["ExampleBlade"] = 0;
     custom.itemNamesCanRoll["ExampleBlade"] = true;
+    custom.preferredNames.insert("ExampleBlade");
     custom.itemNames["ExampleCharm"] = 0;
     auto denied = custom;
     denied.itemNamesCanRoll["ExampleBlade"] = false;
@@ -164,7 +166,28 @@ int main() {
     assert(withCustom->at(3).itemNames.empty());
     assert(withCustom->at(3).itemWeights.at(6207) == 0);
     assert(withCustom->at(3).itemCanRoll.at(6207));
+    assert(withCustom->at(3).preferredTypes.contains(6207));
+    assert(withCustom->at(3).preferredNames.empty());
     assert(withCustom->at(3).itemWeights.at(6208) == 0);
     assert(final->size() == 3);
     assert(registeredManagedPrefixCount() == 4);
+    ManagedPrefixEntry alternate;
+    alternate.type = 102;
+    alternate.name = "Alternate";
+    alternate.category = 6;
+    alternate.rollWeight = 1.f;
+    alternate.itemNames["ExampleBlade"] = 1;
+    alternate.preferredNames.insert("ExampleBlade");
+    assert(!applyManagedPrefixDescriptors("test", {alternate}));
+    assert(managedPrefixView() == withCustom);
+    assert(registeredManagedPrefixCount() == 4);
+    alternate.itemNames.clear();
+    alternate.preferredNames.clear();
+    alternate.itemNames["ExampleCharm"] = 1;
+    alternate.preferredNames.insert("ExampleCharm");
+    assert(applyManagedPrefixDescriptors("test", {alternate}));
+    auto separateChoice = managedPrefixView();
+    assert(separateChoice->size() == 5);
+    assert(separateChoice->at(4).preferredTypes.contains(6208));
+    assert(withCustom->size() == 4);
 }
