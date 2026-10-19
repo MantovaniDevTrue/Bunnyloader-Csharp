@@ -221,6 +221,7 @@ public sealed partial class BunnyLocalizationCatalog
     {
         State snapshot = Volatile.Read(ref current);
         var rows = new List<string>(snapshot.Entries.Count);
+        int wireBytes = 0;
         foreach (string key in new SortedSet<string>(snapshot.Entries.Keys, StringComparer.Ordinal))
         {
             TextEntry entry = snapshot.Entries[key];
@@ -228,6 +229,9 @@ public sealed partial class BunnyLocalizationCatalog
             {
                 string path = Convert.ToHexString(Encoding.UTF8.GetBytes(key));
                 string value = Convert.ToHexString(Encoding.UTF8.GetBytes(entry.Cultures[culture]));
+                wireBytes = checked(wireBytes + 10 + culture.Length + path.Length + value.Length);
+                if (wireBytes > 4 * 1024 * 1024 || rows.Count >= 16384)
+                    throw new InvalidOperationException("Localization wire capacity exceeded");
                 rows.Add("LOCALE\t" + culture + "\t" + path + "\t" + value);
             }
         }
