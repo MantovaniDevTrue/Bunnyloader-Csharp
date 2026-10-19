@@ -177,12 +177,19 @@ Refs& refs() {
 bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current) {
     if (current.retired.empty()) return true;
     if (!safeToRetireAll(current)) return false;
+    static bool unsupported=false;
+    if (unsupported) return true;
+    const auto disable=[]() {
+        unsupported=true;
+        BL_WARN("[CSharp][Localization] Stage=Unload Result=NeutralOnly Reason=MissingNativeRemove");
+        return true;
+    };
     auto& api=il2cpp::api();
     auto* lm=il2cpp::findClass({"Terraria.Localization","LanguageManager",{}});
     if (!manager || !lm || !api.object_get_class || !api.method_is_instance ||
         !api.runtime_invoke || !api.string_new) return false;
     const int32_t offset=il2cpp::fieldOffset(lm,"_localizedTexts");
-    if (offset < 0) return false;
+    if (offset < 0) return disable();
     auto* dictionary=*reinterpret_cast<Il2CppObject**>(
         reinterpret_cast<char*>(manager)+offset);
     if (!dictionary) return false;
@@ -190,17 +197,13 @@ bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current) {
     if (!dictionaryClass) return false;
     const auto* remove=il2cpp::findMethodBySignature(
         dictionaryClass,il2cpp::parseSignature("bool Remove(string key)"));
-    if (!remove || !api.method_is_instance(remove)) return false;
+    if (!remove || !api.method_is_instance(remove)) return disable();
     for (const auto& key:current.retired) {
         void* args[]={api.string_new(key.c_str())};
         if (!args[0]) return false;
         Il2CppObject* exception=nullptr;
         api.runtime_invoke(remove,dictionary,args,&exception);
-        if (exception) {
-            BL_WARN("[CSharp][Localization] Stage=Unload Key=%s Result=DictionaryRemoveFailed",
-                    key.c_str());
-            return false;
-        }
+        if (exception) return disable();
     }
     return true;
 }
