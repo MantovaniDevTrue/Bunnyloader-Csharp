@@ -151,6 +151,13 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
                           typed["BunnyLoader.Source." + name]["methods"]}
             self.assertIn("void ConfigurePrefixRules(BunnyItemPrefixRules rules)", signatures)
         self.assertIn("BunnyLoader.Source.BunnyItemPrefixRules", typed)
+        ordered = [entry["name"] for entry in sdk["types"]]
+        self.assertEqual(ordered, sorted(ordered))
+        for entry in ("BunnyLoader.Source.BunnyItemPrefixRules",
+                      "BunnyLoader.Source.BunnyItem", "BunnyLoader.Source.BunnyWeapon",
+                      "BunnyLoader.Source.BunnyAccessory", "BunnyLoader.Source.BunnyBuffPotion"):
+            signatures = [method["signature"] for method in typed[entry]["methods"]]
+            self.assertEqual(signatures, sorted(signatures))
         compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
         parser = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
         bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
