@@ -35,6 +35,32 @@ int main() {
         assert(active[0].rarityKey == "mod/Current");
     }
 
+    {
+        const SavedItem saved{"inventory", 2, 1, 0, false,
+            "vanilla:42", "missing/Prefix", {}, "missing/Rarity"};
+        auto both = remainingVanillaMetadata(saved, 0, "");
+        assert(both.prefixKey == "missing/Prefix");
+        assert(both.rarityKey == "missing/Rarity");
+        assert(hasRemainingVanillaMetadata(both));
+        auto rarityOnly = remainingVanillaMetadata(saved, 5, "");
+        assert(rarityOnly.prefixKey.empty());
+        assert(rarityOnly.prefix == 0);
+        assert(rarityOnly.rarityKey == "missing/Rarity");
+        assert(hasRemainingVanillaMetadata(rarityOnly));
+        auto prefixOnly = remainingVanillaMetadata(saved, 0, "loaded/Rarity");
+        assert(prefixOnly.prefixKey == "missing/Prefix");
+        assert(prefixOnly.rarityKey.empty());
+        auto resolved = remainingVanillaMetadata(saved, 5, "loaded/Rarity");
+        assert(!hasRemainingVanillaMetadata(resolved));
+        std::vector<SavedItem> inventory{
+            {"inventory", 2, 1, 5, false, "vanilla:42", {}, {}, {}}
+        };
+        assert(mergePending(inventory, rarityOnly));
+        assert(inventory.size() == 1);
+        assert(inventory[0].prefix == 5);
+        assert(inventory[0].rarityKey == "missing/Rarity");
+    }
+
     std::stringstream legacy;
     assert(write(legacy, old));
     assert(legacy.str().starts_with("bunnyloader itens 2\n"));
