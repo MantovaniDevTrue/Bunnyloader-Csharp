@@ -281,7 +281,10 @@ try {
    .Select(t=>new{type=t,domain=domains.FirstOrDefault(p=>p.Key.IsAssignableFrom(t)).Value})
    .Where(x=>x.domain is not null).Select(x=>x.domain+":"+x.type.Name).ToHashSet(StringComparer.Ordinal);
   if(identities.Count==0)throw new Exception("full package has no content");
-  if(CompiledAssemblyProbe.Verify(output,diag)!=identities.Count)throw new Exception(File.ReadAllText(diag));
+  int localizationModules=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
+   typeof(BunnyLocalizationModule).IsAssignableFrom(t));
+  if(CompiledAssemblyProbe.Verify(output,diag)!=identities.Count+localizationModules)
+   throw new Exception(File.ReadAllText(diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)&&!l.StartsWith("SHOOT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
