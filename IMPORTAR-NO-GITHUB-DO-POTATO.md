@@ -46,7 +46,7 @@ git status --short
 git diff --stat
 ~~~
 
-A cópia inclui os arquivos rastreados do projeto: C++, Kotlin, Java, projetos C# e exemplos, QuickJS, CMake, Gradle, documentação e os arquivos ocultos como `.github/`. Ela **não copia o `.git/`**, não executa `git clean`, não apaga arquivos do seu repositório, não faz commit e **não envia nada** para o GitHub automaticamente.
+A cópia inclui todos os arquivos rastreados do projeto: C++, Kotlin, Java, projetos C# e exemplos, **fonte real do QuickJS-ng v0.17.0**, **runtime MonoVM/Roslyn já compilado e no lugar**, CMake, Gradle, documentação e os arquivos ocultos como `.github/`. Ela **não copia o `.git/`**, não executa `git clean`, não apaga arquivos do seu repositório, não faz commit e **não envia nada** para o GitHub automaticamente.
 
 Também incluí [README-BUNNY-ORIGINAL.md](README-BUNNY-ORIGINAL.md), que guarda a documentação original, e [POTATO-C-SHARP-HANDOFF.md](POTATO-C-SHARP-HANDOFF.md), onde explico as mudanças.
 
