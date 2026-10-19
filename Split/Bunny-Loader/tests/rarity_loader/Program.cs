@@ -174,6 +174,31 @@ Check("prefix.nonfinite-and-negative-multipliers-rejected", () =>
     }
 });
 
+Check("compiler.emits-rarity-declarations-without-executing-static-defaults", () =>
+{
+    var scratch = Path.Combine(Path.GetTempPath(), "bunny-rarity-smoke-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(scratch);
+    try
+    {
+        string diagnostics = Path.Combine(scratch, "diagnostics.txt");
+        string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Equal(4, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostics));
+        var rows = File.ReadAllLines(Path.Combine(scratch, "source-runtime-values.txt"));
+        Equal("BUNNY_MANAGED_DEFAULTS_V2", rows[0]);
+        var declared = rows.Skip(1).OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        Equal(4, declared.Length);
+        Equal("RARITY\\tFailingRarity".Replace("\\\\t", "\\t"), declared[0]);
+        Equal("RARITY\\tFallingRarity".Replace("\\\\t", "\\t"), declared[1]);
+        Equal("RARITY\\tFixedRarity".Replace("\\\\t", "\\t"), declared[2]);
+        Equal("RARITY\\tRisingRarity".Replace("\\\\t", "\\t"), declared[3]);
+        Equal(true, File.ReadAllText(diagnostics).Contains("ASSEMBLY_EXEC_OK", StringComparison.Ordinal));
+    }
+    finally
+    {
+        Directory.Delete(scratch, recursive: true);
+    }
+});
+
 Console.WriteLine("RarityLoader host tests: passed=" + passed + " failed=" + failed);
 return failed == 0 ? 0 : 1;
 
