@@ -16,6 +16,11 @@ assert "field<int32_t>(item, r.damage) <= 0" in game
 assert "field<int32_t>(item, r.ammo) != 0" in game
 assert "field<uint8_t>(item, r.consumable)" in game
 assert "hasOtherMod" not in game
+assert "thread_local Il2CppObject* g_failedRollableItem = nullptr;" in game
+assert "if (total > 512 || !g_refs.intClass)" in game
+assert game.count("g_failedRollableItem = item;") == 2
+assert "const bool managedCandidateFailure = g_failedRollableItem == item;" in game
+assert "return (hasDeny || managedCandidateFailure) ? false :" in game
 assert "if (!hasManaged && !hasDeny)" in game
 assert "for (uintptr_t i = 0; i < list->length; ++i)" in game
 assert "g_originalRoll(item, random, rolled, method)" in game
