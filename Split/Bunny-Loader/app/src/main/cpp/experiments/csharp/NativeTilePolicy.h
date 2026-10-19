@@ -12,6 +12,14 @@ inline bool shouldDrop(int shape, bool includeLargeObjectDrops) {
     return shape == 0 || includeLargeObjectDrops;
 }
 
+inline bool shouldDrop(int shape, bool large, bool allowDrops) {
+    return allowDrops && shouldDrop(shape, large);
+}
+
+inline bool blocksCanKillTile(bool allowBreaking) {
+    return !allowBreaking;
+}
+
 inline int dustBudget(bool fail, int failCount, int normalCount) {
     return fail ? failCount : normalCount;
 }

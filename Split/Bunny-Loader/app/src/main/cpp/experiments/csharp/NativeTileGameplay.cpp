@@ -31,6 +31,7 @@ bool g_installed = false;
 bool g_dropInstalled = false;
 bool g_dustInstalled = false;
 bool g_frameInstalled = false;
+bool g_canKillInstalled = false;
 bool g_animationInstalled = false;
 using AnimateFn = void (*)(const MethodInfo*);
 AnimateFn g_originalAnimate = nullptr;
@@ -46,11 +47,13 @@ using DropFn = void (*)(int32_t, int32_t, uint32_t, int32_t*, int32_t*,
 using KillFn = void (*)(int32_t, int32_t, bool, bool, bool, const MethodInfo*);
 using DustFn = int32_t (*)(int32_t, int32_t, uint32_t, const MethodInfo*);
 using FrameFn = void (*)(int32_t, int32_t, int32_t, uint32_t, bool, const MethodInfo*);
+using CanKillFn = bool (*)(int32_t, int32_t, bool*, const MethodInfo*);
 using LargeDropFn = void (*)(int32_t, int32_t, uint32_t, bool, const MethodInfo*);
 DropFn g_origDrop = nullptr;
 KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
 FrameFn g_origFrame = nullptr;
+CanKillFn g_origCanKill = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
 FieldInfo* g_solidTopField = nullptr;
@@ -107,7 +110,7 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
     const auto it = g_tiles.find(runtime::tileTypeAt(x, y));
     if (it == g_tiles.end()) return;
     const auto& behavior = it->second;
-    if (!tile_policy::shouldDrop(behavior.spec.shape, large)) {
+    if (!tile_policy::shouldDrop(behavior.spec.shape, large, behavior.spec.allowDrops)) {
         *drop = 0; *stack = 0; *extra = 0; *extraStack = 0;
         return;
     }
@@ -305,6 +308,37 @@ bool setupNativeTileAnimation() {
     return true;
 }
 
+bool hkCanKillTile(int32_t x, int32_t y, bool* blockDamaged, const MethodInfo* method) {
+    const int type = runtime::tileTypeAt(x, y);
+    if (type >= runtime::kVanillaTileCount) {
+        const auto it = g_tiles.find(type);
+        if (it != g_tiles.end() && tile_policy::blocksCanKillTile(it->second.spec.allowBreaking)) {
+            if (blockDamaged) *blockDamaged = false;
+            return false;
+        }
+    }
+    return g_origCanKill ? g_origCanKill(x, y, blockDamaged, method) : false;
+}
+
+bool setupCanKillTileHook() {
+    if (g_canKillInstalled) return true;
+    auto& a = il2cpp::api();
+    if (!a.method_get_param_count || !a.method_get_param || !a.method_get_return_type)
+        return false;
+    auto* world = il2cpp::findClass({"Terraria", "WorldGen", {}});
+    const MethodInfo* method = world ? a.class_get_method_from_name(world, "CanKillTile", 3) : nullptr;
+    if (!method || a.method_get_param_count(method) != 3 ||
+        !nameOf(a.method_get_param(method, 0), "System.Int32") ||
+        !nameOf(a.method_get_param(method, 1), "System.Int32") ||
+        !nameOf(a.method_get_param(method, 2), "System.Boolean&") ||
+        !nameOf(a.method_get_return_type(method), "System.Boolean") ||
+        !il2cpp::methodPointer(method) ||
+        !hook::install(method, hkCanKillTile, &g_origCanKill))
+        return false;
+    g_canKillInstalled = true;
+    return true;
+}
+
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -360,6 +394,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
     if (spec.animationFrames > 1 && !setupNativeTileAnimation()) return false;
+    if (!spec.allowBreaking && !setupCanKillTileHook()) {
+        BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
+                 spec.mod.c_str(), spec.name.c_str());
+        return false;
+    }
     g_tiles[spec.type] = behavior;
     if (spec.animationFrames > 1)
         g_animatedTiles[spec.type] = {spec.animationFrames, spec.animationFrameTicks};

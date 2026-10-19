@@ -2296,7 +2296,8 @@ void onManagedTilesInstalled(int first, int last) {
             registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
                                         entry.shape, entry.failDust, entry.normalDust,
                                         entry.animationFrameHeight, entry.animationFrames,
-                                        entry.animationFrameTicks});
+                                        entry.animationFrameTicks,
+                                        entry.allowBreaking, entry.allowDrops});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)

@@ -807,6 +807,15 @@ bool applyManagedSourceDefaults(
                     *error = fields[1] + ": lista AdjacentTiles malformada"; return false;
                 }
             }
+            if (tile_wire::hasBreakPolicy(fields.size())) {
+                if ((fields[17] != "0" && fields[17] != "1") ||
+                    (fields[18] != "0" && fields[18] != "1")) {
+                    *error = fields[1] + ": flags AllowBreaking/AllowDrops invalidas";
+                    return false;
+                }
+                tile.allowBreaking = fields[17] == "1";
+                tile.allowDrops = fields[18] == "1";
+            }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
                 *error = "[CSharp][ERROR][Tile] Mod="+modId+" Stage=Decode Expected=AtMost"+std::to_string(kSourceMaxCategory)+" Actual="+std::to_string(tiles.size())+" Reason=CategoryCapacityExceeded Result=ModRejected"; return false;

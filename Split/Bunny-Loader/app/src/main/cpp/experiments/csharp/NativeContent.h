@@ -77,6 +77,8 @@ struct ManagedTileEntry {
     int animationFrameHeight = 0;
     int animationFrames = 1;
     int animationFrameTicks = 0;
+    bool allowBreaking = true;
+    bool allowDrops = true;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,

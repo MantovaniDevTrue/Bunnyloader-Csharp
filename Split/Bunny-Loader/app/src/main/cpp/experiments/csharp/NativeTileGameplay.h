@@ -14,6 +14,8 @@ struct NativeTileGameplaySpec {
     int animationFrameHeight = 0;
     int animationFrames = 1;
     int animationFrameTicks = 0;
+    bool allowBreaking = true;
+    bool allowDrops = true;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);
