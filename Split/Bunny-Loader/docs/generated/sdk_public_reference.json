@@ -981,6 +981,7 @@
         "int Width { get; set; }",
         "string BehaviorDefinition { get; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeAccessoryEffectsDefinition { get; }",
         "string NativeArmorDefinition { get; }",
         "string NativeDefaultsDefinition { get; }",
@@ -1018,6 +1019,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },

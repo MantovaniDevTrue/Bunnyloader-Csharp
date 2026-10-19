@@ -557,6 +557,7 @@ int Value { get; set; }
 int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
 string NativeDefaultsDefinition { get; }
@@ -575,6 +576,7 @@ string UseSound { get; set; }
 | `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
 | `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyItemBehavior
 
