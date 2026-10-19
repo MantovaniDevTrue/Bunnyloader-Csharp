@@ -25,9 +25,19 @@ Fontes de comportamento do Bunny Loader original (somente referência, **sem có
 
 O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida por prefixos. **Isso não é ainda um exemplo jogável nem reprodução visual aprovada.**
 
+## Continuação — scanner, IDs nativos e contrato V2 (19/10)
+
+- O scanner nativo `SourceParser` reconhece classes concretas que estendem `BunnyRarity`, mesmo sem `SetDefaults`; métodos gerenciados permanecem no MonoVM.
+- O `SourceLoader` reserva IDs em um registro C++ global C# com nomes `<mod>/<classe>`, snapshots imutáveis e proteção de duplicatas.
+- O `CompiledAssemblyProbe` inspeciona classes de raridade e emite `RARITY\\tNome` no contrato gerenciado V2; o `SourceLoader` confere que cada identidade compilada corresponde ao ID reservado.
+- O SDK oferece `BunnyRarityRegistry(firstCustomType)` para catalogar o intervalo de IDs fornecido pelo host quando houver outros mods antes dele.
+- A suíte de host ganhou conferência do `CompiledAssemblyProbe` real e teste C++ de scanner, registro, limites e concorrência.
+
+**Estado:** registro de IDs e handoff de declarações estão implementados, mas ainda não há a ligação desses IDs de volta aos objetos gerenciados no momento de `SetStaticDefaults`. Não foi implementado nenhum hook de desenho. A nova revisão aguarda verificação CI no SHA atual. Nenhuma alteração publica APK.
+
 ## Bloqueios para declarar o loader completo
 
-1. Registrar subclasses reais de `BunnyRarity` no compilador `CompiledAssemblyProbe`, enviar as definições C# à ponte nativa e reservar IDs reais compatíveis com itens de múltiplos mods.
+1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e coordenar raridades entre mods C# e JS sem colisões.
 2. Aplicar `Rare` de armas, acessórios e itens às novas identidades; suportar `TypeOf` cruzado e persistência/reidratação sem perda de ID.
 3. Registrar cores de raridade em `Terraria.GameContent.UI.ItemRarity.Initialize` no C++/IL2CPP, incluindo chamadas de reinicialização.
 4. Implementar `Item.GetPopupRarityColor` para textos flutuantes e `Item.Prefix` com out/ref, multiplicadores e caso `Prefix(-1)` que não pode voltar a roxo.
