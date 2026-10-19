@@ -171,6 +171,9 @@ Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name) {
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){return ::findField(cls,name);}
 }
+namespace bl::csharp::angler {
+bool installFishingOnGameThread(const std::vector<Quest>*) { return true; }
+}
 namespace bl::runtime {
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old,uintptr_t len) {
     auto* next=array(old->obj.klass==&kBoolArray?&kBool:&kInt,len);
