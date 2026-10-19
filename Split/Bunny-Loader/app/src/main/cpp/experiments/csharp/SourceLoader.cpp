@@ -661,6 +661,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
     std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
+    std::map<std::string, std::vector<std::string>> prefixTooltipPolicies;
     std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
@@ -726,6 +727,54 @@ bool applyManagedSourceDefaults(
                 *error = "[CSharp][ERROR][PrefixCondition] InvalidPrefixOrBounds";
                 return false;
             }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_TOOLTIP") {
+            const auto key = fields.size() > 1 ?
+                sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 970 ||
+                prefixTooltipPolicies.contains(fields[1])) {
+                *error = "[CSharp][ERROR][PrefixTooltip] InvalidPrefixOrWire";
+                return false;
+            }
+            std::istringstream encoded(fields[2]);
+            std::vector<std::string> tooltips;
+            std::string part;
+            const auto nibble = [](char ch) -> int {
+                if (ch >= '0' && ch <= '9') return ch - '0';
+                if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+                return -1;
+            };
+            while (std::getline(encoded, part, ',')) {
+                if (part.empty() || part.size() > 240 || part.size() % 2 ||
+                    tooltips.size() >= 4) {
+                    *error = "[CSharp][ERROR][PrefixTooltip] TooManyOrMalformedLines";
+                    return false;
+                }
+                std::string decoded;
+                for (size_t i = 0; i < part.size(); i += 2) {
+                    const int hi = nibble(part[i]), lo = nibble(part[i + 1]);
+                    if (hi < 0 || lo < 0) {
+                        *error = "[CSharp][ERROR][PrefixTooltip] InvalidHex";
+                        return false;
+                    }
+                    const unsigned char ch = static_cast<unsigned char>(hi * 16 + lo);
+                    if (ch < 32 || ch == 127) {
+                        *error = "[CSharp][ERROR][PrefixTooltip] ControlCharacter";
+                        return false;
+                    }
+                    decoded.push_back(static_cast<char>(ch));
+                }
+                tooltips.push_back(std::move(decoded));
+            }
+            if (tooltips.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixTooltip] EmptyOrTrailingLine";
+                return false;
+            }
+            prefixTooltipPolicies.emplace(fields[1], std::move(tooltips));
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_POST") {
@@ -1359,6 +1408,11 @@ bool applyManagedSourceDefaults(
         return false;
     }
     for (auto& prefix : prefixes) {
+        const auto lines = prefixTooltipPolicies.find(prefix.name);
+        if (lines != prefixTooltipPolicies.end()) {
+            prefix.tooltipLines = lines->second;
+            prefixTooltipPolicies.erase(lines);
+        }
         const auto condition = prefixItemConditions.find(prefix.name);
         if (condition != prefixItemConditions.end()) {
             prefix.minItemDamage = condition->second.minItemDamage;
@@ -1381,6 +1435,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixItemConditions.empty()) {
         *error = "PREFIX_CONDITION sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixTooltipPolicies.empty()) {
+        *error = "PREFIX_TOOLTIP sem descritor de prefixo correspondente";
         return false;
     }
     for (size_t i = 0; i < weapons.size(); ++i) {
