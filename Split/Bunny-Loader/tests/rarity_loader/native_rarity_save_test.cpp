@@ -1,4 +1,8 @@
 #include "content/items/ModItemSaveFormat.h"
+#include "content/items/ModItemSaveSafety.h"
+#include <chrono>
+#include <filesystem>
+#include <fstream>
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include <cassert>
 #include <sstream>
@@ -102,6 +106,47 @@ int main() {
     assert(validRarityKey(""));
     assert(validRarityKey("mod.with-dash/Underscore_2"));
     assert(!validRarityKey("mod/Bad-Dash"));
+
+    const auto directory = std::filesystem::temp_directory_path() /
+        ("bunny-rarity-save-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()));
+    std::filesystem::create_directories(directory);
+    const std::string path = (directory / "player.bl").string();
+    assert(canReplaceExisting(path));
+    assert(preserveLegacyBeforeRaritySave(path, modern));
+    const std::string original = legacy.str();
+    {
+        std::ofstream output(path, std::ios::binary);
+        output << original;
+    }
+    assert(canReplaceExisting(path));
+    assert(preserveLegacyBeforeRaritySave(path, modern));
+    const std::string backup = path + ".before-rarity-v3.bak";
+    {
+        std::ifstream input(backup, std::ios::binary);
+        assert(input);
+        assert(std::string((std::istreambuf_iterator<char>(input)),
+            std::istreambuf_iterator<char>()) == original);
+    }
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        assert(write(output, modern));
+    }
+    assert(canReplaceExisting(path));
+    assert(preserveLegacyBeforeRaritySave(path, modern));
+    {
+        std::ifstream input(backup, std::ios::binary);
+        assert(std::string((std::istreambuf_iterator<char>(input)),
+            std::istreambuf_iterator<char>()) == original);
+    }
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        output << "bunnyloader itens 3\n";
+        output << "inventory\t0\t1\t0\t0\tmod/Broken\t{}\tbad/key/more\n";
+    }
+    assert(!canReplaceExisting(path));
+    assert(!preserveLegacyBeforeRaritySave(path, modern));
+    std::filesystem::remove_all(directory);
 
     bl::csharp::NativeRarityRegistry first;
     assert(first.registerType("mod", "One") == 12);
