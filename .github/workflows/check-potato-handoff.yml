@@ -46,6 +46,27 @@ jobs:
           grep -q 'v8.0.23' bunny-csharp-entrega/tools/mono/build_patched_mono_arm64.sh
           test -s bunny-csharp-entrega/tools/mono/README.md
 
+      - name: Confirm delivery label and latest editable ExampleMod source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root = Path("bunny-csharp-entrega")
+          assert 'versionName = "1.0"' in (root / "app/build.gradle.kts").read_text()
+          mod = json.loads((root / "samples/ExampleModCSharp/Playable/manifest.json").read_text())
+          assert mod["version"] == "0.1.56", mod
+          assert (root / "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs").is_file()
+          assert (root / "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg").is_file()
+          assert (root / "experiments/csharp/BunnyCsSdk/BunnySoundStyle.cs").is_file()
+          assert (root / "app/src/main/cpp/experiments/csharp/NativeUseSounds.h").is_file()
+          for name in ("README.md","POTATO-C-SHARP-HANDOFF.md","IMPORTAR-NO-GITHUB-DO-POTATO.md"):
+              text=(root/name).read_text().lower()
+              assert "tlpro" not in text and "terlauncher" not in text, name
+          print("LATEST_BUNNY_EXAMPLEMOD_DELIVERY=PASS")
+          PY
+
       - name: Prepare upstream feature branch
         run: git -C bunny-original switch -c feature/csharp-import-verification
 
