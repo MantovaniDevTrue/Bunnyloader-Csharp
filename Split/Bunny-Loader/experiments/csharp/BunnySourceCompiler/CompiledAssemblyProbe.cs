@@ -874,7 +874,7 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");
-            if (category < 0 || category > 5 || !float.IsFinite(weight) ||
+            if (category < 0 || category > 6 || !float.IsFinite(weight) ||
                 weight <= 0f || weight > 20f || weight != MathF.Truncate(weight))
                 throw new InvalidOperationException("Unsupported managed prefix category or weight: " + name);
             MethodInfo setStats = type.GetMethod("SetStats",
@@ -945,6 +945,8 @@ public static class CompiledAssemblyProbe
             string ruleWire = (string)(rulesType.GetMethod("Serialize",
                 BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
                 ?? throw new InvalidOperationException("BunnyPrefixRollRules serialization missing"));
+            if (category == 6 && string.IsNullOrEmpty(ruleWire))
+                throw new InvalidOperationException("Custom managed prefix requires explicit item rules: " + name);
             if (ruleWire.Length > 320)
                 throw new InvalidOperationException("Managed prefix item rules too long: " + name);
             if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
