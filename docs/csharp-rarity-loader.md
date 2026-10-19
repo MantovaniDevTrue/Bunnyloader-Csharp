@@ -140,6 +140,15 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Não equivale a validação Android:** ainda faltam testes no processo IL2CPP real, em personagens e baús, compatibilidade de mods desativados, restauração de backup e perfilamento de FPS. Não gerar APK nem promover a PR a release apenas com os testes de host.
 
+## Verificação de migração em disco e escrita estrita (19/10)
+
+- `ModItemSaveSafety.h` encapsula a inspeção do sidecar existente e a criação segura de `.before-rarity-v3.bak`. O runtime usa exatamente essas funções e seus testes compilam e executam como código C++ nativo.
+- Um teste cria um arquivo v2 real em diretório temporário, confirma a cópia exata de backup, grava um v3, confirma que o backup não foi sobrescrito e demonstra a recusa de arquivo v3 com raridade inválida.
+- O leitor dos formatos v1 e v2 continua tolerante para fins de compatibilidade de carregamento. A **validação antes de qualquer escrita** utiliza `read(..., strict=true)` para impedir que linhas inválidas antigas sejam apagadas silenciosamente. A mesma exigência vale para versões v3.
+- Os testes também exercitam um v2 inválido no disco: o carregamento legado continua possível para registros válidos, mas seu arquivo original não pode ser substituído por um autosave sem revisão.
+
+Isso é teste de integridade de arquivos no host, **não** confirmação de salvamento seguro no Android. É necessário ensaio real de personagens, baús, migração, desativação de mods e rollback antes de liberar qualquer APK.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
