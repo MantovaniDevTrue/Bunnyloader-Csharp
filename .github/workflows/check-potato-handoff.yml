@@ -32,6 +32,18 @@ jobs:
       - name: Check importer Python syntax
         run: python3 -m py_compile bunny-csharp-entrega/tools/importar_fonte_csharp_no_bunny.py
 
+      - name: Check public Mono patch and ARM64 build script
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n bunny-csharp-entrega/tools/mono/build_patched_mono_arm64.sh
+          python3 -m py_compile bunny-csharp-entrega/tools/mono/patch_mono_android_signals.py
+          python3 -m py_compile bunny-csharp-entrega/tests/test_mono_android_signals_patch.py
+          grep -q 'mono_threads_suspend_search_alternative_signal' bunny-csharp-entrega/tools/mono/patch_mono_android_signals.py
+          grep -q 'mono_bunny_android_signal_policy_v1' bunny-csharp-entrega/tools/mono/patch_mono_android_signals.py
+          grep -q 'v8.0.23' bunny-csharp-entrega/tools/mono/build_patched_mono_arm64.sh
+          test -s bunny-csharp-entrega/tools/mono/README.md
+
       - name: Prepare upstream feature branch
         run: git -C bunny-original switch -c feature/csharp-import-verification
 
