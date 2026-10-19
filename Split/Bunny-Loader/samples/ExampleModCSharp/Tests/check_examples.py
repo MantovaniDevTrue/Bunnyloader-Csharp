@@ -179,6 +179,7 @@ assert 'conditions.OverrideRollWeightWhenStackBetween(3, 5, 6);' in prefix_examp
 item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
 assert 'rules.Deny(71);' in item_deny_example
 assert 'rules.Deny(nameof(ExampleGuardedPrefix));' in item_deny_example
+assert 'rules.DenyWhenStackBetween(72, 3, 5);' in item_deny_example
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")

@@ -20,6 +20,7 @@ public sealed class ExampleWand : BunnyWeapon
     {
         rules.Deny(71);
         rules.Deny(nameof(ExampleGuardedPrefix));
+        rules.DenyWhenStackBetween(72, 3, 5);
     }
 
     public override void AddRecipes()

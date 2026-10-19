@@ -1113,11 +1113,23 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "string SerializeStackDenials()",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void Deny(int prefixType)",
           "execution": "compile_policy"
         },
         {
           "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenStackBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)",
           "execution": "compile_policy"
         }
       ]

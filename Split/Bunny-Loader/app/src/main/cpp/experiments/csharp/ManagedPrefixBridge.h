@@ -56,6 +56,24 @@ bool applyManagedItemPrefixDenials(
     const std::vector<std::pair<int, std::vector<std::string>>>& policies);
 std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView();
 
+struct ManagedPrefixStackDenyRange {
+    int minStack = 0;
+    int maxStack = 0;
+};
+
+struct ManagedPrefixStackDenyToken {
+    std::string prefix;
+    ManagedPrefixStackDenyRange range;
+};
+
+using ManagedPrefixStackDenyTable =
+    std::map<int, std::map<int, ManagedPrefixStackDenyRange>>;
+
+bool applyManagedItemPrefixStackDenials(
+    const std::string& modId,
+    const std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>>& policies);
+std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView();
+
 bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies);
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView();
 

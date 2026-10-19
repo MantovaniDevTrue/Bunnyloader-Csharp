@@ -81,7 +81,28 @@ int main() {
     assert(applyManagedItemPrefixDenials("test", {{6208, {"72"}}}));
     assert(managedItemPrefixDenyView()->at(6208).contains(72));
     assert(firstBans->size() == 1);
-
+    assert(managedItemPrefixStackDenyView()->empty());
+    assert(!applyManagedItemPrefixStackDenials("test",
+        {{6207, {{"MissingPrefix", {3, 5}}}}}));
+    assert(managedItemPrefixStackDenyView()->empty());
+    assert(!applyManagedItemPrefixStackDenials("test",
+        {{6207, {{"72", {6, 5}}}}}));
+    assert(managedItemPrefixStackDenyView()->empty());
+    assert(!applyManagedItemPrefixStackDenials("test",
+        {{6207, {{"72", {3, 5}}, {"72", {4, 6}}}}}));
+    assert(managedItemPrefixStackDenyView()->empty());
+    assert(applyManagedItemPrefixStackDenials("test",
+        {{6207, {{"72", {3, 5}}, {"Guarded", {4, 6}}}}}));
+    auto firstStackBans = managedItemPrefixStackDenyView();
+    assert(firstStackBans->at(6207).at(72).minStack == 3);
+    assert(firstStackBans->at(6207).at(98).maxStack == 6);
+    assert(!applyManagedItemPrefixStackDenials("test",
+        {{6207, {{"73", {1, 2}}}}}));
+    assert(managedItemPrefixStackDenyView() == firstStackBans);
+    assert(applyManagedItemPrefixStackDenials("test",
+        {{6208, {{"74", {1, 2}}}}}));
+    assert(managedItemPrefixStackDenyView()->at(6208).contains(74));
+    assert(firstStackBans->size() == 1);
 
     reserveManagedPrefixDescriptor(98);
     assert(managedPrefixDescriptorPending(98));

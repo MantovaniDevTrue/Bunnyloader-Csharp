@@ -34,6 +34,10 @@ O exemplo `ExampleMightyPrefix` usa `RequireDamageBetween`, `RequireManaBetween`
 
 O `ExampleMightyPrefix` também demonstra `OverrideRollWeightWhenStackBetween(3, 5, 6)`. Uma pilha com 3 a 5 unidades ganha peso nativo 6; fora do intervalo, continua valendo o peso padrão do prefixo ou o peso configurado por tipo de item. Um peso zero desativa a rolagem automática enquanto a condição se aplica, mas um `SetCanRoll` explícito continua tendo prioridade para aplicação direta. O contrato `PREFIX_STACK_WEIGHT` opcional é separado do `PREFIX_CONDITION`; o formato antigo segue aceito. A publicação do descritor é imutável e não exige callbacks MonoVM durante a reforja. É um subconjunto declarativo de `RollChance(item)`, não execução arbitrária de C#.
 
+## Bloqueio condicional por instância — AllowPrefix C#
+
+O `ExampleWand` usa `BunnyItemPrefixRules.DenyWhenStackBetween(72, 3, 5)`: o prefixo 72 é vetado apenas quando a pilha contém entre 3 e 5 unidades. A mesma API aceita um nome de prefixo do próprio mod; nomes externos não são resolvidos por atalhos. O compilador emite `PREFIX_DENY_STACK` somente quando há regras desse tipo. `ManagedPrefixBridge` valida o mapeamento de cada prefixo e publica um snapshot imutável; os hooks de `GetRollablePrefixes`, `CanRollPrefix`, `RollAPrefix` e `Item.Prefix` verificam o estado atual do item em C++ sem MonoVM. Bloqueios permanentes existentes continuam ativos. Prefixos salvos previamente não são invalidados por essa condição mutável. O contrato é declarativo, não o callback arbitrário `GlobalItem.AllowPrefix(item,prefix)` do JS.
+
 ## Diferença entre três rotas
 
 1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.

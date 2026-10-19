@@ -33,6 +33,8 @@ std::shared_ptr<const std::map<int, bool>> chanceView;
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
 std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
     std::make_shared<const std::map<int, std::set<int>>>();
+std::shared_ptr<const bl::csharp::ManagedPrefixStackDenyTable> stackDeniedView =
+    std::make_shared<const bl::csharp::ManagedPrefixStackDenyTable>();
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, stack = 1, ammo = 0, value = 100;
@@ -145,6 +147,7 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { ret
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { return chanceView; }
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
 std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() { return deniedView; }
+std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView() { return stackDeniedView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -268,6 +271,33 @@ int main() {
     assert(selectedMixed == 98);
     assert(nativeRolls == priorNativeRolls);
     deniedView = std::make_shared<const std::map<int, std::set<int>>>();
+    stackDeniedView = std::make_shared<const ManagedPrefixStackDenyTable>(
+        ManagedPrefixStackDenyTable{{6196, {{71, {3, 5}}}}});
+    accessory.stack = 2;
+    assert(!isPrefixDenied(&accessory.object, 71));
+    auto* normalByStack = hookRollable(&accessory.object, nullptr);
+    assert(normalByStack && normalByStack->length == 5);
+    accessory.stack = 3;
+    assert(isPrefixDenied(&accessory.object, 71));
+    auto* filteredByStack = hookRollable(&accessory.object, nullptr);
+    assert(filteredByStack && filteredByStack->length == 4);
+    const auto* conditionalIds = static_cast<const int32_t*>(arrayData(filteredByStack));
+    assert(conditionalIds[0] == 100);
+    for (int i = 1; i < 4; ++i) assert(conditionalIds[i] == 98);
+    randomDouble.value = 0.1;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
+    assert(selectedMixed == 100);
+    assert(nativeRolls == priorNativeRolls);
+    accessory.stack = 5;
+    assert(isPrefixDenied(&accessory.object, 71));
+    accessory.stack = 6;
+    assert(!isPrefixDenied(&accessory.object, 71));
+    const int conditionalStackOffset = g_refs.stack;
+    g_refs.stack = -1;
+    assert(isPrefixDenied(&accessory.object, 71));
+    g_refs.stack = conditionalStackOffset;
+    accessory.stack = 1;
+    stackDeniedView = std::make_shared<const ManagedPrefixStackDenyTable>();
     mixedPrefixCandidates = false;
     guarded.rollWeight = 1;
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(

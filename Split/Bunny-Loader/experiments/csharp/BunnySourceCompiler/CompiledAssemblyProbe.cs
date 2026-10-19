@@ -1063,6 +1063,13 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Prefix deny policy too long");
             if (denies.Length != 0)
                 lines.Add(string.Join("\t", "PREFIX_DENY", item.GetType().Name, denies));
+            string stackDenies = (string)(rulesType.GetMethod("SerializeStackDenials",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules stack policy serialization missing"));
+            if (stackDenies.Length > 640)
+                throw new InvalidOperationException("Prefix stack deny policy too long");
+            if (stackDenies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY_STACK", item.GetType().Name, stackDenies));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {

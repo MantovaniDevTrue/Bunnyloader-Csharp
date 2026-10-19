@@ -666,6 +666,8 @@ bool applyManagedSourceDefaults(
     std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
+    std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
+    std::set<int> seenPrefixStackDenials;
     std::vector<std::pair<int, bool>> prefixChances;
     std::set<int> seenPrefixChances;
     std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
@@ -708,6 +710,55 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             prefixDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_DENY_STACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 640 ||
+                prefixStackDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixStackDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDenyStack] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<ManagedPrefixStackDenyToken> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                if (entry.empty() || denied.size() >= 32) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidPrefixList";
+                    return false;
+                }
+                const auto first = entry.find(':');
+                const auto second = first == std::string::npos
+                    ? std::string::npos : entry.find(':', first + 1);
+                if (first == 0 || second == std::string::npos ||
+                    second == first + 1 || second + 1 >= entry.size() ||
+                    entry.find(':', second + 1) != std::string::npos) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidRange";
+                    return false;
+                }
+                ManagedPrefixStackDenyToken token;
+                token.prefix = entry.substr(0, first);
+                if (!integer(entry.substr(first + 1, second - first - 1),
+                             &token.range.minStack) ||
+                    !integer(entry.substr(second + 1), &token.range.maxStack) ||
+                    token.range.minStack < 0 ||
+                    token.range.maxStack < token.range.minStack ||
+                    token.range.maxStack > 999999) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidRange";
+                    return false;
+                }
+                denied.push_back(std::move(token));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDenyStack] InvalidPrefixList";
+                return false;
+            }
+            prefixStackDenials.emplace_back(registered->second, std::move(denied));
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_CONDITION") {
@@ -1531,6 +1582,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedItemPrefixDenials(modId, prefixDenials)) {
         *error = "Politicas AllowPrefix C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixStackDenials(modId, prefixStackDenials)) {
+        *error = "Politicas AllowPrefix stack C# invalidas ou hook nativo indisponivel";
         return false;
     }
     if (!applyManagedItemPrefixChances(prefixChances)) {

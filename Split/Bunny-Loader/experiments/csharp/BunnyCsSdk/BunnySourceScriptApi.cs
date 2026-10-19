@@ -339,12 +339,15 @@ public sealed class BunnyItemPrefixRules
     private readonly System.Collections.Generic.SortedSet<int> blocked = new();
     private readonly System.Collections.Generic.SortedSet<string> named =
         new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<int, (int Min, int Max)> stackBlocked = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, (int Min, int Max)> namedStackBlocked =
+        new(System.StringComparer.Ordinal);
 
     public void Deny(int prefixType)
     {
         if (prefixType < 1 || prefixType > 255)
             throw new System.ArgumentOutOfRangeException(nameof(prefixType));
-        if (!blocked.Contains(prefixType) && blocked.Count + named.Count >= 32)
+        if (!blocked.Contains(prefixType) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         blocked.Add(prefixType);
     }
@@ -357,9 +360,52 @@ public sealed class BunnyItemPrefixRules
         foreach (char ch in ownModPrefixName)
             if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
                 throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
-        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count >= 32)
+        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         named.Add(ownModPrefixName);
+    }
+
+    public void DenyWhenStackBetween(int prefixType, int minimum, int maximum)
+    {
+        if (prefixType < 1 || prefixType > 255 ||
+            minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        if (blocked.Contains(prefixType) || stackBlocked.ContainsKey(prefixType))
+            throw new System.InvalidOperationException("Duplicate prefix deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        stackBlocked.Add(prefixType, (minimum, maximum));
+    }
+
+    public void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)
+    {
+        if (string.IsNullOrEmpty(ownModPrefixName) || ownModPrefixName.Length > 64 ||
+            !(ownModPrefixName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_') ||
+            minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        foreach (char ch in ownModPrefixName)
+            if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        if (named.Contains(ownModPrefixName) || namedStackBlocked.ContainsKey(ownModPrefixName))
+            throw new System.InvalidOperationException("Duplicate prefix deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        namedStackBlocked.Add(ownModPrefixName, (minimum, maximum));
+    }
+
+    public string SerializeStackDenials()
+    {
+        var values = new System.Collections.Generic.List<string>(
+            stackBlocked.Count + namedStackBlocked.Count);
+        foreach (var entry in stackBlocked)
+            values.Add(entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (var entry in namedStackBlocked)
+            values.Add(entry.Key + ":" +
+                entry.Value.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return string.Join(",", values);
     }
 
     public string Serialize()

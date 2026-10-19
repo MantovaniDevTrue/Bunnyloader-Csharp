@@ -19,6 +19,9 @@ assert "installManagedPrefixGameplayHooks()" in bridge
 assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
 assert "PREFIX_STACK_WEIGHT" in source
+assert "PREFIX_DENY_STACK" in source
+assert "applyManagedItemPrefixStackDenials" in source
+assert "managedItemPrefixStackDenyView()" in game
 assert "prefix.hasStackRollWeight = true;" in source
 assert "p.hasStackRollWeight" in game
 assert "stack >= p.minWeightStack && stack <= p.maxWeightStack" in game

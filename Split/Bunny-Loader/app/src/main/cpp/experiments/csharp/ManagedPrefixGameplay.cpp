@@ -183,7 +183,16 @@ bool isPrefixDenied(Il2CppObject* item, int prefix) {
     const auto policies = managedItemPrefixDenyView();
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
     const auto found = policies->find(itemType);
-    return found != policies->end() && found->second.contains(prefix);
+    if (found != policies->end() && found->second.contains(prefix)) return true;
+    const auto stackPolicies = managedItemPrefixStackDenyView();
+    const auto itemRules = stackPolicies->find(itemType);
+    if (itemRules == stackPolicies->end()) return false;
+    const auto condition = itemRules->second.find(prefix);
+    if (condition == itemRules->second.end()) return false;
+    if (g_refs.stack < 0) return true;
+    const int stack = bl::runtime::field<int32_t>(item, g_refs.stack);
+    return stack >= condition->second.minStack &&
+           stack <= condition->second.maxStack;
 }
 
 bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
@@ -382,8 +391,20 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         bl::runtime::field<int32_t>(item, g_refs.type) : -1;
     const auto ban = bans->find(itemType);
     const std::set<int>* denied = ban == bans->end() ? nullptr : &ban->second;
-    const auto allowed = [denied](int prefix) {
-        return !denied || !denied->contains(prefix);
+    const auto stackBans = managedItemPrefixStackDenyView();
+    const auto stackBan = stackBans->find(itemType);
+    const std::map<int, ManagedPrefixStackDenyRange>* conditional =
+        stackBan == stackBans->end() ? nullptr : &stackBan->second;
+    const int currentStack = conditional && g_refs.stack >= 0
+        ? bl::runtime::field<int32_t>(item, g_refs.stack) : -1;
+    const auto allowed = [denied, conditional, currentStack](int prefix) {
+        if (denied && denied->contains(prefix)) return false;
+        if (!conditional) return true;
+        const auto found = conditional->find(prefix);
+        if (found == conditional->end()) return true;
+        return currentStack >= 0 &&
+            (currentStack < found->second.minStack ||
+             currentStack > found->second.maxStack);
     };
     const bool tablesReady = descriptors->empty() || ensurePrefixTables(*descriptors);
     const bool vanillaHasRollable = base && base->length > 0;
@@ -451,7 +472,17 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     const auto banView = managedItemPrefixDenyView();
     const int currentItemType = g_refs.type >= 0 ?
         bl::runtime::field<int32_t>(item, g_refs.type) : -1;
-    const bool hasDeny = banView->contains(currentItemType);
+    bool hasDeny = banView->contains(currentItemType);
+    if (!hasDeny) {
+        const auto stackBans = managedItemPrefixStackDenyView();
+        const auto found = stackBans->find(currentItemType);
+        if (found != stackBans->end())
+            for (const auto& [prefix, range] : found->second)
+                if (isPrefixDenied(item, prefix)) {
+                    hasDeny = true;
+                    break;
+                }
+    }
     if (descriptors->empty() && !hasDeny)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
     if (g_restoreRoll.item != item && g_refs.type >= 0) {

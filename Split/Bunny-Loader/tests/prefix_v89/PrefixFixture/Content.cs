@@ -25,6 +25,8 @@ public sealed class TestWand : BunnyWeapon
     {
         rules.Deny(71);
         rules.Deny("TestMightyPrefix");
+        rules.DenyWhenStackBetween(72, 3, 5);
+        rules.DenyWhenStackBetween("TestCustomPrefix", 4, 6);
     }
 
     public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
