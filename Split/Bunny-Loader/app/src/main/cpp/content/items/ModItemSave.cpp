@@ -14,6 +14,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeRarityRegistry.h"
 #include "script/api/Items.h"
 
 #include <atomic>
@@ -87,7 +88,7 @@ struct Refs {
     int32_t bank[4] = {-1, -1, -1, -1};
     int32_t storageItems = -1;                  // InventoryStorage.item
     int32_t loadoutArmor = -1, loadoutDye = -1;  // EquipmentLoadout
-    int32_t type = -1, stack = -1, prefix = -1, favorited = -1;   // Item
+    int32_t type = -1, stack = -1, prefix = -1, favorited = -1, rare = -1;   // Item
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* applyPrefix = nullptr;
     const MethodInfo* applyPrefixDetailed = nullptr;
@@ -110,6 +111,7 @@ struct PendingPrefix {
     std::string key;
 };
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
+std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingRarity;
 std::atomic<int> g_prefixRestoreFailureLogs{0};
 
 std::string placeKey(const std::string& container, int slot) {
@@ -1164,6 +1166,20 @@ bool resolve() {
     r.stack = fieldOffset(item, "stack");
     r.prefix = fieldOffset(item, "prefix");
     r.favorited = fieldOffset(item, "favorited");
+    auto* rareField = il2cpp::findField(item, "rare");
+    if (rareField && il2cpp::api().field_get_type &&
+        il2cpp::api().class_from_il2cpp_type &&
+        il2cpp::api().class_get_name && il2cpp::api().class_get_namespace &&
+        il2cpp::api().field_get_flags &&
+        !(il2cpp::api().field_get_flags(rareField) & 0x10u)) {
+        auto* type = il2cpp::api().class_from_il2cpp_type(
+            il2cpp::api().field_get_type(rareField));
+        const char* ns = type ? il2cpp::api().class_get_namespace(type) : nullptr;
+        const char* name = type ? il2cpp::api().class_get_name(type) : nullptr;
+        if (ns && name && std::strcmp(ns, "System") == 0 &&
+            std::strcmp(name, "Int32") == 0)
+            r.rare = fieldOffset(item, "rare");
+    }
     r.setDefaults = findMethodBySignature(item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     r.applyPrefix = findMethodBySignature(item, parseSignature("bool Prefix(int prefixWeWant)"));
     r.applyPrefixDetailed = findMethodBySignature(item, parseSignature(
