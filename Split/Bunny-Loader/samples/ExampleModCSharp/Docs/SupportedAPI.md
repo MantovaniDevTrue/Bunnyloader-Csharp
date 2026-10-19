@@ -16,7 +16,11 @@ Fonte principal de assinaturas: [BunnySourceScriptApi.cs](../../../experiments/c
 | BunnyPlayer.UpdateMovement(bool) | ExampleMomentumPlayer | .90.16 em validação; +6% aceleração nativa com acessório equipado |
 | BunnyPlayer.FrameEffects(bool) | ExampleShadowPlayer | .90.16 em validação; sombra do jogador enquanto equipado |
 | BunnyLiveNpc.AI(int,int) | Common/Live/ExampleLiveNpcAI.cs | protótipo experimental, não AI por frame |
-| BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects / ConfigureRollRules / Apply / ExtraTooltip | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI nativo C# e objeto ARM64 aprovados; **gameplay Android ainda não validado** |
+| BunnyPrefix.SetDefaults / SetStats / ModifyValue / ApplyAccessoryEffects / ConfigureRollRules / Apply / ExtraTooltip / BunnyItemPrefixRules.Deny | Content/Prefixes/ExampleMightyPrefix.cs, ExampleGuardedPrefix.cs | CI nativo C# e objeto ARM64 aprovados; **gameplay Android ainda não validado** |
+
+## Filtro de prefixos por item no C#
+
+O exemplo jogável `ExampleWand.cs` usa `ConfigurePrefixRules(BunnyItemPrefixRules)` para bloquear o prefixo vanilla ID 71 e o prefixo local `ExampleGuardedPrefix`. A política é resolvida no carregamento e aplicada nos hooks nativos, não invoca o MonoVM por reforja. Funciona como um subconjunto estático de `AllowPrefix`; não substitui os callbacks dinâmicos por instância do loader JS. CI C#/C++ e compilação ARM64 não equivalem a testes no dispositivo.
 
 ## Diferença entre três rotas
 
