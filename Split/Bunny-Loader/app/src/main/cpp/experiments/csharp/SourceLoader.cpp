@@ -728,7 +728,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "TILE" && fields.size() == 13) {
+        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14)) {
             const auto it = mod->registeredKindTypes.find(identity);
             if (it == mod->registeredKindTypes.end() ||
                 runtime::modTileTypeByName(modId, fields[1]) != it->second) {
@@ -754,6 +754,7 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
+                (fields.size() == 14 && !integer(fields[13], &tile.animationFrameHeight)) ||
                 tile.shape < 0 || tile.shape > 1 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
@@ -762,6 +763,7 @@ bool applyManagedSourceDefaults(
                 tile.mapB < 0 || tile.mapB > 255 ||
                 tile.failDust < 0 || tile.failDust > 20 ||
                 tile.normalDust < 0 || tile.normalDust > 20 ||
+                tile.animationFrameHeight < 0 || tile.animationFrameHeight > 4096 ||
                 fields[6].size() > 72 || fields[10].size() > 160) {
                 *error = fields[1] + ": descritor BunnyTile fora dos limites"; return false;
             }

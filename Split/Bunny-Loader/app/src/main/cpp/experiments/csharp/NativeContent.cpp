@@ -2287,6 +2287,8 @@ void onManagedTilesInstalled(int first, int last) {
     for (const auto& [mod, entry] : records) {
         const bool flags = applyTileFlags(mod, entry.type, entry);
         const bool shape = applyTileShape(entry.type, entry);
+        if (flags && shape && entry.animationFrameHeight > 0)
+            runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
         const bool adjacency = entry.adjacentTile < 0 ||
@@ -2318,6 +2320,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
             entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
+            entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||

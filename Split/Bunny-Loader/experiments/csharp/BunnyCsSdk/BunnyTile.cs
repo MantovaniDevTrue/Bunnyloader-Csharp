@@ -39,6 +39,7 @@ public abstract class BunnyTile {
     public BunnyTileFlags Flags { get; set; }
     public BunnyTileShape Shape { get; set; }
     public int CoordinateHeight { get; set; } = 18;
+    public int AnimationFrameHeight { get; set; } = 0;
     public int AdjacentTile { get; set; } = -1;
     public string DustName { get; set; } = "";
     public int MapR { get; private set; } = 200;
