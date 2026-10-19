@@ -610,6 +610,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 }
 
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
+    auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
+        [&](const SourceModStatus& entry) { return entry.id == mod.id; });
+    if (previous != g_statuses.end())
+        angler::registry().unload(mod.id);
     SourceModStatus status;
     status.id = mod.id;
     status.directory = mod.dir;
@@ -620,6 +624,10 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 status.projectiles, status.buffs, status.potions, status.npcs);
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
+    }
+    if (previous != g_statuses.end()) {
+        *previous = std::move(status);
+        return previous->loaded;
     }
     g_statuses.push_back(std::move(status));
     return g_statuses.back().loaded;
