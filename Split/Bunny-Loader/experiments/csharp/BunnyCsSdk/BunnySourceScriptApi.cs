@@ -534,6 +534,27 @@ public abstract class BunnyPrefix
     public virtual void SetStats(ref PrefixStats stats) { }
     public bool RequireEffectiveStats { get; set; } = true;
     public string ExtraTooltip { get; set; } = "";
+    private readonly System.Collections.Generic.List<string> tooltipLines = new();
+
+    public void AddTooltipLine(string text)
+    {
+        if (string.IsNullOrEmpty(text) || tooltipLines.Count >= 4 ||
+            System.Text.Encoding.UTF8.GetByteCount(text) > 120)
+            throw new System.ArgumentOutOfRangeException(nameof(text));
+        foreach (char value in text)
+            if (char.IsControl(value))
+                throw new System.ArgumentOutOfRangeException(nameof(text));
+        tooltipLines.Add(text);
+    }
+
+    public string SerializeTooltipLines()
+    {
+        var lines = new System.Collections.Generic.List<string>(tooltipLines.Count);
+        foreach (string line in tooltipLines)
+            lines.Add(System.Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(line)));
+        return string.Join(",", lines);
+    }
+
     public virtual void Apply(ref BunnyPrefixApplyStats effects) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
