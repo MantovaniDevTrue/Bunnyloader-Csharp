@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <dlfcn.h>
 #include <map>
 #include <string>
@@ -57,6 +58,19 @@ bool g_dustInstalled = false;
 bool g_frameInstalled = false;
 bool g_canKillInstalled = false;
 bool g_animationInstalled = false;
+bool g_tileScanReady=false;
+bool g_tileLightReady=false;
+FieldInfo* g_screenPositionField=nullptr;
+FieldInfo* g_screenWidthField=nullptr;
+FieldInfo* g_screenHeightField=nullptr;
+FieldInfo* g_buffScanWidthField=nullptr;
+FieldInfo* g_buffScanHeightField=nullptr;
+const MethodInfo* g_addTileLight=nullptr;
+uint64_t g_tileScanTick=0;
+size_t g_tileScanVisualCursor=0,g_tileScanBuffCursor=0,g_tileScanLightCursor=0;
+struct TileLightCache {int x=0,y=0,r=0,g=0,b=0;uint64_t frame=0;};
+std::map<uint64_t,TileLightCache> g_tileLightCache;
+std::map<uint64_t,uint64_t> g_tileNearbyEvents;
 using AnimateFn = void (*)(const MethodInfo*);
 AnimateFn g_originalAnimate = nullptr;
 FieldInfo* g_frameArray = nullptr;
@@ -317,8 +331,198 @@ int resolveDustId(const std::string& name) {
 }
 
 
+
+uint64_t tileCellKey(int x,int y,bool visual=false) {
+    return (static_cast<uint64_t>(static_cast<uint32_t>(x))<<33)|
+           (static_cast<uint64_t>(static_cast<uint32_t>(y))<<1)|
+           (visual?1ull:0ull);
+}
+bool setupTileWorldScan(bool lighting,bool nearby) {
+    auto& a=il2cpp::api();
+    if(!a.field_static_get_value)return false;
+    if(!g_tileScanReady) {
+        auto* main=il2cpp::findClass({"Terraria","Main",{}});
+        std::string error;
+        if(!il2cpp::nativeFieldContract(main,"screenPosition","Microsoft.Xna.Framework.Vector2",
+                   true,8,&g_screenPositionField,nullptr,&error)||
+           !il2cpp::nativeFieldContract(main,"screenWidth","System.Int32",
+                   true,4,&g_screenWidthField,nullptr,&error)||
+           !il2cpp::nativeFieldContract(main,"screenHeight","System.Int32",
+                   true,4,&g_screenHeightField,nullptr,&error)||
+           (nearby&&(!il2cpp::nativeFieldContract(main,"buffScanAreaWidth","System.Int32",
+                   true,4,&g_buffScanWidthField,nullptr,&error)||
+           !il2cpp::nativeFieldContract(main,"buffScanAreaHeight","System.Int32",
+                   true,4,&g_buffScanHeightField,nullptr,&error)))) {
+            BL_ERROR("[CSharp][TileScan] Native field contract mismatch: %s",error.c_str());
+            return false;
+        }
+        g_tileScanReady=true;
+    }
+    if(nearby&&(!g_buffScanWidthField||!g_buffScanHeightField)) {
+        auto* main=il2cpp::findClass({"Terraria","Main",{}});
+        std::string error;
+        if(!il2cpp::nativeFieldContract(main,"buffScanAreaWidth","System.Int32",
+                 true,4,&g_buffScanWidthField,nullptr,&error)||
+           !il2cpp::nativeFieldContract(main,"buffScanAreaHeight","System.Int32",
+                 true,4,&g_buffScanHeightField,nullptr,&error))return false;
+    }
+    if(lighting&&!g_tileLightReady) {
+        if(!a.method_get_param_count||!a.method_get_param||!a.method_get_return_type||
+           !a.runtime_invoke)return false;
+        auto* light=il2cpp::findClass({"Terraria","Lighting",{}});
+        const auto* method=light?a.class_get_method_from_name(light,"AddLight",5):nullptr;
+        if(!method||a.method_get_param_count(method)!=5||
+           !nameOf(a.method_get_return_type(method),"System.Void")||
+           !nameOf(a.method_get_param(method,0),"System.Int32")||
+           !nameOf(a.method_get_param(method,1),"System.Int32")||
+           !nameOf(a.method_get_param(method,2),"System.Single")||
+           !nameOf(a.method_get_param(method,3),"System.Single")||
+           !nameOf(a.method_get_param(method,4),"System.Single")||
+           !il2cpp::methodPointer(method))return false;
+        g_addTileLight=method;
+        g_tileLightReady=true;
+    }
+    return true;
+}
+struct TileRect {int left=0,top=0,width=0,height=0;};
+TileRect tileScreenRect(const runtime::TileArrays& world,bool buff) {
+    auto& a=il2cpp::api();
+    struct Vec {float x=0,y=0;} screen;
+    int32_t width=0,height=0;
+    a.field_static_get_value(g_screenPositionField,&screen);
+    a.field_static_get_value(g_screenWidthField,&width);
+    a.field_static_get_value(g_screenHeightField,&height);
+    if(!std::isfinite(screen.x)||!std::isfinite(screen.y)||
+       width<1||width>8192||height<1||height>8192)return {};
+    int x=static_cast<int>(std::floor(screen.x/16.0f));
+    int y=static_cast<int>(std::floor(screen.y/16.0f));
+    int cols=(width+15)/16,rows=(height+15)/16;
+    if(buff) {
+        int32_t buffWidth=0,buffHeight=0;
+        a.field_static_get_value(g_buffScanWidthField,&buffWidth);
+        a.field_static_get_value(g_buffScanHeightField,&buffHeight);
+        if(buffWidth<1||buffWidth>256||buffHeight<1||buffHeight>256)return {};
+        x+=cols/2-buffWidth/2;
+        y+=rows/2-buffHeight/2;
+        cols=buffWidth;rows=buffHeight;
+    } else {
+        x-=28;y-=28;cols+=56;rows+=56;
+    }
+    const int left=std::clamp(x,0,world.width);
+    const int top=std::clamp(y,0,world.height);
+    const int right=std::clamp(x+cols,0,world.width);
+    const int bottom=std::clamp(y+rows,0,world.height);
+    return {left,top,std::max(0,right-left),std::max(0,bottom-top)};
+}
+void scanTileNearby(const runtime::TileArrays& world,bool visual) {
+    const TileRect region=tileScreenRect(world,!visual);
+    const size_t total=static_cast<size_t>(region.width)*region.height;
+    if(!total)return;
+    size_t& cursor=visual?g_tileScanVisualCursor:g_tileScanBuffCursor;
+    cursor%=total;
+    const size_t first=cursor;
+    int sent=0;
+    for(size_t visited=0;visited<total&&sent<6;++visited) {
+        const size_t index=(first+visited)%total;
+        const int x=region.left+static_cast<int>(index%region.width);
+        const int y=region.top+static_cast<int>(index/region.width);
+        const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+        if(it==g_tiles.end()||!managedTileReady(it->second.spec,11))continue;
+        const auto key=tileCellKey(x,y,visual);
+        const auto previous=g_tileNearbyEvents.find(key);
+        if(previous!=g_tileNearbyEvents.end()&&g_tileScanTick-previous->second<6)continue;
+        if(!queueManagedTileNearby(it->second.spec.mod,it->second.spec.assembly,
+              it->second.spec.name,x,y,visual))break;
+        g_tileNearbyEvents[key]=g_tileScanTick;
+        ++sent;
+        cursor=(index+1)%total;
+    }
+    if(!sent)cursor=(first+std::min<size_t>(total,512))%total;
+    if(g_tileNearbyEvents.size()>2048)g_tileNearbyEvents.clear();
+}
+bool parseTileLight(const std::string& reply,int* r,int* g,int* b) {
+    if(reply.rfind("LIGHT|",0)!=0||reply.size()>48)return false;
+    int values[3]{};
+    size_t begin=6;
+    for(int i=0;i<3;i++) {
+        const auto end=reply.find('|',begin);
+        if((i<2&&end==std::string::npos)||(i==2&&end!=std::string::npos))
+            return false;
+        const auto finish=i==2?reply.size():end;
+        const auto start=reply.data()+begin;
+        const auto parsed=std::from_chars(start,reply.data()+finish,values[i]);
+        if(parsed.ec!=std::errc{}||parsed.ptr!=reply.data()+finish||
+           values[i]<0||values[i]>4000)return false;
+        begin=finish+1;
+    }
+    *r=values[0];*g=values[1];*b=values[2];return true;
+}
+void scanTileLighting(const runtime::TileArrays& world) {
+    const TileRect region=tileScreenRect(world,false);
+    const size_t total=static_cast<size_t>(region.width)*region.height;
+    if(!total||!g_addTileLight)return;
+    g_tileScanLightCursor%=total;
+    const size_t first=g_tileScanLightCursor;
+    int evaluated=0;
+    for(size_t visited=0;visited<total&&evaluated<3;++visited) {
+        const size_t index=(first+visited)%total;
+        const int x=region.left+static_cast<int>(index%region.width);
+        const int y=region.top+static_cast<int>(index/region.width);
+        const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+        if(it==g_tiles.end()||!managedTileReady(it->second.spec,6))continue;
+        const uint64_t key=tileCellKey(x,y);
+        const auto cached=g_tileLightCache.find(key);
+        if(cached!=g_tileLightCache.end()&&g_tileScanTick-cached->second.frame<3)continue;
+        evaluated++;
+        std::string reply;
+        if(invokeManagedTile(it->second.spec.mod,it->second.spec.assembly,
+           it->second.spec.name,6,x,y,&reply,600)) {
+            int red=0,green=0,blue=0;
+            if(parseTileLight(reply,&red,&green,&blue))
+                g_tileLightCache[key]={x,y,red,green,blue,g_tileScanTick};
+        }
+        g_tileScanLightCursor=(index+1)%total;
+    }
+    if(!evaluated)g_tileScanLightCursor=(first+std::min<size_t>(total,512))%total;
+    auto& a=il2cpp::api();
+    for(auto it=g_tileLightCache.begin();it!=g_tileLightCache.end();) {
+        auto& entry=it->second;
+        if(g_tileScanTick-entry.frame>12||entry.x<region.left||
+           entry.y<region.top||entry.x>=region.left+region.width||
+           entry.y>=region.top+region.height||
+           runtime::tileTypeAt(entry.x,entry.y)<runtime::kVanillaTileCount) {
+            it=g_tileLightCache.erase(it);continue;
+        }
+        if(entry.r||entry.g||entry.b) {
+            int x=entry.x,y=entry.y;
+            float r=entry.r/1000.f,g=entry.g/1000.f,b=entry.b/1000.f;
+            void* args[]={&x,&y,&r,&g,&b};
+            Il2CppObject* error=nullptr;
+            a.runtime_invoke(g_addTileLight,nullptr,args,&error);
+        }
+        ++it;
+    }
+}
+void scanManagedTileWorld() {
+    ++g_tileScanTick;
+    if(!g_tileScanReady||g_tiles.empty())return;
+    bool nearby=false,lighting=false;
+    for(const auto& [type,tile]:g_tiles) {
+        nearby|=(tile.spec.callbackMask&(1<<11))!=0;
+        lighting|=(tile.spec.callbackMask&(1<<6))!=0;
+    }
+    if(!nearby&&!lighting)return;
+    runtime::TileArrays world{};
+    if(!runtime::tileArrays(&world))return;
+    if(nearby&&(g_tileScanTick%6==0)) {
+        scanTileNearby(world,false);
+        scanTileNearby(world,true);
+    }
+    if(lighting)scanTileLighting(world);
+}
 void hkAnimateTiles(const MethodInfo* method) {
     if (g_originalAnimate) g_originalAnimate(method);
+    scanManagedTileWorld();
     if (g_animatedTiles.empty()) return;
     auto& a = il2cpp::api();
     Il2CppArray* frames = nullptr;
@@ -790,7 +994,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
-    if ((spec.animationFrames > 1 || (spec.callbackMask & (1 << 12))) && !setupNativeTileAnimation()) return false;
+    if ((spec.animationFrames > 1 || (spec.callbackMask & ((1 << 6)|(1 << 11)|(1 << 12)))) &&
+        !setupNativeTileAnimation()) return false;
+    if((spec.callbackMask&((1<<6)|(1<<11))) &&
+       !setupTileWorldScan((spec.callbackMask&(1<<6))!=0,(spec.callbackMask&(1<<11))!=0))
+        return false;
     if ((!spec.allowBreaking || (spec.callbackMask&1)) && !setupCanKillTileHook()) {
         BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
                  spec.mod.c_str(), spec.name.c_str());
