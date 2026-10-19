@@ -37,6 +37,8 @@ jobs:
         run: |
           set -euo pipefail
           bash -n bunny-csharp-entrega/tools/mono/build_patched_mono_arm64.sh
+          bash -n bunny-csharp-entrega/tools/mono/install_patched_mono_arm64.sh
+          (cd bunny-csharp-entrega/tools/mono/prebuilt/arm64-v8a && sha256sum -c libmonosgen-2.0.so.sha256)
           python3 -m py_compile bunny-csharp-entrega/tools/mono/patch_mono_android_signals.py
           python3 -m py_compile bunny-csharp-entrega/tests/test_mono_android_signals_patch.py
           grep -q 'mono_threads_suspend_search_alternative_signal' bunny-csharp-entrega/tools/mono/patch_mono_android_signals.py
@@ -68,6 +70,11 @@ jobs:
           cmp "$RUNNER_TEMP/upstream-readme.md" bunny-original/README-BUNNY-ORIGINAL.md
           test -s bunny-original/POTATO-C-SHARP-HANDOFF.md
           test -s bunny-original/docs/POTATO-UPSTREAM-FILE-MAP.json
+          (
+            cd bunny-original
+            bash tools/mono/install_patched_mono_arm64.sh
+            cmp tools/mono/prebuilt/arm64-v8a/libmonosgen-2.0.so app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so
+          )
 
       - name: Check source and imported file manifest
         shell: bash
