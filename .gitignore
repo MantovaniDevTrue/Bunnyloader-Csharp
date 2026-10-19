@@ -25,8 +25,7 @@ keystore.properties
 refs/*
 !refs/README.md
 
-# QuickJS vendored sources (baixados localmente, ver third_party/README.md)
-app/src/main/cpp/third_party/quickjs/
+# QuickJS-ng v0.17.0 is part of the Bunny original+CSharp integrated source.
 
 # APK modificado do jogo (copia alterada de jogo pago) e chaves — NUNCA versionar
 /out/
