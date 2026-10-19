@@ -661,6 +661,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPrefixEntry> prefixes;
     std::vector<localization::Entry> localized;
     std::set<std::string> seenLocale;
+    bool seenLocalizationModules = false;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -672,6 +673,16 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
+            int count=0;
+            if (seenLocalizationModules || fields.size()!=2 ||
+                !integer(fields[1],&count) || count<1 || count>32) {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Reason=InvalidModuleMarker";
+                return false;
+            }
+            seenLocalizationModules=true;
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="LOCALE") {
             localization::Entry entry;
             if (!localization::decodeWire(fields,modId,&entry,error))return false;
