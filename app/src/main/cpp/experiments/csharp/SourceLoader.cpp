@@ -684,14 +684,19 @@ bool applyManagedSourceDefaults(
             continue;
         }
         if(!fields.empty()&&fields[0]=="QUEST_FISH") {
-            if(fields.size()!=6) {
+            if(fields.size()!=6&&fields.size()!=7) {
                 *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=InvalidFieldCount";
                 return false;
             }
             const auto key=sourceIdentityForWire("ITEM",fields[1]);
             const auto owner=mod->registeredKindTypes.find(key);
             const auto base=mod->registeredBases.find(key);
-            int pre=-1, hard=-1;
+            int pre=-1, hard=-1, catchRules=0;
+            if(fields.size()==7&&(!integer(fields[6],&catchRules)||catchRules<0||catchRules>3)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=InvalidCatchRules";
+                return false;
+            }
             std::string description, location;
             if(owner==mod->registeredKindTypes.end()||base==mod->registeredBases.end()||
                base->second!="BunnyItem"||!isBasicItem(owner->second)||
@@ -704,7 +709,7 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             angler::Quest quest{modId,fields[1],owner->second,pre==1,hard==1,
-                                std::move(description),std::move(location)};
+                                std::move(description),std::move(location),catchRules};
             if(std::any_of(anglerQuests.begin(),anglerQuests.end(),
                 [&](const angler::Quest& previous) {
                     return previous.type==quest.type||previous.name==quest.name;
