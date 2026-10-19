@@ -128,6 +128,11 @@ int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
 bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
     const auto& r = g_refs;
     if (!item || itemRollWeight(item, p) == 0) return false;
+    if (p.category == 6) {
+        const int type = bl::runtime::field<int32_t>(item, r.type);
+        const auto allowed = p.itemWeights.find(type);
+        return allowed != p.itemWeights.end() && allowed->second > 0;
+    }
     if (p.category == 5)
         return r.accessory >= 0 && bl::runtime::field<uint8_t>(item, r.accessory) != 0;
     if (!weaponCandidate(item, vanillaHasRollable)) return false;
@@ -180,7 +185,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const bool vanillaHasRollable = base && base->length > 0;
     int extra = 0;
     for (const auto& p : *descriptors)
-        if (eligible(item, p, vanillaHasRollable))
+        if (p.category != 6 && eligible(item, p, vanillaHasRollable))
             extra += itemRollWeight(item, p);
     if (extra == 0) return base;
     const uintptr_t old = base ? base->length : 0;
@@ -192,7 +197,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     if (old) std::memcpy(values, arrayData(base), old * sizeof(int32_t));
     uintptr_t index = old;
     for (const auto& p : *descriptors)
-        if (eligible(item, p, vanillaHasRollable))
+        if (p.category != 6 && eligible(item, p, vanillaHasRollable))
             for (int i = 0; i < itemRollWeight(item, p); ++i)
                 values[index++] = p.type;
     return out;
