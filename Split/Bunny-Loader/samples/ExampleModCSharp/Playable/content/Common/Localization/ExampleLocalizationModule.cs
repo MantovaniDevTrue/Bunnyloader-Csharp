@@ -5,6 +5,13 @@ namespace ExampleModCSharp.Common.Localization;
 
 public sealed class ExampleLocalizationModule : BunnyLocalizationModule
 {
+    public string LastAppliedCulture { get; private set; } = "";
+
+    public override void OnLocalizationsLoaded()
+    {
+        LastAppliedCulture = BunnyLocalizationRuntime.ActiveCultureName;
+    }
+
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
     {
         catalog.Register("Mods.source.Common.Localization.ModuleGreeting",
