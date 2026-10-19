@@ -45,7 +45,7 @@ int main() {
     assert(error == "InvalidQuestDescriptor");
     assert(!registry.publish("examplemodcsharp",
         {Quest{"examplemodcsharp", "InvalidUtf8", 860, true, true,
-               std::string("\\xC0\\xAF", 2), ""}}, &error));
+               std::string({char(0xC0), char(0xAF)}), ""}}, &error));
     assert(error == "InvalidQuestDescriptor");
     assert(registry.generation() == 1);
     assert(!registry.publish("bad",
