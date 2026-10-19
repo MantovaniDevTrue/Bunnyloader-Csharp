@@ -48,5 +48,30 @@ int main() {
     assert(session.retainOnly({}));
     assert(session.snapshot().active.empty());
     assert(session.snapshot().retired.contains("Mods.modB.ItemName.B"));
+
+    NativeLocalizationSession dynamic;
+    dynamic.replace("owner",{{"en-US","Mods.owner.ItemName.One","Static"},
+                              {"pt-BR","Mods.owner.ItemName.One","Estático"}});
+    dynamic.replace("other",{{"en-US","Mods.other.ItemName.Two","Other"}});
+    auto original=dynamic.snapshot();
+    assert(dynamic.replaceDynamic("owner",{{"en-US","Mods.owner.ItemName.One","Dynamic"},
+                                           {"pt-BR","Mods.owner.ItemName.New","Novo"}}));
+    auto merged=dynamic.snapshot();
+    assert(merged.active.at("owner").size()==3);
+    assert(merged.active.at("other").size()==1);
+    assert(merged.active.at("owner")[0].value=="Dynamic");
+    assert(!dynamic.replaceDynamic("owner",{{"en-US","Mods.owner.ItemName.One","Dynamic"},
+                                            {"pt-BR","Mods.owner.ItemName.New","Novo"}}));
+    assert(original.active.at("owner").size()==2);
+    assert(!dynamic.snapshot().retired.contains("Mods.owner.ItemName.One"));
+    assert(dynamic.replaceDynamic("owner",{}));
+    assert(dynamic.snapshot().active.at("owner").size()==2);
+    assert(dynamic.snapshot().retired.contains("Mods.owner.ItemName.New"));
+    assert(dynamic.snapshot().active.at("owner")[0].value=="Static");
+    assert(dynamic.replaceDynamic("owner",{{"en-US","Mods.owner.ItemName.RuntimeOnly","Only"}}));
+    assert(dynamic.retainOnly({"other"}));
+    assert(!dynamic.snapshot().active.contains("owner"));
+    assert(dynamic.snapshot().retired.contains("Mods.owner.ItemName.RuntimeOnly"));
+    assert(dynamic.snapshot().active.at("other").size()==1);
     return 0;
 }
