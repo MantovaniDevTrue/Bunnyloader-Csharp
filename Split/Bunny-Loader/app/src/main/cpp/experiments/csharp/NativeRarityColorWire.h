@@ -29,4 +29,17 @@ inline bool decodeRarityColorWire(std::string_view text, uint32_t* argb) {
     return true;
 }
 
+
+inline bool decodeRarityPrefixWire(std::string_view text, int* result) {
+    if (!result || !text.starts_with("RARITY|") || text.size() > 18) return false;
+    text.remove_prefix(7);
+    if (text.empty()) return false;
+    int value = -100;
+    auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() ||
+        value < -11 || value >= 4108) return false;
+    *result = value;
+    return true;
+}
+
 }
