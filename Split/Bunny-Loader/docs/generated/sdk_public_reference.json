@@ -2069,6 +2069,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void HitWire(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2097,14 +2101,6 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
-          "execution": "managed_helper"
-        },
-        {
-          "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
-          "execution": "managed_helper"
-        },
-        {
           "signature": "void RandomUpdate(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2119,7 +2115,11 @@
         {
           "signature": "void SetStaticDefaults()",
           "execution": "compile_policy"
-        }
+        },
+        {
+          "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
       ]
     },
     {
