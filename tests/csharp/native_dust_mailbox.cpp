@@ -25,29 +25,29 @@ int main() {
     assert(!queue.consume(0,5,332,1,11,&result));
     assert(queue.offer(0,dust,12));
     assert(queue.take(&first,1)==1);
-    assert(queue.complete(first,updated,1u));
+    assert(queue.complete(first,updated,1u | 32u));
     assert(queue.consume(0,5,332,1,13,&result));
-    assert(result.state.scale==0.8f && result.flags==1u);
+    assert(result.state.scale==0.8f && result.flags==(1u | 32u));
     assert(!queue.consume(0,5,332,1,13,&result));
     assert(queue.offer(0,dust,20));
     assert(queue.take(&first,1)==1);
-    assert(queue.complete(first,updated,1u));
+    assert(queue.complete(first,updated,1u | 32u));
     assert(!queue.consume(0,5,332,1,25,&result));
     assert(queue.offer(0,dust,26));
     assert(queue.take(&first,1)==1);
     updated.generation=2;
-    assert(!queue.complete(first,updated,1u));
+    assert(!queue.complete(first,updated,1u | 32u));
     queue.resetWorld();
-    assert(!queue.complete(first,dust,1u));
+    assert(!queue.complete(first,dust,1u | 32u));
     assert(queue.offer(0,sample(5,333,2),100));
     assert(queue.take(&first,1)==1);
-    assert(!queue.complete(first,dust,1u));
-    assert(queue.complete(first,first.state,1u));
+    assert(!queue.complete(first,dust,1u | 32u));
+    assert(queue.complete(first,first.state,1u | 32u));
     assert(queue.consume(0,5,333,2,101,&result));
     assert(queue.offer(1,sample(6),102));
     assert(queue.take(&first,1)==1);
     assert(!queue.complete(first,first.state,128u));
-    assert(queue.complete(first,first.state,1u));
+    assert(queue.complete(first,first.state,1u | 32u));
     assert(queue.consume(1,6,332,1,103,&result));
     for(int i=0;i<128;i++) assert(queue.offer(1,sample(100+i),110));
     assert(!queue.offer(1,sample(400),110));
@@ -56,5 +56,5 @@ int main() {
     assert(queue.take(batch,128)==128);
     queue.resetWorld();
     for(const auto& request:batch)
-        assert(!queue.complete(request,request.state,1u));
+        assert(!queue.complete(request,request.state,1u | 32u));
 }
