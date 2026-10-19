@@ -114,8 +114,10 @@ public static class BunnyDustSourceDispatcher
         {
             if (!context.Registry.OnSpawn(ref state))
                 return 0;
-            context.Types[slot] = state.Type;
-            context.Generations[slot] = state.Generation;
+            if (state.Active != 0) {
+                context.Types[slot] = state.Type;
+                context.Generations[slot] = state.Generation;
+            }
         }
         if (phase == Spawn)
             return Accepted | (state.Active != 0 ? Active : 0);
