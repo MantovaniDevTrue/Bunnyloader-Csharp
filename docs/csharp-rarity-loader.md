@@ -157,6 +157,16 @@ Isso é teste de integridade de arquivos no host, **não** confirmação de salv
 - **Logs otimizados:** a instalação nativa continua reavaliando os hooks a cada 60 ticks, mas avisos repetidos de ABI indisponível são limitados a um a cada 600 ticks para cada tentativa, reduzindo a poluição.
 - Testes e validação compilada com `-Werror` continuam exclusivamente no host. Nenhum teste real em Android foi executado.
 
+## Lote — integridade de prefixos vanilla e movimentação de raridade pendente (19/10)
+
+- O carregamento de um item vanilla em **baú** com sidecar que guarda somente `rarityKey` não zera mais o prefixo nativo que já estava salvo no `.wld`. O helper `hasSavedVanillaPrefix` é usado tanto no fluxo do jogador quanto no baú, e testes de host exercitam prefixos existentes.
+- A raridade C# pendente de um item no inventário agora também é associada à **referência do objeto**, além de `container/slot`. Um item movido cuja referência é preservada mantém a chave estável; o item que ocupou o slot antigo não herda indevidamente essa raridade.
+- `NativeRarityPending.h` concentra seleção e reconciliação testáveis: rastreia mudança de posição, restauração completa e remoção do item. A rotina de `retryPendingManagedRaritiesInWorld` usa esse seletor e remove apenas os registros correspondentes ao item restaurado.
+- Depois de salvar o personagem, as posições pendentes são recalculadas **apenas quando há pendências**, evitando varreduras desnecessárias. Uma raridade customizada já aplicada no item não é sobrescrita pelo retorno tardio do mod.
+- Testes de host simulam dois itens do mesmo tipo, a substituição no slot antigo, mudança de posição, resolução e remoção, sem executar JavaScript ou fazer leitura de ponteiros antigos.
+
+**Limite:** a identidade da referência é preservada quando o próprio `Item` permanece o mesmo; cópias profundas ou reconstruções de objetos por APIs nativas exigem QA Android. O rastreador não é uma identidade persistente para rede/multiplayer nem substitui o save `mod/classe`. Nenhum APK criado.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
