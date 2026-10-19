@@ -19,6 +19,11 @@ int modPrefixByKey(const std::string& key) {
     if (key == "test/Swift") return 100;
     return -1;
 }
+int modItemTypeByKey(const std::string& key) {
+    if (key == "test/ExampleBlade") return 6207;
+    if (key == "test/ExampleCharm") return 6208;
+    return -1;
+}
 }
 
 namespace bl::csharp {
@@ -88,6 +93,16 @@ int main() {
     assert(managedPrefixView() == third);
     swift.itemWeights[1] = 0;
     swift.itemWeights[512] = 7;
+    swift.itemNames["UnknownItem"] = 3;
+    assert(!applyManagedPrefixDescriptors("test", {swift}));
+    assert(managedPrefixView() == third);
+    swift.itemNames.clear();
+    swift.itemNames["ExampleBlade"] = 11;
+    swift.itemNames["ExampleCharm"] = 0;
+    auto duplicate = swift;
+    duplicate.itemWeights[6207] = 9;
+    assert(!applyManagedPrefixDescriptors("test", {duplicate}));
+    assert(managedPrefixView() == third);
 
     std::atomic<bool> go{false};
     std::atomic<int> snapshots{0};
@@ -112,6 +127,9 @@ int main() {
     assert(final->size() == 3 && final->at(2).name == "Swift");
     assert(final->at(2).itemWeights.at(1) == 0);
     assert(final->at(2).itemWeights.at(512) == 7);
+    assert(final->at(2).itemWeights.at(6207) == 11);
+    assert(final->at(2).itemWeights.at(6208) == 0);
+    assert(final->at(2).itemNames.empty());
     assert(third->size() == 2);
     assert(second->size() == 1);
     assert(first->empty());
