@@ -1894,9 +1894,7 @@
       "name": "BunnyLoader.Source.BunnyShootContext",
       "kind": "class",
       "baseType": "System.Object",
-      "constructors": [
-        "BunnyShootContext()"
-      ],
+      "constructors": [],
       "properties": [
         "Random Random { get; }",
         "int ItemType { get; }",

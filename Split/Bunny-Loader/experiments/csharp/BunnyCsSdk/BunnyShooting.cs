@@ -31,6 +31,7 @@ public struct BunnyShot
 /// <summary>One weapon use on the Mono worker. Spawn requests apply on the game thread only after validation.</summary>
 public sealed class BunnyShootContext
 {
+    internal BunnyShootContext() { }
     public int PlayerIndex { get; internal set; }
     public int ItemType { get; internal set; }
     public int WeaponDamage { get; internal set; }
@@ -86,6 +87,8 @@ public static class BunnyShootRuntime
         string callback="Bind",className=owner;
         try
         {
+            if(index!=0||kind<0||kind>2||snapshot.Length>1024||(kind==2&&snapshot.Length!=0))
+                throw new ArgumentException("Invalid shooting transport arguments: Index="+index+" Kind="+kind+" SnapshotLength="+snapshot.Length);
             if(!mods.TryGetValue(modId,out var mod)||mod.Path!=assemblyPath)
             {
                 mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(assemblyPath))};mods[modId]=mod;
@@ -105,8 +108,8 @@ public static class BunnyShootRuntime
                     System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(types[0].GetMethod(name)!.MethodHandle);
                 mod.Items.Add(owner,item);
             }
+            className=item.GetType().FullName??owner;
             if(kind==2)return "READY";
-            if(index!=0||kind<0||kind>1||snapshot.Length>1024)throw new ArgumentException("Invalid shooting transport arguments");
             var f=snapshot.Split(',');if(f.Length!=14)throw new ArgumentException("Expected 14 shooting snapshot fields");
             int I(int i)=>int.Parse(f[i],NumberStyles.Integer,CultureInfo.InvariantCulture);
             float F(int i)=>float.Parse(f[i],NumberStyles.Float,CultureInfo.InvariantCulture);

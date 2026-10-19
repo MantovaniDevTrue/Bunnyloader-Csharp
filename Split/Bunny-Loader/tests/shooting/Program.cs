@@ -7,7 +7,7 @@ int checks=0;
 void Require(bool value,string reason){if(!value)throw new Exception(reason);checks++;}
 string assembly=Assembly.GetExecutingAssembly().Location;
 string input="2,6230,18,42,1136,100,200,10,0,24,7,1,2,3";
-string Call(string owner,int kind=1,string? snapshot=null)=>BunnyShootRuntime.Dispatch("independent",assembly,owner,0,kind,snapshot??input);
+string Call(string owner,int kind=1,string? snapshot=null)=>BunnyShootRuntime.Dispatch("independent",assembly,owner,0,kind,snapshot??(kind==2?"":input));
 Require(Call("ExampleShotgun",2)=="READY","Prewarm without firing");
 Require(Call("ExampleShotgun",0)=="1","Default CanShoot allows");
 string output=Call("ExampleShotgun");var parts=output.Split('|');
@@ -30,6 +30,8 @@ Require(Call("ExampleShotgun",1,input+",extra").StartsWith("ERROR|"),"Reject ext
 Require(Call("EarlySpawn",0).Contains("only available during OnShoot"),"Preflight cannot spawn");
 Require(Call("LargeBatch").Length>16384&&Call("LargeBatch").Length<=32768,"64 long identity commands fit the native response budget");
 Require(Call("WeaponWithProjectileProperty").StartsWith("SHOT1|0|"),"Legacy BunnyWeapon.Shoot property and new OnShoot callback coexist");
+Require(BunnyShootRuntime.Dispatch("independent",assembly,"ExampleShotgun",1,2,"").StartsWith("ERROR|"),"Warmup rejects invalid index");
+Require(Call("ExampleShotgun",2,input).StartsWith("ERROR|"),"Warmup rejects payload");
 Require(new ExampleShotgun().ShootCallbackMask==4,"Actual example override mask");
 Require(Call("Hidden",2).Contains("HiddenOrAmbiguousCallback"),"Hidden methods cannot silently bind");
 var shotgun=new ExampleShotgun();shotgun.SetDefaults();Require(shotgun.UseTime==55&&shotgun.UseAnimation==55&&shotgun.Damage==10&&shotgun.Value==100000&&shotgun.UseSound=="Item36","Original defaults");

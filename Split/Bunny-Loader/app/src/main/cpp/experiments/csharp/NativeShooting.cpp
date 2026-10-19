@@ -3,6 +3,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Signature.h"
+#include "il2cpp/GuardedCall.h"
 #include "hook/HookManager.h"
 #include "core/Log.h"
 #include <atomic>
@@ -117,14 +118,24 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     }
     if(!allowed){reinterpret_cast<void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*)>(il2cpp::methodPointer(refs.time))(player,item,refs.time);return;}
     const auto previous=active;active=std::move(context);
-    originalUse(player,index,item,damage,feedback,method);active=previous;
+    // Native exceptions must not leave a stale thread-local shooting scope armed.
+    il2cpp::Caught caught;
+    auto run=[&]{originalUse(player,index,item,damage,feedback,method);};
+    const bool completed=il2cpp::guarded(run,&caught);active=previous;
+    if(!completed)diagnostic(*policy,"ItemCheck_Shoot","Reason=NativeException Detail="+il2cpp::describeCaught(caught));
+}
+int emit(const Policy& policy,const Shot& s,Il2CppObject* source,int owner,Il2CppObject* modifier,const MethodInfo* method,int sentinel) {
+    int slot=sentinel;il2cpp::Caught caught;
+    auto run=[&]{slot=originalSpawn(source,s.x,s.y,s.vx,s.vy,s.type,s.damage,s.kb,owner,s.a0,s.a1,s.a2,modifier,method);};
+    if(!il2cpp::guarded(run,&caught))diagnostic(policy,"NewProjectile","Reason=NativeException Detail="+il2cpp::describeCaught(caught));
+    return slot;
 }
 int spawn(Il2CppObject* source,float x,float y,float vx,float vy,int type,int damage,float kb,int owner,float a0,float a1,float a2,Il2CppObject* modifier,const MethodInfo* method) {
     if(!active.policy)return originalSpawn(source,x,y,vx,vy,type,damage,kb,owner,a0,a1,a2,modifier,method);
     const auto context=active;active={}; // Own spawns must traverse the remaining hooks without recursively invoking Shoot.
     const int sentinel=context.slots;
-    if(!(context.policy->entry.mask&6)) {const int result=originalSpawn(source,x,y,vx,vy,type,damage,kb,owner,a0,a1,a2,modifier,method);active=context;return result;}
     Shot input;input.type=type;input.damage=damage;input.x=x;input.y=y;input.vx=vx;input.vy=vy;input.kb=kb;input.a0=a0;input.a1=a1;input.a2=a2;
+    if(!(context.policy->entry.mask&6)){const int slot=emit(*context.policy,input,source,owner,modifier,method,sentinel);active=context;return slot;}
     std::string output,error;Result result;
     if(!invokeManagedShoot(context.policy->entry.mod,context.policy->entry.assembly,context.policy->entry.name,1,snapshot(context,input),&output)||
        !decode(output,context.policy->entry,&result,&error)) {
@@ -132,9 +143,9 @@ int spawn(Il2CppObject* source,float x,float y,float vx,float vy,int type,int da
     }
     // No output touches Terraria until the entire response, including dependencies, passes validation.
     for(const auto& s:result.additional)
-        originalSpawn(source,s.x,s.y,s.vx,s.vy,s.type,s.damage,s.kb,owner,s.a0,s.a1,s.a2,modifier,method);
+        emit(*context.policy,s,source,owner,modifier,method,sentinel);
     int slot=sentinel;
-    if(result.original){const auto& s=result.modified;slot=originalSpawn(source,s.x,s.y,s.vx,s.vy,s.type,s.damage,s.kb,owner,s.a0,s.a1,s.a2,modifier,method);}
+    if(result.original)slot=emit(*context.policy,result.modified,source,owner,modifier,method,sentinel);
     active=context;return slot;
 }
 bool prepare(std::string* error) {

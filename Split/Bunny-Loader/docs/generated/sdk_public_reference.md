@@ -1049,7 +1049,6 @@ string ShaderFile { get; set; }
 class; base: `System.Object`.
 
 ```csharp
-BunnyShootContext()
 Random Random { get; }
 int ItemType { get; }
 int PlayerIndex { get; }

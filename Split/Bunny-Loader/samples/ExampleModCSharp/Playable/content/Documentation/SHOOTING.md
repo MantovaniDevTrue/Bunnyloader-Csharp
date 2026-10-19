@@ -14,7 +14,7 @@ O loader instala hooks com assinatura completa de Player.ItemCheck_Shoot e Proje
 
 Receitas e disparos compartilham o transporte limitado do worker; os endpoints são distintos. Callback síncrono tem prazo de 3ms. Exceção, atraso, dependência ausente ou dados inválidos rejeitam o tiro e emitem diagnóstico com mod/classe/arquivo/etapa, sem substituir silenciosamente o comportamento pelo tiro vanilla. Se a falha ocorre após o motor consumir munição, esse consumo já ocorreu: o callback não desfaz o inventário. Erros repetidos são agrupados por conteúdo a cada 5s. Primeiro uso, pressão de filas e tempo real precisam de validação no Android.
 
-Todos os pedidos são validados antes do primeiro spawn. Um pedido inválido não permite que os anteriores escapem. Depois de validados, cada spawn usa a fábrica real e pode ser recusado se a pool do Terraria estiver cheia, como qualquer projétil do jogo. Os spawns próprios percorrem os demais hooks, sem invocar recursivamente Shoot. Chamadas nativas distintas da mesma arma continuam independentes.
+Todos os pedidos são validados antes do primeiro spawn. Um pedido inválido não permite que os anteriores escapem. Depois de validados, cada spawn usa a fábrica real e pode ser recusado se a pool do Terraria estiver cheia, como qualquer projétil do jogo. Os spawns próprios percorrem os demais hooks, sem invocar recursivamente OnShoot. Exceções nativas nas chamadas registradas usam o guard existente do Bunny, preservam o diagnóstico original e restauram o escopo de disparo; a próxima criação de projétil não herda um callback antigo. Chamadas nativas distintas da mesma arma continuam independentes.
 
 ## Exemplo original
 
