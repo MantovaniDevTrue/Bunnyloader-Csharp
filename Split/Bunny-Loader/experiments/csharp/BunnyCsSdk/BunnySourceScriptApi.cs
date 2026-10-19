@@ -465,6 +465,9 @@ public abstract class BunnyPrefix
     public abstract void SetDefaults();
     public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
     public virtual void SetStats(ref PrefixStats stats) { }
+    public bool RequireEffectiveStats { get; set; } = true;
+    public string ExtraTooltip { get; set; } = "";
+    public virtual void Apply(ref BunnyPrefixApplyStats effects) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
 }
