@@ -33,6 +33,8 @@ FieldInfo* g_hardMode = nullptr;
 FieldInfo* g_chatCorner = nullptr;
 FieldInfo* g_questFlag = nullptr;
 const MethodInfo* g_nameMethod = nullptr;
+const MethodInfo* g_activeCultureMethod = nullptr;
+const MethodInfo* g_cultureNameMethod = nullptr;
 uint64_t g_appliedGeneration = std::numeric_limits<uint64_t>::max();
 unsigned g_poll = 0;
 unsigned g_resolveFailures = 0;
@@ -70,6 +72,21 @@ std::string utf8(Il2CppString* input) {
         }
     }
     return out;
+}
+
+std::string currentCulture() {
+    auto& a = il2cpp::api();
+    if (!g_activeCultureMethod || !g_cultureNameMethod || !a.runtime_invoke)
+        return "en-US";
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* culture = a.runtime_invoke(g_activeCultureMethod, nullptr, nullptr, &exception);
+    if (exception || !culture) return "en-US";
+    exception = nullptr;
+    auto* result = reinterpret_cast<Il2CppString*>(
+        a.runtime_invoke(g_cultureNameMethod, culture, nullptr, &exception));
+    if (exception || !result) return "en-US";
+    std::string text = utf8(result);
+    return validCulture(text) ? text : "en-US";
 }
 
 bool typeName(const Il2CppType* type, const char* name) {
@@ -141,6 +158,20 @@ bool findContracts() {
         !typeName(a.field_get_type(g_questFinished), "System.Boolean") ||
         !typeName(a.field_get_type(g_hardMode), "System.Boolean"))
         return false;
+    Il2CppClass* language = il2cpp::findClassQuiet("Terraria.Localization", "Language");
+    Il2CppClass* culture = il2cpp::findClassQuiet("Terraria.Localization", "GameCulture");
+    g_activeCultureMethod = language ?
+        a.class_get_method_from_name(language, "get_ActiveCulture", 0) : nullptr;
+    g_cultureNameMethod = culture ?
+        a.class_get_method_from_name(culture, "get_Name", 0) : nullptr;
+    if (!g_activeCultureMethod || !g_cultureNameMethod ||
+        !a.method_get_param_count ||
+        a.method_get_param_count(g_activeCultureMethod) != 0 ||
+        a.method_get_param_count(g_cultureNameMethod) != 0 ||
+        !typeName(a.method_get_return_type(g_cultureNameMethod), "System.String")) {
+        g_activeCultureMethod = nullptr;
+        g_cultureNameMethod = nullptr;
+    }
     const MethodInfo* name = a.class_get_method_from_name(lang, "GetItemNameValue", 1);
     if (methodSignature(name, "System.String", "System.Int32"))
         g_nameMethod = name;
@@ -197,7 +228,7 @@ bool findContracts() {
                 if (!localized.empty()) name = std::move(localized);
             }
         }
-        Il2CppString* output = api.string_new(Registry::chat(*it, name).c_str());
+        Il2CppString* output = api.string_new(Registry::chat(*it, name, currentCulture()).c_str());
         if (!output) return g_originalChat(turnIn, mi);
         int32_t corner = type;
         api.field_static_set_value(g_chatCorner, &corner);
