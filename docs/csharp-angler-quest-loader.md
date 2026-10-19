@@ -1,48 +1,49 @@
-# AnglerQuestLoader C# — implementação isolada
+# AnglerQuestLoader C# — fonte em revisão
 
-**Estado: WIP, não pronto para instalar.** Esta branch foi criada de `v1.0` e não altera os lotes paralelos de Tile, Prefix, Localization ou Rarity.
+**PR #114 (draft). Sem APK, .bmod ou release.** Desenvolvimento isolado da branch `v1.0`, sem copiar o tModLoader e sem usar o QuickJS no caminho C#.
 
-## Fonte de comportamento
+## Fonte do Bunny original
 
-- Bunny Loader original: `app/src/main/cpp/script/js/mod/Loaders/AnglerQuestLoader.js`
-- ExampleModBunny: `samples/ExampleMod/content/Content/Items/Quests/ExampleQuestFish.js`
-- ExampleModBunny: `samples/ExampleMod/content/Common/Players/ExampleFishingPlayer.js`
-- Imagem e textos do peixe de ponta-cabeça reutilizados do ExampleModBunny.
+- `app/src/main/cpp/script/js/mod/Loaders/AnglerQuestLoader.js`
+- `app/src/main/cpp/script/js/mod/Loaders/PlayerLoader.js`, `CatchFish`
+- `samples/ExampleMod/content/Content/Items/Quests/ExampleQuestFish.js`
+- `samples/ExampleMod/content/Common/Players/ExampleFishingPlayer.js`
 
-O caminho de execução C# é independente do JavaScript. A fonte JS é apenas referência comportamental, não ponte.
+O sprite foi copiado com o mesmo Git blob do ExampleModBunny.
 
-## Implementado até aqui
+## Componentes já implementados em código
 
-| Requisito | Estado |
+| Categoria | Estado |
 | --- | --- |
-| API `BunnyItem.DefaultToQuestFish()` | Código presente |
-| Flags Pre-Hardmode/Hardmode e diálogo do Pescador | Código presente, ainda sem hook de jogo |
-| Compilação dos metadados C# para `QUEST_FISH` no wire V2 | Código presente; CI host |
-| Validação de owner/ID/duplicatas e texto UTF-8 | Código presente; CI host |
-| Registro nativo por mod e unload lógico | Código presente; CI host |
-| Mesclagem de IDs e máximo de 50 sorteios | Código presente; CI host |
-| Exemplo C# com sprite original | Código presente; ainda não jogável |
-| `ItemID.Sets.IsQuestFish` no Terraria | Pendente |
-| Array `Main.anglerQuestItemNetIDs` nativo, sem conflito com JS | Pendente |
-| Hooks `Main.AnglerQuestSwap` e `Lang.AnglerQuestChat` | Pendente |
-| Callback C# dinâmico, chat localizado e gravação multiplayer | Pendente |
-| Captura via `CatchFish` como ExampleFishingPlayer | Pendente |
-| Teste em Terraria Android e 60 FPS | Pendente |
+| `BunnyItem.DefaultToQuestFish()` e atributos de disponibilidade | SDK C# implementado |
+| `BunnyQuestCatchRules` (gravidade invertida e sorteio incomum) | SDK C# implementado |
+| Compilador: `QUEST_FISH` contendo flags, UTF-8 hex e regras de captura | Host validado |
+| `SourceLoader`: proprietário, identidade, defaults e publicação ao final | Código integrado; host CI |
+| `NativeAnglerQuestRegistry`: por mod, deduplicação, atualização, unload lógico, 50 tentativas, UTF-8 | Host validado |
+| `NativeAnglerQuestGameplay`: `AnglerQuestSwap`, `AnglerQuestChat`, `IsQuestFish` e array de quests | Código presente; **não validado em Terraria Android** |
+| `NativeAnglerQuestFishing`: `FishingCheck_RollItemDrop` e `FishingAttempt` (92 bytes) | Código presente; **ABI Android não confirmada** |
+| Exemplo C# do peixe de ponta-cabeça | Wire host validado, ainda não testado no jogo |
+| Coexistência com array previamente modificado por JS | Lógica de preservação implementada; jogo real pendente |
+| Diálogo multilíngue, dinâmica de condições e hooks completos por jogador | Pendente |
+| Multiplayer, ciclo de save/hot-unload e estabilidade real | Pendente |
+| Testes Android e desempenho/FPS | Pendente |
 
-## Contrato atual
+## Protocolo de compilação
 
-`QuestFish` só pode ser usado em `BunnyItem`; o registrador verifica a mesma classe em `ITEM`. Metadados do peixe são publicados **depois dos defaults**. A classe usa `MaxStack=1`, aceita nomes por mod e não modifica o sistema de spawn no estado atual.
-
-O compilador escreve:
+O compilador emite:
 
 ```text
-QUEST_FISH<TAB>NomeDaClasse<TAB>PreHardmode(0/1)<TAB>Hardmode(0/1)<TAB>DescriptionHexOu-<TAB>LocationHexOu-
+QUEST_FISH<TAB>Classe<TAB>PreHardmode<TAB>Hardmode<TAB>DescriptionUtf8HexOu-<TAB>LocationUtf8HexOu-<TAB>CatchRules
 ```
 
-O registrador rejeita nomes inválidos, IDs fora do conjunto registrado, dois peixes com o mesmo ID, texto com controles perigosos e descrição/localização acima de 512 bytes UTF-8. O reroll nativo não ultrapassa 50 tentativas.
+`CatchRules=1`: gravidade invertida; `CatchRules=2`: captura incomum; `3` exige ambos. A leitura nativa também aceita o formato anterior de seis colunas, com regras `0`.
 
-## Critérios de conclusão
+O registro só é publicado depois das demais operações de defaults. A thread do jogo atualiza `IsQuestFish` e a lista de `anglerQuestItemNetIDs` sem deslocar entradas JS, usando identidade estável do mod. Os hooks conferem métodos e campos IL2CPP antes de atuar; contratos incompatíveis preservam o funcionamento vanilla. O hook de pesca usa `resolveValueLayout` existente no núcleo, aplica o predicado testado por C++, e não executa MonoVM nem JS.
 
-Não marcar como completo até verificar, no Terraria real, distribuição e atualização dos arrays de missões, chat do NPC, sorteio por condições, captura do peixe, entrada/saída de mundos, mundo singleplayer e multiplayer, coexistência C#/JS, restauração após unload, textos em idiomas suportados e estabilidade/FPS sem alteração no balanceamento.
+## Testes e bloqueios
 
-**Regra obrigatória: NÃO criar, compilar ou publicar APK, .bmod, release ou Gradle Android antes da conclusão total.** Os jobs desta branch só compilam C++ no host e o SDK/compilador C# em .NET host.
+O workflow `check-csharp-angler-quest-host.yml` executa compilação C++ host com `-Werror`, suite do registro, verificação de sintaxe da integração `SourceLoader`/`AutoSourceRuntime`, compilação .NET do SDK/compilador e execução do `CompiledAssemblyProbe` no peixe real.
+
+**Ainda não existe garantia de paridade total:** salvar/restaurar dinâmica de missões em multiplayer, traduções por cultura, hooks gerenciados personalizáveis de pesca/jogador, validação de acesso e ABI IL2CPP no Terraria Android, efeitos de outra versão do jogo, união com mods JS e 60 FPS. Não marcar esta PR como pronta até testes funcionais e regressões completas.
+
+**Política absoluta deste lote: não executar Gradle Android, não compilar/gerar/distribuir APK ou .bmod enquanto houver qualquer item pendente.**
