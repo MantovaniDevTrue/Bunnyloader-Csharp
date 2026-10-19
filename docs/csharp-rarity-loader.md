@@ -149,6 +149,14 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 Isso é teste de integridade de arquivos no host, **não** confirmação de salvamento seguro no Android. É necessário ensaio real de personagens, baús, migração, desativação de mods e rollback antes de liberar qualquer APK.
 
+## Lote — regressões de raridade pendente e proteção de backup (19/10)
+
+- **Integridade v3:** o leitor exige oito campos em **todas** as linhas de `bunnyloader itens 3`. Um registro truncado sem a última coluna de raridade invalida o arquivo inteiro e não substitui uma leitura anterior.
+- **Inventário e baús vanilla:** os campos pendentes de prefixo e raridade são filtrados **independentemente** durante o save. Se o jogador já ganhou outro prefixo, mas a raridade C# ainda não pode ser restaurada, apenas a chave de raridade é mantida. Se ambos já foram resolvidos, o registro pendente é descartado. Os testes C++ cobrem a junção sem duplicar o item nem reverter seu prefixo atual.
+- **Backups antigos:** um `.before-rarity-v3.bak` preexistente precisa ser um arquivo de save v1/v2 válido e legível; diretórios, arquivos vazios ou corrompidos bloqueiam a conversão para v3, evitando confiar em backups inutilizáveis. O backup válido permanece intacto.
+- **Logs otimizados:** a instalação nativa continua reavaliando os hooks a cada 60 ticks, mas avisos repetidos de ABI indisponível são limitados a um a cada 600 ticks para cada tentativa, reduzindo a poluição.
+- Testes e validação compilada com `-Werror` continuam exclusivamente no host. Nenhum teste real em Android foi executado.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
