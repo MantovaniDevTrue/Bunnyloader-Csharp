@@ -74,9 +74,17 @@ public static class BunnyDustSourceDispatcher
         return Contexts[modSlot].Registry.Bind(nativeType, className);
     }
 
-    public static unsafe int Tick(int modSlot, IntPtr statePointer)
+    public const int Spawn = 0;
+    public const int Update = 1;
+    public const int MidUpdate = 2;
+    public const int Alpha = 3;
+    public const int PreDraw = 4;
+    public const int Release = 5;
+
+    public static unsafe int Invoke(int modSlot, int phase, IntPtr statePointer)
     {
-        if ((uint)modSlot >= (uint)Contexts.Count || statePointer == IntPtr.Zero)
+        if ((uint)modSlot >= (uint)Contexts.Count || statePointer == IntPtr.Zero ||
+            (uint)phase > Release)
             return 0;
         ref BunnyDustState state = ref *(BunnyDustState*)statePointer.ToPointer();
         if ((uint)state.Slot >= BunnyDustRegistry.MaxDustSlots ||
@@ -85,38 +93,54 @@ public static class BunnyDustSourceDispatcher
             return 0;
         Context context = Contexts[modSlot];
         int slot = state.Slot;
-        if (state.Active == 0)
+        if (phase == Release)
         {
-            context.Registry.Release(slot, context.Types[slot], context.Generations[slot]);
-            context.Types[slot] = -1;
-            context.Generations[slot] = 0;
+            context.Registry.Release(slot, state.Type, state.Generation);
+            if (context.Types[slot] == state.Type &&
+                context.Generations[slot] == state.Generation)
+            {
+                context.Types[slot] = -1;
+                context.Generations[slot] = 0;
+            }
             return Accepted;
         }
-        if (context.Types[slot] != state.Type ||
-            context.Generations[slot] != state.Generation)
+
+        if (state.Active == 0)
+            return 0;
+
+        bool fresh = context.Types[slot] != state.Type ||
+            context.Generations[slot] != state.Generation;
+        if (fresh)
         {
             if (!context.Registry.OnSpawn(ref state))
                 return 0;
             context.Types[slot] = state.Type;
             context.Generations[slot] = state.Generation;
         }
+        if (phase == Spawn)
+            return Accepted | (state.Active != 0 ? Active : 0);
 
         bool vanilla = true;
         bool keep = false;
         bool draw = true;
         bool alpha = false;
-        if (state.Active != 0)
-            context.Registry.Update(ref state, out vanilla);
-        if (state.Active != 0)
-            context.Registry.MidUpdate(ref state, out keep);
-        if (state.Active != 0)
+        switch (phase)
         {
-            uint color = state.Color;
-            alpha = context.Registry.GetAlpha(ref state, ref color);
-            state.Color = color;
+            case Update:
+                context.Registry.Update(ref state, out vanilla);
+                break;
+            case MidUpdate:
+                context.Registry.MidUpdate(ref state, out keep);
+                break;
+            case Alpha:
+                uint color = state.Color;
+                alpha = context.Registry.GetAlpha(ref state, ref color);
+                state.Color = color;
+                break;
+            case PreDraw:
+                context.Registry.PreDraw(ref state, out draw);
+                break;
         }
-        if (state.Active != 0)
-            context.Registry.PreDraw(ref state, out draw);
         if (state.Active == 0)
         {
             context.Types[slot] = -1;
@@ -128,6 +152,27 @@ public static class BunnyDustSourceDispatcher
             (alpha ? OverrideAlpha : 0) |
             (draw ? Draw : 0) |
             (state.Active != 0 ? Active : 0);
+    }
+
+    public static unsafe int Tick(int modSlot, IntPtr statePointer)
+    {
+        int flags = Invoke(modSlot, Spawn, statePointer);
+        if ((flags & Active) == 0)
+            return flags;
+        flags = Invoke(modSlot, Update, statePointer);
+        if ((flags & Active) == 0)
+            return flags;
+        int combined = flags;
+        flags = Invoke(modSlot, MidUpdate, statePointer);
+        combined = (combined & ~KeepHorizontalSpeed) | (flags & KeepHorizontalSpeed);
+        if ((flags & Active) == 0)
+            return combined & ~Active;
+        flags = Invoke(modSlot, Alpha, statePointer);
+        combined = (combined & ~OverrideAlpha) | (flags & OverrideAlpha);
+        if ((flags & Active) == 0)
+            return combined & ~Active;
+        flags = Invoke(modSlot, PreDraw, statePointer);
+        return (combined & ~Draw & ~Active) | (flags & (Draw | Active));
     }
 
     public static void ResetWorld()
