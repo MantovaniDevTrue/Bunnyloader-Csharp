@@ -13,3 +13,5 @@ O host confere o arquivo dentro de content/, registra o estilo no serviço Andro
 Use ExampleGun com ExampleBullet para conferir munição, dano, som, variação e offset(-18,0). Alterne lados e mire para cima/baixo; pause/retorne e teste junto de mod JS de áudio. Compare o asset original, limite de sobreposição e relatórios. O teste de host verifica contratos e transporte; não prova reprodução/decodificação no Android. Preservar os outros exemplos e os206 arquivos da matriz.
 
 Configurações de som registradas são imutáveis durante a sessão: repetir a mesma definição reutiliza o registro; mudar asset/opções requer reiniciar o jogo. A recusa explícita evita reutilizar um style ID ainda referenciado por itens antigos. Não é suporte a hot reload de áudio.
+
+O cache nativo reutiliza o asset por caminho canônico e o marker por arquivo/opções; conteúdos que compartilham a mesma configuração compartilham também o limite de instâncias, como no Bunny original. O cache de markers é fraco, sem reter objetos de lotes recusados. Falha assíncrona de decode é registrada no logcat com ID, caminho quando disponível e status real do SoundPool.

@@ -12,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <tuple>
 
 namespace bl::csharp::useSounds {
 struct Entry {
@@ -22,8 +23,8 @@ struct Entry {
 };
 struct Marker {
     uint32_t handle = 0;
-    int style = -1;
-    explicit Marker(int value) : style(value) {}
+    int style = -1, sound = 0;
+    Marker(int value,int asset) : style(value),sound(asset) {}
     ~Marker() {
         if (handle) il2cpp::api().gchandle_free(handle);
         if (style>=0) runtime::content::releaseSoundStyle(style);
@@ -39,6 +40,9 @@ inline bool sameDefinition(const Binding& binding,const Entry& e,const std::stri
 using Table = std::map<int,Binding>;
 inline std::shared_ptr<const Table> table = std::make_shared<const Table>();
 inline std::mutex writer;
+using ResourceKey=std::tuple<std::string,float,float,float,int,int>;
+inline std::map<ResourceKey,std::weak_ptr<Marker>> markers;
+inline std::map<std::string,int> audioAssets;
 
 inline bool reject(const Entry& e, std::string* error, const std::string& stage,
                    const std::string& reason, const std::string& expected, const std::string& actual) {
@@ -96,8 +100,9 @@ inline bool asset(const Entry& e, std::string* path, std::string* error) {
     const fs::path root=fs::canonical(fs::path(e.directory)/"content",ec);
     if(ec) return reject(e,error,"ResolveAsset","ModContentUnavailable","ExistingContentDirectory",ec.message());
     const fs::path resolved=fs::canonical(root/relative,ec);
-    if(ec || !fs::is_regular_file(resolved,ec))
-        return reject(e,error,"ResolveAsset","AssetMissing","ExistingAudioFile",(root/relative).string());
+    if(ec) return reject(e,error,"ResolveAsset",ec==std::errc::no_such_file_or_directory||ec==std::errc::not_a_directory?"AssetMissing":"AssetPathResolutionFailed","ExistingAudioFile",ec.message()+":"+(root/relative).string());
+    if(!fs::is_regular_file(resolved,ec))
+        return reject(e,error,"ResolveAsset",ec?"AssetAccessFailed":"AssetNotRegularFile","RegularAudioFile",ec?ec.message():resolved.string());
     auto r=root.begin(),p=resolved.begin();
     for(;r!=root.end();++r,++p) if(p==resolved.end()||*r!=*p)
         return reject(e,error,"ResolveAsset","AssetOutsideModContent","PathInsideModContent",resolved.string());
@@ -110,6 +115,9 @@ inline bool asset(const Entry& e, std::string* path, std::string* error) {
 inline bool publish(const std::vector<Entry>& entries, std::string* error) {
     if(entries.empty()) return true;
     std::lock_guard lock(writer);
+    for(auto it=markers.begin();it!=markers.end();) {
+        if(it->second.expired())it=markers.erase(it);else ++it;
+    }
     auto& a=il2cpp::api(); const auto& first=entries.front();
     if(!a.object_new||!a.gchandle_new||!a.gchandle_free||!a.gchandle_get_target||!a.runtime_invoke||
        !a.method_is_instance||!a.class_from_il2cpp_type||!a.field_get_type||!a.class_is_valuetype||
@@ -156,12 +164,24 @@ inline bool publish(const std::vector<Entry>& entries, std::string* error) {
     for(size_t i=0;i<entries.size();++i) {
         const auto& e=entries[i];
         if(current->contains(e.type)) continue; // Retry is idempotent; existing Item references retain their style.
-        const int sound=runtime::content::loadSound(paths[i]);
-        if(sound<=0 || runtime::content::soundState(sound)<0)
-            return reject(e,error,"LoadAsset","AndroidAudioRejected","PositiveSoundIdAndNonFailedDecode",std::to_string(sound));
+        const ResourceKey key{paths[i],e.volume,e.pitch,e.variance,e.maxInstances,e.limit};
+        auto cachedMarker=markers.find(key);
+        if(cachedMarker!=markers.end())if(auto marker=cachedMarker->second.lock()) {
+            const int decodeState=runtime::content::soundState(marker->sound);
+            if(decodeState<0)return reject(e,error,"DecodeAsset","NativeAudioStateFailed","PendingOrReadyDecodeState",std::to_string(decodeState));
+            (*next)[e.type]={offset,std::move(marker),e,paths[i]};continue;
+        }
+        auto loaded=audioAssets.find(paths[i]);
+        const int sound=loaded==audioAssets.end()?runtime::content::loadSound(paths[i]):loaded->second;
+        if(sound<=0)
+            return reject(e,error,"LoadAsset","NativeAudioLoadRejected","PositiveSoundId",std::to_string(sound));
+        if(loaded==audioAssets.end())audioAssets.emplace(paths[i],sound);
+        const int decodeState=runtime::content::soundState(sound);
+        if(decodeState<0)
+            return reject(e,error,"DecodeAsset","NativeAudioStateFailed","PendingOrReadyDecodeState",std::to_string(decodeState));
         int style=runtime::content::registerSoundStyle(sound,e.volume,e.pitch,e.variance,e.maxInstances,e.limit);
         if(style<0) return reject(e,error,"RegisterStyle","NativeStyleRejected","NonNegativeStyleId",std::to_string(style));
-        auto marker=std::make_shared<Marker>(style);
+        auto marker=std::make_shared<Marker>(style,sound);
         auto* object=a.object_new(legacy);
         if(!object) return reject(e,error,"CreateMarker","NativeAllocationFailed","LegacySoundStyleObject","Null");
         marker->handle=a.gchandle_new(object,false);
@@ -175,6 +195,7 @@ inline bool publish(const std::vector<Entry>& entries, std::string* error) {
             char detail[2048]{}; if(a.format_exception)a.format_exception(exception,detail,sizeof(detail));
             return reject(e,error,"CreateMarker","NativeConstructorException","SuccessfulLegacySoundStyleConstructor",detail[0]?detail:"NativeExceptionWithoutFormatter");
         }
+        markers[key]=marker;
         (*next)[e.type]={offset,std::move(marker),e,paths[i]};
     }
     // No item is modified until every descriptor has a rooted marker.

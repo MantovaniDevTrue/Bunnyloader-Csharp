@@ -16,7 +16,7 @@ FieldInfo soundField{{&legacy},32};MethodInfo constructor;
 std::map<uint32_t,Il2CppObject*> roots;
 std::set<int> liveStyles;
 uint32_t nextRoot=1;int nextStyle=0,loads=0,writes=0,invocations=0;
-bool failRouter=false,failLoad=false,failCtor=false,missingCtor=false,incremental=true;
+bool failRouter=false,failLoad=false,failState=false,failCtor=false,missingCtor=false,incremental=true;
 float lastVolume=0,lastPitch=0,lastVariance=0;int lastMax=-1,lastLimit=-1;
 namespace bl::il2cpp {
 Api& api(){return fixture;}
@@ -30,7 +30,7 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls,const Signature& sig,bo
 namespace bl::runtime::content {
 bool installNativeSoundRouter(){return !failRouter;}
 int loadSound(const std::string& path){assert(std::filesystem::is_regular_file(path));++loads;return failLoad?0:7;}
-int soundState(int id){assert(id==7);return 0;}
+int soundState(int id){assert(id==7);return failState?-1:0;}
 int registerSoundStyle(int sound,float volume,float pitch,float variance,int max,int limit){assert(sound==7);lastVolume=volume;lastPitch=pitch;lastVariance=variance;lastMax=max;lastLimit=limit;int id=nextStyle++;liveStyles.insert(id);return id;}
 void releaseSoundStyle(int style){assert(liveStyles.erase(style)==1);}
 }
@@ -69,6 +69,8 @@ int main(int argc,char** argv) {
  std::string error;assert(publish({e},&error));assert(lastVolume==.9f&&lastVariance==.2f&&lastPitch==0&&lastMax==3&&lastLimit==1);
  assert(roots.size()==1&&liveStyles.size()==1&&invocations==1);
  const int firstLoads=loads;assert(publish({e},&error)&&loads==firstLoads&&invocations==1);
+ Entry shared=e;shared.type++;shared.name="AlternateGun";
+ assert(publish({shared},&error)&&loads==firstLoads&&invocations==1&&roots.size()==1&&liveStyles.size()==1);
  Entry changed=e;changed.volume=.8f;assert(!publish({changed},&error)&&error.find("ItemSoundAlreadyConfigured")!=std::string::npos&&loads==firstLoads);
  alignas(8) char bytes[128];std::memset(bytes,0x5a,sizeof(bytes));auto* item=reinterpret_cast<Il2CppObject*>(bytes);
  apply(item,e.type);void* marker=nullptr;std::memcpy(&marker,bytes+32,sizeof(marker));assert(marker==roots.begin()->second&&writes==1);
@@ -90,12 +92,19 @@ int main(int argc,char** argv) {
  soundField.flags=0x20;assert(!publish({e},&error)&&error.find("InitOnly")!=std::string::npos);soundField.flags=0;
  missingCtor=true;assert(!publish({e},&error)&&error.find("NativeConstructorMismatch")!=std::string::npos);missingCtor=false;
  failRouter=true;assert(!publish({e},&error)&&loads==before);failRouter=false;
- Entry independent=e;independent.type++;
+ Entry independent=e;independent.type+=2;independent.name="IndependentGun";independent.pitch=.25f;
+ Entry failedShared=shared;failedShared.type+=10;failedShared.name="FailedShared";
+ failState=true;assert(!publish({failedShared},&error)&&error.find("NativeAudioStateFailed")!=std::string::npos&&roots.size()==1);failState=false;
  failCtor=true;assert(!publish({independent},&error)&&roots.size()==1&&liveStyles.size()==1&&std::atomic_load(&table)==unchanged);failCtor=false;
- failLoad=true;assert(!publish({independent},&error)&&error.find("AndroidAudioRejected")!=std::string::npos);failLoad=false;
+ const auto freshRoot=std::filesystem::temp_directory_path()/("bunny-sound-load-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+ std::filesystem::create_directories(freshRoot/"content");
+ std::filesystem::copy_file(std::filesystem::path(e.directory)/"content"/e.path,freshRoot/"content"/"fresh.ogg");
+ Entry fresh=independent;fresh.directory=freshRoot.string();fresh.path="fresh.ogg";
+ failLoad=true;assert(!publish({fresh},&error)&&error.find("NativeAudioLoadRejected")!=std::string::npos);failLoad=false;
+ std::filesystem::remove_all(freshRoot);
  auto barrier=fixture.gc_wbarrier_set_field;fixture.gc_wbarrier_set_field=nullptr;
  assert(!publish({e},&error)&&error.find("RequiredExportMissing")!=std::string::npos);
- incremental=false;assert(publish({e},&error));apply(item,e.type);fixture.gc_wbarrier_set_field=barrier;
+ incremental=false;const int previousLoads=loads;assert(publish({independent},&error)&&loads==previousLoads);apply(item,independent.type);fixture.gc_wbarrier_set_field=barrier;
  unchanged.reset();std::atomic_store(&table,std::make_shared<const Table>());
  assert(roots.empty()&&liveStyles.empty());
  std::cout<<"CSHARP_NATIVE_USE_SOUND_PRODUCTION_ASSET_CONFINEMENT_TYPED_FIELD_CTOR_GC_ROOTS_BARRIER_SHARED_AUDIO_ROLLBACK_AND_COMPILED_GUN_PASS\n";

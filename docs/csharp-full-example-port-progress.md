@@ -38,3 +38,5 @@ Portar ExampleShotgun e todos os outros exemplos que essa infraestrutura desbloq
 Configurações de som registradas são imutáveis durante a sessão: repetir a mesma definição reutiliza o registro; mudar asset/opções requer reiniciar o jogo. A recusa explícita evita reutilizar um style ID ainda referenciado por itens antigos. Não é suporte a hot reload de áudio.
 
 Sanitizers dos novos testes de áudio (ASan/UBSan) passaram no host. CI Android ainda deve ser registrado no commit exato; não há validação nova no dispositivo.
+
+O cache nativo reutiliza o asset por caminho canônico e o marker por arquivo/opções; conteúdos que compartilham a mesma configuração compartilham também o limite de instâncias, como no Bunny original. O cache de markers é fraco, sem reter objetos de lotes recusados. Falha assíncrona de decode é registrada no logcat com ID, caminho quando disponível e status real do SoundPool.

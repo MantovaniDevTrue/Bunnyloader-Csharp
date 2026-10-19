@@ -9545,7 +9545,8 @@
         "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
         "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
         "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
-        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt"
+        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt",
+        "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
