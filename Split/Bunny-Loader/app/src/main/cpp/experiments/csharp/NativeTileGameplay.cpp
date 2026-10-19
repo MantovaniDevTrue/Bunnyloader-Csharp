@@ -12,6 +12,7 @@
 #include "il2cpp/Resolver.h"
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -298,9 +299,32 @@ void hkAnimateTiles(const MethodInfo* method) {
         !il2cpp::nativeArrayContract(counters, "Int32", sizeof(int32_t), 65536)) return;
     auto* frameValues = static_cast<int32_t*>(arrayData(frames));
     auto* counterValues = static_cast<int32_t*>(arrayData(counters));
+    int dynamicCallbacks=0;
     for (const auto& [type, policy] : g_animatedTiles) {
         if (type < 0 || static_cast<uintptr_t>(type) >= frames->length ||
             static_cast<uintptr_t>(type) >= counters->length) continue;
+        const auto found=g_tiles.find(type);
+        if(found!=g_tiles.end() && (found->second.spec.callbackMask & (1<<12)) &&
+           dynamicCallbacks < 2 && managedTileReady(found->second.spec,12)) {
+            ++dynamicCallbacks;
+            std::string reply;
+            if(invokeManagedTile(found->second.spec.mod,found->second.spec.assembly,
+                found->second.spec.name,12,frameValues[type],counterValues[type],&reply,700)) {
+                const auto separator=reply.find(',');
+                if(separator!=std::string::npos) {
+                    int nextFrame=0,nextCounter=0;
+                    const auto first=std::from_chars(reply.data(),reply.data()+separator,nextFrame);
+                    const auto second=std::from_chars(reply.data()+separator+1,reply.data()+reply.size(),nextCounter);
+                    if(first.ec==std::errc{}&&first.ptr==reply.data()+separator &&
+                       second.ec==std::errc{}&&second.ptr==reply.data()+reply.size() &&
+                       nextFrame>=0&&nextFrame<=127&&nextCounter>=0&&nextCounter<=600) {
+                        frameValues[type]=nextFrame;
+                        counterValues[type]=nextCounter;
+                        continue;
+                    }
+                }
+            }
+        }
         tile_animation::advance(frameValues[type], counterValues[type], policy);
     }
 }
@@ -494,7 +518,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
-    if (spec.animationFrames > 1 && !setupNativeTileAnimation()) return false;
+    if ((spec.animationFrames > 1 || (spec.callbackMask & (1 << 12))) && !setupNativeTileAnimation()) return false;
     if ((!spec.allowBreaking || (spec.callbackMask&1)) && !setupCanKillTileHook()) {
         BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
                  spec.mod.c_str(), spec.name.c_str());
@@ -508,7 +532,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     g_tiles[spec.type] = behavior;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
         queueManagedTileWarmup(spec.mod,behavior.spec.assembly,spec.name);
-    if (spec.animationFrames > 1)
+    if (spec.animationFrames > 1 || (spec.callbackMask & (1 << 12)))
         g_animatedTiles[spec.type] = {spec.animationFrames, spec.animationFrameTicks};
     BL_DEBUG("[CSharp][Tile] %s/%s type=%d item=%d dust=%d shape=%d",
              spec.mod.c_str(), spec.name.c_str(), spec.type,
