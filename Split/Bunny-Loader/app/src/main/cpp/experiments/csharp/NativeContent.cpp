@@ -2135,6 +2135,13 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         !a.method_get_param || !a.method_get_return_type || !a.method_is_instance)
         return false;
     auto* tileClass=a.object_get_class(tile);
+    const auto typeIs=[&](const Il2CppType* type,const char* expected) {
+        if(!type||!a.type_get_name||!a.il2cpp_free)return false;
+        char* text=a.type_get_name(type);
+        const bool match=text&&std::strcmp(text,expected)==0;
+        if(text)a.il2cpp_free(text);
+        return match;
+    };
     const auto* copy=a.class_get_method_from_name(tileClass,"CopyFrom",1);
     const auto* addTile=a.class_get_method_from_name(cls,"addTile",1);
     if(!copy||!addTile||!il2cpp::methodPointer(copy)||!il2cpp::methodPointer(addTile))
@@ -2144,10 +2151,10 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         const auto* get=a.class_get_method_from_name(cls,"GetTileData",3);
         if(!get||!il2cpp::methodPointer(get)||a.method_is_instance(get)||
            a.method_get_param_count(get)!=3||
-           !il2cpp::sameType(a.method_get_return_type(get),"Terraria.ObjectData.TileObjectData"))
+           !typeIs(a.method_get_return_type(get),"Terraria.ObjectData.TileObjectData"))
             return false;
         for(unsigned i=0;i<3;++i)
-            if(!il2cpp::sameType(a.method_get_param(get,i),"System.Int32"))return false;
+            if(!typeIs(a.method_get_param(get,i),"System.Int32"))return false;
         int32_t campfire=215,style=0,alternate=0;
         void* args[]={&campfire,&style,&alternate};
         Il2CppObject* exc=nullptr;
@@ -2164,9 +2171,9 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
     const auto* setHeights=e.shape==1?a.class_get_method_from_name(tileClass,"set_CoordinateHeights",1):nullptr;
     if((e.shape!=1&&!line)||(e.shape==3&&(!yoff||!flip))||
        (e.shape==1&&!setHeights))return false;
-    if(line&&(!il2cpp::methodPointer(line)||!il2cpp::sameType(a.method_get_param(line,0),"System.Int32")))return false;
-    if(yoff&&(!il2cpp::methodPointer(yoff)||!il2cpp::sameType(a.method_get_param(yoff,0),"System.Int32")))return false;
-    if(flip&&(!il2cpp::methodPointer(flip)||!il2cpp::sameType(a.method_get_param(flip,0),"System.Boolean")))return false;
+    if(line&&(!il2cpp::methodPointer(line)||!typeIs(a.method_get_param(line,0),"System.Int32")))return false;
+    if(yoff&&(!il2cpp::methodPointer(yoff)||!typeIs(a.method_get_param(yoff,0),"System.Int32")))return false;
+    if(flip&&(!il2cpp::methodPointer(flip)||!typeIs(a.method_get_param(flip,0),"System.Boolean")))return false;
     auto callSetter=[&](const MethodInfo* method,void* value)->bool {
         if(!method)return true;
         void* args[]={value};
