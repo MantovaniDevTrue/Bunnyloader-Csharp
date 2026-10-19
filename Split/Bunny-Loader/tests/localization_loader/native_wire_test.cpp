@@ -72,6 +72,15 @@ int main() {
         toHex(key)+"\t"+toHex(value);
     assert(bl::csharp::localization::decodeManagedWire(protocol,"examplemodcsharp",&managed,&error));
     assert(managed.size()==1 && managed[0].value==value);
+    const std::string vanillaProtocol="OK|1\nBUNNY_DYNAMIC_LOCALES_V1\nLOCALE\tpt-BR\t"+
+        toHex("LegacyInterface.28")+"\t"+toHex("Menu personalizado");
+    assert(bl::csharp::localization::decodeManagedWire(
+        vanillaProtocol,"examplemodcsharp",&managed,&error));
+    assert(managed.size()==1 && managed[0].key=="LegacyInterface.28");
+    assert(!bl::csharp::localization::decodeManagedWire(
+        "OK|1\nBUNNY_DYNAMIC_LOCALES_V1\nLOCALE\tpt-BR\t"+
+        toHex("Mods.other.ItemName.B") +"\t"+toHex("Invalido"),
+        "examplemodcsharp",&managed,&error));
     assert(!bl::csharp::localization::decodeManagedWire(protocol,"other",&managed,&error));
     assert(!bl::csharp::localization::decodeManagedWire(
         protocol+"\nLOCALE\tpt-BR\t"+toHex(key)+"\t"+toHex(value),
