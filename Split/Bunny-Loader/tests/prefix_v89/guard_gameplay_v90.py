@@ -18,6 +18,10 @@ assert "registeredManagedPrefixCount" in bridge
 assert "installManagedPrefixGameplayHooks()" in bridge
 assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
+assert 'r.stack = fieldOffset(item, "stack");' in game
+assert "if (p.minItemStack != 0 || p.maxItemStack != 999999)" in game
+assert "fields.size() != 6 && fields.size() != 8" in source
+assert "prefix.maxItemStack = condition->second.maxItemStack;" in source
 assert "fields.size() == 16" in source
 assert "weight != MathF.Truncate(weight)" in worker
 assert "SourceParser" in (cpp / "SourceLoader.cpp").read_text()

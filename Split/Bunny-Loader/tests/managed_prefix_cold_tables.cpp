@@ -358,6 +358,19 @@ int main() {
     assert(hookRollable(&weapon.object, nullptr) == nullptr);
     weapon.stack = 10;
     assert(hookCanRoll(&weapon.object, 99, nullptr));
+    const int nativeStackOffset = g_refs.stack;
+    g_refs.stack = -1;
+    assert(!hookCanRoll(&weapon.object, 99, nullptr));
+    mighty.minItemStack = 0;
+    mighty.maxItemStack = 999999;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
+    assert(hookCanRoll(&weapon.object, 99, nullptr));
+    mighty.minItemStack = 1;
+    mighty.maxItemStack = 10;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
+    g_refs.stack = nativeStackOffset;
     weapon.stack = 11;
     assert(!hookCanRoll(&weapon.object, 99, nullptr));
     weapon.stack = 1;
