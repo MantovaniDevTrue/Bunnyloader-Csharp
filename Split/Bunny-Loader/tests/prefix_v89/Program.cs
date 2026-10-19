@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 11 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 12 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -28,7 +28,13 @@ try
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
-    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
+    string tipsHex = string.Join(",",
+        Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("First line")),
+        Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Second line")));
+    if (data.Count(row => row == "PREFIX_TOOLTIP\tTestMightyPrefix\t" + tipsHex) != 1)
+        throw new InvalidOperationException("Multiple prefix tooltip lines missing");
+    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
