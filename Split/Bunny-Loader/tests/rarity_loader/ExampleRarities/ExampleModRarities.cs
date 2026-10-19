@@ -42,3 +42,13 @@ public sealed class ExampleRarityItem : BunnyItem
         SetRarity<ExampleModRarity>();
     }
 }
+
+public sealed class ExampleRarityAccessory : BunnyAccessory
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Accessory";
+        Tooltip = "Demonstrates the custom rarity on an accessory";
+        SetRarity<ExampleHigherTierModRarity>();
+    }
+}
