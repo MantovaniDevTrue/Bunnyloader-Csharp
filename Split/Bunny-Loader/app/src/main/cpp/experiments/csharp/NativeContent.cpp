@@ -2164,23 +2164,47 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         source=tileStaticObject(cls,e.shape==1?"Style2x1":"Style1xX");
     }
     if(!source)return false;
-    const char* setters[]= {"set_StyleLineSkip","set_DrawYOffset","set_DrawFlipHorizontal"};
-    const auto* line=e.shape==1?nullptr:a.class_get_method_from_name(tileClass,setters[0],1);
-    const auto* yoff=e.shape==3?a.class_get_method_from_name(tileClass,setters[1],1):nullptr;
-    const auto* flip=e.shape==3?a.class_get_method_from_name(tileClass,setters[2],1):nullptr;
-    const auto* setHeights=e.shape==1?a.class_get_method_from_name(tileClass,"set_CoordinateHeights",1):nullptr;
-    if((e.shape!=1&&!line)||(e.shape==3&&(!yoff||!flip))||
-       (e.shape==1&&!setHeights))return false;
-    if(line&&(!il2cpp::methodPointer(line)||!typeIs(a.method_get_param(line,0),"System.Int32")))return false;
-    if(yoff&&(!il2cpp::methodPointer(yoff)||!typeIs(a.method_get_param(yoff,0),"System.Int32")))return false;
-    if(flip&&(!il2cpp::methodPointer(flip)||!typeIs(a.method_get_param(flip,0),"System.Boolean")))return false;
-    auto callSetter=[&](const MethodInfo* method,void* value)->bool {
-        if(!method)return true;
-        void* args[]={value};
-        Il2CppObject* exc=nullptr;
-        a.runtime_invoke(method,tile,args,&exc);
-        return exc==nullptr;
+    struct NativeProperty {
+        const MethodInfo* setter=nullptr;
+        int offset=-1;
+        size_t size=0;
     };
+    const auto resolve=[&](const char* fieldName,const char* type,size_t size,NativeProperty* out) {
+        const std::string setterName=std::string("set_")+fieldName;
+        const auto* setter=a.class_get_method_from_name(tileClass,setterName.c_str(),1);
+        if(setter) {
+            if(!il2cpp::methodPointer(setter)||a.method_is_instance(setter)==false||
+               a.method_get_param_count(setter)!=1||
+               !typeIs(a.method_get_param(setter,0),type)||
+               !typeIs(a.method_get_return_type(setter),"System.Void"))return false;
+            *out={setter,-1,size};
+            return true;
+        }
+        std::string detail;
+        FieldInfo* field=nullptr;
+        int offset=-1;
+        if(!il2cpp::nativeFieldContract(tileClass,fieldName,type,false,size,
+                                        &field,&offset,&detail))return false;
+        *out={nullptr,offset,size};
+        return true;
+    };
+    const auto assign=[&](const NativeProperty& slot,const void* value) {
+        if(slot.setter) {
+            void* args[]={const_cast<void*>(value)};
+            Il2CppObject* exc=nullptr;
+            a.runtime_invoke(slot.setter,tile,args,&exc);
+            return exc==nullptr;
+        }
+        if(slot.offset<0)return false;
+        std::memcpy(reinterpret_cast<char*>(tile)+slot.offset,value,slot.size);
+        return true;
+    };
+    NativeProperty line{},yoff{},flip{};
+    if((e.shape!=1&&!resolve("StyleLineSkip","System.Int32",4,&line))||
+       (e.shape==3&&(!resolve("DrawYOffset","System.Int32",4,&yoff)||
+                     !resolve("DrawFlipHorizontal","System.Boolean",1,&flip))))return false;
+    const auto* setHeights=e.shape==1?a.class_get_method_from_name(tileClass,"set_CoordinateHeights",1):nullptr;
+    if(e.shape==1&&(!setHeights||!il2cpp::methodPointer(setHeights)))return false;
     void* copyArgs[]={source};
     Il2CppObject* exc=nullptr;
     a.runtime_invoke(copy,tile,copyArgs,&exc);
@@ -2191,11 +2215,15 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         auto* heights=a.array_new(intClass,1);
         if(!heights)return false;
         *static_cast<int32_t*>(arrayData(heights))=e.coordinateHeight;
-        if(!callSetter(setHeights,heights))return false;
+        void* args[]={heights};
+        Il2CppObject* error=nullptr;
+        a.runtime_invoke(setHeights,tile,args,&error);
+        if(error)return false;
     } else {
         int32_t skip=e.shape==2?9:2,offset=2;
         bool drawFlip=true;
-        if(!callSetter(line,&skip)||!callSetter(yoff,&offset)||!callSetter(flip,&drawFlip))
+        if(!assign(line,&skip)||
+           (e.shape==3&&(!assign(yoff,&offset)||!assign(flip,&drawFlip))))
             return false;
     }
     int32_t id=type;
