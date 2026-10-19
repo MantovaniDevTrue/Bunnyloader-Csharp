@@ -48,15 +48,7 @@ public abstract class BunnyItem : BunnyShootSource
     public int Rare { get => wallRare; set { wallRare=value; OverrideInteger(4); } }
     public string ModRarityClassName { get; private set; } = "";
     public void SetRarity<T>() where T : BunnyRarity
-    {
-        Type rarity = typeof(T);
-        if (rarity.Assembly != GetType().Assembly ||
-            rarity.IsAbstract || rarity.ContainsGenericParameters ||
-            rarity.Name.Length == 0 || rarity.Name.Length > 72 ||
-            !rarity.Name.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
-            throw new ArgumentException("Expected a concrete registered BunnyRarity class");
-        ModRarityClassName = rarity.Name;
-    }
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
