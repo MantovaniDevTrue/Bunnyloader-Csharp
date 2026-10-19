@@ -1004,6 +1004,23 @@ public static class CompiledAssemblyProbe
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
+            MethodInfo configure = item.GetType().GetMethod("ConfigurePrefixRules",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing ConfigurePrefixRules");
+            Type rulesType = configure.GetParameters().Single().ParameterType;
+            object rules = Activator.CreateInstance(rulesType)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules unavailable");
+            configure.Invoke(item, new object[] { rules });
+            string denies = (string)(rulesType.GetMethod("Serialize",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules serialization missing"));
+            if (denies.Length > 320)
+                throw new InvalidOperationException("Prefix deny policy too long");
+            if (denies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY", item.GetType().Name, denies));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
             MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing Bunny item ApplyPrefix");
