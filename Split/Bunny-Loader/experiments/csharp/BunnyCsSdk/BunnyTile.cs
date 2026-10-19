@@ -64,4 +64,36 @@ public abstract class BunnyTile {
     }
     public abstract void SetStaticDefaults();
     public virtual int NumDust(bool fail) => fail ? 1 : 3;
+    public virtual bool CanKillTile(int x, int y) => true;
+    public virtual bool CanDrop(int x, int y) => true;
+    public virtual void HitWire(int x, int y) { }
+    public virtual void RandomUpdate(int x, int y) { }
+    public virtual bool RightClick(int x, int y) => false;
+    public virtual bool PreDraw(int x, int y) => true;
+    public virtual void ModifyLight(int x, int y, ref float r, ref float g, ref float b) { }
+    public virtual void PlaceInWorld(int x, int y) { }
+    public virtual bool Slope(int x, int y) => true;
+    public virtual void MouseOver(int x, int y) { }
+    public virtual void MouseOverFar(int x, int y) { }
+    public virtual void NearbyEffects(int x, int y, bool closer) { }
+    public virtual void AnimateTile(ref int frame, ref int frameCounter) { }
+    public int TileCallbackMask {
+        get {
+            var type = GetType();
+            string[] methods = {
+                nameof(CanKillTile), nameof(CanDrop), nameof(HitWire), nameof(RandomUpdate),
+                nameof(RightClick), nameof(PreDraw), nameof(ModifyLight), nameof(PlaceInWorld),
+                nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile)
+            };
+            int mask = 0;
+            for (int i = 0; i < methods.Length; ++i) {
+                var callback = type.GetMethod(methods[i], System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance);
+                if (callback == null || callback.GetBaseDefinition().DeclaringType != typeof(BunnyTile))
+                    throw new InvalidOperationException(type.FullName + ": invalid callback " + methods[i]);
+                if (callback.DeclaringType != typeof(BunnyTile)) mask |= 1 << i;
+            }
+            return mask;
+        }
+    }
 }
