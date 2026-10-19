@@ -225,17 +225,21 @@ int main() {
     assert(!applyManagedPrefixViaNativeRoll(&accessory.object, 99, &prefixMethod, &reached));
     assert(!reached && accessory.prefix==98);
 
+    guarded.rollWeight = 3;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
     mixedPrefixCandidates = true;
     auto* mixed = hookRollable(&accessory.object, nullptr);
-    assert(mixed && mixed->length == 3);
+    assert(mixed && mixed->length == 5);
     const auto* mixedIds = static_cast<const int32_t*>(arrayData(mixed));
-    assert(mixedIds[0] == 71 && mixedIds[1] == 100 && mixedIds[2] == 98);
+    assert(mixedIds[0] == 71 && mixedIds[1] == 100);
+    for (int i = 2; i < 5; ++i) assert(mixedIds[i] == 98);
     const int priorNativeRolls = nativeRolls;
     int32_t selectedMixed = -1;
     randomDouble.value = 0.1;
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 71);
-    randomDouble.value = 0.4;
+    randomDouble.value = 0.3;
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 100);
     randomDouble.value = 0.9;
@@ -245,9 +249,10 @@ int main() {
     deniedView = std::make_shared<const std::map<int, std::set<int>>>(
         std::map<int, std::set<int>>{{6196, {71}}});
     auto* mixedFiltered = hookRollable(&accessory.object, nullptr);
-    assert(mixedFiltered && mixedFiltered->length == 2);
+    assert(mixedFiltered && mixedFiltered->length == 4);
     const auto* filteredIds = static_cast<const int32_t*>(arrayData(mixedFiltered));
-    assert(filteredIds[0] == 100 && filteredIds[1] == 98);
+    assert(filteredIds[0] == 100);
+    for (int i = 1; i < 4; ++i) assert(filteredIds[i] == 98);
     randomDouble.value = 0.1;
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));
     assert(selectedMixed == 100);
@@ -257,6 +262,9 @@ int main() {
     assert(nativeRolls == priorNativeRolls);
     deniedView = std::make_shared<const std::map<int, std::set<int>>>();
     mixedPrefixCandidates = false;
+    guarded.rollWeight = 1;
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty});
 
     api.string_new = [](const char* text) -> Il2CppString* {
         const size_t length = std::strlen(text);
