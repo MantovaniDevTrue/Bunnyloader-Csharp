@@ -3892,7 +3892,7 @@ ManagedSourceCompileResult compileManagedSource(
     trace("compiled-assembly-execution-start");
     void* verifierClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "CompiledAssemblyProbe") : nullptr;
-    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 2) : nullptr;
+    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 3) : nullptr;
     if (!verifier) {
         out.phase = "compiled-assembly-verifier-missing";
         out.error = "CompiledAssemblyProbe.Verify indisponivel";
@@ -3901,14 +3901,15 @@ ManagedSourceCompileResult compileManagedSource(
     }
     void* verifyArgumentsManaged[] = {
         g_api.newString(g_domain, outputAssembly.c_str()),
-        g_api.newString(g_domain, diagnosticsPath.c_str())
+        g_api.newString(g_domain, diagnosticsPath.c_str()),
+        g_api.newString(g_domain, modRoot.c_str())
     };
-    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1]) {
+    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1] || !verifyArgumentsManaged[2]) {
         out.phase = "compiled-assembly-verifier-arguments-failed";
         trace(out.phase.c_str());
         return out;
     }
-    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1] };
+    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1], verifyArgumentsManaged[2] };
     void* verifyException = nullptr;
     const auto verifyStarted = std::chrono::steady_clock::now();
     void* verifiedBoxed = g_api.invoke(verifier, nullptr, verifyArguments, &verifyException);
