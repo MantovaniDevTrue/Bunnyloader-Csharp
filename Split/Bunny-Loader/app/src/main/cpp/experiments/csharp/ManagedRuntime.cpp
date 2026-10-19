@@ -298,6 +298,8 @@ struct LocalizationJob {
     bool unload = false;
 };
 std::deque<LocalizationJob> g_localizationQueue;
+std::deque<std::string> g_localizationUnloads;
+std::map<std::string, uint64_t> g_localizationEpochFloor;
 void* g_localizationDispatchMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
 std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
@@ -1565,9 +1567,18 @@ void* pinnedMonoWorker(void*) {
             while (!g_pinnedPending) {
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
-                    !g_localizationQueue.empty()) {
-                    LocalizationJob job = std::move(g_localizationQueue.front());
-                    g_localizationQueue.pop_front();
+                    (!g_localizationUnloads.empty() || !g_localizationQueue.empty())) {
+                    LocalizationJob job;
+                    if (!g_localizationUnloads.empty()) {
+                        job.modId = std::move(g_localizationUnloads.front());
+                        g_localizationUnloads.pop_front();
+                        job.unload = true;
+                    } else {
+                        job = std::move(g_localizationQueue.front());
+                        g_localizationQueue.pop_front();
+                    }
+                    if (!job.unload && g_localizationEpochFloor[job.modId] != job.generation)
+                        continue;
                     lock.unlock();
                     std::string result = executeManagedLocalizationOnWorker(job);
                     if (!job.unload && result.rfind("OK|", 0) == 0) {
@@ -2010,7 +2021,8 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        !g_localizationQueue.empty() || !g_localizationUnloads.empty();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -2064,9 +2076,19 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
                                     uint64_t generation) {
     if (modId.empty() || modId.size() > 64 ||
         assemblyPath.empty() || assemblyPath.size() > 2048 ||
-        culture.size() < 2 || culture.size() > 20) return false;
+        culture.size() < 2 || culture.size() > 20 || generation == 0) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    uint64_t& floor = g_localizationEpochFloor[modId];
+    if (generation < floor) return false;
     if (g_localizationQueue.size() >= 64) return false;
+    if (generation > floor) {
+        floor = generation;
+        g_localizationQueue.erase(std::remove_if(
+            g_localizationQueue.begin(), g_localizationQueue.end(),
+            [&](const LocalizationJob& job) {
+                return job.modId == modId && job.generation < generation;
+            }), g_localizationQueue.end());
+    }
     g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false});
     g_pinnedWake.notify_one();
     return true;
@@ -2079,8 +2101,11 @@ void unloadManagedLocalizationCallbacks(const std::string& modId) {
         g_localizationQueue.end(), [&](const LocalizationJob& job) {
             return job.modId == modId;
         }), g_localizationQueue.end());
-    if (g_localizationQueue.size() < 64)
-        g_localizationQueue.push_back({modId, "", "", 0, true});
+    uint64_t& floor = g_localizationEpochFloor[modId];
+    if (floor != UINT64_MAX) ++floor;
+    if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
+        == g_localizationUnloads.end())
+        g_localizationUnloads.push_back(modId);
     g_pinnedWake.notify_one();
 }
 
