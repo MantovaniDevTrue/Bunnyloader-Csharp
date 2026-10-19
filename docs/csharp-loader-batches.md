@@ -35,7 +35,7 @@ A ordem pode mudar por dependências, sem dividir uma entrega em menos de cinco 
 
 ## Estado desta execução
 
-Revisão interna `.90.29.99-world-loaders-wip`, ExampleMod0.1.58. Novo caminho de flags tipadas para terreno e port de ExampleTile/ExampleTileItem com assets originais. Nenhum dos cinco loaders inteiros está certificado; portanto, **nenhum APK é entregue como grupo1 concluído**.
+Revisão interna `.90.29.99-world-loaders-wip`, ExampleMod0.1.58. Novo caminho de flags tipadas para terreno e port de ExampleTile/ExampleTileItem com assets originais. O publicador C# também replica o pós-registro original: um tile marcado Solid ativa `Main.tileNoSunLight`, sem exigir um segundo campo público. Solid e BlockLight seguem distintos; o conjunto é validado antes da primeira escrita, inclusive se `tileNoSunLight` estiver ausente ou incompatível. Nenhum dos cinco loaders inteiros está certificado; portanto, **nenhum APK é entregue como grupo1 concluído**.
 
 `BunnyTile.Flags` adiciona Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge e Cut. O publicador das flags booleanas resolve todos os arrays solicitados antes de escrever, valida campo estático, tipo Boolean[], rank1, elemento de1byte e índice. Falha de uma flag booleana preserva as demais sem escrita parcial desse conjunto. CountsAsTable utiliza separadamente a lista nativa Int32[] de RoomNeeds, sem exigir uma tabela bool fictícia; valida cópia, limite e duplicações antes de publicar a lista. As transações de outros sistemas continuam sendo contratos separados.
 

@@ -64,7 +64,8 @@ inline bool apply(int type, int flags, std::string* error) {
         {8,"Main","tileObsidianKill"}, {16,"Main","tileFrameImportant"},
         {32,"Sets","DisableSmartCursor"}, {64,"Sets","HasOutlines"},
         {128,"Sets","IgnoredByNpcStepUp"},
-        {512,"Main","tileSolid"}, {1024,"Main","tileBlockLight"},
+        {512,"Main","tileSolid"}, {512,"Main","tileNoSunLight"},
+        {1024,"Main","tileBlockLight"},
         {2048,"Main","tileMergeDirt"}, {4096,"Main","tileLighted"},
         {8192,"Main","tileWaterDeath"}, {16384,"Sets","ChecksForMerge"},
         {32768,"Main","tileCut"}

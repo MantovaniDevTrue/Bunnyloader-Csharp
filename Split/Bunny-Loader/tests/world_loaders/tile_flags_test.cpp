@@ -43,12 +43,31 @@ int main(int argc,char** argv) {
  fixture.class_get_rank=[](const Il2CppClass* c){return c->rank;};
  fixture.class_get_element_class=[](Il2CppClass* c){return c->element;};
  fixture.field_static_get_value=[](FieldInfo* f,void* p){std::memcpy(p,&f->data,sizeof(f->data));};
- for(const char* n:{"tileTable","tileSolidTop","tileNoAttach","tileLavaDeath","tileObsidianKill","tileFrameImportant","tileSolid","tileBlockLight","tileMergeDirt","tileLighted","tileWaterDeath","tileCut"})fields[&mainClass][n]={{&boolArray},0x10,allocate()};
+ for(const char* n:{"tileTable","tileSolidTop","tileNoAttach","tileLavaDeath","tileObsidianKill","tileFrameImportant","tileSolid","tileNoSunLight","tileBlockLight","tileMergeDirt","tileLighted","tileWaterDeath","tileCut"})fields[&mainClass][n]={{&boolArray},0x10,allocate()};
  for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
  std::string error;
  assert(apply(2195,supportedMask,&error));
  for(auto& [c,m]:fields)for(auto& [n,f]:m){auto* bytes=static_cast<uint8_t*>(arrayData(f.data));assert(bytes[2195]==1&&bytes[2194]==0&&bytes[2196]==0);}
- clear();assert(apply(2195,256,&error)&&allZero()); // housing handled as Int32 list, never a fake bool table
+ clear();
+ assert(apply(2195,512,&error));
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileSolid"].data))[2195]==1);
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileNoSunLight"].data))[2195]==1);
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileBlockLight"].data))[2195]==0);
+ clear();
+ assert(apply(2195,1024,&error));
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileSolid"].data))[2195]==0);
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileNoSunLight"].data))[2195]==0);
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileBlockLight"].data))[2195]==1);
+ clear();
+ auto sunlight=fields[&mainClass].extract("tileNoSunLight");
+ assert(!apply(2195,512|1024,&error)&&error.find("tileNoSunLight")!=std::string::npos&&allZero());
+ fields[&mainClass].insert(std::move(sunlight));
+ auto& sunlightField=fields[&mainClass]["tileNoSunLight"];
+ sunlightField.flags=0;
+ assert(!apply(2195,512|1024,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());
+ sunlightField.flags=0x10;
+ clear();
+ assert(apply(2195,256,&error)&&allZero()); // housing handled as Int32 list, never a fake bool table
  assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,65536,&error)&&allZero());
  auto& last=fields[&setsClass]["ChecksForMerge"];
  last.flags=0;assert(!apply(2195,512|16384,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());last.flags=0x10;
@@ -92,5 +111,5 @@ int main(int argc,char** argv) {
  integer.size=2;assert(!appendHousing(2196,&roomClass,resize,&error)&&housing.data==published);integer.size=4;
  housing.data=allocateInts(4096);auto* full=housing.data;
  assert(!appendHousing(2196,&roomClass,resize,&error)&&error.find("CapacityExceeded")!=std::string::npos&&housing.data==full);
- std::cout<<"TILE_FLAGS_PRODUCTION_PUBLISHER_COMPILED_EXAMPLE_STATIC_TYPE_RANK_WIDTH_BOUNDS_ATOMICITY_HOUSING_INT32_COPY_DEDUP_CAPACITY_NO_QUICKJS=PASS\n";
+ std::cout<<"TILE_FLAGS_PRODUCTION_PUBLISHER_COMPILED_EXAMPLE_SOLID_NO_SUNLIGHT_STATIC_TYPE_RANK_WIDTH_BOUNDS_ATOMICITY_HOUSING_INT32_COPY_DEDUP_CAPACITY_NO_QUICKJS=PASS\n";
 }
