@@ -1,0 +1,795 @@
+{
+  "sourceCommit": "96c90e6343bad4d0eed42724e6b777565f864eec",
+  "loader": "0.1.10.16.90.29.96-native-defaults-holdouts",
+  "versionCode": 273,
+  "exampleMod": "0.1.55",
+  "run": 39186732013,
+  "ci": "success",
+  "privateDelivery": "build and report-private-csharp-apk jobs passed; release metadata and published source archive independently checked",
+  "release": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39186732013-a1",
+  "experimental": true,
+  "signature": "V3 verified by Android CI",
+  "sourceArchiveSha256": "fb41ae91478a73cf137d699faf31558d0c3d1a9ce32ed1c830016cda968dd5d0",
+  "sourceArchiveBytes": 201244,
+  "sourceFilesCompared": 76,
+  "packagedTextureFilesCompared": 47,
+  "uniqueCompiledAssetReferencePaths": 45,
+  "compiledAssetReferences": 53,
+  "archiveVerification": "76 .cs and 47 PNGs byte-identical to workspace; manifest 0.1.55; new test guide identical; no DLL/so/JS; matrix 206 entries; compiled asset paths present with supported extension fallback",
+  "apkSha256Published": "484eb8e43642db0788c59d82af7b026fb84f4567dcf1e090ee62ae6d966b6432",
+  "apkBytes": 241543421,
+  "apkVerification": "CI checked signature and APK; local checksum taken from published .sha256, APK not downloaded locally",
+  "regressions": {
+    "managedItemCases": 35,
+    "entityChecks": 43,
+    "combatCases": 31,
+    "nativeFixtureBinaries": 8,
+    "independentRoslynSmoke": "full smoke passed locally and in final Android CI; source edits, separate mod, 53 content classes, 64 rows and new native/holdout/price contracts",
+    "nativeSanitizers": "new NativeDefaults and NativeHoldout host fixtures passed AddressSanitizer and UndefinedBehaviorSanitizer",
+    "scope": "production binders/hooks/scheduler with controlled IL2CPP metadata and functions; no Terraria engine or phone execution"
+  },
+  "independentSuites": [
+    {
+      "conclusion": "success",
+      "databaseId": 39186732061,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check Mono Android signal ownership",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186732077,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186731969,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check CSharp combat batch",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186732147,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check Mono pinned worker GC transitions",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186731955,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check Bunny CSharp Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186731925,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "CSharp Native ScreenFx",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186732044,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check managed callback lifecycle",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186731992,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check complete ExampleMod audit",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39186732103,
+      "event": "push",
+      "headSha": "96c90e6343bad4d0eed42724e6b777565f864eec",
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "status": "completed"
+    }
+  ],
+  "coverageByCategory": {
+    "Accessories": {
+      "total": 7,
+      "states": {
+        "Implementado, aguardando validação": 3,
+        "Parcial": 4
+      },
+      "implemented": 3,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 4,
+      "implementedPercent": 42.86,
+      "validatedPercent": 0.0,
+      "partialPercent": 57.14,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Achievements": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Ammo": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Armor": {
+      "total": 6,
+      "states": {
+        "Implementado, aguardando validação": 5,
+        "Não implementado": 1
+      },
+      "implemented": 5,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 83.33,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Biomes": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Bosses": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Buffs": {
+      "total": 6,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 3
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 3,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 50.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Clouds": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Commands": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Configs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Consumables": {
+      "total": 3,
+      "states": {
+        "Não implementado": 2,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 33.33,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "DamageClasses": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Effects": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "EmoteBubbles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "GlobalBossBars": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalBuffs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalRecipes": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalTiles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Hairs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Items": {
+      "total": 4,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 25.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Materials": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Mounts": {
+      "total": 4,
+      "states": {
+        "Não implementado": 4
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "NPCs": {
+      "total": 5,
+      "states": {
+        "Não implementado": 4,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 20.0,
+      "limitations": 0,
+      "missingExamples": 5
+    },
+    "Pets": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Placeable": {
+      "total": 36,
+      "states": {
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.78,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 35
+    },
+    "Players": {
+      "total": 7,
+      "states": {
+        "Não implementado": 6,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 14.29,
+      "limitations": 0,
+      "missingExamples": 7
+    },
+    "Prefixes": {
+      "total": 3,
+      "states": {
+        "Parcial": 2,
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 2,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 66.67,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Projectiles": {
+      "total": 20,
+      "states": {
+        "Não implementado": 18,
+        "Implementado, aguardando validação": 1,
+        "Parcial": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 5.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.0,
+      "limitations": 0,
+      "missingExamples": 19
+    },
+    "Quests": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Rarities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Systems": {
+      "total": 6,
+      "states": {
+        "Não implementado": 5,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 16.67,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "TileEntities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Tiles": {
+      "total": 37,
+      "states": {
+        "Não implementado": 36,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.7,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 36
+    },
+    "Tools": {
+      "total": 5,
+      "states": {
+        "Não implementado": 3,
+        "Implementado, aguardando validação": 2
+      },
+      "implemented": 2,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 40.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Walls": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Weapons": {
+      "total": 18,
+      "states": {
+        "Não implementado": 15,
+        "Implementado, aguardando validação": 2,
+        "Parcial": 1
+      },
+      "implemented": 2,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 11.11,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.56,
+      "limitations": 0,
+      "missingExamples": 16
+    }
+  },
+  "reference": {
+    "attachmentVersion": "1.8.0",
+    "attachmentJs": 178,
+    "canonicalJs": 206,
+    "canonicalVersion": "1.9.0",
+    "newWholeExamplePorts": 4,
+    "additionalSdkDemonstrations": 1
+  },
+  "androidValidation": {
+    "newApisAndExamples": "awaiting gameplay validation",
+    "performance": "unmeasured; no new 60 FPS or cold five-second claim",
+    "userScreenshot": "partial minion buff-cancel/source-damage evidence after .95.2 delivery; image has no version/PID; not certification of entire minion",
+    "recipeDeadline": "priority before entity AI backlog improved; 3ms budget retained; arbitrary slow/cold callbacks can still time out"
+  },
+  "priorAttempts": [
+    {
+      "run": 39185524678,
+      "result": "cancelled before publication for price review"
+    },
+    {
+      "run": 39186174513,
+      "result": "failed stale independent smoke content count; no release published; expectations and semantic assertions corrected"
+    }
+  ],
+  "assets": [
+    {
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod",
+      "size": 8135,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/ArmorPoliciesCSharp-v0.1.0.bmod"
+    },
+    {
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod.sha256",
+      "size": 98,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/ArmorPoliciesCSharp-v0.1.0.bmod.sha256"
+    },
+    {
+      "name": "basic-items-results.json",
+      "size": 3772,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/basic-items-results.json"
+    },
+    {
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.96-native-defaults-holdouts-SignedV3.apk",
+      "size": 241543421,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/BunnyLoader-CSharp-0.1.10.16.90.29.96-native-defaults-holdouts-SignedV3.apk"
+    },
+    {
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.96-native-defaults-holdouts-SignedV3.apk.sha256",
+      "size": 142,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/BunnyLoader-CSharp-0.1.10.16.90.29.96-native-defaults-holdouts-SignedV3.apk.sha256"
+    },
+    {
+      "name": "combat-batch-results.json",
+      "size": 2991,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/combat-batch-results.json"
+    },
+    {
+      "name": "ExampleModCSharp-v0.1.55.bmod",
+      "size": 201244,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/ExampleModCSharp-v0.1.55.bmod"
+    },
+    {
+      "name": "ExampleModCSharp-v0.1.55.bmod.sha256",
+      "size": 120,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/ExampleModCSharp-v0.1.55.bmod.sha256"
+    },
+    {
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod",
+      "size": 9394,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod"
+    },
+    {
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256",
+      "size": 127,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256"
+    },
+    {
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod",
+      "size": 1914,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/NativeAccessProbeCSharp-v0.1.0.bmod"
+    },
+    {
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod.sha256",
+      "size": 102,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/NativeAccessProbeCSharp-v0.1.0.bmod.sha256"
+    },
+    {
+      "name": "NativePlacementProbe-v0.1.0.bmod",
+      "size": 5090,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/NativePlacementProbe-v0.1.0.bmod"
+    },
+    {
+      "name": "NativePlacementProbe-v0.1.0.bmod.sha256",
+      "size": 123,
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39186732013-a1/NativePlacementProbe-v0.1.0.bmod.sha256"
+    }
+  ]
+}
