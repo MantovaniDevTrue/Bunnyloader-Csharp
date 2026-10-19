@@ -1,30 +1,31 @@
 {
-  "schema": "BunnyCSharpUpstreamParityV4",
-  "comparedAt": "2026-10-18",
-  "method": "Recursive Git blob SHA comparison excluding this JSON. File equality only; Android device behavior requires tests.",
-  "upstream": {
+  "schema": "BunnyCSharpUpstreamParityV5",
+  "comparedAt": "2026-10-19",
+  "method": "Full recursive Git tree blob comparison excluding this manifest. Same SHA proves file identity only, not on-device correctness.",
+  "original": {
     "repository": "JonataOliveiraa/Bunny-Loader",
     "commit": "a370a664aa3b808c87e4e4f570b27504d20df723",
     "root": "/"
   },
-  "source": {
+  "delivery": {
     "repository": "MantovaniDevTrue/Bunnyloader-Csharp",
     "branch": "entrega/potato-bunny-original-com-csharp-20261018",
-    "observedHeadBeforeManifestUpdate": "a53b7bdcdbc237abf924dba5543a46bc4d0f0ba6",
-    "treeSha": "660d8069d116101e76bd8d8a3d51841ca6dbf703",
+    "observedHeadBeforeManifestCommit": "7dde3cef006c46cc10d83262a7e33593d4edaa79",
+    "observedTreeSha": "dbb36bfe81ba93ac77f03a8340db53a7d7806d29",
     "root": "/",
-    "csharpCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39185587613",
-    "gradleLauncherCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39185942563",
-    "quickJsVendorCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39186353873",
-    "nativeBuildPendingCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39186560970"
+    "displayVersion": "1.0",
+    "csharpDevelopmentSource": "3909b297798190011b1e2e2002b3727c1f50e7ec",
+    "exampleModSourceVersion": "0.1.56",
+    "sdkManagedRebuildCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39230298414",
+    "nativeBuildCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39230446268"
   },
   "summary": {
-    "upstreamFiles": 2024,
-    "deliveryTrackedFilesExcludingThisMap": 3000,
-    "unchanged": 1945,
-    "modified": 79,
-    "deliveryAdded": 976,
-    "upstreamMissing": 0
+    "originalFiles": 2024,
+    "deliveryFilesExcludingManifest": 3026,
+    "identicalToOriginal": 1945,
+    "modifiedSharedFiles": 79,
+    "additionalDeliveryFiles": 1002,
+    "originalFilesMissing": 0
   },
   "modifiedSharedFiles": [
     {
@@ -34,7 +35,7 @@
     },
     {
       "path": "README.md",
-      "sourceBlob": "af3562f6e273820080aad3ab3a6e5897a4c45285",
+      "sourceBlob": "910065cac1c032a1742372d2dd5f2b3d9af99ad3",
       "upstreamBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
     },
     {
@@ -44,7 +45,7 @@
     },
     {
       "path": "app/build.gradle.kts",
-      "sourceBlob": "661937a02ce7f5c1e10bc6bc3ba8e531a9ac998f",
+      "sourceBlob": "5195ee3f243e80c1a2d0e1ede2df90728f228dfe",
       "upstreamBlob": "210066f4b7929c393ddeaf79e9e7859e9ef537c6"
     },
     {
@@ -329,7 +330,7 @@
     },
     {
       "path": "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt",
-      "sourceBlob": "a9b7f1184e283ec63c72403f2ca9302c8a2ca29d",
+      "sourceBlob": "72b88bca647c8930ea642a15e1ebb18144be8836",
       "upstreamBlob": "511c308b92bc6a13408e0af6cd08be9c5fe340cc"
     },
     {
@@ -426,7 +427,7 @@
   "additionalDeliveryFiles": [
     {
       "path": ".github/workflows/check-potato-handoff.yml",
-      "sourceBlob": "5ace7b9243b6e541b49d2e43376626f659ba2d7d"
+      "sourceBlob": "bd5673e9178bd79720f42752f31c516bb8197b1e"
     },
     {
       "path": ".github/workflows/export-validated-mono-arm64.yml",
@@ -434,7 +435,7 @@
     },
     {
       "path": ".github/workflows/prepare-integrated-csharp-runtime.yml",
-      "sourceBlob": "7fa43ff930bae381ff581475b0160213fd82d713"
+      "sourceBlob": "790c94b318448bde08f53fa6f138d93117efc90c"
     },
     {
       "path": ".github/workflows/vendor-quickjs-into-bunny-source.yml",
@@ -442,7 +443,7 @@
     },
     {
       "path": ".github/workflows/verify-native-js-csharp-integrated.yml",
-      "sourceBlob": "f77c4967f46c7161742d27265e02c2a0a602edb5"
+      "sourceBlob": "9ef546e32e3b447e953b4c5778e86bafc13cbc59"
     },
     {
       "path": ".github/workflows/verify-ready-csharp-gradle.yml",
@@ -454,7 +455,7 @@
     },
     {
       "path": "POTATO-C-SHARP-HANDOFF.md",
-      "sourceBlob": "bbccc5daf583b1adcde37a6739d0f17ee8a2a0a5"
+      "sourceBlob": "96578b2040dfac05687566825403e06195d4240f"
     },
     {
       "path": "README-BUNNY-ORIGINAL.md",
@@ -462,23 +463,23 @@
     },
     {
       "path": "app/src/main/assets/managed/BunnyManagedProbe.dll",
-      "sourceBlob": "148db3b189ee4ea994ad97b0de32c08b167d071a"
+      "sourceBlob": "d45ad87d0c12a45199e05518b884697cce83a213"
     },
     {
       "path": "app/src/main/assets/managed/BunnySourceCompiler.dll",
-      "sourceBlob": "75a562ced3f21a837096b6c9dd9029af539800d0"
+      "sourceBlob": "84ad8b1303250d553d545810358f44e2fd581b8e"
     },
     {
       "path": "app/src/main/assets/managed/BunnySourceSdk.dll",
-      "sourceBlob": "65ee6c3c92cc2cb9ac9374824254d4c72748c8d0"
+      "sourceBlob": "58488e0788bee9fdfcec8fc881e2fc0d1537a511"
     },
     {
       "path": "app/src/main/assets/managed/BunnyVmBenchmark67.dll",
-      "sourceBlob": "a458e8be60f72008d8930de315a2da2e05e0d682"
+      "sourceBlob": "106d97ecd41cbdc0bcc73a23af50e546baf25148"
     },
     {
       "path": "app/src/main/assets/managed/BunnyVmGameplay69.dll",
-      "sourceBlob": "d404c8eea14c53b34828c360913d103a4658f5fb"
+      "sourceBlob": "48beb90185163042352d86b6c384f60e04dc6330"
     },
     {
       "path": "app/src/main/assets/managed/Microsoft.CSharp.dll",
@@ -1154,7 +1155,7 @@
     },
     {
       "path": "app/src/main/assets/managed/framework.sha256",
-      "sourceBlob": "d9b20174dcf5083ee43a3e01c1febfc4f113fc48"
+      "sourceBlob": "1c26dc79f19909b6188e182372de7e574b440af7"
     },
     {
       "path": "app/src/main/assets/managed/mscorlib.dll",
@@ -1194,11 +1195,11 @@
     },
     {
       "path": "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
-      "sourceBlob": "028fb085d0469b72badc7ecd35f651e2bc4369cc"
+      "sourceBlob": "8cc59d243f9338cd691ebdf34bc14b79ad84b008"
     },
     {
       "path": "app/src/main/cpp/content/sounds/NativeSoundRouter.h",
-      "sourceBlob": "5c74143abc31b21fc213b7c040ff8dabcfd8c160"
+      "sourceBlob": "ad281f12b8fb10e05344e1fd5222ba4b73a01734"
     },
     {
       "path": "app/src/main/cpp/content/tiles/TileRegistry.cpp",
@@ -1334,7 +1335,7 @@
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
-      "sourceBlob": "b9493c5ecf5fa0956d617cc0a8f16df000fdbf28"
+      "sourceBlob": "c7826fd92979190799500738e6d9f9eb82ffb932"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.h",
@@ -1406,7 +1407,7 @@
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
-      "sourceBlob": "44ab5057a4ebe8c027046cb3bbf7f49a3f6cafd9"
+      "sourceBlob": "ddab11d4ef7413253ba51c28ce9503f0131d5cb0"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeBasicItems.h",
@@ -1422,11 +1423,19 @@
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
-      "sourceBlob": "1176fc99004214dc1dd863d00a7d9e0f840fe236"
+      "sourceBlob": "5a90fae45db264989c4b3464f1c03e526293048e"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeContent.h",
-      "sourceBlob": "5be690709bc238147defbf3c75ce34eb3446241c"
+      "sourceBlob": "ff74a5d3af7183e77ee54a0f31d81b4b78a2557e"
+    },
+    {
+      "path": "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+      "sourceBlob": "c7dd563520604ea1ecec66df2e48acc2f9f8000c"
+    },
+    {
+      "path": "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
+      "sourceBlob": "251980954d165608853841ff304068f7eb88a067"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
@@ -1463,6 +1472,10 @@
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeTilePolicy.h",
       "sourceBlob": "59783ea2103e72bb4b2b9be5f9e00d7513396da4"
+    },
+    {
+      "path": "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
+      "sourceBlob": "023c7d4fae74febc09ddd657d3d5f75323dbb3e0"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/NativeVisualRenderer.cpp",
@@ -1506,19 +1519,19 @@
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
-      "sourceBlob": "e31263e2c123fe4886798e18108222d283437871"
+      "sourceBlob": "b14d9f242bfc4e172b5c1c6ee587a9cc73fab927"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
-      "sourceBlob": "a26dbd6cf9db5580db866b0fab339b1df5ff811b"
+      "sourceBlob": "49bbd51b02f5a9b44a8310b883a45d8c3e1acefa"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/SourceParser.cpp",
-      "sourceBlob": "31441cfc66dc3b21fa35a1e86e6e37366b2e96f2"
+      "sourceBlob": "8dfc197fb75f285c4a9f570f02188ac78e880a0b"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/SourceParser.h",
-      "sourceBlob": "115534f3b902fd6cb076a168153cec41ba5b8922"
+      "sourceBlob": "2c2725399efc7c24860892a91d61a08c3090c36e"
     },
     {
       "path": "app/src/main/cpp/experiments/csharp/SourceRecipeRecord.h",
@@ -1922,19 +1935,19 @@
     },
     {
       "path": "docs/generated/example_completion/matrix.json",
-      "sourceBlob": "c3d0393b30b2d77f576a09c995dd777abb818214"
+      "sourceBlob": "59069d495255df0c5a0dac075c55fd0c5b437e84"
     },
     {
       "path": "docs/generated/example_completion/matrix.md",
-      "sourceBlob": "4d1cbaf5ef4ff2266d38664d41324fbff77b2255"
+      "sourceBlob": "ef92d6afeb3b7c3fc6b43d2d1fcad16d4549e4b8"
     },
     {
       "path": "docs/generated/sdk_public_reference.json",
-      "sourceBlob": "1f48431e9068d126be280a3a772d44930070b7d6"
+      "sourceBlob": "b9a362237819abec9f0755cc90fff6cb8332871d"
     },
     {
       "path": "docs/generated/sdk_public_reference.md",
-      "sourceBlob": "39b243ef09d22975a86b361db2fc9d6f5d153696"
+      "sourceBlob": "c574ef0d51fdf83fb4cb87f86af480cd63f72bff"
     },
     {
       "path": "experiments/csharp/BunnyCsPackager/BunnyCsPackager.csproj",
@@ -1974,7 +1987,7 @@
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyContentDeclaration.cs",
-      "sourceBlob": "3520dd277b3483e5dd8b010a6231dd2b64b0735d"
+      "sourceBlob": "719d7c2973bd87acd374a1d096d8078efa7168e6"
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj",
@@ -1985,12 +1998,16 @@
       "sourceBlob": "6c8b64663c70bb92a2f887e6d2521fb46ebca0bd"
     },
     {
+      "path": "experiments/csharp/BunnyCsSdk/BunnyHoldout.cs",
+      "sourceBlob": "d01665ca45cb88d4fd1670393770e1335e229dbe"
+    },
+    {
       "path": "experiments/csharp/BunnyCsSdk/BunnyHooks.cs",
       "sourceBlob": "b822f51052410df7efe052e6f1eea011b60e49c1"
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
-      "sourceBlob": "54191eec958dc16030652324407d25477424ab15"
+      "sourceBlob": "3c1132fa312a43ccc8d6fd0f5d0169c4aecbc765"
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
@@ -2003,6 +2020,10 @@
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyNativeAccess.cs",
       "sourceBlob": "909ce9335dffc6f06cc2f02798a8d1fe6bc283b7"
+    },
+    {
+      "path": "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
+      "sourceBlob": "555bac9c60480c23c1ec2e88548068fb05b5f23c"
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyNpcBehavior.cs",
@@ -2037,8 +2058,12 @@
       "sourceBlob": "d0df9bbe535019159af4f883ba687d52b8d897ce"
     },
     {
+      "path": "experiments/csharp/BunnyCsSdk/BunnySoundStyle.cs",
+      "sourceBlob": "de4714d0c0f51cfaa8c14ae18283de140be63876"
+    },
+    {
       "path": "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
-      "sourceBlob": "3051b7b6413a109574c06adbad09f2ddddfd7756"
+      "sourceBlob": "0896c157dbdf0707837845dffc8d9c08fb7ad22a"
     },
     {
       "path": "experiments/csharp/BunnyCsSdk/BunnyTile.cs",
@@ -2086,7 +2111,7 @@
     },
     {
       "path": "experiments/csharp/BunnySourceCompiler.Smoke/Program.cs",
-      "sourceBlob": "8b762465aa212a68807239342cfa141250e38e4d"
+      "sourceBlob": "d1e566f71dbc7ad86a5f8c82bf188b31d820434d"
     },
     {
       "path": "experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs",
@@ -2098,11 +2123,11 @@
     },
     {
       "path": "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
-      "sourceBlob": "854f31dae52cbec6a6088486b20b99de0ef3a71b"
+      "sourceBlob": "92a2a11d60f3693edf19e32022cbb9c71f90435e"
     },
     {
       "path": "experiments/csharp/BunnySourceCompiler/Compiler.cs",
-      "sourceBlob": "f75a92d4f953ad5c5fe6adbf6ba0edfe4e34aa59"
+      "sourceBlob": "3856c3fe579b2e96fc3f0d6d0f739fc3a4f0bf50"
     },
     {
       "path": "experiments/csharp/BunnySourceCompiler/CompilerReferences.cs",
@@ -2126,7 +2151,7 @@
     },
     {
       "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
-      "sourceBlob": "67a5d58be77a4950dab694463f150aca51b63604"
+      "sourceBlob": "c3a5f6bd49c2442dfe24c8ad9e6f915dcdfa78a9"
     },
     {
       "path": "experiments/csharp/BunnyVmBenchmark67/BunnyVmBenchmark67.csproj",
@@ -2481,6 +2506,10 @@
       "sourceBlob": "b572d588db7881bfe7b74448e07a25919b241820"
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg",
+      "sourceBlob": "f8b6b72799e7ce1bde60206ddab8ae2c1718b0eb"
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookInt32Triple.cs",
       "sourceBlob": "d1751d9863a5a7497c1b47980e99cf8520a4c03d"
     },
@@ -2562,7 +2591,7 @@
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs",
-      "sourceBlob": "3fb7f9cb466623481dd7cbb3d2ce8c6a9171ee9f"
+      "sourceBlob": "1794b6df8e3c110c7690ecb1d9329809b64d0518"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/01_ReduzirDano.cs",
@@ -2729,6 +2758,14 @@
       "sourceBlob": "f36c1c57d30988bc5b5d8535c76089cfea01d6ea"
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs",
+      "sourceBlob": "eeaa130419f5a11e048fc3a52edac5ef8530497b"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.png",
+      "sourceBlob": "265a7a16bacd2386d66e4f3236b818ac621e4c43"
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
       "sourceBlob": "f1b7d077c114bdbc4f31a30b202961e8f1edc491"
     },
@@ -2857,6 +2894,38 @@
       "sourceBlob": "0b8339ed0cc4336df509c1f840a544b7436f0716"
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs",
+      "sourceBlob": "a810653cdd931ea782a92c85cee8c7076941c278"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.png",
+      "sourceBlob": "b54922e201fda026ad0836235008ead16aebac92"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleBulletLauncher.cs",
+      "sourceBlob": "109036759c4ce7131628609bc01a6e376d926c5d"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleBulletLauncher.png",
+      "sourceBlob": "8adb09d50ab62380ca9d7d189f5d02a951a338af"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs",
+      "sourceBlob": "2e7dbe09c70203df5e6801128df4f5150e78fcfe"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
+      "sourceBlob": "8adb09d50ab62380ca9d7d189f5d02a951a338af"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs",
+      "sourceBlob": "41778314f40c5ffbebc6fae2fdd2920bfb9d11aa"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.png",
+      "sourceBlob": "2c70195bb34d657129e7fca4dbfa3252ee7e8c7c"
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/SourceWand.png",
       "sourceBlob": "d214056a6a95678ec5c423abb5bbc2601126b990"
     },
@@ -2883,6 +2952,14 @@
     {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs",
       "sourceBlob": "9892d68d26c3db1a4178a1dd937d18aed36e4d82"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs",
+      "sourceBlob": "7b50d07cc68da7aa40b79b77d04d8b362e589f82"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.png",
+      "sourceBlob": "c0208fefc92711e5f065477f1bd4037dc9144fa4"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs",
@@ -2926,11 +3003,15 @@
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/COMPATIBILIDADE.json",
-      "sourceBlob": "c3d0393b30b2d77f576a09c995dd777abb818214"
+      "sourceBlob": "8ae4e74ebd578b4ee57e824c66486487c7107e6b"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/COMPATIBILIDADE.md",
-      "sourceBlob": "4d1cbaf5ef4ff2266d38664d41324fbff77b2255"
+      "sourceBlob": "b92fcc89e878a237ec1fbe53f2c7fe501096d51f"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Documentation/CUSTOM_AUDIO.md",
+      "sourceBlob": "e80c0067641d4d19bda0b65e2763d8f19fed96e8"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/HOOK_QA_ANDROID.md",
@@ -2939,6 +3020,10 @@
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/LOTE2_ITENS.md",
       "sourceBlob": "c72efb31e7655759917edc8f86180adbb649b3a6"
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Documentation/NATIVE_DEFAULTS_V96.md",
+      "sourceBlob": "67ab597e47eff58b4279a2db22fd4c00dc714a5e"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/OWNED_RECIPE_LOADER_V92.md",
@@ -2966,7 +3051,7 @@
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/Documentation/TESTAR_ANDROID.md",
-      "sourceBlob": "c0edb8182a3d1b095d881693516c96cd1c76a6ef"
+      "sourceBlob": "913232d9dbe7a691df64d7707d3a655ceb5231f0"
     },
     {
       "path": "samples/ExampleModCSharp/Playable/content/ExampleBoltMotion.cs",
@@ -2986,7 +3071,7 @@
     },
     {
       "path": "samples/ExampleModCSharp/Playable/manifest.json",
-      "sourceBlob": "6e38444cbae10b238fb23510e5e9100c25cf8951"
+      "sourceBlob": "63f60c6ece5e95a27ae4c8a258fd6bc68795a2ef"
     },
     {
       "path": "samples/ExampleModCSharp/README.md",
@@ -2998,7 +3083,7 @@
     },
     {
       "path": "samples/ExampleModCSharp/Tests/check_examples.py",
-      "sourceBlob": "cdee9a6be916edc3e934dcafe4eafc1e00434559"
+      "sourceBlob": "5155436604f54b586c6af5117229d4fb22f7e5ff"
     },
     {
       "path": "samples/ExampleModCSharp/Tests/check_npc_coverage.py",
@@ -3010,7 +3095,7 @@
     },
     {
       "path": "samples/ExampleModCSharp/compatibility.json",
-      "sourceBlob": "3ba4cee6a3676929925b58a102b5703caf2dbe20"
+      "sourceBlob": "0b2a7135c964fd8b85eb9846f40a871c741547d0"
     },
     {
       "path": "samples/LightsAndShadowsCSharp/Playable/content/Common/Lighting/LightingCalculator.cs",
@@ -3330,7 +3415,7 @@
     },
     {
       "path": "tests/basic_items/Program.cs",
-      "sourceBlob": "d6501f60f3e47e7e61ea198d621819abd4c936a0"
+      "sourceBlob": "26047303aeb9b881da5802f34d29b0d602006871"
     },
     {
       "path": "tests/basic_items/armor_behavior_bridge_test.js",
@@ -3370,7 +3455,7 @@
     },
     {
       "path": "tests/basic_items/check_full_wire.py",
-      "sourceBlob": "938fc8ea7e96e43499d868eefb0359e50f5cccb6"
+      "sourceBlob": "2ed83a2fb41ef3ecf7f90238b115853712ada8e3"
     },
     {
       "path": "tests/basic_items/check_lot_a_scope.py",
@@ -3426,7 +3511,7 @@
     },
     {
       "path": "tests/basic_items/package_assets_test.py",
-      "sourceBlob": "cceccebbcd1e84bbd9d7492d77ada196036efaa8"
+      "sourceBlob": "1a02d363be6f0feb88074a767a0c372eea01be49"
     },
     {
       "path": "tests/basic_items/placeable_fixture/content/ContractPlaceable.cs",
@@ -3494,7 +3579,7 @@
     },
     {
       "path": "tests/combat_batch/check_package.py",
-      "sourceBlob": "dc85213a9303b2c90756777ec452c7d0cf1bb2fb"
+      "sourceBlob": "9803d179bded83141520c10586a3ea378e9f01fb"
     },
     {
       "path": "tests/compiler_aot_loader.cpp",
@@ -3522,7 +3607,7 @@
     },
     {
       "path": "tests/csharp_build_policy_test.py",
-      "sourceBlob": "db70f47e31678424510afcda3dc23d244ed4223e"
+      "sourceBlob": "3230230f4c6b85f66ab020323008f327e3e2658c"
     },
     {
       "path": "tests/csharp_native_equips_test.js",
@@ -3846,7 +3931,7 @@
     },
     {
       "path": "tests/private_delivery_script_test.py",
-      "sourceBlob": "f9f6d224aefc9600df1ebe977fbeefc4481f7ea3"
+      "sourceBlob": "9d5d2c0bfaadb2a3926222666075289ea68da4ec"
     },
     {
       "path": "tests/private_delivery_verifier_test.py",
@@ -4001,12 +4086,20 @@
       "sourceBlob": "1527573225d07057a56788b85dee192e94cce755"
     },
     {
+      "path": "tests/summon_lifecycle/holdout_test.cpp",
+      "sourceBlob": "e795ae39e70d05e028c2e0722c94c85453b6da85"
+    },
+    {
       "path": "tests/summon_lifecycle/native_binding_test.cpp",
       "sourceBlob": "9d0f22c6dffc28ca99650361b2c55fe13f40b376"
     },
     {
+      "path": "tests/summon_lifecycle/native_defaults_test.cpp",
+      "sourceBlob": "acbd562f4cb9567d21a007dfdc88938b6c74d5d5"
+    },
+    {
       "path": "tests/summon_lifecycle/run.sh",
-      "sourceBlob": "505a9d447df54a3f4c00050ae7772f3a58204acb"
+      "sourceBlob": "b06b21df7121564723dc897c24edad0b87956040"
     },
     {
       "path": "tests/summon_lifecycle/runtime_test.cpp",
@@ -4014,15 +4107,23 @@
     },
     {
       "path": "tests/summon_lifecycle/scheduler_test.cpp",
-      "sourceBlob": "d0ffc555330ef40200dc2b5768b978363caa5d26"
+      "sourceBlob": "35d35f0b539d20ba0e8b7adb1562d4624a08b4df"
+    },
+    {
+      "path": "tests/summon_lifecycle/sound_router_test.cpp",
+      "sourceBlob": "9551ee1d35af765a8f3746634c708c9a08cfa411"
     },
     {
       "path": "tests/summon_lifecycle/source_damage_test.cpp",
-      "sourceBlob": "56321ab52edd17faa983fc2793260da240c19da6"
+      "sourceBlob": "d2740e792fc2ad3f958a9423d217c70d3e0458f6"
     },
     {
       "path": "tests/summon_lifecycle/source_registration_test.cpp",
-      "sourceBlob": "6b53cbd6ecc7d61d2da19c78efa388e2ce847b4d"
+      "sourceBlob": "32354c5d010690546baaf014da222a1365e31910"
+    },
+    {
+      "path": "tests/summon_lifecycle/use_sound_test.cpp",
+      "sourceBlob": "b5c6b12d3a41c0bf79357e4f17cef0c664cc01d2"
     },
     {
       "path": "tests/test_create_csharp_mod.py",
@@ -4202,7 +4303,7 @@
     },
     {
       "path": "tools/ci/csharp-build-policy.json",
-      "sourceBlob": "231d84da44e40de42ec4f91438b7e033eedfb399"
+      "sourceBlob": "eaa3a2487308cf54e7f967def4af6172fef99548"
     },
     {
       "path": "tools/ci/csharp_build_policy.py",
@@ -4210,7 +4311,7 @@
     },
     {
       "path": "tools/ci/publish_csharp_private.sh",
-      "sourceBlob": "ebffdbcb5efb110757b3644a8a96ea89c7d108a8"
+      "sourceBlob": "befe0e54f8c492a1f8872cdd166586c60372e5f6"
     },
     {
       "path": "tools/ci/verify_private_delivery.py",
@@ -4241,8 +4342,12 @@
       "sourceBlob": "0f003e82834430f46beb6ceaaf2498ea9f564583"
     },
     {
+      "path": "tools/example_completion/attachment-reference-1.8.0.json",
+      "sourceBlob": "2eae676dd5e91c604665c3b9662b029b764d2821"
+    },
+    {
       "path": "tools/example_completion/evidence.json",
-      "sourceBlob": "1b5faeca491fbfc74630c78d6339d3a1a43d73ed"
+      "sourceBlob": "2ced1af78cb00f9c5f32e9cd111c52e33f280d76"
     },
     {
       "path": "tools/example_completion/lot-a-scope.json",
@@ -4270,7 +4375,7 @@
     },
     {
       "path": "tools/mods/check_csharp_assets.py",
-      "sourceBlob": "355dd9d094644e7baaa535f68788b174a023c53f"
+      "sourceBlob": "a9fffed5da179b775349f61b47670d1c2c93631d"
     },
     {
       "path": "tools/mono/README.md",
@@ -4329,5 +4434,5 @@
       "sourceBlob": "4d5d1dd91490708605aedd31bd59fe40d99815b1"
     }
   ],
-  "missingOriginalFiles": []
+  "originalFilesMissing": []
 }
