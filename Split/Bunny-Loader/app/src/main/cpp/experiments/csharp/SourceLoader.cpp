@@ -1069,14 +1069,33 @@ bool applyManagedSourceDefaults(
                     const size_t colon = fields[16].find(':', start);
                     int itemType = 0;
                     int weight = -1;
+                    const std::string token = fields[16].substr(start, colon == std::string::npos ? 0 : colon - start);
                     if (colon == std::string::npos || colon >= end ||
-                        !integer(fields[16].substr(start, colon - start), &itemType) ||
                         !integer(fields[16].substr(colon + 1, end - colon - 1), &weight) ||
-                        itemType < 1 || itemType > 32767 || weight < 0 || weight > 20 ||
-                        record.itemWeights.size() >= 32 ||
-                        !record.itemWeights.emplace(itemType, weight).second) {
+                        weight < 0 || weight > 20 ||
+                        record.itemWeights.size() + record.itemNames.size() >= 32) {
                         *error = "Regra por item invalida no prefixo C#: " + record.name;
                         return false;
+                    }
+                    if (integer(token, &itemType)) {
+                        if (itemType < 1 || itemType > 32767 ||
+                            !record.itemWeights.emplace(itemType, weight).second) {
+                            *error = "Tipo numerico repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
+                    } else {
+                        bool validName = !token.empty() && token.size() <= 64 &&
+                            ((token[0] >= 'A' && token[0] <= 'Z') ||
+                             (token[0] >= 'a' && token[0] <= 'z') || token[0] == '_');
+                        for (unsigned char ch : token)
+                            if (!((ch >= 'A' && ch <= 'Z') ||
+                                  (ch >= 'a' && ch <= 'z') ||
+                                  (ch >= '0' && ch <= '9') || ch == '_'))
+                                validName = false;
+                        if (!validName || !record.itemNames.emplace(token, weight).second) {
+                            *error = "Nome de item repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
                     }
                     if (comma == std::string::npos) break;
                     start = comma + 1;
