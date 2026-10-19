@@ -251,3 +251,32 @@ A pipeline isolada `.github/workflows/check-csharp-prefix-android-arm64.yml` com
 A PR de verificação temporária [#105](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/105) executou [Android ARM64 #39319100681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39319100681) com **sucesso**, assim como [Equipment CSharp preflight #39319100726](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39319100726), incluindo delegação vanilla quando o hook ainda não inicializou. O workflow e a regressão foram copiados para a PR #100.
 
 **Não confundir com teste Android real:** somente três unidades de tradução foram compiladas para ARM64 e verificadas por `llvm-readelf`. Não ocorreu link da biblioteca compartilhada completa, instalação do APK, execução no Xiaomi, verificação de saves, multiplayer ou medição de FPS. A construção de APK completa deve respeitar a entrega privada existente e os bloqueios de lote da base do projeto.
+
+## Prefixo com Apply, eficácia de stats e tooltip adicional
+
+Conferido com `script/js/mod/ModPrefix.js` e `script/js/mod/Loaders/PrefixLoader.js`: o prefixo pode executar um `Apply(item)` depois de `Item.Prefix`, informar quando todos os multiplicadores afetam realmente o item e acrescentar linhas de tooltip. O contrato C# atual introduz uma versão **declarativa e tipada** desses três comportamentos, sem dependência do runtime JS.
+
+```csharp
+public sealed class TestMightyPrefix : BunnyPrefix
+{
+    public override void SetDefaults()
+    {
+        Category = PrefixCategory.AnyWeapon;
+        RollWeight = 5;
+        ExtraTooltip = "Bonus adicional do prefixo";
+        RequireEffectiveStats = false;
+    }
+
+    public override void Apply(ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = 3;
+        effects.ValueBonus = 40;
+    }
+}
+```
+
+O compilador chama uma vez `Apply(ref BunnyPrefixApplyStats)` e envia a linha opcional `PREFIX_POST\tName\t3\t40\t0\tBonus adicional do prefixo`. O parser valida o nome de um prefixo do próprio mod, limites, comprimento, duplicatas e rejeita linhas órfãs antes de publicar o descritor. Prefixos sem políticas adicionais mantêm seu formato antigo de 16/17 campos. Os limites são 0–1000 para dano, 0–100000 para valor e 120 caracteres para tooltip.
+
+O hook de `Item.Prefix` soma os efeitos do prefixo e do item original somente após sucesso, com checagem de overflow antes de escrever os dois atributos. A assinatura thread-local de 16 slots reconhece **o total aplicado**, para evitar somar repetidamente a combinação dos bônus. `RequireEffectiveStats=false` dispensa a condição nativa de que todos os multiplicadores alterem de fato o item; a opção padrão `true` mantém a regra anterior. `ExtraTooltip` é anexado após as linhas vanilla no hook de tooltip do inventário, respeitando capacidade, tipos IL2CPP e write barrier.
+
+**Não é paridade integral com os callbacks originais por instância:** `Apply(item)`, `AllStatChangesHaveEffectOn(item)` e `GetTooltipLines(item)` no JS podem acessar estado dinâmico, alterar outros campos ou retornar várias linhas; o novo contrato C# limita-se a ajustes estáticos de dano/valor, uma linha fixa e um sinalizador booleano. Não substitui validação no Android (itens clonados/salvos, multiplayer, GC, tooltips e FPS). Não declarar o PrefixLoader integralmente completo com base apenas nos testes de host.
