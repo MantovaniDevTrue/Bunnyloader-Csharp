@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <charconv>
 #include <map>
 #include <mutex>
 #include <memory>
@@ -108,11 +109,10 @@ bool applyManagedItemPrefixDenials(
                 std::all_of(token.begin(), token.end(),
                     [](unsigned char ch) { return ch >= '0' && ch <= '9'; });
             if (numeric) {
-                try {
-                    prefix = std::stoi(token);
-                } catch (...) {
-                    return false;
-                }
+                const char* begin = token.data();
+                const char* end = begin + token.size();
+                const auto result = std::from_chars(begin, end, prefix);
+                if (result.ec != std::errc{} || result.ptr != end) return false;
             } else {
                 if (token.empty() || token.size() > 64 ||
                     !((token[0] >= 'A' && token[0] <= 'Z') ||
