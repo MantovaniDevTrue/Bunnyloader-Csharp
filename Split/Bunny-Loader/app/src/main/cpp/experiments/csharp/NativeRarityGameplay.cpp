@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/NativeRarityPalette.h"
+#include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/ManagedRuntime.h"
@@ -85,34 +86,6 @@ bool installPopupRarityHook(std::string* error) {
     return true;
 }
 
-bool parseChannel(const char* first, const char* last, uint8_t* result) {
-    if (first == last || !result) return false;
-    int value = -1;
-    auto parse = std::from_chars(first, last, value);
-    if (parse.ec != std::errc{} || parse.ptr != last || value < 0 || value > 255) return false;
-    *result = static_cast<uint8_t>(value);
-    return true;
-}
-
-bool parseColor(const std::string& text, uint32_t* argb) {
-    if (!argb || !text.starts_with("COLOR|") || text.size() > 32) return false;
-    uint8_t channels[4]{};
-    const char* start = text.data() + 6;
-    const char* end = text.data() + text.size();
-    for (int n = 0; n < 4; ++n) {
-        const char* stop = n < 3
-            ? static_cast<const char*>(std::memchr(start, '|', static_cast<size_t>(end - start)))
-            : end;
-        if (!stop || !parseChannel(start, stop, &channels[n])) return false;
-        start = stop + (n < 3 ? 1 : 0);
-    }
-    *argb = (static_cast<uint32_t>(channels[3]) << 24) |
-        (static_cast<uint32_t>(channels[0]) << 16) |
-        (static_cast<uint32_t>(channels[1]) << 8) |
-        static_cast<uint32_t>(channels[2]);
-    return true;
-}
-
 struct DiscoField {
     FieldInfo* field = nullptr;
     int bytes = 0;
@@ -182,6 +155,7 @@ bool registerNativeRaritySampling(const std::string& mod, const std::string& ass
 
 void pumpNativeRarityGameplay() {
     ++g_tick;
+    if ((g_tick & 1u) != 0) return;
     RarityMod current;
     {
         std::lock_guard guard(g_mutex);
@@ -225,7 +199,7 @@ void pumpNativeRarityGameplay() {
     if (!invokeManagedRarity(current.id, current.assembly, sample.name,
             0, discoSnapshot(), &response, 1200)) return;
     uint32_t argb = 0;
-    if (!parseColor(response, &argb) || !g_palette.publish(sample.type, argb)) return;
+    if (!decodeRarityColorWire(response, &argb) || !g_palette.publish(sample.type, argb)) return;
     if (!g_hookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
         if (!installPopupRarityHook(&error))
