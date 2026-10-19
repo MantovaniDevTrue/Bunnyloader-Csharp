@@ -935,12 +935,10 @@ public static class CompiledAssemblyProbe
             if (display.Length > 80 || display.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# prefix name");
             fields.Add(display);
-            var rulesType = type.Assembly.GetType("BunnyLoader.Source.BunnyPrefixRollRules", throwOnError: true)!;
-            object rules = Activator.CreateInstance(rulesType)!;
+            var rules = new BunnyLoader.Source.BunnyPrefixRollRules();
             type.GetMethod("ConfigureRollRules", BindingFlags.Public | BindingFlags.Instance)!
-                .Invoke(prefix, new[] { rules });
-            string ruleWire = (string)rulesType.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Instance)!
-                .Invoke(rules, null)!;
+                .Invoke(prefix, new object[] { rules });
+            string ruleWire = rules.Serialize();
             if (ruleWire.Length > 320)
                 throw new InvalidOperationException("Managed prefix item rules too long: " + name);
             if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
