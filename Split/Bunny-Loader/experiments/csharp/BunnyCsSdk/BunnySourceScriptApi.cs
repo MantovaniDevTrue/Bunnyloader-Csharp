@@ -72,7 +72,7 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
-public abstract class BunnyWeapon : BunnyRecipeSource
+public abstract class BunnyWeapon : BunnyShootSource
 {
     public BunnyHoldout? Holdout { get; set; }
     /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>

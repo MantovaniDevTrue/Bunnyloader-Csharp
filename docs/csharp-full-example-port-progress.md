@@ -1,10 +1,10 @@
 # Port integral — desenvolvimento sem entregas parciais
 
-Regra vigente de19/10/2026: não publicar novo APK ou .bmod enquanto o port completo estiver pendente. A entrega .96 é histórica. A branch atual preserva seus commits; políticas de publicação push/PR foram removidas para essa branch, o publicador também recusa invocação direta e o export de pacotes depende da mesma política. CI, compilação e relatórios técnicos continuam disponíveis. Não reabilitar publicação para entregar outro subconjunto.
+Regra vigente de19/10/2026: não publicar novo APK ou .bmod enquanto o port completo estiver pendente. A entrega .96 é histórica e o usuário confirmou seu funcionamento geral com ExampleMod em19/10; isso não valida as adições posteriores. A branch atual preserva seus commits; políticas de publicação push/PR foram removidas para essa branch, o publicador também recusa invocação direta e o export de pacotes depende da mesma política. CI, compilação e relatórios técnicos continuam disponíveis. Não reabilitar publicação para entregar outro subconjunto.
 
 ## Estado de implementação
 
-Referência canônica ExampleModBunny:206 JS. O inventário oficial PC também permanece no escopo:449 fontes ativos,112 legados e os arquivos de ExampleLibraryMod, conforme `tmodloader-example-inventory.json`; nenhuma equivalência integral foi certificada por este checkpoint. O port do anexo não substitui essa auditoria separada. O anexo1.8.0 tem178, todos contidos na referência1.9.0. Nenhum foi removido da matriz. Revisão de desenvolvimento `.90.29.97-full-example-port-wip`/code274, ExampleMod0.1.56,77 fontes C# editáveis, SDK89 tipos públicos. Não é release, não conclui os lotes e não foi validada no telefone.
+Referência canônica ExampleModBunny:206 JS. O inventário oficial PC também permanece no escopo:449 fontes ativos,112 legados e os arquivos de ExampleLibraryMod, conforme `tmodloader-example-inventory.json`; nenhuma equivalência integral foi certificada por este checkpoint. O port do anexo não substitui essa auditoria separada. O anexo1.8.0 tem178, todos contidos na referência1.9.0. Nenhum foi removido da matriz. Revisão de desenvolvimento `.90.29.98-full-example-port-wip`/code275, ExampleMod0.1.57,78 fontes C# editáveis, SDK93 tipos públicos. Não é release, não conclui os lotes e não foi validada no telefone.
 
 ### Áudio nativo reutilizável
 
@@ -27,7 +27,15 @@ ExampleGun possui textura e Ogg originais, ranged/ammoBullet/shootSpeed10/fallba
 
 Os providers IL2CPP/Android dos testes de host são controlados. Não executam SoundPool no telefone, decodificador Android nem combate Terraria. Gameplay/FPS e compilação fria em5s não foram medidos nesta revisão. Não há pacote novo entregue ao usuário.
 
-## Próximo sistema compartilhado
+## Sistema de disparos implementado na continuidade .98
+
+BunnyShootSource, BunnyShootContext, BunnyShot e BunnyShootRuntime conectam CanShoot/ModifyShootStats/Shoot reais ao worker Mono e aos hooks Player.ItemCheck_Shoot/Projectile.NewProjectile. O snapshot chega após seleção de munição e modificadores; fonte/dono/modifier permanecem no jogo. Saída com até64 spawns, validação integral antes de aplicar, referências por registro compartilhado, preparo de métodos/instâncias, prazo3ms, cancelamento e diagnóstico limitado por conteúdo. Não há intermediário QuickJS. O transporte compartilhado tem prioridade sobre polling/eventos/AI; não interrompe uma chamada já em execução.
+
+ExampleShotgun foi portado com defaults, textura original, offset e algoritmo original de oito tiros±15°/70–100%. Estado implementado aguardando validação: host não comprova ABI/gameplay Android. A matriz contém os206, Weapons4/18 implementados (22.22%),0 integralmente validados. Os demais exemplos dependentes de projéteis/IA/CanUseItem/draw continuam pendentes; o callback isolado não os conclui. Nomes exibidos/traduções/prefixos de todo ExampleMod agora começam com Example por pedido do usuário; IDs não mudaram. O teste executa todas as classes e seus nomes localizados.
+
+Testes locais:35 verificações gerenciadas de disparos e hooks C++ de produção com saída da escopeta compilada; binder/ABI/falhas/transação/dono/fonte/munição/dano/AI/limites; ASan/UBSan; warmup/prazo/cancelamento no scheduler. Regressões:36 itens,43 entidades (dez mil ticks sem alocação),31 combate, dez executáveis de summons/áudio, receitas/projéteis, smoke Roslyn55 classes/72linhas e seis verificações de assets. CI Android desta revisão deve ser registrado separadamente. Nenhum pacote será publicado. Guia: content/Documentation/SHOOTING.md.
+
+## Planejamento anterior de disparos (executado acima)
 
 Implementar Shoot/ModifyShootStats gerenciados, com snapshot tipado e lista de spawns validada. Consultar `script/js/mod/Loaders/ItemLoader.js`, contratos reais de `Player.ItemCheck_Shoot(int,Item,int,bool)` e `Projectile.NewProjectile(IEntitySource,float,float,float,float,int,int,float,int,float,float,float,NewProjectileModifier)`. Preservar fonte/dono/dano já modificado/munição e direção de mira. Não usar um helper fixo de oito tiros como substituto do callback original.
 
@@ -46,3 +54,13 @@ O cache nativo reutiliza o asset por caminho canônico e o marker por arquivo/op
 Fonte `e11f5279b1ed4a573fb08e999cc3228c8cd2dc19`: [CI39190838803](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39190838803) e nove suítes independentes no mesmo SHA aprovados. Gradle executou testes unitários e assembleDebug; assinatura/APK verificados. Etapas de publicação, export dos .bmod e probe puladas; job de conferência de entrega pulado. Repositório Builds acessível, tag correspondente ausente (HTTP404). Não existe nova release para recomendar ao usuário.
 
 [Registro técnico completo](validation/csharp-full-port-wip-2026-10-19.json). Os testes de host e a build Android não substituem gameplay. ExampleGun aguarda validação, demais exemplos e o inventário PC continuam no escopo, zero loaders inteiros certificados. O commit posterior só documenta a evidência; não modifica os binários internos.
+
+
+## Próximos passos após este checkpoint
+
+1. Conferir CI desta revisão sem reabilitar publicação, incluindo Android/JNI/link e todos os testes existentes.
+2. Implementar snapshot público reutilizável de CanUseItem/contagem de projéteis e os ciclos de IA/draw de lanças/chicotes/holdouts/beam. Consultar cada original antes de promover exemplos.
+3. Portar ExampleSpear/ExampleWhip/ExampleSentryItem e seus projéteis/buffs completos em grupos coerentes. Shoot sozinho não substitui esses sistemas.
+4. Seguir todas as categorias da matriz206 e o inventário oficial PC, mantendo fontes/assets/comentários e procedimentos Android por ExampleMod. Não reimplementar as bridges estáveis.
+
+A aprovação geral da .96 está em validation/csharp-v96-android-user-2026-10-19.json; não informa testes individuais nem medição de FPS. A .98 permanece experimental interna e sem certificado Android de gameplay. Publicação parcial continua proibida pelo pedido vigente do usuário.

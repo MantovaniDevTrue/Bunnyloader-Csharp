@@ -237,7 +237,7 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)&&!l.StartsWith("SHOOT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
@@ -263,6 +263,14 @@ try {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
     var defaults=type.GetMethod(typeof(BunnyTile).IsAssignableFrom(type)?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
+    // Execute every registered content class: names and localized names share the user-facing convention.
+    if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
+       !displayName.StartsWith("Example ",StringComparison.Ordinal))
+      throw new Exception("Content name must begin with Example: "+type.FullName+" = "+displayName);
+    foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>())
+      if(!name.Text.StartsWith("Example ",StringComparison.Ordinal))
+        throw new Exception("Localized name must begin with Example: "+type.FullName+" = "+name.Text);
+
     void RequireAsset(string? name) {
       if(!string.IsNullOrWhiteSpace(name))
         assets.Add(new {path=name,className=type.Name,file="ExecutedCSharpDefaults"});

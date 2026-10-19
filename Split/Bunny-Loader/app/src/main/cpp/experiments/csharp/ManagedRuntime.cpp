@@ -287,10 +287,13 @@ struct RecipeRpcJob {
     std::string mod,assembly,owner,snapshot;int index=0,kind=0;
     std::chrono::steady_clock::time_point deadline;
     std::shared_ptr<RecipeRpcCompletion> completion;
+    bool shooting=false;
 };
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
+void* g_shootDispatchMethod=nullptr;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
 
@@ -1365,10 +1368,15 @@ template<class Execute>
 bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute) {
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
-    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){g_recipeRpcWake.notify_all();return true;}
+    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
+        if(job.shooting&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        g_recipeRpcWake.notify_all();return true;
+    }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
+    } else if(job.shooting&&job.kind==2&&!job.completion->cancelled) {
+        job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
 }
@@ -1378,22 +1386,24 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    if(!g_recipeDispatchMethod) {
+    void*& dispatcher=job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod;
+    const char* endpoint=job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime";
+    if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
         const auto sdk=g_checkpointPath.substr(0,slash+1)+"BunnySourceSdk.dll";
         if(!validAssembly(sdk))return "ERROR|Stage=ResolveSdk Path="+sdk+" Reason=SdkAssemblyMissingOrInvalid";
         auto* assembly=g_api.openAssembly(g_domain,sdk.c_str());
         auto* image=assembly?g_api.image(assembly):nullptr;
-        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source","BunnyRecipeRuntime"):nullptr;
-        g_recipeDispatchMethod=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
-        if(!g_recipeDispatchMethod)return "ERROR|Stage=BindDispatcher Class=BunnyRecipeRuntime Method=Dispatch Expected=SixParameters Reason=MethodMissing";
+        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source",endpoint):nullptr;
+        dispatcher=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
+        if(!dispatcher)return std::string("ERROR|Stage=BindDispatcher Class=")+endpoint+" Method=Dispatch Expected=SixParameters Reason=MethodMissing";
     }
     void* args[]={g_api.newString(g_domain,job.mod.c_str()),g_api.newString(g_domain,job.assembly.c_str()),
         g_api.newString(g_domain,job.owner.c_str()),const_cast<int*>(&job.index),const_cast<int*>(&job.kind),
         g_api.newString(g_domain,job.snapshot.c_str())};
     if(!args[0]||!args[1]||!args[2]||!args[5])return "ERROR|Stage=MarshalArguments Reason=MonoStringAllocationFailed";
-    void* exception=nullptr;auto* result=g_api.invoke(g_recipeDispatchMethod,nullptr,args,&exception);
+    void* exception=nullptr;auto* result=g_api.invoke(dispatcher,nullptr,args,&exception);
     if(exception||!result)return "ERROR|Reason=MonoDispatchException";
     using Utf8=char*(*)(void*);using Release=void(*)(void*);
     static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
@@ -1491,6 +1501,8 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                // Bounded synchronous callbacks must not wait behind polling, event or AI backlogs.
+                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
@@ -1795,8 +1807,6 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
-                // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
-                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (!g_entityQueue.empty()) {
                     ManagedEntityJob job = std::move(g_entityQueue.front());
                     g_entityQueue.pop_front();
@@ -2308,23 +2318,58 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
 
 bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_order_acquire);}
 
-bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
-       snapshot.size()>512||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+       snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
     if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
     *output=std::move(completion->output);return !output->empty();
+}
+
+bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,std::string* output,int budgetMicroseconds) {
+    return invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,output,budgetMicroseconds);
+}
+bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
+    int kind,const std::string& snapshot,std::string* output) {
+    if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}
+    const bool result=invokeManagedCallback(true,mod,assembly,owner,0,kind,snapshot,output,3000);
+    if(output) { // Preserve the actual cause while identifying the correct API in transport diagnostics.
+        size_t pos=0;while((pos=output->find("RecipeCallback",pos))!=std::string::npos){output->replace(pos,14,"ShootCallback");pos+=13;}
+    }
+    return result;
+}
+static std::string shootWarmupKey(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    return mod+"|"+assembly+"|"+owner;
+}
+bool queueManagedShootWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);const auto key=shootWarmupKey(mod,assembly,owner);
+    if(g_shootWarmups.count(key))return true;
+    if(g_shootWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_shootWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,std::chrono::steady_clock::now()+std::chrono::seconds(60),completion,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedShootWarmupState(const std::string& mod,const std::string& assembly,const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);if(!lock.owns_lock())return 0;
+    const auto found=g_shootWarmups.find(shootWarmupKey(mod,assembly,owner));
+    if(found==g_shootWarmups.end()){*error="Stage=Warmup Reason=OwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    *error=found->second->output;return -1;
 }
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,

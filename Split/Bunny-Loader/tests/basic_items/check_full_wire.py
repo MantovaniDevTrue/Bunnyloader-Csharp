@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 expected = {
-    "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
+    "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26},
     "TILE": {13},

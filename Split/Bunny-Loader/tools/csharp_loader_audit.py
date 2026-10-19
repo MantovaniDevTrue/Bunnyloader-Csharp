@@ -10,7 +10,7 @@ SOURCE=Path('app/src/main/cpp/script/js/mod/Loaders')
 # Mappings are evidence pointers, never a claim of parity with the JS module.
 MAPPING={
  'BuffLoader':(['BunnyBuff','BunnyBuffPotion'],['experiments/csharp/NativeContent.cpp','content/buffs/ModBuffs.cpp']),
- 'ItemLoader':(['BunnyItem','BunnyWeapon','BunnyAccessory'],['experiments/csharp/NativeBasicItems.cpp','experiments/csharp/NativeItemPolicies.cpp']),
+ 'ItemLoader':(['BunnyItem','BunnyWeapon','BunnyAccessory','BunnyShootSource','BunnyShootContext','BunnyShot'],['experiments/csharp/NativeBasicItems.cpp','experiments/csharp/NativeItemPolicies.cpp','experiments/csharp/NativeShooting.cpp']),
  'EquipLoader':(['BunnyItemBehavior','BunnyArmorEffects','BunnyArmorSet'],['experiments/csharp/NativeItemPolicies.cpp','experiments/csharp/NativeArmorPolicies.cpp']),
  'PlayerLoader':(['BunnyPlayer'],['experiments/csharp/NativeContent.cpp','experiments/csharp/ManagedRuntime.cpp']),
  'PlayerUpdateHooks':(['BunnyPlayer'],['experiments/csharp/NativeContent.cpp']),

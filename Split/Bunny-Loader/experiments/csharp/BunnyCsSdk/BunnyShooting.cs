@@ -1,0 +1,128 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+
+namespace BunnyLoader.Source;
+
+/// <summary>Stats after Terraria selected ammunition and applied weapon modifiers. No native pointers.</summary>
+public struct BunnyShot
+{
+    public float X, Y, VelocityX, VelocityY, KnockBack, Ai0, Ai1, Ai2;
+    public int Type, Damage;
+    /// <summary>Optional local or UID/name identity; resolved by the native projectile registry.</summary>
+    public string? Projectile;
+    internal string Encode()
+    {
+        if(Projectile!=null)BunnyContentKey.Validate(Projectile,nameof(Projectile),"BunnyShot");
+        if(Type<0||Type>1000000||Damage<0||Damage>1000000||
+           !Finite(X,100000000)||!Finite(Y,100000000)||!Finite(VelocityX,4096)||!Finite(VelocityY,4096)||
+           !Finite(KnockBack,10000)||KnockBack<0||!Finite(Ai0,100000000)||!Finite(Ai1,100000000)||!Finite(Ai2,100000000))
+            throw new ArgumentException("[CSharp][ERROR][Shoot] Stage=ValidateOutput Reason=ShotOutsideNativeContract");
+        return string.Join(",",Projectile==null?"v"+Type.ToString(CultureInfo.InvariantCulture):"m"+Projectile,
+            F(X),F(Y),F(VelocityX),F(VelocityY),Damage.ToString(CultureInfo.InvariantCulture),F(KnockBack),F(Ai0),F(Ai1),F(Ai2));
+    }
+    private static bool Finite(float n,float bound)=>float.IsFinite(n)&&MathF.Abs(n)<=bound;
+    private static string F(float n)=>n.ToString("R",CultureInfo.InvariantCulture);
+}
+
+/// <summary>One weapon use on the Mono worker. Spawn requests apply on the game thread only after validation.</summary>
+public sealed class BunnyShootContext
+{
+    public int PlayerIndex { get; internal set; }
+    public int ItemType { get; internal set; }
+    public int WeaponDamage { get; internal set; }
+    public Random Random { get; internal set; }=null!;
+    private readonly List<BunnyShot> shots=new();
+    internal bool CanSpawn;
+    internal IReadOnlyList<BunnyShot> Shots=>shots;
+    /// <summary>Uses the original owner/source/modifier; maximum 64 extra projectiles per native shot.</summary>
+    public void Spawn(BunnyShot shot)
+    {
+        if(!CanSpawn)throw new InvalidOperationException("Spawn is only available during Shoot, not CanShoot or ModifyShootStats");
+        if(shots.Count>=64)throw new InvalidOperationException("[CSharp][ERROR][Shoot] Stage=QueueSpawn Expected=AtMost64 Reason=SpawnCapacityExceeded");
+        _=shot.Encode();shots.Add(shot);
+    }
+}
+
+/// <summary>Common item shooting lifecycle. Arbitrary C# algorithms execute on MonoVM, independently of QuickJS.</summary>
+public abstract class BunnyShootSource : BunnyRecipeSource
+{
+    public virtual bool CanShoot(BunnyShootContext context)=>true;
+    public virtual void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot) { }
+    /// <summary>Return false to replace the original shot with the requests queued through context.Spawn.</summary>
+    public virtual bool Shoot(BunnyShootContext context,BunnyShot shot)=>true;
+    public int ShootCallbackMask
+    {
+        get
+        {
+            int mask=0;var type=GetType();
+            foreach(var pair in new[]{("CanShoot",1), ("ModifyShootStats",2), ("Shoot",4)})
+            {
+                var method=type.GetMethod(pair.Item1,BindingFlags.Instance|BindingFlags.Public);
+                if(method==null||method.GetBaseDefinition().DeclaringType!=typeof(BunnyShootSource))
+                    throw new InvalidOperationException("[CSharp][ERROR][Shoot] Class="+type.FullName+" Method="+pair.Item1+" Stage=Bind Reason=HiddenOrAmbiguousCallback");
+                if(method.DeclaringType!=typeof(BunnyShootSource))mask|=pair.Item2;
+            }
+            return mask;
+        }
+    }
+}
+
+/// <summary>Native transport endpoint. Instances/defaults and callback JIT are prepared before gameplay.</summary>
+public static class BunnyShootRuntime
+{
+    private sealed class Mod
+    {
+        public string Path="";
+        public Assembly Assembly=null!;
+        public readonly Dictionary<string,BunnyShootSource> Items=new(StringComparer.Ordinal);
+    }
+    private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
+    public static string Dispatch(string modId,string assemblyPath,string owner,int index,int kind,string snapshot)
+    {
+        try
+        {
+            if(!mods.TryGetValue(modId,out var mod)||mod.Path!=assemblyPath)
+            {
+                mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(assemblyPath))};mods[modId]=mod;
+            }
+            if(!mod.Items.TryGetValue(owner,out var item))
+            {
+                var types=mod.Assembly.GetTypes().Where(t=>t.Name==owner&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyShootSource).IsAssignableFrom(t)).ToArray();
+                if(types.Length!=1)throw new InvalidOperationException("Expected one registered shooting item; found "+types.Length);
+                item=(BunnyShootSource)Activator.CreateInstance(types[0])!;
+                var declaration=types[0].GetCustomAttribute<BunnyContentAttribute>(false);
+                if(declaration!=null){types[0].GetProperty("DisplayName")!.SetValue(item,declaration.DisplayName);types[0].GetProperty("Texture")!.SetValue(item,declaration.Texture);}
+                types[0].GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(item,null);
+                if(item.ShootCallbackMask==0)throw new InvalidOperationException("No shooting callbacks declared");
+                // Compile methods without running mod gameplay or consuming its state during warmup.
+                foreach(var name in new[]{"CanShoot","ModifyShootStats","Shoot"})
+                    System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(types[0].GetMethod(name)!.MethodHandle);
+                mod.Items.Add(owner,item);
+            }
+            if(kind==2)return "READY";
+            if(index!=0||kind<0||kind>1||snapshot.Length>1024)throw new ArgumentException("Invalid shooting transport arguments");
+            var f=snapshot.Split(',');if(f.Length!=14)throw new ArgumentException("Expected 14 shooting snapshot fields");
+            int I(int i)=>int.Parse(f[i],NumberStyles.Integer,CultureInfo.InvariantCulture);
+            float F(int i)=>float.Parse(f[i],NumberStyles.Float,CultureInfo.InvariantCulture);
+            var context=new BunnyShootContext{PlayerIndex=I(0),ItemType=I(1),WeaponDamage=I(2),Random=new Random(I(3))};
+            if(context.PlayerIndex<0||context.PlayerIndex>255||context.ItemType<1||context.ItemType>1000000||context.WeaponDamage<0||context.WeaponDamage>1000000)
+                throw new ArgumentException("Invalid player/item/damage snapshot");
+            var shot=new BunnyShot{Type=I(4),X=F(5),Y=F(6),VelocityX=F(7),VelocityY=F(8),Damage=I(9),KnockBack=F(10),Ai0=F(11),Ai1=F(12),Ai2=F(13)};
+            _=shot.Encode();
+            if(kind==0)return item.CanShoot(context)?"1":"0";
+            item.ModifyShootStats(context,ref shot);_=shot.Encode();
+            context.CanSpawn=true;bool original=item.Shoot(context,shot);context.CanSpawn=false;
+            // Validate every queued command before returning any of them to the native bridge.
+            return "SHOT1|"+(original?"1":"0")+"|"+shot.Encode()+"|"+string.Join(";",context.Shots.Select(s=>s.Encode()));
+        }
+        catch(Exception error)
+        {
+            return "ERROR|[CSharp][ERROR][Shoot] Mod="+modId+" Class="+owner+" Assembly="+assemblyPath+
+                " Stage=Invoke Kind="+kind+" Reason=ManagedException Result=ShotRejected Exception="+error;
+        }
+    }
+}

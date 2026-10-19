@@ -12,6 +12,12 @@ namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
 bool managedRecipeRuntimeReady();
+// Shares the bounded worker transport, with its own dispatcher and prewarmed content instances.
+bool queueManagedShootWarmup(const std::string& mod,const std::string& assembly,const std::string& owner);
+int managedShootWarmupState(const std::string& mod,const std::string& assembly,const std::string& owner,std::string* error);
+bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
+                        int kind,const std::string& snapshot,std::string* output);
+
 // Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,

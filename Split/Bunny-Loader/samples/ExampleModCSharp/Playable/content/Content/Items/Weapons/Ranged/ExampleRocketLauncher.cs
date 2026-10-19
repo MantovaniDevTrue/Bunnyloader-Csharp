@@ -2,7 +2,7 @@ using BunnyLoader.Source;
 namespace ExampleModCSharp;
 
 [BunnyName("en-US", "Example Rocket Launcher")]
-[BunnyName("pt-BR", "Lança-Foguetes de Exemplo")]
+[BunnyName("pt-BR", "Example Lança-Foguetes")]
 public sealed class ExampleRocketLauncher : BunnyItem
 {
     public override void SetDefaults()

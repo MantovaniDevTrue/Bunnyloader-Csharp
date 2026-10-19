@@ -3,7 +3,7 @@ namespace ExampleModCSharp;
 
 // Sem IA artificial: aiStyle=1 executa a física e a rotação nativas de bala.
 [BunnyName("en-US", "Example Bullet")]
-[BunnyName("pt-BR", "Bala de Exemplo")]
+[BunnyName("pt-BR", "Example Bala")]
 public sealed class ExampleBulletProjectile : BunnyProjectile
 {
     public override void SetDefaults()

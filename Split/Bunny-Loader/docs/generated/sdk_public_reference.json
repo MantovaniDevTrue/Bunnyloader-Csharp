@@ -948,7 +948,7 @@
     {
       "name": "BunnyLoader.Source.BunnyItem",
       "kind": "abstract class",
-      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
+      "baseType": "BunnyLoader.Source.BunnyShootSource",
       "constructors": [],
       "properties": [
         "BunnyHoldout Holdout { get; set; }",
@@ -1891,6 +1891,74 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyShootContext",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyShootContext()"
+      ],
+      "properties": [
+        "Random Random { get; }",
+        "int ItemType { get; }",
+        "int PlayerIndex { get; }",
+        "int WeaponDamage { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Spawn(BunnyShot shot)",
+          "execution": "worker_shoot_command_batch"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyShootRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_sync_shoot_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyShootSource",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
+      "constructors": [],
+      "properties": [
+        "int ShootCallbackMask { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool CanShoot(BunnyShootContext context)",
+          "execution": "worker_sync_shoot_snapshot"
+        },
+        {
+          "signature": "bool Shoot(BunnyShootContext context, BunnyShot shot)",
+          "execution": "worker_sync_shoot_snapshot"
+        },
+        {
+          "signature": "void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)",
+          "execution": "worker_sync_shoot_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyShot",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnySoundLimitBehavior",
       "kind": "enum",
       "baseType": "System.Enum",
@@ -2317,7 +2385,7 @@
     {
       "name": "BunnyLoader.Source.BunnyWeapon",
       "kind": "abstract class",
-      "baseType": "BunnyLoader.Source.BunnyRecipeSource",
+      "baseType": "BunnyLoader.Source.BunnyShootSource",
       "constructors": [],
       "properties": [
         "BunnyHoldout Holdout { get; set; }",

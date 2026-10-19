@@ -1,3 +1,5 @@
+> Continuidade .98 WIP: BunnyShootSource/Context/Shot → worker MonoVM e NativeShooting → fábrica Terraria diretamente. Fonte/dono/modifier ficam na thread do jogo; resolução de referências usa o registro nativo compartilhado. Nenhuma invocação QuickJS. Testes executam o C# e os hooks/contratos C++ de produção com providers; gameplay Android pendente. Nenhum loader inteiro certificado.
+
 > Port integral em desenvolvimento: CustomUseSound usa NativeUseSounds → NativeSoundRouter → AndroidAudio/SfxQueue, sem QuickJS. SDK e binding próprios; serviço de áudio independente compartilhado com JS. Testes de host não certificam áudio Android. Publicação suspensa.
 
 > .96: NativeDefaults e NativeHoldout usam serviços C++ próprios com metadata IL2CPP validada; constantes e referências vêm do registro nativo compartilhado. BunnyName alimenta nomes dos conteúdos no núcleo. Nenhuma chamada QuickJS nesses caminhos. Fixtures BL_HAVE_QUICKJS=0; isto não certifica o desacoplamento dos88 loaders legados.

@@ -955,6 +955,8 @@ public static class CompiledAssemblyProbe
         }
         foreach(var item in basicItems.Concat(weapons))
         {
+            int shootMask=Value<int>(item,"ShootCallbackMask");
+            if(shootMask!=0)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture));
             object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
             if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);

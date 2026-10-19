@@ -546,11 +546,15 @@
       "publicApis": [
         "BunnyItem",
         "BunnyWeapon",
-        "BunnyAccessory"
+        "BunnyAccessory",
+        "BunnyShootSource",
+        "BunnyShootContext",
+        "BunnyShot"
       ],
       "nativeEvidence": [
         "experiments/csharp/NativeBasicItems.cpp",
-        "experiments/csharp/NativeItemPolicies.cpp"
+        "experiments/csharp/NativeItemPolicies.cpp",
+        "experiments/csharp/NativeShooting.cpp"
       ],
       "state": "Parcial",
       "verifiedParity": false,

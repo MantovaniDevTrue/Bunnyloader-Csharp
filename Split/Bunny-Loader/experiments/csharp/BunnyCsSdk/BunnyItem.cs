@@ -6,7 +6,7 @@ using System.Linq;
 namespace BunnyLoader.Source;
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
-public abstract class BunnyItem : BunnyRecipeSource
+public abstract class BunnyItem : BunnyShootSource
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public BunnyHoldout? Holdout { get; set; }

@@ -41,7 +41,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Tiles | 37 | 1 (2.7%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Weapons | 18 | 3 (16.67%) | 0 (0.0%) | 1 (5.56%) | 0 |
+| Weapons | 18 | 4 (22.22%) | 0 (0.0%) | 1 (5.56%) | 0 |
 
 ## Todos os arquivos
 
@@ -172,7 +172,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Weapons/Melee/ExampleYoyo.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Ranged/ExampleGun.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/package_assets_test.py; tests/summon_lifecycle/use_sound_test.cpp; tests/summon_lifecycle/sound_router_test.cpp |
 | Content/Items/Weapons/Ranged/ExampleRocketLauncher.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/summon_lifecycle/native_defaults_test.cpp; tests/summon_lifecycle/holdout_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/summon_lifecycle/source_damage_test.cpp |
-| Content/Items/Weapons/Ranged/ExampleShotgun.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Weapons/Ranged/ExampleShotgun.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/shooting/Program.cs; tests/shooting/native_test.cpp; tests/summon_lifecycle/scheduler_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/basic_items/Program.cs |
 | Content/Items/Weapons/Summon/ExampleMinionItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs | Parcial | Mana, knockback, raridade, valor e SoundID.Item44 originais ainda precisam de API/bridge.; Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp; tests/summon_lifecycle/runtime_test.cpp; tests/summon_lifecycle/source_damage_test.cpp; tests/summon_lifecycle/contracts_test.cpp; tests/summon_lifecycle/native_binding_test.cpp |
 | Content/Items/Weapons/Summon/ExampleSentryItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Mounts/ExampleMinecartMount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModMount | Sem validacao funcional C# deste exemplo inteiro. |

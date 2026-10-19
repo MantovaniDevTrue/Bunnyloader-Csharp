@@ -1,0 +1,50 @@
+using BunnyLoader.Source;
+using ExampleModCSharp;
+using System.Reflection;
+using System.Globalization;
+
+int checks=0;
+void Require(bool value,string reason){if(!value)throw new Exception(reason);checks++;}
+string assembly=Assembly.GetExecutingAssembly().Location;
+string input="2,6230,18,42,1136,100,200,10,0,24,7,1,2,3";
+string Call(string owner,int kind=1,string? snapshot=null)=>BunnyShootRuntime.Dispatch("independent",assembly,owner,0,kind,snapshot??input);
+Require(Call("ExampleShotgun",2)=="READY","Prewarm without firing");
+Require(Call("ExampleShotgun",0)=="1","Default CanShoot allows");
+string output=Call("ExampleShotgun");var parts=output.Split('|');
+Require(parts.Length==4&&parts[0]=="SHOT1"&&parts[1]=="0","Eight pellets replace original");
+var pellets=parts[3].Split(';');Require(pellets.Length==8,"Original pellet count");
+foreach(var text in pellets){var f=text.Split(',');float vx=float.Parse(f[3],CultureInfo.InvariantCulture),vy=float.Parse(f[4],CultureInfo.InvariantCulture);
+ Require(f[0]=="v1136"&&f[1]=="100"&&f[2]=="200"&&f[5]=="24"&&f[6]=="7"&&f[7]=="1"&&f[8]=="2"&&f[9]=="3","Selected ammo, damage, position, knockback and AI preserved");
+ float speed=MathF.Sqrt(vx*vx+vy*vy);Require(speed>=7&&speed<=10&&MathF.Abs(MathF.Atan2(vy,vx))<=MathF.PI/12,"Original speed and angle distribution");}
+Directory.CreateDirectory("build/shooting");File.WriteAllText("build/shooting/shotgun-output.txt",output);
+Require(Call("Deny",0)=="0","CanShoot cancellation");
+Require(Call("Modify").StartsWith("SHOT1|1|v1136,110,200,10,0,48,7,1,2,3|"),"Modify precedes Shoot");
+Require(Call("NoShots").EndsWith("|"),"Zero additional shots");
+Require(Call("Many").Split('|')[3].Split(';').Length==64,"64-spawn contract");
+Require(Call("Overflow").Contains("SpawnCapacityExceeded"),"Reject whole overflowing output");
+Require(Call("Invalid").Contains("ShotOutsideNativeContract"),"Reject non-finite output");
+Require(Call("Throws").Contains("original-test-exception")&&Call("Throws").Contains("Exception="),"Original exception preserved");
+Require(Call("Named").Contains("manother-mod/Projectile"),"Cross-mod native identity token");
+Require(Call("ExampleShotgun",1,input.Replace(",100,",",NaN,")).StartsWith("ERROR|"),"Invalid snapshot");
+Require(Call("ExampleShotgun",1,input+",extra").StartsWith("ERROR|"),"Reject extra fields");
+Require(Call("EarlySpawn",0).Contains("only available during Shoot"),"Preflight cannot spawn");
+Require(new ExampleShotgun().ShootCallbackMask==4,"Actual example override mask");
+Require(Call("Hidden",2).Contains("HiddenOrAmbiguousCallback"),"Hidden methods cannot silently bind");
+var shotgun=new ExampleShotgun();shotgun.SetDefaults();Require(shotgun.UseTime==55&&shotgun.UseAnimation==55&&shotgun.Damage==10&&shotgun.Value==100000&&shotgun.UseSound=="Item36","Original defaults");
+Require(shotgun.NativeDefaultsDefinition.Contains("useAmmo:d:AmmoID:Bullet")&&shotgun.NativeDefaultsDefinition.Contains("shootSpeed:f:10"),"Native ammo and speed");
+Console.WriteLine($"SHOOT_MANAGED_LIFECYCLE_ORIGINAL_SHOTGUN_AND_FAILURE_ISOLATION_PASS checks={checks}");
+
+public abstract class Fixture:BunnyItem {public override void SetDefaults(){DisplayName="Independent fixture";Texture="not-loaded.png";}}
+public sealed class Deny:Fixture {public override bool CanShoot(BunnyShootContext c)=>false;}
+public sealed class Modify:Fixture {
+ public override void ModifyShootStats(BunnyShootContext c,ref BunnyShot shot){shot.X+=10;shot.Damage*=2;}
+ public override bool Shoot(BunnyShootContext c,BunnyShot shot)=>shot.Damage==48;
+}
+public sealed class NoShots:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s)=>false;}
+public sealed class Many:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<64;i++)c.Spawn(s);return false;}}
+public sealed class Overflow:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<65;i++)c.Spawn(s);return false;}}
+public sealed class Invalid:Fixture {public override void ModifyShootStats(BunnyShootContext c,ref BunnyShot s){s.Damage=2;s.VelocityX=float.NaN;}}
+public sealed class Throws:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s)=>throw new Exception("original-test-exception");}
+public sealed class Named:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){s.Projectile="another-mod/Projectile";c.Spawn(s);return false;}}
+public sealed class EarlySpawn:Fixture {public override bool CanShoot(BunnyShootContext c){c.Spawn(default);return true;}}
+public sealed class Hidden:Fixture {public new bool Shoot(BunnyShootContext c,BunnyShot s)=>false;}

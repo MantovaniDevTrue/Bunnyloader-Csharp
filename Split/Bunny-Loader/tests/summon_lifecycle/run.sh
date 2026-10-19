@@ -15,7 +15,7 @@ output="${RUNNER_TEMP:-/tmp}/bunny-summon-runtime"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -I app/src/main/cpp tests/summon_lifecycle/holdout_test.cpp -pthread -o "${output}-holdout"
 "${output}-holdout" build/basic-items/full-source-runtime-values.txt
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/summon_lifecycle/source_registration_test.cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp -Wl,--gc-sections -o "${output}-registration"
-"${output}-registration" samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs
+"${output}-registration" samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/summon_lifecycle/scheduler_test.cpp -Wl,--gc-sections -pthread -ldl -o "${output}-scheduler"
 "${output}-scheduler"
 

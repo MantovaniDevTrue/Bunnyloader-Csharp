@@ -525,7 +525,7 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }
@@ -1044,6 +1044,48 @@ string ShaderFile { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyShootContext
+
+class; base: `System.Object`.
+
+```csharp
+BunnyShootContext()
+Random Random { get; }
+int ItemType { get; }
+int PlayerIndex { get; }
+int WeaponDamage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Spawn(BunnyShot shot)` | worker_shoot_command_batch |
+
+## BunnyLoader.Source.BunnyShootRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShootSource
+
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+
+```csharp
+int ShootCallbackMask { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
+| `bool Shoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
+| `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShot
+
+struct; base: `System.ValueType`.
+
 ## BunnyLoader.Source.BunnySoundLimitBehavior
 
 enum; base: `System.Enum`.
@@ -1255,7 +1297,7 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyWeapon
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }

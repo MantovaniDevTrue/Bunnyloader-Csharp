@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeHoldout.h"
+#include "experiments/csharp/NativeShooting.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -642,6 +643,7 @@ bool applyManagedSourceDefaults(
     std::vector<BasicItemEntry> basicItems;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
+    std::vector<shooting::Entry> shooting;
     std::vector<useSounds::Entry> useSounds;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
@@ -680,6 +682,15 @@ bool applyManagedSourceDefaults(
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
             continue;
+        }
+        if(!fields.empty()&&fields[0]=="SHOOT") {
+            const auto key=fields.size()>1?sourceIdentityForWire("ITEM",fields[1]):"";
+            const auto target=mod->registeredKindTypes.find(key);int mask=0;
+            if(fields.size()!=3||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<1||mask>7) {
+                *error="[CSharp][ERROR][Shoot] Mod="+modId+" Class="+(fields.size()>1?fields[1]:"<missing>")+" Stage=Decode Expected=RegisteredItemAndCallbackMask1..7 Reason=InvalidShootDescriptor Result=Rejected";return false;
+            }
+            const auto source=mod->sourcePaths.find(key);
+            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask});continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
             useSounds::Entry context;context.mod=modId;context.directory=mod->directory;
@@ -1172,6 +1183,7 @@ bool applyManagedSourceDefaults(
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
     }
+    if(!shooting::publish(shooting,error))return false;
     mod->runtimeApplied = true;
     return true;
 }
