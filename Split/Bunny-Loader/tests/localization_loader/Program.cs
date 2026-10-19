@@ -526,6 +526,52 @@ Test("managed-callback-unload-race-is-serialized", () =>
     Equal("", BunnyLocalizationRuntime.ActiveCultureName);
 });
 
+Test("authored-vanilla-register-is-owned-by-caller", () =>
+{
+    string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    HostLocalizationModule.GlobalRegistration = true;
+    try
+    {
+        string wire = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR");
+        string[] rows = wire.Split('\n');
+        Equal("OK|1", rows[0]);
+        Equal("BUNNY_DYNAMIC_LOCALES_V1", rows[1]);
+        Equal(true, rows.Skip(2).Any(row => System.Text.Encoding.UTF8.GetString(
+            Convert.FromHexString(row.Split('\t')[2])) == "LegacyInterface.28"));
+        HostLocalizationModule.RegisterForeign = true;
+        Equal("ERROR|CallbackFaults=1",
+            BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
+    }
+    finally
+    {
+        HostLocalizationModule.GlobalRegistration = false;
+        HostLocalizationModule.RegisterForeign = false;
+        BunnyLocalizationRuntime.Unload("examplemod");
+    }
+});
+
+Test("compiled-vanilla-register-uses-source-wire", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-locale-vanilla-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(Path.Combine(root, "content"));
+    string? prior = Environment.GetEnvironmentVariable("BUNNY_TEST_GLOBAL_LOCALE");
+    Environment.SetEnvironmentVariable("BUNNY_TEST_GLOBAL_LOCALE", "1");
+    try
+    {
+        string diagnostics = Path.Combine(root, "diagnostics.txt");
+        Equal(1, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(
+            System.Reflection.Assembly.GetExecutingAssembly().Location, diagnostics, root));
+        string[] wire = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"));
+        Equal(true, wire.Any(row => row.StartsWith("LOCALE\ten-US\t", StringComparison.Ordinal) &&
+            System.Text.Encoding.UTF8.GetString(Convert.FromHexString(row.Split('\t')[2])) == "LegacyInterface.28"));
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("BUNNY_TEST_GLOBAL_LOCALE", prior);
+        Directory.Delete(root, true);
+    }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
@@ -534,6 +580,7 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public static bool ShouldFail;
     public static bool DynamicTranslations;
     public static bool RegisterForeign;
+    public static bool GlobalRegistration;
     public static string LastCulture = "";
 
     public override void OnLocalizationsLoaded()
@@ -547,6 +594,8 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
                     ["en-US"] = "Hello at runtime",
                     ["pt-BR"] = "Olá em tempo de execução"
                 });
+        if (GlobalRegistration)
+            BunnyLocalizationRuntime.Register("LegacyInterface.28", "pt-BR", "Menu de teste");
         if (RegisterForeign)
             BunnyLocalizationRuntime.Register("Mods.other.Common.Forbidden", "en-US", "No");
         if (ShouldFail) throw new InvalidOperationException("Callback test fault");
@@ -555,6 +604,8 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
     {
         if (Environment.GetEnvironmentVariable("BUNNY_TEST_LOCALE_ONLY") == "1") return;
+        if (Environment.GetEnvironmentVariable("BUNNY_TEST_GLOBAL_LOCALE") == "1")
+            catalog.Register("LegacyInterface.28", "en-US", "Example menu");
         catalog.Register("Mods.source.ItemName.HostModule",
             new Dictionary<string, string>
             {
