@@ -579,6 +579,30 @@ public static class CompiledAssemblyProbe
                     pre ? "1" : "0", hard ? "1" : "0",
                     EncodeQuestText(description), EncodeQuestText(location),
                     rules.ToString(CultureInfo.InvariantCulture)));
+                var descriptions = Value<Dictionary<string,string>>(item, "QuestDescriptionTranslations");
+                var locations = Value<Dictionary<string,string>>(item, "QuestCatchLocationTranslations");
+                var cultures = descriptions.Keys.Concat(locations.Keys)
+                    .Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                if (cultures.Length > 8)
+                    throw new InvalidOperationException("Too many quest dialogue cultures: " + name);
+                foreach (string culture in cultures)
+                {
+                    if (culture.Length < 2 || culture.Length > 20 ||
+                        culture.Any(ch => !((ch >= 'A' && ch <= 'Z') ||
+                                            (ch >= 'a' && ch <= 'z') ||
+                                            (ch >= '0' && ch <= '9') || ch == '-')))
+                        throw new InvalidOperationException("Invalid quest dialogue culture: " + name);
+                    string translatedDescription = descriptions.TryGetValue(culture, out var d) ? d : "";
+                    string translatedLocation = locations.TryGetValue(culture, out var l) ? l : "";
+                    if (translatedDescription.Length == 0 && translatedLocation.Length == 0)
+                        throw new InvalidOperationException("Empty quest dialogue translation: " + name);
+                    foreach (string value in new[] { translatedDescription, translatedLocation })
+                        if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                            value.Any(ch => ch == '\0' || ch == '\r' || ch == '\t' || ch == (char)127))
+                            throw new InvalidOperationException("Invalid translated quest dialogue: " + name);
+                    lines.Add(string.Join("\t", "QUEST_LOCALE", name, culture,
+                        EncodeQuestText(translatedDescription), EncodeQuestText(translatedLocation)));
+                }
             }
         }
         foreach (object projectile in projectiles)
