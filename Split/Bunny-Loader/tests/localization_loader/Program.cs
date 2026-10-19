@@ -429,6 +429,27 @@ Test("compiled-localization-module-overrides-json-cultures", () =>
     finally { Directory.Delete(root, true); }
 });
 
+Test("localization-module-without-static-json-emits-marker", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-locale-only-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(Path.Combine(root, "content"));
+    HostLocalizationModule.CompileWithoutRows = true;
+    try
+    {
+        string diagnostics = Path.Combine(root, "diagnostics.txt");
+        Equal(1, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(
+            System.Reflection.Assembly.GetExecutingAssembly().Location, diagnostics, root));
+        string[] wire = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"));
+        Equal(true, wire.Contains("LOCALE_MODULES\t1"));
+        Equal(false, wire.Any(row => row.StartsWith("LOCALE\t", StringComparison.Ordinal)));
+    }
+    finally
+    {
+        HostLocalizationModule.CompileWithoutRows = false;
+        Directory.Delete(root, true);
+    }
+});
+
 Test("managed-localization-callback-lifecycle", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -491,6 +512,7 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public static bool ShouldFail;
     public static bool DynamicTranslations;
     public static bool RegisterForeign;
+    public static bool CompileWithoutRows;
     public static string LastCulture = "";
 
     public override void OnLocalizationsLoaded()
@@ -511,6 +533,7 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
 
     public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
     {
+        if (CompileWithoutRows) return;
         catalog.Register("Mods.source.ItemName.HostModule",
             new Dictionary<string, string>
             {
