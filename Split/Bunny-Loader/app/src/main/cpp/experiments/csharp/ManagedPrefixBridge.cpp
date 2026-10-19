@@ -68,11 +68,14 @@ bool applyManagedPrefixDescriptors(
         std::lock_guard<std::mutex> guard(g_prefixMutex);
         for (const auto& entry : staged)
             if (g_descriptors.contains(entry.first)) return false;
-        g_descriptors.insert(staged.begin(), staged.end());
         auto next = std::make_shared<std::vector<ManagedPrefixEntry>>();
-        next->reserve(g_descriptors.size());
+        next->reserve(g_descriptors.size() + staged.size());
         for (const auto& entry : g_descriptors) next->push_back(entry.second);
+        for (const auto& entry : staged) next->push_back(entry.second);
+        std::sort(next->begin(), next->end(),
+                  [](const auto& a, const auto& b) { return a.type < b.type; });
         std::shared_ptr<const std::vector<ManagedPrefixEntry>> published = next;
+        g_descriptors.insert(staged.begin(), staged.end());
         std::atomic_store_explicit(&g_prefixView, std::move(published), std::memory_order_release);
     }
     BL_INFO("csharp prefix: %zu descritores gerenciados registrados para %s; hooks de gameplay instalados",
