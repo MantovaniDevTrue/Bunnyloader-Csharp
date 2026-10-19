@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>12</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
@@ -23,6 +24,7 @@
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyDust.cs" Link="BunnyDust.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDustSourceDispatcher.cs" Link="BunnyDustSourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
