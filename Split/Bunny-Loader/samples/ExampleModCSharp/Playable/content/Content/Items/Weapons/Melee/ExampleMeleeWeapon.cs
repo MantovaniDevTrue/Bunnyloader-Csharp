@@ -14,6 +14,6 @@ public sealed class ExampleMeleeWeapon : BunnyItem
         Melee = true; Damage = 50; KnockBack = 6; Crit = 6;
         // Swing conserva o ataque corpo a corpo; não substituímos a espada por um tiro.
         UseStyle = 1; UseTime = 20; UseAnimation = 20; AutoReuse = true;
-        Value = 10000; Rare = 2; UseSound = "Item1";
+        Value = SellPrice(gold: 1); Rare = 2; UseSound = "Item1";
     }
 }

@@ -11,7 +11,7 @@ public sealed class ExampleRocketLauncher : BunnyItem
         Texture = "Content/Items/Weapons/Ranged/ExampleRocketLauncher.png";
         Damage = 55; KnockBack = 4; Crit = 0;
         UseTime = 30; UseAnimation = 30; UseStyle = 5;
-        AutoReuse = true; NoMelee = true; Value = 400000; Rare = 8; UseSound = "Item11";
+        AutoReuse = true; NoMelee = true; Value = BuyPrice(gold: 40); Rare = 8; UseSound = "Item11";
         // A munição escolhe o foguete real e o Terraria conserva sua explosão e colisão.
         NativeDefaults.SetBool("ranged", true).SetFloat("shootSpeed", 5)
             .SetId("shoot", "ProjectileID", "RocketI").SetId("useAmmo", "AmmoID", "Rocket");

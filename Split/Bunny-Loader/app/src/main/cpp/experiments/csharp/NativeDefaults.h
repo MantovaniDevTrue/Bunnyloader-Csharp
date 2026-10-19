@@ -20,7 +20,7 @@ inline std::mutex g_nativeDefaultsWriter;
 
 // Defaults must never change identity, ownership, pool membership or native references.
 inline bool nativeDefaultAllowed(const std::string& field,bool projectile) {
-    const std::string item=" width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffType buffTime makeNPC createTile createWall placeStyle " ;
+    const std::string item=" width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime " ;
     const std::string proj=" width height damage knockBack aiStyle friendly hostile melee ranged magic minion sentry minionSlots penetrate maxPenetrate timeLeft ignoreWater tileCollide scale light alpha extraUpdates usesLocalNPCImmunity localNPCHitCooldown usesIDStaticNPCImmunity idStaticNPCHitCooldown armorPenetration bonusCritChance coldDamage noEnchantments noEnchantmentVisuals ownerHitCheck netImportant hide arrow npcProj trap noDropItem soundDelay spriteDirection direction rotation " ;
     return (projectile?proj:item).find(" "+field+" ")!=std::string::npos;
 }
@@ -81,6 +81,7 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
             if(((name=="width"||name=="height")&&(value<1||value>4096))||
                (name=="extraUpdates"&&(value<0||value>64))||(name=="maxStack"&&(value<1||value>9999))||
                (name=="timeLeft"&&(value<1||value>36000)))return reject(name,"UnsafeDefaultRange","BoundedGeometryOrUpdateCount",std::to_string(value));
+            if((name=="ammo"||name=="useAmmo")&&(value<0||value>=6196))return reject(name,"UnresolvedAmmoCategory","VanillaAmmoId0..6195",std::to_string(value));
             if(name=="shoot"&&parts[1]!="p"&&(value<0||value>=1136))return reject(name,"UnresolvedProjectileId","VanillaId0..1135OrNamedModProjectile",std::to_string(value));
             struct Integer {const char* name;int width;int64_t min,max;};
             const Integer integers[]={{"Byte",1,0,255},{"SByte",1,-128,127},{"UInt16",2,0,65535},{"Int16",2,-32768,32767},{"Int32",4,INT32_MIN,INT32_MAX},{"UInt32",4,0,UINT32_MAX}};

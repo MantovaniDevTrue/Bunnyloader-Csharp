@@ -8,6 +8,11 @@ var results=new List<object>();int failures=0;
 void Check(string id,Action f) {try {f();results.Add(new{id,status="pass",error=""});}catch(Exception e){failures++;results.Add(new{id,status="fail",error=e.ToString()});}}
 void Equal<T>(T expected,T actual) {if(!EqualityComparer<T>.Default.Equals(expected,actual))throw new Exception($"expected={expected} actual={actual}");}
 void Reject(Action f) {try{f();}catch(ArgumentException){return;}catch(InvalidOperationException){return;}throw new Exception("invalid recipe accepted");}
+Check("native-content.buy-sell-price-terraria-units",()=>{
+ Equal(400000,BunnyItem.BuyPrice(gold:40));Equal(50000,BunnyItem.SellPrice(gold:1));Equal(5000,BunnyItem.SellPrice(silver:10));
+ Reject(()=>BunnyItem.BuyPrice(copper:-1));
+ bool overflow=false;try{BunnyItem.SellPrice(platinum:int.MaxValue);}catch(OverflowException){overflow=true;}Equal(true,overflow);
+});
 Check("native-defaults.public-builder-values-and-invalid-input",()=>{
  var defaults=new BunnyNativeDefaults().SetInt("mana",10).SetBool("channel",true).SetFloat("shootSpeed",4.5f)
    .SetProjectile("shoot","another-mod/Projectile").SetId("ammo","AmmoID","Bullet");
@@ -232,6 +237,8 @@ try {
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  var sword=minionRows.Single(row=>row.StartsWith("ITEM\tExampleMeleeWeapon\t",StringComparison.Ordinal)).Split('\t');Equal("50000",sword[5]);
+  var bulletItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleBullet\t",StringComparison.Ordinal)).Split('\t');Equal("5000",bulletItem[5]);
   var bullet=minionRows.Single(row=>row.StartsWith("NATIVE_ITEM\tExampleBullet\t",StringComparison.Ordinal));
   Equal(true,bullet.Contains("ammo:d:AmmoID:Bullet")&&bullet.Contains("shoot:p:ExampleBulletProjectile")&&bullet.Contains("shootSpeed:f:4.5"));
   var projectile=minionRows.Single(row=>row.StartsWith("NATIVE_PROJECTILE\tExampleBulletProjectile\t",StringComparison.Ordinal));

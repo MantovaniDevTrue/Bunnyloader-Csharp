@@ -21,3 +21,9 @@ BunnyHoldout recebe offsets no referencial local da arma; o núcleo aplica dire�
 7. Refaça o teste do minion/bancada existente. Observe se o aviso RecipeCallback diminuiu durante crafting com combate; anote relatório/PID e momento. A mudança de prioridade não garante prazo para callbacks arbitrariamente caros.
 
 ExampleBulletLauncher é um exemplo adicional do SDK, não o port de ExampleGun: o áudio personalizado daquele exemplo ainda está no plano. Estes passos validam os novos recursos no aparelho; compilação/CI não substituem esse teste nem garantem60FPS. Nenhuma categoria da matriz foi removida.
+
+## Valores monetários
+
+Use BunnyItem.BuyPrice/SellPrice, inclusive com argumentos nomeados. Item.value guarda o valor-base de compra: SellPrice(silver:10) retorna5000, para vender por1000cobres. Os helpers recusam moedas negativas e overflow; não escreva simplesmente1000 em Value para esse preço de venda.
+
+Itens colocáveis continuam usando DefaultToPlaceableTile; o descriptor de defaults não substitui os serviços de colocação, buffs, spawn ou ciclo de vida. Categorias de munição numéricas são vanilla; referências de projétil de mod usam SetProjectile por nome.

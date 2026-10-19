@@ -1010,7 +1010,7 @@
       ],
       "missingFeatures": [],
       "preservedFeatures": [
-        "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor10000, raridadeGreen e SoundID.Item1.",
+        "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor50000 (sellPrice1gold), raridadeGreen e SoundID.Item1.",
         "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "nativeDependencies": [
@@ -1041,7 +1041,7 @@
       ],
       "missingFeatures": [],
       "preservedFeatures": [
-        "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor1000, Green, velocidade4.5 e referencia por nome ao projetil.",
+        "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor5000 (sellPrice10silver), Green, velocidade4.5 e referencia por nome ao projetil.",
         "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "nativeDependencies": [

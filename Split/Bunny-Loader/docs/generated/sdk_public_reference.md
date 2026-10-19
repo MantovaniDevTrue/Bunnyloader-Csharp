@@ -567,6 +567,8 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void SetDefaults()` | compile_policy |

@@ -11,6 +11,18 @@ public abstract class BunnyItem : BunnyRecipeSource
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public BunnyHoldout? Holdout { get; set; }
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
+    /// <summary>Valor interno equivalente a Item.buyPrice; as quantidades são convertidas em cobre.</summary>
+    public static int BuyPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
+    {
+        if(platinum<0)throw new ArgumentOutOfRangeException(nameof(platinum),platinum,"Moedas não podem ser negativas");
+        if(gold<0)throw new ArgumentOutOfRangeException(nameof(gold),gold,"Moedas não podem ser negativas");
+        if(silver<0)throw new ArgumentOutOfRangeException(nameof(silver),silver,"Moedas não podem ser negativas");
+        if(copper<0)throw new ArgumentOutOfRangeException(nameof(copper),copper,"Moedas não podem ser negativas");
+        return checked(platinum*1000000+gold*10000+silver*100+copper);
+    }
+    /// <summary>Item.value é o preço-base: sellPrice devolve 5x a venda desejada, como o Terraria.</summary>
+    public static int SellPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
+        => checked(BuyPrice(platinum,gold,silver,copper)*5);
     internal override int RecipeStackLimit => MaxStack;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";

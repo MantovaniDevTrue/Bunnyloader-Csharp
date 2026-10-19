@@ -990,6 +990,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int SellPrice(int platinum, int gold, int silver, int copper)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
           "execution": "managed_helper"
         },
