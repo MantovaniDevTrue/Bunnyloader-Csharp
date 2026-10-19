@@ -28,7 +28,7 @@ try
     if (!description.Contains("fish that swims upside-down", StringComparison.Ordinal) ||
         location != "Caught anywhere while standing upside-down.")
         throw new InvalidOperationException("Original Bunny fish dialogue did not survive compiler wire");
-    string[] catchRow = lines.Single(line => line.StartsWith("QUEST_CATCH\\t", StringComparison.Ordinal)).Split('\\t');
+    string[] catchRow = lines.Single(line => line.StartsWith("QUEST_CATCH\t", StringComparison.Ordinal)).Split('\t');
     if (catchRow.Length != 4 || catchRow[1] != "ExampleFishingPlayer" ||
         catchRow[2] != "ExampleQuestFish" || catchRow[3] != "3")
         throw new InvalidOperationException("Independent BunnyPlayer fishing policy missing from compiled wire");
