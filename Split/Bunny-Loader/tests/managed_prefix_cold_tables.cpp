@@ -322,6 +322,11 @@ int main() {
     assert(!reachedCustom && weapon.prefix == 0);
 
     g_originalItemPrefix = vanillaPrefixChance;
+    uint8_t beforeChanceTier = 0;
+    weapon.type = 6199;
+    assert(!g_chanceReady.load(std::memory_order_acquire));
+    assert(hookItemPrefixChance(&weapon.object, -1, &beforeChanceTier, nullptr));
+    assert(receivedChanceWant == -1);
     g_chanceItemTypeOffset = offsetof(Item, type);
     g_chancePrefixOffset = offsetof(Item, prefix);
     g_chanceDamageOffset = offsetof(Item, damage);
