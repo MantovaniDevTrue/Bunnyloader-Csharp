@@ -226,7 +226,10 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
     if (!identity.managed || identity.mod.empty())
         return g_originalPrefix(item, requested, topTier, method);
     const bool succeeded = g_originalPrefix(item, requested, topTier, method);
-    if (!succeeded) return false;
+    if (!succeeded) {
+        bl::runtime::field<int32_t>(item, g_rareOffset) = base;
+        return false;
+    }
 
     RarityMod owner;
     {
