@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
+#include "experiments/csharp/NativeTileDrawBindings.h"
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
@@ -36,7 +37,7 @@ struct TileBehavior {
 };
 std::map<int, TileBehavior> g_tiles;
 std::array<std::atomic<uint8_t>, 65536> g_managedDrawMarks{};
-std::array<std::shared_ptr<const TileBehavior>, 65536> g_managedDrawBindings{};
+tile_draw::PublishedBindings<TileBehavior, 65536> g_managedDrawBindings;
 bool g_managedDrawBound = false;
 std::map<std::string,std::string> g_assemblyByMod;
 bool g_wireInstalled = false;
@@ -199,7 +200,7 @@ void dispatchTileEvent(const NativeTileGameplaySpec& spec,int bit,int x,int y) {
 }
 bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool special) {
     if(!data || type < runtime::kVanillaTileCount || type >= 65536)return false;
-    const auto binding=std::atomic_load_explicit(&g_managedDrawBindings[type],std::memory_order_acquire);
+    const auto binding=g_managedDrawBindings.load(type);
     if(!binding || !managedTileReady(binding->spec,13))return false;
     const auto& spec=binding->spec;
     char snapshot[192]{};
@@ -1040,8 +1041,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
         behavior.spec.assembly=assembly;
         if((behavior.spec.callbackMask & (7<<13))!=0 &&
            type>=runtime::kVanillaTileCount && type<65536 && g_managedDrawBound) {
-            std::atomic_store_explicit(&g_managedDrawBindings[type],
-                std::make_shared<const TileBehavior>(behavior),std::memory_order_release);
+            g_managedDrawBindings.publish(type,behavior);
             g_managedDrawMarks[type].store(1,std::memory_order_release);
         }
         if(behavior.spec.callbackMask)
@@ -1098,8 +1098,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     }
     g_tiles[spec.type] = behavior;
     if((spec.callbackMask & (7 << 13)) != 0 && !behavior.spec.assembly.empty()) {
-        std::atomic_store_explicit(&g_managedDrawBindings[spec.type],
-            std::make_shared<const TileBehavior>(behavior),std::memory_order_release);
+        g_managedDrawBindings.publish(spec.type,behavior);
         g_managedDrawMarks[spec.type].store(1,std::memory_order_release);
     }
     g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;

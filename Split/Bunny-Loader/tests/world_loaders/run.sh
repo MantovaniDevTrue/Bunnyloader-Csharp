@@ -30,3 +30,7 @@ registry="${RUNNER_TEMP:-/tmp}/bunny-world-wall-registry"
 draw="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_wire_test.cpp -o "$draw"
 "$draw"
+
+bindings="${RUNNER_TEMP:-/tmp}/bunny-world-tile-bindings"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_bindings_test.cpp -o "$bindings"
+"$bindings"
