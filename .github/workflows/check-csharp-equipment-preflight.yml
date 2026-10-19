@@ -1,0 +1,39 @@
+name: Equipment CSharp preflight
+
+on:
+  push:
+    branches:
+      - feat/csharp-equipment-preflight-*
+    paths:
+      - Split/Bunny-Loader/tools/equipment_preflight.py
+      - Split/Bunny-Loader/tests/equipment_preflight_test.py
+      - docs/equipment-loader-preflight.md
+      - .github/workflows/check-csharp-equipment-preflight.yml
+  pull_request:
+    paths:
+      - Split/Bunny-Loader/tools/equipment_preflight.py
+      - Split/Bunny-Loader/tests/equipment_preflight_test.py
+      - docs/equipment-loader-preflight.md
+      - Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/**
+      - Split/Bunny-Loader/samples/ExampleMod/**
+      - Split/Bunny-Loader/samples/ExampleModCSharp/**
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+      - docs/csharp-loader-batches.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  equipment-sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify equipment preflight
+        working-directory: Split/Bunny-Loader
+        run: |
+          python3 -m unittest discover -s tests -p equipment_preflight_test.py -v
+          python3 tools/equipment_preflight.py --json --output /tmp/bunny-equipment-preflight.json
