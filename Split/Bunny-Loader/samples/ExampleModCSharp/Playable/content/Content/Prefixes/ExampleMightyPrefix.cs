@@ -10,6 +10,8 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
         Category = PrefixCategory.AnyWeapon;
         RollWeight = 5f;
         ExtraTooltip = "Bonus adicional do prefixo";
+        AddTooltipLine("Dano extra do prefixo");
+        AddTooltipLine("Valor adicional");
     }
 
     public override void ConfigureRollRules(BunnyPrefixRollRules rules)
