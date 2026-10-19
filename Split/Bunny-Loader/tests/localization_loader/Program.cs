@@ -238,4 +238,30 @@ Test("language-manager-variants", () =>
     Equal(2, catalog.Count);
 });
 
+Test("strict-json-numbers-and-transactional-reload", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-locale-numeric-" + Guid.NewGuid().ToString("N"));
+    string folder = Path.Combine(root, "Localization");
+    Directory.CreateDirectory(folder);
+    try
+    {
+        var catalog = new BunnyLocalizationCatalog();
+        string file = Path.Combine(folder, "en-US.json");
+        File.WriteAllText(file, "{\"Label\":\"Original\",\"Ignored\":[0,-7,2.5,1e3,-0.02E-4]}");
+        Equal(1, catalog.LoadFromContent("numeric", root));
+        Equal("Original", catalog.Translate("Label", "numeric"));
+        string[] malformed = { "01", "-01", "1.", "1e", "1e+", "--1", "2x", "+1", ".3", "1.2.3" };
+        foreach (string bad in malformed)
+        {
+            File.WriteAllText(file, "{\"Label\":\"New\",\"Ignored\":" + bad + "}");
+            bool rejected = false;
+            try { catalog.LoadFromContent("numeric", root); }
+            catch (InvalidDataException) { rejected = true; }
+            Equal(true, rejected);
+            Equal("Original", catalog.Translate("Label", "numeric"));
+        }
+    }
+    finally { Directory.Delete(root, true); }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
