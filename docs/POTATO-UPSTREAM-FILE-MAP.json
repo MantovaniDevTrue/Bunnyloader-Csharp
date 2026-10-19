@@ -1,33 +1,33 @@
 {
-  "schema": "BunnyCSharpUpstreamParityV1",
-  "date": "2026-10-18",
-  "method": "Recursive Git tree blob SHA comparison. This JSON file itself is excluded from the source tree it describes. No claims of runtime ABI compatibility.",
-  "original": {
+  "schema": "BunnyCSharpUpstreamParityV2",
+  "comparedAt": "2026-10-18",
+  "method": "Full recursive Git-tree blob comparison. The inventory JSON excludes itself; tracked source and upstream files compared with their exact blob SHAs. Proves source-file parity, NOT Android runtime or behavioral equivalence.",
+  "upstream": {
     "repository": "JonataOliveiraa/Bunny-Loader",
     "commit": "a370a664aa3b808c87e4e4f570b27504d20df723",
     "treeRoot": "/"
   },
-  "source": {
+  "port": {
     "repository": "MantovaniDevTrue/Bunnyloader-Csharp",
-    "branch": "handoff/potato-android-project-root-20261018",
-    "commit": "7da3a88ab510675b2a3e31f6642022b2cbb4049e",
-    "gitTreeSha": "71cfccdc781b79ca0c9376bcd49309c253f24bd8",
-    "treeRoot": "/",
-    "androidCiProductionCommit": "018b477a5a90115f399aed57ff84811c020d7a3f"
+    "branch": "entrega/potato-bunny-original-com-csharp-20261018",
+    "observedHeadBeforeManifestUpdate": "4fbe41ca6336659868ae1df20dc63f31f09d571d",
+    "observedTreeBeforeManifestUpdate": "602d185578ec26ce8af113e8f5c54b8909fc2553",
+    "root": "/",
+    "productionBuildCommit": "018b477a5a90115f399aed57ff84811c020d7a3f"
   },
   "summary": {
-    "sourceFilesExcludingThisManifest": 2761,
     "upstreamFiles": 2024,
+    "deliveryTrackedFilesExcludingThisMap": 2765,
     "unchanged": 1948,
     "modified": 76,
-    "portAdded": 737,
+    "deliveryAdded": 741,
     "upstreamMissing": 0
   },
-  "missing": [],
-  "modified": [
+  "missingOriginalFiles": [],
+  "modifiedSharedFiles": [
     {
       "path": "README.md",
-      "sourceBlob": "7c53246f8b67624ca968414a2e22415c0fcb3ddb",
+      "sourceBlob": "c8df03068315e5fd479988758de28e2e1d257089",
       "upstreamBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
     },
     {
@@ -406,10 +406,22 @@
       "upstreamBlob": "013c14e489444f5f19e238a9d3fa3b3f8bea9ed2"
     }
   ],
-  "added": [
+  "additionalDeliveryFiles": [
+    {
+      "path": ".github/workflows/check-potato-handoff.yml",
+      "sourceBlob": "e7edfb6d6234d2dd95a2af90d734e6c656d3acb2"
+    },
+    {
+      "path": "IMPORTAR-NO-GITHUB-DO-POTATO.md",
+      "sourceBlob": "f7c3c6d6ee921f34acf4807abe4beaf8ddba89c4"
+    },
     {
       "path": "POTATO-C-SHARP-HANDOFF.md",
-      "sourceBlob": "daab13c6dcf28a9fb25f2a751fedd073303baf35"
+      "sourceBlob": "aee6b3a65a5785965adba960d8b110901fefc8ae"
+    },
+    {
+      "path": "README-BUNNY-ORIGINAL.md",
+      "sourceBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
     },
     {
       "path": "app/src/main/cpp/content/items/ItemRegistry.cpp",
@@ -3322,6 +3334,10 @@
     {
       "path": "tools/example_completion_audit.py",
       "sourceBlob": "97641b02538a2397251033eb9374fa86f4da7a73"
+    },
+    {
+      "path": "tools/importar_fonte_csharp_no_bunny.py",
+      "sourceBlob": "0d858886da141de0bacabbffeb8cf522e5044c84"
     },
     {
       "path": "tools/mods/check_csharp_assets.py",
