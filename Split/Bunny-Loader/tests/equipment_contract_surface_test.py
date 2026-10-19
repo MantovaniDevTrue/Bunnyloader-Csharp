@@ -164,6 +164,9 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("const std::set<int>* denied =", hooks)
         fixture = (ROOT / "tests/prefix_v89/PrefixFixture/Content.cs").read_text(encoding="utf-8")
         self.assertIn('rules.Deny("TestMightyPrefix");', fixture)
+        playable = (ROOT / "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
+        self.assertIn('rules.Deny(nameof(ExampleGuardedPrefix));', playable)
+        self.assertIn("rules.Deny(71);", playable)
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
