@@ -22,6 +22,7 @@ public:
         std::uint64_t session = 0;
         std::uint64_t frame = 0;
         std::int32_t binding = -1;
+        std::int32_t phase = 0;
     };
 
     struct Response {
@@ -29,11 +30,13 @@ public:
         std::uint32_t flags = 0;
         std::uint64_t session = 0;
         std::uint64_t frame = 0;
+        std::int32_t phase = 0;
     };
 
-    bool offer(std::int32_t binding, const ManagedDustState& state,
-               std::uint64_t frame) {
-        if (binding < 0 || !managedDustStateValid(state)) return false;
+    bool offer(std::int32_t binding, std::int32_t phase,
+               const ManagedDustState& state, std::uint64_t frame) {
+        if (binding < 0 || phase < 0 || phase > 5 ||
+            !managedDustStateValid(state)) return false;
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock || requests_.size() >= kPendingLimit) {
             ++drops_;
@@ -41,13 +44,17 @@ public:
         }
         Slot& slot = slots_[static_cast<std::size_t>(state.slot)];
         if (slot.pending && slot.type == state.type &&
-            slot.generation == state.generation) return false;
+            slot.generation == state.generation &&
+            frame >= slot.frame && frame - slot.frame <= kMaxResultAgeFrames)
+            return false;
         slot = {};
         slot.type = state.type;
         slot.generation = state.generation;
         slot.pending = true;
         slot.binding = binding;
-        requests_.push_back({state, session_, frame, binding});
+        slot.phase = phase;
+        slot.frame = frame;
+        requests_.push_back({state, session_, frame, binding, phase});
         return true;
     }
 
@@ -65,7 +72,7 @@ public:
     bool complete(const Request& request, const ManagedDustState& state,
                   std::uint32_t flags) {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (request.session != session_ ||
+        if (request.session != session_ || request.phase < 0 || request.phase > 5 ||
             !managedDustStateValid(state) ||
             !managedDustSameInstance(request.state, state) ||
             (flags & ~63u) != 0u ||
@@ -73,18 +80,21 @@ public:
         Slot& slot = slots_[static_cast<std::size_t>(state.slot)];
         if (!slot.pending || slot.type != state.type ||
             slot.generation != state.generation ||
-            slot.binding != request.binding) return false;
+            slot.binding != request.binding ||
+            slot.phase != request.phase || slot.frame != request.frame)
+            return false;
         slot.pending = false;
         slot.ready = (flags & 1u) != 0u;
         if (slot.ready)
-            slot.result = {state, flags, request.session, request.frame};
+            slot.result = {state, flags, request.session, request.frame, request.phase};
         return true;
     }
 
-    bool consume(std::int32_t binding, std::int32_t slot,
-                 std::int32_t type, std::int32_t generation,
+    bool consume(std::int32_t binding, std::int32_t phase,
+                 std::int32_t slot, std::int32_t type, std::int32_t generation,
                  std::uint64_t now, Response* out) {
-        if (!out || binding < 0 || (unsigned)slot >= kSlots ||
+        if (!out || binding < 0 || phase < 0 || phase > 5 ||
+            (unsigned)slot >= kSlots ||
             generation <= 0) return false;
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
         if (!lock) return false;
@@ -92,7 +102,7 @@ public:
         if (!state.ready) return false;
         Response result = state.result;
         state.ready = false;
-        if (state.binding != binding || state.type != type ||
+        if (state.binding != binding || result.phase != phase || state.type != type ||
             state.generation != generation ||
             result.session != session_ || now < result.frame ||
             now - result.frame > kMaxResultAgeFrames)
@@ -124,6 +134,8 @@ private:
         std::int32_t type = -1;
         std::int32_t generation = 0;
         std::int32_t binding = -1;
+        std::int32_t phase = -1;
+        std::uint64_t frame = 0;
         bool pending = false;
         bool ready = false;
         Response result{};
