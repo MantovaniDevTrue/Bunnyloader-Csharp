@@ -1081,6 +1081,54 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyLocalizationCatalog",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyLocalizationCatalog(string culture)"
+      ],
+      "properties": [
+        "int Count { get; }",
+        "int Revision { get; }",
+        "string ActiveCultureName { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IReadOnlyDictionary\u003Cstring, string\u003E SnapshotForGame()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Exists(string path, string callerModId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string Translate(string path, string callerModId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string TryTranslate(string path, string callerModId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Register(string fullKey, string culture, string text)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RegisterCulture(string modId, string culture, IReadOnlyDictionary\u003Cstring, string\u003E texts)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RemoveMod(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetCulture(string culture)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyMethodHook",
       "kind": "class",
       "baseType": "System.Object",
