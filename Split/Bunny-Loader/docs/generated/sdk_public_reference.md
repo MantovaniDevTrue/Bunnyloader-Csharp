@@ -1142,6 +1142,7 @@ string Texture { get; set; }
 | `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
@@ -1150,6 +1151,8 @@ string Texture { get; set; }
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
+| `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
+| `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags

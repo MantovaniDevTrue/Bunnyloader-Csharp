@@ -2052,6 +2052,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void AnimateTile(ref int frame, ref int frameCounter)",
           "execution": "managed_helper"
         },
@@ -2081,6 +2085,14 @@
         },
         {
           "signature": "void RandomUpdate(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetSpriteEffects(int x, int y, ref int effects)",
           "execution": "managed_helper"
         },
         {
