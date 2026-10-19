@@ -2,6 +2,30 @@
 
 Bunny Loader's own code is under the PolyForm Noncommercial License 1.0.0 ([LICENSE.md](LICENSE.md)). The components below keep their own licenses, and their notices travel with every copy of the source and of the app. The app shows this file under Settings > About > Third parties.
 
+## CSharp runtime and compiler components
+
+The CSharp-enabled version includes the following additional third-party
+components in `app/src/main/assets/managed/` and
+`app/src/main/jniLibs/arm64-v8a/`:
+
+- **Microsoft .NET Runtime / Mono Android ARM64 8.0.23**, including the
+  MonoVM native runtime and framework assemblies. Source:
+  <https://github.com/dotnet/runtime/tree/v8.0.23>. The local
+  `tools/mono/patch_mono_android_signals.py` modifies Android ARM64
+  signal allocation in this runtime. Original runtime license: MIT,
+  with a copy under
+  [tools/mono/prebuilt/arm64-v8a/DOTNET_RUNTIME_LICENSE.txt](tools/mono/prebuilt/arm64-v8a/DOTNET_RUNTIME_LICENSE.txt).
+- **Microsoft Roslyn Compiler 4.11.0**, assemblies
+  `Microsoft.CodeAnalysis.dll` and `Microsoft.CodeAnalysis.CSharp.dll`.
+  Source: <https://github.com/dotnet/roslyn>. License: MIT.
+  These libraries are distributed separately from the
+  `BunnySourceCompiler.dll` implementation.
+
+The assets are pre-staged in this source branch for Android builds. The
+original licenses and copyright obligations of each upstream project apply.
+This distribution does not include proprietary game binaries, Unity assets,
+keystores or signing secrets.
+
 ## Components included in the app
 
 ### QuickJS-ng 0.17.0
