@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace BunnyLoader.Source;
@@ -12,8 +11,6 @@ public sealed partial class BunnyLocalizationCatalog
     private const int MaxEntries = 8192;
     private const int MaxTextBytes = 8192;
     private const int MaxDepth = 32;
-    private static readonly Regex Reference = new(@"\{\$([\w./-]+)(?:@(\d+))?\}", RegexOptions.CultureInvariant);
-    private static readonly Regex FormatArgument = new(@"\{(\^?)(\d+)(:[^{}\r\n]*)?\}", RegexOptions.CultureInvariant);
     private readonly object gate = new();
     private State current;
 
@@ -272,23 +269,62 @@ public sealed partial class BunnyLocalizationCatalog
         return only != null;
     }
 
+    private static bool ReferenceChar(char c)
+        => char.IsAsciiLetterOrDigit(c) || c == '_' || c == '.' || c == '/' || c == '-';
+
+    private static bool ReadReference(string value, int start, out int end, out string key, out int offset)
+    {
+        end = start;
+        key = "";
+        offset = 0;
+        if (start + 3 > value.Length || value[start] != '{' || value[start + 1] != '$') return false;
+        int cursor = start + 2;
+        while (cursor < value.Length && ReferenceChar(value[cursor])) cursor++;
+        if (cursor == start + 2) return false;
+        key = value.Substring(start + 2, cursor - start - 2);
+        if (cursor < value.Length && value[cursor] == '@')
+        {
+            int first = ++cursor;
+            while (cursor < value.Length && char.IsAsciiDigit(value[cursor])) cursor++;
+            if (cursor == first) return false;
+            if (!int.TryParse(value.Substring(first, cursor - first), NumberStyles.None,
+                CultureInfo.InvariantCulture, out offset)) offset = -1;
+        }
+        if (cursor >= value.Length || value[cursor] != '}') return false;
+        end = cursor + 1;
+        return true;
+    }
+
     private static string Expand(State snapshot, string key, HashSet<string> visiting, int depth)
     {
         if (!snapshot.Entries.TryGetValue(key, out TextEntry? entry)) return key;
         if (depth >= MaxDepth || !visiting.Add(key)) return key;
         string value = entry.Pick(snapshot.Culture);
-        if (value.IndexOf("{$", StringComparison.Ordinal) >= 0)
+        int marker = value.IndexOf("{$", StringComparison.Ordinal);
+        if (marker >= 0)
         {
-            value = Reference.Replace(value, match =>
+            var output = new StringBuilder(value.Length);
+            int position = 0;
+            while (marker >= 0)
             {
-                string reference = match.Groups[1].Value;
-                string target = ResolveReferenceKey(snapshot, key, reference);
-                string resolved = Expand(snapshot, target, visiting, depth + 1);
-                if (match.Groups[2].Success &&
-                    int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int offset))
-                    resolved = ShiftArguments(resolved, Math.Min(offset, 10000));
-                return resolved;
-            });
+                output.Append(value, position, marker - position);
+                if (ReadReference(value, marker, out int end, out string reference, out int shift))
+                {
+                    string target = ResolveReferenceKey(snapshot, key, reference);
+                    string resolved = Expand(snapshot, target, visiting, depth + 1);
+                    if (shift > 0) resolved = ShiftArguments(resolved, Math.Min(shift, 10000));
+                    output.Append(resolved);
+                    position = end;
+                }
+                else
+                {
+                    output.Append(value, marker, 2);
+                    position = marker + 2;
+                }
+                marker = value.IndexOf("{$", position, StringComparison.Ordinal);
+            }
+            output.Append(value, position, value.Length - position);
+            value = output.ToString();
         }
         visiting.Remove(key);
         return value;
@@ -308,12 +344,46 @@ public sealed partial class BunnyLocalizationCatalog
 
     private static string ShiftArguments(string value, int offset)
     {
-        return FormatArgument.Replace(value, match =>
+        var output = new StringBuilder(value.Length);
+        int cursor = 0;
+        while (cursor < value.Length)
         {
-            if (!int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int n) ||
-                n > int.MaxValue - offset) return match.Value;
-            return "{" + match.Groups[1].Value + (n + offset).ToString(CultureInfo.InvariantCulture) + match.Groups[3].Value + "}";
-        });
+            int open = value.IndexOf('{', cursor);
+            if (open < 0)
+            {
+                output.Append(value, cursor, value.Length - cursor);
+                break;
+            }
+            output.Append(value, cursor, open - cursor);
+            int digit = open + 1;
+            bool caret = digit < value.Length && value[digit] == '^';
+            if (caret) digit++;
+            int last = digit;
+            while (last < value.Length && char.IsAsciiDigit(value[last])) last++;
+            int close = last;
+            if (last < value.Length && value[last] == ':')
+            {
+                close = last + 1;
+                while (close < value.Length && value[close] != '{' && value[close] != '}' &&
+                    value[close] != '\n' && value[close] != '\r') close++;
+            }
+            if (last > digit && close < value.Length && value[close] == '}' &&
+                int.TryParse(value.Substring(digit, last - digit), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out int number) && number <= int.MaxValue - offset)
+            {
+                output.Append('{');
+                if (caret) output.Append('^');
+                output.Append((number + offset).ToString(CultureInfo.InvariantCulture));
+                output.Append(value, last, close + 1 - last);
+                cursor = close + 1;
+            }
+            else
+            {
+                output.Append('{');
+                cursor = open + 1;
+            }
+        }
+        return output.ToString();
     }
 
     private static void ValidateModId(string modId)
