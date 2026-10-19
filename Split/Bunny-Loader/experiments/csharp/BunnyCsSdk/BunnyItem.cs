@@ -36,6 +36,7 @@ public abstract class BunnyItem : BunnyShootSource
     public int MaxStack { get; set; } = 1;
     public int Value { get; set; }
     public int Rare { get; set; }
+    public bool? PrefixChance { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
     public int Crit { get; set; }
