@@ -89,7 +89,8 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -I "$RUNNER_TEMP/equipment-headers" -I app/src/main/cpp \
             app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp \
-            app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp
+            app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp
           g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
             -I "$RUNNER_TEMP/equipment-headers" -I app/src/main/cpp \
             tests/managed_prefix_cold_tables.cpp -Wl,--gc-sections \
