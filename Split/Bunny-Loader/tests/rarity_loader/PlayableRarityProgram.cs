@@ -26,4 +26,13 @@ accessory.SetDefaults();
 Check(accessory.ModRarityClassName == nameof(ExampleHigherTierModRarity),
     "Higher-tier accessory rarity is not registered");
 
+var wand = new ExampleWand();
+wand.SetDefaults();
+Check(wand.ModRarityClassName == nameof(ExampleModRarity),
+    "Native weapon rarity is not registered");
+var potion = new ExampleBuffPotion();
+potion.SetDefaults();
+Check(potion.ModRarityClassName == nameof(ExampleHigherTierModRarity),
+    "Native buff potion rarity is not registered");
+
 Console.WriteLine("PLAYABLE_RARITY_EXAMPLES=PASS");
