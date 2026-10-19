@@ -25,7 +25,7 @@ namespace bl::csharp {
 bool installManagedPrefixGameplayHooks() { return true; }
 }
 
-#include "../app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
+#include "../../app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
 
 int main() {
     using namespace bl::csharp;
@@ -94,6 +94,8 @@ int main() {
             snapshots.fetch_add(1, std::memory_order_relaxed);
         }
     });
+    while (snapshots.load(std::memory_order_acquire) == 0)
+        std::this_thread::yield();
     assert(applyManagedPrefixDescriptors("test", {swift}));
     go.store(true, std::memory_order_release);
     reader.join();
@@ -104,5 +106,5 @@ int main() {
     assert(second->size() == 1);
     assert(first->empty());
     assert(registeredManagedPrefixCount() == 3);
-    assert(snapshots.load(std::memory_order_relaxed) >= 0);
+    assert(snapshots.load(std::memory_order_relaxed) > 0);
 }
