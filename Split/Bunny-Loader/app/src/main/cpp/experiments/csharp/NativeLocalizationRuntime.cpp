@@ -114,7 +114,7 @@ Refs& refs() {
     return reference;
 }
 
-bool apply(const std::map<std::string,std::vector<Entry>>& catalog,const std::string& culture) {
+bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const std::string& culture) {
     auto& api=il2cpp::api();auto& r=refs();
     if(!r.valid)return false;
     Il2CppObject* manager=nullptr;
@@ -199,7 +199,7 @@ void pumpOnGameThread() {
         if(generation==lastAppliedGeneration && culture==lastCulture)return;
         current=mods;revision=generation;
     }
-    if(!apply(current,culture))return;
+    if(!publishToGame(current,culture))return;
     {
         std::lock_guard<std::mutex> lock(gate);
         if(generation==revision) {
