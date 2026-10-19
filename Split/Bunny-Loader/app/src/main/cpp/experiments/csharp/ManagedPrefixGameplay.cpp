@@ -501,11 +501,12 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
     if (g_hooksReady && item) {
         const auto list = managedPrefixView();
         if (const auto* p = byType(*list, prefix)) {
+            const bool restoring = g_restoreRoll.item == item &&
+                g_restoreRoll.prefix == prefix && restoreCompatible(item, *p);
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
                 !ensurePrefixTables(*list) ||
-                ((!(g_restoreRoll.item == item && g_restoreRoll.prefix == prefix &&
-                    restoreCompatible(item, *p)) && !eligible(item, *p, true))))
+                (!restoring && !eligible(item, *p, true)))
                 return false;
             *dmg = p->multipliers[0];
             *kb = p->multipliers[1];
@@ -526,9 +527,7 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                 return mult == 1.f ||
                     std::nearbyint(static_cast<float>(current) * mult) != static_cast<float>(current);
             };
-            return (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix &&
-                    restoreCompatible(item, *p)) ||
-                   !p->requireEffectiveStats ||
+            return restoring || !p->requireEffectiveStats ||
                    (changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
                     changes(itemMana, *mana) && (*kb == 1.f || itemKnockBack != 0.f));
         }
