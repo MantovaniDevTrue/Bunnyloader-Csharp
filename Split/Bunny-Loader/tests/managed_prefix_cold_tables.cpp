@@ -30,7 +30,8 @@ std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
 std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 std::shared_ptr<const std::map<int, bool>> chanceView;
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
-std::shared_ptr<const std::map<int, std::set<int>>> deniedView;
+std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
+    std::make_shared<const std::map<int, std::set<int>>>();
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0, value = 100;
