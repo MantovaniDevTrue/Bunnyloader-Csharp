@@ -84,6 +84,7 @@ public abstract class BunnyItem : BunnyShootSource
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
