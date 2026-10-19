@@ -48,7 +48,7 @@ git diff --stat
 
 A cópia inclui os arquivos rastreados do projeto: C++, Kotlin, Java, projetos C# e exemplos, QuickJS, CMake, Gradle, documentação e os arquivos ocultos como `.github/`. Ela **não copia o `.git/`**, não executa `git clean`, não apaga arquivos do seu repositório, não faz commit e **não envia nada** para o GitHub automaticamente.
 
-Também incluí [README-BUNNY-ORIGINAL.md](README-BUNNY-ORIGINAL.md), que guarda a documentação original, e [POTATO-C-SHARP-HANDOFF.md](POTATO-C-SHARP-HANDOFF.md), onde explico as mudanças. O README principal está em primeira pessoa, como minha apresentação da integração.
+Também incluí [README-BUNNY-ORIGINAL.md](README-BUNNY-ORIGINAL.md), que guarda a documentação original, e [POTATO-C-SHARP-HANDOFF.md](POTATO-C-SHARP-HANDOFF.md), onde explico as mudanças.
 
 ## 5. Quando estiver satisfeito com o diff, envie a sua branch
 
@@ -72,7 +72,7 @@ Eu preservei o código da build experimental para manter a fidelidade com a vers
 - **Roslyn:** DLLs do compilador/SDK e do framework precisam ser geradas, empacotadas e conferidas no `assets/managed/framework.sha256`.
 - **Terraria/Unity:** os binários e assets proprietários do jogo e a classe Unity permanecem fora deste Git, como já acontece no Bunny original.
 - **CI:** o meu pipeline privado de referência está no [repositório de desenvolvimento](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/.github/workflows/build-bunny-csharp-source-loader.yml), não faz parte da build GitHub oficial e precisa ser adaptado às suas credenciais e dependências, se você quiser automatizar a compilação.
-- **Validação no Android:** o commit de produção C# `018b477a5a90115f399aed57ff84811c020d7a3f` passou no CI, mas o cenário de summon/minion do `.95.2` ainda está pendente no dispositivo. Na `.95.1`, o problema real era o campo `Projectile.identity` ausente; a nova fonte corrige o contrato sem afirmar que o aparelho já foi retestado.
+
 
 O inventário detalhado dos arquivos da integração está em [docs/POTATO-UPSTREAM-FILE-MAP.json](docs/POTATO-UPSTREAM-FILE-MAP.json). Minha explicação sobre startup, hook de entidades, Mono, Roslyn, JNI, CMake, SDK e testes fica no [manual completo](POTATO-C-SHARP-HANDOFF.md).
 
@@ -80,8 +80,6 @@ O inventário detalhado dos arquivos da integração está em [docs/POTATO-UPSTR
 
 Eu começaria garantindo que o Bunny JS original ainda carrega seus exemplos, depois testaria o C# separadamente, e finalmente os dois motores juntos. A etapa Android deve incluir: iniciar/voltar de mundo, carregar automaticamente antes do mundo, receitas, save, acessórios, buffs, NPCs, projéteis, invocar/cancelar minions, morte/respawn, pausa/retomada, desempenho e ausência de crash de worker.
 
-**Não é necessário executar tModLoader ou usar o ExMod/Thorium para criar mods C# aqui:** o loader C# tem seu próprio SDK e sua própria ponte, usando o Bunny como host.
+o loader C# tem seu próprio SDK e sua própria ponte, usando o Bunny como host.
 
 Quando a build dele estiver validada com o identificador, assinatura e assets próprios, a integração pode ser promovida à linha oficial mantendo a autoria original do Bunny, meus créditos da extensão C# e os avisos de licenciamento.
-
-*Mantovani*
