@@ -30,6 +30,15 @@ bool identifier(const std::string& s, bool dot) {
     return s.find("..")==std::string::npos;
 }
 
+bool cultureId(const std::string& value) {
+    if (value.size()<2 || value.size()>20) return false;
+    for (char c:value) {
+        if (!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||
+              (c>='0'&&c<='9')||c=='-')) return false;
+    }
+    return true;
+}
+
 bool validUtf8(const std::string& str) {
     for (size_t i=0;i<str.size();) {
         const auto c=static_cast<unsigned char>(str[i]);
@@ -165,7 +174,7 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const
 bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,Entry* result,std::string* error) {
     if(!result||!error)return false;
     if(fields.size()!=4||fields[0]!="LOCALE"||!identifier(modId,false)||
-       !identifier(fields[1],false)||fields[1].size()>20||
+       !cultureId(fields[1])||
        !hex(fields[2],&result->key,280)||!hex(fields[3],&result->value,8192)||
        result->key.rfind("Mods.source.",0)!=0||
        !identifier(result->key.substr(12),true)) {
