@@ -1206,7 +1206,7 @@
       "manualTests": [
         "Documentation/SHOOTING.md: Example Escopeta + Example Bala contra Example Slime; oito tiros/cadência/consumo/dano/direção/som/persistência/múltiplos mods/FPS."
       ],
-      "validation": "C# e hooks/decoder/binder C++ reais exercitados no host com providers controlados. Não executa Terraria Android. Aguardando CI Android e validação de gameplay; nenhum pacote publicado.",
+      "validation": "CI39236367596 e nove suítes de push aprovados no código367488d9; testes C# e hooks/decoder/binder C++ de produção com providers controlados. APK Android compilado/validado, sem execução no Terraria nem pacote publicado. Aguardando gameplay Android.",
       "automatedEvidence": [
         "42 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],

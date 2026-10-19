@@ -33,7 +33,7 @@ BunnyShootSource, BunnyShootContext, BunnyShot e BunnyShootRuntime conectam CanS
 
 ExampleShotgun foi portado com defaults, textura original, offset e algoritmo original de oito tiros±15°/70–100%. Estado implementado aguardando validação: host não comprova ABI/gameplay Android. A matriz contém os206, Weapons4/18 implementados (22.22%),0 integralmente validados. Os demais exemplos dependentes de projéteis/IA/CanUseItem/draw continuam pendentes; o callback isolado não os conclui. Nomes exibidos/traduções/prefixos de todo ExampleMod agora começam com Example por pedido do usuário; IDs não mudaram. O teste executa todas as classes e seus nomes localizados.
 
-Testes locais:42 verificações gerenciadas de disparos e hooks C++ de produção com saída da escopeta compilada; binder/ABI/falhas/transação/dono/fonte/munição/dano/AI/limites; ASan/UBSan; warmup/prazo/cancelamento no scheduler. Regressões:36 itens,43 entidades (dez mil ticks sem alocação),31 combate, dez executáveis de summons/áudio, receitas/projéteis, smoke Roslyn55 classes/72linhas e seis verificações de assets. CI Android desta revisão deve ser registrado separadamente. Nenhum pacote será publicado. Guia: content/Documentation/SHOOTING.md.
+Testes locais:42 verificações gerenciadas de disparos e hooks C++ de produção com saída da escopeta compilada; binder/ABI/falhas/transação/dono/fonte/munição/dano/AI/limites; ASan/UBSan; warmup/prazo/cancelamento no scheduler. Regressões:36 itens,43 entidades (dez mil ticks sem alocação),31 combate, dez executáveis de summons/áudio, receitas/projéteis, smoke Roslyn55 classes/72linhas e seis verificações de assets. CI Android desta revisão aprovado no código367488d9, registrado abaixo. Nenhum pacote será publicado. Guia: content/Documentation/SHOOTING.md.
 
 ## Planejamento anterior de disparos (executado acima)
 
@@ -70,3 +70,14 @@ O transporte aceita até32KiB para os64 comandos, com teste de identidades longa
 O sentinela da fábrica foi conferido nos ItemLoader/GlobalItemLoader/PlayerItemHooks originais:1000 nesta versão Android. O teste cobre a pool com1001 células e recusa de pool menor; não se usa comprimento do array como retorno falso de Shoot.
 
 O preparo executa apenas operações internas do SDK (parsing/serialização/random/math), sem chamar gameplay do mod. O contexto fecha também quando OnShoot lança exceção e Spawn valida a thread criadora; os testes cobrem contexto retido e emissão de outra thread.
+
+
+## CI final .98 — código367488d9
+
+Fonte `367488d989ac1a81ae867e8492d36a61c6880945`: [CI39236367596](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39236367596) aprovado, incluindo testes unitários Gradle, compilação ARM64/assembleDebug e assinatura/APK. Nove suítes independentes de push aprovadas no mesmo SHA. A revisão intermediária aea495b0 também compilou; ela não certifica os ajustes posteriores, cobertos pelo CI final.
+
+Publicação de APK, exportação de .bmod e job de conferência de entrega pulados. O workflow exportou somente resultados de testes/medições; nenhum pacote executável. Repositório Builds acessível e tag correspondente ausente (HTTP404). Não há nova release para entregar. A .96 permanece o checkpoint aprovado pelo usuário; a .98 precisa de gameplay Android.
+
+[Evidência completa com jobs, passos, suítes, contagens e cobertura](validation/csharp-v98-internal-2026-10-19.json). O commit posterior é apenas documentação e matrizes. Não confundir esse commit com o SHA de código testado acima.
+
+Continuidade: implementar as dependências reais de CanUseItem, contagens por dono, IA/draw e spawns em outros ciclos antes de promover lança/chicote/sentry/holdouts. Auditar também o compartilhamento de assemblies/estado entre os dispatchers antes de exemplos que dependam de estáticos entre sistemas. Nenhuma dependência ainda não investigada é declarada limitação técnica comprovada. Preservar todos os206 JS, o inventário oficial PC e o bloqueio de entregas parciais.

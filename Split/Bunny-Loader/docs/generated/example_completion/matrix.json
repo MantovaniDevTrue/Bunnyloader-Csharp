@@ -9754,7 +9754,7 @@
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "C# e hooks/decoder/binder C++ reais exercitados no host com providers controlados. Não executa Terraria Android. Aguardando CI Android e validação de gameplay; nenhum pacote publicado.",
+      "validation": "CI39236367596 e nove suítes de push aprovados no código367488d9; testes C# e hooks/decoder/binder C++ de produção com providers controlados. APK Android compilado/validado, sem execução no Terraria nem pacote publicado. Aguardando gameplay Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
