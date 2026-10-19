@@ -21,12 +21,12 @@ O sprite foi copiado com o mesmo Git blob do ExampleModBunny.
 | Compilador: `QUEST_FISH` contendo flags, UTF-8 hex e regras de captura | Host validado |
 | `SourceLoader`: proprietário, identidade, defaults e publicação ao final | Código integrado; host CI |
 | `NativeAnglerQuestRegistry`: por mod, deduplicação, atualização, unload lógico, 50 tentativas, UTF-8 | Host validado |
-| `NativeAnglerQuestGameplay`: `AnglerQuestSwap`, `AnglerQuestChat`, `IsQuestFish` e array de quests | Código presente; **não validado em Terraria Android** |
-| `NativeAnglerQuestFishing`: `FishingCheck_RollItemDrop` e `FishingAttempt` (92 bytes) | Código presente; **ABI Android não confirmada** |
+| `NativeAnglerQuestGameplay`: sorteio, diálogo, `IsQuestFish`, suporte de armas e lista de quests | Integração IL2CPP simulada aprovada; **não validado em Terraria Android** |
+| `NativeAnglerQuestFishing`: `FishingCheck_RollItemDrop`, `FishingAttempt` (92 bytes) e exigência de captura explícita | Integração IL2CPP simulada aprovada; **ABI Android não confirmada** |
 | `ExampleQuestFish.cs` e `ExampleFishingPlayer.cs` separados como no ExampleModBunny | Wire e parser host validados; ainda não testados no jogo |
 | Preservação dos IDs JS/vanilla, escolha atual e limpeza de IDs C# antigos | Reconciliador C++ testado no host; jogo real pendente |
 | PT-BR do ExampleModBunny, fallback por idioma e detecção nativa da cultura | Implementado em fonte e validado no host; Android pendente |\n| Hooks dinâmicos C# arbitrários e sincronização de captura por jogador | Pendente |
-| Reinvalidação na entrada/saída de mundo | Implementada na thread do jogo; Android pendente |\n| Multiplayer, save e remoção de mod a quente | Pendente |
+| Reinvalidação na entrada/saída de mundo e substituição da mesma fonte C# | Implementadas; cenário Android pendente |\n| Multiplayer, save e remoção de mod a quente | Pendente |
 | Testes Android e desempenho/FPS | Pendente |
 
 ## Protocolo de compilação
@@ -40,13 +40,13 @@ QUEST_CATCH<TAB>ClasseBunnyPlayer<TAB>NomePeixe<TAB>CatchRules\nQUEST_LOCALE<TAB
 
 `CatchRules=1`: gravidade invertida; `CatchRules=2`: captura incomum; `3` exige ambos. A leitura nativa também aceita o formato anterior de seis colunas, com regras `0`.
 
-O item expõe `QuestDescriptionTranslations` e `QuestCatchLocationTranslations`, com no máximo oito culturas válidas por classe e textos de até 512 bytes UTF-8. O diálogo é escolhido pela cultura ativa do Terraria (exata, depois idioma), com fallback inglês. Não há chamada JavaScript no diálogo.\n\nO registro só é publicado depois das demais operações de defaults. O registro QUEST_CATCH exige BunnyPlayer e um BunnyItem de missão do próprio mod; duplicações e políticas conflitantes são rejeitadas. A thread do jogo atualiza `IsQuestFish` e a lista de `anglerQuestItemNetIDs` sem deslocar entradas JS, usando identidade estável do mod. Os hooks conferem métodos e campos IL2CPP antes de atuar; contratos incompatíveis preservam o funcionamento vanilla. O hook de pesca usa `resolveValueLayout` existente no núcleo, aplica o predicado testado por C++, e não executa MonoVM nem JS.
+O item expõe `QuestDescriptionTranslations` e `QuestCatchLocationTranslations`, com no máximo oito culturas válidas por classe e textos de até 512 bytes UTF-8. O diálogo é escolhido pela cultura ativa do Terraria (exata, depois idioma), com fallback inglês. Não há chamada JavaScript no diálogo.\n\nUma classe sem `QUEST_CATCH` e sem regras de captura explícitas **não sobrescreve o peixe sorteado pelo Terraria**; isso evita capturas garantidas indevidas. A flag `ItemID.Sets.CanBePlacedOnWeaponRacks` recebe o mesmo tratamento de ownership e rollback, se existir na ABI nativa. Mods C# sem peixes de missão não ativam hooks nem invalidam o registro.\n\nO registro só é publicado depois das demais operações de defaults. O registro QUEST_CATCH exige BunnyPlayer e um BunnyItem de missão do próprio mod; duplicações e políticas conflitantes são rejeitadas. A thread do jogo atualiza `IsQuestFish` e a lista de `anglerQuestItemNetIDs` sem deslocar entradas JS, usando identidade estável do mod. Os hooks conferem métodos e campos IL2CPP antes de atuar; contratos incompatíveis preservam o funcionamento vanilla. O hook de pesca usa `resolveValueLayout` existente no núcleo, aplica o predicado testado por C++, e não executa MonoVM nem JS.
 
 ## Testes e bloqueios
 
-O workflow `check-csharp-angler-quest-host.yml` executa compilação C++ host com `-Werror`, suite do registro, teste do parser da classe de jogador, verificação de sintaxe da integração `SourceLoader`/`AutoSourceRuntime`, compilação .NET do SDK/compilador e execução do `CompiledAssemblyProbe` no peixe real.
+O workflow `check-csharp-angler-quest-host.yml` executa compilação C++ host com `-Werror`, suite do registro, teste do parser da classe de jogador, **integração executável das funções reais de sorteio e chat contra IL2CPP simulado** (incluindo compat JS, flags de suporte de armas e remoção), **integração executável do hook real de pesca contra `FishingAttempt` simulado** (gravidade, sorteio incomum, owner e ausência de política explícita), verificação de sintaxe da integração `SourceLoader`/`AutoSourceRuntime`, compilação .NET do SDK/compilador e execução do `CompiledAssemblyProbe` no peixe real.
 
-**Checkpoint de CI:** SDK/compilador, geração do wire incluindo PT-BR, parser da classe global, reconciliação de IDs com outros mods, políticas nativas e compilação das unidades C++ alteradas são verificadas pelo workflow `check-csharp-angler-quest-host.yml`. Consultar o último resultado antes de fechar a PR.
+**Checkpoint de CI verde:** [Actions #39343901332](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39343901332). SDK/compilador, wire PT-BR, parser, APIs nativas, integração IL2CPP simulada de sorteio, chat, captura e flags, e compilação das unidades C++ passaram. O teste simulado não comprova layout/multiplayer/performance do Android.
 
 **Ainda não existe garantia de paridade total:** salvar/restaurar dinâmica de missões em multiplayer, traduções por cultura, hooks gerenciados personalizáveis de pesca/jogador, validação de acesso e ABI IL2CPP no Terraria Android, efeitos de outra versão do jogo, união com mods JS e 60 FPS. Não marcar esta PR como pronta até testes funcionais e regressões completas.
 
