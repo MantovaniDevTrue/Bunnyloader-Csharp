@@ -110,7 +110,7 @@ O teste host `tests/prefix_v89/managed_prefix_snapshot_test.cpp` cobre sucesso e
 
 ## PrefixCategory.Custom — seleção explícita
 
-A categoria `PrefixCategory.Custom` (valor 6) da API C# agora é validada e registrada pelo MonoVM/native. Assim como no `PrefixLoader.js` original, ela **não entra na lista natural** de `GetRollablePrefixes`. Para oferecer `CanRoll` e permitir aplicação direta/restauração em um item, exige pelo menos uma regra positiva em `ConfigureRollRules` com ID vanilla ou nome de item do próprio mod. Regras de peso zero negam o item e não bastam, sozinhas, para habilitar um prefixo `Custom`.
+A categoria `PrefixCategory.Custom` (valor 6) da API C# agora é validada e registrada pelo MonoVM/native. Assim como no `PrefixLoader.js` original, ela **não entra na lista natural** de `GetRollablePrefixes`. Para oferecer `CanRoll` e permitir aplicação direta/restauração em um item, exige uma regra de item explícita que resulte em permissão: peso positivo por padrão ou `SetCanRoll(item, true)` após declarar o peso. Um peso zero sozinho impede a aplicação; peso zero com permissão explícita permite aplicar diretamente, mas nunca adiciona o prefixo à rolagem natural.
 
 ```csharp
 public sealed class ExampleCustomPrefix : BunnyPrefix
@@ -133,3 +133,23 @@ public sealed class ExampleCustomPrefix : BunnyPrefix
 A lógica nativa consulta somente o mapa de tipos já resolvidos, sem JS nem callback Mono por reforja. Um pedido explícito permitido pode atravessar o caminho nativo de `CanRollPrefix`, `RollAPrefix` forçado e aplicação de status, mas a categoria nunca é acrescentada à rolagem natural. Isso é uma **interpretação declarativa restrita** dos contratos originais `CanRoll(item)`/`RollChance(item)`, não suporte a predicados C# arbitrários por instância. A integração real com um item que escolha um prefixo (`ChoosePrefix`) ainda requer suporte e validação separados.
 
 Os testes de host cobrem um prefixo `Custom` gerenciado (5 classes compiladas), uma regra positiva por nome, uma negativa por tipo, impedimento de rolagem natural, aplicação direta do prefixo permitido e rejeição do não permitido. Não declarar suporte completo antes de validar persistência, multiplayer, gameplay e FPS no Android.
+
+## Permissão independente do peso — CanRoll versus RollChance
+
+O `ModPrefix.js` original define `CanRoll(item)` por padrão a partir de `RollChance(item) > 0`, mas permite que um mod sobrescreva os dois métodos separadamente. O C# agora representa essa diferença por duas decisões compiladas:
+
+```csharp
+public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+{
+    rules.Allow("ExampleGun", 0);
+    rules.SetCanRoll("ExampleGun", true);
+    rules.Allow("ExampleStaff", 5);
+    rules.SetCanRoll("ExampleStaff", false);
+}
+```
+
+`ExampleGun` pode receber o prefixo pela rota explícita de `CanRollPrefix` e rolagem forçada, mas não aparece na rolagem aleatória (peso zero). `ExampleStaff` tem peso declarado 5, mas é recusado por `CanRoll=false`, inclusive na montagem dos candidatos naturais. `SetCanRoll` exige `SetWeight`/`Allow`/`Deny` anterior para o mesmo item e rejeita regras órfãs; `Deny(item)` limpa uma autorização anterior e mantém o bloqueio usual.
+
+A extensão mantém os mesmos 16 campos antigos quando não há regras e o campo opcional 17 com duas formas compatíveis por item: `nome:peso` (sem autorização explícita, comportamento anterior) e `nome:peso:0`/`nome:peso:1`. IDs numéricos usam o mesmo protocolo. O parser nativo aceita somente permissão 0 ou 1; associa cada permissão a um item realmente declarado; resolve nomes próprios do mod antes de publicar a visão imutável.
+
+**Escopo:** são políticas declarativas por tipo de item, não callbacks C# arbitrários por instância. O contrato não cobre estado de item, jogador, mundo, tempos ou RNG do método JS original. Nenhuma chamada ao MonoVM ou JavaScript é acrescentada no hot path. É necessário validar gameplay e FPS no Android antes de certificar o loader completo.
