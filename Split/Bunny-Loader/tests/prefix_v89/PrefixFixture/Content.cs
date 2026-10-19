@@ -33,7 +33,9 @@ public sealed class TestMightyPrefix : BunnyPrefix
     public override void ConfigureRollRules(BunnyPrefixRollRules rules)
     {
         rules.Allow(1, 3);
+        rules.SetCanRoll(1, false);
         rules.Deny(2);
+        rules.SetCanRoll(2, true);
         rules.Allow(512, 7);
         rules.Allow("TestWand", 2);
     }
@@ -61,7 +63,8 @@ public sealed class TestCustomPrefix : BunnyPrefix
     public override void ConfigureRollRules(BunnyPrefixRollRules rules)
     {
         rules.Deny(1);
-        rules.Allow("TestWand", 2);
+        rules.Allow("TestWand", 0);
+        rules.SetCanRoll("TestWand", true);
     }
 }
 
