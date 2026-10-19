@@ -543,6 +543,8 @@ constexpr size_t kMaxAnimated = 8192;
 std::atomic<int> g_animHeight[kMaxAnimated];
 FieldInfo* g_tileFrameField = nullptr;   // Main.tileFrame
 std::atomic<DrawDataHook> g_drawDataHook{nullptr};
+std::atomic<DrawDataHook> g_managedDrawDataHook{nullptr};
+std::atomic<const std::atomic<uint8_t>*> g_managedDrawDataMarks{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataMarks{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataUncached{nullptr};   // CacheDrawData = false
 
@@ -687,6 +689,10 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     const DrawDataHook hook = g_drawDataHook.load(std::memory_order_acquire);
     const std::atomic<uint8_t>* marks = g_drawDataMarks.load(std::memory_order_acquire);
     const bool toMod = hook && marks && marks[type].load(std::memory_order_relaxed);
+    const DrawDataHook managedHook = g_managedDrawDataHook.load(std::memory_order_acquire);
+    const std::atomic<uint8_t>* managedMarks = g_managedDrawDataMarks.load(std::memory_order_acquire);
+    const bool toManaged = managedHook && managedMarks &&
+                           managedMarks[type].load(std::memory_order_acquire);
 
     // O jogo ja põe um deslocamento vertical padrao baseado em Main.tileFrame.
     // Para tiles de mod, a folha usa AnimationFrameHeight (ou zero quando os
@@ -694,7 +700,7 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     // O quadro tambem vai na chave do cache para AnimateIndividualTile.
     const int frameHeight = i < kMaxAnimated ? g_animHeight[i].load(std::memory_order_relaxed) : 0;
     int32_t tileFrame = 0;
-    if ((frameHeight > 0 || toMod) && g_tileFrameField) {
+    if ((frameHeight > 0 || toMod || toManaged) && g_tileFrameField) {
         Il2CppArray* frames = readStatic(g_tileFrameField);
         if (frames && type < frames->length) tileFrame = static_cast<const int32_t*>(arrayData(frames))[type];
     }
@@ -713,7 +719,7 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     }
 
     // O SetDrawPositions & cia. do mod, so para os tipos que os sobrescrevem.
-    if (!toMod) return;
+    if (!toMod && !toManaged) return;
     DrawKey key;
     key.x = x;
     key.y = y;
@@ -735,7 +741,10 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
-        if (hook(x, y, type, &d, special) && cached) drawCachePut(key, epoch, now, d);
+        bool applied = false;
+        if (toMod) applied = hook(x, y, type, &d, special);
+        if (toManaged) applied = managedHook(x, y, type, &d, special) || applied;
+        if (applied && cached) drawCachePut(key, epoch, now, d);
     }
     *frameX = static_cast<int16_t>(d.frameX);
     *frameY = static_cast<int16_t>(d.frameY);
@@ -1088,6 +1097,12 @@ void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const
     g_drawDataUncached.store(uncached, std::memory_order_release);
     g_drawDataMarks.store(marks, std::memory_order_release);
     g_drawDataHook.store(hook, std::memory_order_release);
+    invalidateDrawCache();
+}
+
+void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks) {
+    g_managedDrawDataMarks.store(marks, std::memory_order_release);
+    g_managedDrawDataHook.store(hook, std::memory_order_release);
     invalidateDrawCache();
 }
 
