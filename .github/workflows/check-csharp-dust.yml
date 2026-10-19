@@ -26,6 +26,10 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
 
+concurrency:
+  group: csharp-dust-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
