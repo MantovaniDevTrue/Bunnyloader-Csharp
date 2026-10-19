@@ -20,6 +20,10 @@ struct SavedItem {
     std::string rarityKey{};
 };
 
+inline bool hasSavedVanillaPrefix(const SavedItem& item) {
+    return item.prefix > 0 || !item.prefixKey.empty();
+}
+
 inline SavedItem remainingVanillaMetadata(const SavedItem& saved,
     int currentPrefix, const std::string& currentRarity) {
     SavedItem remaining = saved;
@@ -32,7 +36,7 @@ inline SavedItem remainingVanillaMetadata(const SavedItem& saved,
 }
 
 inline bool hasRemainingVanillaMetadata(const SavedItem& saved) {
-    return saved.prefix > 0 || !saved.prefixKey.empty() || !saved.rarityKey.empty();
+    return hasSavedVanillaPrefix(saved) || !saved.rarityKey.empty();
 }
 
 inline bool mergePending(std::vector<SavedItem>& saved, const SavedItem& pending) {
