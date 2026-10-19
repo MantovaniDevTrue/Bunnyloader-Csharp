@@ -495,7 +495,8 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             const std::vector<Container> containers = containersOf(player);
             for (const SavedItem& k : it->second) {
                 if (isVanillaPrefixEntry(k) && !stillWaitingForPrefix(containers, k)) continue;
-                items.push_back(k);
+                if (!item_save::mergePending(items, k))
+                    items.push_back(k);
                 ++kept;
             }
         }
@@ -1170,7 +1171,8 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                         const ChestSlot s = c == byName.end() ? ChestSlot{} : slotOf(c->second, k.slot);
                         if (!s.data || s.type() != vanillaPrefixEntryType(k) || s.prefix() != 0) continue;
                     }
-                    items.push_back(k);
+                    if (!item_save::mergePending(items, k))
+                        items.push_back(k);
                     ++kept;
                 }
             }
