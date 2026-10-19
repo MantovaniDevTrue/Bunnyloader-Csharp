@@ -661,6 +661,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
     std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
+    std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
+    std::set<int> seenPrefixDenials;
     std::vector<std::pair<int, bool>> prefixChances;
     std::set<int> seenPrefixChances;
     std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
@@ -676,6 +678,35 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "PREFIX_DENY") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 320 ||
+                prefixDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDeny] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<std::string> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                if (entry.empty() || denied.size() >= 32) {
+                    *error = "[CSharp][ERROR][PrefixDeny] InvalidPrefixList";
+                    return false;
+                }
+                denied.push_back(std::move(entry));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDeny] InvalidPrefixList";
+                return false;
+            }
+            prefixDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
         if (!fields.empty() && fields[0] == "PREFIX_POST") {
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("PREFIX", fields[1]) : "";
@@ -1365,6 +1396,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedPrefixDescriptors(modId, prefixes)) {
         *error = "Falha ao validar descritores de prefixo C#";
+        return false;
+    }
+    if (!applyManagedItemPrefixDenials(modId, prefixDenials)) {
+        *error = "Politicas AllowPrefix C# invalidas ou hook nativo indisponivel";
         return false;
     }
     if (!applyManagedItemPrefixChances(prefixChances)) {
