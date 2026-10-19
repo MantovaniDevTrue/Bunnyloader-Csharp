@@ -84,13 +84,26 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Ainda não garantido:** IDs persistentes ao mudar a ordem de carregamento, reidratação de saves antigos com IDs anteriores, compatibilidade visual real dos hooks JS e C# no Android e restrições de multiplayer. A compilação host **não substitui** o teste no aparelho.
 
+## Lote — nomes no chão e raridades nas quatro famílias de itens (19/10)
+
+- `NativeRarityGameplay.cpp` ganhou integração **condicional** com `Main.MouseTextInner(Main.MouseTextCache, bool)` e o overload nativo de `SpriteBatch.DrawString`. Ao detectar apenas um item de raridade C# sem tooltip de buff, sem HoverItem e sem dificuldade especial, aplica a cor cacheada ao mesmo texto que o Terraria desenha. O original preserva posicionamento, sombras, bounding e alpha, sem redesenho por JS.
+- O hook resolve classe `MouseTextCache` como referência, campos `rare/cursorText/buffTooltip/diff`, `Main.HoverItem`, tipos de parâmetros e a ABI de `Color`, `Vector2` e `SpriteEffects`. Se algum layout não corresponder, **não instala**; a renderização original continua. A substituição de `DrawString` só altera a cor do texto identificado dentro do escopo do mouse text, sem chamadas MonoVM durante o draw.
+- `BunnyRarityTextColor.h` implementa conversão de canais com alpha e deixa os desenhos de sombra escura inalterados. Os testes C++ verificam opacidade 0/128/255 e as regras de sombra.
+- `SetRarity<T>()` foi ampliado a `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion`, além de `BunnyItem`. O helper `BunnyRarityReference` recusa classes abstratas e tipos de outro assembly. O `CompiledAssemblyProbe` envia `ITEM_RARITY` para todas as quatro famílias.
+- `SourceLoader` valida a propriedade, a identidade do registro e o ID no host. Para `BunnyItem` usa `BasicRare`; para arma, acessório e poção utiliza o próprio `NativeDefaults` para registrar `rare:i:<ID>` após validação. Rejeita descritores conflitantes que tentem definir `rare` duas vezes.
+- Os fixtures C# agora cobrem item comum, acessório, arma com projétil e poção com buff. As ligações de tipo e linhas geradas são verificadas pela CI de host.
+
+**Evidência anterior de host:** [CI #39321582431](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39321582431) passou depois do hook de desenho e da adição das APIs. O teste de todas as famílias foi incluído em commits posteriores e exige CI verde nesta revisão.
+
+**Limite:** o hook de texto do chão tem fail-closed e ainda não está validado por captura ou uso em Android. Não substitui `Main.MouseText_DrawItemTooltip` nem integra ainda tooltips e chat completos. Também faltam persistência, migração e multiplayer. Nenhum APK foi gerado.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
 2. Aplicar `Rare` de armas, acessórios e itens às novas identidades; suportar `TypeOf` cruzado e persistência/reidratação sem perda de ID.
 3. Registrar cores de raridade em `Terraria.GameContent.UI.ItemRarity.Initialize` no C++/IL2CPP, incluindo chamadas de reinicialização.
 4. Implementar `Item.GetPopupRarityColor` para textos flutuantes e `Item.Prefix` com out/ref, multiplicadores e caso `Prefix(-1)` que não pode voltar a roxo.
-5. Implementar nome de item no chão em `Main.MouseTextInner` com enquadramento e alpha equivalentes ao mobile e nome colorido em tooltips, sem alterar a lógica vanilla.
+5. Validar em Android o hook nativo `Main.MouseTextInner` (fail-closed) e completar a cor do nome em tooltips sem alterar a lógica vanilla.
 6. Dar suporte a cores animadas do `Main.DiscoR/G/B` sem MonoVM bloqueante por draw; estabelecer a periodicidade de atualização e orçamento de renderização.
 7. Portar os dois exemplos originais com assets e um item utilizável, cobrindo prefixos bons/ruins, chão, coleta, tooltip e etiqueta de chat `[i:]`.
 8. Validar ABI, ciclo de carregamento, troca de mundo, descarregamento, mais de um mod, saves e multiplayer; rodar CI nativo e testes reais de Android, verificar fidelidade visual, memória e 60 FPS.
