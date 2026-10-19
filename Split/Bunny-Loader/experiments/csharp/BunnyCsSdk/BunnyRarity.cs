@@ -36,7 +36,7 @@ public sealed class BunnyRarityRegistry
     public BunnyRarityRegistry(int firstCustomType = TerrariaVanillaRarityCount)
     {
         if (firstCustomType < TerrariaVanillaRarityCount ||
-            firstCustomType > TerrariaVanillaRarityCount + MaxRegisteredRarities)
+            firstCustomType >= TerrariaVanillaRarityCount + MaxRegisteredRarities)
             throw new ArgumentOutOfRangeException(nameof(firstCustomType));
         this.firstCustomType = firstCustomType;
     }
@@ -66,7 +66,8 @@ public sealed class BunnyRarityRegistry
                 throw new InvalidOperationException("A rarity instance can only be registered once");
             if (keys.ContainsKey(key))
                 throw new InvalidOperationException("Duplicate rarity: " + key);
-            if (entries.Count >= MaxRegisteredRarities)
+            if (entries.Count >= MaxRegisteredRarities ||
+                firstCustomType + entries.Count >= TerrariaVanillaRarityCount + MaxRegisteredRarities)
                 throw new InvalidOperationException("Rarity registry capacity exceeded");
 
             int id = firstCustomType + entries.Count;
