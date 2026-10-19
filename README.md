@@ -12,7 +12,7 @@ A entrega permanece em branch própria, para que o projeto original continue int
 
 **[Abrir o passo a passo de importação](IMPORTAR-NO-GITHUB-DO-POTATO.md)** · **[Ler minha explicação técnica completa](POTATO-C-SHARP-HANDOFF.md)** · **[Ver todas as diferenças com seu original](docs/POTATO-UPSTREAM-FILE-MAP.json)**
 
-O projeto Android está **direto na raiz**, nos mesmos caminhos do Bunny original: `app/`, `experiments/csharp/`, `samples/` e `tools/`. Basta abrir a fonte no Android Studio. O código C# já está integrado nos arquivos de inicialização, build e conteúdo necessários.
+O projeto Android está **direto na raiz**, nos mesmos caminhos do Bunny original: `app/`, `experiments/csharp/`, `samples/` e `tools/`. Basta abrir no Android Studio. **Todos os fontes QuickJS-ng v0.17.0 estão incluídos** em [`app/src/main/cpp/third_party/quickjs/`](app/src/main/cpp/third_party/quickjs/) e todas as bibliotecas MonoVM, Roslyn e SDK C# já estão no destino do aplicativo. **Não precisa instalar ou preparar esses motores separadamente.**
 
 Para manter o histórico do repositório original, a importação pode ser feita numa branch derivada do commit de base. Incluí um script de cópia com simulação e validação, sem `force push`, sem substituir `.git` e sem alterar a `main`.
 
