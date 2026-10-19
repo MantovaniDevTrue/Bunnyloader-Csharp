@@ -12,5 +12,5 @@ int main() {
         assert(hasAdjacencies(n) == (n == 17 || n == 19));
         assert(hasBreakPolicy(n) == (n == 19));
     }
-    std::cout << "CSHARP_TILE_WIRE_ANIMATION_16_AND_17_COMPATIBILITY=PASS\n";
+    std::cout << "CSHARP_TILE_WIRE_ANIMATION_16_17_19_COMPATIBILITY=PASS\n";
 }
