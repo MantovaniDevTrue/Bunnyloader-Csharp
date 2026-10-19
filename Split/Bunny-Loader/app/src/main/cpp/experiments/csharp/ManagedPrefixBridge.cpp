@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <memory>
+#include <atomic>
 #include <set>
 
 namespace bl::csharp {
@@ -15,6 +17,8 @@ namespace {
 std::mutex g_prefixMutex;
 std::map<int, ManagedPrefixEntry> g_descriptors;
 std::set<int> g_reservedManagedPrefixTypes;
+std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
+    std::make_shared<const std::vector<ManagedPrefixEntry>>();
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 5 ||
@@ -65,18 +69,23 @@ bool applyManagedPrefixDescriptors(
         for (const auto& entry : staged)
             if (g_descriptors.contains(entry.first)) return false;
         g_descriptors.insert(staged.begin(), staged.end());
+        auto next = std::make_shared<std::vector<ManagedPrefixEntry>>();
+        next->reserve(g_descriptors.size());
+        for (const auto& entry : g_descriptors) next->push_back(entry.second);
+        std::shared_ptr<const std::vector<ManagedPrefixEntry>> published = next;
+        std::atomic_store_explicit(&g_prefixView, std::move(published), std::memory_order_release);
     }
     BL_INFO("csharp prefix: %zu descritores gerenciados registrados para %s; hooks de gameplay instalados",
             staged.size(), modId.c_str());
     return true;
 }
 
+std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() {
+    return std::atomic_load_explicit(&g_prefixView, std::memory_order_acquire);
+}
+
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() {
-    std::lock_guard<std::mutex> guard(g_prefixMutex);
-    std::vector<ManagedPrefixEntry> items;
-    items.reserve(g_descriptors.size());
-    for (const auto& pair : g_descriptors) items.push_back(pair.second);
-    return items;
+    return *managedPrefixView();
 }
 
 int registeredManagedPrefixCount() {
