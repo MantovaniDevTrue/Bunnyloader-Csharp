@@ -44,6 +44,19 @@ int main() {
     assert(bl::csharp::shouldTintNativeRarityText(0xff808080u, 255));
     assert(!bl::csharp::shouldTintNativeRarityText(0xff808080u, 0));
 
+    const char16_t complete[] = u"Example Dragon Staff";
+    const char16_t duplicate[] = u"Example Dragon Staff";
+    const char16_t unrelated[] = u"Example Dragon Sword";
+    const int nameLength = static_cast<int>(sizeof(complete) / sizeof(complete[0])) - 1;
+    assert(bl::csharp::sameNativeRarityName(complete, nameLength, complete, nameLength));
+    assert(bl::csharp::sameNativeRarityName(complete, nameLength, duplicate, nameLength));
+    assert(!bl::csharp::sameNativeRarityName(complete, nameLength, unrelated, nameLength));
+    assert(!bl::csharp::sameNativeRarityName(complete, nameLength, duplicate, nameLength - 1));
+    assert(!bl::csharp::sameNativeRarityName(complete, nameLength, nullptr, nameLength));
+    assert(!bl::csharp::sameNativeRarityName(nullptr, nameLength, duplicate, nameLength));
+    assert(!bl::csharp::sameNativeRarityName(complete, 257, duplicate, 257));
+    assert(!bl::csharp::sameNativeRarityName(complete, 0, duplicate, 0));
+
     bl::csharp::NativeRarityPalette palette;
     assert(!palette.read(11, &color));
     assert(!palette.read(12, &color));
