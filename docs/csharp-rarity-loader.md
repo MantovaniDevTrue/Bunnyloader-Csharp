@@ -97,6 +97,18 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Limite:** o hook de texto do chão tem fail-closed e ainda não está validado por captura ou uso em Android. Não substitui `Main.MouseText_DrawItemTooltip` nem integra ainda tooltips e chat completos. Também faltam persistência, migração e multiplayer. Nenhum APK foi gerado.
 
+## Checkpoint — tooltip C#/JS, nomes e identidade estável (19/10)
+
+- Hook C++ condicional de `Main.MouseText_DrawItemTooltip(Main.MouseTextCache, int, byte, int, int)` usa o `SpriteBatch.DrawString` nativo já instalado pelo texto no chão. Valida assinaturas de parâmetros, ABI do `Item.expert`, `Main.HoverItem`, método `Item.AffixName()` e retorno. Só entra quando o ID pertence a uma raridade C# com cor cacheada, dificuldade normal e sem flag Expert.
+- O nome é calculado **uma vez por tooltip** usando o método nativo `AffixName`. Dentro do escopo do tooltip, `DrawString` compara apenas até **256 caracteres UTF-16**; não altera sombras escuras nem as demais linhas, e não chama o MonoVM durante a renderização. Sem correspondência exata, o desenho original permanece inalterado.
+- O `TooltipLoader.js` original passa a consultar `bl.csharp.rarityColor(id)` **somente no caminho em que ele já está desenhando um tooltip JS** e nenhuma raridade JS possui esse ID. O bridge nativo retorna o RGB do cache atômico, ou `null` caso desconhecido. Isso preserva cores especiais e evita obrigar a execução de JavaScript em itens C# comuns.
+- O `NativeRarityRegistry` inclui `identityForType` (índice direto), `stableKeyForType` e `typeForStableKey`, para recuperar uma raridade C# pela identidade `mod/classe` independentemente da sequência de carregamento. O hook de `Item.Prefix` substituiu a varredura linear por esse lookup direto.
+- Cobertura de teste C++: nomes UTF-16 idênticos/diferentes, limites 0 e 257, nulidade, IDs mistos e resolução da chave estável. Teste Node executa o `TooltipLoader.js` real e confirma cores JS, C#, fallback, Master/Expert e cores vanilla sem modificar o desenho do usuário.
+
+**Importante:** a chave estável existe no registro, mas **não foi gravada nem restaurada no save do jogador ou do mundo**. O formato `.bl` atual é versão 2; alterá-lo sem preservar os dados de baús e personagens antigos tem risco de perda de itens. Requer projeto de migração e testes de ida/volta antes de ligar o recurso.
+
+**Não há validação Android** dos novos hooks IL2CPP, suas assinaturas reais, cores desenhadas ou 60 FPS. A ponte QuickJS foi verificada por teste de comportamento JS, não por build Android; fallback original permanece nos hooks.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e validar a ponte compartilhada entre mods C# e JS em Android e persistência.
