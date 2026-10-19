@@ -52,3 +52,46 @@ public sealed class ExampleRarityAccessory : BunnyAccessory
         SetRarity<ExampleHigherTierModRarity>();
     }
 }
+
+public sealed class ExampleRarityProjectile : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Projectile";
+        Width = 8;
+        Height = 8;
+        AiStyle = 1;
+        TimeLeft = 300;
+    }
+}
+
+public sealed class ExampleRarityWeapon : BunnyWeapon
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Weapon";
+        Damage = 24;
+        UseTime = 20;
+        Shoot = nameof(ExampleRarityProjectile);
+        SetRarity<ExampleModRarity>();
+    }
+}
+
+public sealed class ExampleRarityBuff : BunnyBuff
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Buff";
+    }
+}
+
+public sealed class ExampleRarityPotion : BunnyBuffPotion
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Potion";
+        Buff = nameof(ExampleRarityBuff);
+        Duration = 600;
+        SetRarity<ExampleHigherTierModRarity>();
+    }
+}
