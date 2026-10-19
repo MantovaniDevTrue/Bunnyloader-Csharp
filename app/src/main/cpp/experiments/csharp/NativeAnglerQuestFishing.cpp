@@ -67,7 +67,7 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     const auto& quests = *g_quests;
     const auto found = std::find_if(quests.begin(), quests.end(),
         [&](const Quest& quest) { return quest.type == questId; });
-    if (found == quests.end()) return;
+    if (found == quests.end() || (!found->catchEnabled && found->catchRules == 0)) return;
     int32_t owner = -1;
     std::memcpy(&owner, reinterpret_cast<const char*>(bobber) + g_owner, sizeof(owner));
     auto& a = il2cpp::api();
