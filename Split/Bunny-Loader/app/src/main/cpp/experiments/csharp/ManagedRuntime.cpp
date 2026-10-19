@@ -288,12 +288,15 @@ struct RecipeRpcJob {
     std::chrono::steady_clock::time_point deadline;
     std::shared_ptr<RecipeRpcCompletion> completion;
     bool shooting=false;
+    bool tile=false;
 };
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
+void* g_tileDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
 
@@ -1369,13 +1372,13 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
-        if(job.shooting&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
     }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
-    } else if(job.shooting&&job.kind==2&&!job.completion->cancelled) {
+    } else if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled) {
         job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
@@ -1386,8 +1389,8 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    void*& dispatcher=job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod;
-    const char* endpoint=job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime";
+    void*& dispatcher=job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod);
+    const char* endpoint=job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime");
     if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
@@ -2321,7 +2324,7 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 
 static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds) {
+                         std::string* output,int budgetMicroseconds,bool tile=false) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
@@ -2331,7 +2334,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
@@ -2350,6 +2353,47 @@ bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const
         size_t pos=0;while((pos=output->find("RecipeCallback",pos))!=std::string::npos){output->replace(pos,14,"ShootCallback");pos+=13;}
     }
     return result;
+}
+bool invokeManagedTile(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds) {
+    if(callback<0||callback>12||x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileCallback Reason=InvalidCoordinatesOrKind";return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,callback,0,
+        std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
+}
+bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y) {
+    if(callback<2||callback>12||x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,std::to_string(x)+","+std::to_string(y),
+        callback,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+bool queueManagedTileWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);
+    const auto key=mod+"|"+assembly+"|"+owner;
+    if(g_tileWarmups.count(key))return true;
+    if(g_tileWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_tileWarmups.emplace(key,result);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedTileWarmupState(const std::string& mod,const std::string& assembly,
+    const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return 0;
+    const auto key=mod+"|"+assembly+"|"+owner;
+    const auto found=g_tileWarmups.find(key);
+    if(found==g_tileWarmups.end()){if(error)*error="Stage=Warmup Reason=TileOwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    if(error)*error=found->second->output;return -1;
 }
 static std::string shootWarmupKey(const std::string& mod,const std::string& assembly,const std::string& owner) {
     return mod+"|"+assembly+"|"+owner;
