@@ -46,9 +46,9 @@ O ponto de partida C# é o **Bunny Loader C# `0.1.10.16.90.29.95.2`**, com **Exa
 
 ### Antes de compilar
 
-Incluí **a biblioteca MonoVM ARM64 modificada** em [`tools/mono/prebuilt/arm64-v8a/`](tools/mono/prebuilt/arm64-v8a/), com SHA-256, licença e procedência. Também compartilhei [o patch de sinais](tools/mono/patch_mono_android_signals.py), [o script de recompilação](tools/mono/build_patched_mono_arm64.sh) a partir do .NET 8.0.23 e [a instalação com validação](tools/mono/install_patched_mono_arm64.sh). **Após preparar o framework Mono oficial, execute o instalador por último**, para não sobrescrever a biblioteca corrigida com a versão genérica. Veja [instruções completas](tools/mono/README.md) e [guia técnico](POTATO-C-SHARP-HANDOFF.md). Arquivos proprietários do Terraria/Unity e chaves de assinatura não fazem parte desta fonte.
+**O C# já está instalado nesta fonte.** As 175 DLLs do Mono Android 8.0.23, Roslyn, SDK e compilador estão em [`app/src/main/assets/managed/`](app/src/main/assets/managed/) junto com `framework.sha256`. As bibliotecas nativas ARM64, inclusive o Mono corrigido, estão em [`app/src/main/jniLibs/arm64-v8a/`](app/src/main/jniLibs/arm64-v8a/). **Não é preciso executar scripts, instalar Mono ou compilar o SDK C# separadamente.** O Gradle verifica os arquivos antes do build. O [patch](tools/mono/patch_mono_android_signals.py), [script de recompilação](tools/mono/build_patched_mono_arm64.sh) e [guia](tools/mono/README.md) ficaram disponíveis para manutenção futura. Os binários proprietários do Terraria/Unity e a chave de assinatura oficial não são distribuídos.
 
-**Identidade de aplicativo:** a fonte mantém o `applicationId = "com.bunnyloader.csharptest"` usado nos testes Android do C#. A adaptação para o ID e a assinatura oficiais do Bunny precisa de uma nova compilação e verificação dos caminhos que dependem do pacote.
+**Identidade do aplicativo:** o `applicationId` já é `com.bunnyloader`, como no Bunny original. O versionamento identifica a integração C#; a chave de assinatura de release não é distribuída no repositório.
 
 ## Estrutura
 
