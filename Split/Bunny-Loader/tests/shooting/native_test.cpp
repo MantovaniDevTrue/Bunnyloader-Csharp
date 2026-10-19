@@ -16,11 +16,11 @@ Il2CppClass player{"Terraria","Player",128,false},item{"Terraria","Item",128,fal
 Il2CppType sourceType{&reference},modifierType{&modifierClass};
 FieldInfo typeField{{&integerClass},16},whoField{{&integerClass},20},poolField{{&arrayClass},0,0x10};
 MethodInfo useMethod{nullptr,true,1},spawnMethod{nullptr,false,2},timeMethod{reinterpret_cast<void*>(applyTime),true,3};
-struct Pool {Il2CppArray array;Il2CppObject* data[1234]{};} pool{{{&arrayClass,nullptr},nullptr,1234},{}};
+struct Pool {Il2CppArray array;Il2CppObject* data[1001]{};} pool{{{&arrayClass,nullptr},nullptr,1001},{}};
 int useCalls=0,timeCalls=0,callbackCalls=0,warmState=1,warnings=0,spawnCountPerUse=1;bool callbackAvailable=true,failQueue=false,missingMethod=false,throwUse=false,throwSpawn=false;
 std::string managedOutput,canOutput="1",lastSnapshot;
 struct Spawn {Il2CppObject* source;float x,y,vx,vy;int type,damage;float kb;int owner;float a0,a1,a2;Il2CppObject* modifier;};
-std::vector<Spawn> spawned;
+std::vector<Spawn> spawned;std::vector<int> factoryResults;
 Il2CppObject source{&reference,nullptr},modifierObject{&modifierClass,nullptr};
 void applyTime(Il2CppObject*,Il2CppObject*,const MethodInfo* m){assert(m==&timeMethod);++timeCalls;}
 int originalProjectile(Il2CppObject* src,float x,float y,float vx,float vy,int type,int damage,float kb,int owner,float a0,float a1,float a2,Il2CppObject* modifier,const MethodInfo*) {
@@ -29,7 +29,7 @@ int originalProjectile(Il2CppObject* src,float x,float y,float vx,float vy,int t
 }
 void originalItemCheck(Il2CppObject*,int,Il2CppObject*,int,bool,const MethodInfo*) {
  ++useCalls;if(throwUse)throw 42;
- for(int i=0;i<spawnCountPerUse;i++)bl::csharp::shooting::spawn(&source,100,200,10,0,1136,24,7,2,1,2,3,&modifierObject,&spawnMethod);
+ for(int i=0;i<spawnCountPerUse;i++)factoryResults.push_back(bl::csharp::shooting::spawn(&source,100,200,10,0,1136,24,7,2,1,2,3,&modifierObject,&spawnMethod));
 }
 namespace bl::il2cpp {
 bool guardedCall(void(*body)(void*),void* argument,Caught* caught){try{body(argument);return true;}catch(int){if(caught)caught->threw=true;return false;}}
@@ -70,6 +70,7 @@ int main(int argc,char** argv) {
  alignas(8) char playerBytes[128]{},itemBytes[128]{};int type=6230,who=2;std::memcpy(itemBytes+16,&type,4);std::memcpy(playerBytes+20,&who,4);
  auto* p=reinterpret_cast<Il2CppObject*>(playerBytes);auto* i=reinterpret_cast<Il2CppObject*>(itemBytes);
  use(p,2,i,18,true,&useMethod);assert(useCalls==1&&callbackCalls==2&&spawned.size()==8&&!active.policy);
+ assert(factoryResults.back()==1000); // The 1001-cell pool must not become the factory sentinel.
  for(const auto& shot:spawned)assert(shot.source==&source&&shot.modifier==&modifierObject&&shot.owner==2&&shot.type==1136&&shot.damage==24&&shot.kb==7&&shot.a0==1&&shot.a1==2&&shot.a2==3);
  assert(lastSnapshot.starts_with("2,6230,18,"));
  // Two native calls each receive their own callback. Own emitted projectiles do not reenter.
@@ -95,6 +96,8 @@ int main(int argc,char** argv) {
  throwUse=true;use(p,2,i,18,true,&useMethod);assert(!active.policy&&spawned.empty());throwUse=false;
  throwSpawn=true;use(p,2,i,18,true,&useMethod);assert(!active.policy&&spawned.empty());throwSpawn=false;
  use(p,2,i,18,true,&useMethod);assert(spawned.size()==8&&!active.policy);spawned.clear();
+ pool.array.length=999;const int previousTime=timeCalls;
+ use(p,2,i,18,true,&useMethod);assert(timeCalls==previousTime+1&&spawned.empty());pool.array.length=1001;
  auto table=std::atomic_load(&policies);entry.mask=8;assert(!publish({entry},&error)&&std::atomic_load(&policies)==table);entry.mask=7;
  failQueue=true;assert(!bindAssembly("independent","failed.dll",&error)&&std::atomic_load(&policies)==table);failQueue=false;
  // Actual binder rejects mismatched widths, storage, bounds, factory ABI and method staticness.

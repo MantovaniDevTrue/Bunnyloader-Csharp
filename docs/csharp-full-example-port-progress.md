@@ -66,3 +66,5 @@ Fonte `e11f5279b1ed4a573fb08e999cc3228c8cd2dc19`: [CI39190838803](https://github
 A aprovação geral da .96 está em validation/csharp-v96-android-user-2026-10-19.json; não informa testes individuais nem medição de FPS. A .98 permanece experimental interna e sem certificado Android de gameplay. Publicação parcial continua proibida pelo pedido vigente do usuário.
 
 O transporte aceita até32KiB para os64 comandos, com teste de identidades longas. OnShoot preserva a propriedade BunnyWeapon.Shoot existente. Exceções nativas são capturadas pelo GuardedCall existente, com restauração do escopo TLS e teste de retomada após falha; não se promete rollback de efeitos que o Terraria já aplicou antes de lançar a exceção.
+
+O sentinela da fábrica foi conferido nos ItemLoader/GlobalItemLoader/PlayerItemHooks originais:1000 nesta versão Android. O teste cobre a pool com1001 células e recusa de pool menor; não se usa comprimento do array como retorno falso de Shoot.

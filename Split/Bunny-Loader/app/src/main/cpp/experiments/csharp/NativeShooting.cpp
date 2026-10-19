@@ -49,10 +49,13 @@ void diagnostic(const Policy& policy,const char* stage,const std::string& reason
         policy.entry.mod.c_str(),policy.entry.name.c_str(),policy.entry.source.c_str(),policy.entry.type,stage,
         static_cast<unsigned long long>(policy.suppressed.exchange(0)),reason.c_str());
 }
+// Android 1.4.5.8.6 uses 1000 as the factory's no-slot return, also used by the
+// original ItemLoader/GlobalItemLoader/PlayerItemHooks. A padded array is not this limit.
+constexpr int kAndroidNoProjectileSlot=1000;
 int poolSize() {
     Il2CppArray* pool=nullptr;auto& a=il2cpp::api();a.field_static_get_value(refs.pool,&pool);
     return pool&&pool->obj.klass&&a.class_get_rank(pool->obj.klass)==1&&a.class_get_element_class(pool->obj.klass)==refs.projectile&&
-        pool->length>0&&pool->length<=10000?static_cast<int>(pool->length):0;
+        pool->length>=kAndroidNoProjectileSlot&&pool->length<=10000?kAndroidNoProjectileSlot:0;
 }
 bool shot(const std::string& text,const Entry& entry,Shot* result,std::string* error) {
     auto f=split(text,',');Shot s;
