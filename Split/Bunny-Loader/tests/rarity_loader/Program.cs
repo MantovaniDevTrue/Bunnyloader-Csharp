@@ -245,6 +245,7 @@ Check("item.typed-rarity-uses-owner-identity-not-runtime-integer", () =>
     var second = new ExampleModCSharp.Rarities.ExampleRarityItem();
     second.SetRarity<ExampleModCSharp.Rarities.ExampleHigherTierModRarity>();
     Equal("ExampleHigherTierModRarity", second.ModRarityClassName);
+    Throws<ArgumentException>(() => second.SetRarity<RisingRarity>());
 });
 
 Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
