@@ -613,9 +613,9 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 // O item mudou de lugar (ou saiu) sem o loader: a linha nao vale mais.
                 if (!slotItem || field<int32_t>(slotItem, g_refs.type) != vanillaPrefixEntryType(s)) continue;
-                const bool prefixOk = (s.prefixKey.empty() && s.prefix == 0) ||
+                const bool prefixOk = !item_save::hasSavedVanillaPrefix(s) ||
                     restoreVanillaPrefix(slotItem, s);
-                if (prefixOk && (s.prefix > 0 || !s.prefixKey.empty())) ++prefixes;
+                if (prefixOk && item_save::hasSavedVanillaPrefix(s)) ++prefixes;
                 if (!prefixOk) kept.push_back(s);
                 if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey))
                     pendingRarity[placeKey(s.container, s.slot)] =
@@ -1209,7 +1209,7 @@ void hkFixAgainstExploits(const MethodInfo* m) {
             cov.resize(it->second->length);
             cov[static_cast<size_t>(s.slot)] = true;
             const int prefix = decodePrefix(s);
-            if (s.prefix > 0 || !s.prefixKey.empty())
+            if (item_save::hasSavedVanillaPrefix(s))
                 slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
             setChestRarity(slot.data, slot.type(), s.rarityKey);
             if (prefix > 0) ++prefixes;
