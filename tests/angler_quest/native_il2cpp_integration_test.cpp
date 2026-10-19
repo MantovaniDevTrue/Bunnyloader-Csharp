@@ -58,6 +58,7 @@ Il2CppArray* gFlags=nullptr;
 int32_t gSelected=0;
 int32_t gCorner=0;
 uint8_t gFinished=0, gHard=0;
+bool gBadStaticField=false;
 int gSwapCalls=0;
 std::string gCulture="en-US";
 FieldInfo fIds{"anglerQuestItemNetIDs",&kIntArrayType,&gIds,sizeof(gIds)};
@@ -117,6 +118,7 @@ void setupApi() {
     a.class_get_method_from_name=findMethod;
     a.class_get_parent=[](Il2CppClass*)->Il2CppClass*{return nullptr;};
     a.field_get_type=[](FieldInfo* field){return field->type;};
+    a.field_get_flags=[](FieldInfo* field)->uint32_t{return gBadStaticField && field==&fCorner ? 0u : 0x10u;};
     a.class_from_il2cpp_type=[](const Il2CppType* t){return t->type;};
     a.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
     a.class_get_name=[](Il2CppClass* c){return c->name;};
@@ -214,6 +216,11 @@ int main() {
         "The upside-down fish","Anywhere",3};
     quest.locales.emplace("pt-BR",std::make_pair("Peixe invertido","Qualquer lugar"));
     assert(reg.publish("examplemodcsharp",{quest},&error));
+    gBadStaticField=true;
+    bl::csharp::angler::pumpOnGameThread();
+    assert(!bl::csharp::angler::hooksInstalled());
+    assert((ids()==std::vector<int>{10,500,11}));
+    gBadStaticField=false;
     bl::csharp::angler::pumpOnGameThread();
     assert(bl::csharp::angler::hooksInstalled());
     assert((ids()==std::vector<int>{10,500,11,850}));
