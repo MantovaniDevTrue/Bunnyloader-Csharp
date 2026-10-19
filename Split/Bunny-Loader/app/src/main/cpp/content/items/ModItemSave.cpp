@@ -919,6 +919,7 @@ ChestLayout g_chest;
 struct ChestData {
     int type;
     std::string data;
+    std::string rarityKey{};
 };
 
 std::map<void*, ChestData> g_chestData;
@@ -929,10 +930,43 @@ std::string chestData(void* slot, int type) {
     return it != g_chestData.end() && it->second.type == type ? it->second.data : std::string();
 }
 
+std::string chestRarity(void* slot, int type) {
+    std::lock_guard<std::mutex> lock(g_mx);
+    const auto it = g_chestData.find(slot);
+    return it != g_chestData.end() && it->second.type == type ?
+        it->second.rarityKey : std::string();
+}
+
 void setChestData(void* slot, int type, std::string data) {
     std::lock_guard<std::mutex> lock(g_mx);
-    if (data.empty() || type <= 0) g_chestData.erase(slot);
-    else g_chestData[slot] = {type, std::move(data)};
+    if (!slot) return;
+    if (type <= 0) {
+        g_chestData.erase(slot);
+        return;
+    }
+    const auto found = g_chestData.find(slot);
+    if (found != g_chestData.end() && found->second.type == type) {
+        found->second.data = std::move(data);
+        if (found->second.data.empty() && found->second.rarityKey.empty())
+            g_chestData.erase(found);
+    } else if (!data.empty()) {
+        g_chestData[slot] = {type, std::move(data), {}};
+    } else {
+        g_chestData.erase(slot);
+    }
+}
+
+void setChestRarity(void* slot, int type, std::string key) {
+    if (!slot || type <= 0) return;
+    std::lock_guard<std::mutex> lock(g_mx);
+    const auto found = g_chestData.find(slot);
+    if (found != g_chestData.end() && found->second.type == type) {
+        found->second.rarityKey = std::move(key);
+        if (found->second.data.empty() && found->second.rarityKey.empty())
+            g_chestData.erase(found);
+    } else if (!key.empty()) {
+        g_chestData[slot] = {type, {}, std::move(key)};
+    }
 }
 
 using ChestSetFn = void (*)(void*, Il2CppObject*, const MethodInfo*);
