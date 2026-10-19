@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeLocalizationSession.h"
+#include "experiments/csharp/ManagedLocalizationEpochFence.h"
 #include <cassert>
 #include <set>
 #include <string>
@@ -76,5 +77,28 @@ int main() {
     assert(!dynamic.snapshot().active.contains("owner"));
     assert(dynamic.snapshot().retired.contains("Mods.owner.ItemName.RuntimeOnly"));
     assert(dynamic.snapshot().active.at("other").size()==1);
+
+    bl::csharp::ManagedLocalizationEpochFence epochs;
+    assert(!epochs.permits("owner",0));
+    assert(!epochs.current("owner",1));
+    assert(epochs.permits("owner",1));
+    epochs.activate("owner",1);
+    assert(epochs.current("owner",1));
+    assert(epochs.permits("other",1));
+    epochs.activate("other",1);
+    epochs.retire("owner");
+    assert(!epochs.permits("owner",1));
+    assert(!epochs.current("owner",1));
+    assert(epochs.current("other",1));
+    assert(epochs.permits("owner",2));
+    epochs.activate("owner",2);
+    assert(epochs.current("owner",2));
+    epochs.retire("owner");
+    epochs.retire("owner");
+    assert(!epochs.permits("owner",3));
+    assert(epochs.permits("owner",4));
+    epochs.activate("owner",4);
+    assert(epochs.current("owner",4));
+    assert(epochs.current("other",1));
     return 0;
 }
