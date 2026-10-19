@@ -33,7 +33,7 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 - O SDK oferece `BunnyRarityRegistry(firstCustomType)` para catalogar o intervalo de IDs fornecido pelo host quando houver outros mods antes dele.
 - A suíte de host ganhou conferência do `CompiledAssemblyProbe` real e teste C++ de scanner, registro, limites e concorrência.
 
-**Estado:** registro de IDs e handoff de declarações estão implementados, mas ainda não há a ligação desses IDs de volta aos objetos gerenciados no momento de `SetStaticDefaults`. Não foi implementado nenhum hook de desenho. A nova revisão aguarda verificação CI no SHA atual. Nenhuma alteração publica APK.
+**Estado:** registro de IDs e handoff de declarações estão implementados, mas ainda não há a ligação desses IDs de volta aos objetos gerenciados no momento de `SetStaticDefaults`. O hook de popup está implementado na continuação abaixo; a aplicação real no Android permanece pendente. Nenhuma alteração publica APK.
 
 ## Checkpoint — dispatcher MonoVM e testes reais de host (19/10)
 
@@ -45,7 +45,20 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Evidência:** [RarityLoader Core #39312836894](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39312836894) concluiu com sucesso no SHA `e9c87664ce321f807d3898559ecbb19d28567c8c`. Nenhuma build Android, APK, `.bmod` ou confirmação de FPS ocorreu.
 
-**Atenção:** o prewarm é enfileirado, mas ainda precisa do gate de conclusão em sessão antes de consultar raridades. A fila nativa não equivale ao hook de Terraria. O item jogável de exemplo e os hooks visuais ainda não estão completos.
+**Atenção:** o prewarm é enfileirado, e agora é verificado pelo sampler nativo antes da primeira consulta de cor. A fila nativa não equivale ao hook de Terraria. O item jogável de exemplo e os hooks visuais ainda não estão completos.
+
+## Checkpoint — hooks nativos de popup e prefixo (19/10)
+
+- Adicionado `NativeRarityPalette`, com **4096 slots atômicos** e leitura sem lock no hook de renderização. A atualização recebe apenas uma cor serializada validada `COLOR|R|G|B|A`, e o Color de quatro bytes é reempacotado com o layout IL2CPP real validado em runtime.
+- `NativeRarityGameplay` instala `Item.GetPopupRarityColor(int itemRarity)` somente após uma primeira amostra gerenciada válida; sem cor no cache, chama a implementação original de Terraria. Não chama MonoVM durante o desenho.
+- A rotina de atualização verifica o resultado do **prewarm em lote**, amostra no máximo **uma cor a cada dois game updates** (30 Hz totais a 60 FPS), consulta `Main.DiscoR/G/B` nativamente com validação de tipo e preserva a última cor quando o worker excede o orçamento.
+- Hook nativo `Item.Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)`: guarda `item.rare` antes da chamada original, preserva o contrato `Prefix(-3)`, lê o multiplicador de `TryGetPrefixStatMultipliersForItem` quando o prefixo foi aplicado e invoca a regra `GetPrefixedRarity` no worker com orçamento limitado. Se o worker falha, preserva a raridade personalizada anterior sem deixar a raridade ser truncada para 11.
+- Validação de ABI/assinaturas feita em runtime e hook instalado com fallback original se a API não corresponder à build. Não foi executado ainda em Android.
+- Testes C++ novos verificam decoding estrito de `COLOR`/`RARITY`, limites, estado de cache e publicação/leitura concorrente; a CI compila `NativeRarityGameplay.cpp` com `-Werror`.
+
+**Verificação:** [RarityLoader Core #39315222797](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39315222797), host CI com sucesso no SHA `546c8baf3f366f0272dacd6c6a03b9e1306b6e31`.
+
+**Atenção:** a animação depende do orçamento total compartilhado entre raridades; múltiplos mods dividem a taxa de amostragem. O hooking em jogo continua **não validado**; não foram integrados `ItemRarity.Initialize`, `Main.MouseTextInner`, a cor do nome no tooltip, raridades JS coexistentes, associação `item.rare` à raridade de itens C#, nem saves/multiplayer.
 
 ## Bloqueios para declarar o loader completo
 
