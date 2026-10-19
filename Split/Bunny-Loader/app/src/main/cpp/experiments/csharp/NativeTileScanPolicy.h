@@ -1,10 +1,17 @@
 #pragma once
 #include <charconv>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <system_error>
 
 namespace bl::csharp::tile_scan {
+inline constexpr std::size_t scanBudget(std::size_t total) {
+    return total < 512u ? total : 512u;
+}
+inline constexpr std::size_t nextCursor(std::size_t first,std::size_t visited,std::size_t total) {
+    return total ? (first%total+visited%total)%total : 0u;
+}
 inline constexpr uint64_t cellKey(int x,int y,bool visual=false) {
     return (static_cast<uint64_t>(static_cast<uint32_t>(x))<<33)|
            (static_cast<uint64_t>(static_cast<uint32_t>(y))<<1)|
