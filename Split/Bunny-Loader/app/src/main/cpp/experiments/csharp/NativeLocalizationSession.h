@@ -51,8 +51,20 @@ class NativeLocalizationSession {
             return false;
         if (previous == state.active.end() && next.empty()) return false;
         if (previous != state.active.end())
-            for (const auto& entry : previous->second)
-                if (!keys.contains(entry.key)) state.retired.insert(entry.key);
+            for (const auto& entry : previous->second) {
+                if (keys.contains(entry.key)) continue;
+                bool stillOwned = false;
+                for (const auto& [otherMod, otherEntries] : state.active) {
+                    if (otherMod == modId) continue;
+                    for (const auto& other : otherEntries)
+                        if (other.key == entry.key) {
+                            stillOwned = true;
+                            break;
+                        }
+                    if (stillOwned) break;
+                }
+                if (!stillOwned) state.retired.insert(entry.key);
+            }
         for (const auto& key : keys) state.retired.erase(key);
         if (next.empty()) state.active.erase(modId);
         else state.active[modId] = std::move(next);
