@@ -791,6 +791,12 @@ std::string discoSnapshot() {
 
 }
 
+bool nativeManagedRarityColor(int type, uint32_t* argb) {
+    if (!argb) return false;
+    const auto identity = nativeRarities().identityForType(type);
+    return identity.managed && !identity.mod.empty() && g_palette.read(type, argb);
+}
+
 bool registerNativeRaritySampling(const std::string& mod, const std::string& assembly) {
     if (mod.empty() || assembly.empty()) return false;
     RarityMod entry;
