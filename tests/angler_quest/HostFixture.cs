@@ -21,13 +21,17 @@ try
         throw new InvalidOperationException("Primary quest fish item missing from V2 output");
     string[] lines = values.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     string[] fish = lines.Single(line => line.StartsWith("QUEST_FISH\t", StringComparison.Ordinal)).Split('\t');
-    if (fish.Length != 7 || fish[1] != "ExampleQuestFish" || fish[2] != "0" || fish[3] != "1" || fish[6] != "3")
+    if (fish.Length != 7 || fish[1] != "ExampleQuestFish" || fish[2] != "0" || fish[3] != "1" || fish[6] != "0")
         throw new InvalidOperationException("Quest availability or identity does not match the original fish");
     string description = Encoding.UTF8.GetString(Convert.FromHexString(fish[4]));
     string location = Encoding.UTF8.GetString(Convert.FromHexString(fish[5]));
     if (!description.Contains("fish that swims upside-down", StringComparison.Ordinal) ||
         location != "Caught anywhere while standing upside-down.")
         throw new InvalidOperationException("Original Bunny fish dialogue did not survive compiler wire");
+    string[] catchRow = lines.Single(line => line.StartsWith("QUEST_CATCH\\t", StringComparison.Ordinal)).Split('\\t');
+    if (catchRow.Length != 4 || catchRow[1] != "ExampleFishingPlayer" ||
+        catchRow[2] != "ExampleQuestFish" || catchRow[3] != "3")
+        throw new InvalidOperationException("Independent BunnyPlayer fishing policy missing from compiled wire");
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
