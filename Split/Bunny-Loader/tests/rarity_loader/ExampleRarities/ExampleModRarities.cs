@@ -30,3 +30,15 @@ public sealed class ExampleHigherTierModRarity : BunnyRarity
     public override int GetPrefixedRarity(int offset, float valueMultiplier) =>
         offset < 0 ? BunnyRarityRuntime.TypeOf<ExampleModRarity>("examplemodcsharp") : Type;
 }
+
+public sealed class ExampleRarityItem : BunnyItem
+{
+    public override void SetDefaults()
+    {
+        DisplayName = "Example Rarity Item";
+        Width = 24;
+        Height = 24;
+        Rare = 0;
+        SetRarity<ExampleModRarity>();
+    }
+}
