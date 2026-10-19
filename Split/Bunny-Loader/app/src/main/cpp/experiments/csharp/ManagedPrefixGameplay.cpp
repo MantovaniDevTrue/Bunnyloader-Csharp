@@ -192,7 +192,8 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
                           const MethodInfo* method) {
     if (!g_originalItemPrefix) return false;
     if (!g_chanceReady.load(std::memory_order_acquire) || !item ||
-        g_chanceItemTypeOffset < 0 || (want != -1 && want != -2))
+        g_chanceItemTypeOffset < 0 || g_restoreRoll.item == item ||
+        (want != -1 && want != -2))
         return g_originalItemPrefix(item, want, topTier, method);
     const auto rules = managedItemPrefixChanceView();
     const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
