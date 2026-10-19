@@ -12,7 +12,8 @@ assert "public abstract class BunnyPrefix" in sdk
 assert "SetStats(ref PrefixStats stats)" in sdk
 assert "base == \"BunnyPrefix\"" in parser
 assert "registerModPrefix(mod.id, def.name)" in loader
-assert 'fields[0] == "PREFIX" && fields.size() == 16' in loader
+assert 'fields[0] == "PREFIX" && (fields.size() == 16 || fields.size() == 17)' in loader
+assert 'record.itemWeights.emplace(itemType, weight)' in loader
 assert "applyManagedPrefixDescriptors(modId, prefixes)" in loader
 assert "modPrefixByKey(modId + \"/\" + entry.name)" in bridge
 assert 'lines.Add(string.Join("\\t", fields))' in worker
