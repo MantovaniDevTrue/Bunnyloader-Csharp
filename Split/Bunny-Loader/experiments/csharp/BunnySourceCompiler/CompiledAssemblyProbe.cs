@@ -973,6 +973,19 @@ public static class CompiledAssemblyProbe
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
         }
+        foreach (object item in basicItems)
+        {
+            string owner = item.GetType().Name;
+            string rarity = Value<string>(item, "ModRarityClassName");
+            if (rarity.Length == 0) continue;
+            CheckName(owner);
+            CheckName(rarity);
+            Type[] matches = rarityTypes.Where(t => t.Name == rarity).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidOperationException("[CSharp][ERROR][RarityLoader] Class=" +
+                    owner + " API=SetRarity Stage=Compile Reason=RarityNotRegisteredInSameAssembly");
+            lines.Add("ITEM_RARITY\t" + owner + "\t" + rarity);
+        }
         foreach(var item in basicItems.Concat(weapons))
         {
             int shootMask=Value<int>(item,"ShootCallbackMask");
