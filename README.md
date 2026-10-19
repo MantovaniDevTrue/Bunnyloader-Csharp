@@ -1,20 +1,20 @@
 <p align="center"><img src="_icons/launcher/titulo.png" alt="Bunny Loader"></p>
 
-# Bunny Loader — código original com suporte C# integrado
+# Bunny Loader com suporte C#
 
-**Fonte completa para o Potato, preparada por Mantovani.**
+**Código-fonte integrado — mantido por Mantovani, a partir do Bunny Loader de Jonata Oliveira.**
 
-Potato, preparei esta cópia a partir do [seu Bunny Loader original](https://github.com/JonataOliveiraa/Bunny-Loader) e acrescentei todo o sistema C# que venho desenvolvendo e testando no Terraria Mobile. **Não é um SDK solto, um patch incompleto ou um aplicativo novo criado do zero.** O projeto Android inteiro já está organizado nos mesmos caminhos do seu repositório, com QuickJS e C# coexistindo.
+Integrei ao [Bunny Loader original](https://github.com/JonataOliveiraa/Bunny-Loader) a implementação C# desenvolvida para Terraria Mobile. Esta árvore contém o **projeto Android completo**, com as alterações já aplicadas ao núcleo: Roslyn, MonoVM, serviços Android, C++/IL2CPP, exemplos e QuickJS funcionando como motores independentes. Não é necessário reconstruir o port copiando classes isoladas.
 
-Deixei esta versão numa branch separada para você importar para o seu Git sem afetar sua versão oficial antes dos seus testes. Também preservei [o README original](README-BUNNY-ORIGINAL.md) com as instruções de JavaScript, documentação do núcleo e créditos.
+A entrega permanece em branch própria, para que o projeto original continue intacto durante a revisão. Preservei [o README original](README-BUNNY-ORIGINAL.md), com as instruções de JavaScript, documentação do núcleo e créditos.
 
-## Para colocar no seu GitHub
+## Importação da fonte completa
 
 **[Abrir o passo a passo de importação](IMPORTAR-NO-GITHUB-DO-POTATO.md)** · **[Ler minha explicação técnica completa](POTATO-C-SHARP-HANDOFF.md)** · **[Ver todas as diferenças com seu original](docs/POTATO-UPSTREAM-FILE-MAP.json)**
 
-O projeto Android está **direto na raiz**: abra esta pasta no Android Studio. Os arquivos já estão nos diretórios finais, como `app/`, `experiments/csharp/`, `samples/` e `tools/`. Você **não precisa** procurar os arquivos C# e juntá-los manualmente com seu Bunny original.
+O projeto Android está **direto na raiz**, nos mesmos caminhos do Bunny original: `app/`, `experiments/csharp/`, `samples/` e `tools/`. Basta abrir a fonte no Android Studio. O código C# já está integrado nos arquivos de inicialização, build e conteúdo necessários.
 
-Para conservar seu histórico de commits, recomendo copiar este snapshot para uma branch nova criada a partir do seu repositório, revisar as mudanças e só então fazer o merge. No guia acima deixei os comandos exatos. Não precisa dar force push nem substituir a sua `main`.
+Para manter o histórico do repositório original, a importação pode ser feita numa branch derivada do commit de base. Incluí um script de cópia com simulação e validação, sem `force push`, sem substituir `.git` e sem alterar a `main`.
 
 ## O que integrei
 
@@ -46,9 +46,9 @@ O ponto de partida C# é o **Bunny Loader C# `0.1.10.16.90.29.95.2`**, com **Exa
 
 ### Antes de compilar
 
-Eu incluí os fontes, não redistribuí os binários proprietários do Terraria ou da Unity. O build completo também requer o runtime Mono ARM64 com a **correção de sinais** usada na nossa linha C#, os assemblies gerados, o QuickJS e os inputs autorizados do jogo. Nossa receita de CI original usa dependências privadas, portanto **baixar este GitHub sozinho não garante um APK jogável**. Detalhei o empacotamento e as dependências no [guia técnico](POTATO-C-SHARP-HANDOFF.md).
+Incluí **o patch do Mono ARM64** em [`tools/mono/patch_mono_android_signals.py`](tools/mono/patch_mono_android_signals.py) e **o script completo de recompilação pública** em [`tools/mono/build_patched_mono_arm64.sh`](tools/mono/build_patched_mono_arm64.sh), usando o código aberto do .NET 8.0.23. Assim, a correção não depende exclusivamente do binário guardado numa build privada antiga. O Mono gerado dessa forma ainda precisa de validação no Android; os arquivos proprietários do Terraria/Unity e a assinatura oficial não fazem parte desta fonte. Veja [como compilar o Mono modificado](tools/mono/README.md) e [o guia técnico](POTATO-C-SHARP-HANDOFF.md).
 
-**Atenção à identidade do aplicativo:** mantive `applicationId = "com.bunnyloader.csharptest"` e a versão de teste na cópia para não confundir este build experimental com o Bunny oficial. Você pode usar a identidade e a assinatura do seu aplicativo quando decidir integrar e validar a versão oficial.
+**Identidade de aplicativo:** a fonte mantém o `applicationId = "com.bunnyloader.csharptest"` usado nos testes Android do C#. A adaptação para o ID e a assinatura oficiais do Bunny precisa de uma nova compilação e verificação dos caminhos que dependem do pacote.
 
 ## Estrutura
 
@@ -78,4 +78,4 @@ Bunny-Loader/
 
 Eu mantive os arquivos e as licenças do Bunny original. **Jonata Oliveira é o autor do Bunny Loader original; a integração C# é meu trabalho de extensão.** Respeito a licença PolyForm Noncommercial e os avisos de terceiros do projeto. Nada aqui implica uma release oficial ou substitui sua validação como mantenedor.
 
-*Mantovani — entrega de código-fonte para integração no Bunny Loader original.*
+*Extensão C# por Mantovani · Bunny Loader original por Jonata Oliveira.*
