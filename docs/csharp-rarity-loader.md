@@ -60,6 +60,18 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Atenção:** a animação depende do orçamento total compartilhado entre raridades; múltiplos mods dividem a taxa de amostragem. O hooking em jogo continua **não validado**; não foram integrados `ItemRarity.Initialize`, `Main.MouseTextInner`, a cor do nome no tooltip, raridades JS coexistentes, associação `item.rare` à raridade de itens C#, nem saves/multiplayer.
 
+## Lote — tabela ItemRarity, vinculação de itens e isolamento de cores (19/10)
+
+- `BunnyItem.SetRarity<T>()` registra a identidade de uma classe `BunnyRarity` sem resolver IDs durante `SetDefaults`. O compilador emite `ITEM_RARITY\\tItem\\tRaridade` somente quando a raridade concreta existe no mesmo assembly.
+- `SourceLoader` valida a identidade do item e da raridade registrada no mesmo mod; após analisar o `ITEM` vanilla da fonte, vincula o ID nativo a `BasicItemEntry.values[BasicRare]` antes de aplicar o lote de propriedades ao Terraria.
+- O wire original `ITEM` ainda não aceita valores de raridade acima de 11 declarados pelo mod. Somente a referência tipada, resolvida e verificada no host, pode usar IDs C# 12..4107. Há teste de host contra IDs falsificados.
+- O fixture dos dois exemplos de raridade inclui agora `ExampleRarityItem` com `SetRarity<ExampleModRarity>()`. A CI verifica as linhas geradas, inclusive os IDs resolvidos indiretamente.
+- O hook `Terraria.GameContent.UI.ItemRarity.Initialize()` foi acrescentado com validação nativa da tabela `_rarities`, `ContainsKey`, `set_Item`, chave `Int32` e ABI `Color`. Após a chamada original, reinstala somente as cores C# que não encontrem IDs já ocupados por outro registro. A amostragem posterior atualiza as entradas que o próprio host marcou como suas.
+- A política de proteção é **não substituir uma entrada preexistente** da tabela. Isto **não soluciona** a colisão global de IDs com o RarityLoader JavaScript, que continua atribuindo seus próprios números.
+- Mantido fallback original para pop-ups e ausência de chamada MonoVM no desenho. Ainda faltam os hooks de nome no chão, tooltip e demais superfícies visuais.
+
+**Validação de host:** [CI #39316929714](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39316929714) passou após o hook de tabela. Testes adicionais de item falsificado e ABI estão na revisão atual, sujeitos à nova CI. Não houve APK, validação Android ou medição de FPS.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e coordenar raridades entre mods C# e JS sem colisões.
