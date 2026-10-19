@@ -246,14 +246,19 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
             if(entry.culture==culture)selected[entry.key]=entry.value;
         for(const auto& [key,value]:selected)all[key]=value;
     }
+    bool lastLookupWasAbsent = false;
     const GameTextLookup vanilla=[&](const std::string& key,std::string* output)->bool {
+        lastLookupWasAbsent = false;
         if(!r.exists||!r.getValue)return false;
         void* args[]={api.string_new(key.c_str())};
         if(!args[0])return false;
         Il2CppObject* exception=nullptr;
         Il2CppObject* boxed=api.runtime_invoke(r.exists,nullptr,args,&exception);
-        if(exception||!boxed||!(*reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(boxed)+sizeof(Il2CppObject))))
+        if(exception||!boxed)return false;
+        if(!(*reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(boxed)+sizeof(Il2CppObject)))) {
+            lastLookupWasAbsent = true;
             return false;
+        }
         exception=nullptr;
         auto* value=reinterpret_cast<Il2CppString*>(api.runtime_invoke(r.getValue,nullptr,args,&exception));
         if(exception||!value)return false;
@@ -267,6 +272,7 @@ bool publishToGame(const SessionSnapshot& current,const std::string& culture) {
         if (vanilla(key, &native))
             originals.emplace(key, std::move(native));
         else {
+            if (!lastLookupWasAbsent) return false;
             originals.emplace(key, std::nullopt);
             originallyAbsentGlobalKeys.insert(key);
         }
