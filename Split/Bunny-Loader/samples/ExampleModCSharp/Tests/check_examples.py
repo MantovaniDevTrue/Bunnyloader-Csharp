@@ -165,6 +165,11 @@ for armor_name in ("ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"):
     armor_text = (playable / "content/Content/Items/Armor" / (armor_name + ".cs")).read_text(encoding="utf-8")
     assert 'AddTile("ExampleWorkbench")' in armor_text
     assert 'TooltipTranslations["pt-BR"]' in armor_text
+prefix_example = (playable / "content/Content/Prefixes/ExampleMightyPrefix.cs").read_text(encoding="utf-8")
+assert 'rules.Allow("ExampleWand", 3);' in prefix_example
+assert 'effects.DamageBonus = 3;' in prefix_example
+assert 'effects.ValueBonus = 40;' in prefix_example
+assert 'ExtraTooltip = "Bonus adicional do prefixo";' in prefix_example
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")
