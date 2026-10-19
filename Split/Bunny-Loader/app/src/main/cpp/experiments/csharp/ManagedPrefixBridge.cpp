@@ -47,7 +47,13 @@ bool valid(const ManagedPrefixEntry& p) {
         p.applyValueBonus < 0 || p.applyValueBonus > 100000 ||
         p.extraTooltip.size() > 120 ||
         std::any_of(p.extraTooltip.begin(), p.extraTooltip.end(),
-                    [](unsigned char ch) { return ch < 32 || ch == 127; })) return false;
+                    [](unsigned char ch) { return ch < 32 || ch == 127; }) ||
+        p.tooltipLines.size() > 4) return false;
+    for (const auto& line : p.tooltipLines)
+        if (line.empty() || line.size() > 120 ||
+            std::any_of(line.begin(), line.end(),
+                [](unsigned char ch) { return ch < 32 || ch == 127; }))
+            return false;
     for (float value : p.multipliers)
         if (!std::isfinite(value) || value < 0.1f || value > 10.f) return false;
     if (p.itemWeights.size() + p.itemNames.size() > 32) return false;
