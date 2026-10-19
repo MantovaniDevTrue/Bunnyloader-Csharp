@@ -27,7 +27,7 @@ int main() {
         "DRAW|0|0|16|16|0|0|0|0 ",
     }) assert(!parse(bad, &d));
     assert(!parse("DRAW|0|0|16|16|0|0|0|0", nullptr));
-    assert(parse("DRAW|0|0|512|512|128|-8192|8192|3", &d));
+    assert(parse("DRAW|8192|0|512|512|128|-8192|8192|3", &d));
     assert(d.width == 512 && d.height == 512 && d.effects == 3);
     std::cout << "CSHARP_TILE_DRAW_DATA_WIRE=PASS\\n";
 }
