@@ -55,6 +55,12 @@ jobs:
             tests/angler_quest/quest_registry_test.cpp \
             -o "$RUNNER_TEMP/angler_quest_test"
           "$RUNNER_TEMP/angler_quest_test"
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/quest_player_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o "$RUNNER_TEMP/angler_player_parser_test"
+          "$RUNNER_TEMP/angler_player_parser_test"
   managed-host:
     runs-on: ubuntu-latest
     timeout-minutes: 12
