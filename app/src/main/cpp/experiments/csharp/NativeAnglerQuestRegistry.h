@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <cctype>
 #include <map>
 #include <mutex>
@@ -24,7 +26,8 @@ struct Quest {
 inline bool validKey(const std::string& key) {
     if (key.empty() || key.size() > 72) return false;
     return std::all_of(key.begin(), key.end(), [](unsigned char c) {
-        return std::isalnum(c) || c == '_';
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') || c == '_';
     });
 }
 
@@ -63,14 +66,20 @@ public:
             if (old.mod != mod) next.push_back(old);
         next.insert(next.end(), quests.begin(), quests.end());
         registered_.swap(next);
+        generation_.fetch_add(1, std::memory_order_release);
         return true;
     }
 
     void unload(const std::string& mod) {
         std::lock_guard<std::mutex> lock(mutex_);
+        const size_t before = registered_.size();
         registered_.erase(std::remove_if(registered_.begin(), registered_.end(),
             [&](const Quest& quest) { return quest.mod == mod; }), registered_.end());
+        if (registered_.size() != before)
+            generation_.fetch_add(1, std::memory_order_release);
     }
+
+    uint64_t generation() const { return generation_.load(std::memory_order_acquire); }
 
     std::vector<Quest> snapshot() const {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -118,6 +127,7 @@ private:
 
     mutable std::mutex mutex_;
     std::vector<Quest> registered_;
+    std::atomic<uint64_t> generation_{0};
 };
 
 inline Registry& registry() {
