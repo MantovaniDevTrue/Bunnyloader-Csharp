@@ -16,6 +16,14 @@ int main() {
     assert(registry.snapshot().size() == 1);
     assert(!Registry::available(fish, false));
     assert(Registry::available(fish, true));
+    Quest catchFish = fish;
+    catchFish.catchRules = 3;
+    assert(!Registry::canCatch(catchFish, false, false));
+    assert(!Registry::canCatch(catchFish, false, true));
+    assert(!Registry::canCatch(catchFish, true, false));
+    assert(Registry::canCatch(catchFish, true, true));
+    catchFish.catchRules = 0;
+    assert(Registry::canCatch(catchFish, false, false));
     assert(Registry::chat(fish, "fallback") ==
            "An odd upside-down fish.\n\n(Underground)");
     assert(Registry::chat(Quest{"x","Fallback",852,true,true,"",""}, "Fallback Name")
