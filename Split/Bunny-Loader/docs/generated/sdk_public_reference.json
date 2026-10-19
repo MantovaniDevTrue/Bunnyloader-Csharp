@@ -1578,6 +1578,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "void ConfigureItemConditions(BunnyPrefixItemConditions conditions)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void ConfigureRollRules(BunnyPrefixRollRules rules)",
           "execution": "compile_policy"
         },
@@ -1606,6 +1610,31 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixItemConditions",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyPrefixItemConditions()"
+      ],
+      "properties": [
+        "int MaxDamage { get; }",
+        "int MaxMana { get; }",
+        "int MinDamage { get; }",
+        "int MinMana { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void RequireDamageBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void RequireManaBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyPrefixRollRules",
