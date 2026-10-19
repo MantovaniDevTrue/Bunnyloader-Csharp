@@ -38,10 +38,20 @@ bool valid(const ManagedPrefixEntry& p) {
     if (p.itemWeights.size() + p.itemNames.size() > 32) return false;
     for (const auto& [itemType, weight] : p.itemWeights)
         if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20) return false;
+    for (const auto& [type, allowed] : p.itemCanRoll)
+        if (!p.itemWeights.contains(type)) return false;
+    for (const auto& [name, allowed] : p.itemNamesCanRoll)
+        if (!p.itemNames.contains(name)) return false;
     if (p.category == 6) {
         bool anyAllowed = false;
-        for (const auto& [type, weight] : p.itemWeights) anyAllowed |= weight > 0;
-        for (const auto& [name, weight] : p.itemNames) anyAllowed |= weight > 0;
+        for (const auto& [type, weight] : p.itemWeights) {
+            const auto override = p.itemCanRoll.find(type);
+            anyAllowed |= override == p.itemCanRoll.end() ? weight > 0 : override->second;
+        }
+        for (const auto& [name, weight] : p.itemNames) {
+            const auto override = p.itemNamesCanRoll.find(name);
+            anyAllowed |= override == p.itemNamesCanRoll.end() ? weight > 0 : override->second;
+        }
         if (!anyAllowed) return false;
     }
     for (const auto& [name, weight] : p.itemNames) {
@@ -86,8 +96,12 @@ bool applyManagedPrefixDescriptors(
             const int type = bl::runtime::modItemTypeByKey(modId + "/" + name);
             if (type < 1 || type > 32767 ||
                 !resolved.itemWeights.emplace(type, weight).second) return false;
+            const auto decision = entry.itemNamesCanRoll.find(name);
+            if (decision != entry.itemNamesCanRoll.end() &&
+                !resolved.itemCanRoll.emplace(type, decision->second).second) return false;
         }
         resolved.itemNames.clear();
+        resolved.itemNamesCanRoll.clear();
         if (!valid(resolved) || !staged.emplace(entry.type, std::move(resolved)).second)
             return false;
     }
