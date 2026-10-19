@@ -93,6 +93,7 @@ struct RestoreRoll {
     bool used = false;
 };
 thread_local RestoreRoll g_restoreRoll{};
+thread_local Il2CppObject* g_failedRollableItem = nullptr;
 
 struct AppliedItemPrefixState {
     Il2CppObject* item = nullptr;
@@ -388,9 +389,15 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     if (retained == oldCount && extra == 0) return base;
     const uintptr_t total = retained + static_cast<uintptr_t>(extra);
     if (total == 0) return nullptr;
-    if (total > 512 || !g_refs.intClass) return denied ? nullptr : base;
+    if (total > 512 || !g_refs.intClass) {
+        g_failedRollableItem = item;
+        return nullptr;
+    }
     Il2CppArray* out = bl::il2cpp::api().array_new(g_refs.intClass, total);
-    if (!out) return denied ? nullptr : base;
+    if (!out) {
+        g_failedRollableItem = item;
+        return nullptr;
+    }
     auto* values = static_cast<int32_t*>(arrayData(out));
     uintptr_t index = 0;
     for (uintptr_t i = 0; i < oldCount; ++i)
@@ -439,11 +446,14 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     }
 
     auto& api = bl::il2cpp::api();
+    g_failedRollableItem = nullptr;
     Il2CppObject* error = nullptr;
     auto* list = reinterpret_cast<Il2CppArray*>(
         api.runtime_invoke(g_refs.rollableMethod, item, nullptr, &error));
+    const bool managedCandidateFailure = g_failedRollableItem == item;
+    g_failedRollableItem = nullptr;
     if (error || !list || list->length == 0 || list->length > 512)
-        return hasDeny ? false :
+        return (hasDeny || managedCandidateFailure) ? false :
             (g_originalRoll ? g_originalRoll(item, random, rolled, method) : false);
 
     const auto* values = static_cast<const int32_t*>(arrayData(list));
