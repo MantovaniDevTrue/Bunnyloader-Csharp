@@ -99,6 +99,31 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("g_restoreRoll.item == item", gameplay)
         self.assertIn("want == -1 ? -2 : want", gameplay)
 
+    def test_item_apply_prefix_policy_is_sampled_and_native_post_success(self):
+        sdk = json.loads((ROOT / "docs/generated/sdk_public_reference.json").read_text(encoding="utf-8"))
+        by_type = {entry["name"]: entry for entry in sdk["types"]}
+        state = by_type["BunnyLoader.Source.BunnyPrefixApplyStats"]
+        self.assertEqual(state["properties"], [
+            "int DamageBonus { get; set; }", "int ValueBonus { get; set; }",
+        ])
+        for name in ("BunnyItem", "BunnyWeapon", "BunnyAccessory", "BunnyBuffPotion"):
+            signatures = {method["signature"]: method["execution"]
+                          for method in by_type["BunnyLoader.Source." + name]["methods"]}
+            self.assertEqual(signatures["void ApplyPrefix(ref BunnyPrefixApplyStats effects)"],
+                             "compile_policy")
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        source = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn('"PREFIX_APPLY"', compiler)
+        self.assertIn('fields[0] == "PREFIX_APPLY"', source)
+        self.assertIn("applyManagedItemPrefixEffects(prefixEffects)", source)
+        self.assertIn("std::atomic_store_explicit(&g_itemApplyView", bridge)
+        self.assertIn("const bool accepted = g_originalItemPrefix(item, request, topTier, method);", gameplay)
+        self.assertIn("if (!accepted || !item || want == -3", gameplay)
+        self.assertIn("damage > INT32_MAX - policy->second.damageBonus", gameplay)
+        self.assertIn("value > INT32_MAX - policy->second.valueBonus", gameplay)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
