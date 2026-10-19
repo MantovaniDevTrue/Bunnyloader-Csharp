@@ -1181,11 +1181,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "static string Dispatch(string modId, string assemblyPath, string culture)",
+          "signature": "static bool Unload(string modId)",
           "execution": "worker_async_localization"
         },
         {
-          "signature": "static bool Unload(string modId)",
+          "signature": "static string Dispatch(string modId, string assemblyPath, string culture)",
           "execution": "worker_async_localization"
         }
       ]
