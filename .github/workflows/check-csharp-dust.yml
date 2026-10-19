@@ -8,6 +8,7 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyDust.cs
       - experiments/csharp/BunnySourceSdk/**
       - experiments/csharp/BunnyDustTests/**
+      - experiments/csharp/BunnyDustCompilerSmoke/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
       - tests/csharp/native_dust_parser.cpp
@@ -46,3 +47,5 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp             tests/csharp/native_dust_parser.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o "$RUNNER_TEMP/dust_parser"
           "$RUNNER_TEMP/dust_parser"
+      - name: Verify DustLoader compilation through real Roslyn and Mono source contract
+        run: dotnet run --project experiments/csharp/BunnyDustCompilerSmoke/BunnyDustCompilerSmoke.csproj -c Release
