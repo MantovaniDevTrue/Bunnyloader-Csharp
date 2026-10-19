@@ -378,4 +378,43 @@ Test("register-precedence-survives-json-reload-and-unload", () =>
     Equal("Clean after unload", catalog.Translate("Items.Label", "owner"));
 });
 
+Test("compiled-localization-module-publishes-wire-without-json", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-localization-module-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(Path.Combine(root, "content"));
+    try
+    {
+        string diagnostics = Path.Combine(root, "module-diagnostics.txt");
+        int count = BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(
+            System.Reflection.Assembly.GetExecutingAssembly().Location, diagnostics, root);
+        Equal(1, count);
+        string[] wire = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"));
+        Equal("BUNNY_MANAGED_DEFAULTS_V2", wire[0]);
+        var locales = wire.Where(row => row.StartsWith("LOCALE\t", StringComparison.Ordinal)).ToArray();
+        Equal(2, locales.Length);
+        string first = System.Text.Encoding.UTF8.GetString(Convert.FromHexString(locales[0].Split('\t')[2]));
+        Equal("Mods.source.ItemName.HostModule", first);
+        Equal("en-US", locales[0].Split('\t')[1]);
+        Equal("Host module", System.Text.Encoding.UTF8.GetString(Convert.FromHexString(locales[0].Split('\t')[3])));
+        Equal("pt-BR", locales[1].Split('\t')[1]);
+        Equal("Módulo de exemplo", System.Text.Encoding.UTF8.GetString(Convert.FromHexString(locales[1].Split('\t')[3])));
+        Equal(true, File.ReadAllText(diagnostics).Contains("modules=1 rows=2", StringComparison.Ordinal));
+    }
+    finally { Directory.Delete(root, true); }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
+
+public sealed class HostLocalizationModule : BunnyLocalizationModule
+{
+    public override void RegisterTranslations(BunnyLocalizationCatalog catalog)
+    {
+        catalog.Register("Mods.source.ItemName.HostModule",
+            new Dictionary<string, string>
+            {
+                ["en-US"] = "Host module",
+                ["pt-BR"] = "Módulo de exemplo"
+            });
+    }
+}
+
