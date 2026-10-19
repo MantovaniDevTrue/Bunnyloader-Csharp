@@ -728,7 +728,7 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14)) {
+        if (fields[0] == "TILE" && (fields.size() == 13 || fields.size() == 14 || fields.size() == 16)) {
             const auto it = mod->registeredKindTypes.find(identity);
             if (it == mod->registeredKindTypes.end() ||
                 runtime::modTileTypeByName(modId, fields[1]) != it->second) {
@@ -754,7 +754,10 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
-                (fields.size() == 14 && !integer(fields[13], &tile.animationFrameHeight)) ||
+                (fields.size() >= 14 && !integer(fields[13], &tile.animationFrameHeight)) ||
+                (fields.size() == 16 &&
+                 (!integer(fields[14], &tile.animationFrames) ||
+                  !integer(fields[15], &tile.animationFrameTicks))) ||
                 tile.shape < 0 || tile.shape > 1 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
@@ -764,6 +767,11 @@ bool applyManagedSourceDefaults(
                 tile.failDust < 0 || tile.failDust > 20 ||
                 tile.normalDust < 0 || tile.normalDust > 20 ||
                 tile.animationFrameHeight < 0 || tile.animationFrameHeight > 4096 ||
+                tile.animationFrames < 1 || tile.animationFrames > 64 ||
+                tile.animationFrameTicks < 0 || tile.animationFrameTicks > 600 ||
+                (tile.animationFrames > 1 &&
+                 (tile.animationFrameHeight == 0 || tile.animationFrameTicks == 0)) ||
+                (tile.animationFrames == 1 && tile.animationFrameTicks != 0) ||
                 fields[6].size() > 72 || fields[10].size() > 160) {
                 *error = fields[1] + ": descritor BunnyTile fora dos limites"; return false;
             }

@@ -74,6 +74,8 @@ struct ManagedTileEntry {
     std::string mapName;
     int failDust = 1, normalDust = 3;
     int animationFrameHeight = 0;
+    int animationFrames = 1;
+    int animationFrameTicks = 0;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,

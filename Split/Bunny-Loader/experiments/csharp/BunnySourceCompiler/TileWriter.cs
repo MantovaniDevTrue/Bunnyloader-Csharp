@@ -14,6 +14,8 @@ internal static class TileWriter {
         int shape = Convert.ToInt32(Get<object>("Shape"), CultureInfo.InvariantCulture);
         int height = Get<int>("CoordinateHeight");
         int animationHeight = Get<int>("AnimationFrameHeight");
+        int animationFrames = Get<int>("AnimationFrames");
+        int animationTicks = Get<int>("AnimationFrameTicks");
         int adjacent = Get<int>("AdjacentTile");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
@@ -32,6 +34,10 @@ internal static class TileWriter {
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
             fail < 0 || fail > 20 || normal < 0 || normal > 20 ||
             animationHeight < 0 || animationHeight > 4096 ||
+            animationFrames < 1 || animationFrames > 64 ||
+            animationTicks < 0 || animationTicks > 600 ||
+            (animationFrames > 1 && (animationHeight == 0 || animationTicks == 0)) ||
+            (animationFrames == 1 && animationTicks != 0) ||
             (shape == 0 && height != 18) || (shape == 1 && height != 18))
             throw new InvalidOperationException(type.FullName + ": native tile defaults out of bounds");
         return string.Join("\t", "TILE", type.Name,
@@ -45,7 +51,9 @@ internal static class TileWriter {
             map.Length == 0 ? "-" : Convert.ToHexString(Encoding.UTF8.GetBytes(map)),
             fail.ToString(CultureInfo.InvariantCulture),
             normal.ToString(CultureInfo.InvariantCulture),
-            animationHeight.ToString(CultureInfo.InvariantCulture));
+            animationHeight.ToString(CultureInfo.InvariantCulture),
+            animationFrames.ToString(CultureInfo.InvariantCulture),
+            animationTicks.ToString(CultureInfo.InvariantCulture));
     }
 
     private static bool Safe(string value) {
