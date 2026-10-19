@@ -1,0 +1,58 @@
+name: Build integrated QuickJS and CSharp native Bunny source
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - entrega/potato-bunny-original-com-csharp-20261018
+    paths:
+      - .github/workflows/verify-native-js-csharp-integrated.yml
+
+permissions:
+  contents: read
+
+jobs:
+  native-engine-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout full integrated Bunny source
+        uses: actions/checkout@v4
+        with:
+          ref: entrega/potato-bunny-original-com-csharp-20261018
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Prepare native Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/cpp/third_party/quickjs/quickjs.c
+          test -s app/src/main/cpp/third_party/quickjs/quickjs.h
+          test -s app/src/main/cpp/third_party/quickjs/LICENSE
+          test -s app/src/main/assets/managed/framework.sha256
+          test -s app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            "ndk;30.0.16248370" "cmake;3.22.1" "platforms;android-34"
+      - name: Compile both CSharp native host and real QuickJS engine in Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :app:assembleDebug --stacktrace --no-daemon -Pbl.uiOnly=true
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libbunny.so'
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libbunnymonoprobe.so'
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libmonosgen-2.0.so'
+          unzip -l "$APK" | grep -q 'assets/managed/BunnySourceCompiler.dll'
+          unzip -l "$APK" | grep -q 'assets/managed/Microsoft.CodeAnalysis.CSharp.dll'
+          unzip -l "$APK" | grep -q 'assets/managed/framework.sha256'
+          echo "BUNNY_JS_CSHARP_FULL_NATIVE_ANDROID_COMPILE=PASS"
