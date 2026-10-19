@@ -617,6 +617,7 @@ string ActiveCultureName { get; }
 | Method | Execution |
 | --- | --- |
 | `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
+| `IReadOnlyDictionary<string, string> Texts(string path, string callerModId)` | managed_helper |
 | `IReadOnlyList<string> ExportWireRows()` | managed_helper |
 | `bool Exists(string path, string callerModId)` | managed_helper |
 | `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
