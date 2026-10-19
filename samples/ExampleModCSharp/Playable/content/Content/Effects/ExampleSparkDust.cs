@@ -29,7 +29,7 @@ public sealed class ExampleSparkDust : BunnyDust
 
     public override bool GetAlpha(ref BunnyDustState state, ref uint color)
     {
-        color = 0xFFFFBF40;
+        color = new BunnyColor(255, 191, 64).PackedRgba;
         return true;
     }
 }
