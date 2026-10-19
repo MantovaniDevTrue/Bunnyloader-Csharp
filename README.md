@@ -42,7 +42,7 @@ Para manter o histórico do repositório original, a importação pode ser feita
 
 Eu comparei esta cópia com a `main` do seu repositório no commit **[a370a664](https://github.com/JonataOliveiraa/Bunny-Loader/commit/a370a664aa3b808c87e4e4f570b27504d20df723)**, de **15/10/2026**. Todos os arquivos rastreados nessa versão estão presentes. Os arquivos diferentes e os que acrescentei estão no [inventário](docs/POTATO-UPSTREAM-FILE-MAP.json), identificados pelo hash de cada conteúdo.
 
-O ponto de partida C# é o **Bunny Loader C# `0.1.10.16.90.29.95.2`**, com **ExampleMod C# `0.1.54`**. Preservei os mesmos 753 arquivos de código de produção do commit que gerou a [build Android do CI](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39171952411). O build e as verificações automatizadas passaram, mas **a jogabilidade da correção de summons da `.95.2` ainda precisa ser validada no aparelho**. Eu não vou afirmar que esse último ajuste foi testado em jogo quando o registro disponível comprova apenas CI e testes controlados.
+Esta cópia está identificada como **Bunny Loader C# 1.0**. Integrei a fonte C# mais recente do desenvolvimento, incluindo o **ExampleMod C# atualizado**, novos exemplos de armas, definições nativas, projéteis e áudio próprio de mods. O código C# passou nas verificações automatizadas da linha de desenvolvimento, mas a jogabilidade dessas mudanças recentes ainda não foi homologada no Android físico. A revisão e os testes continuam necessários antes de tratar esta entrega como uma versão oficial estável.
 
 ### Antes de compilar
 
