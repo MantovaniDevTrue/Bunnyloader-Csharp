@@ -168,11 +168,11 @@ bool ensurePrefixTables(const std::vector<ManagedPrefixEntry>& prefixes) {
 Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     Il2CppArray* base = g_originalRollable ? g_originalRollable(item, method) : nullptr;
     if (!g_hooksReady || !item) return base;
-    const auto descriptors = snapshotManagedPrefixes();
-    if (descriptors.empty() || !ensurePrefixTables(descriptors)) return base;
+    const auto descriptors = managedPrefixView();
+    if (descriptors->empty() || !ensurePrefixTables(*descriptors)) return base;
     const bool vanillaHasRollable = base && base->length > 0;
     int extra = 0;
-    for (const auto& p : descriptors)
+    for (const auto& p : *descriptors)
         if (eligible(item, p, vanillaHasRollable))
             extra += static_cast<int>(p.rollWeight);
     if (extra == 0) return base;
@@ -184,7 +184,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     auto* values = static_cast<int32_t*>(arrayData(out));
     if (old) std::memcpy(values, arrayData(base), old * sizeof(int32_t));
     uintptr_t index = old;
-    for (const auto& p : descriptors)
+    for (const auto& p : *descriptors)
         if (eligible(item, p, vanillaHasRollable))
             for (int i = 0; i < static_cast<int>(p.rollWeight); ++i)
                 values[index++] = p.type;
@@ -199,17 +199,17 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
         !g_refs.nextDoubleMethod)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
-    const auto descriptors = snapshotManagedPrefixes();
+    const auto descriptors = managedPrefixView();
     if (g_restoreRoll.item == item && g_restoreRoll.prefix > 0) {
-        if (const auto* target = byType(descriptors, g_restoreRoll.prefix)) {
-            if (eligible(item, *target, true) && ensurePrefixTables(descriptors)) {
+        if (const auto* target = byType(*descriptors, g_restoreRoll.prefix)) {
+            if (eligible(item, *target, true) && ensurePrefixTables(*descriptors)) {
                 *rolled = target->type;
                 g_restoreRoll.used = true;
                 return true;
             }
         }
     }
-    if (descriptors.empty())
+    if (descriptors->empty())
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
 
     auto& api = bl::il2cpp::api();
@@ -224,7 +224,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     bool hasOtherMod = false;
     const int vanillaCount = bl::runtime::vanillaPrefixCount();
     for (uintptr_t i = 0; i < list->length; ++i) {
-        if (byType(descriptors, values[i])) hasManaged = true;
+        if (byType(*descriptors, values[i])) hasManaged = true;
         else if (values[i] >= vanillaCount &&
                  !bl::runtime::modPrefixKey(values[i]).empty()) {
             hasOtherMod = true;
@@ -255,15 +255,15 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     if (reported < 8)
         BL_INFO("csharp prefix: RollAPrefix selecionou %d de %zu candidatos (%d gerenciados)",
                 *rolled, static_cast<size_t>(list->length),
-                static_cast<int>(descriptors.size()));
+                static_cast<int>(descriptors->size()));
     return true;
 }
 
 bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
     if (g_hooksReady) {
-        const auto list = snapshotManagedPrefixes();
-        if (const auto* p = byType(list, prefix))
-            return eligible(item, *p, true) && ensurePrefixTables(list);
+        const auto list = managedPrefixView();
+        if (const auto* p = byType(*list, prefix))
+            return eligible(item, *p, true) && ensurePrefixTables(*list);
     }
     return g_originalCanRoll ? g_originalCanRoll(item, prefix, method) : false;
 }
@@ -273,11 +273,11 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                int32_t* crit, int32_t* tagDamage, int32_t* pen,
                float* value, const MethodInfo* method) {
     if (g_hooksReady && item) {
-        const auto list = snapshotManagedPrefixes();
-        if (const auto* p = byType(list, prefix)) {
+        const auto list = managedPrefixView();
+        if (const auto* p = byType(*list, prefix)) {
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
-                !ensurePrefixTables(list) || !eligible(item, *p, true))
+                !ensurePrefixTables(*list) || !eligible(item, *p, true))
                 return false;
             *dmg = p->multipliers[0];
             *kb = p->multipliers[1];
@@ -311,8 +311,8 @@ void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* metho
     if (g_originalGrant) g_originalGrant(player, item, method);
     if (!g_hooksReady || !player || !item) return;
     const int prefix = bl::runtime::field<uint8_t>(item, g_refs.prefix);
-    const auto list = snapshotManagedPrefixes();
-    const auto* found = byType(list, prefix);
+    const auto list = managedPrefixView();
+    const auto* found = byType(*list, prefix);
     if (!found || found->category != 5 || !eligible(item, *found, true)) return;
     bl::runtime::field<int32_t>(player, g_refs.playerDefense) += found->accessoryDefense;
 }
@@ -378,8 +378,8 @@ void hookReforgeTooltip(Il2CppObject* popup, Il2CppObject* item, const MethodInf
     if (!g_reforgeTooltipReady.load(std::memory_order_acquire) || !popup || !item) return;
     const auto& r = g_refs;
     const int prefix = bl::runtime::field<uint8_t>(item, r.prefix);
-    const auto prefixes = snapshotManagedPrefixes();
-    const auto* p = byType(prefixes, prefix);
+    const auto prefixes = managedPrefixView();
+    const auto* p = byType(*prefixes, prefix);
     if (!p || p->category != 5 || p->accessoryDefense == 0 ||
         !eligible(item, *p, true)) return;
     auto* text = bl::runtime::field<Il2CppArray*>(popup, r.reforgeText);
@@ -422,8 +422,8 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
     if (baseDefense <= 0 && moveSpeed <= 0) return;
 
     const int prefixType = bl::runtime::field<uint8_t>(item, g_refs.prefix);
-    const auto prefixes = snapshotManagedPrefixes();
-    const auto* current = byType(prefixes, prefixType);
+    const auto prefixes = managedPrefixView();
+    const auto* current = byType(*prefixes, prefixType);
     const int prefixDefense = current && current->category == 5
         ? current->accessoryDefense : 0;
 
@@ -526,10 +526,10 @@ bool applyManagedPrefixViaNativeRoll(Il2CppObject* item, int prefix,
     if (hookReached) *hookReached = false;
     if (!g_hooksReady.load(std::memory_order_acquire) || !item ||
         !itemPrefixMethod || g_restoreRoll.item) return false;
-    const auto descriptors = snapshotManagedPrefixes();
-    const auto* requested = byType(descriptors, prefix);
+    const auto descriptors = managedPrefixView();
+    const auto* requested = byType(*descriptors, prefix);
     if (!requested || !eligible(item, *requested, true) ||
-        !ensurePrefixTables(descriptors)) return false;
+        !ensurePrefixTables(*descriptors)) return false;
     const RestoreRoll previous = g_restoreRoll;
     g_restoreRoll = {item, prefix, false};
     int32_t request = -2;
@@ -555,8 +555,8 @@ bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string*
     };
     if (!item || !g_hooksReady.load(std::memory_order_acquire))
         return reject("NativePrefixHooksNotReady");
-    const auto descriptors = snapshotManagedPrefixes();
-    const auto* policy = byType(descriptors, prefix);
+    const auto descriptors = managedPrefixView();
+    const auto* policy = byType(*descriptors, prefix);
     if (!policy) return reject("PrefixDescriptorMissing");
     if (!eligible(item, *policy, true)) return reject("ItemNotEligible");
     if (g_refs.prefix < 0 || g_refs.damage < 0) return reject("ItemFieldMissing");
