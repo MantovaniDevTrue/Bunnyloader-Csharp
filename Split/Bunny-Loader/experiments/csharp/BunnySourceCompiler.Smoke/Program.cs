@@ -698,6 +698,21 @@ public sealed class MinionStaff : BunnyWeapon
     Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
     Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
+    var typedTile = new TileAnimatedTypeSmoke();
+    var legacyTile = new TileAnimatedLegacySmoke();
+    if ((typedTile.TileCallbackMask & (1 << 14)) == 0 ||
+        (legacyTile.TileCallbackMask & (1 << 14)) == 0)
+        throw new InvalidOperationException("BunnyTile overload override bit missing");
+    int tx = 0, ty = 0;
+    typedTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (typedTile.LastType != 755 || tx != 9 || ty != 10)
+        throw new InvalidOperationException("Native TileType lost in typed animation callback");
+    tx = 0;
+    ty = 0;
+    legacyTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (tx != 4 || ty != 5)
+        throw new InvalidOperationException("Legacy tile animation overload delegation failed");
+    Console.WriteLine("BUNNY_CSHARP_TILE_ANIMATION_TYPE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
 finally
@@ -706,3 +721,26 @@ finally
 }
 
 
+
+sealed class TileAnimatedTypeSmoke : BunnyLoader.Source.BunnyTile
+{
+    public int LastType { get; private set; } = -1;
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int type, int x, int y,
+        ref int addFrameX, ref int addFrameY)
+    {
+        LastType = type;
+        addFrameX += x + type - 750;
+        addFrameY += y + type - 750;
+    }
+}
+
+sealed class TileAnimatedLegacySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)
+    {
+        addFrameX += x;
+        addFrameY += y;
+    }
+}
