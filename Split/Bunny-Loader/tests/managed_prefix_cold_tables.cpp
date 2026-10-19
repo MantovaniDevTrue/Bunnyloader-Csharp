@@ -513,6 +513,7 @@ int main() {
     assert(prefixTooltip[0] && prefixTooltip[0]->length > 5);
     assert(prefixTooltip[0]->chars[0] == 'B');
     assert(prefixTooltip[1] && prefixTooltip[1]->chars[0] == 'F');
+    assert(prefixTooltip[1]->length == 10);
     assert(prefixTooltip[2] && prefixTooltip[2]->chars[0] == 'S');
     for (int index = 0; index < 3; ++index) {
         assert(static_cast<uint8_t*>(arrayData(modifier))[index] == 1);
