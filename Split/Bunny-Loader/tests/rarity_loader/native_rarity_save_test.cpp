@@ -1,5 +1,6 @@
 #include "content/items/ModItemSaveFormat.h"
 #include "content/items/ModItemSaveSafety.h"
+#include "content/items/NativeRarityPending.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -80,6 +81,32 @@ int main() {
         if (hasSavedVanillaPrefix(vanillaPrefix))
             requestedPrefix = static_cast<uint8_t>(vanillaPrefix.prefix);
         assert(requestedPrefix == 19);
+    }
+
+    {
+        struct PendingFixture {
+            int type;
+            std::string key;
+            std::string origin;
+        };
+        int original = 1, replacement = 2, separate = 3;
+        std::map<int*, PendingFixture> refs{
+            {&original, {42, "rarity/Original", "inventory#0"}}
+        };
+        std::map<std::string, PendingFixture> slots{
+            {"inventory#0", {42, "rarity/Original", {}}},
+            {"inventory#4", {51, "rarity/Other", {}}}
+        };
+        const auto moved = selectTrackedRarity(refs, slots, &original, "inventory#3", 42);
+        assert(moved && moved->key == "rarity/Original");
+        assert(moved->origin == "inventory#0");
+        const auto changed = selectTrackedRarity(refs, slots, &replacement, "inventory#0", 42);
+        assert(!changed);
+        const auto other = selectTrackedRarity(refs, slots, &separate, "inventory#4", 51);
+        assert(other && other->key == "rarity/Other" &&
+            other->origin == "inventory#4");
+        assert(!selectTrackedRarity(refs, slots, &original, "inventory#3", 51));
+        assert(!selectTrackedRarity(refs, slots, &separate, "inventory#9", 42));
     }
 
     std::stringstream legacy;
