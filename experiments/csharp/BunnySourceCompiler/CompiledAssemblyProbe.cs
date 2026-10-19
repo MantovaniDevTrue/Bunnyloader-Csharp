@@ -552,6 +552,28 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             if(!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
             lines.Add(BasicItemWriter.Write(item));
+            if (Value<bool>(item, "QuestFish"))
+            {
+                if (Value<int>(item, "MaxStack") != 1)
+                    throw new InvalidOperationException("Quest fish must have MaxStack=1: " + name);
+                bool pre = Value<bool>(item, "QuestAvailableInPreHardmode");
+                bool hard = Value<bool>(item, "QuestAvailableInHardmode");
+                if (!pre && !hard)
+                    throw new InvalidOperationException("Quest fish cannot be unavailable in both world phases: " + name);
+                string description = Value<string>(item, "QuestDescription") ?? "";
+                string location = Value<string>(item, "QuestCatchLocation") ?? "";
+                foreach (string value in new[] { description, location })
+                {
+                    if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                        value.Any(c => c == '\0' || c == '\r' || c == '\t' || c == (char)127))
+                        throw new InvalidOperationException("Invalid angler quest chat text: " + name);
+                }
+                static string EncodeQuestText(string value) =>
+                    value.Length == 0 ? "-" : Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(value));
+                lines.Add(string.Join("\t", "QUEST_FISH", name,
+                    pre ? "1" : "0", hard ? "1" : "0",
+                    EncodeQuestText(description), EncodeQuestText(location)));
+            }
         }
         foreach (object projectile in projectiles)
         {
