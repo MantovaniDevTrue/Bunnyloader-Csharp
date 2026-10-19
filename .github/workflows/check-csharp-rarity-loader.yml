@@ -49,6 +49,9 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -I app/src/main/cpp \
             tests/rarity_loader/native_rarity_color_test.cpp -o /tmp/bunny-rarity-color
           /tmp/bunny-rarity-color
+          g++ -std=c++20 -Wall -Wextra -Werror -O2 -I app/src/main/cpp \
+            tests/rarity_loader/native_rarity_item_test.cpp -o /tmp/bunny-rarity-item
+          /tmp/bunny-rarity-item
       - name: Compile rarity native host integration and lifecycle regressions
         run: |
           cd Split/Bunny-Loader
