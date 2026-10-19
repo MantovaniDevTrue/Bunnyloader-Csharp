@@ -651,19 +651,26 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
         const auto prefixes = managedPrefixView();
         const auto* selected = byType(*prefixes, prefixId);
         const uintptr_t capacity = std::min({lines->length, modifier->length, bad->length});
-        if (selected && !selected->extraTooltip.empty() && *count >= 0 &&
-            static_cast<uintptr_t>(*count) < capacity) {
+        if (selected && *count >= 0 && static_cast<uintptr_t>(*count) < capacity) {
             auto& api = bl::il2cpp::api();
             if (api.string_new && api.gc_wbarrier_set_field) {
-                Il2CppString* text = api.string_new(selected->extraTooltip.c_str());
-                if (text) {
-                    auto** output = static_cast<Il2CppString**>(arrayData(lines));
+                auto** output = static_cast<Il2CppString**>(arrayData(lines));
+                auto* flags = static_cast<uint8_t*>(arrayData(modifier));
+                auto* negative = static_cast<uint8_t*>(arrayData(bad));
+                const auto append = [&](const std::string& message) {
+                    if (message.empty() || static_cast<uintptr_t>(*count) >= capacity)
+                        return;
+                    Il2CppString* rendered = api.string_new(message.c_str());
+                    if (!rendered) return;
                     api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(lines),
-                        reinterpret_cast<void**>(&output[*count]), text);
-                    static_cast<uint8_t*>(arrayData(modifier))[*count] = 1;
-                    static_cast<uint8_t*>(arrayData(bad))[*count] = 0;
+                        reinterpret_cast<void**>(&output[*count]), rendered);
+                    flags[*count] = 1;
+                    negative[*count] = 0;
                     ++*count;
-                }
+                };
+                append(selected->extraTooltip);
+                for (const auto& line : selected->tooltipLines)
+                    append(line);
             }
         }
     }
