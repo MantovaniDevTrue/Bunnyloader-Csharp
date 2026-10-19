@@ -15,6 +15,8 @@ struct ManagedPrefixEntry {
     float rollWeight = 0.f;
     std::map<int, int> itemWeights;
     std::map<std::string, int> itemNames;
+    std::map<int, bool> itemCanRoll;
+    std::map<std::string, bool> itemNamesCanRoll;
     std::array<float, 6> multipliers{1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
     int crit = 0;
     int tagDamage = 0;
