@@ -1,4 +1,4 @@
-> Continuidade .98: nomes Example em todo conteúdo, callbacks C# CanShoot/ModifyShootStats/Shoot com bridge real e ExampleShotgun; testes de host e matriz atualizados, CI Android pendente. Publicação permanece bloqueada. O usuário aprovou a .96 com ExampleMod de forma geral; registro em [evidência Android](validation/csharp-v96-android-user-2026-10-19.json).
+> Continuidade .98: nomes Example em todo conteúdo, callbacks C# CanShoot/ModifyShootStats/OnShoot com bridge real e ExampleShotgun; testes de host e matriz atualizados, CI Android pendente. Publicação permanece bloqueada. O usuário aprovou a .96 com ExampleMod de forma geral; registro em [evidência Android](validation/csharp-v96-android-user-2026-10-19.json).
 
 > Verificação interna sem entrega: [CI do port em desenvolvimento](validation/csharp-full-port-wip-2026-10-19.json), fonte `e11f5279`, nove suítes e Android build aprovados. Publicação e export dos pacotes pulados; nenhuma release nova. Port integral ainda aberto.
 

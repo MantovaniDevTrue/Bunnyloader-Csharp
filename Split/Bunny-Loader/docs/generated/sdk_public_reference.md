@@ -1079,7 +1079,7 @@ int ShootCallbackMask { get; }
 | Method | Execution |
 | --- | --- |
 | `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
-| `bool Shoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
+| `bool OnShoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
 | `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
 
 ## BunnyLoader.Source.BunnyShot

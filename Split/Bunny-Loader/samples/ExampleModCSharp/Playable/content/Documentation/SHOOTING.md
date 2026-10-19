@@ -2,11 +2,11 @@
 
 Os nomes exibidos do ExampleMod começam com **Example**, inclusive traduções e prefixos. IDs, classes, caminhos de assets e chaves de save não mudaram. Ex.: Example Espada, Example Bala, Example Escopeta, Example Poderoso.
 
-`BunnyItem` e `BunnyWeapon` herdam `BunnyShootSource`. Sobrescreva `CanShoot(context)`, `ModifyShootStats(context, ref shot)` e/ou `Shoot(context, shot)`. São métodos C# reais: herança, interfaces auxiliares, loops, condições e algoritmos próprios são permitidos. Não exigem QuickJS nem tModLoader.
+`BunnyItem` e `BunnyWeapon` herdam `BunnyShootSource`. Sobrescreva `CanShoot(context)`, `ModifyShootStats(context, ref shot)` e/ou `OnShoot(context, shot)`. São métodos C# reais: herança, interfaces auxiliares, loops, condições e algoritmos próprios são permitidos. Não exigem QuickJS nem tModLoader. `OnShoot` corresponde ao Shoot do exemplo JS: usamos um nome diferente porque `BunnyWeapon.Shoot` já é a propriedade pública de referência ao projétil e permanece compatível.
 
 - `CanShoot`: antes do disparo nativo. `false` aplica o tempo de uso nativo e impede o disparo; a escolha/consumo de munição ainda pertence ao Terraria.
 - `ModifyShootStats`: recebe posição, velocidade, tipo, dano, knockback e ai0–ai2 já calculados pelo motor com a munição e os modificadores aplicáveis. Altere o `BunnyShot` por referência.
-- `Shoot`: `context.Spawn(shot)` adiciona pedidos; `false` substitui o tiro original, `true` preserva também esse tiro com os stats modificados. O limite é 64 pedidos adicionais por chamada nativa. `shot.Projectile="UID/Nome"` resolve um projétil de outro mod pelo registro compartilhado; omitir preserva `shot.Type`.
+- `OnShoot`: `context.Spawn(shot)` adiciona pedidos; `false` substitui o tiro original, `true` preserva também esse tiro com os stats modificados. O limite é 64 pedidos adicionais e32KiB de resposta por chamada nativa. `shot.Projectile="UID/Nome"` resolve um projétil de outro mod pelo registro compartilhado; omitir preserva `shot.Type`.
 
 O dono, IEntitySource e NewProjectileModifier originais permanecem na thread do jogo. Não podem ser fabricados como ponteiros em C#. O contexto oferece PlayerIndex, ItemType, WeaponDamage e Random; não contém Player/Item vivos. Instâncias de callbacks são por tipo de conteúdo e sessão, não uma instância persistida para cada item do inventário. Ainda não é uma API de estado arbitrário por item.
 

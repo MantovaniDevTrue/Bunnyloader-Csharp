@@ -1409,9 +1409,10 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
     if(!utf8||!release)return "ERROR|Stage=DecodeResponse Expected=mono_string_to_utf8Andmono_free Reason=RequiredExportMissing";
     char* value=utf8(result);if(!value)return "ERROR|Stage=DecodeResponse Reason=MonoUtf8AllocationFailed";
-    const auto length=strnlen(value,16385);std::string output;
-    if(length<=16384)output.assign(value,length);
-    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo16384 ActualAtLeast=16385 Reason=ResponseTooLarge";
+    const size_t maximum=job.shooting?32768u:16384u;
+    const auto length=strnlen(value,maximum+1);std::string output;
+    if(length<=maximum)output.assign(value,length);
+    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo"+std::to_string(maximum)+" ActualAtLeast="+std::to_string(maximum+1)+" Reason=ResponseTooLarge";
     release(value);return output;
 }
 

@@ -41,7 +41,7 @@ public sealed class BunnyShootContext
     /// <summary>Uses the original owner/source/modifier; maximum 64 extra projectiles per native shot.</summary>
     public void Spawn(BunnyShot shot)
     {
-        if(!CanSpawn)throw new InvalidOperationException("Spawn is only available during Shoot, not CanShoot or ModifyShootStats");
+        if(!CanSpawn)throw new InvalidOperationException("Spawn is only available during OnShoot, not CanShoot or ModifyShootStats");
         if(shots.Count>=64)throw new InvalidOperationException("[CSharp][ERROR][Shoot] Stage=QueueSpawn Expected=AtMost64 Reason=SpawnCapacityExceeded");
         _=shot.Encode();shots.Add(shot);
     }
@@ -53,13 +53,13 @@ public abstract class BunnyShootSource : BunnyRecipeSource
     public virtual bool CanShoot(BunnyShootContext context)=>true;
     public virtual void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot) { }
     /// <summary>Return false to replace the original shot with the requests queued through context.Spawn.</summary>
-    public virtual bool Shoot(BunnyShootContext context,BunnyShot shot)=>true;
+    public virtual bool OnShoot(BunnyShootContext context,BunnyShot shot)=>true;
     public int ShootCallbackMask
     {
         get
         {
             int mask=0;var type=GetType();
-            foreach(var pair in new[]{("CanShoot",1), ("ModifyShootStats",2), ("Shoot",4)})
+            foreach(var pair in new[]{("CanShoot",1), ("ModifyShootStats",2), ("OnShoot",4)})
             {
                 var method=type.GetMethod(pair.Item1,BindingFlags.Instance|BindingFlags.Public);
                 if(method==null||method.GetBaseDefinition().DeclaringType!=typeof(BunnyShootSource))
@@ -83,6 +83,7 @@ public static class BunnyShootRuntime
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
     public static string Dispatch(string modId,string assemblyPath,string owner,int index,int kind,string snapshot)
     {
+        string callback="Bind",className=owner;
         try
         {
             if(!mods.TryGetValue(modId,out var mod)||mod.Path!=assemblyPath)
@@ -93,13 +94,14 @@ public static class BunnyShootRuntime
             {
                 var types=mod.Assembly.GetTypes().Where(t=>t.Name==owner&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyShootSource).IsAssignableFrom(t)).ToArray();
                 if(types.Length!=1)throw new InvalidOperationException("Expected one registered shooting item; found "+types.Length);
+                className=types[0].FullName??owner;callback="SetDefaults";
                 item=(BunnyShootSource)Activator.CreateInstance(types[0])!;
                 var declaration=types[0].GetCustomAttribute<BunnyContentAttribute>(false);
                 if(declaration!=null){types[0].GetProperty("DisplayName")!.SetValue(item,declaration.DisplayName);types[0].GetProperty("Texture")!.SetValue(item,declaration.Texture);}
                 types[0].GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(item,null);
                 if(item.ShootCallbackMask==0)throw new InvalidOperationException("No shooting callbacks declared");
                 // Compile methods without running mod gameplay or consuming its state during warmup.
-                foreach(var name in new[]{"CanShoot","ModifyShootStats","Shoot"})
+                foreach(var name in new[]{"CanShoot","ModifyShootStats","OnShoot"})
                     System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(types[0].GetMethod(name)!.MethodHandle);
                 mod.Items.Add(owner,item);
             }
@@ -113,15 +115,15 @@ public static class BunnyShootRuntime
                 throw new ArgumentException("Invalid player/item/damage snapshot");
             var shot=new BunnyShot{Type=I(4),X=F(5),Y=F(6),VelocityX=F(7),VelocityY=F(8),Damage=I(9),KnockBack=F(10),Ai0=F(11),Ai1=F(12),Ai2=F(13)};
             _=shot.Encode();
-            if(kind==0)return item.CanShoot(context)?"1":"0";
-            item.ModifyShootStats(context,ref shot);_=shot.Encode();
-            context.CanSpawn=true;bool original=item.Shoot(context,shot);context.CanSpawn=false;
+            if(kind==0){callback="CanShoot";return item.CanShoot(context)?"1":"0";}
+            callback="ModifyShootStats";item.ModifyShootStats(context,ref shot);_=shot.Encode();
+            callback="OnShoot";context.CanSpawn=true;bool original=item.OnShoot(context,shot);context.CanSpawn=false;
             // Validate every queued command before returning any of them to the native bridge.
             return "SHOT1|"+(original?"1":"0")+"|"+shot.Encode()+"|"+string.Join(";",context.Shots.Select(s=>s.Encode()));
         }
         catch(Exception error)
         {
-            return "ERROR|[CSharp][ERROR][Shoot] Mod="+modId+" Class="+owner+" Assembly="+assemblyPath+
+            return "ERROR|[CSharp][ERROR][Shoot] Mod="+modId+" Class="+className+" Method="+callback+" Assembly="+assemblyPath+
                 " Stage=Invoke Kind="+kind+" Reason=ManagedException Result=ShotRejected Exception="+error;
         }
     }

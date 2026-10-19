@@ -27,7 +27,9 @@ Require(Call("Throws").Contains("original-test-exception")&&Call("Throws").Conta
 Require(Call("Named").Contains("manother-mod/Projectile"),"Cross-mod native identity token");
 Require(Call("ExampleShotgun",1,input.Replace(",100,",",NaN,")).StartsWith("ERROR|"),"Invalid snapshot");
 Require(Call("ExampleShotgun",1,input+",extra").StartsWith("ERROR|"),"Reject extra fields");
-Require(Call("EarlySpawn",0).Contains("only available during Shoot"),"Preflight cannot spawn");
+Require(Call("EarlySpawn",0).Contains("only available during OnShoot"),"Preflight cannot spawn");
+Require(Call("LargeBatch").Length>16384&&Call("LargeBatch").Length<=32768,"64 long identity commands fit the native response budget");
+Require(Call("WeaponWithProjectileProperty").StartsWith("SHOT1|0|"),"Legacy BunnyWeapon.Shoot property and new OnShoot callback coexist");
 Require(new ExampleShotgun().ShootCallbackMask==4,"Actual example override mask");
 Require(Call("Hidden",2).Contains("HiddenOrAmbiguousCallback"),"Hidden methods cannot silently bind");
 var shotgun=new ExampleShotgun();shotgun.SetDefaults();Require(shotgun.UseTime==55&&shotgun.UseAnimation==55&&shotgun.Damage==10&&shotgun.Value==100000&&shotgun.UseSound=="Item36","Original defaults");
@@ -38,13 +40,27 @@ public abstract class Fixture:BunnyItem {public override void SetDefaults(){Disp
 public sealed class Deny:Fixture {public override bool CanShoot(BunnyShootContext c)=>false;}
 public sealed class Modify:Fixture {
  public override void ModifyShootStats(BunnyShootContext c,ref BunnyShot shot){shot.X+=10;shot.Damage*=2;}
- public override bool Shoot(BunnyShootContext c,BunnyShot shot)=>shot.Damage==48;
+ public override bool OnShoot(BunnyShootContext c,BunnyShot shot)=>shot.Damage==48;
 }
-public sealed class NoShots:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s)=>false;}
-public sealed class Many:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<64;i++)c.Spawn(s);return false;}}
-public sealed class Overflow:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<65;i++)c.Spawn(s);return false;}}
+public sealed class NoShots:Fixture {public override bool OnShoot(BunnyShootContext c,BunnyShot s)=>false;}
+public sealed class Many:Fixture {public override bool OnShoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<64;i++)c.Spawn(s);return false;}}
+public sealed class Overflow:Fixture {public override bool OnShoot(BunnyShootContext c,BunnyShot s){for(int i=0;i<65;i++)c.Spawn(s);return false;}}
 public sealed class Invalid:Fixture {public override void ModifyShootStats(BunnyShootContext c,ref BunnyShot s){s.Damage=2;s.VelocityX=float.NaN;}}
-public sealed class Throws:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s)=>throw new Exception("original-test-exception");}
-public sealed class Named:Fixture {public override bool Shoot(BunnyShootContext c,BunnyShot s){s.Projectile="another-mod/Projectile";c.Spawn(s);return false;}}
+public sealed class Throws:Fixture {public override bool OnShoot(BunnyShootContext c,BunnyShot s)=>throw new Exception("original-test-exception");}
+public sealed class Named:Fixture {public override bool OnShoot(BunnyShootContext c,BunnyShot s){s.Projectile="another-mod/Projectile";c.Spawn(s);return false;}}
 public sealed class EarlySpawn:Fixture {public override bool CanShoot(BunnyShootContext c){c.Spawn(default);return true;}}
-public sealed class Hidden:Fixture {public new bool Shoot(BunnyShootContext c,BunnyShot s)=>false;}
+public sealed class Hidden:Fixture {public new bool OnShoot(BunnyShootContext c,BunnyShot s)=>false;}
+
+public sealed class LargeBatch:Fixture {
+ public override bool OnShoot(BunnyShootContext c,BunnyShot s){
+  s.Projectile=new string('a',80)+"/"+new string('b',79);
+  s.X=12345678;s.Y=-12345678;s.VelocityX=0.00012345679f;s.VelocityY=-0.00012345679f;
+  s.Damage=1000000;s.KnockBack=0.00000012345679f;s.Ai0=12345678;s.Ai1=-12345678;s.Ai2=-1.2345679E-30f;
+  for(int i=0;i<64;i++)c.Spawn(s);return false;
+ }
+}
+
+public sealed class WeaponWithProjectileProperty:BunnyWeapon {
+ public override void SetDefaults(){DisplayName="Independent";Texture="fixture.png";Shoot="IndependentProjectile";}
+ public override bool OnShoot(BunnyShootContext context,BunnyShot shot){context.Spawn(shot);return false;}
+}

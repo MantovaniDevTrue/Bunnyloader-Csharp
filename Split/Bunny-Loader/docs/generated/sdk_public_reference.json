@@ -1940,7 +1940,7 @@
           "execution": "worker_sync_shoot_snapshot"
         },
         {
-          "signature": "bool Shoot(BunnyShootContext context, BunnyShot shot)",
+          "signature": "bool OnShoot(BunnyShootContext context, BunnyShot shot)",
           "execution": "worker_sync_shoot_snapshot"
         },
         {

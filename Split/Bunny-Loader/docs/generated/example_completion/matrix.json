@@ -9728,7 +9728,7 @@
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.png"
       ],
       "automatedEvidence": [
-        "35 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
+        "37 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],
       "preservedFeatures": [
         "Defaults originais:44x18,Green,buyPrice10gold,use55/55,Shoot,autoReuse,SoundItem36,ranged,dano10,knockback6,noMelee,AmmoBullet,shootSpeed10,fallbackPurificationPowder,holdout(-2,-2).",

@@ -82,7 +82,7 @@ int main(int argc,char** argv) {
  Result decoded;assert(!decode(managedOutput,entry,&decoded,&error));assert(error.find("InvalidShotOutput")!=std::string::npos);
  auto named="SHOT1|0|v1136,100,200,10,0,24,7,1,2,3|mother/Projectile,100,200,10,0,24,7,1,2,3";
  assert(decode(named,entry,&decoded,&error)&&decoded.additional[0].type==1139);
- assert(!decode(std::string(17000,'x'),entry,&decoded,&error));
+ assert(!decode(std::string(33000,'x'),entry,&decoded,&error));
  managedOutput="ERROR|Reason=OriginalManagedException";use(p,2,i,18,true,&useMethod);assert(spawned.empty());
  callbackAvailable=false;use(p,2,i,18,true,&useMethod);assert(spawned.empty()&&timeCalls==2);callbackAvailable=true;
  managedOutput=output;warmState=0;assert(bindAssembly("independent","pending.dll",&error));use(p,2,i,18,true,&useMethod);assert(spawned.empty()&&timeCalls==3);

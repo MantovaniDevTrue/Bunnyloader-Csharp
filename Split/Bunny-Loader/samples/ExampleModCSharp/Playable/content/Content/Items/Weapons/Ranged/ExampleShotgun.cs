@@ -19,7 +19,7 @@ public sealed class ExampleShotgun : BunnyItem
         Holdout=new BunnyHoldout(-2,-2);
     }
 
-    public override bool Shoot(BunnyShootContext context,BunnyShot shot)
+    public override bool OnShoot(BunnyShootContext context,BunnyShot shot)
     {
         // O Terraria já escolheu a munição: copiar o snapshot preserva tipo, dano, dono e fonte.
         // Oito spawns pertencem a um único uso; o motor continua responsável por consumir a munição.

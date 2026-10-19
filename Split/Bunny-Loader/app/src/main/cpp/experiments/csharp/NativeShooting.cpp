@@ -42,7 +42,9 @@ void diagnostic(const Policy& policy,const char* stage,const std::string& reason
     const auto now=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
     auto expected=policy.nextLog.load(std::memory_order_relaxed);
     if(now<expected||!policy.nextLog.compare_exchange_strong(expected,now+5000)){policy.suppressed.fetch_add(1);return;}
-    BL_WARN("[CSharp][WARN][Shoot] Mod=%s Class=%s File=%s ContentId=%d Stage=%s Result=ShotRejected Suppressed=%llu Detail=%s",
+    const bool pending=reason.find("DeadlineExceeded")!=std::string::npos||reason.find("NotReady")!=std::string::npos||
+        reason.find("QueueBusy")!=std::string::npos||reason.find("QueueCapacityExceeded")!=std::string::npos;
+    bl::log::write(pending?ANDROID_LOG_WARN:ANDROID_LOG_ERROR,"[CSharp][%s][Shoot] Mod=%s Class=%s File=%s ContentId=%d Stage=%s Result=ShotRejected Suppressed=%llu Detail=%s",pending?"WARN":"ERROR",
         policy.entry.mod.c_str(),policy.entry.name.c_str(),policy.entry.source.c_str(),policy.entry.type,stage,
         static_cast<unsigned long long>(policy.suppressed.exchange(0)),reason.c_str());
 }
@@ -73,7 +75,7 @@ bool shot(const std::string& text,const Entry& entry,Shot* result,std::string* e
     *result=std::move(s);return true;
 }
 bool decode(const std::string& text,const Entry& entry,Result* result,std::string* error) {
-    if(text.size()>16384){*error="Reason=ShootResponseCapacityExceeded";return false;}
+    if(text.size()>32768){*error="Reason=ShootResponseCapacityExceeded";return false;}
     auto f=split(text,'|');Result staged;
     if(f.size()!=4||f[0]!="SHOT1"||(f[1]!="0"&&f[1]!="1")){*error=text.substr(0,4096);return false;}
     staged.original=f[1]=="1";
@@ -104,7 +106,10 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     auto found=table->find(type);
     if(!player||found==table->end()){originalUse(player,index,item,damage,feedback,method);return;}
     auto policy=found->second;int who=-1;std::memcpy(&who,reinterpret_cast<char*>(player)+refs.who,4);
-    Active context{policy,who,damage,poolSize()};bool allowed=context.slots>0&&who>=0&&who<=255&&damage>=0&&damage<=1000000&&ready(*policy);
+    Active context{policy,who,damage,poolSize()};
+    bool allowed=context.slots>0&&who>=0&&who<=255&&damage>=0&&damage<=1000000;
+    if(!allowed)diagnostic(*policy,"ReadSnapshot","Expected=Player0..255,Damage0..1000000,NonEmptyProjectilePool ActualPlayer="+std::to_string(who)+" ActualDamage="+std::to_string(damage)+" ActualPoolLength="+std::to_string(context.slots)+" Reason=InvalidNativeShotSnapshot");
+    else allowed=ready(*policy);
     if(allowed&&(policy->entry.mask&1)) {
         std::string output;const bool invoked=invokeManagedShoot(policy->entry.mod,policy->entry.assembly,policy->entry.name,0,snapshot(context,{}),&output);
         allowed=invoked&&output=="1";
@@ -154,7 +159,8 @@ bool prepare(std::string* error) {
     auto* useMethod=method(player,"void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)",true);
     auto* spawnMethod=method(projectile,"int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",false);
     staged.time=method(player,"void ApplyItemTime(Item sItem)",true);
-    if(!useMethod||!spawnMethod||!staged.time||!methodPointer(staged.time))return false;
+    if(!useMethod||!spawnMethod||!staged.time)return false;
+    if(!methodPointer(staged.time)){*error="Method=ApplyItemTime Reason=NativeMethodPointerMissing";return false;}
     // Both non-primitive parameters in the factory must be references, never value-type aggregates passed by a different ABI.
     if(!a.method_get_param||!a.class_from_il2cpp_type){*error="Reason=RequiredMethodTypeExportsMissing";return false;}
     for(const int index:{0,12}) {
