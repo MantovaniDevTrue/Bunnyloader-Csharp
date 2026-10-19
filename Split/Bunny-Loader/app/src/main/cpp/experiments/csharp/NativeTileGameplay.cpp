@@ -295,8 +295,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     behavior.spec = spec;
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
-    g_tiles[spec.type] = behavior;
     if (!setupHooks()) return false;
+    g_tiles[spec.type] = behavior;
     BL_DEBUG("[CSharp][Tile] %s/%s type=%d item=%d dust=%d shape=%d",
              spec.mod.c_str(), spec.name.c_str(), spec.type,
              behavior.itemType, behavior.dustType, spec.shape);
