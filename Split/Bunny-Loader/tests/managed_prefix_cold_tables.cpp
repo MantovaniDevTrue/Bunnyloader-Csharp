@@ -30,6 +30,7 @@ std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
 std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 std::shared_ptr<const std::map<int, bool>> chanceView;
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
+std::shared_ptr<const std::map<int, std::set<int>>> deniedView;
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0, value = 100;
@@ -135,6 +136,7 @@ std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; 
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { return chanceView; }
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
+std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() { return deniedView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -468,6 +470,24 @@ int main() {
     int cr=0, tag=0, penetration=0;
     assert(hookStats(&ineffective.object, 99, &d, &k, &sp, &si, &sh,
                      &ma, &cr, &tag, &penetration, &val, nullptr));
+
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>(
+        std::map<int, std::set<int>>{{6199, {71, 99}}});
+    Item rejected{};
+    rejected.type = 6199;
+    rejected.accessory = 1;
+    auto* candidatesDenied = hookRollable(&rejected.object, nullptr);
+    assert(candidatesDenied && candidatesDenied->length == 1);
+    assert(*static_cast<int32_t*>(arrayData(candidatesDenied)) == 98);
+    assert(!hookCanRoll(&rejected.object, 99, nullptr));
+    assert(hookCanRoll(&rejected.object, 98, nullptr));
+    const int previousCalls = chanceOriginalCalls;
+    assert(!hookItemPrefixChance(&rejected.object, 99, &chanceTier, nullptr));
+    assert(chanceOriginalCalls == previousCalls);
+    rejected.accessory = 0;
+    assert(hookRollable(&rejected.object, nullptr) == nullptr);
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>();
+    assert(hookCanRoll(&rejected.object, 99, nullptr));
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
