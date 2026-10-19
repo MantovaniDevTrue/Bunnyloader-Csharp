@@ -327,6 +327,9 @@ public sealed class BunnyPrefixRollRules
     private readonly System.Collections.Generic.SortedDictionary<int, bool> canRoll = new();
     private readonly System.Collections.Generic.SortedDictionary<string, bool> namedCanRoll =
         new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedSet<int> preferredItems = new();
+    private readonly System.Collections.Generic.SortedSet<string> namedPreferredItems =
+        new(System.StringComparer.Ordinal);
 
     private void Reserve(bool exists)
     {
@@ -360,6 +363,7 @@ public sealed class BunnyPrefixRollRules
         if (!rules.ContainsKey(itemType))
             throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
         canRoll[itemType] = allowed;
+        if (!allowed) preferredItems.Remove(itemType);
     }
 
     public void SetCanRoll(string itemName, bool allowed)
@@ -367,18 +371,38 @@ public sealed class BunnyPrefixRollRules
         if (string.IsNullOrEmpty(itemName) || !namedRules.ContainsKey(itemName))
             throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
         namedCanRoll[itemName] = allowed;
+        if (!allowed) namedPreferredItems.Remove(itemName);
+    }
+
+    public void PreferFor(int itemType)
+    {
+        if (!rules.TryGetValue(itemType, out int weight) ||
+            !(canRoll.TryGetValue(itemType, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        preferredItems.Add(itemType);
+    }
+
+    public void PreferFor(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName) ||
+            !namedRules.TryGetValue(itemName, out int weight) ||
+            !(namedCanRoll.TryGetValue(itemName, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        namedPreferredItems.Add(itemName);
     }
 
     public void Deny(int itemType)
     {
         SetWeight(itemType, 0);
         canRoll.Remove(itemType);
+        preferredItems.Remove(itemType);
     }
 
     public void Deny(string itemName)
     {
         SetWeight(itemName, 0);
         namedCanRoll.Remove(itemName);
+        namedPreferredItems.Remove(itemName);
     }
     public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
     public void Allow(string itemName, int weight = 1) => SetWeight(itemName, weight);
@@ -390,7 +414,14 @@ public sealed class BunnyPrefixRollRules
         {
             string key = entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (canRoll.TryGetValue(entry.Key, out bool allowed))
+            bool overrideExists = canRoll.TryGetValue(entry.Key, out bool allowed);
+            if (preferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
                 key += allowed ? ":1" : ":0";
             fields.Add(key);
         }
@@ -398,7 +429,14 @@ public sealed class BunnyPrefixRollRules
         {
             string key = entry.Key + ":" +
                 entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (namedCanRoll.TryGetValue(entry.Key, out bool allowed))
+            bool overrideExists = namedCanRoll.TryGetValue(entry.Key, out bool allowed);
+            if (namedPreferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
                 key += allowed ? ":1" : ":0";
             fields.Add(key);
         }
