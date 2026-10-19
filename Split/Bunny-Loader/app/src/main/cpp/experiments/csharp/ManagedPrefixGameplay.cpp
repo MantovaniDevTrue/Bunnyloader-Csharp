@@ -378,6 +378,15 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const uintptr_t oldCount = base ? base->length : 0;
     const auto* oldValues = oldCount ?
         static_cast<const int32_t*>(arrayData(base)) : nullptr;
+    if (!tablesReady) {
+        for (const auto& p : *descriptors) {
+            if (p.category != 6 && allowed(p.type) &&
+                eligible(item, p, vanillaHasRollable) && itemRollWeight(item, p) > 0) {
+                g_failedRollableItem = item;
+                return nullptr;
+            }
+        }
+    }
     uintptr_t retained = 0;
     for (uintptr_t i = 0; i < oldCount; ++i)
         if (allowed(oldValues[i])) ++retained;
