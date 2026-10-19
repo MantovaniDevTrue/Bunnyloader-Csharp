@@ -300,3 +300,21 @@ O hook `GetRollablePrefixes` remove prefixos bloqueados das opções vanilla e a
 A suíte C# compila `TestWand` com uma negação vanilla e outra por nome, enquanto os testes C++ conferem resolução por nome, publicação sem duplicatas, rollback, remoção da lista de prefixos, `CanRoll`, tentativa explícita e bypass de restauração. O `ExampleWand` jogável oferece a mesma API com `ExampleGuardedPrefix`.
 
 **Escopo real:** não equivale a `AllowPrefix(item, pre)` dinâmico com estado da instância, nem implementa composição de `GlobalItem` e hooks próprios de outros mods. A verificação host/ARM64 não confirma os dados reais do Terraria, saves/GC, netcode nem FPS.
+
+## Predicados nativos avaliados por instância (dano e mana)
+
+O `BunnyPrefix.CanRoll(item)` e o `RollChance(item)` originais recebem o item atual. O SDK C# ganhou o subconjunto nativo `BunnyPrefix.ConfigureItemConditions(BunnyPrefixItemConditions)`, para declarar limites que o hook verifica **no objeto IL2CPP real em cada tentativa**, sem chamada síncrona ao MonoVM:
+
+```csharp
+public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
+{
+    conditions.RequireDamageBetween(10, 25);
+    conditions.RequireManaBetween(0, 8);
+}
+```
+
+`RequireDamageBetween` aceita extremos de 0 até 100000, `RequireManaBetween` de 0 até 10000, com mínimos não superiores aos máximos. Condições não declaradas não alteram os callbacks nativos. O compilador chama a configuração somente na preparação do mod e envia o registro opcional `PREFIX_CONDITION\tNomePrefixo\t10\t25\t0\t8`. O SourceLoader valida IDs, limites e unicidade; os campos entram no mesmo descritor imutável de prefixos. `eligible(item,prefix,...)` lê `Item.damage` e `Item.mana` em tempo real e filtra `CanRollPrefix`, `GetRollablePrefixes`, rolagem preferencial e aplicação de prefixos C# conforme suas regras anteriores.
+
+Os testes C# verificam os valores do descritor e os limites inválidos, e os testes C++ exercitam dano 9/12/26 e mana 0/8/9 no mesmo item. Não existe varredura de itens, heap por reforja ou callback MonoVM nesse caminho.
+
+**Limite:** trata-se de um predicado nativo configurável em C#, não de execução arbitrária de `CanRoll(item)` ou `RollChance(item)` no MonoVM. O callback gerenciado completo precisaria de uma ABI estável de snapshots, agendamento do worker, política de timeout, tratamento de concorrência e validação Android. Sem isso, não afirmar paridade integral, saves ou 60 FPS comprovados.
