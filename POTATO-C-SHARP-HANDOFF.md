@@ -1,97 +1,110 @@
-# Potato — entrega completa do Bunny Loader com C#
+# Meu Bunny Loader C# integrado ao seu código-fonte original
 
-Este é o código-fonte COMPLETO do projeto Android de Bunny Loader com suporte adicional a C# (Roslyn + MonoVM + host nativo C++/IL2CPP). A integração foi desenvolvida por Mantovani a partir do Bunny original de Jonata Oliveira. O motor JavaScript QuickJS continua existindo e precisa continuar funcionando. A API de C# é própria; o mod não executa tModLoader nem precisa usar JavaScript para callbacks C#.
+Potato, deixei aqui o projeto Android completo do Bunny Loader com a extensão C# que venho desenvolvendo. Quis entregar uma **cópia do seu código-fonte, com todas as alterações C# já nos caminhos finais**, e não mandar apenas uma pasta para você tentar adaptar. Mantive também o motor QuickJS e os seus exemplos JavaScript.
 
-## 1. Onde baixar e abrir
+Use esta entrega junto com:
+- [README principal](README.md), onde apresento o projeto;
+- [passo a passo para colocar a fonte no seu GitHub](IMPORTAR-NO-GITHUB-DO-POTATO.md);
+- [README original que preservei](README-BUNNY-ORIGINAL.md);
+- [inventário exato de arquivos e hashes](docs/POTATO-UPSTREAM-FILE-MAP.json).
 
-**Branch recomendada para o Potato (Android na raiz):** `handoff/potato-android-project-root-20261018` em https://github.com/MantovaniDevTrue/Bunnyloader-Csharp. A branch `handoff/potato-bunny-csharp-20261018` mantém a mesma árvore Android dentro de `Split/Bunny-Loader/`, junto com ferramentas e histórico do projeto maior.
+## 1. Qual versão eu entreguei
 
-**Pasta Android real nesta entrega:** a própria **raiz do repositório clonado**, contendo `settings.gradle.kts`, `build.gradle.kts`, `app/` e `experiments/csharp/`. Não há pasta `Split/` nesta branch de exportação.
+Eu usei sua `main` de **15 de outubro de 2026**, commit `a370a664aa3b808c87e4e4f570b27504d20df723`. Essa ainda era a ponta da `main` que consultei em 18/10/2026.
 
-Comandos para obter a fonte e abrir no Android Studio:
+Na parte C#, usei minha linha `0.1.10.16.90.29.95.2-summon-native-lifecycle`, versionCode `272`, com `ExampleMod CSharp 0.1.54`. Os fontes de produção correspondem ao commit `018b477a5a90115f399aed57ff84811c020d7a3f`, usado no [build Android do CI 39171952411](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39171952411). O relatório dessa build está [registrado aqui](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/docs/validation/csharp-v95-2-ci-2026-10-18.json).
 
-```bash
-git clone --single-branch --branch handoff/potato-android-project-root-20261018 https://github.com/MantovaniDevTrue/Bunnyloader-Csharp.git
-cd Bunnyloader-Csharp
-```
+**O que considero validado:** build e assinatura do APK pelo CI, entrega privada, várias suítes independentes de testes de C#, C++ e integração, além de resultados anteriores de jogabilidade que fui validando durante o desenvolvimento.
 
-ATENÇÃO: a `main` do nosso GitHub ficou num checkpoint antigo `.90.29.62`. A branch desta entrega foi derivada do C# mais recente `.90.29.95.2`, e não daquela main. Ela é um PROJETO INTEIRO para estudar, compilar com as dependências autorizadas e portar; não é uma pasta de classes C# para arrastar no original.
+**O que ainda não considero validado:** a correção da versão `.95.2` para o minion/summon no Android físico. A `.95.1` apresentou falha real ao tentar resolver `Projectile.identity`, um campo ausente na versão Android usada. Corrigi o contrato na `.95.2` e os testes de host/CI passaram, mas ainda preciso de uma rodada nova no aparelho para confirmar o gameplay. Não quis passar isso como perfeito sem essa comprovação.
 
-## 2. Versões, sincronização e testes comprovados
+## 2. O que preservei do seu Bunny
 
-- Bunny original: `JonataOliveiraa/Bunny-Loader@a370a664aa3b808c87e4e4f570b27504d20df723`, último commit da main consultado em 18/10/2026.
-- Nosso último código de produção da entrega: `018b477a5a90115f399aed57ff84811c020d7a3f`, Bunny `0.1.10.16.90.29.95.2` (versionCode 272), ExampleMod C# `0.1.54`.
-- O commit `a222d945683ac73fd65eace85c0bbef96286645a` adicionou os recibos de CI e documentação, sem mudança em código de produção. Esta entrega ainda restaurou sete arquivos de recurso/testes que faltavam do original, reorganizou o projeto para a raiz e adicionou documentação de entrega. É uma branch de exportação, não deve ser mesclada de volta como substituição da `main` do port.
-- Build, assinatura e checks de CI da `.95.2`: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39171952411. A entrega privada foi conferida no pipeline. Há registro em [recibo .95.2](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/docs/validation/csharp-v95-2-ci-2026-10-18.json).
-- A jogabilidade da `.95.2` em Android REAL, sobretudo o summon/minion, AINDA ESTÁ PENDENTE. A `.95.1` apresentou uma falha de ABI `Projectile.identity` no aparelho; a `.95.2` removeu essa dependência e passou em testes de host e CI, mas esses testes não substituem nova validação Android.
+Eu comparei **todas as entradas da árvore Git** e restaurei os sete arquivos que faltavam na minha cópia (um recurso visual e dois pequenos mods de teste), conferindo os hashes originais.
 
-A fonte desta entrega já inclui as atualizações conhecidas do original de 15/10: Journey `ResearchUnlockCount`, bolsas de chefe `PreHardmodeLikeBossBag`, tooltips `TooltipNames.Tooltip` e o suporte adicional de classes JS. Elas entraram em integração anterior, e não precisam ser aplicadas duas vezes.
+A comparação registrada no [JSON de inventário](docs/POTATO-UPSTREAM-FILE-MAP.json) contém o resumo quantitativo atualizado e os arquivos exatos, com blobs `sourceBlob` e `upstreamBlob`. A diferença inclui fontes, documentação, exemplos, recursos e testes; não se limita às classes C#.
 
-## 3. Comparação integral, reprodutível
+Eu preservei os arquivos de QuickJS, a estrutura Android, launcher, exemplos JavaScript e recursos atuais do seu código. As atualizações que eu já tinha incorporado em branches anteriores incluem modo Jornada com `ResearchUnlockCount`, tratamento de bolsas `PreHardmodeLikeBossBag` e correção de nomes de linhas de tooltip. **Os arquivos compartilhados que são diferentes não significam necessariamente que ficaram desatualizados**; são, em grande parte, pontos nos quais o C# se conecta ao núcleo original.
 
-Comparamos todos os blobs Git da raiz deste projeto exportado (equivalente à pasta `Split/Bunny-Loader/` da branch de desenvolvimento) com os da raiz do Bunny original no commit acima.
+Esta é uma cópia de fontes compatível **estruturalmente com o commit comparado**, não uma promessa de que todo hook e ABI foi testado contra cada aparelho ou futura atualização sua.
 
-| Arquivos | Quantidade |
-| --- | ---: |
-| Rastreados pelo original | 2024 |
-| Presentes em nosso projeto Android | 2761 |
-| **Idênticos ao original** | **1948** |
-| Compartilhados mas modificados pelo port C# | 76 |
-| Acrescentados pelo port (inclui fontes, testes e docs) | 737 |
-| **Arquivos originais faltando em nossa árvore** | **0** |
+## 3. Como eu encaixei o C# no projeto Android
 
-Os sete arquivos inicialmente faltantes foram copiados de modo byte-idêntico do original: `_icons/launcher/titulo.png` e os arquivos de `tools/tests/research/` e `tools/tests/devarmor/`. A prova caminho-por-caminho está no arquivo [inventário completo](docs/POTATO-UPSTREAM-FILE-MAP.json). As contagens representam a árvore Android sem contabilizar o próprio JSON do inventário, que é gerado posteriormente; assim a lista pode ser reproduzida sem autorreferência. Cada arquivo modificado registra SHA do original e do nosso lado. Esse mapa é um diff **de conteúdo**, não uma afirmação de compatibilidade em execução.
+Eu preservei os caminhos da sua raiz, sem criar um projeto paralelo:
 
-## 4. Locais EXATOS no GitHub do Potato
+| Arquivo ou pasta no seu projeto | O que acrescentei |
+| --- | --- |
+| `experiments/csharp/BunnyCsSdk/` | API pública C#, classes de itens, entidades, hooks, eventos e efeitos |
+| `experiments/csharp/BunnySourceSdk/` | Assembly do SDK usado na compilação de mods-fonte |
+| `experiments/csharp/BunnySourceCompiler/` | Roslyn, cache, verificação de código e descritores |
+| `experiments/csharp/BunnyManagedProbe/` | Entrada gerenciada do worker |
+| `app/src/main/cpp/experiments/csharp/` | Runtime MonoVM, políticas nativas, hooks do Terraria, filas e integração |
+| `app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt` | Serviço Android em processo separado |
+| `app/src/main/java/net/dot/android/crypto/DotnetProxyTrustManager.java` | Suporte Java usado pelo Mono |
+| `samples/ExampleModCSharp/` | Exemplo editável para criar e testar mods reais em C# |
+| `tools/stage_mono_runtime.py` | Preparação das DLLs e bibliotecas do Mono para o APK |
 
-Nesta branch exportada, **os caminhos já coincidem com a raiz do Bunny original**. Se estiver usando a outra branch de desenvolvimento, remova apenas o prefixo `Split/Bunny-Loader/`, sem criar uma subpasta `Split` no original.
+São **dois** diretórios `experiments/csharp/`: um na raiz para os projetos .NET e outro em `app/src/main/cpp/` para o host C++. Não dá para trocar um pelo outro.
 
-| Aqui (dentro da pasta Android) | No original | Responsabilidade |
-| --- | --- | --- |
-| `experiments/csharp/BunnyCsSdk/` | `experiments/csharp/BunnyCsSdk/` | API pública dos mods C# |
-| `experiments/csharp/BunnySourceSdk/` | `experiments/csharp/BunnySourceSdk/` | DLL gerenciada do SDK |
-| `experiments/csharp/BunnySourceCompiler/` | `experiments/csharp/BunnySourceCompiler/` | Roslyn para compilar mods no Android |
-| `experiments/csharp/BunnyManagedProbe/` | `experiments/csharp/BunnyManagedProbe/` | Entrada gerenciada MonoVM |
-| `app/src/main/cpp/experiments/csharp/` | `app/src/main/cpp/experiments/csharp/` | Host C++, filas, hooks e políticas nativas |
-| `app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt` | Mesmo caminho | Worker Android em `:mono_probe` |
-| `app/src/main/java/net/dot/android/crypto/DotnetProxyTrustManager.java` | Mesmo caminho | Suporte JNI/Mono |
-| `app/src/main/cpp/content/` | `app/src/main/cpp/content/` | Receitas, tiles, buffs, itens, NPCs e projéteis |
-| `samples/ExampleModCSharp/` | `samples/ExampleModCSharp/` | Exemplo gerenciado editável, separado do ExampleMod JS |
-| `tools/stage_mono_runtime.py` | `tools/stage_mono_runtime.py` | Preparar o Mono ARM64 |
+### Inicialização, compilação e carregamento
 
-Existem DOIS diretórios `experiments/csharp` distintos. Na raiz há projetos C#; dentro de `app/src/main/cpp/` estão os arquivos C++ do host. Precisam dos dois.
+1. Na descoberta de mods, eu mantenho `mods::loadAll(...)` do seu QuickJS e acrescento `csharpmods::loadAll()` para o C#; o arquivo central é `app/src/main/cpp/boot/Probe.cpp`.
+2. O `csharp::startAutoSourceRuntime()` prepara a fonte, cache, descritores e registro C#. Também instalo o gate `installCSharpWorldEntryGate()`.
+3. Em `QuickStart.cpp`, o fluxo consulta `preWorldCSharpContentReady()` para evitar entrar no mundo antes da preparação necessária.
+4. O `ManagedProbeService.kt` roda em `:mono_probe`; `jni_entry.cpp` entrega `appContext` à ponte `bindMonoWorkerContext(...)` e precisa concordar com os campos da configuração Kotlin.
+5. Roslyn compila os `.cs`; os callbacks e os descritores compatíveis seguem para o MonoVM/host nativo. Não preciso gerar uma `libmod.so` por mod-fonte C#, nem rotear seus callbacks pela engine QuickJS.
 
-## 5. Os arquivos que não podem ser sobrescritos
+Mantive verificações de tipo, largura, offset e assinatura nas ligações IL2CPP. O worker é isolado para reduzir o risco de comprometer o processo principal do Terraria; filas limitadas, descarte de eventos atrasados e os contratos síncronos/assíncronos continuam importantes para a estabilidade.
 
-Os 76 arquivos divergentes precisam de revisão e merge manual, não `cp -r` sobre o Bunny oficial. Os pontos decisivos são:
+### Onde mexi nos arquivos originais
 
-1. `app/src/main/cpp/CMakeLists.txt`: manter `bunny` com QuickJS; acrescentar `bunnymonoprobe` com `ManagedRuntime.cpp`, `MonoWorkerJni.cpp` e `NativeAbortProbe.cpp`. Não compilar `MonoWorkerJni.cpp` nos dois targets.
-2. `app/src/main/cpp/boot/Probe.cpp`, `QuickStart.cpp`: manter `mods::loadAll` JS; agregar `csharpmods::loadAll`, `startAutoSourceRuntime`, instalação de hooks e gate `preWorldCSharpContentReady`, sem congelar a thread do jogo.
-3. `app/src/main/cpp/boot/jni_entry.cpp` e `core/Config.h`: vincular `appContext` ao worker e validar `managedProbePath` e `managedCheckpointPath`; os campos devem ser idênticos ao Kotlin em tipo, nome e assinatura JNI.
-4. `app/src/main/cpp/mods/ModLoader.cpp` e `content/`: detecção de mods C#, registries compartilhados, proteção dos IDs, receitas, persistência, áudio, buffs e hooks, preservando JS.
-5. `app/src/main/AndroidManifest.xml`: declarar `ManagedProbeService` com processo `:mono_probe`; não afetar o serviço de jogo original.
-6. `app/src/main/kotlin/dev/bunnyloader/{GameActivity.kt,nativebridge/NativeBridge.kt,mods/ModRepository.kt,game/BootLog.kt}`: startup, configuração JNI, importação C# e registro de logs; preservar launcher e menus.
-7. `app/build.gradle.kts`: **não substituir a identidade, assinatura e distribuição oficiais** pelos nossos valores de teste (o port usa `com.bunnyloader.csharptest`). Adaptar os assets e dependências nativas mantendo configurações do original.
-8. `app/src/main/cpp/graphics/`, `script/`, `menu/` e UI Kotlin: revisar alterações específicas; os novos efeitos/diagnósticos não autorizam apagar nem enfraquecer QuickJS.
+Eu já fiz a integração nesses arquivos nesta cópia; estou listando para facilitar sua revisão, **não** para você repetir manualmente todos esses passos:
 
-A lista exata dos 76, com hashes, fica no JSON de inventário citado.
+| Arquivo | Mudança e cuidado |
+| --- | --- |
+| `app/src/main/cpp/CMakeLists.txt` | Mantive `libbunny.so` e acrescentei `libbunnymonoprobe.so`; `MonoWorkerJni.cpp` não pode ser compilado nos dois targets |
+| `app/src/main/cpp/boot/Probe.cpp` e `QuickStart.cpp` | Loader C# junto do loader JS e preparação antes do mundo |
+| `app/src/main/cpp/boot/jni_entry.cpp` e `core/Config.h` | `appContext`, `managedProbePath`, `managedCheckpointPath` |
+| `app/src/main/cpp/mods/ModLoader.cpp` | Descoberta de mods C# sem substituir os mods JS |
+| `app/src/main/cpp/content/`, `il2cpp/Api.*` | Conteúdo e persistência nativos, políticas, registries e validações de ABI |
+| `app/src/main/AndroidManifest.xml` | Serviço separado do MonoVM |
+| `app/src/main/kotlin/dev/bunnyloader/` | Inicialização do jogo, importação de mods, logs e ponte nativa |
+| `app/src/main/cpp/graphics/` e `script/` | Pontos de efeitos e integração; mantive o motor JS |
 
-## 6. Build C# real e limitações de distribuição
+Também deixei no repositório os exemplos e as ferramentas de testes que uso. Não considero que todo exemplo do tModLoader foi implementado ou que multiplayer e hot-unload sejam universais: a matriz de cobertura do SDK é parcial.
 
-Projetos de referência: `experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj`, `BunnySourceCompiler/BunnySourceCompiler.csproj`, `BunnyManagedProbe/BunnyManagedProbe.csproj`. O SDK 8 e Roslyn produzem DLLs em `app/src/main/assets/managed/`. Os assemblies `BunnySourceSdk.dll`, `BunnySourceCompiler.dll`, `Microsoft.CodeAnalysis.dll`, `Microsoft.CodeAnalysis.CSharp.dll`, `BunnyManagedProbe.dll`, `System.Private.CoreLib.dll` e demais DLLs precisam estar consistentes com `managed/framework.sha256` (nome + TAB + SHA256). O projeto Android compila `libbunny.so` e `libbunnymonoprobe.so` para ARM64.
+## 4. Como compilar e o que está faltando fora do Git
 
-**Dependência crítica:** a produção atual usa Mono Android ARM64 8.0.23 com a política de sinais `mono_bunny_android_signal_policy_v1` em uma `libmonosgen-2.0.so` modificada e validada anteriormente. O workflow atual recupera esse binário de uma entrega privada; o NuGet oficial, sozinho, NÃO equivale a essa DLL modificada. Precisará obter um artefato permitido ou reproduzir a adaptação e validá-la.
+Os arquivos-fonte desta entrega já foram alterados para o C#. Os binários externos não vêm no GitHub público.
 
-Também são privados/externos o runtime e assets do Terraria, Unity classes, keystore e inputs da build com jogo. A fonte NÃO inclui ou autoriza redistribuição desses elementos. O workflow de referência é [workflow do projeto de desenvolvimento](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/.github/workflows/build-bunny-csharp-source-loader.yml) no repo de desenvolvimento; tem URLs, branches e secrets próprios, portanto deve ser adaptado, não importado literalmente.
+| Fonte ou dependência | Saída esperada |
+| --- | --- |
+| `experiments/csharp/BunnySourceSdk/` | `app/src/main/assets/managed/BunnySourceSdk.dll` |
+| `experiments/csharp/BunnySourceCompiler/` | `BunnySourceCompiler.dll` + `Microsoft.CodeAnalysis.dll` + `Microsoft.CodeAnalysis.CSharp.dll` no mesmo diretório |
+| `experiments/csharp/BunnyManagedProbe/` | `app/src/main/assets/managed/BunnyManagedProbe.dll` |
+| Framework .NET Mono Android ARM64 | DLLs como `System.Runtime.dll` e `System.Private.CoreLib.dll` |
+| Manifest gerado das DLLs | `app/src/main/assets/managed/framework.sha256`, cada linha como nome, TAB, hash SHA-256 |
+| CMake | `lib/arm64-v8a/libbunny.so` + `lib/arm64-v8a/libbunnymonoprobe.so` no APK |
+| Mono runtime ARM64 com sinais compatíveis | `lib/arm64-v8a/libmonosgen-2.0.so` no APK |
 
-## 7. Forma sugerida de adotar oficialmente
+**Dependência especialmente importante:** o meu build da `.95.2` utiliza Mono Android ARM64 `8.0.23` com um ajuste de política de sinais (símbolo `mono_bunny_android_signal_policy_v1`). Esse binário foi recuperado de um build anterior validado e armazenado **privadamente**. O Mono genérico do NuGet não possui necessariamente essa alteração. Por isso, apesar de os fontes estarem completos, ainda é preciso fornecer o runtime corrigido por um meio permitido, ou reproduzir o ajuste e validá-lo.
 
-Usar esta fonte completa como referência e fazer mudanças revisáveis na sua branch do original, em lotes: (1) SDK/Roslyn; (2) worker/Mono/CMake/Gradle; (3) bootstrap e auto-load; (4) registries e hooks C# + persistência; (5) exemplos, diagnósticos e interface; (6) QA com JS/C# simultâneos. Em cada lote, confirmar que mods JavaScript continuam funcionando.
+Os arquivos de jogo `libil2cpp.so`, `libunity.so`, assets do Terraria, classes Unity proprietárias, chave de assinatura e outros inputs protegidos também não são publicados no Git. Deixei como referência o [workflow com a receita de build do C#](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/blob/handoff/potato-bunny-csharp-20261018/.github/workflows/build-bunny-csharp-source-loader.yml). Esse workflow usa meus caminhos e segredos privados, então é necessário adaptá-lo à sua infraestrutura; não basta copiá-lo literalmente.
 
-**Testar em ARM64 de verdade:** jogo inicia; um JS e um C# funcionam isoladamente e juntos; o C# prepara antes de entrar no mundo; receitas/armaduras/minions/NPC/projéteis, saves/reentrada, pause/resume, morte/respawn, ativação/desativação, FPS, crashes e diagnósticos. Multiplayer e hot-unload não devem ser prometidos universalmente sem teste específico.
+Deixei `applicationId="com.bunnyloader.csharptest"` e versionamento experimental em `app/build.gradle.kts` para preservar o checkpoint de testes e evitar sobrepor sua instalação oficial. Eu recomendo que você só mude para o ID e a assinatura oficiais **depois de compilar e testar**. Mudar o ID também exige revisar paths/persistência e configurações vinculadas ao pacote.
 
-Para a `.95.2`, o cenário prioritário no aparelho é carregar `ExampleModCSharp 0.1.54`, criar e invocar minion, seguir/atacar, cancelar buff, reinvocar, morrer, salvar e reentrar. CI passou, mas esse roteiro ainda não foi executado no Android após corrigir o problema da `.95.1`.
+## 5. O que eu te entrego para subir no seu Git
 
-Créditos, licenças e marcas: Jonata Oliveira (Bunny Loader original), Mantovani (extensão C#). Preservar `LICENSE.md`, `LICENSING.md`, `THIRD_PARTY_NOTICES.md` e `TRADEMARKS.md`. Não disponibilizar APK integrado ao Terraria publicamente.
+Eu deixei o Android **direto na raiz** da branch `entrega/potato-bunny-original-com-csharp-20261018`. Os arquivos já estão encaixados. Você pode abrir e compilar o projeto, ou seguir o [guia de importação](IMPORTAR-NO-GITHUB-DO-POTATO.md) para copiá-los para uma branch do seu próprio repositório com um único comando, sem perder seu histórico.
 
-**English summary:** Full Android source, based on the latest upstream commit as checked on Oct 18, 2026. All 2,024 upstream files exist; 1,948 unchanged, 76 modified, 737 additions. C# runs on MonoVM/Roslyn/C++ with QuickJS preserved. Android CI built/signed the v95.2 artifact; device gameplay for the v95.2 minion fix is pending. Private game binaries and patched Mono are not included.
+Não fiz commit nem push no seu GitHub, porque essa etapa deve acontecer a partir do seu repositório e você precisa revisar o resultado. O script de importação não força merges, não apaga nada, não limpa diretórios, não altera a assinatura, não gera binários e não publica um APK.
+
+Se quiser manter as duas linguagens oficialmente, eu seguiria essa sequência de verificação após importar: abrir launcher; carregar mods JS; carregar mod C#; carregar JS e C# juntos; conferir preparação antes de entrar no mundo; receitas, acessórios, buffs, NPCs, projéteis, save/reentrada; e, por último, o minion `.95.2` com invocação, ataque, cancelamento de buff, reinvocação e respawn. Mediria FPS e comportamento no Android ARM64, sem inferir desempenho só pelos testes do CI.
+
+**Resumindo:** entreguei minha implementação de C# já acoplada ao seu projeto original, na estrutura que você usa. Mantive suas fontes JS e documentação original, registrei todas as diferenças com hashes e deixei claro o que foi testado e o que precisa de validação. A integração C# não executa código do tModLoader nem depende dos exemplos ExMod/Thorium; são APIs e backend próprios do Bunny.
+
+## 6. Créditos
+
+Eu mantive a autoria do **Jonata Oliveira** para o Bunny Loader original e os termos do [LICENSE.md](LICENSE.md), [LICENSING.md](LICENSING.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) e [TRADEMARKS.md](TRADEMARKS.md). O suporte C# é a extensão que desenvolvi para o projeto. Não inclui a redistribuição de recursos proprietários do Terraria ou Unity.
+
+*Mantovani*
