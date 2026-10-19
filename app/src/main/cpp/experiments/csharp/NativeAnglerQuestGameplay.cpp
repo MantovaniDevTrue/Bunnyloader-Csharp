@@ -329,6 +329,7 @@ bool updateQuests(const std::vector<Quest>& quests) {
 void pumpOnGameThread() {
     const uint64_t revision = registry().generation();
     if (revision == 0 && g_ownedTypes.empty()) return;
+    if (revision == g_appliedGeneration && g_active.empty() && g_ownedTypes.empty()) return;
     bool pending = revision != g_appliedGeneration;
     if (!pending && ++g_poll % 120u != 0) return;
     if (!g_swapHooked || !g_chatHooked || !g_questItems) {
@@ -355,6 +356,11 @@ void pumpOnGameThread() {
     if (pending)
         BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Hooks=2 Result=Installed",
                 quests.size());
+}
+
+void invalidateWorldSession() {
+    g_appliedGeneration = std::numeric_limits<uint64_t>::max();
+    g_poll = 0;
 }
 
 bool hooksInstalled() { return g_swapHooked && g_chatHooked; }
