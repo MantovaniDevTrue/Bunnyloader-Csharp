@@ -55,6 +55,12 @@ public sealed class TestMightyPrefix : BunnyPrefix
         rules.Allow("TestWand", 2);
     }
 
+    public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
+    {
+        conditions.RequireDamageBetween(10, 25);
+        conditions.RequireManaBetween(0, 8);
+    }
+
     public override void SetStats(ref PrefixStats stats)
     {
         stats.DamageMultiplier *= 1.2f;
