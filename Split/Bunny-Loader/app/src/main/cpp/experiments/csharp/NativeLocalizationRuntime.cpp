@@ -728,7 +728,7 @@ void pumpOnGameThread() {
 }
 );
     if(variant!=std::string::npos &&
-        (variant==0 || variant==s.size()-1 || s.find('
+        (variant==0 || variant==s.size()-1 || s[variant-1]=='.' || s[variant-1]=='/' || s.find('
 
 bool cultureId(const std::string& value) {
     if (value.size()<2 || value.size()>20) return false;
