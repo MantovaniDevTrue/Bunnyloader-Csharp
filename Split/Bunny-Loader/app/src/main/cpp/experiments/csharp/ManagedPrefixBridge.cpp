@@ -24,6 +24,8 @@ std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> g_itemApplyView =
     std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
+std::shared_ptr<const std::map<int, std::set<int>>> g_itemDenyView =
+    std::make_shared<const std::map<int, std::set<int>>>();
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
@@ -89,6 +91,63 @@ bool valid(const ManagedPrefixEntry& p) {
     return true;
 }
 
+}
+
+bool applyManagedItemPrefixDenials(
+    const std::string& modId,
+    const std::vector<std::pair<int, std::vector<std::string>>>& policies) {
+    if (policies.size() > 4096) return false;
+    std::map<int, std::set<int>> staged;
+    for (const auto& [itemType, entries] : policies) {
+        if (itemType < 1 || itemType > 32767 ||
+            entries.empty() || entries.size() > 32) return false;
+        std::set<int> ids;
+        for (const auto& token : entries) {
+            int prefix = -1;
+            const bool numeric = !token.empty() &&
+                std::all_of(token.begin(), token.end(),
+                    [](unsigned char ch) { return ch >= '0' && ch <= '9'; });
+            if (numeric) {
+                try {
+                    prefix = std::stoi(token);
+                } catch (...) {
+                    return false;
+                }
+            } else {
+                if (token.empty() || token.size() > 64 ||
+                    !((token[0] >= 'A' && token[0] <= 'Z') ||
+                      (token[0] >= 'a' && token[0] <= 'z') || token[0] == '_'))
+                    return false;
+                for (unsigned char ch : token)
+                    if (!((ch >= 'A' && ch <= 'Z') ||
+                          (ch >= 'a' && ch <= 'z') ||
+                          (ch >= '0' && ch <= '9') || ch == '_'))
+                        return false;
+                prefix = bl::runtime::modPrefixByKey(modId + "/" + token);
+            }
+            if (prefix < 1 || prefix > 255 || !ids.insert(prefix).second)
+                return false;
+        }
+        if (!staged.emplace(itemType, std::move(ids)).second)
+            return false;
+    }
+    if (staged.empty()) return true;
+    if (!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())
+        return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    auto previous = std::atomic_load_explicit(&g_itemDenyView, std::memory_order_acquire);
+    for (const auto& [type, denied] : staged)
+        if (previous->contains(type)) return false;
+    auto updated = std::make_shared<std::map<int, std::set<int>>>(*previous);
+    updated->insert(staged.begin(), staged.end());
+    std::shared_ptr<const std::map<int, std::set<int>>> published = updated;
+    std::atomic_store_explicit(&g_itemDenyView, std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() {
+    return std::atomic_load_explicit(&g_itemDenyView, std::memory_order_acquire);
 }
 
 bool applyManagedItemPrefixEffects(
