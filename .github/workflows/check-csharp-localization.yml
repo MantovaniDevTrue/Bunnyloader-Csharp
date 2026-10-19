@@ -1,0 +1,33 @@
+name: CSharp Localization Core
+
+on:
+  push:
+    branches:
+      - feat/csharp-content-localization-loader-20261019
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/tests/localization_loader/**'
+      - '.github/workflows/check-csharp-localization.yml'
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/tests/localization_loader/**'
+      - '.github/workflows/check-csharp-localization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-localization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile and run managed localization contract suite
+        run: dotnet run --project Split/Bunny-Loader/tests/localization_loader/LocalizationLoader.csproj --configuration Release
