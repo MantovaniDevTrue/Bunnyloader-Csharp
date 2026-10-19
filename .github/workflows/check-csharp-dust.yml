@@ -34,5 +34,5 @@ jobs:
         run: dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release
       - name: Compile and run C++ DustLoader ABI contracts
         run: |
-          c++ -std=c++17 -Wall -Wextra -Werror -I. tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
+          c++ -std=c++17 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
           "$RUNNER_TEMP/dust_contract"
