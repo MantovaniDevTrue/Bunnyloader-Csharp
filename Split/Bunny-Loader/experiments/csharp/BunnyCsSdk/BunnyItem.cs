@@ -50,7 +50,8 @@ public abstract class BunnyItem : BunnyShootSource
     public void SetRarity<T>() where T : BunnyRarity
     {
         Type rarity = typeof(T);
-        if (rarity.IsAbstract || rarity.ContainsGenericParameters ||
+        if (rarity.Assembly != GetType().Assembly ||
+            rarity.IsAbstract || rarity.ContainsGenericParameters ||
             rarity.Name.Length == 0 || rarity.Name.Length > 72 ||
             !rarity.Name.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
             throw new ArgumentException("Expected a concrete registered BunnyRarity class");
