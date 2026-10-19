@@ -2,6 +2,9 @@
 #include <cstdint>
 
 namespace bl::csharp::tile_policy {
+inline constexpr int kSupportedManagedCallbacks = (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<7)|(1<<8)|(1<<12);
+inline bool validCallbackMask(int mask) { return mask >= 0 && (mask & ~kSupportedManagedCallbacks) == 0; }
+
 
 inline int leftOf2x1(int x, int frameX) {
     if (frameX < 0) return x;
