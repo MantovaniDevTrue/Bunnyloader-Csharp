@@ -62,6 +62,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
         }
@@ -240,6 +244,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
@@ -994,6 +1002,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
         },
@@ -1540,6 +1552,18 @@
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixApplyStats",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "int DamageBonus { get; set; }",
+        "int ValueBonus { get; set; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyPrefixRollRules",
@@ -2473,6 +2497,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
