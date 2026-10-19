@@ -51,4 +51,6 @@ jobs:
             --configuration Release --nologo
           dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj \
             --configuration Release --nologo
+          dotnet run --project tests/angler_quest/HostFixture.csproj \
+            --configuration Release --no-launch-profile --nologo
 
