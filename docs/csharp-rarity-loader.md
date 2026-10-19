@@ -35,6 +35,18 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 
 **Estado:** registro de IDs e handoff de declarações estão implementados, mas ainda não há a ligação desses IDs de volta aos objetos gerenciados no momento de `SetStaticDefaults`. Não foi implementado nenhum hook de desenho. A nova revisão aguarda verificação CI no SHA atual. Nenhuma alteração publica APK.
 
+## Checkpoint — dispatcher MonoVM e testes reais de host (19/10)
+
+- Novo `BunnyRarityRuntime.Dispatch` em C# no SDK efetivo: vincula todas as raridades de um assembly **em lote**, atribuindo os IDs do host antes de `SetStaticDefaults`, permite lookup por tipo, remove registros do mod e isola exceções.
+- A rota `RarityColor` recebe os canais Disco do host e devolve `COLOR|R|G|B|A`; a rota de prefixo recebe o multiplicador e devolve `RARITY|N`. São contratos de worker, **não hooks de desenho já instalados**.
+- `ManagedRuntime.cpp` reutiliza a fila MonoVM limitada existente com despacho próprio `BunnyRarityRuntime`, pré-aquecimento por mod e API nativa para consultas limitadas. `AutoSourceRuntime.cpp` envia todas as identidades `RARITY:Classe -> ID` após a aplicação dos defaults C# e inclui mods que têm apenas raridades no prewarm.
+- Foram portadas, como **fixtures C# isoladas**, as duas raridades do ExampleModBunny: `ExampleModRarity` e `ExampleHigherTierModRarity`. Os testes verificam cor fixa, Disco, transições nos dois sentidos, IDs 14/15 e 18/19, colisão de IDs, perda de bind e descarregamento.
+- A CI de host executa C#, teste nativo de IDs/parser, compilação `-Wall -Wextra -Werror` de `SourceLoader.cpp` e `AutoSourceRuntime.cpp` e regressões reais do worker C++. Também regenera a referência pública do SDK a partir do assembly compilado.
+
+**Evidência:** [RarityLoader Core #39312836894](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39312836894) concluiu com sucesso no SHA `e9c87664ce321f807d3898559ecbb19d28567c8c`. Nenhuma build Android, APK, `.bmod` ou confirmação de FPS ocorreu.
+
+**Atenção:** o prewarm é enfileirado, mas ainda precisa do gate de conclusão em sessão antes de consultar raridades. A fila nativa não equivale ao hook de Terraria. O item jogável de exemplo e os hooks visuais ainda não estão completos.
+
 ## Bloqueios para declarar o loader completo
 
 1. Concluir o handoff dos IDs nativos para as instâncias `BunnyRarity` no worker, inicializando `SetStaticDefaults` no momento correto, e coordenar raridades entre mods C# e JS sem colisões.
