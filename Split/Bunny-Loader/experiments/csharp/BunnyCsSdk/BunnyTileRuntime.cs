@@ -13,6 +13,7 @@ public static class BunnyTileRuntime {
         public string Path = "";
         public Assembly Assembly = null!;
         public readonly Dictionary<string, BunnyTile> Tiles = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> Masks = new(StringComparer.Ordinal);
     }
     private static readonly Dictionary<string, Mod> Mods = new(StringComparer.Ordinal);
     private static readonly string[] Names = {
@@ -52,9 +53,10 @@ public static class BunnyTileRuntime {
                         RuntimeHelpers.PrepareMethod(method.MethodHandle);
                 }
                 mod.Tiles.Add(owner, tile);
+                mod.Masks.Add(owner, tile.TileCallbackMask);
             }
             if (kind == 2) return "READY";
-            if ((tile.TileCallbackMask & (1 << index)) == 0) return "DEFAULT";
+            if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             if (fields.Length != 2) return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
