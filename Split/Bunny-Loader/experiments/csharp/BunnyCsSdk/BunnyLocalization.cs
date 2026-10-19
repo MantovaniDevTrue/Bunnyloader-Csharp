@@ -131,7 +131,15 @@ public sealed partial class BunnyLocalizationCatalog
                     [culture] = text
                 }, culture);
             if (next.Count > MaxEntries) throw new InvalidOperationException("Localization catalog exceeds its entry limit");
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
+            var registered = new Dictionary<string, TextEntry>(snapshot.Overrides, StringComparer.Ordinal);
+            if (registered.TryGetValue(fullKey, out TextEntry? overrideEntry))
+                registered[fullKey] = overrideEntry.With(culture, text);
+            else
+                registered[fullKey] = new TextEntry(new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [culture] = text
+                }, culture);
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), registered));
         }
     }
 
@@ -167,7 +175,20 @@ public sealed partial class BunnyLocalizationCatalog
             }
             if (next.Count > MaxEntries)
                 throw new InvalidOperationException("Localization catalog exceeds its entry limit");
-            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
+            var registered = new Dictionary<string, TextEntry>(snapshot.Overrides, StringComparer.Ordinal);
+            if (registered.TryGetValue(fullKey, out TextEntry? overrideEntry))
+            {
+                foreach (var culture in checkedCultures)
+                    overrideEntry = overrideEntry.With(culture.Key, culture.Value);
+                registered[fullKey] = overrideEntry;
+            }
+            else
+            {
+                string firstCulture = "";
+                foreach (string name in checkedCultures.Keys) { firstCulture = name; break; }
+                registered[fullKey] = new TextEntry(new Dictionary<string, string>(checkedCultures, StringComparer.Ordinal), firstCulture);
+            }
+            Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), registered));
         }
     }
 
@@ -229,6 +250,19 @@ public sealed partial class BunnyLocalizationCatalog
                         throw new InvalidOperationException("Localization catalog exceeds its entry limit");
                 }
             }
+            foreach (var registered in snapshot.Overrides)
+            {
+                if (!registered.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                if (next.TryGetValue(registered.Key, out TextEntry? existing))
+                {
+                    foreach (var culture in registered.Value.Cultures)
+                        existing = existing.With(culture.Key, culture.Value);
+                    next[registered.Key] = existing;
+                }
+                else next[registered.Key] = registered.Value;
+            }
+            if (next.Count > MaxEntries)
+                throw new InvalidOperationException("Localization catalog exceeds its entry limit");
             Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
         }
     }
@@ -241,14 +275,16 @@ public sealed partial class BunnyLocalizationCatalog
         {
             var snapshot = current;
             var next = new Dictionary<string, TextEntry>(snapshot.Entries, StringComparer.Ordinal);
+            var registered = new Dictionary<string, TextEntry>(snapshot.Overrides, StringComparer.Ordinal);
             int removed = 0;
             foreach (string key in snapshot.Entries.Keys)
             {
                 if (!key.StartsWith(prefix, StringComparison.Ordinal)) continue;
                 if (next.Remove(key)) removed++;
+                registered.Remove(key);
             }
             if (removed != 0)
-                Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), snapshot.Overrides));
+                Volatile.Write(ref current, new State(next, snapshot.Culture, checked(snapshot.Revision + 1), registered));
         }
     }
 
