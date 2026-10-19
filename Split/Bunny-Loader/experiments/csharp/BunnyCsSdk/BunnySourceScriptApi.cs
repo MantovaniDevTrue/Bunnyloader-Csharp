@@ -85,6 +85,7 @@ public abstract class BunnyWeapon : BunnyShootSource
     public int UseTime { get; set; } = 18;
     public float ShootSpeed { get; set; } = 12f;
     public string Shoot { get; set; } = "";
+    public bool? PrefixChance { get; set; }
     public bool Summon { get; set; }
     public string MinionBuff { get; set; } = "";
     public int MinionBuffTime { get; set; } = 2;
@@ -121,6 +122,7 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public string Texture { get; set; } = "";
     public string Buff { get; set; } = "";
     public int Duration { get; set; } = 600;
+    public bool? PrefixChance { get; set; }
     public abstract void SetDefaults();
 }
 
@@ -139,6 +141,7 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;
+    public bool? PrefixChance { get; set; }
     public string Tooltip { get; set; } = "";
     public BunnyAccessoryVisualMode VisualMode { get; set; } = BunnyAccessoryVisualMode.None;
     public string VisualTexture { get; set; } = "";
