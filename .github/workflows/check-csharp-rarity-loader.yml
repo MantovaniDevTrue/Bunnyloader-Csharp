@@ -1,0 +1,24 @@
+name: Check CSharp RarityLoader Core
+on:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/tests/rarity_loader/**'
+      - '.github/workflows/check-csharp-rarity-loader.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rarity-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test CSharp rarity contracts without APK or game
+        run: dotnet run --project Split/Bunny-Loader/tests/rarity_loader/RarityLoaderHost.csproj --configuration Release
