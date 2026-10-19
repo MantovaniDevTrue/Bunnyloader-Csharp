@@ -153,3 +153,24 @@ public override void ConfigureRollRules(BunnyPrefixRollRules rules)
 A extensão mantém os mesmos 16 campos antigos quando não há regras e o campo opcional 17 com duas formas compatíveis por item: `nome:peso` (sem autorização explícita, comportamento anterior) e `nome:peso:0`/`nome:peso:1`. IDs numéricos usam o mesmo protocolo. O parser nativo aceita somente permissão 0 ou 1; associa cada permissão a um item realmente declarado; resolve nomes próprios do mod antes de publicar a visão imutável.
 
 **Escopo:** são políticas declarativas por tipo de item, não callbacks C# arbitrários por instância. O contrato não cobre estado de item, jogador, mundo, tempos ou RNG do método JS original. Nenhuma chamada ao MonoVM ou JavaScript é acrescentada no hot path. É necessário validar gameplay e FPS no Android antes de certificar o loader completo.
+
+## PreferFor — primeira política ChoosePrefix nativa
+
+O `PrefixLoader.js` original chama `ModItem.ChoosePrefix(item, rand)` e `GlobalItem.ChoosePrefix(item, rand)` antes da rolagem natural. O SDK C# agora expõe um subconjunto estático, preparado no MonoVM, `BunnyPrefixRollRules.PreferFor(int itemType)` e `PreferFor(string ownModItemName)`. A preferência pertence ao `BunnyPrefix` e não constitui um callback arbitrário do item:
+
+```csharp
+public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+{
+    rules.Allow("ExampleGun", 0);
+    rules.SetCanRoll("ExampleGun", true);
+    rules.PreferFor("ExampleGun");
+}
+```
+
+O método `PreferFor` só aceita itens já declarados em `Allow` ou `SetWeight` com `CanRoll` efetivamente positivo. Caso o peso seja zero, uma autorização separada `SetCanRoll(item, true)` é obrigatória. Uma chamada posterior a `Deny(item)` ou `SetCanRoll(item, false)` cancela a preferência. No wire opcional da linha `PREFIX`, preferência aparece como `item:weight:1:1`, mantendo `item:weight` e `item:weight:0/1` compatíveis.
+
+`SourceLoader.cpp` valida o quarto campo e o `ManagedPrefixBridge` resolve os nomes do próprio mod para IDs da sessão. Durante o registro atômico, impede duas preferências para o mesmo item — inclusive entre mods C# já carregados. `ManagedPrefixGameplay::hookRoll` preserva a restauração de prefixo acima de tudo; caso não haja restauração, seleciona o prefixo preferido elegível antes de chamar o sorteio natural. Sem preferência, todo o caminho anterior continua. Não adiciona consulta gerenciada por reforja, apenas busca no snapshot imutável.
+
+Os testes C# de `PrefixFixture` exercitam `PreferFor`, serialização, cancelamento e rejeição de itens não autorizados. Os testes C++ cobrem resolução por nome, exclusividade, rollback e a escolha real no hook nativo, inclusive peso natural zero.
+
+**Limites:** esta é uma escolha declarativa por tipo, não a API `ModItem.ChoosePrefix(item, rand)` completa do ExampleModBunny; RNG customizado, `GlobalItem`, estado por instância, `PrefixChance`, `ApplyPrefix` e comportamento multiplayer não foram implementados nesta etapa. A verificação do SDK global pode apresentar diferenças relacionadas à PR de Tiles em paralelo; nenhum teste de host equivale a validar APK/FPS no Android.
