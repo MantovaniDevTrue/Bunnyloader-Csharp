@@ -39,6 +39,7 @@ int main() {
     assert(!tile_particle::parseReply(
         "DRAW|0|0|16|16|0|0|0|0\nPARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967295\nSPRITES|1|754,3,4,0,0,16,16,0,0,4294967295",
         &draw,&sprites,&hasSprites,&particles,&hasParticles));
+    assert(tile_particle::parse("PARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967295",&particles));
     tile_particle::ParticleQueue queue;
     assert(!queue.stage(0,particles));
     assert(queue.stage(1,particles)&&queue.pendingFor(1));
