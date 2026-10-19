@@ -12,6 +12,7 @@
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeTileFlags.h"
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
+#include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -2332,7 +2333,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             (entry.animationFrames == 1 && entry.animationFrameTicks != 0) ||
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
             entry.adjacentTiles.size() > 16 ||
-            entry.callbackMask < 0 || entry.callbackMask > 8191 ||
+            !tile_policy::validCallbackMask(entry.callbackMask) ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)
