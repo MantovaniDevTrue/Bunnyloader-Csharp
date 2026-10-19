@@ -33,6 +33,12 @@ std::map<std::string,std::string> g_assemblyByMod;
 bool g_wireInstalled = false;
 bool g_overgroundInstalled = false;
 bool g_undergroundInstalled = false;
+bool g_interactInstalled=false;
+bool g_slopeInstalled=false;
+bool g_poundInstalled=false;
+int g_useAttempt=-1,g_useRelease=-1,g_useHappened=-1;
+FieldInfo* g_gameUpdateField=nullptr;
+std::map<Il2CppObject*,uint64_t> g_lastUseFrames;
 bool g_installed = false;
 bool g_dropInstalled = false;
 bool g_dustInstalled = false;
@@ -63,6 +69,12 @@ using WireFn=void (*)(int32_t,int32_t,const MethodInfo*);
 using RandomFn=void (*)(int32_t,int32_t,bool,int32_t,const MethodInfo*);
 WireFn g_origWire=nullptr;
 RandomFn g_origOverground=nullptr,g_origUnderground=nullptr;
+using UseFn=void (*)(Il2CppObject*,int32_t,int32_t,const MethodInfo*);
+using SlopeFn=bool (*)(int32_t,int32_t,int32_t,bool,bool,const MethodInfo*);
+using PoundFn=bool (*)(int32_t,int32_t,const MethodInfo*);
+UseFn g_origUse=nullptr;
+SlopeFn g_origSlope=nullptr;
+PoundFn g_origPound=nullptr;
 CanKillFn g_origCanKill = nullptr;
 const MethodInfo* g_largeDropMethod = nullptr;
 FieldInfo* g_solidField = nullptr;
@@ -452,6 +464,98 @@ bool setupTileWorldHooks(bool wire,bool random) {
     }
     return true;
 }
+
+void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
+    if(g_origUse)g_origUse(player,x,y,method);
+    if(!player||!g_interactInstalled)return;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<4))==0)return;
+    const auto* bytes=reinterpret_cast<const uint8_t*>(player);
+    if(!bytes[g_useAttempt])return;
+    uint64_t frame=0;
+    il2cpp::api().field_static_get_value(g_gameUpdateField,&frame);
+    auto old=g_lastUseFrames.find(player);
+    if(old!=g_lastUseFrames.end()&&old->second==frame)return;
+    const bool fresh=bytes[g_useRelease]||old==g_lastUseFrames.end()||
+        (frame>old->second&&frame-old->second>1);
+    g_lastUseFrames[player]=frame;
+    if(!fresh)return;
+    bool handled=false;
+    if(invokeTileBool(it->second.spec,4,x,y,&handled)&&handled)
+        reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
+}
+bool setupTileInteractHook() {
+    if(g_interactInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.field_static_get_value||!a.method_get_param||!a.method_get_param_count||
+        !a.method_get_return_type)return false;
+    auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    std::string error;
+    FieldInfo *attempt=nullptr,*release=nullptr,*happened=nullptr,*frame=nullptr;
+    int attemptAt=-1,releaseAt=-1,happenedAt=-1;
+    if(!il2cpp::nativeFieldContract(player,"tileInteractAttempted","System.Boolean",
+           false,1,&attempt,&attemptAt,&error) ||
+       !il2cpp::nativeFieldContract(player,"releaseUseTile","System.Boolean",
+           false,1,&release,&releaseAt,&error) ||
+       !il2cpp::nativeFieldContract(player,"tileInteractionHappened","System.Boolean",
+           false,1,&happened,&happenedAt,&error) ||
+       !il2cpp::nativeFieldContract(main,"GameUpdateCount","System.UInt64",
+           true,8,&frame,nullptr,&error)) {
+        BL_ERROR("[CSharp][TileUse] ABI incompatível: %s",error.c_str());return false;
+    }
+    const MethodInfo* method=player?a.class_get_method_from_name(player,"TileInteractionsUse",2):nullptr;
+    if(!method||a.method_get_param_count(method)!=2||
+       !nameOf(a.method_get_param(method,0),"System.Int32")||
+       !nameOf(a.method_get_param(method,1),"System.Int32")||
+       !nameOf(a.method_get_return_type(method),"System.Void")||
+       !il2cpp::methodPointer(method)||!hook::install(method,hkTileUse,&g_origUse))return false;
+    g_useAttempt=attemptAt;g_useRelease=releaseAt;
+    g_useHappened=happenedAt;g_gameUpdateField=frame;g_interactInstalled=true;
+    return true;
+}
+bool hkSlopeTile(int32_t x,int32_t y,int32_t slope,bool noEffects,bool quiet,
+                 const MethodInfo* method) {
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    bool allowed=true;
+    if(it!=g_tiles.end()&&invokeTileBool(it->second.spec,8,x,y,&allowed)&&!allowed)return false;
+    return g_origSlope?g_origSlope(x,y,slope,noEffects,quiet,method):false;
+}
+bool hkPoundTile(int32_t x,int32_t y,const MethodInfo* method) {
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    bool allowed=true;
+    if(it!=g_tiles.end()&&invokeTileBool(it->second.spec,8,x,y,&allowed)&&!allowed)return false;
+    return g_origPound?g_origPound(x,y,method):false;
+}
+bool setupTileSlopeHooks() {
+    if(g_slopeInstalled&&g_poundInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param||!a.method_get_param_count||!a.method_get_return_type)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* slope=world?a.class_get_method_from_name(world,"SlopeTile",5):nullptr;
+    const auto* pound=world?a.class_get_method_from_name(world,"PoundTile",2):nullptr;
+    if(!slope||!pound||a.method_get_param_count(slope)!=5||
+       a.method_get_param_count(pound)!=2||
+       !nameOf(a.method_get_return_type(slope),"System.Boolean")||
+       !nameOf(a.method_get_return_type(pound),"System.Boolean")||
+       !nameOf(a.method_get_param(slope,0),"System.Int32")||
+       !nameOf(a.method_get_param(slope,1),"System.Int32")||
+       !nameOf(a.method_get_param(slope,2),"System.Int32")||
+       !nameOf(a.method_get_param(slope,3),"System.Boolean")||
+       !nameOf(a.method_get_param(slope,4),"System.Boolean")||
+       !nameOf(a.method_get_param(pound,0),"System.Int32")||
+       !nameOf(a.method_get_param(pound,1),"System.Int32")||
+       !il2cpp::methodPointer(slope)||!il2cpp::methodPointer(pound))return false;
+    if(!g_slopeInstalled) {
+        if(!hook::install(slope,hkSlopeTile,&g_origSlope))return false;
+        g_slopeInstalled=true;
+    }
+    if(!g_poundInstalled) {
+        if(!hook::install(pound,hkPoundTile,&g_origPound))return false;
+        g_poundInstalled=true;
+    }
+    return true;
+}
 bool setupHooks() {
     if (g_installed) return g_dropInstalled && g_dustInstalled && g_frameInstalled;
     g_installed = true;
@@ -524,6 +628,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(), spec.name.c_str());
         return false;
     }
+    if((spec.callbackMask&(1<<4))&&!setupTileInteractHook())return false;
+    if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
         BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
                  spec.mod.c_str(),spec.name.c_str());
