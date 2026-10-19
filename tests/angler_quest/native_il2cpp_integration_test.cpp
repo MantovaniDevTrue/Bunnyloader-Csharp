@@ -55,6 +55,7 @@ MethodInfo kCulture{"get_ActiveCulture","Terraria.Localization.GameCulture",null
 MethodInfo kCultureName{"get_Name","System.String",nullptr,true};
 Il2CppArray* gIds=nullptr;
 Il2CppArray* gFlags=nullptr;
+Il2CppArray* gRack=nullptr;
 int32_t gSelected=0;
 int32_t gCorner=0;
 uint8_t gFinished=0, gHard=0;
@@ -63,6 +64,7 @@ int gSwapCalls=0;
 std::string gCulture="en-US";
 FieldInfo fIds{"anglerQuestItemNetIDs",&kIntArrayType,&gIds,sizeof(gIds)};
 FieldInfo fFlags{"IsQuestFish",&kBoolArrayType,&gFlags,sizeof(gFlags)};
+FieldInfo fRack{"CanBePlacedOnWeaponRacks",&kBoolArrayType,&gRack,sizeof(gRack)};
 FieldInfo fIndex{"anglerQuest",&kIntType,&gSelected,sizeof(gSelected)};
 FieldInfo fCorner{"npcChatCornerItem",&kIntType,&gCorner,sizeof(gCorner)};
 FieldInfo fFinished{"anglerQuestFinished",&kBoolType,&gFinished,sizeof(gFinished)};
@@ -100,9 +102,9 @@ const MethodInfo* findMethod(Il2CppClass* cls,const char* name,int count) {
     return nullptr;
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
-    FieldInfo* fields[]={&fIds,&fFlags,&fIndex,&fCorner,&fFinished,&fHard};
+    FieldInfo* fields[]={&fIds,&fFlags,&fRack,&fIndex,&fCorner,&fFinished,&fHard};
     for(auto* f:fields)if(name==f->name &&
-        ((cls==&kMain && f!=&fFlags)||(cls==&kSets && f==&fFlags)))
+        ((cls==&kMain && f!=&fFlags)||(cls==&kSets && (f==&fFlags || f==&fRack))))
             return f;
     return nullptr;
 }
@@ -209,6 +211,7 @@ int main() {
     auto* data=static_cast<int32_t*>(arrayData(gIds));
     data[0]=10;data[1]=500;data[2]=11;
     gFlags=array(&kBool,128);
+    gRack=array(&kBool,128);
     std::string error;
     using bl::csharp::angler::Quest;
     auto& reg=bl::csharp::angler::registry();
@@ -225,6 +228,7 @@ int main() {
     assert(bl::csharp::angler::hooksInstalled());
     assert((ids()==std::vector<int>{10,500,11,850}));
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==1);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
     assert(hookedSwap && hookedChat);
 
     gSelected=3;
@@ -251,6 +255,7 @@ int main() {
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11}));
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==0);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==0);
     assert(gSelected==0);
     assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
     bl::csharp::angler::invalidateWorldSession();
