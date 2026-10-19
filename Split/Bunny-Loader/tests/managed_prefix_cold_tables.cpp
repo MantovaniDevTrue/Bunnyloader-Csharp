@@ -318,6 +318,10 @@ int main() {
     assert(!hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
     assert(!hookItemPrefixChance(&weapon.object, -2, &chanceTier, nullptr));
     assert(chanceOriginalCalls == originalCalls);
+    g_restoreRoll = {&weapon.object, 99, false};
+    assert(hookItemPrefixChance(&weapon.object, -2, &chanceTier, nullptr));
+    assert(receivedChanceWant == -2);
+    g_restoreRoll = {};
     assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
     assert(receivedChanceWant == 99 && chanceOriginalCalls == originalCalls + 1);
     weapon.type = 6198;
