@@ -222,13 +222,15 @@ Check("runtime.original-example-assembly-wire", () =>
     try
     {
         string diagnostic = Path.Combine(scratch, "diagnostics.txt");
-        Equal(3, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
+        Equal(4, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
         var descriptors = File.ReadAllLines(Path.Combine(scratch, "source-runtime-values.txt"));
-        Equal(5, descriptors.Length);
-        Equal(true, descriptors[1].StartsWith("ITEM\tExampleRarityItem\t", StringComparison.Ordinal));
-        Equal("RARITY\tExampleHigherTierModRarity", descriptors[2]);
-        Equal("RARITY\tExampleModRarity", descriptors[3]);
-        Equal("ITEM_RARITY\tExampleRarityItem\tExampleModRarity", descriptors[4]);
+        Equal("BUNNY_MANAGED_DEFAULTS_V2", descriptors[0]);
+        Equal(true, descriptors.Any(s => s.StartsWith("ITEM\tExampleRarityItem\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Any(s => s.StartsWith("ACCESSORY\tExampleRarityAccessory\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Contains("RARITY\tExampleHigherTierModRarity"));
+        Equal(true, descriptors.Contains("RARITY\tExampleModRarity"));
+        Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityItem\tExampleModRarity"));
+        Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityAccessory\tExampleHigherTierModRarity"));
     }
     finally
     {
@@ -246,6 +248,10 @@ Check("item.typed-rarity-uses-owner-identity-not-runtime-integer", () =>
     second.SetRarity<ExampleModCSharp.Rarities.ExampleHigherTierModRarity>();
     Equal("ExampleHigherTierModRarity", second.ModRarityClassName);
     Throws<ArgumentException>(() => second.SetRarity<RisingRarity>());
+    var accessory = new ExampleModCSharp.Rarities.ExampleRarityAccessory();
+    accessory.SetDefaults();
+    Equal("ExampleHigherTierModRarity", accessory.ModRarityClassName);
+    Throws<ArgumentException>(() => accessory.SetRarity<RisingRarity>());
 });
 
 Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
