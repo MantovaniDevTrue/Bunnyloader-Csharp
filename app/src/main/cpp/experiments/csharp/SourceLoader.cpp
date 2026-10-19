@@ -9,6 +9,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/dusts/ModDusts.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
@@ -370,7 +371,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 9> order = {
+    const std::array<std::string, 10> order = {
+        "BunnyDust",
         "BunnyTile", "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
         "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
@@ -378,6 +380,55 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     for (const auto& base : order) {
         for (const auto& def : defs) {
             if (def.base != base) continue;
+            if (base == "BunnyDust") {
+                for (const auto& [key, value] : def.properties) {
+                    if (key != "Texture" && key != "DisplayName") {
+                        status->error = "[CSharp][DustLoader] Class=" + def.name +
+                            " Stage=EarlyRegister Reason=UnsupportedProperty:" + key;
+                        return false;
+                    }
+                }
+                std::string texture;
+                const auto it = def.properties.find("Texture");
+                if (it != def.properties.end()) texture = it->second;
+                if (!texture.empty()) {
+                    if (texture.size() > 240 || texture[0] == '/' ||
+                        texture.find("..") != std::string::npos ||
+                        texture.find('\\\\') != std::string::npos ||
+                        texture.find(':') != std::string::npos ||
+                        texture.find('|') != std::string::npos ||
+                        !texture.ends_with(".png")) {
+                        status->error = def.name + ": textura BunnyDust invalida";
+                        return false;
+                    }
+                    for (unsigned char ch : texture) {
+                        if (ch < 32 || ch == 127) {
+                            status->error = def.name + ": caractere invalido em textura BunnyDust";
+                            return false;
+                        }
+                    }
+                    const std::string asset = mod.dir + "/content/" + texture;
+                    struct stat st{};
+                    if (stat(asset.c_str(), &st) != 0 || !S_ISREG(st.st_mode) || st.st_size <= 0) {
+                        status->error = def.name + ": asset BunnyDust nao encontrado: " + texture;
+                        return false;
+                    }
+                    texture = asset;
+                }
+                bl::runtime::ModDustDef dust;
+                dust.mod = mod.id;
+                dust.name = def.name;
+                dust.texture = std::move(texture);
+                dust.hooks = 0;
+                const int type = bl::runtime::registerModDust(std::move(dust));
+                if (type < 0) {
+                    status->error = def.name + ": falha ao reservar BunnyDust";
+                    return false;
+                }
+                typed[sourceIdentityForBase(def.base, def.name)] = type;
+                ++status->dusts;
+                continue;
+            }
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
                     if (key != "DisplayName" && key != "Category" &&
@@ -578,7 +629,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
-    if (status->items+status->tiles+status->projectiles+status->buffs+
+    if (status->items+status->tiles+status->dusts+status->projectiles+status->buffs+
         status->npcs+status->prefixes+status->players+status->screenEffects==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
