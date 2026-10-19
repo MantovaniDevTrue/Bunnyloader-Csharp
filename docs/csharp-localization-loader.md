@@ -72,6 +72,15 @@ O método de descarregamento agora é *fail-safe*: se a API nativa de remoção 
 
 **Limite de certificação:** a API interna `_localizedTexts`, os métodos genéricos `Remove` e a preservação de referências são verificados estaticamente por contrato e política de host; ainda não existe teste real na libil2cpp do Terraria 1.4.5.8.6. Esse lote não declara descarregamento físico nem atualização de tooltips como validados em gameplay.
 
+## Paridade adicional da API gerenciada
+
+- `BunnyLocalizationCatalog.Register(fullKey, cultures)` aceita um mapa de culturas como `ModLocalization.Register(key, { cultura: texto })` do Bunny JS: valida todas as entradas antes de publicar o snapshot, mantém outras culturas da chave e atualiza os valores por idioma sem publicar estado parcial.
+- `BunnyLocalizationCatalog.Key(path, callerModId)` retorna `Mods.<id>.<path>` somente para uma chave já declarada pelo mod chamador, como o `ModLocalization.Key` do ExampleModBunny; chaves ausentes continuam inalteradas.
+- `BunnyLocalizationCatalog.Texts(path, callerModId)` retorna uma cópia das traduções nas culturas realmente declaradas, com referências `{$...}` resolvidas em cada cultura sem alterar a cultura ativa.
+- A suíte gerenciada verifica registro de várias culturas, colisão, fallback `en-US`, entrada inválida, atomicidade, resolução `Key`, expansão de `Texts` e identidade do idioma.
+
+**Limitação importante:** esses métodos funcionam no catálogo C# gerenciado e estão expostos no SDK, mas alterações dinâmicas feitas dentro de uma sessão MonoVM ainda não são transmitidas ao publicador IL2CPP; também falta acionar `OnLocalizationsLoaded` no assembly C# após aplicação real. Não chamar essas duas partes de completas.
+
 ## Pendências obrigatórias para declarar completo
 
 1. **Validar no Terraria Android** a nova ponte C++ (incluindo ABI exata dos métodos IL2CPP, chamada e efeito real na thread do jogo) e a serialização de ida e volta de cache quente/frio. Os testes gerenciados anteriores não cobrem a integração nativa nova.
