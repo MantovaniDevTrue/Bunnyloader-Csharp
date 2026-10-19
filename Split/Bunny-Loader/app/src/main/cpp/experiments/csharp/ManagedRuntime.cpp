@@ -290,6 +290,15 @@ struct RecipeRpcJob {
     bool shooting=false;
     bool tile=false;
 };
+struct LocalizationJob {
+    std::string modId;
+    std::string assemblyPath;
+    std::string culture;
+    bool unload = false;
+};
+std::deque<LocalizationJob> g_localizationQueue;
+void* g_localizationDispatchMethod = nullptr;
+void* g_localizationUnloadMethod = nullptr;
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
@@ -1419,6 +1428,53 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     release(value);return output;
 }
 
+std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.methodExecuted || !g_api.attach ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.newString || !g_api.invoke) return "PENDING|MonoNotReady";
+    if (!g_api.attach(g_domain)) return "ERROR|MonoAttachFailed";
+    if (!g_localizationDispatchMethod || !g_localizationUnloadMethod) {
+        const auto slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return "ERROR|InvalidSdkPath";
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return "ERROR|MissingSdk";
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLocalizationRuntime") : nullptr;
+        if (!klass) return "ERROR|MissingLocalizationRuntime";
+        g_localizationDispatchMethod = g_api.findMethod(klass, "Dispatch", 3);
+        g_localizationUnloadMethod = g_api.findMethod(klass, "Unload", 1);
+        if (!g_localizationDispatchMethod || !g_localizationUnloadMethod)
+            return "ERROR|MissingLocalizationMethods";
+    }
+    void* id = g_api.newString(g_domain, job.modId.c_str());
+    if (!id) return "ERROR|MonoIdAllocation";
+    void* exception = nullptr;
+    if (job.unload) {
+        void* args[] = {id};
+        g_api.invoke(g_localizationUnloadMethod, nullptr, args, &exception);
+        return exception ? "ERROR|MonoUnloadException" : "OK|Unload";
+    }
+    void* assembly = g_api.newString(g_domain, job.assemblyPath.c_str());
+    void* culture = g_api.newString(g_domain, job.culture.c_str());
+    if (!assembly || !culture) return "ERROR|MonoStringAllocation";
+    void* args[] = {id, assembly, culture};
+    void* value = g_api.invoke(g_localizationDispatchMethod, nullptr, args, &exception);
+    if (exception || !value) return "ERROR|MonoDispatchException";
+    using Utf8 = char* (*)(void*);
+    using Release = void (*)(void*);
+    static auto utf8 = resolve<Utf8>("mono_string_to_utf8");
+    static auto release = resolve<Release>("mono_free");
+    if (!utf8 || !release) return "ERROR|MonoStringExportsMissing";
+    char* text = utf8(value);
+    if (!text) return "ERROR|MonoStringDecode";
+    const size_t length = strnlen(text, 257);
+    std::string result = length <= 256 ? std::string(text, length) : "ERROR|ResponseTooLarge";
+    release(text);
+    return result;
+}
+
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
                                 ManagedScreenLightResult* result) {
     if (!result) return false;
@@ -1505,6 +1561,26 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                    !g_localizationQueue.empty()) {
+                    LocalizationJob job = std::move(g_localizationQueue.front());
+                    g_localizationQueue.pop_front();
+                    lock.unlock();
+                    const std::string result = executeManagedLocalizationOnWorker(job);
+                    if (result.rfind("OK|", 0) != 0) {
+#ifdef __ANDROID__
+                        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s",
+                            job.modId.c_str(), result.c_str());
+#else
+                        std::fprintf(stderr,
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s\n",
+                            job.modId.c_str(), result.c_str());
+#endif
+                    }
+                    lock.lock();
+                    continue;
+                }
                 // Bounded synchronous callbacks must not wait behind polling, event or AI backlogs.
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (g_universalPolling.load(std::memory_order_acquire)) {
@@ -1969,6 +2045,38 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+
+bool queueManagedLocalizationLoaded(const std::string& modId,
+                                    const std::string& assemblyPath,
+                                    const std::string& culture) {
+    if (modId.empty() || modId.size() > 64 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        culture.size() < 2 || culture.size() > 20) return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_localizationQueue.empty()) {
+        auto& last = g_localizationQueue.back();
+        if (!last.unload && last.modId == modId && last.assemblyPath == assemblyPath) {
+            last.culture = culture;
+            return true;
+        }
+    }
+    if (g_localizationQueue.size() >= 64) return false;
+    g_localizationQueue.push_back({modId, assemblyPath, culture, false});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void unloadManagedLocalizationCallbacks(const std::string& modId) {
+    if (modId.empty() || modId.size() > 64) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_localizationQueue.erase(std::remove_if(g_localizationQueue.begin(),
+        g_localizationQueue.end(), [&](const LocalizationJob& job) {
+            return job.modId == modId;
+        }), g_localizationQueue.end());
+    if (g_localizationQueue.size() < 64)
+        g_localizationQueue.push_back({modId, "", "", true});
+    g_pinnedWake.notify_one();
+}
 
 bool registerManagedScreenSceneMod(const std::string& id,
                                    const std::string& assembly,
