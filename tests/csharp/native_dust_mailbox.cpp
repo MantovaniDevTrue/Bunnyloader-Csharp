@@ -65,6 +65,29 @@ int main() {
     assert(queue.complete(first,first.state,1u|32u));
     assert(queue.consume(0,1,500,332,1,203,&result));
     queue.resetWorld();
+    assert(queue.offer(0,0,sample(2),300));
+    assert(queue.offer(0,1,sample(2),300));
+    ManagedDustMailbox::Request stages[2]{};
+    assert(queue.take(stages,2)==2);
+    assert(stages[0].phase==0 && stages[1].phase==1);
+    assert(queue.complete(stages[1],stages[1].state,1u|32u));
+    assert(queue.complete(stages[0],stages[0].state,1u|32u));
+    assert(queue.consume(0,1,2,332,1,301,&result));
+    assert(queue.consume(0,0,2,332,1,301,&result));
+    assert(queue.offer(0,1,sample(2),305));
+    assert(queue.take(&first,1)==1);
+    assert(queue.offer(0,1,sample(2),310));
+    ManagedDustMailbox::Request replacement;
+    assert(queue.take(&replacement,1)==1);
+    assert(!queue.complete(first,first.state,1u|32u));
+    assert(queue.complete(replacement,replacement.state,1u|32u));
+    assert(queue.consume(0,1,2,332,1,311,&result));
+    assert(result.before.scale==result.state.scale);
+    assert(queue.offer(0,1,sample(3),320));
+    assert(queue.take(&first,1)==1);
+    queue.discard(first);
+    assert(queue.offer(0,1,sample(3),321));
+    queue.resetWorld();
     for(const auto& request:batch)
         assert(!queue.complete(request,request.state,1u | 32u));
 }
