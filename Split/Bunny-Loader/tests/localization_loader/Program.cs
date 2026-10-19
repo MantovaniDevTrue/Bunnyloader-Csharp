@@ -199,4 +199,21 @@ Test("malformed-json-does-not-poison-existing-mod", () =>
     finally { Directory.Delete(temp, true); }
 });
 
+Test("locale-wire-culture-utf8-deterministic", () =>
+{
+    var catalog = new BunnyLocalizationCatalog();
+    catalog.RegisterCulture("source", "pt-BR", new Dictionary<string, string> { ["ItemName.ExampleItem"] = "Exemplo de Item" });
+    catalog.RegisterCulture("source", "en-US", new Dictionary<string, string> { ["ItemName.ExampleItem"] = "Example Item" });
+    var wire = catalog.ExportWireRows();
+    Equal(2, wire.Count);
+    Equal("LOCALE", wire[0].Split('\t')[0]);
+    Equal("en-US", wire[0].Split('\t')[1]);
+    Equal("pt-BR", wire[1].Split('\t')[1]);
+    Equal("Mods.source.ItemName.ExampleItem", System.Text.Encoding.UTF8.GetString(
+        Convert.FromHexString(wire[0].Split('\t')[2])));
+    Equal("Exemplo de Item", System.Text.Encoding.UTF8.GetString(
+        Convert.FromHexString(wire[1].Split('\t')[3])));
+    Equal(true, wire.All(value => value.Split('\t').Length == 4));
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
