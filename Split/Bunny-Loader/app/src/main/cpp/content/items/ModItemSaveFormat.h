@@ -17,7 +17,7 @@ struct SavedItem {
     std::string key;
     std::string prefixKey;
     std::string data;
-    std::string rarityKey;
+    std::string rarityKey{};
 };
 
 inline bool integer(const std::string& text, int& value) {
