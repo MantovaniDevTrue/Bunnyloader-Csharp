@@ -935,6 +935,15 @@ public static class CompiledAssemblyProbe
             if (display.Length > 80 || display.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# prefix name");
             fields.Add(display);
+            var rulesType = type.Assembly.GetType("BunnyLoader.Source.BunnyPrefixRollRules", throwOnError: true)!;
+            object rules = Activator.CreateInstance(rulesType)!;
+            type.GetMethod("ConfigureRollRules", BindingFlags.Public | BindingFlags.Instance)!
+                .Invoke(prefix, new[] { rules });
+            string ruleWire = (string)rulesType.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Instance)!
+                .Invoke(rules, null)!;
+            if (ruleWire.Length > 320)
+                throw new InvalidOperationException("Managed prefix item rules too long: " + name);
+            if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
             lines.Add(string.Join("\t", fields));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
