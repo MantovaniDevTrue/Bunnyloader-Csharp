@@ -1,6 +1,3 @@
-// ExampleMod C# | Content/Prefixes/ExampleMightyPrefix.cs
-// Prefixo: o C# prepara os dados; hooks nativos aplicam os modificadores e bonus no Terraria.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -12,6 +9,18 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
         DisplayName = "Example Poderoso";
         Category = PrefixCategory.AnyWeapon;
         RollWeight = 5f;
+        ExtraTooltip = "Bonus adicional do prefixo";
+    }
+
+    public override void ConfigureRollRules(BunnyPrefixRollRules rules)
+    {
+        rules.Allow("ExampleWand", 3);
+    }
+
+    public override void Apply(ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = 3;
+        effects.ValueBonus = 40;
     }
 
     public override void SetStats(ref PrefixStats stats)
