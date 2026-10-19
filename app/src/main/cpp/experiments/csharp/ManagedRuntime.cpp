@@ -1563,8 +1563,11 @@ bool executeManagedDustOnWorker(int index,
                 return false;
             g_dustBindings[static_cast<size_t>(index)].managedSlot = managedSlot;
         }
-        BL_INFO("[CSharp][DustLoader] Stage=MonoBind Mod=%s Types=%zu Result=Ready",
-                binding.modId.c_str(), binding.types.size());
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=MonoBind Mod=%s Types=%zu Result=Ready",
+                            binding.modId.c_str(), binding.types.size());
+#endif
     }
     if (!request) return true;
     if (!updated || !flags || request->binding != index ||
@@ -1593,8 +1596,11 @@ void executeManagedDustResetOnWorker() {
         !g_api.invoke || !g_api.attach(g_domain)) return;
     void* error = nullptr;
     g_api.invoke(g_dustResetMethod, nullptr, nullptr, &error);
+#ifdef __ANDROID__
     if (error)
-        BL_WARN("[CSharp][DustLoader] Stage=ResetWorld Result=ManagedException");
+        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=ResetWorld Result=ManagedException");
+#endif
 }
 
 void* pinnedMonoWorker(void*) {
