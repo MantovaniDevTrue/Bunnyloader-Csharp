@@ -21,6 +21,12 @@ public sealed class TestWand : BunnyWeapon
         PrefixChance = false;
     }
 
+    public override void ConfigurePrefixRules(BunnyItemPrefixRules rules)
+    {
+        rules.Deny(71);
+        rules.Deny("TestMightyPrefix");
+    }
+
     public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
     {
         effects.DamageBonus = 4;
