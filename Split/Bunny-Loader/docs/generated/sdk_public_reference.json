@@ -62,6 +62,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
@@ -244,6 +248,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
@@ -1002,6 +1010,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
@@ -1516,6 +1528,30 @@
         {
           "signature": "static string GetLastError(int slot)",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyItemPrefixRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyItemPrefixRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Deny(int prefixType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
         }
       ]
     },
@@ -2503,6 +2539,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "compile_policy"
+        },
         {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
