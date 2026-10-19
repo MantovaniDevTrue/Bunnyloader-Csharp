@@ -868,7 +868,7 @@ void run() {
             if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -877,6 +877,28 @@ void run() {
                         BL_ERROR("[CSharp][ERROR][RecipeCallback] Stage=InitializeMonoWorker Probe=%s Result=Pending Phase=%s Detail=%s",probe.c_str(),state.phase.c_str(),state.error.c_str());
                     g_runtimeWarming.store(false,std::memory_order_release);
                 }).detach();
+            }
+        }
+        if (defaultsApplied && mod.rarities > 0) {
+            std::string identities;
+            int count = 0;
+            for (const auto& [key, type] : mod.registeredKindTypes) {
+                if (!key.starts_with("RARITY:")) continue;
+                if (type < 12 || type >= 4108) {
+                    error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
+                        " Stage=Warmup Reason=InvalidNativeRarityId";
+                    defaultsApplied = false;
+                    break;
+                }
+                if (!identities.empty()) identities.push_back(';');
+                identities += key.substr(7) + ":" + std::to_string(type);
+                ++count;
+            }
+            if (defaultsApplied && (count != mod.rarities || identities.size() > 32768 ||
+                !queueManagedRarityWarmup(mod.id, assembly, identities))) {
+                error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
+                    " Stage=Warmup Reason=RarityIdentityQueueRejected";
+                defaultsApplied = false;
             }
         }
         if (!defaultsApplied) {
