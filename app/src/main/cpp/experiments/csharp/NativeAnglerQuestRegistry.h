@@ -21,6 +21,7 @@ struct Quest {
     bool hardmode = true;
     std::string description;
     std::string location;
+    int catchRules = 0;
 };
 
 inline bool validKey(const std::string& key) {
@@ -48,6 +49,7 @@ public:
         for (const auto& quest : quests) {
             if (quest.mod != mod || !validKey(quest.name) || quest.type < 0 ||
                 (!quest.preHardmode && !quest.hardmode) ||
+                (quest.catchRules & ~3) != 0 ||
                 !validText(quest.description) || !validText(quest.location))
                 return fail(error, "InvalidQuestDescriptor");
             if (!stagedTypes.insert(quest.type).second ||
