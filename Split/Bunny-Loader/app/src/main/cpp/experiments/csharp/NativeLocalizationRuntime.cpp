@@ -123,14 +123,12 @@ bool apply(const std::map<std::string,std::vector<Entry>>& catalog,const std::st
     for(const auto& [modId,entries]:catalog) {
         std::map<std::string,std::map<std::string,std::string>> categories;
         std::map<std::string,std::string> first;
-        for(const auto& entry:entries) {
-            std::string name=entry.key;
-            if(entry.culture=="en-US")first[name]=entry.value;
-        }
-        for(const auto& entry:entries) {
-            if(entry.culture!=culture && (culture=="en-US"||entry.culture!="en-US"))continue;
-            first[entry.key]=entry.value;
-        }
+        for(const auto& entry:entries)
+            first.try_emplace(entry.key,entry.value);
+        for(const auto& entry:entries)
+            if(entry.culture=="en-US")first[entry.key]=entry.value;
+        for(const auto& entry:entries)
+            if(entry.culture==culture)first[entry.key]=entry.value;
         for(const auto& [key,value]:first) {
             auto pos=key.rfind('.');
             if(pos==std::string::npos||pos==0||pos==key.size()-1)continue;
