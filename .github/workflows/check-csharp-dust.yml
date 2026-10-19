@@ -8,12 +8,16 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyDust.cs
       - experiments/csharp/BunnySourceSdk/**
       - experiments/csharp/BunnyDustTests/**
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - tests/csharp/native_dust_contract.cpp
       - .github/workflows/check-csharp-dust.yml
   pull_request:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyDust.cs
       - experiments/csharp/BunnySourceSdk/**
       - experiments/csharp/BunnyDustTests/**
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - tests/csharp/native_dust_contract.cpp
 
 permissions:
   contents: read
@@ -28,3 +32,7 @@ jobs:
           dotnet-version: 8.0.x
       - name: Compile and run managed DustLoader contracts
         run: dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release
+      - name: Compile and run C++ DustLoader ABI contracts
+        run: |
+          c++ -std=c++17 -Wall -Wextra -Werror -I. tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
+          "$RUNNER_TEMP/dust_contract"
