@@ -21,6 +21,7 @@ public:
         for(size_t index=0;index<batch.count;++index)
             if(!valid(batch.sprites[index]))return false;
         std::lock_guard<std::mutex> lock(mutex_);
+        if(frame<frame_)return false;
         if(frame_!=frame){frame_=frame;count_=0;}
         if(batch.count>kMaxStagedSprites-count_)return false;
         for(size_t index=0;index<batch.count;++index)

@@ -38,6 +38,7 @@ int main() {
     producer.join();
     assert(pending.take(4,&result,&length)&&length==32);
     assert(pending.stage(5,batch));
+    assert(!pending.stage(4,batch));
     assert(!pending.take(4,&result,&length));
     assert(pending.stage(6,batch));
     assert(pending.take(6,&result,&length)&&length==1);
