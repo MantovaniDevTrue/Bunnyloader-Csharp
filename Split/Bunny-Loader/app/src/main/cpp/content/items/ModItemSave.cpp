@@ -584,6 +584,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     int restored = 0, moved = 0, unloaded = 0, stray = 0, prefixes = 0;
     int managedPrefixes = 0, pendingManagedPrefixes = 0;
     std::map<std::string, PendingPrefix> pending;
+    std::map<std::string, PendingPrefix> pendingRarity;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
         const Container* inventory = nullptr;
@@ -597,8 +598,13 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 // O item mudou de lugar (ou saiu) sem o loader: a linha nao vale mais.
                 if (!slotItem || field<int32_t>(slotItem, g_refs.type) != vanillaPrefixEntryType(s)) continue;
-                if (restoreVanillaPrefix(slotItem, s)) ++prefixes;
-                else kept.push_back(s);
+                const bool prefixOk = (s.prefixKey.empty() && s.prefix == 0) ||
+                    restoreVanillaPrefix(slotItem, s);
+                if (prefixOk && (s.prefix > 0 || !s.prefixKey.empty())) ++prefixes;
+                if (!prefixOk) kept.push_back(s);
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey))
+                    pendingRarity[placeKey(s.container, s.slot)] =
+                        {field<int32_t>(slotItem, g_refs.type), s.rarityKey};
                 continue;
             }
             const int type = typeForKey(s.key);
@@ -623,6 +629,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                         ++pendingManagedPrefixes;
                     }
                 }
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey))
+                    pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
                 ++restored;
                 continue;
             }
@@ -638,6 +646,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             }
             bool prefixRestored = false;
             if (target && restore(target, type, s, &prefixRestored)) {
+                if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey))
+                    pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
                 ++restored;
                 if (!s.prefixKey.empty()) {
                     if (prefixRestored) {
@@ -669,6 +679,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         else g_kept[path] = kept;
         if (pending.empty()) g_pendingPrefix.erase(path);
         else g_pendingPrefix[path] = std::move(pending);
+        if (pendingRarity.empty()) g_pendingRarity.erase(path);
+        else g_pendingRarity[path] = std::move(pendingRarity);
     }
     if (buffCount) {
         BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
