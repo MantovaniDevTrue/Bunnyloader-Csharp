@@ -31,7 +31,7 @@ public static class BunnyRarityRuntime
     {
         if (!Mods.TryGetValue(modId, out ModRarities? mod) ||
             !mod.ByName.TryGetValue(typeof(T).Name, out BunnyRarity? rarity) ||
-            rarity.GetType() != typeof(T))
+            !string.Equals(rarity.GetType().FullName, typeof(T).FullName, StringComparison.Ordinal))
             throw new KeyNotFoundException("Rarity not registered for mod " + modId);
         return rarity.Type;
     }
