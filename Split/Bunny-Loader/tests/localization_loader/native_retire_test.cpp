@@ -45,5 +45,18 @@ int main() {
     session.replace("one",{{"pt-BR","Mods.one.ItemName.Foo","New"}});
     assert(!session.snapshot().retired.contains("Mods.one.ItemName.Foo"));
     assert(safeToRetireAll(session.snapshot()));
+    SessionSnapshot globalOnly;
+    globalOnly.retired.insert("LegacyInterface.NewMenu");
+    assert(!safeToRetireAll(globalOnly));
+    assert(safeToRetireAll(globalOnly, {"LegacyInterface.NewMenu"}));
+    assert(!safeToRetireAll(globalOnly, {"LegacyInterface.Other"}));
+    globalOnly.active["active"].push_back(
+        {"en-US", "LegacyInterface.NewMenu", "New"});
+    assert(!safeToRetireAll(globalOnly, {"LegacyInterface.NewMenu"}));
+    globalOnly.active.clear();
+    globalOnly.retired.insert("Mods.another.ItemName.Foo");
+    assert(safeToRetireAll(globalOnly, {"LegacyInterface.NewMenu"}));
+    globalOnly.retired.insert("Mods..Invalid");
+    assert(!safeToRetireAll(globalOnly, {"LegacyInterface.NewMenu"}));
     return 0;
 }
