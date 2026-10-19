@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.54",
+  "version": "0.1.56",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Summons C# com ciclo de vida por buff/dono, movimento nativo configurável por update e dano por origem, preservando receitas e exemplos anteriores.",
+  "summary": "Exemplos C# editáveis com equipamentos, receitas, projéteis e áudio nativo; port integral em desenvolvimento, sem nova release parcial.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

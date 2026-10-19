@@ -139,8 +139,7 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath",
-    "feat/csharp-summon-lifecycle-v95"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath"
   ],
   "publish_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -159,8 +158,7 @@
     "perf/csharp-88-7-lights-invisible-ray-fastpath",
     "feat/csharp-loader-foundation-v91",
     "feat/csharp-owned-recipe-loader-v92",
-    "feat/csharp-owned-loaders-v93",
-    "feat/csharp-summon-lifecycle-v95"
+    "feat/csharp-owned-loaders-v93"
   ],
   "android_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",

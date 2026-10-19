@@ -23,5 +23,19 @@ int main() {
  for(int i=0;i<5;++i){tickManagedEntityNpc(698,0,1,0x4321,25,25,0,0,0,0,0,0,&result);assert(g_entityQueue.empty());}
  tickManagedEntityNpc(698,0,1,0x4321,25,25,0,0,0,0,0,0,&result);assert(g_entityQueue.size()==1&&g_entityQueue.front().kind==0);
  pauseManagedEntitySourceCallbacks();assert(g_entityQueue.empty()&&!g_entityProjectilePending[0]&&!g_entityNpcPending[0]);
+ // Execute the exact queue processor used ahead of entity AI in the pinned loop.
+ std::unique_lock recipeLock(g_pinnedMutex);auto completion=std::make_shared<RecipeRpcCompletion>();
+ g_recipeRpcQueue.push_back({"fixture","fixture.dll","ExampleWorkbench","0,0,0",0,0,std::chrono::steady_clock::now()+std::chrono::seconds(1),completion});
+ bool invoked=false;
+ assert(processManagedRecipeRpc(recipeLock,[&](const RecipeRpcJob& job){invoked=true;assert(!recipeLock.owns_lock()&&job.owner=="ExampleWorkbench");return std::string("1");}));
+ assert(invoked&&completion->done&&completion->output=="1"&&g_recipeRpcQueue.empty());
+ completion=std::make_shared<RecipeRpcCompletion>();completion->cancelled=true;
+ g_recipeRpcQueue.push_back({"fixture","fixture.dll","ExampleWorkbench","",0,0,std::chrono::steady_clock::now()+std::chrono::seconds(1),completion});
+ invoked=false;assert(processManagedRecipeRpc(recipeLock,[&](const RecipeRpcJob&){invoked=true;return std::string("0");}));assert(!invoked&&!completion->done);
+ completion=std::make_shared<RecipeRpcCompletion>();
+ g_recipeRpcQueue.push_back({"fixture","fixture.dll","ExampleWorkbench","",0,0,std::chrono::steady_clock::now()-std::chrono::seconds(1),completion});
+ assert(processManagedRecipeRpc(recipeLock,[&](const RecipeRpcJob&){invoked=true;return std::string("0");}));assert(!invoked&&!completion->done);
+ assert(!processManagedRecipeRpc(recipeLock,[](const RecipeRpcJob&){return std::string("0");}));
+ std::cout<<"PRODUCTION_RECIPE_QUEUE_PROCESSOR_COMPLETION_UNLOCK_CANCELLATION_AND_DEADLINE_PASS\n";
  std::cout<<"PRODUCTION_MONOVM_SCHEDULER_FIRST_TICKET_SIX_TICKS_DEDUP_STALE_RESULT_AND_WORLD_PAUSE_PASS\n";
 }

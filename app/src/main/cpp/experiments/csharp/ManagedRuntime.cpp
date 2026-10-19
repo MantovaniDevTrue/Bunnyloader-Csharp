@@ -1361,6 +1361,18 @@ bool pollUniversalHooksOnWorker() {
     return true;
 }
 
+template<class Execute>
+bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute) {
+    if(g_recipeRpcQueue.empty())return false;
+    auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
+    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){g_recipeRpcWake.notify_all();return true;}
+    lock.unlock();auto output=execute(job);lock.lock();
+    if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
+        job.completion->output=std::move(output);job.completion->done=true;
+    }
+    g_recipeRpcWake.notify_all();return true;
+}
+
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
@@ -1783,6 +1795,8 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
+                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 if (!g_entityQueue.empty()) {
                     ManagedEntityJob job = std::move(g_entityQueue.front());
                     g_entityQueue.pop_front();
@@ -1853,15 +1867,6 @@ void* pinnedMonoWorker(void*) {
                         }
                     }
                     continue;
-                }
-                if(!g_recipeRpcQueue.empty()) {
-                    auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
-                    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline)continue;
-                    lock.unlock();auto output=executeRecipeOnWorker(job);lock.lock();
-                    if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
-                        job.completion->output=std::move(output);job.completion->done=true;
-                    }
-                    g_recipeRpcWake.notify_all();continue;
                 }
                 if (!g_sceneLightQueue.empty()) {
                     SceneLightRequest request = std::move(g_sceneLightQueue.front());

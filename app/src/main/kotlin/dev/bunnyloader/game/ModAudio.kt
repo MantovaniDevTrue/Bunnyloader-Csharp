@@ -16,6 +16,7 @@ object ModAudio {
     private val loaded: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val failed: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val durations = ConcurrentHashMap<Int, Int>()
+    private val paths = ConcurrentHashMap<Int, String>()
 
     private val effects by lazy {
         SfxQueue(object : SfxQueue.Backend {
@@ -36,7 +37,10 @@ object ModAudio {
             .build()
             .apply {
                 setOnLoadCompleteListener { _, id, status ->
-                    if (status == 0) loaded += id else failed += id
+                    if (status == 0) loaded += id else {
+                        failed += id
+                        Log.e(TAG, "[Audio][ERROR] AssetId=$id Path=${paths[id] ?: "<path not yet registered>"} Stage=Decode ExpectedStatus=0 ActualStatus=$status Reason=AndroidSoundPoolLoadFailed Result=SoundUnavailable")
+                    }
                 }
             }
     }
@@ -50,7 +54,10 @@ object ModAudio {
     @JvmStatic
     fun load(path: String): Int {
         val id = pool.load(path, 1)
-        if (id > 0) durations[id] = durationOf(path)
+        if (id > 0) {
+            paths[id] = path
+            durations[id] = durationOf(path)
+        } else Log.e(TAG, "[Audio][ERROR] Path=$path Stage=Load Expected=PositiveSoundId Actual=$id Reason=AndroidSoundPoolLoadRejected Result=SoundUnavailable")
         return id
     }
 

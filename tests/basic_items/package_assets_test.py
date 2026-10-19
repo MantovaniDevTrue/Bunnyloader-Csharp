@@ -42,6 +42,13 @@ class PackageAssetTests(unittest.TestCase):
             self.assertIn('Path='+member,str(error.exception))
             self.assertIn('Result=PublicationRejected',str(error.exception))
 
+    def test_original_gun_audio_is_required(self):
+        member='content/Assets/Sounds/Items/Guns/ExampleGun.ogg'
+        with self.assertRaisesRegex(ValueError,'Reason=AssetMissing'):
+            validate(self.altered(omit=member))
+        with self.assertRaisesRegex(ValueError,'Reason=InvalidAudioHeader'):
+            validate(self.altered(replace=(member,b'not ogg')))
+
     def test_corrupt_png_is_not_accepted_as_an_asset(self):
         member='content/Content/Buffs/ExampleDefenseBuff.png'
         with self.assertRaisesRegex(ValueError,'Reason=InvalidPng'):

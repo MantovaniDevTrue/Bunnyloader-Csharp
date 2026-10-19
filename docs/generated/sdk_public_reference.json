@@ -47,11 +47,13 @@
       "constructors": [],
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
+        "BunnyNativeDefaults NativeDefaults { get; }",
         "UInt32 VisualColor { get; set; }",
         "float VisualOpacity { get; set; }",
         "float VisualScale { get; set; }",
         "int DefenseBonus { get; set; }",
         "string DisplayName { get; set; }",
+        "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }",
         "string Tooltip { get; set; }",
         "string VisualTexture { get; set; }"
@@ -227,9 +229,11 @@
       "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
+        "BunnyNativeDefaults NativeDefaults { get; }",
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
+        "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }"
       ],
       "values": [],
@@ -513,6 +517,20 @@
         "Back",
         "Wings"
       ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyHoldout",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyHoldout(float x, float y)"
+      ],
+      "properties": [
+        "float X { get; }",
+        "float Y { get; }"
+      ],
+      "values": [],
       "methods": []
     },
     {
@@ -933,7 +951,10 @@
       "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
+        "BunnyHoldout Holdout { get; set; }",
         "BunnyItemBehavior Behavior { get; }",
+        "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnySoundStyle CustomUseSound { get; set; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
@@ -961,6 +982,7 @@
         "string DisplayName { get; set; }",
         "string NativeAccessoryEffectsDefinition { get; }",
         "string NativeArmorDefinition { get; }",
+        "string NativeDefaultsDefinition { get; }",
         "string PlacementDefinition { get; }",
         "string Texture { get; set; }",
         "string Tooltip { get; set; }",
@@ -968,6 +990,14 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int SellPrice(int platinum, int gold, int silver, int copper)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
           "execution": "managed_helper"
@@ -1151,6 +1181,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyNameAttribute",
+      "kind": "class",
+      "baseType": "System.Attribute",
+      "constructors": [
+        "BunnyNameAttribute(string culture, string text)"
+      ],
+      "properties": [
+        "string Culture { get; }",
+        "string Text { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNativeBatch",
       "kind": "class",
       "baseType": "System.Object",
@@ -1167,6 +1211,40 @@
         {
           "signature": "void Read(BunnyValue[] destination, BunnyNativeObject target)",
           "execution": "experimental_game_thread_access"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeDefaults",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyNativeDefaults()"
+      ],
+      "properties": [
+        "string Definition { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyNativeDefaults SetBool(string field, bool value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetFloat(string field, float value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetId(string field, string idClass, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetInt(string field, int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetProjectile(string field, string key)",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -1463,6 +1541,7 @@
       "constructors": [],
       "properties": [
         "BunnyMinionMovement MinionMovement { get; set; }",
+        "BunnyNativeDefaults NativeDefaults { get; }",
         "bool Friendly { get; set; }",
         "bool IgnoreWater { get; set; }",
         "bool Minion { get; set; }",
@@ -1479,6 +1558,7 @@
         "int TimeLeft { get; set; }",
         "int Width { get; set; }",
         "string DisplayName { get; set; }",
+        "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }"
       ],
       "values": [],
@@ -1809,6 +1889,37 @@
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySoundLimitBehavior",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "IgnoreNew",
+        "ReplaceOldest"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySoundStyle",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnySoundStyle(string path, float volume, float pitch, float pitchVariance, int maxInstances, BunnySoundLimitBehavior limitBehavior)"
+      ],
+      "properties": [
+        "BunnySoundLimitBehavior LimitBehavior { get; }",
+        "float Pitch { get; }",
+        "float PitchVariance { get; }",
+        "float Volume { get; }",
+        "int MaxInstances { get; }",
+        "string Definition { get; }",
+        "string Path { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyTile",
@@ -2209,6 +2320,9 @@
       "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
+        "BunnyHoldout Holdout { get; set; }",
+        "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnySoundStyle CustomUseSound { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",
@@ -2216,6 +2330,7 @@
         "int UseTime { get; set; }",
         "string DisplayName { get; set; }",
         "string MinionBuff { get; set; }",
+        "string NativeDefaultsDefinition { get; }",
         "string Shoot { get; set; }",
         "string Texture { get; set; }"
       ],

@@ -8,6 +8,28 @@ var results=new List<object>();int failures=0;
 void Check(string id,Action f) {try {f();results.Add(new{id,status="pass",error=""});}catch(Exception e){failures++;results.Add(new{id,status="fail",error=e.ToString()});}}
 void Equal<T>(T expected,T actual) {if(!EqualityComparer<T>.Default.Equals(expected,actual))throw new Exception($"expected={expected} actual={actual}");}
 void Reject(Action f) {try{f();}catch(ArgumentException){return;}catch(InvalidOperationException){return;}throw new Exception("invalid recipe accepted");}
+Check("native-content.buy-sell-price-terraria-units",()=>{
+ Equal(400000,BunnyItem.BuyPrice(gold:40));Equal(50000,BunnyItem.SellPrice(gold:1));Equal(5000,BunnyItem.SellPrice(silver:10));
+ Reject(()=>BunnyItem.BuyPrice(copper:-1));
+ bool overflow=false;try{BunnyItem.SellPrice(platinum:int.MaxValue);}catch(OverflowException){overflow=true;}Equal(true,overflow);
+});
+Check("native-defaults.public-builder-values-and-invalid-input",()=>{
+ var defaults=new BunnyNativeDefaults().SetInt("mana",10).SetBool("channel",true).SetFloat("shootSpeed",4.5f)
+   .SetProjectile("shoot","another-mod/Projectile").SetId("ammo","AmmoID","Bullet");
+ Equal(true,defaults.Definition.Contains("mana:i:10")&&defaults.Definition.Contains("channel:b:1"));
+ Reject(()=>defaults.SetFloat("light",float.NaN));Reject(()=>defaults.SetInt("bad;field",1));
+ Reject(()=>defaults.SetId("ammo","ArbitraryClass","Pointer"));Reject(()=>defaults.SetProjectile("shoot","bad/key/again"));
+ Equal("mana:i:20",new BunnyNativeDefaults().SetInt("mana",10).SetInt("mana",20).Definition);
+});
+Check("sound.immutable-options-paths-and-original-gun",()=>{
+ var sound=new BunnySoundStyle("Assets/Sounds/Items/Guns/ExampleGun.ogg",volume:0.9f,pitchVariance:0.2f,maxInstances:3);
+ Equal(0.9f,sound.Volume);Equal(0.2f,sound.PitchVariance);Equal(3,sound.MaxInstances);
+ Equal("Assets/Sounds/Items/Guns/ExampleGun.ogg",sound.Path);
+ Equal(6,sound.Definition.Split('\t').Length);
+ foreach(var invalid in new[]{"../bad.ogg","/bad.wav","foo/../bad.ogg","bad.mp4","bad\\path.ogg","bad\tfile.wav"})Reject(()=>new BunnySoundStyle(invalid));
+ Reject(()=>new BunnySoundStyle("ok.wav",volume:float.NaN));Reject(()=>new BunnySoundStyle("ok.wav",pitch:float.PositiveInfinity));
+ Reject(()=>new BunnySoundStyle("ok.wav",maxInstances:-1));Reject(()=>new BunnySoundStyle("ok.wav",limitBehavior:(BunnySoundLimitBehavior)3));
+});
 Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
@@ -215,7 +237,7 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
@@ -224,6 +246,12 @@ try {
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  var sword=minionRows.Single(row=>row.StartsWith("ITEM\tExampleMeleeWeapon\t",StringComparison.Ordinal)).Split('\t');Equal("50000",sword[5]);
+  var bulletItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleBullet\t",StringComparison.Ordinal)).Split('\t');Equal("5000",bulletItem[5]);
+  var bullet=minionRows.Single(row=>row.StartsWith("NATIVE_ITEM\tExampleBullet\t",StringComparison.Ordinal));
+  Equal(true,bullet.Contains("ammo:d:AmmoID:Bullet")&&bullet.Contains("shoot:p:ExampleBulletProjectile")&&bullet.Contains("shootSpeed:f:4.5"));
+  var projectile=minionRows.Single(row=>row.StartsWith("NATIVE_PROJECTILE\tExampleBulletProjectile\t",StringComparison.Ordinal));
+  Equal(true,projectile.Contains("localNPCHitCooldown:i:-1")&&projectile.Contains("extraUpdates:i:1")&&projectile.Contains("light:f:0.5"));
   foreach(var invalid in new[]{0,121}) {
    Reject(()=>new BunnyMinionMovement(attackSpeed:invalid));
   }
@@ -241,6 +269,7 @@ try {
     }
     foreach(var propertyName in new[]{"Texture","VisualTexture"})
       RequireAsset(type.GetProperty(propertyName)?.GetValue(instance) as string);
+    if(type.GetProperty("CustomUseSound")?.GetValue(instance) is BunnySoundStyle sound)RequireAsset(sound.Path);
     if(type.GetProperty("BehaviorDefinition")?.GetValue(instance) is string policy&&policy.Length>0) {
       using var descriptor=JsonDocument.Parse(policy);
       if(descriptor.RootElement.TryGetProperty("equips",out var equips))
