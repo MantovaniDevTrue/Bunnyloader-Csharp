@@ -12,6 +12,7 @@ int main(int argc,char** argv) {
  assert(parseCSharpSource(source,&types,&error)&&types.size()==1);
  assert(fields(types[0],&spec,&target,&display,&texture,&error));
  assert(spec.kind==NativeBasicItem&&types[0].name=="ExampleGun"&&display=="Example Gun"&&texture=="Content/Items/Weapons/Ranged/ExampleGun.png");
+ assert(types[0].localizedNames.size()==2&&types[0].localizedNames[1].second=="Arma de Exemplo");
  // Runtime registration uses only names/assets; Roslyn executes arbitrary numeric/movement defaults.
  types.clear();source=R"(public sealed class IndependentMinion:BunnyProjectile {
  public override void SetDefaults(){DisplayName="Independent";Texture="independent.png";

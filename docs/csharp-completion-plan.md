@@ -1,3 +1,5 @@
+> Preservar também o inventário oficial PC (449 ativos/112 legados e ExampleLibraryMod); a matriz de206 JS não substitui nem reduz esse escopo. Não há equivalência automática com assemblies tModLoader.
+
 > Continuidade do port integral: [estado, APIs de áudio e próximo sistema compartilhado](csharp-full-example-port-progress.md). Revisão de desenvolvimento .97/ExampleMod0.1.56 sem publicação.
 
 > Regra de entrega atualizada em 19/10/2026: o usuário exige o port integral antes de nova entrega. Publicação automática da branch `feat/csharp-summon-lifecycle-v95` desabilitada nas políticas push/PR; compilação e testes permanecem habilitados. Não reabilitar publicação para entregar outro subconjunto. A .96 já publicada permanece apenas checkpoint histórico; 206 exemplos seguem no escopo e nenhum pendente pode ser omitido.

@@ -9537,7 +9537,8 @@
       "preservedFeatures": [
         "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
         "Holdout(-18,0) nativo com direção/gravidade/rotação",
-        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS"
+        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS",
+        "Nomes originais en-US/pt-BR da localização do pacote"
       ],
       "missingFeatures": [],
       "nativeDependencies": [

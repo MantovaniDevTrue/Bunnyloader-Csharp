@@ -4,7 +4,7 @@ Regra vigente de19/10/2026: não publicar novo APK ou .bmod enquanto o port comp
 
 ## Estado de implementação
 
-Referência canônica:206 JS. O anexo1.8.0 tem178, todos contidos na referência1.9.0. Nenhum foi removido da matriz. Revisão de desenvolvimento `.90.29.97-full-example-port-wip`/code274, ExampleMod0.1.56,77 fontes C# editáveis, SDK89 tipos públicos. Não é release, não conclui os lotes e não foi validada no telefone.
+Referência canônica ExampleModBunny:206 JS. O inventário oficial PC também permanece no escopo:449 fontes ativos,112 legados e os arquivos de ExampleLibraryMod, conforme `tmodloader-example-inventory.json`; nenhuma equivalência integral foi certificada por este checkpoint. O port do anexo não substitui essa auditoria separada. O anexo1.8.0 tem178, todos contidos na referência1.9.0. Nenhum foi removido da matriz. Revisão de desenvolvimento `.90.29.97-full-example-port-wip`/code274, ExampleMod0.1.56,77 fontes C# editáveis, SDK89 tipos públicos. Não é release, não conclui os lotes e não foi validada no telefone.
 
 ### Áudio nativo reutilizável
 
