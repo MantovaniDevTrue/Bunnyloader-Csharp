@@ -20,6 +20,8 @@ std::map<int, ManagedPrefixEntry> g_descriptors;
 std::set<int> g_reservedManagedPrefixTypes;
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
+std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
+    std::make_shared<const std::map<int, bool>>();
 
 bool valid(const ManagedPrefixEntry& p) {
     if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
@@ -80,6 +82,31 @@ bool valid(const ManagedPrefixEntry& p) {
     return true;
 }
 
+}
+
+bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies) {
+    if (policies.size() > 4096) return false;
+    std::map<int, bool> staged;
+    for (const auto& [type, allowed] : policies)
+        if (type < 1 || type > 32767 || !staged.emplace(type, allowed).second)
+            return false;
+    if (staged.empty()) return true;
+    if (!installManagedPrefixChanceHook()) return false;
+    {
+        std::lock_guard<std::mutex> guard(g_prefixMutex);
+        auto previous = std::atomic_load_explicit(&g_itemChanceView, std::memory_order_acquire);
+        for (const auto& [type, allowed] : staged)
+            if (previous->contains(type)) return false;
+        auto updated = std::make_shared<std::map<int, bool>>(*previous);
+        updated->insert(staged.begin(), staged.end());
+        std::shared_ptr<const std::map<int, bool>> published = updated;
+        std::atomic_store_explicit(&g_itemChanceView, std::move(published), std::memory_order_release);
+    }
+    return true;
+}
+
+std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() {
+    return std::atomic_load_explicit(&g_itemChanceView, std::memory_order_acquire);
 }
 
 void reserveManagedPrefixDescriptor(int type) {
