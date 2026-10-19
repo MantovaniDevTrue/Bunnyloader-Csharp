@@ -683,8 +683,19 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             }
             bool prefixRestored = false;
             if (target && restore(target, type, s, &prefixRestored)) {
-                if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey))
-                    pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
+                if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey)) {
+                    bool located = false;
+                    for (const Container& candidate : containers) {
+                        for (int targetSlot = 0; targetSlot < candidate.size(); ++targetSlot) {
+                            if (candidate.at(targetSlot) != target) continue;
+                            pendingRarity[placeKey(candidate.name, targetSlot)] = {type, s.rarityKey};
+                            located = true;
+                            break;
+                        }
+                        if (located) break;
+                    }
+                    if (!located) kept.push_back(s);
+                }
                 ++restored;
                 if (!s.prefixKey.empty()) {
                     if (prefixRestored) {
