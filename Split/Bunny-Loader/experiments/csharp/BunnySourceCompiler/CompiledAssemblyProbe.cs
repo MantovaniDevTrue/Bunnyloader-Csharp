@@ -980,6 +980,28 @@ public static class CompiledAssemblyProbe
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
+            MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing Bunny item ApplyPrefix");
+            Type stateType = apply.GetParameters().Single().ParameterType.GetElementType()
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats must be passed by reference");
+            object state = Activator.CreateInstance(stateType)
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats unavailable");
+            object?[] args = { state };
+            apply.Invoke(item, args);
+            state = args[0] ?? throw new InvalidOperationException("BunnyPrefixApplyStats result missing");
+            int damage = Value<int>(state, "DamageBonus");
+            int value = Value<int>(state, "ValueBonus");
+            if (damage < 0 || damage > 1000 || value < 0 || value > 100000)
+                throw new InvalidOperationException("Bunny item ApplyPrefix effects out of bounds: " +
+                                                    item.GetType().Name);
+            if (damage != 0 || value != 0)
+                lines.Add(string.Join("\t", "PREFIX_APPLY", item.GetType().Name,
+                    damage.ToString(CultureInfo.InvariantCulture),
+                    value.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
             object? chance = item.GetType().GetProperty("PrefixChance",
                 BindingFlags.Public | BindingFlags.Instance)?.GetValue(item);
             if (chance is bool allow)
