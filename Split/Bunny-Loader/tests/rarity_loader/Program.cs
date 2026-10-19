@@ -222,7 +222,7 @@ Check("runtime.original-example-assembly-wire", () =>
     try
     {
         string diagnostic = Path.Combine(scratch, "diagnostics.txt");
-        Equal(4, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
+        Equal(8, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostic));
         var descriptors = File.ReadAllLines(Path.Combine(scratch, "source-runtime-values.txt"));
         Equal("BUNNY_MANAGED_DEFAULTS_V2", descriptors[0]);
         Equal(true, descriptors.Any(s => s.StartsWith("ITEM\tExampleRarityItem\t", StringComparison.Ordinal)));
@@ -231,6 +231,12 @@ Check("runtime.original-example-assembly-wire", () =>
         Equal(true, descriptors.Contains("RARITY\tExampleModRarity"));
         Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityItem\tExampleModRarity"));
         Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityAccessory\tExampleHigherTierModRarity"));
+        Equal(true, descriptors.Any(s => s.StartsWith("WEAPON\tExampleRarityWeapon\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Any(s => s.StartsWith("POTION\tExampleRarityPotion\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Any(s => s.StartsWith("PROJECTILE\tExampleRarityProjectile\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Any(s => s.StartsWith("BUFF\tExampleRarityBuff\t", StringComparison.Ordinal)));
+        Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityWeapon\tExampleModRarity"));
+        Equal(true, descriptors.Contains("ITEM_RARITY\tExampleRarityPotion\tExampleHigherTierModRarity"));
     }
     finally
     {
@@ -252,6 +258,14 @@ Check("item.typed-rarity-uses-owner-identity-not-runtime-integer", () =>
     accessory.SetDefaults();
     Equal("ExampleHigherTierModRarity", accessory.ModRarityClassName);
     Throws<ArgumentException>(() => accessory.SetRarity<RisingRarity>());
+    var weapon = new ExampleModCSharp.Rarities.ExampleRarityWeapon();
+    weapon.SetDefaults();
+    Equal("ExampleModRarity", weapon.ModRarityClassName);
+    Throws<ArgumentException>(() => weapon.SetRarity<RisingRarity>());
+    var potion = new ExampleModCSharp.Rarities.ExampleRarityPotion();
+    potion.SetDefaults();
+    Equal("ExampleHigherTierModRarity", potion.ModRarityClassName);
+    Throws<ArgumentException>(() => potion.SetRarity<RisingRarity>());
 });
 
 Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
