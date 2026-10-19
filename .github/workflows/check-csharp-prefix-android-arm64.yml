@@ -1,0 +1,62 @@
+name: CSharp PrefixLoader Android ARM64 Compile
+
+on:
+  push:
+    branches:
+      - feat/csharp-equipment-preflight-20261019
+    paths:
+      - ".github/workflows/check-csharp-prefix-android-arm64.yml"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
+      - "Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp"
+  pull_request:
+    branches:
+      - feat/csharp-equipment-preflight-20261019
+    paths:
+      - ".github/workflows/check-csharp-prefix-android-arm64.yml"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**"
+      - "Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp"
+
+permissions:
+  contents: read
+
+jobs:
+  prefix-android-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Android NDK 30
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/30.0.16248370"
+          if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" ]; then
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+            if [ ! -x "$SDKMANAGER" ]; then
+              SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+            fi
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+            "$SDKMANAGER" "ndk;30.0.16248370"
+          fi
+          test -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+      - name: Compile real prefix bridge, hooks and SourceLoader for Android arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="Split/Bunny-Loader/app/src/main/cpp"
+          LLVM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          mkdir -p "$RUNNER_TEMP/prefix-android-arm64"
+          for source in ManagedPrefixBridge.cpp ManagedPrefixGameplay.cpp SourceLoader.cpp; do
+            "$LLVM/clang++" --target=aarch64-linux-android26 -std=c++20 -fPIC -O1 \
+              -Wall -Wextra -Werror -I"$ROOT" \
+              -c "$ROOT/experiments/csharp/$source" \
+              -o "$RUNNER_TEMP/prefix-android-arm64/${source%.cpp}.o"
+          done
+          for object in "$RUNNER_TEMP"/prefix-android-arm64/*.o; do
+            "$LLVM/llvm-readelf" -h "$object" | grep -q 'AArch64'
+          done
+          echo 'BUNNY_CSHARP_PREFIX_NATIVE_ANDROID_ARM64_OBJECTS=PASS'
