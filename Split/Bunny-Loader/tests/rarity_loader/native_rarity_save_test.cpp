@@ -107,6 +107,36 @@ int main() {
             other->origin == "inventory#4");
         assert(!selectTrackedRarity(refs, slots, &original, "inventory#3", 51));
         assert(!selectTrackedRarity(refs, slots, &separate, "inventory#9", 42));
+        std::vector<LiveRarityItem<int*>> live{
+            {&replacement, "inventory#0", 42, false},
+            {&original, "inventory#3", 42, false},
+            {&separate, "inventory#4", 51, false}
+        };
+        std::map<int*, PendingFixture> updatedRefs;
+        std::map<std::string, PendingFixture> updatedSlots;
+        reconcileTrackedRarities(refs, slots, live, &updatedRefs, &updatedSlots);
+        assert(updatedRefs.size() == 2);
+        assert(updatedSlots.size() == 2);
+        assert(!updatedSlots.contains("inventory#0"));
+        assert(updatedSlots.at("inventory#3").key == "rarity/Original");
+        assert(updatedRefs.at(&original).origin == "inventory#3");
+        assert(updatedSlots.at("inventory#4").key == "rarity/Other");
+        const std::vector<LiveRarityItem<int*>> restored{
+            {&original, "inventory#3", 42, true},
+            {&separate, "inventory#4", 51, false}
+        };
+        std::map<int*, PendingFixture> onlyUnresolved;
+        std::map<std::string, PendingFixture> unresolvedSlots;
+        reconcileTrackedRarities(updatedRefs, updatedSlots, restored,
+            &onlyUnresolved, &unresolvedSlots);
+        assert(onlyUnresolved.size() == 1);
+        assert(onlyUnresolved.contains(&separate));
+        assert(!unresolvedSlots.contains("inventory#3"));
+        assert(unresolvedSlots.contains("inventory#4"));
+        const std::vector<LiveRarityItem<int*>> removed;
+        reconcileTrackedRarities(updatedRefs, updatedSlots, removed,
+            &onlyUnresolved, &unresolvedSlots);
+        assert(onlyUnresolved.empty() && unresolvedSlots.empty());
     }
 
     std::stringstream legacy;
