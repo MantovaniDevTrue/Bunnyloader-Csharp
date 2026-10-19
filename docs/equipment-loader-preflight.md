@@ -331,3 +331,20 @@ Os testes host exercitam prefixo salvo 99 em item com dano 9/mana 9 (fora dos li
 
 A PR temporária [#110](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/110) confirmou [Equipment preflight #39331584562](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39331584562) e [NDK ARM64 #39331584571](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39331584571), ambos **aprovados**. O teste diferencia prefixo salvo com dano 9/mana 9, restauração inválida de prefixo de arma em acessório, prefixos `Custom` sem autorização e preservação dos efeitos de acessórios equipados. A solução permanece restrita ao escopo de restauração; novas rolagens continuam obedecendo aos filtros e aos valores do item.
 
+
+## GetTooltipLines — múltiplas linhas C# estáticas
+
+Além de `ExtraTooltip`, os prefixos C# aceitam `AddTooltipLine(string text)` durante o `SetDefaults`. A API permite até **quatro linhas adicionais**, com até 120 bytes UTF-8 cada, sem caracteres de controle. O compilador C# chama `SerializeTooltipLines()` na preparação do mod e acrescenta a linha opcional `PREFIX_TOOLTIP\tNomeDoPrefixo\tHEX1,HEX2,...`, preservando `PREFIX_POST` e todos os descritores anteriores.
+
+```csharp
+public override void SetDefaults()
+{
+    ExtraTooltip = "Bonus adicional do prefixo";
+    AddTooltipLine("Dano extra do prefixo");
+    AddTooltipLine("Valor adicional");
+}
+```
+
+O SourceLoader valida propriedade do prefixo, quantidade, tamanho, hexadecimal maiúsculo e caracteres de controle. As linhas passam ao snapshot imutável do prefixo. `hookInventoryTooltip` chama o original antes, inclui `ExtraTooltip` e depois cada linha adicional, respeitando o menor tamanho entre os arrays `lines/modifier/bad` e usando `gc_wbarrier_set_field` no IL2CPP. Nenhuma chamada ao MonoVM acontece durante o desenho.
+
+Os testes de host verificam o wire UTF-8, rejeição atômica de entradas excessivas, três linhas inseridas corretamente com flags de prefixo e capacidade final do array. O recurso cobre o texto **estático**; a implementação de `ModPrefix.GetTooltipLines(item)` que calcula múltiplas linhas arbitrárias a partir da instância ainda não está disponível. Android real, idioma local, saves e FPS continuam pendentes.
