@@ -9,8 +9,13 @@ using namespace bl::csharp::angler;
 int main() {
     Registry registry;
     std::string error;
+    assert(registry.generation() == 0);
+    assert(registry.publish("noquest", {}, &error));
+    assert(registry.generation() == 0);
     Quest fish{"examplemodcsharp", "ExampleQuestFish", 850, false, true,
                "An odd upside-down fish.", "Underground"};
+    assert(registry.publish("examplemodcsharp", {fish}, &error));
+    assert(registry.generation() == 1);
     assert(registry.publish("examplemodcsharp", {fish}, &error));
     assert(registry.generation() == 1);
     assert(registry.snapshot().size() == 1);
