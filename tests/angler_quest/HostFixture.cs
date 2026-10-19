@@ -21,7 +21,7 @@ try
         throw new InvalidOperationException("Primary quest fish item missing from V2 output");
     string[] lines = values.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     string[] fish = lines.Single(line => line.StartsWith("QUEST_FISH\t", StringComparison.Ordinal)).Split('\t');
-    if (fish.Length != 6 || fish[1] != "ExampleQuestFish" || fish[2] != "0" || fish[3] != "1")
+    if (fish.Length != 7 || fish[1] != "ExampleQuestFish" || fish[2] != "0" || fish[3] != "1" || fish[6] != "3")
         throw new InvalidOperationException("Quest availability or identity does not match the original fish");
     string description = Encoding.UTF8.GetString(Convert.FromHexString(fish[4]));
     string location = Encoding.UTF8.GetString(Convert.FromHexString(fish[5]));
