@@ -14,6 +14,7 @@
 #include "il2cpp/Signature.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <mutex>
 #include <cmath>
@@ -92,6 +93,35 @@ struct RestoreRoll {
     bool used = false;
 };
 thread_local RestoreRoll g_restoreRoll{};
+
+struct AppliedItemPrefixState {
+    Il2CppObject* item = nullptr;
+    int type = 0;
+    int prefix = 0;
+    int damage = 0;
+    int value = 0;
+    int damageBonus = 0;
+    int valueBonus = 0;
+};
+
+thread_local std::array<AppliedItemPrefixState, 16> g_appliedItemPrefixes{};
+thread_local size_t g_appliedItemCursor = 0;
+
+AppliedItemPrefixState* rememberedPrefix(Il2CppObject* item) {
+    for (auto& previous : g_appliedItemPrefixes)
+        if (previous.item == item) return &previous;
+    return nullptr;
+}
+
+void rememberPrefix(Il2CppObject* item, int type, int prefix,
+                    int damage, int value, const ManagedItemPrefixApply& bonus) {
+    AppliedItemPrefixState* previous = rememberedPrefix(item);
+    if (!previous) {
+        previous = &g_appliedItemPrefixes[g_appliedItemCursor];
+        g_appliedItemCursor = (g_appliedItemCursor + 1) % g_appliedItemPrefixes.size();
+    }
+    *previous = {item, type, prefix, damage, value, bonus.damageBonus, bonus.valueBonus};
+}
 
 Il2CppArray* staticArray(FieldInfo* field) {
     auto& api = bl::il2cpp::api();
@@ -195,39 +225,81 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
                           const MethodInfo* method) {
     if (!g_originalItemPrefix) return false;
     int32_t request = want;
-    if (g_chanceReady.load(std::memory_order_acquire) && item &&
-        g_chanceItemTypeOffset >= 0 && g_restoreRoll.item != item &&
-        (want == -1 || want == -2)) {
+    const bool ready = g_chanceReady.load(std::memory_order_acquire) && item &&
+        g_chanceItemTypeOffset >= 0 && g_chancePrefixOffset >= 0 &&
+        g_chanceDamageOffset >= 0 && g_chanceValueOffset >= 0;
+    const int type = ready
+        ? bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset) : 0;
+
+    if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
         const auto chances = managedItemPrefixChanceView();
-        const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
         const auto decision = chances->find(type);
         if (decision != chances->end()) {
             if (!decision->second) return false;
             if (want == -1) request = -2;
         }
     }
+
+    const auto effects = ready && want != -3 ? managedItemPrefixApplyView() : nullptr;
+    const auto policy = effects ? effects->find(type) :
+        std::map<int, ManagedItemPrefixApply>::const_iterator{};
+    const bool hasPolicy = effects && policy != effects->end();
+    auto* previous = ready ? rememberedPrefix(item) : nullptr;
+    bool removedPrevious = false;
+    int originalDamage = 0;
+    int originalValue = 0;
+    if (previous && want != -3) {
+        const int currentDamage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
+        const int currentValue = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
+        const int currentPrefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
+        if (hasPolicy && previous->type == type && previous->prefix == currentPrefix &&
+            previous->damage == currentDamage && previous->value == currentValue &&
+            currentDamage >= previous->damageBonus &&
+            currentValue >= previous->valueBonus) {
+            originalDamage = currentDamage;
+            originalValue = currentValue;
+            bl::runtime::field<int32_t>(item, g_chanceDamageOffset) =
+                currentDamage - previous->damageBonus;
+            bl::runtime::field<int32_t>(item, g_chanceValueOffset) =
+                currentValue - previous->valueBonus;
+            removedPrevious = true;
+        } else {
+            previous->item = nullptr;
+        }
+    }
+
     const bool accepted = g_originalItemPrefix(item, request, topTier, method);
-    if (!accepted || !item || want == -3 ||
-        !g_chanceReady.load(std::memory_order_acquire) ||
-        g_chanceItemTypeOffset < 0 || g_chancePrefixOffset < 0 ||
-        g_chanceDamageOffset < 0 || g_chanceValueOffset < 0)
+    if (!accepted || !ready || want == -3 || !hasPolicy) {
+        if (removedPrevious && !accepted &&
+            bl::runtime::field<int32_t>(item, g_chanceDamageOffset) ==
+                originalDamage - previous->damageBonus &&
+            bl::runtime::field<int32_t>(item, g_chanceValueOffset) ==
+                originalValue - previous->valueBonus) {
+            bl::runtime::field<int32_t>(item, g_chanceDamageOffset) = originalDamage;
+            bl::runtime::field<int32_t>(item, g_chanceValueOffset) = originalValue;
+        }
+        if (previous && removedPrevious && !accepted) previous->item = nullptr;
         return accepted;
-    const int type = bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset);
-    const auto effects = managedItemPrefixApplyView();
-    const auto policy = effects->find(type);
-    if (policy == effects->end() ||
-        bl::runtime::field<uint8_t>(item, g_chancePrefixOffset) == 0)
+    }
+
+    const int prefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
+    if (!prefix) {
+        if (previous) previous->item = nullptr;
         return accepted;
+    }
     const int damage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
     const int value = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
     if (damage < 0 || value < 0 ||
         damage > INT32_MAX - policy->second.damageBonus ||
-        value > INT32_MAX - policy->second.valueBonus)
+        value > INT32_MAX - policy->second.valueBonus) {
+        if (previous) previous->item = nullptr;
         return accepted;
-    bl::runtime::field<int32_t>(item, g_chanceDamageOffset) =
-        damage + policy->second.damageBonus;
-    bl::runtime::field<int32_t>(item, g_chanceValueOffset) =
-        value + policy->second.valueBonus;
+    }
+    const int appliedDamage = damage + policy->second.damageBonus;
+    const int appliedValue = value + policy->second.valueBonus;
+    bl::runtime::field<int32_t>(item, g_chanceDamageOffset) = appliedDamage;
+    bl::runtime::field<int32_t>(item, g_chanceValueOffset) = appliedValue;
+    rememberPrefix(item, type, prefix, appliedDamage, appliedValue, policy->second);
     return accepted;
 }
 
