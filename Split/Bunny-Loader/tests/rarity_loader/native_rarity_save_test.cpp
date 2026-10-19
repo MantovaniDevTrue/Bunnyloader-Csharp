@@ -13,6 +13,24 @@ int main() {
         {"inventory", 2, 3, 4, false, "mod/OriginalItem", "", R"({"a":123})"},
         {"chest:6,8", 0, 1, 0, true, "mod/OldStaff", "mod/Prefix", "{}"}
     };
+    {
+        std::vector<SavedItem> active{{"inventory", 4, 1, 0, false, "mod/Sword", "", "{}"}};
+        const SavedItem pending{"inventory", 4, 1, 0, false,
+            "mod/Sword", "mod/OldPrefix", "ignored", "mod/Rarity"};
+        assert(mergePending(active, pending));
+        assert(active.size() == 1);
+        assert(active[0].prefixKey == "mod/OldPrefix");
+        assert(active[0].rarityKey == "mod/Rarity");
+        assert(active[0].data == "{}");
+        assert(!mergePending(active, {"inventory", 5, 1, 0, false, "mod/Sword"}));
+        assert(!mergePending(active, {"inventory", 4, 1, 0, false, "mod/Other"}));
+        active[0].prefixKey = "mod/NewPrefix";
+        active[0].rarityKey = "mod/Current";
+        assert(mergePending(active, pending));
+        assert(active[0].prefixKey == "mod/NewPrefix");
+        assert(active[0].rarityKey == "mod/Current");
+    }
+
     std::stringstream legacy;
     assert(write(legacy, old));
     assert(legacy.str().starts_with("bunnyloader itens 2\n"));
