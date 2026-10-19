@@ -105,9 +105,21 @@ O exemplo em teste cria duas subclasses de raridade, incluindo subida e descida 
 - O `NativeRarityRegistry` inclui `identityForType` (índice direto), `stableKeyForType` e `typeForStableKey`, para recuperar uma raridade C# pela identidade `mod/classe` independentemente da sequência de carregamento. O hook de `Item.Prefix` substituiu a varredura linear por esse lookup direto.
 - Cobertura de teste C++: nomes UTF-16 idênticos/diferentes, limites 0 e 257, nulidade, IDs mistos e resolução da chave estável. Teste Node executa o `TooltipLoader.js` real e confirma cores JS, C#, fallback, Master/Expert e cores vanilla sem modificar o desenho do usuário.
 
-**Importante:** a chave estável existe no registro, mas **não foi gravada nem restaurada no save do jogador ou do mundo**. O formato `.bl` atual é versão 2; alterá-lo sem preservar os dados de baús e personagens antigos tem risco de perda de itens. Requer projeto de migração e testes de ida/volta antes de ligar o recurso.
+**Importante:** a chave estável passou a ser gravada e restaurada nos arquivos v3 (ainda sem QA Android). O formato `.bl` atual é versão 2; alterá-lo sem preservar os dados de baús e personagens antigos tem risco de perda de itens. Requer projeto de migração e testes de ida/volta antes de ligar o recurso.
 
 **Não há validação Android** dos novos hooks IL2CPP, suas assinaturas reais, cores desenhadas ou 60 FPS. A ponte QuickJS foi verificada por teste de comportamento JS, não por build Android; fallback original permanece nos hooks.
+
+## Lote — salvamento de raridades em personagens e baús (19/10)
+
+- O `ModItemSaveFormat.h` original ganhou um **oitavo campo opcional** `rarityKey`, nomeado `mod/classe`. `SavedItem` mantém os campos anteriores, inclusive `prefixKey` e `data`.
+- O leitor reconhece os cabeçalhos `bunnyloader itens 1`, `2` e `3`. Uma linha v3 inclui o oitavo campo de raridade, validado antes da aplicação. O gravador continua escrevendo **v2 sempre que não existem raridades C# persistidas**; escreve v3 somente para saves que precisam guardar essas identidades.
+- Antes da primeira gravação v3 sobre um arquivo v1/v2, `ModItemSave.cpp` salva uma cópia imutável `<arquivo>.before-rarity-v3.bak`. Se não conseguir preservá-la, **aborta** a gravação v3. A gravação normal continua usando arquivo `.tmp` e `rename`.
+- O save de personagem captura `Item.rare` nativo por ID atual e serializa a chave estável (também antes da rotina de save original, quando necessário). A carga resolve essa chave no registro C#, após restaurar os prefixos; na ausência da raridade ou da ABI `Item.rare`, mantém o default e conserva a identidade como pendência sem atribuir um ID incorreto. O retry após o mundo pronto tenta resolver identidades pendentes. Ao mudar a posição do item durante a carga, a pendência acompanha o destino.
+- O mapa nativo `ChestData` existente armazena agora o campo `rarityKey` além do `data`, sem alterar o layout IL2CPP de `ChestItem`. Os hooks `SetToItem` e `ExpandItem` transferem a identidade entre itens e baús; `Resize`/`Clone` preservam a associação e `Clear`/`SetDefaults` a invalidam. O save v3 dos baús usa as mesmas regras e permite registros de itens vanilla com raridade C#.
+- `item_save::mergePending` impede registros duplicados quando um item vivo e a pendência de prefixo/raridade compartilham a mesma posição/chave. Prefixo e dados de item mais recentes têm precedência.
+- Testes nativos de host verificam v1/v2/v3, campos opcionais, identidade estável após troca na ordem dos mods, prefixos, dados e rejeição de chaves inválidas. O workflow compila `ModItemSave.cpp` com `-Werror`, além dos demais hooks.
+
+**Limites:** nenhuma escrita real de saves Android foi executada; os testes não provam que arquivos de personagens e mundos reais preservam todos os estados. Mods JS continuam com seus registros próprios; o armazenamento de raridade neste lote é do **C# nativo**. Restam QA Android de backup/rollback, baús, inventário, prefixos, restauração com mod desabilitado, reabertura e multiplayer. A publicação e o APK permanecem bloqueados até a validação integral.
 
 ## Bloqueios para declarar o loader completo
 
