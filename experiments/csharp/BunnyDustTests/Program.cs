@@ -103,6 +103,9 @@ static class DustTests
 
     private static void Run()
     {
+        Check(System.Runtime.InteropServices.Marshal.SizeOf<BunnyDustState>() == 64, "managed/native dust layout");
+        Check(System.Runtime.InteropServices.Marshal.OffsetOf<BunnyDustState>(nameof(BunnyDustState.Color)).ToInt32() == 60,
+            "managed/native color offset");
         Throws<ArgumentException>(() => new BunnyDustRegistry("invalid/id"), "reject bad mod id");
 
         var registry = new BunnyDustRegistry("dust_test");
