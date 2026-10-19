@@ -330,4 +330,52 @@ Test("texts-by-culture-expanded-without-mutation", () =>
     Equal("pt-BR", catalog.ActiveCultureName);
 });
 
+Test("register-precedence-survives-json-reload-and-unload", () =>
+{
+    var catalog = new BunnyLocalizationCatalog("en-US");
+    catalog.RegisterCulture("owner", "en-US", new Dictionary<string, string>
+    {
+        ["Items.Label"] = "File original"
+    });
+    catalog.Register("Mods.owner.Items.Label", "en-US", "Explicit");
+    var held = catalog.SnapshotForGame();
+    catalog.RegisterCulture("owner", "en-US", new Dictionary<string, string>
+    {
+        ["Items.Label"] = "File changed"
+    });
+    Equal("Explicit", catalog.Translate("Items.Label", "owner"));
+    catalog.ReplaceModCultures("owner",
+        new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en-US"] = new Dictionary<string, string> { ["Items.Label"] = "JSON reloaded" },
+            ["pt-BR"] = new Dictionary<string, string> { ["Items.Label"] = "Arquivo" }
+        });
+    Equal("Explicit", catalog.Translate("Items.Label", "owner"));
+    catalog.SetCulture("pt-BR");
+    Equal("Arquivo", catalog.Translate("Items.Label", "owner"));
+    catalog.Register("Mods.owner.Items.Label", new Dictionary<string, string>
+    {
+        ["pt-BR"] = "Registrado"
+    });
+    Equal("Registrado", catalog.Translate("Items.Label", "owner"));
+    catalog.ReplaceModCultures("owner",
+        new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en-US"] = new Dictionary<string, string> { ["Items.Label"] = "File again" },
+            ["pt-BR"] = new Dictionary<string, string> { ["Items.Label"] = "Arquivo de novo" }
+        });
+    Equal("Registrado", catalog.Translate("Items.Label", "owner"));
+    catalog.SetCulture("en-US");
+    Equal("Explicit", catalog.Translate("Items.Label", "owner"));
+    Equal("File original", held["Mods.owner.Items.Label"]);
+    catalog.RemoveMod("owner");
+    Equal(false, catalog.Exists("Items.Label", "owner"));
+    catalog.ReplaceModCultures("owner",
+        new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en-US"] = new Dictionary<string, string> { ["Items.Label"] = "Clean after unload" }
+        });
+    Equal("Clean after unload", catalog.Translate("Items.Label", "owner"));
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
