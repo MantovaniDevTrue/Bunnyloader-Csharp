@@ -38,6 +38,20 @@ inline bool safeToRetire(const SessionSnapshot& state, const std::string& key) {
     return true;
 }
 
+inline bool safeToRetireAll(const SessionSnapshot& state,
+                            const std::set<std::string>& createdExternalKeys) {
+    std::set<std::string> active;
+    for (const auto& [id,entries] : state.active)
+        for (const auto& entry : entries) active.insert(entry.key);
+    for (const auto& key : state.retired) {
+        const bool isCreatedExternal = createdExternalKeys.contains(key) &&
+            key.rfind("Mods.", 0) != 0 && key.find('.') != std::string::npos;
+        if ((!validOwnedLocaleKey(key) && !isCreatedExternal) ||
+            active.contains(key)) return false;
+    }
+    return true;
+}
+
 inline bool safeToRetireAll(const SessionSnapshot& state) {
     std::set<std::string> active;
     for (const auto& [id,entries]:state.active)
