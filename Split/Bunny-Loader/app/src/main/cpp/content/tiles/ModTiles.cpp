@@ -810,7 +810,7 @@ DrawShape readDrawShape(Il2CppObject* data) {
 
 void hookDrawData() {
     static bool done = false;
-    if (done) return;
+    if (done && g_origSpecialDrawData) return;
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
@@ -838,6 +838,7 @@ void hookDrawData() {
         return;
     }
 
+    if (done) return;
     done = true;
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* square = worldGen ? a.class_get_method_from_name(worldGen, "SquareTileFrame", 3) : nullptr;
