@@ -274,6 +274,15 @@ bool preserveLegacyBeforeRaritySave(const std::string& path,
 
 /** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
 void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
+    std::ifstream existing(path, std::ios::binary);
+    if (existing) {
+        std::vector<SavedItem> verified;
+        if (!item_save::read(existing, verified)) {
+            BL_ERROR("save de itens de mod: arquivo existente invalido em %s; gravacao cancelada",
+                path.c_str());
+            return;
+        }
+    }
     if (items.empty()) {
         std::remove(path.c_str());
         return;
