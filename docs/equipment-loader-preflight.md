@@ -243,3 +243,11 @@ A detecção compara ponteiro da instância, tipo, prefixo, dano e valor; se qua
 O teste host usa uma implementação de `Item.Prefix` que **não reseta** dano/valor e comprova quatro reaplicações seguidas sem acumular bônus, falha/restauração, alternância entre instâncias e invalidação após alteração externa. Há ainda regressão independente de overflow em valor alto. A PR temporária [#104](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/104) executou o CI específico [#39317397028](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39317397028) com sucesso; as correções e testes foram copiados para a #100.
 
 A suíte global associada ao ramo de Tiles ainda falha em `tests/basic_items/Program.cs` por `expected=13 actual=20` e em `ManagedRuntime.cpp` por avisos `-Werror=misleading-indentation`. Esses arquivos não foram alterados neste lote.
+
+## Verificação cruzada Android ARM64 do PrefixLoader
+
+A pipeline isolada `.github/workflows/check-csharp-prefix-android-arm64.yml` compila os arquivos de produção `ManagedPrefixBridge.cpp`, `ManagedPrefixGameplay.cpp` e `SourceLoader.cpp` usando o NDK 30, clang++ C++20, target `aarch64-linux-android26`, `-Wall -Wextra -Werror` e `-fPIC`, com passes separados de verificação sintática e objetos nativos. `llvm-readelf` confere que cada objeto tem arquitetura AArch64. Não requer assets comerciais, segredos, nem publica binários privados ou APK em artifacts públicos.
+
+A PR de verificação temporária [#105](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/105) executou [Android ARM64 #39319100681](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39319100681) com **sucesso**, assim como [Equipment CSharp preflight #39319100726](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39319100726), incluindo delegação vanilla quando o hook ainda não inicializou. O workflow e a regressão foram copiados para a PR #100.
+
+**Não confundir com teste Android real:** somente três unidades de tradução foram compiladas para ARM64 e verificadas por `llvm-readelf`. Não ocorreu link da biblioteca compartilhada completa, instalação do APK, execução no Xiaomi, verificação de saves, multiplayer ou medição de FPS. A construção de APK completa deve respeitar a entrega privada existente e os bloqueios de lote da base do projeto.
