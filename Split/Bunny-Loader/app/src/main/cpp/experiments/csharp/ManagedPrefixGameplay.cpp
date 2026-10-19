@@ -243,7 +243,12 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     const auto effects = ready && want != -3 ? managedItemPrefixApplyView() : nullptr;
     const auto policy = effects ? effects->find(type) :
         std::map<int, ManagedItemPrefixApply>::const_iterator{};
-    const bool hasPolicy = effects && policy != effects->end();
+    const bool hasItemPolicy = effects && policy != effects->end();
+    const auto prefixView = ready && want != -3 ? managedPrefixView() : nullptr;
+    const int oldPrefix = ready ? bl::runtime::field<uint8_t>(item, g_chancePrefixOffset) : 0;
+    const auto* oldPrefixPolicy = prefixView ? byType(*prefixView, oldPrefix) : nullptr;
+    const bool hadPrefixBonus = oldPrefixPolicy &&
+        (oldPrefixPolicy->applyDamageBonus || oldPrefixPolicy->applyValueBonus);
     auto* previous = ready ? rememberedPrefix(item) : nullptr;
     bool removedPrevious = false;
     int originalDamage = 0;
@@ -252,7 +257,8 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         const int currentDamage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
         const int currentValue = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
         const int currentPrefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
-        if (hasPolicy && previous->type == type && previous->prefix == currentPrefix &&
+        if ((hasItemPolicy || hadPrefixBonus) &&
+            previous->type == type && previous->prefix == currentPrefix &&
             previous->damage == currentDamage && previous->value == currentValue &&
             currentDamage >= previous->damageBonus &&
             currentValue >= previous->valueBonus) {
@@ -269,7 +275,7 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     }
 
     const bool accepted = g_originalItemPrefix(item, request, topTier, method);
-    if (!accepted || !ready || want == -3 || !hasPolicy) {
+    if (!accepted || !ready || want == -3) {
         if (removedPrevious && !accepted) {
             if (bl::runtime::field<int32_t>(item, g_chanceDamageOffset) ==
                     originalDamage - previous->damageBonus &&
@@ -285,23 +291,29 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     }
 
     const int prefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
-    if (!prefix) {
+    const auto* prefixPolicy = prefixView ? byType(*prefixView, prefix) : nullptr;
+    const int damageBonus = (hasItemPolicy ? policy->second.damageBonus : 0) +
+        (prefixPolicy ? prefixPolicy->applyDamageBonus : 0);
+    const int valueBonus = (hasItemPolicy ? policy->second.valueBonus : 0) +
+        (prefixPolicy ? prefixPolicy->applyValueBonus : 0);
+    if (!prefix || (damageBonus == 0 && valueBonus == 0)) {
         if (previous) previous->item = nullptr;
         return accepted;
     }
     const int damage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
     const int value = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
     if (damage < 0 || value < 0 ||
-        damage > INT32_MAX - policy->second.damageBonus ||
-        value > INT32_MAX - policy->second.valueBonus) {
+        damage > INT32_MAX - damageBonus ||
+        value > INT32_MAX - valueBonus) {
         if (previous) previous->item = nullptr;
         return accepted;
     }
-    const int appliedDamage = damage + policy->second.damageBonus;
-    const int appliedValue = value + policy->second.valueBonus;
+    const int appliedDamage = damage + damageBonus;
+    const int appliedValue = value + valueBonus;
     bl::runtime::field<int32_t>(item, g_chanceDamageOffset) = appliedDamage;
     bl::runtime::field<int32_t>(item, g_chanceValueOffset) = appliedValue;
-    rememberPrefix(item, type, prefix, appliedDamage, appliedValue, policy->second);
+    rememberPrefix(item, type, prefix, appliedDamage, appliedValue,
+                   {damageBonus, valueBonus});
     return accepted;
 }
 
@@ -448,7 +460,8 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                 return mult == 1.f ||
                     std::nearbyint(static_cast<float>(current) * mult) != static_cast<float>(current);
             };
-            return changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
+            return !p->requireEffectiveStats ||
+                   changes(itemDamage, *dmg) && changes(itemAnimation, *spd) &&
                    changes(itemMana, *mana) && (*kb == 1.f || itemKnockBack != 0.f);
         }
     }
