@@ -1214,11 +1214,6 @@ bool applyManagedSourceDefaults(
             return false;
         }
     }
-    if(!angler::registry().publish(modId,anglerQuests,error)) {
-        *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
-            " Stage=Publish Reason="+*error;
-        return false;
-    }
     if(!enqueueOwnedSourceRecipes(modId,recipeOwners,error))return false;
     for(const auto& request:nativeDefaults)if(!seen.contains(sourceIdentityForWire(request.projectile?"PROJECTILE":"ITEM",request.name))) {
         *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+request.name+" Stage=Publish Result=Rejected Reason=PrimaryDefaultsMissing";return false;
@@ -1230,6 +1225,11 @@ bool applyManagedSourceDefaults(
         }))return false;
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
+    }
+    if(!angler::registry().publish(modId,anglerQuests,error)) {
+        *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+            " Stage=Publish Reason="+*error;
+        return false;
     }
     mod->runtimeApplied = true;
     return true;
