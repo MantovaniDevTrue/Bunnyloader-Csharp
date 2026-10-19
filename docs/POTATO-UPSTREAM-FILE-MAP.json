@@ -1,7 +1,7 @@
 {
-  "schema": "BunnyCSharpUpstreamParityV3",
+  "schema": "BunnyCSharpUpstreamParityV4",
   "comparedAt": "2026-10-18",
-  "method": "Full recursive Git tree blob comparison, self-excluding this JSON manifest. No ABI/runtime equivalence is implied.",
+  "method": "Recursive Git blob SHA comparison excluding this JSON. File equality only; Android device behavior requires tests.",
   "upstream": {
     "repository": "JonataOliveiraa/Bunny-Loader",
     "commit": "a370a664aa3b808c87e4e4f570b27504d20df723",
@@ -10,29 +10,41 @@
   "source": {
     "repository": "MantovaniDevTrue/Bunnyloader-Csharp",
     "branch": "entrega/potato-bunny-original-com-csharp-20261018",
-    "observedSourceCommitBeforeManifestUpdate": "2b4328794d2835b2a455572d9a01f60cec2a7281",
-    "observedSourceGitTreeBeforeManifestUpdate": "7c94f9cb569e2762eb66e336e77ab98d1196d25a",
+    "observedHeadBeforeManifestUpdate": "a53b7bdcdbc237abf924dba5543a46bc4d0f0ba6",
+    "treeSha": "660d8069d116101e76bd8d8a3d51841ca6dbf703",
     "root": "/",
-    "validatedAndroidCiProductionCommit": "018b477a5a90115f399aed57ff84811c020d7a3f",
-    "validatedMonoExportCiRun": 39184151091
+    "csharpCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39185587613",
+    "gradleLauncherCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39185942563",
+    "quickJsVendorCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39186353873",
+    "nativeBuildPendingCI": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39186560970"
   },
   "summary": {
     "upstreamFiles": 2024,
-    "deliveryTrackedFilesExcludingManifest": 2773,
-    "unchanged": 1948,
-    "modified": 76,
-    "portAdded": 749,
+    "deliveryTrackedFilesExcludingThisMap": 3000,
+    "unchanged": 1945,
+    "modified": 79,
+    "deliveryAdded": 976,
     "upstreamMissing": 0
   },
   "modifiedSharedFiles": [
     {
+      "path": ".gitignore",
+      "sourceBlob": "065c7e50be1ef88785c44d6c18580cee6e520ff6",
+      "upstreamBlob": "b129f0ea9ded1b74bc5f8de6871a914c60a2cbc8"
+    },
+    {
       "path": "README.md",
-      "sourceBlob": "8ad26335e2af9de0bb33e9041211ceff6d00aaf9",
+      "sourceBlob": "af3562f6e273820080aad3ab3a6e5897a4c45285",
       "upstreamBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
     },
     {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sourceBlob": "225715344c9470cc5503216b48632eb073301bcd",
+      "upstreamBlob": "6f0ab76cf1ce090aaabe6ce1a234b6ee6d552cdf"
+    },
+    {
       "path": "app/build.gradle.kts",
-      "sourceBlob": "dc4c7783579a038813c4ff638f1ed6f856528040",
+      "sourceBlob": "661937a02ce7f5c1e10bc6bc3ba8e531a9ac998f",
       "upstreamBlob": "210066f4b7929c393ddeaf79e9e7859e9ef537c6"
     },
     {
@@ -296,6 +308,11 @@
       "upstreamBlob": "24e2fc287434a6fd31dd0dd11ac63a64ab6e1be9"
     },
     {
+      "path": "app/src/main/cpp/third_party/README.md",
+      "sourceBlob": "91604ce99d56165d94e09e956d0442d7a090eb74",
+      "upstreamBlob": "5eaaf87591e5a3497f43a3a74be18e6837131acf"
+    },
+    {
       "path": "app/src/main/kotlin/dev/bunnyloader/GameActivity.kt",
       "sourceBlob": "7654f04a5606ec43cb817ac6db934bd02afbf7e1",
       "upstreamBlob": "a245e50ffef2c431ee321055e10f9cfc9efadf01"
@@ -406,7 +423,7 @@
       "upstreamBlob": "013c14e489444f5f19e238a9d3fa3b3f8bea9ed2"
     }
   ],
-  "additionalFiles": [
+  "additionalDeliveryFiles": [
     {
       "path": ".github/workflows/check-potato-handoff.yml",
       "sourceBlob": "5ace7b9243b6e541b49d2e43376626f659ba2d7d"
@@ -416,16 +433,736 @@
       "sourceBlob": "1ebff0bb355e1f72977441af4c8a568182de4c3d"
     },
     {
+      "path": ".github/workflows/prepare-integrated-csharp-runtime.yml",
+      "sourceBlob": "7fa43ff930bae381ff581475b0160213fd82d713"
+    },
+    {
+      "path": ".github/workflows/vendor-quickjs-into-bunny-source.yml",
+      "sourceBlob": "bef6b478b8033c80d263e30005345f6eb83f1c91"
+    },
+    {
+      "path": ".github/workflows/verify-native-js-csharp-integrated.yml",
+      "sourceBlob": "f77c4967f46c7161742d27265e02c2a0a602edb5"
+    },
+    {
+      "path": ".github/workflows/verify-ready-csharp-gradle.yml",
+      "sourceBlob": "613480baf73a184b7117d1146fb018e194a92970"
+    },
+    {
       "path": "IMPORTAR-NO-GITHUB-DO-POTATO.md",
-      "sourceBlob": "3d67bd6c9a48b66fb3d6a90d1aac435da3245024"
+      "sourceBlob": "64c246a51aae841c0b36c997969f312c9e904aeb"
     },
     {
       "path": "POTATO-C-SHARP-HANDOFF.md",
-      "sourceBlob": "48850e249533787830e9f4c4322cf7ab7876c634"
+      "sourceBlob": "bbccc5daf583b1adcde37a6739d0f17ee8a2a0a5"
     },
     {
       "path": "README-BUNNY-ORIGINAL.md",
       "sourceBlob": "d96fefd783d4163eb1efafdc8d50f2b4f79e78e2"
+    },
+    {
+      "path": "app/src/main/assets/managed/BunnyManagedProbe.dll",
+      "sourceBlob": "148db3b189ee4ea994ad97b0de32c08b167d071a"
+    },
+    {
+      "path": "app/src/main/assets/managed/BunnySourceCompiler.dll",
+      "sourceBlob": "75a562ced3f21a837096b6c9dd9029af539800d0"
+    },
+    {
+      "path": "app/src/main/assets/managed/BunnySourceSdk.dll",
+      "sourceBlob": "65ee6c3c92cc2cb9ac9374824254d4c72748c8d0"
+    },
+    {
+      "path": "app/src/main/assets/managed/BunnyVmBenchmark67.dll",
+      "sourceBlob": "a458e8be60f72008d8930de315a2da2e05e0d682"
+    },
+    {
+      "path": "app/src/main/assets/managed/BunnyVmGameplay69.dll",
+      "sourceBlob": "d404c8eea14c53b34828c360913d103a4658f5fb"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.CSharp.dll",
+      "sourceBlob": "217fb5749134fc8c92c842244f1c81f0033d8db1"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.CodeAnalysis.CSharp.dll",
+      "sourceBlob": "c23db48946af2b8dd6f00f83f22a1d224563e99c"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.CodeAnalysis.dll",
+      "sourceBlob": "de7eadd96efd27b2878b53cb1654b193c1f02cc7"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.VisualBasic.Core.dll",
+      "sourceBlob": "9496e03b39e355bc8110d41ad0dfa5b56152fc1e"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.VisualBasic.dll",
+      "sourceBlob": "bf6c4a589d719b6efcb18bc407640743f4b8d033"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.Win32.Primitives.dll",
+      "sourceBlob": "437d0143c28333a8811b32a52086a5c3d2aae1c0"
+    },
+    {
+      "path": "app/src/main/assets/managed/Microsoft.Win32.Registry.dll",
+      "sourceBlob": "d79ad2e8c615222278a21559cf9ebf6148055560"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.AppContext.dll",
+      "sourceBlob": "f003e5700895b5f2b3653c374b00971eb4a432cb"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Buffers.dll",
+      "sourceBlob": "61a10ff458568d3641e03a48f411079098da5ffe"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Collections.Concurrent.dll",
+      "sourceBlob": "f567078ace33f309fd04dd1408394f993ebb106f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Collections.Immutable.dll",
+      "sourceBlob": "f4cc7471d62003a21081b536539f7c5550d4e645"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Collections.NonGeneric.dll",
+      "sourceBlob": "5fc49b611ee3d0b127bf3ec7e9e6e6baa73ceb0a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Collections.Specialized.dll",
+      "sourceBlob": "31254f6ef349d7c76123fc179695af1f8da77ba5"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Collections.dll",
+      "sourceBlob": "ce22580e333056c5ebd0f433dbf46d6b7fac09f5"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.Annotations.dll",
+      "sourceBlob": "036e437864c8bae0f07bdecc00471dc9899d3995"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.DataAnnotations.dll",
+      "sourceBlob": "fbdb79ed0918bc35c2d70cc6a441329847effcce"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.EventBasedAsync.dll",
+      "sourceBlob": "7a8f09513c2d410c3e1af371a2bbb729b6183680"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.Primitives.dll",
+      "sourceBlob": "fdcc6aa071542f54f90e5dd52cd48ebaf772e1e3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.TypeConverter.dll",
+      "sourceBlob": "10c4c08cfae8a8f3f61e05d0f726e3f2136117c9"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ComponentModel.dll",
+      "sourceBlob": "c2399874d82a48dd76f42798fd3b69c12e3e5655"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Configuration.dll",
+      "sourceBlob": "15a71be3bc245cbd47bf3e0921268901641b23ea"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Console.dll",
+      "sourceBlob": "eef8dd6e9fe0b04b64f40548aab78d96fb38ca46"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Core.dll",
+      "sourceBlob": "43d903bc4324bd3b1ebbbaca627e49be6cd1d7db"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Data.Common.dll",
+      "sourceBlob": "0750fcd39ab5145988a1d4813969394cddbfd006"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Data.DataSetExtensions.dll",
+      "sourceBlob": "a66b531f12abf06be9db053c12bc4bb3a30be936"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Data.dll",
+      "sourceBlob": "3d72888631e36c485f79b91807da93090df8b322"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.Contracts.dll",
+      "sourceBlob": "a58428adc1db6193a25279970e58faf980d0d420"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.Debug.dll",
+      "sourceBlob": "85dce95a10d92a5a37e11aaefbb3d3025f62edfb"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.DiagnosticSource.dll",
+      "sourceBlob": "be7f46cfd7472c868448e17961a416338204dd7e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.FileVersionInfo.dll",
+      "sourceBlob": "2a1b7cbc44513d70851d8498de55be7137436dfe"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.Process.dll",
+      "sourceBlob": "7fa7ddeddaf2355ac44b31e8696f1bb3d4b53e24"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.StackTrace.dll",
+      "sourceBlob": "27da5513a5733ebc90cd954c7d5ee7a30dc2506e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.TextWriterTraceListener.dll",
+      "sourceBlob": "f3540d80c63bcd1243c22d046894ecf4b44d4499"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.Tools.dll",
+      "sourceBlob": "8c1d52778825160c7cde79835ffbead89fc73f5f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.TraceSource.dll",
+      "sourceBlob": "6aaec37006c05e92b895b0e846c96a0d04870c80"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Diagnostics.Tracing.dll",
+      "sourceBlob": "0f261e4f4f9df7706a1d234ae0c8c09ec03ec794"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Drawing.Primitives.dll",
+      "sourceBlob": "7e0256b56f8d1b444ca73228d1f17cf110608b8c"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Drawing.dll",
+      "sourceBlob": "e0f507ba709ca9b3b5921a42979b687519c17f4f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Dynamic.Runtime.dll",
+      "sourceBlob": "72b3aa70c9d19215be5f1d9310ceed842158e393"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Formats.Asn1.dll",
+      "sourceBlob": "fd368e22c9b033826253ab5c60932333badb65d0"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Formats.Tar.dll",
+      "sourceBlob": "37f66f808602930c429a9feb7756fdf67b269a05"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Globalization.Calendars.dll",
+      "sourceBlob": "4d5452eec340b8f05691011db788270db3d4a9a4"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Globalization.Extensions.dll",
+      "sourceBlob": "6dec0debc35d929f32cce14f8d36efc20b17685b"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Globalization.dll",
+      "sourceBlob": "a438c2b3806b8731fb34f5baa4869e343b3a7fe6"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Compression.Brotli.dll",
+      "sourceBlob": "6afec6c4316dd4aedd7c6f6625c26dfec878f6a4"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Compression.FileSystem.dll",
+      "sourceBlob": "66dc6651ff58efecb8b50803d0bd2b8931e2b992"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Compression.ZipFile.dll",
+      "sourceBlob": "81e5382f6d4ae361c6e840f760ac6d6a6b769dd8"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Compression.dll",
+      "sourceBlob": "e531b732f1fa8e08af199c0727c49b65bbe2e701"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.FileSystem.AccessControl.dll",
+      "sourceBlob": "3d56f6ddb6beeb42a9213fd70c2c7b4f99558001"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.FileSystem.DriveInfo.dll",
+      "sourceBlob": "b4f6431d7a99bfffe0c095f0007cb4ac67a6e11d"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.FileSystem.Primitives.dll",
+      "sourceBlob": "68306952d523016b3d7917777f4c10d57522503a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.FileSystem.Watcher.dll",
+      "sourceBlob": "6c6d5074f14491e6e586b3872a8b38949c9d2571"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.FileSystem.dll",
+      "sourceBlob": "03374c488f9007d93c9134f29f5d79bfe1779420"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.IsolatedStorage.dll",
+      "sourceBlob": "fd52b74286f7929218ea845b530bad21c0f0cefb"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.MemoryMappedFiles.dll",
+      "sourceBlob": "db3e012853c49fcbbe6ab434c6867bc28c275e36"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Pipes.AccessControl.dll",
+      "sourceBlob": "f4a743c238c80d3df4127f254d8c319a241bc34f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.Pipes.dll",
+      "sourceBlob": "91ddd684d06c5319ce50bb9786d294f7f808c76f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.UnmanagedMemoryStream.dll",
+      "sourceBlob": "215118bc01971cfe18e49ba4fd70b5b81346a8f3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.IO.dll",
+      "sourceBlob": "ffdb3b154fe6c74ccb306732f08192cd0a0eec3e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Linq.Expressions.dll",
+      "sourceBlob": "d0cb6949440ccce182ced3f443b0c55793c0edd5"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Linq.Parallel.dll",
+      "sourceBlob": "6a03dc655b0dc50d928fbbb2a262ce9d2370c011"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Linq.Queryable.dll",
+      "sourceBlob": "c24d291af822897424df992e6952ed8048871b2f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Linq.dll",
+      "sourceBlob": "fa3e56f16cebb9754a63f93e8b9f1d1803657adb"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Memory.dll",
+      "sourceBlob": "33ea8f09292cddec1f7b3f3613b55a8ff50c5ce7"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Http.Json.dll",
+      "sourceBlob": "38ee32d03c96f21d042d50dd1b42e4b84abdd92e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Http.dll",
+      "sourceBlob": "ec724ed27b15901b00d36fdb508dbc980707df36"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.HttpListener.dll",
+      "sourceBlob": "001009962d00f13c9fe8db50aa5e95abce5478f2"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Mail.dll",
+      "sourceBlob": "febbb0036436c7e8411c062cfdedcc951b795470"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.NameResolution.dll",
+      "sourceBlob": "5e2bbdbc9f363270b93d111c1e0cf4d55cf8ab31"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.NetworkInformation.dll",
+      "sourceBlob": "680c53cdfb6e90e5fbe4c1b18144ad23996e5e31"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Ping.dll",
+      "sourceBlob": "e062000c01d8694f196c46aceb2e0a9f15c81ac8"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Primitives.dll",
+      "sourceBlob": "a07f57d004d2e45f68dcbdf24bddca75d3971611"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Quic.dll",
+      "sourceBlob": "4247d03932649061766f7ffe0a0496aabf880146"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Requests.dll",
+      "sourceBlob": "654394c3b21650ea23f49cfcdd8a6ae1d8c30f80"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Security.dll",
+      "sourceBlob": "389ffdae4e233211aaec49bdccb5d480b1d0ab72"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.ServicePoint.dll",
+      "sourceBlob": "79eebac8acd6ed1fbd779d24396313afd69b59f4"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.Sockets.dll",
+      "sourceBlob": "e578e72d274368277e08b85ece5c011ba58a10d5"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.WebClient.dll",
+      "sourceBlob": "1671320d0cc9e8872aea98098912650cd4696c63"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.WebHeaderCollection.dll",
+      "sourceBlob": "47683b26306600c969ec9e6dba23a6fbc19f3ced"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.WebProxy.dll",
+      "sourceBlob": "441a3304f2c27c89fe15641e66ba8b88dd6a51d2"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.WebSockets.Client.dll",
+      "sourceBlob": "bcbe5b0d31dc1c746e7ddf2efcce1e541db502ce"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.WebSockets.dll",
+      "sourceBlob": "92b07a16ae3ff2b54cb5f0f21706dc9b6c1bcd66"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Net.dll",
+      "sourceBlob": "379a79a2632ef3cba701dc185c8d18a73dbdff2b"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Numerics.Vectors.dll",
+      "sourceBlob": "caa9a525d315924383f209bbdca8d7fadc852584"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Numerics.dll",
+      "sourceBlob": "d002a5b39d0abaf7bed731977a3475493c25f679"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ObjectModel.dll",
+      "sourceBlob": "d000225db677256341c616a388535a8f8e49f44e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Private.CoreLib.dll",
+      "sourceBlob": "4e12300e56c2f0458427ef0173925919382da389"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Private.DataContractSerialization.dll",
+      "sourceBlob": "f990d829b69297eba3693aebcbdd42e072589672"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Private.Uri.dll",
+      "sourceBlob": "126b818946bf84c3eb6102bbe0a75c3086467fa9"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Private.Xml.Linq.dll",
+      "sourceBlob": "ae05506d0c5163bffb0a4a444dbcb7635d2718c3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Private.Xml.dll",
+      "sourceBlob": "1f6b6e9dd0951a109e86dca67ce715f847e63d00"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.DispatchProxy.dll",
+      "sourceBlob": "942b4f08877b426a9c388192ee73ec7408e44cfa"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Emit.ILGeneration.dll",
+      "sourceBlob": "545b139c81f68ba10d258bb2b118f0f1450db455"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Emit.Lightweight.dll",
+      "sourceBlob": "80d1ec64a65e8022c398ae25a3ded937aa5f7b0a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Emit.dll",
+      "sourceBlob": "059d7234c6f1e4716b0ae1fb1fcf74bb253784da"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Extensions.dll",
+      "sourceBlob": "1fab8bf227714ccd3bdf09c601d0bec9a01192d3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Metadata.dll",
+      "sourceBlob": "fa94d100a6faa6b8f896861b53721e8ca8243667"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.Primitives.dll",
+      "sourceBlob": "ff7af1c4522af1ca1924d978ce82adc674a28275"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.TypeExtensions.dll",
+      "sourceBlob": "576357bca2adff5f7d659efe6121f5bf97b513f2"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Reflection.dll",
+      "sourceBlob": "c5a1dcb80a78228222f23bbab78d0b20f01ad5ee"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Resources.Reader.dll",
+      "sourceBlob": "5ff9654cec4e59c0cc5734764360c980bc40812f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Resources.ResourceManager.dll",
+      "sourceBlob": "a5c63094684216aa1953965f5275e0211b65fe11"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Resources.Writer.dll",
+      "sourceBlob": "59f82a03d5008f54f2db5956b0186f944def63e7"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.CompilerServices.Unsafe.dll",
+      "sourceBlob": "6cd050d3215cb2da4defce6709e569f05eb58180"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.CompilerServices.VisualC.dll",
+      "sourceBlob": "d4905519861cc0769759e1e523d36f204eb455ce"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Extensions.dll",
+      "sourceBlob": "695bb6454c4656c0c48b700c27c95ed5790c8c74"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Handles.dll",
+      "sourceBlob": "d8b714e8f610c3935ecba56275df9adbc7d663ba"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.InteropServices.JavaScript.dll",
+      "sourceBlob": "1bf2e2b77cd128af0d101cf3a4a1c19afc3e7958"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.InteropServices.RuntimeInformation.dll",
+      "sourceBlob": "449a33ef4dc708ccb6bd1594f816f9d6824d8350"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.InteropServices.dll",
+      "sourceBlob": "bff7e86b615fa0bddbe56ba87c964c1c7c4f2a4d"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Intrinsics.dll",
+      "sourceBlob": "19f4fccfa53a0a250c2d3eaca33239ab70b1b7c8"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Loader.dll",
+      "sourceBlob": "4d780dc26368bb13ee978df56e6ee739b4669297"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Numerics.dll",
+      "sourceBlob": "968139f5aa919132e91d6da6004c8ff2698c9e2a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Serialization.Formatters.dll",
+      "sourceBlob": "49c682f46470125bd28f8988fca5b37bd04d9157"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Serialization.Json.dll",
+      "sourceBlob": "8b04e6e13b150a8a9773e04d433907fb622b3936"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Serialization.Primitives.dll",
+      "sourceBlob": "7360ac63fb537e3e4df39b0b35fb491300439633"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Serialization.Xml.dll",
+      "sourceBlob": "0c00c7a785b4b4a00985d09b67f6e14d43b35649"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.Serialization.dll",
+      "sourceBlob": "4d42fdf110afd708712ae2d31e4d273fe48a4ed9"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Runtime.dll",
+      "sourceBlob": "9ff8503729166148016ffd94ce7640a9ed69f4b6"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.AccessControl.dll",
+      "sourceBlob": "f169c657ca2856e9749b638898705462d187ba04"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Claims.dll",
+      "sourceBlob": "5edf6c1e93aaf89e3984b6f7a79982c718a35831"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.Algorithms.dll",
+      "sourceBlob": "34b16eae9a7fd8df3192b7ee157ff60b96111b32"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.Cng.dll",
+      "sourceBlob": "c5afc4ec71d33394053a71e9d6f97862dcbcfa21"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.Csp.dll",
+      "sourceBlob": "475897cb8f610df81549291a72a1805680cc8691"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.Encoding.dll",
+      "sourceBlob": "9dc7d9314c4011b1a72e7f7347b608737e7d6b7a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.OpenSsl.dll",
+      "sourceBlob": "d732a65acfef90780771fa9a61b683795c1666be"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.Primitives.dll",
+      "sourceBlob": "00aeea83dd624c5cdccabe221ed9d9fc1cfd64d4"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.X509Certificates.dll",
+      "sourceBlob": "45ff21d0a272e9b02b8488d38f63a7f79463d74a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Cryptography.dll",
+      "sourceBlob": "896db7624898206cf4832edd2d2ba5cbf2120944"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Principal.Windows.dll",
+      "sourceBlob": "23ec6733188c625cc766b72b66605aaa6dba42c6"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.Principal.dll",
+      "sourceBlob": "52a3948ebb39e964a940e82c36936c04d04b9106"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.SecureString.dll",
+      "sourceBlob": "af6ddc605b6c15a26938a50b7a7d8522cdec6b1f"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Security.dll",
+      "sourceBlob": "097dfa128639dfbead8a47f6833952ce42f3447c"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ServiceModel.Web.dll",
+      "sourceBlob": "de41b3f8416d428a1d8f5014c14621eb01fe1d99"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ServiceProcess.dll",
+      "sourceBlob": "0c133f701c28c5fb96b23d5683d557e6c8581b68"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.Encoding.CodePages.dll",
+      "sourceBlob": "5f705a3a9f5ffcec7eadb3b06aee2cff7194e500"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.Encoding.Extensions.dll",
+      "sourceBlob": "ddc174117acbc646052f36af4a738dbac796b3f3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.Encoding.dll",
+      "sourceBlob": "067e28ea56f1ec7e2da6c9f20790199807b735cf"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.Encodings.Web.dll",
+      "sourceBlob": "3d4b6b5d634399cdcc1a0e280fa7eaf7aeee59a7"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.Json.dll",
+      "sourceBlob": "6f5bf03e63adad9fef3cc81d0ab72f77c9ed2148"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Text.RegularExpressions.dll",
+      "sourceBlob": "855fa8243ff042346f6a40b32c01a93f2e7e0c4a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Channels.dll",
+      "sourceBlob": "303f707829093adef3511474cadb40ce7f9500ce"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Overlapped.dll",
+      "sourceBlob": "87e81281b14ee3e3b997c24501cb0551285625e8"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Tasks.Dataflow.dll",
+      "sourceBlob": "67a0c6aa619d58f2d7a4e573e537f9584519ee1d"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Tasks.Extensions.dll",
+      "sourceBlob": "ea7a9f3ab91741cdc3bbc6142f124ea44060bd58"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Tasks.Parallel.dll",
+      "sourceBlob": "ac3bea77e8305712a3423b7af38d661238c5a82d"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Tasks.dll",
+      "sourceBlob": "7326ecb204fb61b1312c4865fce96e918c07ea74"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Thread.dll",
+      "sourceBlob": "e30445c999432cb07a6790cd86b9dba484eb0cfb"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.ThreadPool.dll",
+      "sourceBlob": "cf5057edf08d63274ff7a454a54ac1e6d1d816b1"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.Timer.dll",
+      "sourceBlob": "206f63b1a667cd8cb53187639f054ce71e1f3487"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Threading.dll",
+      "sourceBlob": "7206698c6ae224f85d5744ad055742cd97b094d0"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Transactions.Local.dll",
+      "sourceBlob": "5a2d04534ce970b61cee7aef1bf527f68bb31ed1"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Transactions.dll",
+      "sourceBlob": "4bd01adb6e1aa0fab4daa45e5ec4d2ba68385522"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.ValueTuple.dll",
+      "sourceBlob": "b53ee3593c98b285fa87dd9d33d95d270a783f6e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Web.HttpUtility.dll",
+      "sourceBlob": "34bccba24efc11941485f30212500682e63c1bf3"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Web.dll",
+      "sourceBlob": "5c0431391e1a305945b94db2e1d69f4e0dde109a"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Windows.dll",
+      "sourceBlob": "643fbc6b6c8a5e1e7ffaa48d43af84987cba01f2"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.Linq.dll",
+      "sourceBlob": "fc2e186bcdd2343eadd7885e546e786f5f31262e"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.ReaderWriter.dll",
+      "sourceBlob": "f6a4af28cab103669ae9a4f4f78e4c9d41a03f6c"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.Serialization.dll",
+      "sourceBlob": "6e195d538e7d004bda0fd7c40cd6d0ad7fad384c"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.XDocument.dll",
+      "sourceBlob": "3726ef4b11e5095bffc40e5583d83d7926566ede"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.XPath.XDocument.dll",
+      "sourceBlob": "99b9b1754f44a315a98ff50e32b4030bc9a83365"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.XPath.dll",
+      "sourceBlob": "1bbe2ea49abed081c46a32c174c7fcce7b14b960"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.XmlDocument.dll",
+      "sourceBlob": "e643c82b2964b7fdc281af314a1bfb912eeb4e00"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.XmlSerializer.dll",
+      "sourceBlob": "56c6d6541357e7dd220e643982440c2a252358af"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.Xml.dll",
+      "sourceBlob": "98f02149dc04df4aa99174ef7382c4ddb15a8ef1"
+    },
+    {
+      "path": "app/src/main/assets/managed/System.dll",
+      "sourceBlob": "56c2796140228db00742754f920e7102d72af148"
+    },
+    {
+      "path": "app/src/main/assets/managed/WindowsBase.dll",
+      "sourceBlob": "53b9d38ea74df0ae984ddf143512c52c97e17b83"
+    },
+    {
+      "path": "app/src/main/assets/managed/framework.sha256",
+      "sourceBlob": "d9b20174dcf5083ee43a3e01c1febfc4f113fc48"
+    },
+    {
+      "path": "app/src/main/assets/managed/mscorlib.dll",
+      "sourceBlob": "4d2c493e99d065f2929e8c762a9ee457b792d4aa"
+    },
+    {
+      "path": "app/src/main/assets/managed/netstandard.dll",
+      "sourceBlob": "4dc02410612507ea28b976c32982476c821d1cba"
     },
     {
       "path": "app/src/main/cpp/content/items/ItemRegistry.cpp",
@@ -876,6 +1613,158 @@
       "sourceBlob": "f5ec01785adcf5c036ff4c3072b0d1c0be02239e"
     },
     {
+      "path": "app/src/main/cpp/third_party/quickjs/LICENSE",
+      "sourceBlob": "fae657320cdf957cab10654ac39990fdb20e97ef"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/README.md",
+      "sourceBlob": "e4b0e34cd6a02805f27dd1ca023a56bf2cf772e5"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/amalgam.js",
+      "sourceBlob": "37492395b398332aeb528fc269ac3debc386dc6a"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/api-test.c",
+      "sourceBlob": "8a3ce9eec4e60089b1f76af84e07d6ba217dafa6"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-array-fromasync.h",
+      "sourceBlob": "f2b568af5fb91f263a87a0a09c4b2caeff2186fb"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-array-fromasync.js",
+      "sourceBlob": "cfe09ee6b331e18c2b72fc84ba1004b316628243"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-iterator-zip-keyed.h",
+      "sourceBlob": "471c6bf2135894c42781542eec1c340ce878a3d6"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-iterator-zip-keyed.js",
+      "sourceBlob": "10aedf37312c8cb662d941d0a17c9eeaec61d59c"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-iterator-zip.h",
+      "sourceBlob": "b69844655afa8254bbfcd2abaaa5103e3dc9f43a"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/builtin-iterator-zip.js",
+      "sourceBlob": "8d2707e769232411623895aaab2c1bd68d351915"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/ctest.c",
+      "sourceBlob": "eeb03e8699b8c240984c92c4918474db596f6628"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/cutils.h",
+      "sourceBlob": "d441bba5e781f1817453aae5435ff6a223cbd18e"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/dtoa.c",
+      "sourceBlob": "a89e824f9263ab9d1c47b22d955f48d950719d96"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/dtoa.h",
+      "sourceBlob": "85be040698c99e73e4b8e53af9edffbf7acd1aa2"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/fuzz.c",
+      "sourceBlob": "5794e7b478f565e571839847873edbf3f2dce159"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libregexp-opcode.h",
+      "sourceBlob": "b3d7b6fdf3a574004fe5e586d1f246b088bcbc07"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libregexp.c",
+      "sourceBlob": "49c474c468918e29977bc5acfdc891f1ccf2ab1b"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libregexp.h",
+      "sourceBlob": "44eded3bf5f3d5f7470776736dc9dc6af7d177c0"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libunicode-table.h",
+      "sourceBlob": "f1cf304187c437d935fbee8633806c92d5a60a94"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libunicode.c",
+      "sourceBlob": "6d539331e995f81310fefdcde0ac758b7b3b71ce"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/libunicode.h",
+      "sourceBlob": "66c0b3865e8f57472a7dbb11a66685f8fdd9ea2b"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/list.h",
+      "sourceBlob": "b8dd716814f541a6de030b099890ca32398b3434"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/lre-test.c",
+      "sourceBlob": "6f5718852d72c6ca902534a1b7abf649adad9b18"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/qjs-wasi-reactor.c",
+      "sourceBlob": "91d74eb47844f13f9ec23d7bde1faaf3554203cc"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/qjs.c",
+      "sourceBlob": "965339102d2fa2536b76c6c7aa11bf26dfdf1013"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/qjsc.c",
+      "sourceBlob": "635ed2700218d89f6be2ce1c9b50e6a71bf5285a"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs-atom.h",
+      "sourceBlob": "6b8dde84f1e222b850cb618db3c48089ffa9654b"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs-c-atomics.h",
+      "sourceBlob": "8fc6b720309cd4da980fe2a12126007b45926119"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs-libc.c",
+      "sourceBlob": "fc2cd18250a0391922ed084b95e96733f7ee725a"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs-libc.h",
+      "sourceBlob": "fd91a2f6867d0467f41e6c4d69c71952645df819"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs-opcode.h",
+      "sourceBlob": "ec2a5ad9187c7bb158c169d1b1e63cb7652bee4f"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs.c",
+      "sourceBlob": "6ca030b9f15511653fdea2bc5555232e56dfb687"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/quickjs.h",
+      "sourceBlob": "b5e5576ff5fd6742a7aeafb7040c630b99e19b2d"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/repl.js",
+      "sourceBlob": "6cc9f16b05f049e09453f6d0660aed9c442759a9"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/run-test262.c",
+      "sourceBlob": "482085cd935659e6a1fdfebe739de28232c40d48"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/standalone.js",
+      "sourceBlob": "3d62fa5bbae3c0e90b40cd811c6cfde64ff1b9ed"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/unicode_gen.c",
+      "sourceBlob": "3d9e612e1c5a0f92c4d49f6d62dba942e91816af"
+    },
+    {
+      "path": "app/src/main/cpp/third_party/quickjs/unicode_gen_def.h",
+      "sourceBlob": "c2f0381edd34dd48a868a46ac40f91265a16eac9"
+    },
+    {
       "path": "app/src/main/java/com/unity3d/player/UnityJniClasses.java",
       "sourceBlob": "36f793950ff1e8414b792a4c295124befbe4bf31"
     },
@@ -886,6 +1775,42 @@
     {
       "path": "app/src/main/java/net/dot/android/crypto/DotnetProxyTrustManager.java",
       "sourceBlob": "4f2aecf83f4bb55bfd4f6eb61764496d037109dc"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libSystem.Globalization.Native.so",
+      "sourceBlob": "77dedcfd59aac0d986342f44422ff2b8a8b57996"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libSystem.IO.Compression.Native.so",
+      "sourceBlob": "2a1e8469285e80d4479c2db35ed73552694217d2"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libSystem.Native.so",
+      "sourceBlob": "ac803eef08ee1cc6ace32cb7198dd41c455fafb5"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libSystem.Security.Cryptography.Native.Android.so",
+      "sourceBlob": "00a4fb0f80f9467e2f946c872c87d56d18819165"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libmono-component-debugger.so",
+      "sourceBlob": "7bfe076c1f2dcb72975c617286847a3a99028437"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libmono-component-diagnostics_tracing.so",
+      "sourceBlob": "cd73dd579e9830b2103b48d3d231180baf349d3d"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libmono-component-hot_reload.so",
+      "sourceBlob": "0e98be4b5b319b813654fe41119a747976fa9cbb"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libmono-component-marshal-ilgen.so",
+      "sourceBlob": "9c4323f344b28fdab31bcea46a66b859076974bf"
+    },
+    {
+      "path": "app/src/main/jniLibs/arm64-v8a/libmonosgen-2.0.so",
+      "sourceBlob": "c5fa6de4e61711b8e259d91b8d6dd02818b0b8ea"
     },
     {
       "path": "app/src/main/kotlin/dev/bunnyloader/csharp/CompilerPriorityController.kt",
@@ -3349,7 +4274,7 @@
     },
     {
       "path": "tools/mono/README.md",
-      "sourceBlob": "2396036388a956f3dd7163ada31e50dd5704a1b5"
+      "sourceBlob": "f6061a1616f55cf28fc20eeae78b6d2a9f1e9174"
     },
     {
       "path": "tools/mono/build_patched_mono_arm64.sh",
@@ -3404,5 +4329,5 @@
       "sourceBlob": "4d5d1dd91490708605aedd31bd59fe40d99815b1"
     }
   ],
-  "missingUpstreamFiles": []
+  "missingOriginalFiles": []
 }
