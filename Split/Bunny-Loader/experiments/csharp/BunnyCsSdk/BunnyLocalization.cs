@@ -265,6 +265,22 @@ public sealed partial class BunnyLocalizationCatalog
             : string.Empty;
     }
 
+    public IReadOnlyDictionary<string, string>? Texts(string path, string? callerModId = null)
+    {
+        State snapshot = Volatile.Read(ref current);
+        if (!TryResolveKey(snapshot, path, callerModId, out string key))
+            return null;
+        TextEntry entry = snapshot.Entries[key];
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string culture in entry.Cultures.Keys)
+        {
+            var cultureSnapshot = new State(snapshot.Entries, culture, snapshot.Revision);
+            result[culture] = Expand(cultureSnapshot, key,
+                new HashSet<string>(StringComparer.Ordinal), 0);
+        }
+        return result;
+    }
+
     public IReadOnlyList<string> ExportWireRows()
     {
         State snapshot = Volatile.Read(ref current);
