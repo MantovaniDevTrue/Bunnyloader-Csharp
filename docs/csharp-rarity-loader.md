@@ -185,6 +185,7 @@ O código de host abrange os recursos de raridade do ExampleModBunny original:
 - Texto do item no chão e nome no tooltip através dos métodos de desenho originais do jogo, com validação de ABI e fallback nativo se incompatível. A tabela de cores também fornece a cor para etiquetas `[i:]` quando usada pelo Terraria.
 - Persistência opt-in v3 para personagens e baús por chave estável, backups imutáveis dos formatos antigos, preflight estrito antes de sobrescrever e tratamento de raridades pendentes quando o mod não está carregado ou o item se move.
 - As classes `ExampleModRarity` (cor 200, 215, 230) e `ExampleHigherTierModRarity` (Disco animado) estão nos **fontes jogáveis** de `samples/ExampleModCSharp/Playable`. As duas usam os mesmos cálculos e mudanças de tier do ExampleModBunny JS. Itens, espada, acessório, arma e poção do exemplo utilizam `SetRarity<T>()` sem recriar sprites ou efeitos.
+- A CI compila **as cinco classes de conteúdo jogável com referência à raridade**, junto com as duas classes de raridade e as dependências reais do projétil, buff, receita e bancada, sem stub de item.
 
 **Ainda não é aprovação no Terraria Android.** Bloqueios externos à implementação do host: confirmar assinaturas/hook chain IL2CPP e cores reais, testes de drops/chão/coleta/tooltips/chat, salva e reabre personagens/baús v1/v2/v3, desabilitação/reabilitação de mods, ID misto JS/C#, mudança de mundo, multiplayer, memória e 60 FPS. Não há prova de compatibilidade de saves v3 com Bunny Loader antigo, que precisa usar backup para rollback.
 
