@@ -486,8 +486,8 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
                 !ensurePrefixTables(*list) ||
-                (g_restoreRoll.item != item || g_restoreRoll.prefix != prefix) &&
-                    !eligible(item, *p, true))
+                ((g_restoreRoll.item != item || g_restoreRoll.prefix != prefix) &&
+                 !eligible(item, *p, true)))
                 return false;
             *dmg = p->multipliers[0];
             *kb = p->multipliers[1];
@@ -791,7 +791,7 @@ bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string*
     const auto descriptors = managedPrefixView();
     const auto* policy = byType(*descriptors, prefix);
     if (!policy) return reject("PrefixDescriptorMissing");
-    if (!eligible(item, *policy, true)) return reject("ItemNotEligible");
+
     if (g_refs.prefix < 0 || g_refs.damage < 0) return reject("ItemFieldMissing");
     if (bl::runtime::field<uint8_t>(item, g_refs.prefix) != 0)
         return reject("ItemPrefixMustBeReset");
