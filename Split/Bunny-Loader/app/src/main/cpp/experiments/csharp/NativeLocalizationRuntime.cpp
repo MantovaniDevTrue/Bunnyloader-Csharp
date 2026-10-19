@@ -4,6 +4,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "hook/HookManager.h"
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -21,6 +22,9 @@ uint64_t generation = 0;
 uint64_t lastAppliedGeneration = 0;
 std::string lastCulture;
 uint32_t frameCounter = 0;
+using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+LoadCultureFn originalLoadCulture = nullptr;
+bool loadHookInstalled = false;
 
 bool identifier(const std::string& s, bool dot) {
     if (s.empty() || s.size() > 280 || s.front() == '.' || s.back() == '.') return false;
@@ -136,6 +140,8 @@ struct Refs {
     const MethodInfo* load=nullptr;
     const MethodInfo* exists=nullptr;
     const MethodInfo* getValue=nullptr;
+    const MethodInfo* loadCulture=nullptr;
+    const MethodInfo* invalidateTooltips=nullptr;
     bool valid=false;
 };
 Refs& refs() {
@@ -151,6 +157,9 @@ Refs& refs() {
     reference.load=il2cpp::findMethodBySignature(lm,il2cpp::parseSignature("void LoadLanguageFromFileText(string fileText)"));
     reference.exists=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("bool Exists(string key)"));
     reference.getValue=il2cpp::findMethodBySignature(language,il2cpp::parseSignature("string GetTextValue(string key)"));
+    reference.loadCulture=il2cpp::findMethodBySignature(lm,il2cpp::parseSignature("void LoadFilesForCulture(GameCulture culture)"));
+    auto* tooltip=il2cpp::findClass({"Terraria.UI","ItemTooltip",{}});
+    reference.invalidateTooltips=tooltip ? il2cpp::api().class_get_method_from_name(tooltip,"InvalidateTooltips",0) : nullptr;
     auto& api=il2cpp::api();
     reference.valid=reference.manager&&reference.active&&reference.name&&reference.load&&
         api.method_is_instance&&api.method_is_instance(reference.load)&&
@@ -225,6 +234,46 @@ bool publishToGame(const std::map<std::string,std::vector<Entry>>& catalog,const
     }
     return true;
 }
+
+void invalidateGameTooltips() {
+    auto& r=refs();
+    if(!r.invalidateTooltips)return;
+    Il2CppObject* exception=nullptr;
+    il2cpp::api().runtime_invoke(r.invalidateTooltips,nullptr,nullptr,&exception);
+    if(exception)BL_WARN("[CSharp][Localization] Stage=Tooltips Reason=InvalidateFailed");
+}
+
+void onLoadFilesForCulture(Il2CppObject* manager, Il2CppObject* culture, const MethodInfo* method) {
+    if(originalLoadCulture)originalLoadCulture(manager,culture,method);
+    auto& r=refs();
+    const std::string name=cultureName(culture,r.name);
+    if(name.empty())return;
+    std::map<std::string,std::vector<Entry>> current;
+    uint64_t revision=0;
+    {
+        std::lock_guard<std::mutex> lock(gate);
+        if(mods.empty())return;
+        current=mods;
+        revision=generation;
+    }
+    if(!publishToGame(current,name))return;
+    invalidateGameTooltips();
+    std::lock_guard<std::mutex> lock(gate);
+    if(revision==generation) {
+        lastAppliedGeneration=revision;
+        lastCulture=name;
+    }
+}
+
+bool installLanguageReloadHook() {
+    if(loadHookInstalled)return true;
+    auto& r=refs();
+    if(!r.valid||!r.loadCulture)return false;
+    if(!bl::hook::install(r.loadCulture,onLoadFilesForCulture,&originalLoadCulture))return false;
+    loadHookInstalled=true;
+    BL_INFO("[CSharp][Localization] Language reload hook active");
+    return true;
+}
 }
 
 bool decodeWire(const std::vector<std::string>& fields,const std::string& modId,Entry* result,std::string* error) {
@@ -249,6 +298,7 @@ void stage(const std::string& modId,std::vector<Entry> entries) {
 }
 
 void pumpOnGameThread() {
+    installLanguageReloadHook();
     if(++frameCounter%30!=0)return;
     auto& api=il2cpp::api();auto& r=refs();
     if(!r.valid)return;
@@ -265,6 +315,7 @@ void pumpOnGameThread() {
         current=mods;revision=generation;
     }
     if(!publishToGame(current,culture))return;
+    invalidateGameTooltips();
     {
         std::lock_guard<std::mutex> lock(gate);
         if(generation==revision) {
