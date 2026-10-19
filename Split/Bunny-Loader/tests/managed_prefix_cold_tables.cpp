@@ -28,6 +28,7 @@ MethodInfo prefixMethod, rollableMethod, nextDoubleMethod;
 Il2CppObject localized{}, randomObject{};
 std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
 std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
+std::shared_ptr<const std::map<int, bool>> chanceView;
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, ammo = 0;
@@ -67,6 +68,13 @@ Il2CppArray* vanillaRollable(Il2CppObject* object, const MethodInfo*) {
 bool vanillaRoll(Il2CppObject*, Il2CppObject*, int32_t* result, const MethodInfo*) {
     ++nativeRolls;
     *result = 71;
+    return true;
+}
+int receivedChanceWant = -999;
+int chanceOriginalCalls = 0;
+bool vanillaPrefixChance(Il2CppObject*, int32_t want, uint8_t*, const MethodInfo*) {
+    receivedChanceWant = want;
+    ++chanceOriginalCalls;
     return true;
 }
 Il2CppObject* invoke(const MethodInfo* method, void* self, void** args, Il2CppObject** error) {
@@ -112,6 +120,7 @@ bool setTableElement(FieldInfo* f, int index, Il2CppObject* value) {
 namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
+std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { return chanceView; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -297,6 +306,31 @@ int main() {
     assert(!applyManagedPrefixViaNativeRoll(&weapon.object, 101,
                                             &prefixMethod, &reachedCustom));
     assert(!reachedCustom && weapon.prefix == 0);
+
+    g_originalItemPrefix = vanillaPrefixChance;
+    g_chanceItemTypeOffset = offsetof(Item, type);
+    g_chanceReady.store(true, std::memory_order_release);
+    chanceView = std::make_shared<const std::map<int, bool>>(
+        std::map<int, bool>{{6199, false}, {6198, true}});
+    uint8_t chanceTier = 0;
+    weapon.type = 6199;
+    int originalCalls = chanceOriginalCalls;
+    assert(!hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
+    assert(!hookItemPrefixChance(&weapon.object, -2, &chanceTier, nullptr));
+    assert(chanceOriginalCalls == originalCalls);
+    assert(hookItemPrefixChance(&weapon.object, 99, &chanceTier, nullptr));
+    assert(receivedChanceWant == 99 && chanceOriginalCalls == originalCalls + 1);
+    weapon.type = 6198;
+    assert(hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -2);
+    assert(hookItemPrefixChance(&weapon.object, -2, &chanceTier, nullptr));
+    assert(receivedChanceWant == -2);
+    weapon.type = 6200;
+    assert(hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -1);
+    chanceView = std::make_shared<const std::map<int, bool>>();
+    assert(hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -1);
 
     // Language/table regeneration must be handled even after the first success.
     names.value=allocate(98,sizeof(void*));
