@@ -17,7 +17,9 @@
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "script/api/Items.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cstdio>
 #include <fstream>
 #include <cstdlib>
@@ -240,10 +242,45 @@ std::vector<SavedItem> readFile(const std::string& path) {
     return items;
 }
 
+bool preserveLegacyBeforeRaritySave(const std::string& path,
+    const std::vector<SavedItem>& items) {
+    if (std::none_of(items.begin(), items.end(),
+        [](const SavedItem& item) { return !item.rarityKey.empty(); })) return true;
+    std::ifstream source(path, std::ios::binary);
+    if (!source) return true;
+    std::string header;
+    if (!std::getline(source, header)) return false;
+    if (!header.empty() && header.back() == '\r') header.pop_back();
+    if (header == "bunnyloader itens 3") return true;
+    if (header != "bunnyloader itens 1" && header != "bunnyloader itens 2") return false;
+    const std::string backup = path + ".before-rarity-v3.bak";
+    std::ifstream existing(backup, std::ios::binary);
+    if (existing) return true;
+    const std::string temp = backup + ".tmp";
+    std::ofstream output(temp, std::ios::binary | std::ios::trunc);
+    if (!output) return false;
+    source.clear();
+    source.seekg(0);
+    output << source.rdbuf();
+    output.flush();
+    const bool good = output.good() && !source.bad();
+    output.close();
+    if (!good || std::rename(temp.c_str(), backup.c_str()) != 0) {
+        std::remove(temp.c_str());
+        return false;
+    }
+    return true;
+}
+
 /** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
 void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     if (items.empty()) {
         std::remove(path.c_str());
+        return;
+    }
+    if (!preserveLegacyBeforeRaritySave(path, items)) {
+        BL_ERROR("save de raridade: backup v1/v2 falhou em %s; gravacao v3 abortada",
+            path.c_str());
         return;
     }
     const std::string tmp = path + ".tmp";
