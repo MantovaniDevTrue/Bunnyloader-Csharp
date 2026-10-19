@@ -217,6 +217,23 @@ public sealed partial class BunnyLocalizationCatalog
             : string.Empty;
     }
 
+    public IReadOnlyList<string> ExportWireRows()
+    {
+        State snapshot = Volatile.Read(ref current);
+        var rows = new List<string>(snapshot.Entries.Count);
+        foreach (string key in new SortedSet<string>(snapshot.Entries.Keys, StringComparer.Ordinal))
+        {
+            TextEntry entry = snapshot.Entries[key];
+            foreach (string culture in new SortedSet<string>(entry.Cultures.Keys, StringComparer.Ordinal))
+            {
+                string path = Convert.ToHexString(Encoding.UTF8.GetBytes(key));
+                string value = Convert.ToHexString(Encoding.UTF8.GetBytes(entry.Cultures[culture]));
+                rows.Add("LOCALE\t" + culture + "\t" + path + "\t" + value);
+            }
+        }
+        return rows;
+    }
+
     public IReadOnlyDictionary<string, string> SnapshotForGame()
     {
         State snapshot = Volatile.Read(ref current);
