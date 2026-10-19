@@ -87,7 +87,9 @@ public static class BunnyTileRuntime {
                 if (frameX < 0 || frameX > 32767 || frameY < 0 || frameY > 32767 ||
                     width < 1 || width > 512 || height < 1 || height > 512 ||
                     top < -128 || top > 128 || addFrameX < -8192 || addFrameX > 8192 ||
-                    addFrameY < -8192 || addFrameY > 8192 || effects < 0 || effects > 3)
+                    addFrameY < -8192 || addFrameY > 8192 ||
+                    frameX + addFrameX < 0 || frameY + addFrameY < 0 ||
+                    effects < 0 || effects > 3)
                     return "ERROR|Stage=ValidateTileDraw Reason=InvalidDrawData";
                 return string.Join("|", "DRAW",
                     frameX.ToString(CultureInfo.InvariantCulture),
