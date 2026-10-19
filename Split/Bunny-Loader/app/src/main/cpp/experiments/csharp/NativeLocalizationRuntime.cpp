@@ -25,6 +25,7 @@ uint64_t lastAppliedGeneration = 0;
 std::string lastCulture;
 std::map<std::string, std::string> managedAssemblies;
 std::map<std::string, std::string> lastManagedNotification;
+std::set<std::string> pendingManagedNotification;
 uint32_t frameCounter = 0;
 using LoadCultureFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 LoadCultureFn originalLoadCulture = nullptr;
@@ -314,12 +315,20 @@ void notifyManagedApplied(const SessionSnapshot& snapshot, const std::string& cu
         }
     }
     for (const auto& [modId, assembly] : callbacks) {
-        if (bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture)) continue;
-        std::lock_guard<std::mutex> lock(gate);
-        if (lastManagedNotification[modId] == token)
-            lastManagedNotification.erase(modId);
-        BL_WARN("[CSharp][Localization] Mod=%s Stage=CallbackQueue Reason=QueueFull",
-                modId.c_str());
+        const bool queued = bl::csharp::queueManagedLocalizationLoaded(modId, assembly, culture);
+        {
+            std::lock_guard<std::mutex> lock(gate);
+            if (queued)
+                pendingManagedNotification.erase(modId);
+            else {
+                if (lastManagedNotification[modId] == token)
+                    lastManagedNotification.erase(modId);
+                pendingManagedNotification.insert(modId);
+            }
+        }
+        if (!queued)
+            BL_WARN("[CSharp][Localization] Mod=%s Stage=CallbackQueue Reason=QueueFull",
+                    modId.c_str());
     }
 }
 
@@ -397,6 +406,7 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
         replaced = previous != managedAssemblies.end();
         managedAssemblies[modId] = assemblyPath;
         lastManagedNotification.erase(modId);
+        pendingManagedNotification.erase(modId);
         if (lastAppliedGeneration == session.revision() && !lastCulture.empty()) {
             pendingCulture = lastCulture;
             lastManagedNotification[modId] =
@@ -408,6 +418,7 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
         !bl::csharp::queueManagedLocalizationLoaded(modId, assemblyPath, pendingCulture)) {
         std::lock_guard<std::mutex> lock(gate);
         lastManagedNotification.erase(modId);
+        pendingManagedNotification.insert(modId);
     }
 }
 
@@ -428,6 +439,7 @@ void retainActiveMods(const std::set<std::string>& activeIds) {
             }
             removed.push_back(it->first);
             lastManagedNotification.erase(it->first);
+            pendingManagedNotification.erase(it->first);
             it = managedAssemblies.erase(it);
         }
     }
@@ -446,10 +458,16 @@ void pumpOnGameThread() {
     const std::string culture=cultureName(active,r.name);
     if(culture.empty())return;
     SessionSnapshot current;
+    bool retryOnly = false;
     {
         std::lock_guard<std::mutex> lock(gate);
-        if(session.revision()==lastAppliedGeneration && culture==lastCulture)return;
-        current=session.snapshot();
+        retryOnly = session.revision() == lastAppliedGeneration && culture == lastCulture;
+        if (retryOnly && pendingManagedNotification.empty()) return;
+        current = session.snapshot();
+    }
+    if (retryOnly) {
+        notifyManagedApplied(current, culture, false);
+        return;
     }
     const uint64_t revision=current.revision;
     if(!publishToGame(current,culture))return;
