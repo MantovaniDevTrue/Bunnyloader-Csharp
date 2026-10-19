@@ -459,19 +459,17 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     error = nullptr;
     Il2CppObject* boxed = api.runtime_invoke(
         g_refs.nextDoubleMethod, random, nullptr, &error);
-    if (error || !boxed)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+    if (error || !boxed) return false;
     double chance = 0.0;
     std::memcpy(&chance,
                 reinterpret_cast<const char*>(boxed) + sizeof(Il2CppObject),
                 sizeof(chance));
     if (!std::isfinite(chance) || chance < 0.0 || chance >= 1.0)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+        return false;
 
     const int chosen = weightedPrefixCandidate(
         values, static_cast<size_t>(list->length), chance);
-    if (chosen < 0)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+    if (chosen < 0) return false;
     *rolled = chosen;
     const int reported = g_reforgeDiagnostics.fetch_add(1, std::memory_order_relaxed);
     if (reported < 8)
