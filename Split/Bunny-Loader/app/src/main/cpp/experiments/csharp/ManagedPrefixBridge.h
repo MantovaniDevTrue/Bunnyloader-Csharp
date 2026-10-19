@@ -26,6 +26,10 @@ struct ManagedPrefixEntry {
     int armorPenetration = 0;
     float valueMultiplier = 1.f;
     int accessoryDefense = 0;
+    int applyDamageBonus = 0;
+    int applyValueBonus = 0;
+    bool requireEffectiveStats = true;
+    std::string extraTooltip;
 };
 
 struct ManagedItemPrefixApply {
