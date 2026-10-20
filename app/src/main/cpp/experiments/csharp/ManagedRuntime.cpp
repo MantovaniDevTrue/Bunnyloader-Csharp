@@ -2,8 +2,6 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
-#include "experiments/csharp/TerrariaHost.h"
-#include "menu/NetRequests.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -2282,19 +2280,11 @@ bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
                              targetNpc, targetX, targetY);
 }
 
-void scheduleManagedInvasionWorldTicks(uint64_t worldSession) {
-    if (worldSession == 0 || !managedEntitySourceModsRegistered()) return;
-    static uint64_t lastWorldSession = 0;
-    static unsigned frameCount = 0;
-    if (lastWorldSession != worldSession) {
-        lastWorldSession = worldSession;
-        frameCount = 0;
-    }
-    if (++frameCount % 30 != 0) return;
-    const int mode = runtime::netMode();
-    if (mode != 0 && mode != 2 && mode != 3) return;
-    const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
-    if (!snapshot.ready || snapshot.player.life <= 0) return;
+void scheduleManagedInvasionWorldTicks(uint64_t worldSession, int mode,
+                                       int playerIndex, float playerX, float playerY) {
+    if (worldSession == 0 || !managedEntitySourceModsRegistered() ||
+        (mode != 0 && mode != 2 && mode != 3) ||
+        playerIndex < 0 || !std::isfinite(playerX) || !std::isfinite(playerY)) return;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock() || !g_pinnedStarted || g_entityQueue.size() >= 16) return;
     const int bindings = g_entityModCount.load(std::memory_order_acquire);
@@ -2310,9 +2300,9 @@ void scheduleManagedInvasionWorldTicks(uint64_t worldSession) {
         job.owner = mode;
         job.life = 30;
         job.identity = static_cast<uintptr_t>(worldSession);
-        job.target = snapshot.player.index;
-        job.x = snapshot.player.x;
-        job.y = snapshot.player.y;
+        job.target = playerIndex;
+        job.x = playerX;
+        job.y = playerY;
         job.session = g_entitySession;
         g_entityQueue.push_back(std::move(job));
     }
