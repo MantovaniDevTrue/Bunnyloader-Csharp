@@ -48,7 +48,8 @@ static_assert(offsetof(ManagedDustState, alpha) == 40);
 static_assert(offsetof(ManagedDustState, color) == 60);
 
 inline bool managedDustStateValid(const ManagedDustState& state) noexcept {
-    return state.slot >= 0 && state.slot < 6000 && state.type >= 332 &&
+    return state.slot >= 0 && state.slot < 6000 &&
+           state.type >= 332 && state.type < 32768 &&
            state.generation > 0 && (state.active == 0 || state.active == 1) &&
            std::isfinite(state.x) && std::isfinite(state.y) &&
            std::isfinite(state.velocityX) && std::isfinite(state.velocityY) &&
