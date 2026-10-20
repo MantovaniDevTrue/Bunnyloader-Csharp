@@ -41,6 +41,13 @@ std::shared_ptr<const bl::csharp::ManagedPrefixStackDenyTable> stackDeniedView =
     std::make_shared<const bl::csharp::ManagedPrefixStackDenyTable>();
 std::shared_ptr<const bl::csharp::ManagedPrefixAttributeDenyTable> attributeDeniedView =
     std::make_shared<const bl::csharp::ManagedPrefixAttributeDenyTable>();
+std::shared_ptr<const std::map<std::string,std::string>> prefixAssemblies =
+    std::make_shared<const std::map<std::string,std::string>>();
+int prefixWorkerWarmup = 0;
+int prefixWorkerCalls = 0;
+int prefixWorkerCanRoll = 1;
+int prefixWorkerWeight = 7;
+bool prefixWorkerFails = false;
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, stack = 1, ammo = 0, value = 100;
@@ -164,11 +171,23 @@ std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttribut
     return attributeDeniedView;
 }
 std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
-    return std::make_shared<const std::map<std::string,std::string>>();
+    return prefixAssemblies;
 }
-int managedPrefixWarmupState(const std::string&,const std::string&,const std::string&) { return 0; }
-bool invokeManagedPrefix(const std::string&,const std::string&,const std::string&,
-                         int,const std::string&,std::string*,int) { return false; }
+int managedPrefixWarmupState(const std::string&,const std::string&,const std::string&) {
+    return prefixWorkerWarmup;
+}
+bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
+                         const std::string& owner,int kind,const std::string& snapshot,
+                         std::string* response,int budget) {
+    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
+    assert(snapshot=="6199,12,0,1,0,4");
+    assert(budget>0 && budget<=650 && kind>=0 && kind<=1);
+    ++prefixWorkerCalls;
+    if(prefixWorkerFails) return false;
+    if(kind==0) *response=std::to_string(prefixWorkerCanRoll);
+    else *response=std::to_string(prefixWorkerWeight);
+    return true;
+}
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -918,6 +937,47 @@ int main() {
     assert(hookRoll(&rejected.object, &randomObject, &forcedFallback, nullptr));
     assert(forcedFallback == 71);
     g_hooksReady.store(true, std::memory_order_release);
+    prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>(
+        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
+    prefixWorkerWarmup=1;
+    weapon.type=6199;weapon.damage=12;weapon.mana=0;weapon.stack=1;
+    weapon.prefix=0;weapon.ranged=1;weapon.accessory=0;weapon.consumable=0;
+    ManagedPrefixEntry livePrefix;
+    livePrefix.modId="test";livePrefix.name="Mighty";livePrefix.type=99;
+    livePrefix.category=4;livePrefix.rollWeight=1;livePrefix.callbackMask=3;
+    prefixWorkerCalls=0;prefixWorkerWeight=7;prefixWorkerCanRoll=1;
+    {
+        PrefixRpcScope scope;
+        assert(itemRollWeight(&weapon.object,livePrefix)==7);
+        assert(itemRollWeight(&weapon.object,livePrefix)==7);
+        assert(prefixWorkerCalls==1);
+        assert(eligible(&weapon.object,livePrefix,true));
+        assert(eligible(&weapon.object,livePrefix,true));
+        assert(prefixWorkerCalls==2);
+    }
+    prefixWorkerCanRoll=0;
+    {
+        PrefixRpcScope scope;
+        assert(!eligible(&weapon.object,livePrefix,true));
+        assert(prefixWorkerCalls==4);
+    }
+    prefixWorkerWarmup=0;
+    {
+        PrefixRpcScope scope;
+        assert(itemRollWeight(&weapon.object,livePrefix)==1);
+        assert(eligible(&weapon.object,livePrefix,true));
+        assert(prefixWorkerCalls==4);
+    }
+    prefixWorkerWarmup=1;
+    prefixWorkerFails=true;
+    {
+        PrefixRpcScope scope;
+        assert(itemRollWeight(&weapon.object,livePrefix)==1);
+        assert(eligible(&weapon.object,livePrefix,true));
+        assert(prefixWorkerCalls==6);
+    }
+    prefixWorkerFails=false;
+    prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
     assert(metrics.rollAttempts >= 12);
     assert(metrics.restoredRolls >= 1);
