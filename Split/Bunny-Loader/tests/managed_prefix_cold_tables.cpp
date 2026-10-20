@@ -56,6 +56,12 @@ struct Item {
     uint8_t accessory = 0, consumable = 0, ranged = 1, prefix = 0;
 };
 struct Player { Il2CppObject object{}; int defense = 10; };
+struct ReforgePopup {
+    Il2CppObject object{};
+    int lines=0;
+    Il2CppArray* texts=nullptr;
+    Il2CppArray* bad=nullptr;
+};
 struct Box { Il2CppObject object{}; uint8_t value = 0; } boxed;
 struct DoubleBox { Il2CppObject object{}; double value = 0.0; } randomDouble;
 bool mixedPrefixCandidates = false;
@@ -181,7 +187,8 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int kind,const std::string& snapshot,
                          std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
-    assert(snapshot=="6199,12,0,1,0,4");
+    assert(snapshot=="6199,12,0,1,0,4" ||
+           (kind==5 && snapshot=="6199,12,0,1,99,4"));
     assert(budget>0 && budget<=650 && kind>=0 && kind<=5 && kind!=2);
     ++prefixWorkerCalls;
     if(prefixWorkerFails) return false;
@@ -1012,6 +1019,25 @@ int main() {
         lines=queryPrefixTooltip(&weapon.object,livePrefix);
         assert(lines.size()==2 && prefixWorkerCalls==11);
     }
+    descriptorView=std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded,livePrefix});
+    ReforgePopup reforge;
+    reforge.texts=allocate(6,sizeof(Il2CppString*));
+    reforge.bad=allocate(6,1);
+    g_refs.reforgeNumLines=offsetof(ReforgePopup,lines);
+    g_refs.reforgeText=offsetof(ReforgePopup,texts);
+    g_refs.reforgeBad=offsetof(ReforgePopup,bad);
+    g_reforgeTooltipReady=true;
+    weapon.prefix=99;
+    hookReforgeTooltip(&reforge.object,&weapon.object,nullptr);
+    assert(reforge.lines==2 && prefixWorkerCalls==12);
+    auto** reforgeText=static_cast<Il2CppString**>(arrayData(reforge.texts));
+    assert(reforgeText[0] && reforgeText[1]);
+    assert(reforgeText[0]->chars[0]=='O' && reforgeText[1]->chars[0]=='R');
+    assert(static_cast<uint8_t*>(arrayData(reforge.bad))[0]==0);
+    assert(static_cast<uint8_t*>(arrayData(reforge.bad))[1]==1);
+    g_reforgeTooltipReady=false;
+    weapon.prefix=0;
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
     assert(metrics.rollAttempts >= 12);

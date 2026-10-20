@@ -294,6 +294,8 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('kind<0||kind>(prefix?5:3)||', runtime)
         self.assertNotIn('kind<0||kind>3||', runtime)
         self.assertIn('queryPrefixTooltip(item,*selected)', gameplay)
+        self.assertIn('queryPrefixTooltip(item,*p)', gameplay)
+        self.assertIn('if (!defense && !dynamic) return;', gameplay)
         self.assertIn('now-cache.updated<std::chrono::milliseconds(200)', gameplay)
         self.assertIn('queryPrefixApply(item,*prefixPolicy', gameplay)
         self.assertIn('queryPrefixWorker(item,*p,3)', gameplay)

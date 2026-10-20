@@ -986,25 +986,44 @@ void hookReforgeTooltip(Il2CppObject* popup, Il2CppObject* item, const MethodInf
     const int prefix = bl::runtime::field<uint8_t>(item, r.prefix);
     const auto prefixes = managedPrefixView();
     const auto* p = byType(*prefixes, prefix);
-    if (!p || p->category != 5 || p->accessoryDefense == 0 ||
-        !eligible(item, *p, true)) return;
+    if (!p) return;
+    const bool defense = p->category==5 && p->accessoryDefense!=0 &&
+        eligible(item,*p,true);
+    const bool dynamic = (p->callbackMask & 16)!=0;
+    if (!defense && !dynamic) return;
     auto* text = bl::runtime::field<Il2CppArray*>(popup, r.reforgeText);
     auto* bad = bl::runtime::field<Il2CppArray*>(popup, r.reforgeBad);
-    if (!text || !bad || text->length < 1 || bad->length < 1) return;
-    const int count = bl::runtime::field<int32_t>(popup, r.reforgeNumLines);
-    if (count < 0 || count > 1) return;
-    const int bonus = p->accessoryDefense;
-    const std::string description = (bonus > 0 ? "+" : "") + std::to_string(bonus) +
-                                    accessoryDefenseSuffix();
-    auto& api = bl::il2cpp::api();
+    if (!text || !bad) return;
+    const uintptr_t capacity=std::min(text->length,bad->length);
+    if (!capacity || capacity>128) return;
+    int count=bl::runtime::field<int32_t>(popup,r.reforgeNumLines);
+    if (count<0 || static_cast<uintptr_t>(count)>capacity) return;
+    auto& api=bl::il2cpp::api();
     if (!api.string_new || !api.gc_wbarrier_set_field) return;
-    Il2CppString* value = api.string_new(description.c_str());
-    if (!value) return;
-    auto** strings = static_cast<Il2CppString**>(arrayData(text));
-    api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(text),
-                             reinterpret_cast<void**>(&strings[0]), value);
-    static_cast<uint8_t*>(arrayData(bad))[0] = bonus < 0 ? 1 : 0;
-    bl::runtime::field<int32_t>(popup, r.reforgeNumLines) = 1;
+    auto** strings=static_cast<Il2CppString**>(arrayData(text));
+    auto* negative=static_cast<uint8_t*>(arrayData(bad));
+    const auto append=[&](int index,const std::string& line,bool isBad) {
+        if (index<0 || static_cast<uintptr_t>(index)>=capacity || line.empty())
+            return false;
+        auto* value=api.string_new(line.c_str());
+        if (!value) return false;
+        api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(text),
+            reinterpret_cast<void**>(&strings[index]),value);
+        negative[index]=isBad?1:0;
+        return true;
+    };
+    if (defense && count<=1) {
+        const int bonus=p->accessoryDefense;
+        const std::string description=(bonus>0?"+":"")+
+            std::to_string(bonus)+accessoryDefenseSuffix();
+        if (append(0,description,bonus<0)) count=1;
+    }
+    if (dynamic)
+        for (const auto& line:queryPrefixTooltip(item,*p)) {
+            if (static_cast<uintptr_t>(count)>=capacity) break;
+            if (append(count,line.first,line.second)) ++count;
+        }
+    bl::runtime::field<int32_t>(popup,r.reforgeNumLines)=count;
 }
 
 void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
