@@ -8,6 +8,8 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeTouchController.h"
+#include "experiments/csharp/NativeTouchInput.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1192,6 +1194,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    touch::registry().resetWorld();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1223,6 +1226,7 @@ void noteAutoGameUpdate() {
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
+    touch::pumpNativeTouchObserverOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
@@ -1276,6 +1280,7 @@ void noteAutoGameUpdate() {
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
+        touch::registry().resetWorld();
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
