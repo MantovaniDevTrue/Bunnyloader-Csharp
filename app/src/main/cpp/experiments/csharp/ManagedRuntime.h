@@ -73,6 +73,11 @@ struct ManagedScreenLightResult {
     float baseSunX = 0, baseSunY = 0, baseClock = 0;
     bool enabled = false;
 };
+bool bindManagedCommandMod(const std::string& modId, const std::string& assemblyPath,
+                           std::string* error);
+void notifyManagedCommandWorker();
+void resetManagedCommandSession();
+
 bool registerManagedScreenSceneMod(const std::string& modId,
                                    const std::string& assemblyPath,
                                    const std::string& nameSpace,
