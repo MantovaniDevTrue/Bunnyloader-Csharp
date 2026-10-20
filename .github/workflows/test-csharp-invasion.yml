@@ -56,6 +56,8 @@ jobs:
           mkdir -p /tmp/bunny-invasion-test
           g++ -std=c++20 -shared -fPIC -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-test/libbunny.so
           LD_LIBRARY_PATH=/tmp/bunny-invasion-test dotnet run --project tests/invasion/TransportIntegration.csproj --configuration Release
+      - name: Audit world-ready host and autonomous MonoVM invasion integration
+        run: python3 tests/invasion/check_world_host_contract.py
       - name: Verify real Terraria NPC hook authority and kill ingress
         run: python3 tests/invasion/test_npc_hook_contract.py
       - name: Verify pure native spawn policy and source contracts
