@@ -90,13 +90,14 @@ e suas filas precisam de auditoria de propriedade por mod.
 
 ## Filas por mod (IA e efeitos de tela)
 
-A revogação do mod também desativa as bindings de NPCs, projéteis e iluminação
-gerenciada pertencentes ao mesmo mod. Trabalhos pendentes são removidos por
+A revogação do mod também desativa as bindings de NPCs, projéteis, iluminação
+gerenciada e dano gerenciado do jogador pertencentes ao mesmo mod. Trabalhos pendentes são removidos por
 identidade da binding, preservando a ordem de outros mods. A tabela nativa
 de propriedade por tipo é liberada somente quando ainda aponta para a binding
 revogada, e os resultados anteriores do mod são descartados. Respostas de
-IA e efeitos em andamento confirmam novamente que a binding continua ativa
-antes de publicar um resultado. A chamada Mono que já começou não é
+IA, efeitos e dano em andamento confirmam novamente que a binding continua
+ativa antes de publicar resultados. Pedidos enfileirados de receitas/quests
+também são cancelados ao revogar o mod. A chamada Mono que já começou não é
 interrompida; o descarregamento de assemblies continua fora do escopo.
 
 ## Diagnóstico seguro da ABI Android

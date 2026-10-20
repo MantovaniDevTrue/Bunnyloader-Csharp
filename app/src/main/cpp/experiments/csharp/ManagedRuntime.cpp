@@ -970,6 +970,9 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (job.generation != g_managedHurtGeneration ||
+            job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            !g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active ||
             (job.completion && (job.completion->cancelled ||
              std::chrono::steady_clock::now() >= job.completion->deadline))) return -1;
     }
@@ -1550,6 +1553,10 @@ void* pinnedMonoWorker(void*) {
                     }
                     lock.lock();
                     if (job.completion) {
+                        const bool bindingActive = job.modIndex >= 0 &&
+                            static_cast<size_t>(job.modIndex) < g_managedHurtBindings.size() &&
+                            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active;
+                        if (!bindingActive) job.completion->cancelled = true;
                         job.completion->expired = std::chrono::steady_clock::now() >= job.completion->deadline;
                         if (job.completion->cancelled || job.generation != g_managedHurtGeneration ||
                             job.completion->expired)
@@ -2287,6 +2294,7 @@ bool registerManagedPlayerHurtMod(const std::string& modId,
         assemblyPath.find("..") != std::string::npos)
         return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (auto& entry : g_managedHurtBindings) {
         if (entry.modId != modId) continue;
         if (entry.assemblyPath != assemblyPath) return false;
@@ -3869,6 +3877,32 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
         if (binding.modId == modId) binding.enabled = false;
     g_sceneLightResults.erase(modId);
     eraseManagedModBoundJobs(g_sceneLightQueue, g_sceneLightBindings, modId);
+
+    for (auto& binding : g_managedHurtBindings)
+        if (binding.modId == modId) binding.active = false;
+    const auto cancelledHurt = std::erase_if(g_managedHurtQueue, [&](auto& job) {
+        if (job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].modId != modId)
+            return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->done = true;
+        }
+        return true;
+    });
+    g_hurtScheduler.cancelledBeforeRun += cancelledHurt;
+    if (cancelledHurt) g_managedHurtResultWake.notify_all();
+    const auto cancelledRecipes = std::erase_if(g_recipeRpcQueue, [&](auto& job) {
+        if (job.mod != modId) return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->output = "PENDING|Stage=Unload Reason=ModRevoked";
+            job.completion->done = true;
+        }
+        return true;
+    });
+    if (cancelledRecipes) g_recipeRpcWake.notify_all();
 
     for (size_t index = 0; index < g_entityBindings.size(); ++index) {
         auto& binding = g_entityBindings[index];
