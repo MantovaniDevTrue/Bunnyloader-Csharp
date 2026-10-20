@@ -10,6 +10,7 @@
 #include "il2cpp/FieldContract.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -286,6 +287,28 @@ bool findContracts() {
     return g_swapHooked && g_chatHooked;
 }
 
+struct PendingArrayRoots {
+    std::array<uint32_t, 3> handles{};
+    size_t count = 0;
+
+    bool retain(Il2CppArray* array) {
+        auto& a = il2cpp::api();
+        if (!array || !a.gchandle_new || !a.gchandle_free ||
+            count >= handles.size()) return false;
+        const uint32_t handle = a.gchandle_new(reinterpret_cast<Il2CppObject*>(array), false);
+        if (!handle) return false;
+        handles[count++] = handle;
+        return true;
+    }
+
+    ~PendingArrayRoots() {
+        auto& a = il2cpp::api();
+        if (!a.gchandle_free) return;
+        for (size_t i = 0; i < count; ++i)
+            a.gchandle_free(handles[i]);
+    }
+};
+
 struct FlagPlan {
     FieldInfo* field = nullptr;
     Il2CppArray* array = nullptr;
@@ -296,7 +319,7 @@ struct FlagPlan {
 
 bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
                   const std::set<int>& upcoming, Il2CppArray* lastPublished,
-                  FlagPlan* plan) {
+                  PendingArrayRoots* roots, FlagPlan* plan) {
     if (!field || !plan) return false;
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
@@ -310,7 +333,8 @@ bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
     if (maximum >= 0 && static_cast<uintptr_t>(maximum) >= original->length) {
         next = runtime::TypeTables::resizedCopy(original, maximum + 1);
         if (!il2cpp::nativeArrayContract(next, "Boolean", 1, 65536) ||
-            next->length <= static_cast<uintptr_t>(maximum)) return false;
+            next->length <= static_cast<uintptr_t>(maximum) ||
+            !roots || !roots->retain(next)) return false;
     }
     plan->field = field;
     plan->array = next;
@@ -360,6 +384,7 @@ bool updateQuests(const std::vector<Quest>& quests) {
     const QuestListUpdate update = Registry::reconcileIds(
         originalIds, g_ownedTypes, quests, selected);
     if (update.ids.empty() || update.ids.size() > 65536) return false;
+    PendingArrayRoots roots;
     Il2CppArray* nextIds = nullptr;
     if (update.changed) {
         Il2CppClass* element = a.class_get_element_class(
@@ -367,17 +392,19 @@ bool updateQuests(const std::vector<Quest>& quests) {
         if (!element) return false;
         nextIds = a.array_new(element, update.ids.size());
         if (!il2cpp::nativeArrayContract(nextIds, "Int32", sizeof(int32_t), 65536) ||
-            nextIds->length != update.ids.size()) return false;
+            nextIds->length != update.ids.size() || !roots.retain(nextIds))
+            return false;
         std::copy(update.ids.begin(), update.ids.end(),
                   static_cast<int32_t*>(arrayData(nextIds)));
     }
     std::set<int> upcoming;
     for (const auto& quest : quests) upcoming.insert(quest.type);
     FlagPlan fish, rack;
-    if (!prepareFlags(g_questFlag, g_previousFlags, upcoming, g_lastFishFlags, &fish) ||
+    if (!prepareFlags(g_questFlag, g_previousFlags, upcoming,
+                      g_lastFishFlags, &roots, &fish) ||
         (g_weaponRackFlag &&
          !prepareFlags(g_weaponRackFlag, g_previousRackFlags, upcoming,
-                       g_lastRackFlags, &rack)))
+                       g_lastRackFlags, &roots, &rack)))
         return false;
     applyFlags(fish);
     if (g_weaponRackFlag) applyFlags(rack);
