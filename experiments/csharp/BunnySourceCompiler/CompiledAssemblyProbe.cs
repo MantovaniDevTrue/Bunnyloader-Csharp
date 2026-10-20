@@ -579,8 +579,8 @@ public static class CompiledAssemblyProbe
                     pre ? "1" : "0", hard ? "1" : "0",
                     EncodeQuestText(description), EncodeQuestText(location),
                     rules.ToString(CultureInfo.InvariantCulture)));
-                int callbackMask=(Value<object>(item,"QuestAvailableWhen") is Delegate?1:0) |
-                    (Value<object>(item,"QuestCanCatchWhen") is Delegate?2:0);
+                int callbackMask=(item.GetType().GetProperty("QuestAvailableWhen")?.GetValue(item) is Delegate?1:0) |
+                    (item.GetType().GetProperty("QuestCanCatchWhen")?.GetValue(item) is Delegate?2:0);
                 if(callbackMask!=0)
                     lines.Add(string.Join("\t","QUEST_CALLBACK",name,callbackMask.ToString(CultureInfo.InvariantCulture)));
                 var descriptions = Value<Dictionary<string,string>>(item, "QuestDescriptionTranslations");
