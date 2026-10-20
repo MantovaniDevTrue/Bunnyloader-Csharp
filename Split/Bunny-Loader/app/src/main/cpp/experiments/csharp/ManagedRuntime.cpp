@@ -2332,7 +2332,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          std::string* output,int budgetMicroseconds,
                          bool tile=false,bool prefix=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>(prefix?5:3)||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>(prefix?6:3)||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -2365,7 +2365,7 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                    (ch >= '0' && ch <= '9') || ch == '_';
         });
     };
-    if (!output || !validOwner(owner) || kind < 0 || kind > 5 ||
+    if (!output || !validOwner(owner) || kind < 0 || kind > 6 ||
         (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
         if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
         return false;
@@ -2382,6 +2382,19 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     if (!success) return false;
     if (kind == 2) return *output == "READY";
     if (kind == 0 || kind == 3) return *output == "0" || *output == "1";
+    if (kind == 6) {
+        if (output->empty() || output->size()>4) return false;
+        const bool negative=(*output)[0]=='-';
+        const size_t first=negative?1u:0u;
+        if (first==output->size()) return false;
+        int bonus=0;
+        for (size_t i=first;i<output->size();++i) {
+            const char ch=(*output)[i];
+            if (ch<'0'||ch>'9') return false;
+            bonus=bonus*10+(ch-'0');
+        }
+        return bonus<=100;
+    }
     if (kind == 5) {
         if (output->size()>1024) return false;
         if (output->empty()) return true;

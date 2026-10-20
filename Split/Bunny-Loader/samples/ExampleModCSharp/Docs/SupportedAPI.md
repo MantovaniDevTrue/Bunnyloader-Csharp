@@ -99,3 +99,7 @@ Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tMo
 - A API de mod não deve chamar comandos `bl.csharp.*` do console para se inicializar. Esses comandos servem a diagnóstico e controle do loader.
 
 Veja a [base para a API de modders](../../../../../docs/csharp-api-foundation-v79.md) para as correções de lifecycle e os próximos contratos a estabilizar.
+
+## Bônus de acessórios dependente da vida do jogador (experimental)
+
+`ExampleGuardedPrefix` demonstra `ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)`. O snapshot imutável leva vida atual e vida máxima do jogador. O registro opt-in marca bit 32 em `PREFIX_CALLBACK`. O hook nativo mantém o bônus declarativo anterior e aplica o retorno gerenciado dentro de -100..100 quando o worker estiver pronto. O resultado é guardado por jogador/prefixo/vida durante no máximo 250 ms, com tentativa global limitada a uma a cada 150 ms por thread e espera individual de no máximo 650 µs. Indisponibilidade de campos, worker ocupado, timeout e payload inválido mantêm somente o bônus declarativo. Nenhum objeto `Player` IL2CPP é passado ao MonoVM. Ainda não há equivalência geral a `ApplyAccessoryEffects(player)` do Bunny JavaScript, nem validação de FPS ou multiplayer no aparelho.

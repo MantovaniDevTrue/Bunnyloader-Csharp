@@ -46,5 +46,10 @@ public sealed class ExampleGuardedPrefix : BunnyPrefix
     {
         defenseBonus += 4;
     }
+
+    public override void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)
+    {
+        defenseBonus += player.Life < 200 ? 2 : -1;
+    }
 }
 

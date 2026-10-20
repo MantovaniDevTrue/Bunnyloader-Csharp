@@ -892,6 +892,14 @@ public static class CompiledAssemblyProbe
                     ?? throw new InvalidOperationException("Missing SDK prefix effect struct") }, null)
                 ?? throw new InvalidOperationException("Missing prefix snapshot Apply");
             if (applySnapshot.DeclaringType == type) callbackMask |= 8;
+            var playerSnapshot = type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixPlayerSnapshot")
+                ?? throw new InvalidOperationException("Missing SDK player snapshot");
+            var accessoryCallback=type.GetMethod("ApplyAccessoryEffects",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { playerSnapshot, typeof(int).MakeByRefType() }, null)
+                ?? throw new InvalidOperationException("Missing prefix player callback");
+            if (accessoryCallback.DeclaringType == type)
+                callbackMask |= 32;
             if (callbackMask != 0)
                 lines.Add(string.Join("\t", "PREFIX_CALLBACK", name,
                     callbackMask.ToString(CultureInfo.InvariantCulture)));

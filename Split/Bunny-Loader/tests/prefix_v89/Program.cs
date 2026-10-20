@@ -321,10 +321,23 @@ try
     if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestMightyPrefix", 0, 4, "6207,18,4,1,98,1") != "0,0")
         throw new InvalidOperationException("Managed prefix dynamic Apply low-damage outcome failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 6, "150,200") != "2")
+        throw new InvalidOperationException("Managed accessory low-health bonus failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 6, "200,200") != "-1")
+        throw new InvalidOperationException("Managed accessory full-health penalty failed");
+    foreach (string badPlayer in new[] { "-1,200", "201,200", "100,0", "100,200,1" })
+        if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+            "prefix-fixture", args[0], "TestGuardedPrefix", 0, 6, badPlayer).StartsWith("ERROR|"))
+            throw new InvalidOperationException("Malformed player snapshot accepted");
     if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
-        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 6, validItem).StartsWith("ERROR|"))
+        "prefix-fixture", args[0], "TestMightyPrefix", 0, 6, "100,200").StartsWith("ERROR|"))
+        throw new InvalidOperationException("Non-accessory prefix gained player effects");
+    if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 7, validItem).StartsWith("ERROR|"))
         throw new InvalidOperationException("Unsupported prefix callback kind accepted");
-    Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2 managed_worker=ready");
+    Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=6 content=2 managed_worker=ready");
 }
 finally
 {

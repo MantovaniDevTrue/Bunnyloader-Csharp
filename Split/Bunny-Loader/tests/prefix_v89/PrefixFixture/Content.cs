@@ -131,6 +131,11 @@ public sealed class TestGuardedPrefix : BunnyPrefix
         defenseBonus += 4;
     }
 
+    public override void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)
+    {
+        defenseBonus += player.Life < 200 ? 2 : -1;
+    }
+
     public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
     {
         conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);

@@ -33,6 +33,18 @@ public readonly struct BunnyPrefixItemSnapshot
     }
 }
 
+public readonly struct BunnyPrefixPlayerSnapshot
+{
+    public int Life { get; }
+    public int LifeMax { get; }
+
+    internal BunnyPrefixPlayerSnapshot(int life, int lifeMax)
+    {
+        Life = life;
+        LifeMax = lifeMax;
+    }
+}
+
 public static class BunnyPrefixRuntime
 {
     private sealed class Mod
@@ -64,12 +76,25 @@ public static class BunnyPrefixRuntime
         return new(values[0],values[1],values[2],values[3],values[4],values[5]);
     }
 
+    private static BunnyPrefixPlayerSnapshot ReadPlayer(string snapshot)
+    {
+        if(snapshot.Length==0||snapshot.Length>24)
+            throw new ArgumentException("Invalid prefix player snapshot size");
+        var fields=snapshot.Split(',');
+        if(fields.Length!=2||
+           !int.TryParse(fields[0],NumberStyles.None,CultureInfo.InvariantCulture,out int life)||
+           !int.TryParse(fields[1],NumberStyles.None,CultureInfo.InvariantCulture,out int maximum)||
+           maximum<1||maximum>1000000||life<0||life>maximum)
+            throw new ArgumentException("Invalid prefix player snapshot");
+        return new BunnyPrefixPlayerSnapshot(life,maximum);
+    }
+
     public static string Dispatch(string modId,string assemblyPath,string owner,
                                   int index,int kind,string snapshot)
     {
         try
         {
-            if(index!=0||kind<0||kind>5||modId.Length==0||modId.Length>128||
+            if(index!=0||kind<0||kind>6||modId.Length==0||modId.Length>128||
                owner.Length==0||owner.Length>128||assemblyPath.Length==0||
                assemblyPath.Length>4096||(kind==2?!string.IsNullOrEmpty(snapshot):string.IsNullOrEmpty(snapshot)))
                 throw new ArgumentException("Invalid prefix transport arguments");
@@ -99,10 +124,25 @@ public static class BunnyPrefixRuntime
                     typeof(BunnyPrefixApplyStats).MakeByRefType()});
                 if(apply==null)throw new MissingMethodException(type.FullName,"Apply");
                 RuntimeHelpers.PrepareMethod(apply.MethodHandle);
+                var accessory=type.GetMethod("ApplyAccessoryEffects",new[]{
+                    typeof(BunnyPrefixPlayerSnapshot),typeof(int).MakeByRefType()});
+                if(accessory==null)throw new MissingMethodException(type.FullName,"ApplyAccessoryEffects");
+                RuntimeHelpers.PrepareMethod(accessory.MethodHandle);
                 mod.Prefixes.Add(owner,prefix);
             }
 
             if(kind==2)return "READY";
+            if(kind==6)
+            {
+                if(prefix.Category!=PrefixCategory.Accessory)
+                    throw new InvalidOperationException("Player bonus requires accessory prefix");
+                var player=ReadPlayer(snapshot);
+                int defenseBonus=0;
+                prefix.ApplyAccessoryEffects(player,ref defenseBonus);
+                if(defenseBonus < -100 || defenseBonus > 100)
+                    throw new ArgumentOutOfRangeException(nameof(defenseBonus));
+                return defenseBonus.ToString(CultureInfo.InvariantCulture);
+            }
             var item=ReadItem(snapshot);
             if(kind==0)return prefix.CanRoll(item)?"1":"0";
             if(kind==3)return prefix.AllStatChangesHaveEffectOn(item)?"1":"0";

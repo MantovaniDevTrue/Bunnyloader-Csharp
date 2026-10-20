@@ -60,6 +60,8 @@ struct Refs {
     int summon = -1;
     int prefix = -1;
     int playerDefense = -1;
+    int playerLife = -1;
+    int playerLifeMax = -1;
     Il2CppClass* intClass = nullptr;
     FieldInfo* names = nullptr;
     FieldInfo* chances = nullptr;
@@ -913,6 +915,49 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
                                             pen, value, method) : false;
 }
 
+int queryPrefixAccessory(Il2CppObject* player,const ManagedPrefixEntry& p) {
+    if (!(p.callbackMask & 32) || p.type<1 || p.type>255 ||
+        g_refs.playerLife<0 || g_refs.playerLifeMax<0) return 0;
+    const int life=bl::runtime::field<int32_t>(player,g_refs.playerLife);
+    const int maximum=bl::runtime::field<int32_t>(player,g_refs.playerLifeMax);
+    if (life<0 || maximum<1 || maximum>1000000 || life>maximum) return 0;
+    struct CachedBonus {
+        Il2CppObject* player=nullptr;
+        int life=-1;
+        int maximum=-1;
+        int bonus=0;
+        std::chrono::steady_clock::time_point checked{};
+    };
+    static thread_local std::array<CachedBonus,256> cache{};
+    static thread_local std::chrono::steady_clock::time_point lastRequest{};
+    auto& found=cache[static_cast<size_t>(p.type)];
+    const auto now=std::chrono::steady_clock::now();
+    if (found.player==player && found.life==life && found.maximum==maximum &&
+        now-found.checked<std::chrono::milliseconds(250)) return found.bonus;
+    found={player,life,maximum,0,now};
+    if (now-lastRequest<std::chrono::milliseconds(150)) return 0;
+    const auto assemblies=managedPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(p.modId);
+    if (assembly==assemblies->end() ||
+        managedPrefixWarmupState(p.modId,assembly->second,p.name)!=1) return 0;
+    lastRequest=now;
+    std::string answer;
+    if (!invokeManagedPrefix(p.modId,assembly->second,p.name,6,
+            std::to_string(life)+","+std::to_string(maximum),&answer,650)) return 0;
+    int sign=1;
+    size_t first=0;
+    if (!answer.empty() && answer.front()=='-') {sign=-1;first=1;}
+    if (first==answer.size()) return 0;
+    int bonus=0;
+    for (size_t i=first;i<answer.size();++i) {
+        if (answer[i]<'0'||answer[i]>'9') return 0;
+        bonus=bonus*10+(answer[i]-'0');
+        if (bonus>100) return 0;
+    }
+    found.bonus=bonus*sign;
+    return found.bonus;
+}
+
 void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* method) {
     if (g_originalGrant) g_originalGrant(player, item, method);
     if (!g_hooksReady || !player || !item) return;
@@ -920,7 +965,11 @@ void hookGrant(Il2CppObject* player, Il2CppObject* item, const MethodInfo* metho
     const auto list = managedPrefixView();
     const auto* found = byType(*list, prefix);
     if (!found || found->category != 5) return;
-    bl::runtime::field<int32_t>(player, g_refs.playerDefense) += found->accessoryDefense;
+    const int bonus=found->accessoryDefense+queryPrefixAccessory(player,*found);
+    const int64_t candidate=static_cast<int64_t>(
+        bl::runtime::field<int32_t>(player,g_refs.playerDefense))+bonus;
+    if (candidate>=INT32_MIN && candidate<=INT32_MAX)
+        bl::runtime::field<int32_t>(player,g_refs.playerDefense)=static_cast<int32_t>(candidate);
 }
 
 std::string utf8Text(const Il2CppString* input) {
@@ -1332,6 +1381,8 @@ bool installManagedPrefixGameplayHooks() {
     r.summon = fieldOffset(item, "summon");
     r.prefix = fieldOffset(item, "prefix");
     r.playerDefense = fieldOffset(player, "statDefense");
+    r.playerLife = fieldOffset(player, "statLife");
+    r.playerLifeMax = fieldOffset(player, "statLifeMax2");
     r.intClass = findClass({"System", "Int32", {}});
     r.names = findField(lang, "prefix");
     r.chances = findField(sets, "ReducedNaturalChance");

@@ -291,7 +291,15 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('kind == 0 || kind == 3', runtime)
         self.assertIn('if (kind == 4)', runtime)
         self.assertIn('if (kind == 5)', runtime)
-        self.assertIn('kind<0||kind>(prefix?5:3)||', runtime)
+        self.assertIn('if (kind == 6)', runtime)
+        self.assertIn('queryPrefixAccessory(player,*found)', gameplay)
+        self.assertIn('now-found.checked<std::chrono::milliseconds(250)', gameplay)
+        self.assertIn('now-lastRequest<std::chrono::milliseconds(150)', gameplay)
+        self.assertIn('managedPrefixWarmupState(p.modId,assembly->second,p.name)', gameplay)
+        self.assertIn('p.callbackMask<0 || p.callbackMask>63', (
+            ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('kind<0||kind>(prefix?6:3)||', runtime)
         self.assertNotIn('kind<0||kind>3||', runtime)
         self.assertIn('queryPrefixTooltip(item,*selected)', gameplay)
         self.assertIn('queryPrefixTooltip(item,*p)', gameplay)

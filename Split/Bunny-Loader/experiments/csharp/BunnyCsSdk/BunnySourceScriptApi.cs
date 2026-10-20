@@ -816,6 +816,7 @@ public abstract class BunnyPrefix
     public virtual void Apply(ref BunnyPrefixApplyStats effects) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
+    public virtual void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus) { }
 }
 
 
