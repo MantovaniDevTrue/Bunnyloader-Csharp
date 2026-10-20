@@ -67,15 +67,34 @@ public static class CommandManifestWriter
         return wire;
     }
 
-    public static int Write(Assembly assembly, string diagnosticsPath)
+    public static int Write(Assembly assembly, string diagnosticsPath, string assemblyPath)
     {
         string manifest = Build(assembly);
+        if (!File.Exists(assemblyPath) || new FileInfo(assemblyPath).Length > 32 * 1024 * 1024)
+            throw new InvalidOperationException("BunnyCommand: assembly ausente ou grande demais");
+        var hash = new PortableSha256();
+        using (var stream = File.OpenRead(assemblyPath))
+        {
+            byte[] buffer = new byte[64 * 1024];
+            int count;
+            while ((count = stream.Read(buffer, 0, buffer.Length)) > 0)
+                hash.AppendData(buffer, 0, count);
+        }
+        string checksum = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        string verified = manifest.Replace("BUNNY_COMMANDS_V1\n",
+            "BUNNY_COMMANDS_V1\nASSEMBLY_SHA256\t" + checksum + "\n", StringComparison.Ordinal);
         string dir = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Diretorio de diagnosticos C# ausente");
-        string target = Path.Combine(dir, "source-commands.txt");
-        string temporary = target + ".tmp";
-        File.WriteAllText(temporary, manifest, new UTF8Encoding(false));
-        File.Move(temporary, target, true);
+        // O manifesto persistente pertence a DLL. No cache hit o C++ confere
+        // SHA256 antes de registrar aliases; nunca reutiliza outra montagem.
+        foreach (string target in new[] {
+            Path.Combine(dir, "source-commands.txt"), assemblyPath + ".commands"
+        })
+        {
+            string temporary = target + ".tmp";
+            File.WriteAllText(temporary, verified, new UTF8Encoding(false));
+            File.Move(temporary, target, true);
+        }
         return CountCommands(assembly);
     }
 
