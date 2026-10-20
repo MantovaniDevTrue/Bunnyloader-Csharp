@@ -37,6 +37,9 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress)> SavedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
+        public readonly HashSet<string> PendingRewards = new(StringComparer.Ordinal);
+        public int RewardPlayer = -1;
+        public int LastWorldPlayer = -1;
         public long NativeWorldSession;
         public bool WorldStateInitialized;
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
@@ -137,6 +140,9 @@ public static class BunnyEntitySourceDispatcher
             context.RegisteredItemUses.Clear();
             context.SavedInvasions.Clear();
             context.WorldStateInitialized = false;
+            context.PendingRewards.Clear();
+            context.RewardPlayer = -1;
+            context.LastWorldPlayer = -1;
             context.NativeWorldSession = worldSession;
             context.NextInvasionIndex = 0;
         }
@@ -148,6 +154,7 @@ public static class BunnyEntitySourceDispatcher
         }
         if (!authoritative || playerIndex < 0 ||
             !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
+        context.LastWorldPlayer = playerIndex;
         try
         {
             if (!context.WorldStateInitialized)
@@ -174,6 +181,7 @@ public static class BunnyEntitySourceDispatcher
                 for (int n = 0; n < 8 && BunnyNativeItemUse.TryPoll(
                     worldSession, context.Mod, pair.Key, out int usingPlayer); n++)
                 {
+                    context.RewardPlayer = usingPlayer;
                     pair.Value.OnUse(usingPlayer);
                     used++;
                     SaveInvasionIfChanged(context);
@@ -235,12 +243,24 @@ public static class BunnyEntitySourceDispatcher
         {
             BunnyInvasionController controller = system.Pipeline.Controller;
             BunnyInvasionSnapshot state = controller.Snapshot();
-            if (context.SavedInvasions.TryGetValue(system.Id, out var saved) &&
-                state.Phase == saved.Phase && state.Progress == saved.Progress)
-                continue;
-            if (!BunnyInvasionWorldPersistence.Save(
-                context.NativeWorldSession, context.Mod, controller)) continue;
-            context.SavedInvasions[system.Id] = (state.Phase, state.Progress);
+            bool hasSaved = context.SavedInvasions.TryGetValue(system.Id, out var saved);
+            if (state.Phase == BunnyInvasionPhase.Completed &&
+                (!hasSaved || saved.Phase != BunnyInvasionPhase.Completed) &&
+                system.RewardStack > 0 && system.RewardItemClass.Length > 0)
+                context.PendingRewards.Add(system.Id);
+            if (!hasSaved || state.Phase != saved.Phase || state.Progress != saved.Progress)
+            {
+                if (BunnyInvasionWorldPersistence.Save(
+                    context.NativeWorldSession, context.Mod, controller))
+                    context.SavedInvasions[system.Id] = (state.Phase, state.Progress);
+            }
+            if (!context.PendingRewards.Contains(system.Id)) continue;
+            int target = context.RewardPlayer >= 0 ?
+                context.RewardPlayer : context.LastWorldPlayer;
+            if (BunnyInvasionNativeRewards.Submit(context.NativeWorldSession,
+                context.Mod, system.Id, state.Epoch, system.RewardItemClass,
+                system.RewardStack, target))
+                context.PendingRewards.Remove(system.Id);
         }
     }
 
