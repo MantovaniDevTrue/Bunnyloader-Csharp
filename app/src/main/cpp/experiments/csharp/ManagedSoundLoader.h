@@ -29,6 +29,7 @@ struct Clip {
     int status = 0;
     int soundId = 0, styleId = -1;
     int lastToken = 0;
+    unsigned decodeAttempts = 0;
 };
 
 struct Play {
@@ -46,6 +47,8 @@ inline std::map<std::string,int> assetCache;
 inline std::deque<int> pendingClips, pendingPlays, pendingReleases, pendingStops;
 inline int nextClip = 1, nextPlay = 1;
 inline unsigned updateTick = 0;
+inline std::atomic<bool> pendingWork{false};
+inline std::atomic<bool> hasClips{false};
 inline int scanCursor = 0;
 constexpr size_t MaxClips = 256;
 constexpr size_t MaxPerMod = 32;
@@ -113,6 +116,8 @@ inline int registerClip(const char* owner,const char* path,float volume,float pi
     const int id=nextClip++;
     clips.emplace(id,Clip{id,owner,resolved,volume,pitch,variance,maxInstances,behavior});
     pendingClips.push_back(id);
+    hasClips.store(true,std::memory_order_release);
+    pendingWork.store(true,std::memory_order_release);
     return id;
 }
 
@@ -141,6 +146,7 @@ inline int play(int handle,int x,int y,float volume,float pitch) {
     const int id=nextPlay++;
     requests.emplace(id,Play{id,handle,x,y,volume,pitch});
     pendingPlays.push_back(id);
+    pendingWork.store(true,std::memory_order_release);
     return id;
 }
 
@@ -163,7 +169,10 @@ inline int stop(int handle,int request) {
         return 0;
     const int token=it->second.result;
     it->second.result=-1;
-    if(token>0)pendingStops.push_back(token);
+    if(token>0) {
+        pendingStops.push_back(token);
+        pendingWork.store(true,std::memory_order_release);
+    }
     return 1;
 }
 
@@ -185,6 +194,7 @@ inline void unloadMod(const char* owner) {
         clip.status=-2;
         clip.lastToken=0;
         pendingReleases.push_back(id);
+        pendingWork.store(true,std::memory_order_release);
         for(auto& [requestId,request]:requests)
             if(request.clip==id) {
                 if(request.result>0)pendingStops.push_back(request.result);
@@ -195,7 +205,16 @@ inline void unloadMod(const char* owner) {
 
 inline void pump() {
     using namespace bl::runtime::content;
-    for(int n=0;n<8;++n) {
+    const bool urgent=pendingWork.load(std::memory_order_acquire);
+    if(!urgent && !hasClips.load(std::memory_order_acquire)) return;
+    ++updateTick;
+    if(!urgent && updateTick%12!=0) return;
+    size_t scheduledClips=0;
+    {
+        std::lock_guard guard(mutex);
+        scheduledClips=std::min<size_t>(8,pendingClips.size());
+    }
+    for(size_t n=0;n<scheduledClips;++n) {
         Clip clip;
         {
             std::lock_guard guard(mutex);
@@ -224,8 +243,13 @@ inline void pump() {
                 continue;
             }
             it->second.soundId=sound;
-            if(decode==0) pendingClips.push_back(clip.handle);
-            else if(decode<0 || style<0) {
+            if(decode==0) {
+                if(++it->second.decodeAttempts>1200) {
+                    it->second.status=-1;
+                    BL_WARN("[CSharp][SoundLoader] Stage=Decode Mod=%s Reason=AsyncDecodeTimeout",
+                        clip.owner.c_str());
+                } else pendingClips.push_back(clip.handle);
+            } else if(decode<0 || style<0) {
                 it->second.status=-1;
                 BL_WARN("[CSharp][SoundLoader] Stage=DecodeOrInstall Mod=%s Asset=%s Reason=NativeAudioRejected",
                     clip.owner.c_str(),clip.path.c_str());
@@ -301,7 +325,7 @@ inline void pump() {
     for(int token:stops)stopSoundStyleToken(token);
     for(int style:releases)releaseSoundStyle(style);
 
-    if(++updateTick%12==0) {
+    if(updateTick%12==0) {
         std::vector<std::pair<int,int>> refresh;
         {
             std::lock_guard guard(mutex);
@@ -322,6 +346,13 @@ inline void pump() {
             if(it!=clips.end()&&it->second.status==1&&it->second.styleId==style)
                 it->second.lastToken=active;
         }
+    }
+    {
+        std::lock_guard guard(mutex);
+        pendingWork.store(!pendingClips.empty()||!pendingPlays.empty()||
+                          !pendingStops.empty()||!pendingReleases.empty(),
+                          std::memory_order_release);
+        hasClips.store(!clips.empty(),std::memory_order_release);
     }
 }
 
