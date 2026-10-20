@@ -74,6 +74,17 @@ static class DustTests
         public override bool PreDraw(ref BunnyDustState state) => throw new InvalidOperationException();
     }
 
+    private sealed class ExhaustedDust : BunnyDust
+    {
+        public override void SetStaticDefaults() { }
+
+        public override void OnSpawn(ref BunnyDustState state)
+        {
+            state.Scale = 0f;
+            state.Kill();
+        }
+    }
+
     private sealed class InvalidTextureDust : BunnyDust
     {
         public override void SetStaticDefaults() => Texture = "../escaped.png";
@@ -175,6 +186,17 @@ static class DustTests
         Check(registry.ActiveCount == 2, "old generation cannot release reused slot");
         registry.Release(5, 332, 2);
         Check(registry.ActiveCount == 1, "new generation release");
+
+        var zero = new BunnyDustRegistry("zero_scale");
+        zero.Register("Exhausted", new ExhaustedDust());
+        Check(zero.Bind(332, "Exhausted"), "bind dying Dust");
+        var dying = SpawnState(332, 100);
+        Check(zero.OnSpawn(ref dying) && dying.Active == 0 && dying.Scale == 0f,
+            "allow zero scale when killed by OnSpawn");
+        Check(zero.ActiveCount == 0, "release instance killed during spawn");
+        dying = SpawnState(332, 100, 2);
+        dying.Scale = 0f;
+        Check(!zero.OnSpawn(ref dying), "reject zero scale while active");
 
         registry.ResetWorld();
         Check(registry.ActiveCount == 0 && registry.BoundCount == 3, "world reset preserves registered types");
