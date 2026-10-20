@@ -182,6 +182,18 @@ Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name) {
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){return ::findField(cls,name);}
 }
+namespace bl::csharp {
+bool gManagedAllowed = true;
+bool gManagedReady = true;
+int gManagedCalls = 0;
+bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
+                                      int,int,int,int,bool* allowed) {
+    ++gManagedCalls;
+    if (!gManagedReady) return false;
+    *allowed = gManagedAllowed;
+    return true;
+}
+}
 namespace bl::csharp::angler {
 bool installFishingOnGameThread(const std::vector<Quest>*) { return true; }
 }
@@ -267,6 +279,31 @@ int main() {
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[940]==0);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[940]==0);
 
+    Quest dynamic=quest;
+    dynamic.callbackMask=1;
+    assert(reg.publish("examplemodcsharp",{dynamic},&error));
+    bl::csharp::angler::pumpOnGameThread();
+    gHard=1;
+    gNetMode=0;
+    bl::csharp::gManagedAllowed=false;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==2 && gSelected==0);
+    bl::csharp::gManagedAllowed=true;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==1 && gSelected==3);
+    bl::csharp::gManagedReady=false;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==2 && gSelected==0);
+    bl::csharp::gManagedReady=true;
+    assert(bl::csharp::gManagedCalls>=3);
+    assert(reg.publish("examplemodcsharp",{quest},&error));
+    bl::csharp::angler::pumpOnGameThread();
     gHard=0;
     for (const int mode : {0, 1, 2, 3}) {
         gNetMode=mode;
