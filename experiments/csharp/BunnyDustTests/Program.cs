@@ -128,6 +128,11 @@ static class DustTests
         Check(System.Runtime.InteropServices.Marshal.OffsetOf<BunnyDustState>(nameof(BunnyDustState.Color)).ToInt32() == 60,
             "managed/native color offset");
         Throws<ArgumentException>(() => new BunnyDustRegistry("invalid/id"), "reject bad mod id");
+        Throws<ArgumentException>(() => new BunnyDustRegistry("../escape"), "reject mod traversal");
+        Throws<ArgumentException>(() => new BunnyDustRegistry(""), "reject empty mod id");
+        var guidRegistry = new BunnyDustRegistry("57a98f20-7a35-4d19-8ce8-079e25bb36a1");
+        Check(guidRegistry.Register("GuidDust", new DefaultDust()).Name == "GuidDust",
+            "accept real CSharp GUID mod IDs with hyphens");
 
         var registry = new BunnyDustRegistry("dust_test");
         var defaultDust = registry.Register("Droplet", new DefaultDust());
