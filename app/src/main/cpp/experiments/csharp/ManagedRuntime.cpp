@@ -1673,8 +1673,10 @@ void* pinnedMonoWorker(void*) {
                         for (auto& current : g_commandBindings) {
                             if (current.modId != binding.modId ||
                                 current.assembly != binding.assembly) continue;
-                            if (registered) current.registered = true;
-                            else ++current.failures;
+                            if (registered) {
+                                current.registered = true;
+                                nativeCommandMailbox().setModReady(binding.modId, true);
+                            } else ++current.failures;
                             break;
                         }
                         attemptedRegistration = true;
