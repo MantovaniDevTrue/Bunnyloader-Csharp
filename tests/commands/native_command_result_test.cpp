@@ -49,5 +49,34 @@ int main() {
     assert(!decodeNativeCommandResult(
         "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nREPLY\t255\t240\t20\tAAA\n",
         14, &handled, &replies, &error));
+    NativeCommandAction action;
+    assert(decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tHEAL\t50\n",
+        14, &handled, &replies, &error, &action));
+    assert(handled && replies.empty() && action.kind == NativeCommandActionKind::Heal &&
+           action.amount == 50);
+    assert(decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tADDTIME\t-3600\n",
+        14, &handled, &replies, &error, &action));
+    assert(action.kind == NativeCommandActionKind::AdvanceWorldTime &&
+           action.amount == -3600);
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tHEAL\t0\n",
+        14, &handled, &replies, &error, &action));
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tHEAL\t2147483648\n",
+        14, &handled, &replies, &error, &action));
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tHEAL\t2\nACTION\tHEAL\t3\n",
+        14, &handled, &replies, &error, &action));
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nACTION\tHEAL\t1\nREPLY\t255\t0\t0\tAA\n",
+        14, &handled, &replies, &error, &action));
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nREPLY\t255\t0\t0\tAA\nACTION\tHEAL\t1\n",
+        14, &handled, &replies, &error, &action));
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t0\nACTION\tHEAL\t1\n",
+        14, &handled, &replies, &error, &action));
     std::cout << "BUNNY_CSHARP_NATIVE_COMMAND_RESULT=PASS" << std::endl;
 }
