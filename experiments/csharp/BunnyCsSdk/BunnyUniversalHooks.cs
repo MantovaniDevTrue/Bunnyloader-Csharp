@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -560,10 +562,27 @@ public static class BunnyHooks
 
 public static class BunnyUniversalHookDispatcher
 {
+    private sealed class CollectibleModContext : AssemblyLoadContext
+    {
+        internal CollectibleModContext(string modId) :
+            base("BunnyUniversal:" + modId, isCollectible: true) { }
+
+        protected override Assembly? Load(AssemblyName requested)
+        {
+            Assembly sdk = typeof(BunnyUniversalHookDispatcher).Assembly;
+            if (requested.Name == sdk.GetName().Name) return sdk;
+            return Default.Assemblies.FirstOrDefault(candidate =>
+                string.Equals(candidate.GetName().Name, requested.Name,
+                              StringComparison.Ordinal));
+        }
+    }
+
     private sealed class Context
     {
         public string Id = "";
         public string Path = "";
+        public CollectibleModContext? LoadContext;
+        public Assembly? ModAssembly;
         public readonly BunnyHookScope Scope = new();
         public readonly List<BunnyHookModule> Modules = new();
     }
@@ -579,7 +598,12 @@ public static class BunnyUniversalHookDispatcher
         var context = new Context { Id = id, Path = path };
         try
         {
-            Type[] types = Assembly.LoadFrom(path).GetTypes().Where(type =>
+            var loadContext = new CollectibleModContext(id);
+            context.LoadContext = loadContext;
+            using var bytes = new MemoryStream(File.ReadAllBytes(path), writable: false);
+            Assembly loaded = loadContext.LoadFromStream(bytes);
+            context.ModAssembly = loaded;
+            Type[] types = loaded.GetTypes().Where(type =>
                 !type.IsAbstract && typeof(BunnyHookModule).IsAssignableFrom(type))
                 .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
             foreach (Type type in types)
@@ -621,7 +645,22 @@ public static class BunnyUniversalHookDispatcher
             try { module.Unload(); }
             catch (Exception error) { LastError = context.Id + ": " + error.Message; }
         context.Modules.Clear();
+        context.ModAssembly = null;
+        var managed = context.LoadContext;
+        context.LoadContext = null;
+        managed?.Unload();
     }
+    public static bool Unload(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        int index = Contexts.FindIndex(context => context.Id == id);
+        if (index < 0) return false;
+        Context context = Contexts[index];
+        Contexts.RemoveAt(index);
+        Close(context);
+        return true;
+    }
+
     public static void UnloadAll()
     {
         foreach (Context context in Contexts) Close(context);

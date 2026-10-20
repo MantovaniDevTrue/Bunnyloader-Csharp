@@ -5,7 +5,25 @@ using System.Linq;
 
 namespace BunnyLoader.Source;
 
+[Flags]
+public enum BunnyQuestCatchRules
+{
+    None = 0,
+    InvertedGravity = 1,
+    Uncommon = 2,
+    InvertedGravityAndUncommon = InvertedGravity | Uncommon
+}
+
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
+public sealed class BunnyQuestContext
+{
+    public int FishType { get; internal set; }
+    public int PlayerIndex { get; internal set; } = -1;
+    public bool Hardmode { get; internal set; }
+    public bool InvertedGravity { get; internal set; }
+    public bool Uncommon { get; internal set; }
+}
+
 public abstract class BunnyItem : BunnyShootSource
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
@@ -49,6 +67,16 @@ public abstract class BunnyItem : BunnyShootSource
     public string ModRarityClassName { get; private set; } = "";
     public void SetRarity<T>() where T : BunnyRarity
         => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
+    public bool QuestFish { get; set; }
+    public bool QuestAvailableInPreHardmode { get; set; } = true;
+    public bool QuestAvailableInHardmode { get; set; } = true;
+    public string QuestDescription { get; set; } = "";
+    public string QuestCatchLocation { get; set; } = "";
+    public Dictionary<string,string> QuestDescriptionTranslations { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string,string> QuestCatchLocationTranslations { get; } = new(StringComparer.Ordinal);
+    public BunnyQuestCatchRules QuestCatchRules { get; set; }
+    public Func<BunnyQuestContext,bool>? QuestAvailableWhen { get; set; }
+    public Func<BunnyQuestContext,bool>? QuestCanCatchWhen { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
@@ -125,6 +153,13 @@ public abstract class BunnyItem : BunnyShootSource
         UseStyle=1;UseAnimation=15;UseTime=10;MaxStack=9999;
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
+    public void DefaultToQuestFish()
+    {
+        QuestFish = true;
+        MaxStack = 1;
+        Value = 0;
+    }
+
     public abstract void SetDefaults();
 }
 

@@ -3,6 +3,9 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
+#include "experiments/csharp/ManagedLiveSourceRevocations.h"
+#include "experiments/csharp/ManagedDeferredModRevocation.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -122,6 +125,7 @@ struct LiveEntry {
 };
 
 std::map<std::string, LiveEntry> g_sourceLiveEntries;
+ManagedLiveSourceRevocations g_liveSourceRevocations;
 uint64_t g_liveMethodCacheHits = 0;
 uint64_t g_liveMethodCacheMisses = 0;
 uint64_t g_liveAssemblyOpenAttempts = 0;
@@ -267,6 +271,7 @@ std::chrono::steady_clock::time_point g_auditStart;
 
 struct UniversalMod { std::string id, path; bool registered = false; };
 std::vector<UniversalMod> g_universalMods;
+std::deque<std::string> g_universalPendingUnloads;
 bool g_universalUnload = false;
 bool g_universalEnabled = true;
 void* g_universalRegister = nullptr;
@@ -275,6 +280,7 @@ void* g_universalDispatchInt32 = nullptr;
 void* g_universalDispatchInt32Pair = nullptr;
 void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
+void* g_universalUnloadMod = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
 void* g_universalSnapshot = nullptr;
@@ -340,6 +346,7 @@ struct SceneLightReply {
     std::chrono::steady_clock::time_point updated{};
     uint64_t generation = 0;
 };
+std::set<std::string> g_revokedDeferredMods;
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
@@ -495,6 +502,8 @@ bool g_liveHitInFlight = false;
 int g_liveHitActiveBindingSlot = -2;
 uint64_t g_liveHitGeneration = 0;
 std::atomic<uint64_t> g_buffEffectGeneration{1};
+std::array<std::atomic<uint64_t>, ManagedLiveIngressQueue::kBindingCount>
+    g_buffOwnerGenerations{};
 std::atomic<bool> g_buffHookReady{false};
 ManagedNpcBuffEffectQueue g_buffEffectQueue;
 std::atomic<int> g_buffRequested{0};
@@ -994,6 +1003,9 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (job.generation != g_managedHurtGeneration ||
+            job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            !g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active ||
             (job.completion && (job.completion->cancelled ||
              std::chrono::steady_clock::now() >= job.completion->deadline))) return -1;
     }
@@ -1144,6 +1156,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
             if (job.session == g_entitySession && job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                g_entityBindings[static_cast<size_t>(job.binding)].armed &&
                 g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId)
                 g_entityBindings[static_cast<size_t>(job.binding)].managedSlot = managedSlot;
         }
@@ -1198,7 +1211,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalUnloadMod &&
+        g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1211,6 +1225,7 @@ bool prepareUniversalHookSdk() {
     if (!dispatcher || !hooks) return false;
     g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
+    g_universalUnloadMod = g_api.findMethod(dispatcher, "Unload", 1);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
     g_universalSnapshot = g_api.findMethod(dispatcher, "GetStatusSnapshot", 1);
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
@@ -1219,7 +1234,8 @@ bool prepareUniversalHookSdk() {
     g_universalDispatchExtended = g_api.findMethod(hooks, "InvokeExtended", 9);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
     return g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 &&
-           g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove;
+           g_universalDispatchInt32Pair && g_universalDispatchExtended &&
+           g_universalClear && g_universalUnloadMod && g_universalRemove;
 }
 
 void writeUniversalRegistrationStatus(const std::string& id, const char* state, const std::string& detail) {
@@ -1321,14 +1337,23 @@ bool pollUniversalHooksOnWorker() {
         return true;
     }
     UniversalMod next;
-    bool unload = false, found = false;
+    std::string targetUnload;
+    bool unload = false, found = false, targeted = false;
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         unload = g_universalUnload;
         g_universalUnload = false;
-        if (!unload && g_universalEnabled) {
+        if (unload) {
+            g_universalPendingUnloads.clear();
+        } else if (!g_universalPendingUnloads.empty()) {
+            targetUnload = std::move(g_universalPendingUnloads.front());
+            g_universalPendingUnloads.pop_front();
+            targeted = true;
+        }
+        if (!unload && !targeted && g_universalEnabled) {
             for (auto& mod : g_universalMods) {
-                if (mod.registered) continue;
+                if (mod.registered || g_revokedDeferredMods.contains(mod.id))
+                    continue;
                 mod.registered = true;
                 next = mod;
                 found = true;
@@ -1336,17 +1361,20 @@ bool pollUniversalHooksOnWorker() {
             }
         }
     }
-    if (!unload && !found) return false;
+    if (!unload && !found && !targeted) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!prepareUniversalHookSdk()) {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (targeted) g_universalPendingUnloads.push_front(targetUnload);
         if (found) {
-            std::lock_guard<std::mutex> lock(g_pinnedMutex);
-            for (auto& mod : g_universalMods) if (mod.id == next.id) mod.registered = false;
+            for (auto& mod : g_universalMods)
+                if (mod.id == next.id) mod.registered = false;
         }
+        g_universalPolling.store(false, std::memory_order_release);
         return false;
     }
     void* exception = nullptr;
-    UniversalMonoContext context(!unload);
+    UniversalMonoContext context(!unload && !targeted);
     if (unload) {
         std::vector<std::string> ids;
         {
@@ -1359,7 +1387,29 @@ bool pollUniversalHooksOnWorker() {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
     }
-    else if (g_api.newString) {
+    else if (targeted && g_api.newString) {
+        void* id = g_api.newString(g_domain, targetUnload.c_str());
+        void* args[] = {id};
+        void* boxed = id ? g_api.invoke(g_universalUnloadMod, nullptr, args, &exception) : nullptr;
+        void* value = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        if (!value) {
+            writeUniversalRegistrationStatus(targetUnload, "unload-failed",
+                "SDK Unload(id) unavailable or threw; restart required");
+        } else if (*static_cast<uint8_t*>(value) == 0) {
+            writeUniversalRegistrationStatus(targetUnload, "already-unloaded",
+                "no active managed hook scope for this mod");
+        } else {
+            writeUniversalRegistrationStatus(targetUnload, "unloaded",
+                "native hook scope released; Mono assembly remains loaded");
+        }
+    }
+    else if (found && g_api.newString) {
+        bool revoked = false;
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            revoked = g_revokedDeferredMods.contains(next.id);
+        }
+        if (revoked) return true;
         void* args[] = {g_api.newString(g_domain, next.id.c_str()), g_api.newString(g_domain, next.path.c_str())};
         void* boxed = args[0] && args[1] ? g_api.invoke(g_universalRegister, nullptr, args, &exception) : nullptr;
         int count = -1;
@@ -1408,6 +1458,8 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
+    if (!isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
+        return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
@@ -1703,6 +1755,10 @@ void* pinnedMonoWorker(void*) {
                     }
                     lock.lock();
                     if (job.completion) {
+                        const bool bindingActive = job.modIndex >= 0 &&
+                            static_cast<size_t>(job.modIndex) < g_managedHurtBindings.size() &&
+                            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active;
+                        if (!bindingActive) job.completion->cancelled = true;
                         job.completion->expired = std::chrono::steady_clock::now() >= job.completion->deadline;
                         if (job.completion->cancelled || job.generation != g_managedHurtGeneration ||
                             job.completion->expired)
@@ -1772,6 +1828,13 @@ void* pinnedMonoWorker(void*) {
                     const std::string dll = binding ? binding->assemblyPath : g_liveHitAssembly;
                     const std::string callbackClass = binding ?
                         binding->callbackClass : "BunnyLiveEvents";
+                    if (g_revokedDeferredMods.contains(modId)) {
+                        addManagedCounter(g_liveHitStatus.dropped);
+                        if (binding) addManagedCounter(binding->dropped);
+                        g_liveHitInFlight = false;
+                        g_liveHitActiveBindingSlot = -2;
+                        continue;
+                    }
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
                     const size_t perfSlot = binding ?
@@ -1844,8 +1907,11 @@ void* pinnedMonoWorker(void*) {
                     lock.lock();
                     g_liveHitInFlight = false;
                     g_liveHitActiveBindingSlot = -2;
-                    if ((binding || g_liveHitStatus.modId == modId) &&
-                        g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
+                    const bool bindingArmed = !binding ||
+                        binding->armedType.load(std::memory_order_acquire) == binding->type;
+                    if (g_liveHitGeneration == generation &&
+                        managedLiveCallbackCurrent(g_liveHitStatus.enabled, bindingArmed,
+                            g_revokedDeferredMods.contains(modId))) {
                         if (automatic && !event.isKill && callback.usedV4 &&
                             callback.ready && callback.phase == "ready" &&
                             callback.value >= 1000000 && callback.value < 3000000) {
@@ -1867,7 +1933,11 @@ void* pinnedMonoWorker(void*) {
                                     event.npc.posX, event.npc.posY,
                                     buff, ticks,
                                     g_buffEffectGeneration.load(std::memory_order_acquire),
-                                    nowMs, direction, tenths
+                                    nowMs, direction, tenths,
+                                    event.bindingSlot,
+                                    g_buffOwnerGenerations[
+                                        static_cast<size_t>(event.bindingSlot + 1)].load(
+                                            std::memory_order_acquire)
                                 };
                                 if (g_buffEffectQueue.push(request))
                                     g_buffRequested.fetch_add(1, std::memory_order_relaxed);
@@ -1964,7 +2034,10 @@ void* pinnedMonoWorker(void*) {
                     lock.unlock();
                     const int64_t result = executeManagedEntityOnWorker(job);
                     lock.lock();
-                    if (job.session == g_entitySession && job.slot >= 0) {
+                    const bool stillArmed = job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                        g_entityBindings[static_cast<size_t>(job.binding)].armed;
+                    if (job.session == g_entitySession && job.slot >= 0 && stillArmed) {
                         if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcResults.size()) {
                             g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
                             g_entityNpcResults[static_cast<size_t>(job.slot)] = {
@@ -2007,9 +2080,18 @@ void* pinnedMonoWorker(void*) {
 #endif
                             }
                         }
-                    } else if (job.kind >= 2 && job.kind <= 5) {
-                        g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
-                            .fetch_add(1, std::memory_order_relaxed);
+                    } else {
+                        if (job.session == g_entitySession && !stillArmed && job.slot >= 0) {
+                            if (job.kind == 0 &&
+                                static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+                                g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+                            if (job.kind == 1 &&
+                                static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+                                g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+                        }
+                        if (job.kind >= 2 && job.kind <= 5)
+                            g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
+                                .fetch_add(1, std::memory_order_relaxed);
                     }
                     if (job.kind >= 0 && job.kind <= 5) {
                         static std::chrono::steady_clock::time_point nextAiSnapshot{};
@@ -2040,12 +2122,12 @@ void* pinnedMonoWorker(void*) {
                         request.binding >= 0 &&
                         static_cast<size_t>(request.binding) < g_sceneLightBindings.size()) {
                         auto& binding = g_sceneLightBindings[static_cast<size_t>(request.binding)];
-                        if (ok) {
+                        if (binding.enabled && ok) {
                             g_sceneLightResults[binding.modId] = {
                                 computed, std::chrono::steady_clock::now(), request.generation
                             };
                             binding.failures = 0;
-                        } else if (++binding.failures >= 3 && binding.enabled) {
+                        } else if (binding.enabled && ++binding.failures >= 3) {
                             binding.enabled = false;
 #ifdef __ANDROID__
                             __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
@@ -2184,6 +2266,7 @@ bool registerManagedScreenSceneMod(const std::string& id,
         !identifier(nameSpace) || !identifier(className) || !identifier(method))
         return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (auto& binding : g_sceneLightBindings) {
         if (binding.modId != id) continue;
         if (binding.assemblyPath != assembly || binding.nameSpace != nameSpace ||
@@ -2254,6 +2337,7 @@ void wakeUniversalHookWorker() { g_pinnedWake.notify_one(); }
 bool registerUniversalHookMod(const std::string& id, const std::string& assembly) {
     if (id.empty() || id.size() > 128 || !validAssembly(assembly)) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (const auto& mod : g_universalMods) if (mod.id == id) return mod.path == assembly;
     if (g_universalMods.size() >= 16) return false;
     g_universalMods.push_back({id, assembly, false});
@@ -2291,6 +2375,7 @@ bool registerManagedEntitySourceMod(
             if (type < 0 || type >= 32768 || name.empty() || name.size() > 128)
                 return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (const auto& binding : g_entityBindings)
         if (binding.modId == modId)
             return binding.assemblyPath == assemblyPath;
@@ -2477,6 +2562,7 @@ bool registerManagedPlayerHurtMod(const std::string& modId,
         assemblyPath.find("..") != std::string::npos)
         return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (auto& entry : g_managedHurtBindings) {
         if (entry.modId != modId) continue;
         if (entry.assemblyPath != assemblyPath) return false;
@@ -2524,7 +2610,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>6||
        snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -3064,6 +3150,10 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_pinnedStarted || g_pinnedBusy || g_liveBenchmarkAttempted ||
         g_liveHitInFlight || !g_liveHitQueue.empty() ||
         g_liveIngress.depth() != 0) {
@@ -3301,6 +3391,7 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
         const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
         if (request.generation != g_buffEffectGeneration.load(std::memory_order_acquire) ||
+            !managedNpcBuffOwnerCurrent(request, g_buffOwnerGenerations) ||
             nowMs < request.createdAtMs || nowMs - request.createdAtMs > 1500) {
             g_buffEffectQueue.pop();
             g_buffStale.fetch_add(1, std::memory_order_relaxed);
@@ -3368,6 +3459,10 @@ bool bindManagedLiveAdditional(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
         (g_liveHitStatus.eventLimit > 0 && g_liveHitStatus.queued >= g_liveHitStatus.eventLimit)) {
@@ -3490,6 +3585,10 @@ bool resumeManagedLiveMod(const std::string& modId, std::string* error) {
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveHitStatus.phase == "draining" ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
@@ -4191,8 +4290,165 @@ ManagedSourceCompileResult compileManagedSource(
     return out;
 }
 
+void invalidateManagedDeferredSourceMod(const std::string& modId) {
+    if (modId.empty()) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_revokedDeferredMods.insert(modId);
+    for (auto& binding : g_universalMods) {
+        if (binding.id != modId) continue;
+        binding.registered = true;
+        if (std::find(g_universalPendingUnloads.begin(),
+                      g_universalPendingUnloads.end(), modId) ==
+            g_universalPendingUnloads.end())
+            g_universalPendingUnloads.push_back(modId);
+        g_universalPolling.store(true, std::memory_order_release);
+        g_pinnedWake.notify_one();
+        break;
+    }
+
+    const bool primaryRevoked = g_liveHitStatus.modId == modId &&
+        g_liveHitStatus.enabled;
+    if (g_liveHitStatus.modId == modId)
+        g_buffOwnerGenerations[0].fetch_add(1, std::memory_order_release);
+    if (primaryRevoked) {
+        const int discarded = g_liveIngress.pauseBinding(-1, g_liveHitType);
+        addManagedCounter(g_liveHitStatus.dropped, discarded);
+        addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
+        g_liveHitQueue.clear();
+        g_liveHitStatus.phase = "primary-mod-revoked";
+    }
+    const int liveCount = g_additionalLiveCount.load(std::memory_order_acquire);
+    bool anyAdditionalArmed = false;
+    for (int i = 0; i < liveCount; ++i) {
+        auto& binding = g_additionalLiveBindings[static_cast<size_t>(i)];
+        if (binding.modId == modId) {
+            g_buffOwnerGenerations[static_cast<size_t>(i + 1)].fetch_add(
+                1, std::memory_order_release);
+            const int discarded = g_liveIngress.pauseBinding(i, binding.armedType);
+            addManagedCounter(binding.dropped, discarded);
+            addManagedCounter(g_liveHitStatus.dropped, discarded);
+            if (binding.type >= 0 &&
+                static_cast<size_t>(binding.type) < g_additionalLiveByType.size() &&
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].load(
+                    std::memory_order_acquire) == i + 1)
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].store(
+                    0, std::memory_order_release);
+        }
+        if (binding.armedType.load(std::memory_order_acquire) == binding.type)
+            anyAdditionalArmed = true;
+    }
+    if (managedLiveSessionCanStop(
+            g_liveHitStatus.enabled,
+            g_revokedDeferredMods.contains(g_liveHitStatus.modId),
+            g_liveHitType.load(std::memory_order_acquire) < 0,
+            anyAdditionalArmed)) {
+        g_liveHitStatus.enabled = false;
+        g_liveHitAutomatic.store(false, std::memory_order_release);
+        g_liveHitStatus.phase = "mod-revoked";
+    }
+
+    for (auto& binding : g_sceneLightBindings)
+        if (binding.modId == modId) binding.enabled = false;
+    g_sceneLightResults.erase(modId);
+    eraseManagedModBoundJobs(g_sceneLightQueue, g_sceneLightBindings, modId);
+
+    for (auto& binding : g_managedHurtBindings)
+        if (binding.modId == modId) binding.active = false;
+    const auto cancelledHurt = std::erase_if(g_managedHurtQueue, [&](auto& job) {
+        if (job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].modId != modId)
+            return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->done = true;
+        }
+        return true;
+    });
+    g_hurtScheduler.cancelledBeforeRun += cancelledHurt;
+    if (cancelledHurt) g_managedHurtResultWake.notify_all();
+    const auto cancelledRecipes = std::erase_if(g_recipeRpcQueue, [&](auto& job) {
+        if (job.mod != modId) return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->output = "PENDING|Stage=Unload Reason=ModRevoked";
+            job.completion->done = true;
+        }
+        return true;
+    });
+    if (cancelledRecipes) g_recipeRpcWake.notify_all();
+
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        auto& binding = g_entityBindings[index];
+        if (binding.modId != modId || !binding.armed) continue;
+        binding.armed = false;
+        for (const auto& type : binding.npcTypes) {
+            auto& owner = g_entityNpcTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+        for (const auto& type : binding.projectileTypes) {
+            auto& owner = g_entityProjectileTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+    }
+    for (const auto& job : g_entityQueue) {
+        if (job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
+            g_entityBindings[static_cast<size_t>(job.binding)].modId != modId ||
+            job.slot < 0) continue;
+        if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+            g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+        if (job.kind == 1 &&
+            static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+            g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+    }
+    eraseManagedModBoundJobs(g_entityQueue, g_entityBindings, modId);
+    for (auto& result : g_entityNpcResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityNpcTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.npcTypes.begin(), binding.npcTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
+    for (auto& result : g_entityProjectileResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityProjectileTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.projectileTypes.begin(), binding.projectileTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
+}
+
+void invalidateManagedLiveSourceMod(const std::string& modId) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_liveSourceRevocations.revoke(modId, g_sourceLiveEntries);
+}
+
 LiveSourceStatus liveSourceStatus(const std::string& modId) {
     std::lock_guard<std::mutex> guard(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        LiveSourceStatus status;
+        status.modId = modId;
+        status.phase = "restart-required";
+        status.error = "Live Mono assembly remains loaded after mod unload";
+        return status;
+    }
     const auto found = g_sourceLiveEntries.find(modId);
     if (found != g_sourceLiveEntries.end()) return found->second.status;
     LiveSourceStatus status;
@@ -4214,6 +4470,11 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
         tick < 0 || tick > 1000000 ||
         state < -1000000 || state > 1000000) {
         invalid.error = "Invalid mod identity or callback arguments";
+        return invalid;
+    }
+    if (g_liveSourceRevocations.revoked(modId)) {
+        invalid.phase = "restart-required";
+        invalid.error = "Live Mono assembly remains loaded after mod unload";
         return invalid;
     }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
@@ -4316,6 +4577,11 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         return result;
     }
     std::lock_guard<std::mutex> lock(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        result.phase = "restart-required";
+        result.error = "Live Mono assembly remains loaded after mod unload";
+        return result;
+    }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) {
         result.phase = "waiting-mono";
@@ -4432,7 +4698,8 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
     if (!velocityTenths || playerDeltaX < -100000 || playerDeltaX > 100000 ||
         npcLife <= 0 || npcLife > 1000000) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
-    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+    if (g_liveSourceRevocations.revoked(modId) ||
+        !g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
     const auto found = g_sourceLiveEntries.find(modId);
     if (found == g_sourceLiveEntries.end()) return false;

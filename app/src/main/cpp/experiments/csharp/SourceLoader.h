@@ -34,6 +34,7 @@ struct SourceModStatus {
     std::map<std::string, std::string> registeredBases,sourcePaths;
 };
 
+void resetCSharpSourceModSession();
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod);
 bool applyManagedSourceDefaults(const std::string& modId,
                                 const std::string& runtimeValues, std::string* error);

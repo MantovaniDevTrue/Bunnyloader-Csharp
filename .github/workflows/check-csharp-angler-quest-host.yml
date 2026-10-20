@@ -1,0 +1,227 @@
+name: CSharp AnglerQuest host-only regression
+
+on:
+  push:
+    branches:
+      - feat/csharp-angler-quest-loader-20261019
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedAssemblyBindings.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.h'
+      - 'app/src/main/cpp/mods/ModLoader.cpp'
+      - 'tests/mod_loader/independent_loading.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h'
+      - 'tests/angler_quest/**'
+      - '.github/workflows/check-csharp-angler-quest-host.yml'
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.h'
+      - 'app/src/main/cpp/mods/ModLoader.cpp'
+      - 'tests/mod_loader/independent_loading.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h'
+      - 'tests/angler_quest/**'
+
+      - 'app/src/main/cpp/experiments/csharp/ManagedAssemblyBindings.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs'
+      - '.github/workflows/check-csharp-angler-quest-host.yml'
+permissions:
+  contents: read
+
+jobs:
+  native-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify native Terraria integration signatures compile
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp
+      - name: Compile shared Mono quest callback bridge
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp
+      - name: Verify native Mono worker and queued callback identity compile
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            -I "$JAVA_HOME/include" -I "$JAVA_HOME/include/linux" \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - name: Test managed assembly generation and concurrent unload/rebind
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_assembly_binding_test.cpp \
+            -o "$RUNNER_TEMP/angler_assembly_binding_test"
+          "$RUNNER_TEMP/angler_assembly_binding_test"
+      - name: Test per-mod deferred Mono queue invalidation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_deferred_mod_revocation_test.cpp \
+            -o "$RUNNER_TEMP/angler_deferred_revocation_test"
+          "$RUNNER_TEMP/angler_deferred_revocation_test"
+      - name: Verify selective NPC effect revocation and FIFO preservation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_npc_effect_owner_test.cpp \
+            -o "$RUNNER_TEMP/angler_npc_effect_owner_test"
+          "$RUNNER_TEMP/angler_npc_effect_owner_test"
+      - name: Verify selective live projectile ingress revocation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_live_ingress_revocation_test.cpp \
+            -o "$RUNNER_TEMP/angler_live_ingress_revocation_test"
+          "$RUNNER_TEMP/angler_live_ingress_revocation_test"
+      - name: Test live Mono cache revocation on source-mod unload
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_live_source_revocation_test.cpp \
+            -o "$RUNNER_TEMP/angler_live_revocation_test"
+          "$RUNNER_TEMP/angler_live_revocation_test"
+      - name: Verify native source handoff and game-thread lifecycle compile
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            -I "$JAVA_HOME/include" -I "$JAVA_HOME/include/linux" \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - name: Verify independent CSharp and mixed mod loader session reset
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I tests/mod_loader/include -I tests/basic_items/include -I app/src/main/cpp \
+            tests/mod_loader/independent_loading.cpp \
+            app/src/main/cpp/mods/ModLoader.cpp \
+            app/src/main/cpp/mods/LoadOrder.cpp \
+            app/src/main/cpp/mods/ManifestText.cpp \
+            -o "$RUNNER_TEMP/angler_mod_loader_test"
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_csharp" --only-csharp
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_mixed" --mixed
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_fail" --js-fails
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_builtin" --builtin
+      - name: Compile and run native state tests
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/quest_registry_test.cpp \
+            -o "$RUNNER_TEMP/angler_quest_test"
+          "$RUNNER_TEMP/angler_quest_test"
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/quest_player_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o "$RUNNER_TEMP/angler_player_parser_test"
+          "$RUNNER_TEMP/angler_player_parser_test"
+      - name: Execute angler quest hooks against host IL2CPP fixture
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            tests/angler_quest/native_il2cpp_integration_test.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
+            -o "$RUNNER_TEMP/angler_il2cpp_integration_test"
+          "$RUNNER_TEMP/angler_il2cpp_integration_test"
+      - name: Execute native fishing against host IL2CPP value layout
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            tests/angler_quest/native_fishing_il2cpp_test.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
+            -o "$RUNNER_TEMP/angler_fishing_il2cpp_test"
+          "$RUNNER_TEMP/angler_fishing_il2cpp_test"
+  arm64-android-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross-compile AnglerQuest and Mono bridge against Android NDK arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [[ -n "${ANDROID_NDK_HOME:-}" && -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++" ]]; then
+            ndk="${ANDROID_NDK_HOME}"
+          else
+            if [[ ! -d "$root/ndk" ]]; then
+              echo "Android NDK unavailable on runner" >&2
+              exit 1
+            fi
+            ndk="$(find "$root/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          test -x "$clang"
+          "$clang" --version | head -n 1
+          "$clang" -std=c++20 -Wall -Wextra -Werror -pedantic -pthread -fsyntax-only \
+            -I app/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
+            app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+
+  managed-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Verify BunnySourceSdk and Compiler sources
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj \
+            --configuration Release --nologo
+          dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj \
+            --configuration Release --nologo
+          dotnet run --project tests/angler_quest/HostFixture.csproj \
+            --configuration Release --no-launch-profile --nologo
+
