@@ -1495,7 +1495,7 @@ bool acknowledgeManagedLocalizationOnWorker(const LocalizationJob& job,
                                           const std::string& wire) {
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if (!g_domain || !g_api.attach || !g_api.newString || !g_api.invoke ||
-        !g_localizationAckMethod || !g_api.attach(g_domain)) return false;
+        !g_api.unbox || !g_localizationAckMethod || !g_api.attach(g_domain)) return false;
     void* args[] = {
         g_api.newString(g_domain, job.modId.c_str()),
         g_api.newString(g_domain, job.assemblyPath.c_str()),
@@ -1504,8 +1504,9 @@ bool acknowledgeManagedLocalizationOnWorker(const LocalizationJob& job,
     };
     for (void* arg : args) if (!arg) return false;
     void* exception = nullptr;
-    return g_api.invoke(g_localizationAckMethod, nullptr, args, &exception) != nullptr &&
-           exception == nullptr;
+    void* result = g_api.invoke(g_localizationAckMethod, nullptr, args, &exception);
+    void* value = exception || !result ? nullptr : g_api.unbox(result);
+    return value && *static_cast<uint8_t*>(value) != 0;
 }
 
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
