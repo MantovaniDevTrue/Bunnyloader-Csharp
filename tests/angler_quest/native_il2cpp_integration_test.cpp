@@ -302,6 +302,27 @@ int main() {
     assert(gSwapCalls==2 && gSelected==0);
     bl::csharp::gManagedReady=true;
     assert(bl::csharp::gManagedCalls>=3);
+    std::vector<Quest> many;
+    for (int i=0;i<6;++i) {
+        Quest candidate=quest;
+        candidate.type=850+i;
+        candidate.name="Dynamic"+std::to_string(i);
+        candidate.preHardmode=true;
+        candidate.callbackMask=1;
+        many.push_back(std::move(candidate));
+    }
+    assert(reg.publish("examplemodcsharp",many,&error));
+    bl::csharp::angler::pumpOnGameThread();
+    const int calledBefore=bl::csharp::gManagedCalls;
+    gHard=1;
+    gNetMode=0;
+    gSelected=2;
+    gSwapCalls=0;
+    bl::csharp::gManagedAllowed=false;
+    hookedSwap(&kSwap);
+    assert(bl::csharp::gManagedCalls-calledBefore==4);
+    assert(gSelected==0);
+    bl::csharp::gManagedAllowed=true;
     assert(reg.publish("examplemodcsharp",{quest},&error));
     bl::csharp::angler::pumpOnGameThread();
     bl::csharp::angler::invalidateWorldSession();
