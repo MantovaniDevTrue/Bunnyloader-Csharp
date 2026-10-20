@@ -6,7 +6,7 @@ public sealed class ExampleQuestFish : BunnyItem
 {
     public override void SetDefaults()
     {
-        DisplayName = "Upside-down Fish";
+        DisplayName = "Example Upside-down Fish";
         Texture = "Content/Items/Quests/ExampleQuestFish.png";
         DefaultToQuestFish();
         QuestAvailableInPreHardmode = false;

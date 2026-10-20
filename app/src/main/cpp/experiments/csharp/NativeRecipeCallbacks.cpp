@@ -25,7 +25,7 @@ using runtime::kVanillaItemCount; namespace {
 struct Policy {NativeRecipeRequest request;int index=0;};
 std::map<uintptr_t,Policy> policies;
 std::map<int,uintptr_t> byIndex;
-ManagedAssemblyBindings assemblyBindings;
+auto& assemblyBindings = nativeRecipeAssemblyBindings();
 bool currentManagedAssembly(const std::string& mod,const std::string& captured) {
     return assemblyBindings.isCurrent(mod,captured);
 }
@@ -213,7 +213,6 @@ void unbindNativeRecipeAssembly(const std::string& mod){
     }
     assemblyBindings.unbindIfCurrent(mod,old);
 }
-bool isNativeRecipeAssemblyCurrent(const std::string& mod,const std::string& assembly){return currentManagedAssembly(mod,assembly);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
     return std::any_of(quests.begin(),quests.end(),

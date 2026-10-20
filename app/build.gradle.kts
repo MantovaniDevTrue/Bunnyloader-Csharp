@@ -5,6 +5,7 @@ import java.util.Properties
 //   -Pbl.nativeBuild=false   (ou a mesma linha em gradle.properties)
 // para compilar e rodar o launcher sem instalar NDK/CMake.
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
+val readyPreview = (project.findProperty("bl.readyPrPreview") as String?)?.toBoolean() ?: false
 val dustPreview = (project.findProperty("bl.dustPreview") as String?)?.toBoolean() ?: false
 
 // A fonte do launcher e do menu de cheats é a Andy Bold (Monotype), a mesma do
@@ -55,11 +56,13 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.bunnyloader"
+        applicationId = if (readyPreview) "com.bunnyloader.csharptest" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = 274
-        versionName = "1.0"
+        versionCode = if (readyPreview) 300 else 274
+        versionName = if (readyPreview) "1.0.1-ready-prs-qa" else "1.0"
+        if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")
+        manifestPlaceholders["bunnyLabel"] = if (readyPreview) "@string/preview_app_name" else "@string/app_name"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em

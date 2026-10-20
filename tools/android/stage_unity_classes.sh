@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
-DEST="$ROOT/Split/Bunny-Loader/app/libs/unity-classes.jar"
+DEST="$ROOT/app/libs/unity-classes.jar"
 VERSION="2021.3.56f2"
 ASSET="unity-classes-${VERSION}-il2cpp-release.jar"
 EXPECTED="c1962b28afaeedba58427154e590f7b3537a98dfc426036456256d39f3385575"

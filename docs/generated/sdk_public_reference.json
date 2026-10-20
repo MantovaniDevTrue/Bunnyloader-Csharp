@@ -358,7 +358,8 @@
         "Player",
         "NPC",
         "Prefix",
-        "Wall"
+        "Wall",
+        "Dust"
       ],
       "methods": []
     },
@@ -420,6 +421,224 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyDust",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int UpdateType { get; }",
+        "string Texture { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool GetAlpha(ref BunnyDustState state, ref UInt32 color)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool MidUpdate(ref BunnyDustState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool PreDraw(ref BunnyDustState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Update(ref BunnyDustState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnSpawn(ref BunnyDustState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustDefinition",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyDustDefinition(string Name, string Texture, int UpdateType, BunnyDustHooks Hooks)"
+      ],
+      "properties": [
+        "BunnyDustHooks Hooks { get; set; }",
+        "int UpdateType { get; set; }",
+        "string Name { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyDustDefinition other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out string Name, out string Texture, out int UpdateType, out BunnyDustHooks Hooks)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustEffects",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool EmitAtPlayer\u003CT\u003E(int playerIndex, int count)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustHooks",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "None",
+        "OnSpawn",
+        "Update",
+        "MidUpdate",
+        "GetAlpha",
+        "PreDraw"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustRegistry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyDustRegistry(string modId)"
+      ],
+      "properties": [
+        "Int64 FaultCount { get; }",
+        "int ActiveCount { get; }",
+        "int BoundCount { get; }",
+        "int RegisteredCount { get; }",
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyDustDefinition Register(string name, BunnyDust dust)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Bind(int nativeType, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetAlpha(ref BunnyDustState state, ref UInt32 color)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool MidUpdate(ref BunnyDustState state, out bool keepHorizontalSpeed)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool OnSpawn(ref BunnyDustState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool PreDraw(ref BunnyDustState state, out bool draw)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryGetDefinition(string name, out BunnyDustDefinition definition)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Update(ref BunnyDustState state, out bool useVanilla)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Release(int slot, int type, int generation)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ResetWorld()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustSourceDispatcher",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string LastRegistrationError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Bind(int modSlot, int nativeType, string className)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int Invoke(int modSlot, int phase, IntPtr statePointer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int Register(string modId, string assemblyPath)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int Tick(int modSlot, IntPtr statePointer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void ResetWorld()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void Unload()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyDustState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "bool IsActive { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Kill()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyEntitySourceDispatcher",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -431,6 +650,10 @@
       "methods": [
         {
           "signature": "static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY, Int64 nativeIdentity)",
           "execution": "worker_async_entity"
         },
         {
@@ -462,7 +685,15 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static bool TryGetInvasionView(int modSlot, string invasionId, out BunnyInvasionWireState state)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static int Register(string modId, string assemblyPath)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)",
           "execution": "worker_async_entity"
         },
         {
@@ -957,6 +1188,495 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyInvasionClientView",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyInvasionClientView()"
+      ],
+      "properties": [
+        "BunnyInvasionWireState Current { get; }",
+        "bool HasState { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool ReceiveFromHost(BunnyInvasionWireState state, Int64 currentWorldSession, string modId, string invasionId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ReceiveRemoteFromHost(BunnyInvasionWireState state, Int64 localSession, string modId, string invasionId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ResetWorld()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionController",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyInvasionController(BunnyInvasionDefinition definition)"
+      ],
+      "properties": [
+        "BunnyInvasionDefinition Definition { get; }",
+        "BunnyInvasionPhase Phase { get; }",
+        "bool CanSpawn { get; }",
+        "bool IsComplete { get; }",
+        "int ActiveCount { get; }",
+        "int PendingCount { get; }",
+        "int Progress { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyInvasionSnapshot Snapshot()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool CancelSpawn(bool authoritative, int spawnTicket)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool CommitSpawn(bool authoritative, int spawnTicket, string npcClass, int npcSlot, int npcGeneration)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ReportDespawn(bool authoritative, int npcSlot, int npcGeneration)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ReportKill(bool authoritative, int npcSlot, int npcGeneration, string npcClass)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Restore(bool authoritative, BunnyInvasionSnapshot snapshot)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Start(bool authoritative)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Stop(bool authoritative)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryReserveSpawn(bool authoritative, int weightedRoll, out BunnyInvasionSpawn spawn)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ResetWorld()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Tick(bool authoritative, bool playersAvailable)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionDefinition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyInvasionDefinition(string id, int goal, int maxActive, int spawnInterval, BunnyInvasionEnemy[] enemies)"
+      ],
+      "properties": [
+        "IReadOnlyList\u003CBunnyInvasionEnemy\u003E Enemies { get; }",
+        "int Goal { get; }",
+        "int MaxActive { get; }",
+        "int SpawnInterval { get; }",
+        "string Id { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionEnemy",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyInvasionEnemy(string NpcClass, int Weight, int Points, int UnlockAtProgress)"
+      ],
+      "properties": [
+        "int Points { get; set; }",
+        "int UnlockAtProgress { get; set; }",
+        "int Weight { get; set; }",
+        "string NpcClass { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyInvasionEnemy other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out string NpcClass, out int Weight, out int Points, out int UnlockAtProgress)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionHud",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Publish(Int64 worldSession, BunnyInvasionWireState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionNativeNetwork",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryPoll(Int64 worldSession, string modId, out BunnyInvasionWireState state)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionNativeRewards",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Submit(Int64 worldSession, string modId, string invasionId, int epoch, string itemClass, int stack, int playerIndex)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionNativeTransport",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "Int64 WorldSession { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Submit(Int64 worldSession, BunnyInvasionSpawn spawn, string modId, int playerIndex, float x, float y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryPoll(Int64 worldSession, string modId, out BunnyNativeInvasionReply result)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionNotifications",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Publish(Int64 localSession, string modId, BunnyInvasionWireState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionPhase",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Inactive",
+        "Running",
+        "Completed"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionSnapshot",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyInvasionSnapshot(int Epoch, int Revision, BunnyInvasionPhase Phase, int Progress, int Active, int Pending, int Cooldown)"
+      ],
+      "properties": [
+        "BunnyInvasionPhase Phase { get; set; }",
+        "int Active { get; set; }",
+        "int Cooldown { get; set; }",
+        "int Epoch { get; set; }",
+        "int Pending { get; set; }",
+        "int Progress { get; set; }",
+        "int Revision { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyInvasionSnapshot other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Epoch, out int Revision, out BunnyInvasionPhase Phase, out int Progress, out int Active, out int Pending, out int Cooldown)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionSpawn",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyInvasionSpawn(int Ticket, string NpcClass)"
+      ],
+      "properties": [
+        "int Epoch { get; set; }",
+        "int Ticket { get; set; }",
+        "string NpcClass { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyInvasionSpawn other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Ticket, out string NpcClass)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionSpawnPipeline",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyInvasionSpawnPipeline(BunnyInvasionController controller, int timeoutTicks)"
+      ],
+      "properties": [
+        "BunnyInvasionController Controller { get; }",
+        "int ConfirmedCount { get; }",
+        "int ExpiredCount { get; }",
+        "int FailedCount { get; }",
+        "int PendingCount { get; }",
+        "int RejectedCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool ConfirmFirstTick(bool authoritative, int epoch, string npcClass, int slot, int generation, Int64 nativeIdentity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool MatchesPendingNpc(string npcClass, int slot, Int64 nativeIdentity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ReportCreated(bool authoritative, int epoch, int ticket, string npcClass, int slot, Int64 nativeIdentity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ReportFailed(bool authoritative, int epoch, int ticket)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryGetReservedClass(int epoch, int ticket, out string npcClass)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryReserve(bool authoritative, int weightedRoll, out BunnyInvasionSpawn spawn)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ResetWorld()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Tick(bool authoritative, bool playersAvailable)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionSystem",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyInvasionSpawnPipeline Pipeline { get; }",
+        "int RewardStack { get; }",
+        "string Id { get; }",
+        "string RewardItemClass { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool OnNativeCreated(bool authoritative, BunnyInvasionSpawn spawn, int slot, Int64 identity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool OnNativeFailed(bool authoritative, int epoch, int ticket)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryReserve(bool authoritative, int roll, out BunnyInvasionSpawn spawn)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnWorldExit()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Tick(bool authoritative, int frames, bool playerAvailable)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionWireState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyInvasionWireState(Int64 WorldSession, string ModId, string InvasionId, int Epoch, int Revision, BunnyInvasionPhase Phase, int Progress, int Goal, int Active, int Pending)"
+      ],
+      "properties": [
+        "BunnyInvasionPhase Phase { get; set; }",
+        "Int64 WorldSession { get; set; }",
+        "int Active { get; set; }",
+        "int Epoch { get; set; }",
+        "int Goal { get; set; }",
+        "int Pending { get; set; }",
+        "int Progress { get; set; }",
+        "int Revision { get; set; }",
+        "string InvasionId { get; set; }",
+        "string ModId { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyInvasionWireState other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool IsValid()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyInvasionWireState Capture(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryDecode(string payload, out BunnyInvasionWireState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool ValidName(string value, int limit)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string Encode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out Int64 WorldSession, out string ModId, out string InvasionId, out int Epoch, out int Revision, out BunnyInvasionPhase Phase, out int Progress, out int Goal, out int Active, out int Pending)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyInvasionWorldPersistence",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Save(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryRestore(Int64 worldSession, string modId, BunnyInvasionController controller)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyItem",
       "kind": "abstract class",
       "baseType": "BunnyLoader.Source.BunnyShootSource",
@@ -965,13 +1685,21 @@
         "BunnyHoldout Holdout { get; set; }",
         "BunnyItemBehavior Behavior { get; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnyQuestCatchRules QuestCatchRules { get; set; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "Dictionary\u003Cstring, string\u003E QuestCatchLocationTranslations { get; }",
+        "Dictionary\u003Cstring, string\u003E QuestDescriptionTranslations { get; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
+        "Func\u003CBunnyQuestContext, bool\u003E QuestAvailableWhen { get; set; }",
+        "Func\u003CBunnyQuestContext, bool\u003E QuestCanCatchWhen { get; set; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
         "bool Melee { get; set; }",
         "bool NoMelee { get; set; }",
+        "bool QuestAvailableInHardmode { get; set; }",
+        "bool QuestAvailableInPreHardmode { get; set; }",
+        "bool QuestFish { get; set; }",
         "bool UseTurn { get; set; }",
         "bool Vanity { get; set; }",
         "float KnockBack { get; set; }",
@@ -996,12 +1724,22 @@
         "string NativeArmorDefinition { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string PlacementDefinition { get; }",
+        "string QuestCatchLocation { get; set; }",
+        "string QuestDescription { get; set; }",
         "string Texture { get; set; }",
         "string Tooltip { get; set; }",
         "string UseSound { get; set; }"
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "bool OnUse(int playerIndex)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool OnUse(int playerIndex, BunnyUseContext context)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
@@ -1024,6 +1762,10 @@
         },
         {
           "signature": "void DefaultToPlaceableWall(string modWallName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DefaultToQuestFish()",
           "execution": "managed_helper"
         },
         {
@@ -1399,6 +2141,71 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyNativeInvasionReply",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyNativeInvasionReply(int Epoch, int Ticket, int Error, int Slot, Int64 Identity)"
+      ],
+      "properties": [
+        "Int64 Identity { get; set; }",
+        "bool Success { get; }",
+        "int Epoch { get; set; }",
+        "int Error { get; set; }",
+        "int Slot { get; set; }",
+        "int Ticket { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyNativeInvasionReply other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Epoch, out int Ticket, out int Error, out int Slot, out Int64 Identity)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNativeItemUse",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Bind(Int64 worldSession, string modId, string itemName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool IsReady(Int64 worldSession, string modId, string itemName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryPoll(Int64 worldSession, string modId, string itemName, out int playerIndex)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryPollContext(Int64 worldSession, string modId, string itemName, out int playerIndex, out BunnyUseContext context)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNativeMember",
       "kind": "class",
       "baseType": "System.Object",
@@ -1536,9 +2343,11 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "BunnyQuestCatchRules FishingCatchRules { get; set; }",
         "int DefenseBonus { get; }",
         "int MoveSpeedPercent { get; }",
-        "string Accessory { get; set; }"
+        "string Accessory { get; set; }",
+        "string FishingQuestFishName { get; set; }"
       ],
       "values": [],
       "methods": [
@@ -1763,13 +2572,59 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyQuestCatchRules",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "None",
+        "InvertedGravity",
+        "Uncommon",
+        "InvertedGravityAndUncommon"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyQuestContext",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyQuestContext()"
+      ],
+      "properties": [
+        "bool Hardmode { get; }",
+        "bool InvertedGravity { get; }",
+        "bool Uncommon { get; }",
+        "int FishType { get; }",
+        "int PlayerIndex { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyQuestRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyRarity",
       "kind": "abstract class",
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
         "BunnyColor RarityColor { get; }",
-        "int Type { get; }"
+        "int Type { get; }",
+        "string ModId { get; }"
       ],
       "values": [],
       "methods": [
@@ -2427,6 +3282,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "static bool Unload(string id)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
           "signature": "static int Register(string id, string path)",
           "execution": "experimental_worker_sync_void0"
         },
@@ -2437,6 +3296,48 @@
         {
           "signature": "static void UnloadAll()",
           "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyUseContext",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyUseContext(int Flags)"
+      ],
+      "properties": [
+        "bool CanStartSurfaceInvasion { get; }",
+        "bool CanStartSurfaceInvasionAfterFirstBoss { get; }",
+        "bool Daytime { get; }",
+        "bool FirstBossDefeated { get; }",
+        "bool NoVanillaInvasion { get; }",
+        "bool OnSurface { get; }",
+        "bool PlayerAlive { get; }",
+        "bool WorldReady { get; }",
+        "int Flags { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyUseContext other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Flags)",
+          "execution": "managed_helper"
         }
       ]
     },

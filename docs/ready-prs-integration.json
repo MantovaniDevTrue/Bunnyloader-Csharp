@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "base": "cfbe784ee3cb",
+  "branch": "integration/ready-prs-20261020",
+  "apkVersion": "1.0.1-ready-prs-qa",
+  "exampleVersion": "0.1.60",
+  "experimental": true,
+  "androidValidation": "Pending",
+  "selectedPullRequests": [
+    {
+      "number": 101,
+      "title": "Pronta pra testar no jogo — LocalizationLoader C#",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/101",
+      "baseRefName": "feat/csharp-summon-lifecycle-v95",
+      "headRefName": "feat/csharp-content-localization-loader-20261019",
+      "headRefOid": "82c6afd4b7ff01a1f69eb491c527bb2a1ec1bc04",
+      "fetchedHead": "82c6afd4b7ff01a1f69eb491c527bb2a1ec1bc04"
+    },
+    {
+      "number": 102,
+      "title": "[PRONTA PRA TESTAR NO JOGO] C# RarityLoader — ExampleModBunny",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/102",
+      "baseRefName": "feat/csharp-summon-lifecycle-v95",
+      "headRefName": "feat/csharp-rarity-loader-core-20261019",
+      "headRefOid": "6722e23faa25cd3cc45fd8230a337bf1c3ccf48b",
+      "fetchedHead": "6722e23faa25cd3cc45fd8230a337bf1c3ccf48b"
+    },
+    {
+      "number": 114,
+      "title": "PRONTA PRA TESTAR NO JOGO — AnglerQuestLoader C# (QA Android)",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/114",
+      "baseRefName": "v1.0",
+      "headRefName": "feat/csharp-angler-quest-loader-20261019",
+      "headRefOid": "bad10822ad4771a03d9285f83171e0c25aedaf40",
+      "fetchedHead": "bad10822ad4771a03d9285f83171e0c25aedaf40"
+    },
+    {
+      "number": 115,
+      "title": "PRONTA PRA TESTAR (EXPERIMENTAL) — DustLoader C# / MonoVM [sem APK]",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/115",
+      "baseRefName": "v1.0",
+      "headRefName": "feat/csharp-dust-loader-20261019",
+      "headRefOid": "d5a6e609c12351dd3d52e6b4840655f83cef28a2",
+      "fetchedHead": "d5a6e609c12351dd3d52e6b4840655f83cef28a2"
+    },
+    {
+      "number": 116,
+      "title": "[PRONTA PRA TESTAR NO JOGO] Bunny C# Invasion + ExampleInvasion — Beta local",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/116",
+      "baseRefName": "v1.0",
+      "headRefName": "feat/csharp-example-invasion-20261019",
+      "headRefOid": "0074b0b73e7916c1d2529d48ccb5fde1072215a2",
+      "fetchedHead": "0074b0b73e7916c1d2529d48ccb5fde1072215a2"
+    }
+  ],
+  "excluded": {
+    "98": "WIP world loaders, not marked ready; shared SDK dependencies retained",
+    "100": "Prefix PR not marked ready for game test"
+  },
+  "fixes": [
+    "Combined SDK includes all Invasion runtime classes",
+    "Shared callback dispatch retains recipe generations without blocking independent tile/shoot/rarity domains",
+    "Rarity prefix lookup uses registered UID instead of manifest slug",
+    "Bundled managed framework rebuilt from integrated sources",
+    "Dust test item and bounded game-thread emission API; no QuickJS dependency"
+  ],
+  "manualInstructions": "docs/ready-prs-android-qa.md"
+}

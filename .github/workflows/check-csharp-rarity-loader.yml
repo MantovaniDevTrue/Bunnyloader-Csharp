@@ -4,37 +4,37 @@ on:
     branches:
       - feat/csharp-rarity-loader-core-20261019
     paths:
-      - 'Split/Bunny-Loader/**'
+      - '**'
       - '.github/workflows/check-csharp-rarity-loader.yml'
   pull_request:
     paths:
-      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarityReference.cs'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/BasicItemDefaults.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeDefaults.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSaveFormat.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSaveSafety.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/NativeRarityPending.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyRarityRuntime.cs'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js'
-      - 'Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js'
-      - 'Split/Bunny-Loader/app/src/main/cpp/script/api/CSharpPrototypeApi.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
-      - 'Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Rarities/**'
-      - 'Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Items/**'
-      - 'Split/Bunny-Loader/tests/rarity_loader/**'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarityRegistry.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
-      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarityReference.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'app/src/main/cpp/experiments/csharp/BasicItemDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/content/items/ModItemSaveFormat.h'
+      - 'app/src/main/cpp/content/items/ModItemSaveSafety.h'
+      - 'app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarityRuntime.cs'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js'
+      - 'app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js'
+      - 'app/src/main/cpp/script/api/CSharpPrototypeApi.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Rarities/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/**'
+      - 'tests/rarity_loader/**'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - '.github/workflows/check-csharp-rarity-loader.yml'
   workflow_dispatch:
 
@@ -51,12 +51,12 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Test CSharp rarity contracts without APK or game
-        run: dotnet run --project Split/Bunny-Loader/tests/rarity_loader/RarityLoaderHost.csproj --configuration Release
+        run: dotnet run --project tests/rarity_loader/RarityLoaderHost.csproj --configuration Release
       - name: Compile playable ExampleModCSharp native rarity examples
-        run: dotnet run --project Split/Bunny-Loader/tests/rarity_loader/PlayableRarity.csproj --configuration Release
+        run: dotnet run --project tests/rarity_loader/PlayableRarity.csproj --configuration Release
       - name: Verify native rarity registry and parser without JS
         run: |
-          cd Split/Bunny-Loader
+          true
           g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp \
             tests/rarity_loader/native_rarity_registry_test.cpp \
             app/src/main/cpp/experiments/csharp/SourceParser.cpp \
@@ -72,12 +72,12 @@ jobs:
             tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save
           /tmp/bunny-rarity-save
       - name: Verify shared JS/CSharp rarity allocation
-        run: node Split/Bunny-Loader/tests/rarity_loader/check_shared_rarity_js.cjs
+        run: node tests/rarity_loader/check_shared_rarity_js.cjs
       - name: Verify original JS tooltip interop with CSharp native rarity cache
-        run: node Split/Bunny-Loader/tests/rarity_loader/check_rarity_tooltip_js.cjs
+        run: node tests/rarity_loader/check_rarity_tooltip_js.cjs
       - name: Compile rarity native host integration and lifecycle regressions
         run: |
-          cd Split/Bunny-Loader
+          true
           JAVA_INCLUDES="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
           g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
             -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
@@ -99,10 +99,9 @@ jobs:
       - name: Commit compiled public SDK reference
         if: github.event_name == 'push' && success()
         run: |
-          cd Split/Bunny-Loader
+          true
           dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --write
-          cd ../..
-          git add Split/Bunny-Loader/docs/generated/sdk_public_reference.json Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

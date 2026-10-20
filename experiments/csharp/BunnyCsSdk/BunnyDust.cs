@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -291,14 +292,14 @@ public sealed class BunnyDustRegistry
         FaultCount = 0;
     }
 
-    private bool TryEntry(ref BunnyDustState state, out Entry? entry)
+    private bool TryEntry(ref BunnyDustState state, [NotNullWhen(true)] out Entry? entry)
     {
         entry = null;
         return (uint)state.Slot < MaxDustSlots && state.Generation > 0 &&
             state.Active != 0 && _types.TryGetValue(state.Type, out entry);
     }
 
-    private bool Matches(ref BunnyDustState state, out Entry? entry)
+    private bool Matches(ref BunnyDustState state, [NotNullWhen(true)] out Entry? entry)
     {
         if (!TryEntry(ref state, out entry))
             return false;

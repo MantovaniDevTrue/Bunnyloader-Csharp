@@ -86,6 +86,7 @@ public static class BunnyRarityRuntime
                     var instance = (BunnyRarity)(Activator.CreateInstance(type) ??
                         throw new InvalidOperationException("Cannot instantiate rarity " + type.FullName));
                     instance.Type = id;
+                    instance.ModId = modId;
                     byName.Add(type.Name, instance);
                     byId.Add(id, instance);
                 }

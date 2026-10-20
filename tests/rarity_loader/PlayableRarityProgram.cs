@@ -36,3 +36,13 @@ Check(potion.ModRarityClassName == nameof(ExampleHigherTierModRarity),
     "Native buff potion rarity is not registered");
 
 Console.WriteLine("PLAYABLE_RARITY_EXAMPLES=PASS");
+
+// Runtime uses the persisted UID, not the human-readable manifest slug.
+string uid = "68c3115f-62f4-49f2-a56b-388256781d5f";
+string assembly = typeof(ExampleModRarity).Assembly.Location;
+Check(BunnyRarityRuntime.Dispatch(uid, assembly, "", 0, 2,
+    "ExampleModRarity:12;ExampleHigherTierModRarity:13") == "READY|2", "Bind native rarity IDs");
+Check(BunnyRarityRuntime.Dispatch(uid, assembly, "ExampleModRarity", 0, 1, "1.2,1") == "RARITY|13",
+    "Prefix upgrade resolves the actual mod UID");
+Check(BunnyRarityRuntime.Dispatch(uid, assembly, "ExampleHigherTierModRarity", 0, 1, "0.8,-1") == "RARITY|12",
+    "Prefix downgrade resolves the actual mod UID");

@@ -26,6 +26,14 @@ public static class BunnyDustSourceDispatcher
     private static readonly List<Context> Contexts = new(16);
     public static string LastRegistrationError { get; private set; } = "";
 
+    internal static string ModForAssembly(Assembly assembly)
+    {
+        string path = assembly.Location;
+        foreach (Context context in Contexts)
+            if (context.AssemblyPath == path) return context.ModId;
+        throw new InvalidOperationException("BunnyDust assembly has not been registered in MonoVM: " + path);
+    }
+
     public static int Register(string modId, string assemblyPath)
     {
         if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))

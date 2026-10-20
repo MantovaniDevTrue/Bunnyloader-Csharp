@@ -1498,7 +1498,8 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
-    if (!isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
+    if (!job.shooting && !job.tile && !job.rarity &&
+        !isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
         return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||

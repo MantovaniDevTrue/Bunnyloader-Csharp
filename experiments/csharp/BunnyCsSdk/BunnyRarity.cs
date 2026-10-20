@@ -6,6 +6,7 @@ namespace BunnyLoader.Source;
 
 public abstract class BunnyRarity
 {
+    public string ModId { get; internal set; } = "";
     public int Type { get; internal set; } = -1;
 
     public virtual BunnyColor RarityColor => new(255, 255, 255);
@@ -75,6 +76,7 @@ public sealed class BunnyRarityRegistry
             keys.Add(key, id);
             entries.Add(entry);
             rarity.Type = id;
+            rarity.ModId = modId;
             return id;
         }
     }

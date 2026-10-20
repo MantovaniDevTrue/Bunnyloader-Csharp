@@ -67,9 +67,9 @@ public abstract class BunnyWall {
         get {
             if(BlendWallName.Length>0)Id(BlendWallName);
             if(DustName.Length>0)Id(DustName);
-            void Range(string field,int value,int min,int max) {
+            void Range(string fieldName,int value,int min,int max) {
                 if(value<min||value>max)throw new InvalidOperationException("[CSharp][ERROR][WallDefaults] Class="+GetType().FullName+
-                    " Stage=Serialize Field="+field+" Expected="+min+".."+max+" Actual="+value+" Reason=PolicyOutOfRange Result=Rejected");
+                    " Stage=Serialize Field="+fieldName+" Expected="+min+".."+max+" Actual="+value+" Reason=PolicyOutOfRange Result=Rejected");
             }
             Range(nameof(FailedDustCount),FailedDustCount,0,100);Range(nameof(DustCount),DustCount,0,100);
             Range(nameof(AnimationFrames),AnimationFrames,1,256);Range(nameof(AnimationFrameTicks),AnimationFrameTicks,1,255);

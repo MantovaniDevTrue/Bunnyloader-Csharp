@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplos C# editáveis com equipamentos, receitas, projéteis e áudio nativo; port integral em desenvolvimento, sem nova release parcial.",
+  "summary": "QA experimental: Localization, Rarity, AnglerQuest, Dust e Invasion integrados; exemplos editáveis, validação Android pendente.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

@@ -8,6 +8,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/NativeDustEmission.h"
 #include "experiments/csharp/NativeInvasionRewards.h"
 #include "experiments/csharp/NativeInvasionNotifications.h"
 #include "experiments/csharp/NativeInvasionNetwork.h"
@@ -1325,6 +1326,8 @@ void noteAutoGameUpdate() {
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeDustEmissionWorld(invasionWorldReady, invasionWorldEpoch);
+    pumpNativeDustEmission();
     setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeInvasionNoticeWorld(invasionWorldReady, invasionWorldEpoch);
     setNativeInvasionNetWorldState(invasionWorldReady, invasionWorldEpoch);

@@ -137,3 +137,12 @@ O snapshot da célula no MonoVM agora inclui o tipo nativo registrado como déci
 O override `BunnyTile.PreDraw(x,y)` passa a integrar o mesmo `TileDrawing.GetTileDrawData` usado por `SetDrawPositions`/animação, apenas no passe normal e sem QuickJS. O dispatcher retorna opcionalmente o nono campo `drawDefault=0|1` no registro `DRAW`; os oito campos anteriores continuam aceitos. O decoder rejeita campos adicionais/malformados e o nativo zera a largura/altura somente quando `PreDraw` devolve `false`. Erro, warmup pendente ou deadline preservam a renderização original; não há ocultação por fallback. Um tile que defina somente PreDraw também passa a registrar seu caminho de desenho. O teste real do compilador Roslyn confirma máscara de override, passe normal/especial e true/false; o teste C++ cobre a compatibilidade do protocolo.
 
 `CacheDrawData=true` segue com o cache nativo de até 5 s e invalidação por mundo/enquadramento; quem precisa do retorno de PreDraw recalculado durante animações deve declarar `CacheDrawData=false`, com custo maior do MonoVM. **Limitação intencional:** esta implementação decide apenas o desenho padrão; ainda não dá um `SpriteBatch` utilizável pelo mod, nem substitui o `PreDraw` que desenha sprites personalizados. `PostDraw`, `DrawEffects`, `SpecialDraw` e `EmitParticles` continuam pendentes. Não marcar o TileLoader completo, não publicar APK ou bmod até terminar o grupo de cinco loaders e a validação Android.
+
+## Integração experimental de PRs — 2026-10-20
+
+O pedido atual autoriza APK de QA dos cinco PRs indicados para teste. A branch
+`integration/ready-prs-20261020` reúne #101/#102/#114/#115/#116 sobre v1.0,
+sem substituir esta base nem declarar os loaders concluídos. Commits congelados,
+correções e estados estão em [ready-prs-integration.json](ready-prs-integration.json).
+Procedimentos específicos do ExampleMod: [QA Android](ready-prs-android-qa.md).
+Regressões/fixtures de host não contam como validação Android.

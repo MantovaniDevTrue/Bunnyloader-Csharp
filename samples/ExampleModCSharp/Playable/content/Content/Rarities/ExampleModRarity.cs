@@ -8,6 +8,6 @@ public sealed class ExampleModRarity : BunnyRarity
 
     public override int GetPrefixedRarity(int offset, float valueMultiplier) =>
         offset > 0
-            ? BunnyRarityRuntime.TypeOf<ExampleHigherTierModRarity>("examplemodcsharp")
+            ? BunnyRarityRuntime.TypeOf<ExampleHigherTierModRarity>(ModId)
             : Type;
 }

@@ -99,9 +99,9 @@ Check("recipe.clone-isolation-and-removal",()=>{
 });
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
- Equal(3,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
- var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(4,lines.Length);
- foreach(var line in lines.Skip(1)) {
+ Equal(5,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
+ var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(7,lines.Length);
+ foreach(var line in lines.Skip(1).Where(l=>l.StartsWith("ITEM\t"))) {
   var fields=line.Split('\t');
   if(fields[1]=="ExampleItem") {
    Equal(23,fields.Length);
@@ -217,10 +217,10 @@ try {
  });
  Check("roslyn.auto-items-only-package",()=>{
   string mod=Path.Combine(scratch,"mod");Directory.CreateDirectory(Path.Combine(mod,"content"));
-  foreach(string path in new[]{"Content/Items/ExampleItem.cs","Content/Items/Tools/ExamplePickaxe.cs","Content/Items/Tools/ExampleHamaxe.cs"})
+  foreach(string path in new[]{"Content/Items/ExampleItem.cs","Content/Items/Tools/ExamplePickaxe.cs","Content/Items/Tools/ExampleHamaxe.cs","Content/Rarities/ExampleModRarity.cs","Content/Rarities/ExampleHigherTierModRarity.cs"})
    File.Copy(Path.Combine("samples/ExampleModCSharp/Playable/content",path),Path.Combine(mod,"content",Path.GetFileName(path)));
   string output=Path.Combine(scratch,"items.dll"),diag=Path.Combine(scratch,"compile.txt");
-  Equal(1,Compiler.Compile(mod,output,runtime,diag));Equal(3,CompiledAssemblyProbe.Verify(output,diag));Equal(2,Compiler.Compile(mod,output,runtime,diag));
+  Equal(1,Compiler.Compile(mod,output,runtime,diag));Equal(5,CompiledAssemblyProbe.Verify(output,diag));Equal(2,Compiler.Compile(mod,output,runtime,diag));
  });
  Check("roslyn.tile-animation-native-wire",()=>{
   string folder=Path.Combine(scratch,"animated-tile");Directory.CreateDirectory(Path.Combine(folder,"content"));
@@ -274,7 +274,7 @@ try {
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
    [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
-   [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
+   [typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
   var identities=compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters)
@@ -283,10 +283,11 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   int localizationModules=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyLocalizationModule).IsAssignableFrom(t));
-  if(CompiledAssemblyProbe.Verify(output,diag)!=identities.Count+localizationModules)
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules)
    throw new Exception(File.ReadAllText(diag));
+  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
-   .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)&&!l.StartsWith("SHOOT\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
+   .Where(l=>l.Length>0).Select(l=>l.Split('\t')).Where(f=>contentKinds.Contains(f[0])).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   Equal(identities.Count,actual.Length);
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
@@ -319,7 +320,7 @@ try {
   foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
       domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
-    var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
+    var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
     // Execute every registered content class: names and localized names share the user-facing convention.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&

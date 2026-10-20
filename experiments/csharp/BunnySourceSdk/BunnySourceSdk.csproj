@@ -29,6 +29,7 @@
     <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDustEffects.cs" Link="BunnyDustEffects.cs" />
     <Compile Include="../BunnyCsSdk/BunnyDust.cs" Link="BunnyDust.cs" />
     <Compile Include="../BunnyCsSdk/BunnyDustSourceDispatcher.cs" Link="BunnyDustSourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
@@ -44,6 +45,18 @@
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasion.cs" Link="BunnyInvasion.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionHud.cs" Link="BunnyInvasionHud.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeNetwork.cs" Link="BunnyInvasionNativeNetwork.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeRewards.cs" Link="BunnyInvasionNativeRewards.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeTransport.cs" Link="BunnyInvasionNativeTransport.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNotifications.cs" Link="BunnyInvasionNotifications.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionSpawnPipeline.cs" Link="BunnyInvasionSpawnPipeline.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionSystem.cs" Link="BunnyInvasionSystem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionWire.cs" Link="BunnyInvasionWire.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionWorldPersistence.cs" Link="BunnyInvasionWorldPersistence.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyNativeItemUse.cs" Link="BunnyNativeItemUse.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyUseContext.cs" Link="BunnyUseContext.cs" />
   </ItemGroup>
 </Project>
 

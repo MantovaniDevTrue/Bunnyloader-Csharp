@@ -5,23 +5,23 @@ on:
     branches:
       - feat/csharp-rarity-loader-core-20261019
     paths:
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave*.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/NativeRarityPending.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'app/src/main/cpp/content/items/ModItemSave*.h'
+      - 'app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - '.github/workflows/check-csharp-rarity-arm64.yml'
   pull_request:
     paths:
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave*.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/NativeRarityPending.h'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
-      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'app/src/main/cpp/content/items/ModItemSave*.h'
+      - 'app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - '.github/workflows/check-csharp-rarity-arm64.yml'
   workflow_dispatch:
 
@@ -50,9 +50,9 @@ jobs:
           set -euo pipefail
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           CLANG="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
-          SRC="Split/Bunny-Loader/app/src/main/cpp"
+          SRC="app/src/main/cpp"
           FLAGS=(--target=aarch64-linux-android26 -std=c++20 -Wall -Wextra -Werror -fsyntax-only
-            -DBL_HAVE_QUICKJS=0 -I"$SRC" -I"Split/Bunny-Loader/tests/basic_items/include")
+            -DBL_HAVE_QUICKJS=0 -I"$SRC" -I"tests/basic_items/include")
           test -x "$CLANG"
           for file in \
             "$SRC/experiments/csharp/NativeRarityGameplay.cpp" \

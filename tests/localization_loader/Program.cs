@@ -135,7 +135,7 @@ Test("concurrent-culture-updates", () =>
 Test("original-examplemod-json-both-cultures", () =>
 {
     string content = Path.Combine(Directory.GetCurrentDirectory(),
-        "Split", "Bunny-Loader", "samples", "ExampleModCSharp", "Playable", "content");
+        "samples", "ExampleModCSharp", "Playable", "content");
     var catalog = new BunnyLocalizationCatalog("en-US");
     Equal(2, catalog.LoadFromContent("examplemodcsharp", content));
     Equal(308, catalog.Count);
@@ -745,4 +745,3 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
             });
     }
 }
-
