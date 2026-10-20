@@ -48,4 +48,15 @@ assert 'EntryPoint = "bunny_item_use_poll"' in transport
 assert 'EntryPoint = "bunny_item_use_poll_context"' in transport
 assert 'EntryPoint = "bunny_item_use_ready"' in transport
 assert 'QuickJS' not in native
-print("Native CSharp item-use hook and invasion invoker: OK")
+assert 'api.method_get_param(candidate, 0), "Terraria.Item"' in native
+assert 'api.method_get_return_type(candidate), "System.Void"' in native
+assert 'g_requests.push_back(std::move(binding));' in native
+assert 'Stage=Bind Class=%s Type=%d Result=Ready' in native
+assert 'Stage=ActualUse Class=%s Player=%d Flags=%d Result=Queued' in native
+assert 'BunnyDustEffects.EmitAtPlayer<ExampleSparkDust>' in (
+    root / "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleDustCharm.cs"
+).read_text()
+dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
+assert '"Microsoft.Xna.Framework.Color"' in dust
+assert '"Microsoft.Xna.Framework.Graphics.Color"' not in dust
+print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
