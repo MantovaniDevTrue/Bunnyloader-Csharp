@@ -44,6 +44,7 @@ uint64_t g_appliedGeneration = std::numeric_limits<uint64_t>::max();
 unsigned g_poll = 0;
 unsigned g_resolveFailures = 0;
 std::vector<Quest> g_active;
+uint64_t g_effectiveListFingerprint = 0;
 std::set<int> g_ownedTypes;
 std::map<int, bool> g_previousFlags;
 std::map<int, bool> g_previousRackFlags;
@@ -417,6 +418,7 @@ bool updateQuests(const std::vector<Quest>& quests) {
         int32_t next = update.selected;
         a.field_static_set_value(g_questIndex, &next);
     }
+    g_effectiveListFingerprint = Registry::listFingerprint(update.ids, quests);
     g_lastQuestItems = update.changed ? nextIds : original;
     g_previousFlags = std::move(fish.previous);
     g_lastFishFlags = fish.array;
@@ -464,9 +466,10 @@ void pumpOnGameThread() {
         g_fishingWarning = true;
     } else g_fishingWarning = false;
     if (pending)
-        BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Manifest=%016llx Hooks=2 Result=Installed",
-                quests.size(), static_cast<unsigned long long>(
-                    Registry::manifestFingerprint(quests)));
+        BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Manifest=%016llx EffectiveList=%016llx Hooks=2 Result=Installed",
+                quests.size(),
+                static_cast<unsigned long long>(Registry::manifestFingerprint(quests)),
+                static_cast<unsigned long long>(g_effectiveListFingerprint));
 }
 
 void invalidateWorldSession() {
