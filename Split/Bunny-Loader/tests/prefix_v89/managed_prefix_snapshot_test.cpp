@@ -80,6 +80,19 @@ int main() {
     assert(bindManagedItemPrefixCallbackAssembly("test", "/tmp/item-prefix.dll"));
     assert(!bindManagedItemPrefixCallbackAssembly("test", "/tmp/other-item.dll"));
     assert(managedItemPrefixCallbackAssemblies() == assemblies);
+    assert(managedGlobalPrefixCallbackView()->empty());
+    assert(!applyManagedGlobalPrefixCallbackBindings("test", {{"TestGlobal",0}}));
+    assert(!applyManagedGlobalPrefixCallbackBindings("test", {{"TestGlobal",16}}));
+    assert(!applyManagedGlobalPrefixCallbackBindings("test",
+        {{"TestGlobal",1},{"TestGlobal",2}}));
+    assert(managedGlobalPrefixCallbackView()->empty());
+    assert(applyManagedGlobalPrefixCallbackBindings("test", {{"TestGlobal",15}}));
+    const auto previousGlobal=managedGlobalPrefixCallbackView();
+    assert(previousGlobal->size()==1 && previousGlobal->at(0).callbackMask==15);
+    assert(!applyManagedGlobalPrefixCallbackBindings("test", {{"TestGlobal",15}}));
+    assert(managedGlobalPrefixCallbackView()==previousGlobal);
+    assert(bindManagedGlobalPrefixCallbackAssembly("test", "/tmp/item-prefix.dll"));
+    assert(!bindManagedGlobalPrefixCallbackAssembly("test", "/tmp/other-item.dll"));
     assert(managedItemPrefixChanceView()->empty());
     assert(!applyManagedItemPrefixChances({{6207, false}, {6207, true}}));
     assert(managedItemPrefixChanceView()->empty());
