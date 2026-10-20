@@ -38,7 +38,9 @@ public:
     };
 
     bool offer(std::int32_t binding, std::int32_t phase,
-               const ManagedDustState& state, std::uint64_t frame) {
+               const ManagedDustState& state, std::uint64_t frame,
+               bool* wake = nullptr) {
+        if (wake) *wake = false;
         if (binding < 0 || phase < 0 || phase >= static_cast<int>(kPhases) ||
             !managedDustStateValid(state) ||
             (phase == 5 ? state.active != 0 : state.active != 1))
@@ -98,10 +100,12 @@ public:
         slot.binding = binding;
         slot.phase = phase;
         slot.frame = frame;
+        const bool wasEmpty = requests_.empty();
         if (phase == 5)
             requests_.push_front({state, session_, frame, binding, phase});
         else
             requests_.push_back({state, session_, frame, binding, phase});
+        if (wake) *wake = wasEmpty || phase == 5;
         return true;
     }
 
