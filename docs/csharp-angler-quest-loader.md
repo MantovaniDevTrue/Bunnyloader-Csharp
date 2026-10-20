@@ -100,6 +100,17 @@ ativa antes de publicar resultados. Pedidos enfileirados de receitas/quests
 também são cancelados ao revogar o mod. A chamada Mono que já começou não é
 interrompida; o descarregamento de assemblies continua fora do escopo.
 
+## Revogação da fila de projéteis e combate C#
+
+O descarregamento por mod agora invalida a admissão de novos eventos
+`OnHitNPC`/`OnKill` do mod revogado usando a fila nativa existente. As
+bindings secundárias do mod são desarmadas individualmente, retirando apenas
+os eventos desse mod e preservando os demais. Se o mod revogado for o principal,
+a fila principal é desativada e os mods secundários permanecem ativos.
+O resultado de um callback que já estava em execução só é aplicado quando
+a binding e o mod ainda estiverem ativos. Não existe tentativa de interromper
+o callback Mono em andamento nem de descarregar assemblies do domínio.
+
 ## Diagnóstico seguro da ABI Android
 
 A preparação de `FishingCheck_RollItemDrop` diferencia os estados

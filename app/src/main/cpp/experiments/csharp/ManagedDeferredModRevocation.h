@@ -8,6 +8,11 @@
 
 namespace bl::csharp {
 
+inline bool managedLiveCallbackCurrent(bool sessionEnabled, bool typeArmed,
+                                       bool ownerRevoked) {
+    return sessionEnabled && typeArmed && !ownerRevoked;
+}
+
 template <typename Job, typename Binding>
 size_t eraseManagedModBoundJobs(std::deque<Job>& jobs,
                                 const std::vector<Binding>& bindings,

@@ -1626,6 +1626,13 @@ void* pinnedMonoWorker(void*) {
                     const std::string dll = binding ? binding->assemblyPath : g_liveHitAssembly;
                     const std::string callbackClass = binding ?
                         binding->callbackClass : "BunnyLiveEvents";
+                    if (g_revokedDeferredMods.contains(modId)) {
+                        addManagedCounter(g_liveHitStatus.dropped);
+                        if (binding) addManagedCounter(binding->dropped);
+                        g_liveHitInFlight = false;
+                        g_liveHitActiveBindingSlot = -2;
+                        continue;
+                    }
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
                     const size_t perfSlot = binding ?
@@ -1698,8 +1705,11 @@ void* pinnedMonoWorker(void*) {
                     lock.lock();
                     g_liveHitInFlight = false;
                     g_liveHitActiveBindingSlot = -2;
-                    if ((binding || g_liveHitStatus.modId == modId) &&
-                        g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
+                    const bool bindingArmed = !binding ||
+                        binding->armedType.load(std::memory_order_acquire) == binding->type;
+                    if (g_liveHitGeneration == generation &&
+                        managedLiveCallbackCurrent(g_liveHitStatus.enabled, bindingArmed,
+                            g_revokedDeferredMods.contains(modId))) {
                         if (automatic && !event.isKill && callback.usedV4 &&
                             callback.ready && callback.phase == "ready" &&
                             callback.value >= 1000000 && callback.value < 3000000) {
@@ -2743,6 +2753,10 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_pinnedStarted || g_pinnedBusy || g_liveBenchmarkAttempted ||
         g_liveHitInFlight || !g_liveHitQueue.empty() ||
         g_liveIngress.depth() != 0) {
@@ -3047,6 +3061,10 @@ bool bindManagedLiveAdditional(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
         (g_liveHitStatus.eventLimit > 0 && g_liveHitStatus.queued >= g_liveHitStatus.eventLimit)) {
@@ -3169,6 +3187,10 @@ bool resumeManagedLiveMod(const std::string& modId, std::string* error) {
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveHitStatus.phase == "draining" ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
@@ -3873,6 +3895,42 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
+
+    const bool primaryRevoked = g_liveHitStatus.modId == modId &&
+        g_liveHitStatus.enabled;
+    if (primaryRevoked) {
+        const int discarded = g_liveIngress.pauseBinding(-1, g_liveHitType);
+        addManagedCounter(g_liveHitStatus.dropped, discarded);
+        addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
+        g_liveHitQueue.clear();
+        g_liveHitStatus.phase = "primary-mod-revoked";
+    }
+    const int liveCount = g_additionalLiveCount.load(std::memory_order_acquire);
+    bool anyAdditionalArmed = false;
+    for (int i = 0; i < liveCount; ++i) {
+        auto& binding = g_additionalLiveBindings[static_cast<size_t>(i)];
+        if (binding.modId == modId) {
+            const int discarded = g_liveIngress.pauseBinding(i, binding.armedType);
+            addManagedCounter(binding.dropped, discarded);
+            addManagedCounter(g_liveHitStatus.dropped, discarded);
+            if (binding.type >= 0 &&
+                static_cast<size_t>(binding.type) < g_additionalLiveByType.size() &&
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].load(
+                    std::memory_order_acquire) == i + 1)
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].store(
+                    0, std::memory_order_release);
+        }
+        if (binding.armedType.load(std::memory_order_acquire) == binding.type)
+            anyAdditionalArmed = true;
+    }
+    if (!anyAdditionalArmed &&
+        g_liveHitType.load(std::memory_order_acquire) < 0 &&
+        g_liveHitStatus.enabled) {
+        g_liveHitStatus.enabled = false;
+        g_liveHitAutomatic.store(false, std::memory_order_release);
+        g_liveHitStatus.phase = "mod-revoked";
+    }
+
     for (auto& binding : g_sceneLightBindings)
         if (binding.modId == modId) binding.enabled = false;
     g_sceneLightResults.erase(modId);

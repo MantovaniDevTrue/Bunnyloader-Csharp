@@ -94,6 +94,14 @@ jobs:
             tests/angler_quest/managed_deferred_mod_revocation_test.cpp \
             -o "$RUNNER_TEMP/angler_deferred_revocation_test"
           "$RUNNER_TEMP/angler_deferred_revocation_test"
+      - name: Verify selective live projectile ingress revocation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_live_ingress_revocation_test.cpp \
+            -o "$RUNNER_TEMP/angler_live_ingress_revocation_test"
+          "$RUNNER_TEMP/angler_live_ingress_revocation_test"
       - name: Test live Mono cache revocation on source-mod unload
         run: |
           set -euo pipefail
