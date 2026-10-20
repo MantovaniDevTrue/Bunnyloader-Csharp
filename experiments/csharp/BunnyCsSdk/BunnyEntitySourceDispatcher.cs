@@ -211,9 +211,9 @@ public static class BunnyEntitySourceDispatcher
                 if (!BunnyInvasionNativeTransport.Submit(worldSession, spawn,
                     context.Mod, playerIndex, x, y))
                     system.OnNativeFailed(true, spawn.Epoch, spawn.Ticket);
-                return received + used + 1;
+                return received + 1;
             }
-            return received + used;
+            return received;
         }
         catch (Exception error)
         {
