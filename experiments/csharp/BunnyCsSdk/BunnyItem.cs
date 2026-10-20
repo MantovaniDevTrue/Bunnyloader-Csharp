@@ -82,6 +82,7 @@ public abstract class BunnyItem : BunnyRecipeSource
         UseStyle=1;UseAnimation=15;UseTime=10;MaxStack=9999;
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
+    public virtual bool OnUse(int playerIndex) => false;
     public abstract void SetDefaults();
 }
 
