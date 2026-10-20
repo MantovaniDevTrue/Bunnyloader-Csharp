@@ -3,6 +3,7 @@
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
+#include "experiments/csharp/NativeInvasionMailbox.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
@@ -1198,6 +1199,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
+    setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
     resetManagedSourceNpcSlots();
@@ -1220,6 +1222,10 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    setNativeInvasionWorldState(
+        g_worldSessionReady.load(std::memory_order_acquire),
+        g_worldEpoch.load(std::memory_order_acquire));
+    pumpNativeInvasionSpawnsOnGameThread();
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
@@ -1279,6 +1285,7 @@ void noteAutoGameUpdate() {
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
+        setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
