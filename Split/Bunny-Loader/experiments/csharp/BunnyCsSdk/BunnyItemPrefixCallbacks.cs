@@ -84,6 +84,7 @@ public static class BunnyItemPrefixRuntime
                     throw new FormatException("Invalid batch candidate length");
                 var batchState = BunnyPrefixRuntime.ReadItem(snapshot[..separator]);
                 Span<bool> seen = stackalloc bool[256];
+                seen.Clear();
                 char[] results = new char[hex.Length / 2];
                 for (int i = 0; i < results.Length; i++)
                 {
