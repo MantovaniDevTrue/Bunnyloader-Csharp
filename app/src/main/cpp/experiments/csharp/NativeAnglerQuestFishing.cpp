@@ -63,7 +63,9 @@ bool valueField(Il2CppClass* cls, const bl::il2cpp::ValueLayout& layout,
 
 void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     if (g_originalRoll) g_originalRoll(bobber, attempt, mi);
-    if (!bobber || !attempt || !g_quests || g_quests->empty()) return;
+    if (!bobber || !attempt || !g_quests || g_quests->empty() ||
+        activeGeneration().load(std::memory_order_acquire) != registry().generation())
+        return;
     int32_t questId = -1;
     uint8_t uncommon = 0;
     std::memcpy(&questId, static_cast<const char*>(attempt) + g_questFish, sizeof(questId));
