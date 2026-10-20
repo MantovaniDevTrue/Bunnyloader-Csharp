@@ -911,10 +911,12 @@ void run() {
                 if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes)) {
                     BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
                             mod.id.c_str());
-                } else if (!g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
+                } else {
                     const std::string probe = work + "BunnyManagedProbe.dll";
                     struct stat probeStat{};
-                    if (stat(probe.c_str(), &probeStat) == 0 && S_ISREG(probeStat.st_mode)) {
+                    if (stat(probe.c_str(), &probeStat) != 0 || !S_ISREG(probeStat.st_mode)) {
+                        BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Reason=ProbeMissing");
+                    } else if (!g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
                         g_runtimeWarming.store(true, std::memory_order_release);
                         std::thread([probe] {
                             const auto state = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
@@ -923,8 +925,6 @@ void run() {
                                          state.phase.c_str());
                             g_runtimeWarming.store(false, std::memory_order_release);
                         }).detach();
-                    } else {
-                        BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Reason=ProbeMissing");
                     }
                 }
             }
