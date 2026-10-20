@@ -116,6 +116,40 @@ public:
         return result;
     }
 
+    static uint64_t manifestFingerprint(const std::vector<Quest>& quests) {
+        std::vector<const Quest*> ordered;
+        ordered.reserve(quests.size());
+        for (const auto& quest : quests) ordered.push_back(&quest);
+        std::sort(ordered.begin(), ordered.end(),
+            [](const Quest* a, const Quest* b) {
+                if (a->mod != b->mod) return a->mod < b->mod;
+                if (a->name != b->name) return a->name < b->name;
+                return a->type < b->type;
+            });
+        uint64_t hash = 14695981039346656037ull;
+        const auto addByte = [&](uint8_t byte) {
+            hash ^= byte;
+            hash *= 1099511628211ull;
+        };
+        const auto addString = [&](const std::string& value) {
+            for (unsigned char ch : value) addByte(ch);
+            addByte(0);
+        };
+        for (const Quest* quest : ordered) {
+            addString(quest->mod);
+            addString(quest->name);
+            const auto id = static_cast<uint32_t>(quest->type);
+            for (unsigned shift = 0; shift != 32; shift += 8)
+                addByte(static_cast<uint8_t>((id >> shift) & 0xffu));
+            addByte(quest->preHardmode ? 1 : 0);
+            addByte(quest->hardmode ? 1 : 0);
+            addByte(static_cast<uint8_t>(quest->catchRules));
+            addByte(static_cast<uint8_t>(quest->callbackMask));
+            addByte(quest->catchEnabled ? 1 : 0);
+        }
+        return hash;
+    }
+
     bool publish(const std::string& mod, const std::vector<Quest>& quests, std::string* error) {
         if (mod.empty() || quests.size() > 4096) return fail(error, "InvalidModOrCapacity");
         std::lock_guard<std::mutex> lock(mutex_);
