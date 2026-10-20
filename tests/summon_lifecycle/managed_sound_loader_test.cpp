@@ -179,6 +179,8 @@ int main() {
     assert(state(b)==1);
     unloadMod("example-a");
     unloadMod("example-b");
+    // O pump libera no máximo 32 estilos por tick; o 33º aguarda o próximo.
+    runPump();
     runPump();
     assert(released>=3&&activeStyles.empty());
     assert(clips.empty());
