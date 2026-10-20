@@ -620,6 +620,29 @@ Test("assembly-identity-ambiguity-denies-live-registration", () =>
     Equal(true, BunnyLocalizationRuntime.Unload("two"));
 });
 
+Test("combined-dynamic-localization-limit-is-atomic", () =>
+{
+    string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    HostLocalizationModule.SeedCallbackLimit = true;
+    try
+    {
+        string callback = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US");
+        Equal(257, callback.Split('\n').Length);
+        BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Last", "en-US", "Last");
+        Reject(() => BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Overflow", "en-US", "Overflow"));
+        string wire = BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US");
+        Equal(258, wire.Split('\n').Length);
+        Equal(false, wire.Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(
+            "Mods.examplemod.Common.Overflow")), StringComparison.Ordinal));
+        Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    }
+    finally
+    {
+        HostLocalizationModule.SeedCallbackLimit = false;
+        BunnyLocalizationRuntime.Unload("examplemod");
+    }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
@@ -629,6 +652,7 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public static bool DynamicTranslations;
     public static bool RegisterForeign;
     public static bool GlobalRegistration;
+    public static bool SeedCallbackLimit;
     public static string LastCulture = "";
 
     public override void OnLocalizationsLoaded()
@@ -642,6 +666,10 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
                     ["en-US"] = "Hello at runtime",
                     ["pt-BR"] = "Olá em tempo de execução"
                 });
+        if (SeedCallbackLimit)
+            for (int i = 0; i < 255; i++)
+                BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Seed" +
+                    i.ToString("D3"), "en-US", "Seed");
         if (GlobalRegistration)
             BunnyLocalizationRuntime.Register("LegacyInterface.28", "pt-BR", "Menu de teste");
         if (RegisterForeign)
