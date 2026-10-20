@@ -137,6 +137,7 @@ try
         "other_angler_mod",assembly+"|bunny-revision=1","__unload__",0,6,"");
     if(otherCleared!="CLEARED"||handles.Count!=0)
         throw new InvalidOperationException("Second mod cache not released on unload");
+    CollectibleUnloadProbe.AssertCollected(assembly);
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
