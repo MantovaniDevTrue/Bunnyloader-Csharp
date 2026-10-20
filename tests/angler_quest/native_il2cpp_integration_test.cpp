@@ -64,6 +64,10 @@ bool gBadStaticField=false;
 bool gBadNetMode=false;
 bool gFailRackResize=false;
 bool gFailIdsAllocation=false;
+int gHandleCalls=0;
+int gFailHandleAt=-1;
+uint32_t gNextHandle=1;
+std::map<uint32_t,Il2CppObject*> gGcRoots;
 int gSwapCalls=0;
 std::string gCulture="en-US";
 FieldInfo fIds{"anglerQuestItemNetIDs",&kIntArrayType,&gIds,sizeof(gIds)};
@@ -140,7 +144,18 @@ void setupApi() {
     a.class_get_namespace=[](Il2CppClass* c){return c->ns;};
     a.class_get_method_from_name=findMethod;
     a.field_static_get_value=[](FieldInfo* f,void* destination){std::memcpy(destination,f->value,f->width);};
-    a.field_static_set_value=[](FieldInfo* f,void* source){std::memcpy(f->value,source,f->width);};
+    a.field_static_set_value=[](FieldInfo* f,void* source){
+        if(f==&fIds||f==&fFlags||f==&fRack) {
+            Il2CppArray* next=nullptr;
+            std::memcpy(&next,source,sizeof(next));
+            Il2CppArray* current=nullptr;
+            std::memcpy(&current,f->value,sizeof(current));
+            if(next!=current)
+                assert(std::any_of(gGcRoots.begin(),gGcRoots.end(),
+                    [&](const auto& root){return root.second==reinterpret_cast<Il2CppObject*>(next);}));
+        }
+        std::memcpy(f->value,source,f->width);
+    };
     a.method_get_param_count=[](const MethodInfo* m)->uint32_t{return m->parameterType?1:0;};
     a.method_get_return_type=[](const MethodInfo* m)->const Il2CppType*{
         static Il2CppType ret{};
@@ -157,6 +172,14 @@ void setupApi() {
     a.method_is_instance=[](const MethodInfo* m){return m->instance;};
     a.object_get_class=[](Il2CppObject* object){return object->klass;};
     a.array_new=array;
+    a.gchandle_new=[](Il2CppObject* object,bool)->uint32_t {
+        ++gHandleCalls;
+        if(gHandleCalls==gFailHandleAt)return 0;
+        const uint32_t handle=gNextHandle++;
+        gGcRoots[handle]=object;
+        return handle;
+    };
+    a.gchandle_free=[](uint32_t handle){assert(gGcRoots.erase(handle)==1);};
     a.runtime_class_init=[](Il2CppClass*){};
     a.string_new=[](const char* value){return str(value);};
     a.runtime_invoke=[](const MethodInfo* method,void*,void**,Il2CppObject** error) -> Il2CppObject*{
@@ -264,6 +287,7 @@ int main() {
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==1);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
     assert(hookedSwap && hookedChat);
+    assert(gGcRoots.empty());
 
     Quest extra{"examplemodcsharp","ExtraQuestFish",940,true,true,"Extra","Elsewhere",0};
     assert(reg.publish("examplemodcsharp",{quest,extra},&error));
@@ -289,12 +313,23 @@ int main() {
     assert((ids()==std::vector<int>{10,500,11,850}));
     assert(gFlags->length==851 && gRack->length==851);
     assert(gSelected==0);
+    assert(gGcRoots.empty());
     gFailRackResize=false;
+    gFailHandleAt=gHandleCalls+2;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851 && gRack->length==851 && gGcRoots.empty());
+    gFailHandleAt=gHandleCalls+3;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851 && gRack->length==851 && gGcRoots.empty());
+    gFailHandleAt=-1;
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11,850,940}));
     assert(gFlags->length==941 && gRack->length==941);
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[940]==1);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[940]==1);
+    assert(gGcRoots.empty());
     assert(reg.publish("examplemodcsharp",{quest},&error));
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11,850}));
