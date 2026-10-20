@@ -155,7 +155,7 @@ public static class CompiledAssemblyProbe
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
-            commandCount = CommandManifestWriter.Write(assembly, diagnosticsPath);
+            commandCount = CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
