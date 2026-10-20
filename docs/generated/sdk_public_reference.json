@@ -1933,7 +1933,8 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "string ActiveCultureName { get; }"
+        "string ActiveCultureName { get; }",
+        "string ActiveModId { get; }"
       ],
       "values": [],
       "methods": [

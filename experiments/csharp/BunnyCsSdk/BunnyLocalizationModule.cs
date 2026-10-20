@@ -63,6 +63,28 @@ public static class BunnyLocalizationRuntime
         }
     }
 
+    /// <summary>The registered mod UID during a callback, or the calling module's UID.</summary>
+    public static string ActiveModId
+    {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        get
+        {
+            if (activeModId != null) return activeModId;
+            Assembly caller = Assembly.GetCallingAssembly();
+            lock (Gate)
+            {
+                string? owner = null;
+                foreach (var pair in Mods)
+                {
+                    if (!ReferenceEquals(pair.Value.Assembly, caller)) continue;
+                    if (owner != null) return "";
+                    owner = pair.Key;
+                }
+                return owner ?? "";
+            }
+        }
+    }
+
     private static void ValidateRegistrationOwner(string key, string modId)
     {
         if (string.IsNullOrEmpty(key) ||

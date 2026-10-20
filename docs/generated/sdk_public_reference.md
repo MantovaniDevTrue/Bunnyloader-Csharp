@@ -1034,6 +1034,7 @@ abstract class; base: `System.Object`.
 
 ```csharp
 string ActiveCultureName { get; }
+string ActiveModId { get; }
 ```
 
 | Method | Execution |

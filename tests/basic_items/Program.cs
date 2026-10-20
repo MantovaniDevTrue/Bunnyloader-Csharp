@@ -286,6 +286,13 @@ try {
   if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
+  string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
+  string dynamicWire=BunnyLocalizationRuntime.Dispatch(localizationUid,output,"pt-BR");
+  if(!dynamicWire.StartsWith("OK|",StringComparison.Ordinal)||
+     !dynamicWire.Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(
+       "Mods."+localizationUid+".Common.Localization.RuntimeGreeting")),StringComparison.Ordinal))
+    throw new Exception("Actual Example localization callback failed with registered UID: "+dynamicWire);
+  Equal(true,BunnyLocalizationRuntime.Unload(localizationUid));
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0).Select(l=>l.Split('\t')).Where(f=>contentKinds.Contains(f[0])).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
