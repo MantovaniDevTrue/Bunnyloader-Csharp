@@ -285,18 +285,10 @@ bool itemPrefixWorkerReady(int itemType) {
                                      found->second.owner)==1;
 }
 
-bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
-    if (!item || prefix<1 || prefix>255 || g_restoreRoll.item==item ||
-        g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
-        g_refs.stack<0 || g_refs.prefix<0) return true;
-    PrefixRpcScope* scope=PrefixRpcScope::current;
-    if (!scope) return true;
-    const int type=bl::runtime::field<int32_t>(item,g_refs.type);
-    const auto bindings=managedItemPrefixCallbackView();
-    const auto binding=bindings->find(type);
-    if (binding==bindings->end()) return true;
+void syncItemPrefixCache(Il2CppObject* item,PrefixRpcScope* scope) {
     const std::array<int,6> signature{
-        type,bl::runtime::field<int32_t>(item,g_refs.damage),
+        bl::runtime::field<int32_t>(item,g_refs.type),
+        bl::runtime::field<int32_t>(item,g_refs.damage),
         bl::runtime::field<int32_t>(item,g_refs.mana),
         bl::runtime::field<int32_t>(item,g_refs.stack),
         bl::runtime::field<uint8_t>(item,g_refs.prefix),
@@ -309,6 +301,19 @@ bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
         scope->cachedFields=signature;
         scope->itemAllowed.fill(-1);
     }
+}
+
+bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
+    if (!item || prefix<1 || prefix>255 || g_restoreRoll.item==item ||
+        g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+        g_refs.stack<0 || g_refs.prefix<0) return true;
+    PrefixRpcScope* scope=PrefixRpcScope::current;
+    if (!scope) return true;
+    const int type=bl::runtime::field<int32_t>(item,g_refs.type);
+    const auto bindings=managedItemPrefixCallbackView();
+    const auto binding=bindings->find(type);
+    if (binding==bindings->end()) return true;
+    syncItemPrefixCache(item,scope);
     int8_t& cached=scope->itemAllowed[static_cast<size_t>(prefix)];
     if (cached!=-1) return cached!=0;
     cached=-2;
@@ -332,6 +337,60 @@ bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
                                 &answer,std::min(micros,650)))
         cached=answer=="1" ? 1 : answer=="0" ? 0 : -2;
     return cached!=0;
+}
+
+void primeItemPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
+                               uintptr_t count,const std::vector<ManagedPrefixEntry>& prefixes) {
+    auto* scope=PrefixRpcScope::current;
+    if (!scope || !item || g_restoreRoll.item==item || !g_hooksReady ||
+        g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+        g_refs.stack<0 || g_refs.prefix<0 || scope->requests>=4) return;
+    const int type=bl::runtime::field<int32_t>(item,g_refs.type);
+    const auto owners=managedItemPrefixCallbackView();
+    const auto owner=owners->find(type);
+    if (owner==owners->end()) return;
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(owner->second.modId);
+    if (assembly==assemblies->end() ||
+        managedItemPrefixWarmupState(owner->second.modId,assembly->second,
+                                     owner->second.owner)!=1) return;
+    syncItemPrefixCache(item,scope);
+    std::array<bool,256> seen{};
+    std::array<uint8_t,128> batch{};
+    size_t length=0;
+    const auto take=[&](int value) {
+        if (value<1 || value>255 || seen[static_cast<size_t>(value)] ||
+            scope->itemAllowed[static_cast<size_t>(value)]!=-1 ||
+            length==batch.size()) return;
+        seen[static_cast<size_t>(value)]=true;
+        batch[length++]=static_cast<uint8_t>(value);
+    };
+    for (uintptr_t i=0;i<count;++i) take(vanilla[i]);
+    for (const auto& prefix:prefixes)
+        if (prefix.category!=6) take(prefix.type);
+    if (!length) return;
+    std::string wire=prefixItemSnapshot(item);
+    if (wire.empty()) return;
+    static constexpr char hex[]="0123456789ABCDEF";
+    wire.reserve(wire.size()+1+length*2);
+    wire.push_back('|');
+    for(size_t i=0;i<length;++i) {
+        const uint8_t value=batch[i];
+        wire.push_back(hex[value>>4]);
+        wire.push_back(hex[value&15]);
+        scope->itemAllowed[value]=-2;
+    }
+    const auto now=std::chrono::steady_clock::now();
+    if (now>=scope->end) return;
+    const int micros=static_cast<int>(
+        std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+    if (micros<1) return;
+    ++scope->requests;
+    std::string decisions;
+    if (!invokeManagedItemPrefixBatch(owner->second.modId,assembly->second,
+            owner->second.owner,wire,length,&decisions,std::min(micros,650))) return;
+    for(size_t i=0;i<length;++i)
+        scope->itemAllowed[batch[i]]=decisions[i]=='1'?1:0;
 }
 
 bool queryPrefixApply(Il2CppObject* item,const ManagedPrefixEntry& p,
@@ -753,6 +812,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const uintptr_t oldCount = base ? base->length : 0;
     const auto* oldValues = oldCount ?
         static_cast<const int32_t*>(arrayData(base)) : nullptr;
+    primeItemPrefixCandidates(item,oldValues,oldCount,*descriptors);
     if (!tablesReady) {
         for (const auto& p : *descriptors) {
             if (p.category != 6 && allowed(p.type) &&
