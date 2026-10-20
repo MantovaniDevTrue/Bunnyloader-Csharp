@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <cmath>
+#include "experiments/csharp/WorldAuthority.h"
 #include <string>
 
 namespace bl::csharp {
@@ -37,7 +39,15 @@ struct InvasionSpawnResult {
     }
 };
 
-bool canDispatchInvasionSpawn(const InvasionSpawnRequest& request, int mode) noexcept;
+inline bool canDispatchInvasionSpawn(const InvasionSpawnRequest& request, int mode) noexcept {
+    return worldIsAuthoritative(mode) && request.worldReady &&
+        !request.modId.empty() && request.modId.size() <= 128 &&
+        !request.npcClass.empty() && request.npcClass.size() <= 128 &&
+        request.playerIndex >= 0 && request.playerIndex < 255 &&
+        std::isfinite(request.x) && std::isfinite(request.y) &&
+        request.x >= 640.f && request.y >= 640.f &&
+        request.x <= 10000000.f && request.y <= 10000000.f;
+}
 InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request);
 
 }
