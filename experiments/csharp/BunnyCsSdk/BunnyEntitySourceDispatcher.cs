@@ -140,6 +140,12 @@ public static class BunnyEntitySourceDispatcher
             context.NativeWorldSession = worldSession;
             context.NextInvasionIndex = 0;
         }
+        if (mode == 1)
+        {
+            foreach (string itemName in context.ItemUsers.Keys)
+                BunnyNativeItemUse.Bind(worldSession, context.Mod, itemName);
+            return 0;
+        }
         if (!authoritative || playerIndex < 0 ||
             !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
         try
