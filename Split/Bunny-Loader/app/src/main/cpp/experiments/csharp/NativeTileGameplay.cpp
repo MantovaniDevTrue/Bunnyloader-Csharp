@@ -141,6 +141,7 @@ using DropFn = void (*)(int32_t, int32_t, uint32_t, int32_t*, int32_t*,
                        int32_t*, int32_t*, bool*, bool, const MethodInfo*);
 using KillFn = void (*)(int32_t, int32_t, bool, bool, bool, const MethodInfo*);
 using DustFn = int32_t (*)(int32_t, int32_t, uint32_t, const MethodInfo*);
+using KillSoundFn=void (*)(int32_t,int32_t,bool,uint32_t,const MethodInfo*);
 using FrameFn = void (*)(int32_t, int32_t, int32_t, uint32_t, bool, const MethodInfo*);
 using TileFrameFn = void (*)(int32_t,int32_t,bool,bool,const MethodInfo*);
 using CanKillFn = bool (*)(int32_t, int32_t, bool*, const MethodInfo*);
@@ -148,6 +149,8 @@ using LargeDropFn = void (*)(int32_t, int32_t, uint32_t, bool, const MethodInfo*
 DropFn g_origDrop = nullptr;
 KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
+KillSoundFn g_origKillSound=nullptr;
+bool g_killSoundInstalled=false;
 FrameFn g_origFrame = nullptr;
 TileFrameFn g_originalTileFrame=nullptr;
 bool g_tileFrameCallbackInstalled=false;
@@ -1497,6 +1500,42 @@ bool setupTileFrameCallbackHook() {
     return true;
 }
 
+void hkTileKillSound(int32_t x,int32_t y,bool fail,uint32_t tile,const MethodInfo* method) {
+    if(!g_origKillSound)return;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it!=g_tiles.end()&&(it->second.spec.callbackMask&(1<<26))&&
+       managedTileReady(it->second.spec,26)) {
+        std::string reply;
+        if(invokeManagedTileKillSound(it->second.spec.mod,it->second.spec.assembly,
+             it->second.spec.name,x,y,fail,&reply,650)) {
+            if(reply=="0")return;
+            if(reply=="1") {
+                g_origKillSound(x,y,fail,tile,method);
+                return;
+            }
+        }
+        reportTileCallbackFailure(it->second.spec,26,reply);
+    }
+    g_origKillSound(x,y,fail,tile,method);
+}
+bool setupNativeTileKillSoundHook() {
+    if(g_killSoundInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||!a.method_is_instance)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* sound=world?a.class_get_method_from_name(world,"KillTile_PlaySounds",4):nullptr;
+    if(!sound||a.method_is_instance(sound)||!safeTile(sound,3,4)||
+       !nameOf(a.method_get_param(sound,0),"System.Int32")||
+       !nameOf(a.method_get_param(sound,1),"System.Int32")||
+       !nameOf(a.method_get_param(sound,2),"System.Boolean")||
+       !nameOf(a.method_get_return_type(sound),"System.Void")||
+       !il2cpp::methodPointer(sound)||
+       !hook::install(sound,hkTileKillSound,&g_origKillSound))return false;
+    g_killSoundInstalled=true;
+    return true;
+}
+
 bool setupHooks() {
     if (g_installed) return true;
     auto& a = il2cpp::api();
@@ -1640,6 +1679,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     }
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if((spec.callbackMask&(1<<21))&&!setupTileFrameCallbackHook())return false;
+    if((spec.callbackMask&(1<<26))&&!setupNativeTileKillSoundHook())return false;
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
                                  tile_toggle::allowsRightClick(spec.frameToggle),
                                 (spec.callbackMask&(1<<10))!=0))return false;
