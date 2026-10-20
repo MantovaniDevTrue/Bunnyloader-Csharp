@@ -63,7 +63,7 @@ Um novo `mods::loadAll` remove quests de fontes C# antigas e limpa seus registro
 - Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 
-**Último CI aprovado antes do teste adicional de callback isolado:** [Actions #39348545313](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39348545313). Consultar também o resultado do commit mais recente antes de marcar qualquer etapa como validada.
+**Último CI completo aprovado:** [Actions #39348729684](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39348729684). Jobs `native-host` e `managed-host` aprovados, incluindo o predicado isolado de captura sem política estática.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
