@@ -37,7 +37,7 @@ callbacks = (root / "experiments/csharp/BunnyCsSdk/BunnyPrefixCallbacks.cs").rea
 assert "bool invokeManagedPrefix(" in runtime
 assert "bool invokeManagedPrefix(" in runtime_header
 assert 'job.prefix?"BunnyPrefixRuntime"' in runtime
-assert "g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix})" in runtime
+assert "g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix,itemPrefix})" in runtime
 assert "completion->cancelled=true;" in runtime
 assert "job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline" in runtime
 assert "BunnyPrefixItemSnapshot" in callbacks
