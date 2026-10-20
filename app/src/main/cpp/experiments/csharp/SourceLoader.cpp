@@ -780,6 +780,24 @@ bool applyManagedSourceDefaults(
             }
             continue;
         }
+        if(!fields.empty()&&fields[0]=="QUEST_CALLBACK") {
+            int mask=0;
+            if(fields.size()!=3 || !integer(fields[2],&mask) ||
+               mask<1 || mask>3) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeCallback Reason=InvalidDescriptor";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& entry) { return entry.name==fields[1]; });
+            if(quest==anglerQuests.end() || quest->callbackMask!=0) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeCallback Reason=InvalidOwnerOrDuplicate";
+                return false;
+            }
+            quest->callbackMask=mask;
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="QUEST_CATCH") {
             int rules = -1;
             if(fields.size()!=4 ||
