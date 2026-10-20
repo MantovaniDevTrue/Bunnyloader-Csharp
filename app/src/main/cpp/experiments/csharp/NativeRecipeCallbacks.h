@@ -5,6 +5,7 @@
 namespace bl::csharp {
 using runtime::NativeRecipeRequest;
 void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly);
+void unbindNativeRecipeAssembly(const std::string& mod);
 bool hasManagedAnglerQuestCallbacks(const std::string& mod);
 bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& owner,
                                       int kind,int first,int second,int itemType,bool* allowed,int playerIndex=-1);
