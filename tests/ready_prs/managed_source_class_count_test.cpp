@@ -40,23 +40,25 @@ int main(int argc, char** argv) {
         else if (base == "BunnyPrefix") ++mod.prefixes;
         else if (base == "BunnyRarity") ++mod.rarities;
         else if (base == "BunnyScreenEffect") ++mod.screenEffects;
+        else if (base == "BunnyCommand") ++mod.commands;
         else {
             std::cerr << "Unrecognized content base: " << base << '\n';
             return 1;
         }
     }
-    assert(types.size() == 67);
+    assert(types.size() == 70);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
+    assert(mod.commands == 3);
     assert(mod.localizationModules == 1);
-    assert(expectedManagedSourceTypes(mod) == 68);
+    assert(expectedManagedSourceTypes(mod) == 71);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=68\n";
+        "assemblyReady=1\nexecutedTypes=71\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=68"
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=71 commands=3"
               << " rarities=2 dust=1 wall=1 localization=1\n";
 }
