@@ -467,9 +467,9 @@ class ManagedProbeService : Service() {
             val detail = (error.javaClass.simpleName + ": " +
                 (error.message ?: "")).take(512)
             runCatching {
-                val target = if (compileRoot == null) status else compileStatus
-                target.writeText("state=failed\nmodId=" + job.modId +
-                    "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\nerror=" + detail + "\n")
+                val failure = "state=failed\nmodId=" + job.modId +
+                    "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\nerror=" + detail + "\n"
+                if (compileRoot == null) status.writeText(failure) else writeStatus(failure)
             }
             Log.e("BunnyCSharp", "Mono worker failed", error)
         } finally {
