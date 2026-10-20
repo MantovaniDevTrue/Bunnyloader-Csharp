@@ -481,10 +481,11 @@ bool worldPlayerReady() {
         return false;
     int mode = -1;
     api.field_static_get_value(refs.netMode, &mode);
-    if (!worldIsAuthoritative(mode)) return false;
+    if (mode < 0 || mode > 3) return false;
     Il2CppObject* world = nullptr;
     api.field_static_get_value(refs.world, &world);
     if (!world) return false;
+    if (mode == 2) return true;
     Il2CppArray* players = nullptr;
     api.field_static_get_value(refs.players, &players);
     if (!players) return false;
@@ -1299,10 +1300,13 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && worldIsAuthoritative(context.netMode)) {
-            retryWorldManagedPrefixesWhenReady();
-            showWorldPlayerMessagesWhenReady();
-            updateManagedNpcBuffDispatcherOnGameThread();
+        if (context.gameMenu != 1 &&
+            context.netMode >= 0 && context.netMode <= 3) {
+            if (worldIsAuthoritative(context.netMode)) {
+                retryWorldManagedPrefixesWhenReady();
+                showWorldPlayerMessagesWhenReady();
+                updateManagedNpcBuffDispatcherOnGameThread();
+            }
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
@@ -1346,7 +1350,8 @@ void noteAutoGameUpdate() {
     }
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         const ActivationContext context = readActivationContext();
-        if (!worldIsAuthoritative(context.netMode) || context.gameMenu == 1) return;
+        if (context.netMode < 0 || context.netMode > 3 ||
+            context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
