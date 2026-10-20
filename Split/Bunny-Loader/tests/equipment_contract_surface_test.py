@@ -286,7 +286,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("RuntimeHelpers.PrepareMethod(callback.MethodHandle)", callbacks)
         self.assertIn("BunnyPrefixCallbacks.cs", sdk)
         self.assertIn('if (kind == 2) return *output == "READY";', runtime)
-        self.assertIn('if (kind == 0) return *output == "0" || *output == "1";', runtime)
+        self.assertIn('if (kind == 0 || kind == 3) return *output == "0" || *output == "1";', runtime)
         self.assertIn('return weight >= 0 && weight <= 20;', runtime)
         self.assertIn('kind == 0 || kind == 3', runtime)
         self.assertIn('if (kind == 4)', runtime)
