@@ -255,6 +255,19 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("assert(mixedFiltered && mixedFiltered->length == 4);", fixture)
         self.assertIn("assert(nativeRolls == priorNativeRolls);", fixture)
 
+    def test_native_prefix_qa_telemetry_contract(self):
+        source = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        header = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.h").read_text(encoding="utf-8")
+        debug = (ROOT / "app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text(encoding="utf-8")
+        self.assertIn("struct ManagedPrefixDiagnostics", header)
+        self.assertIn("ManagedPrefixDiagnostics managedPrefixDiagnostics()", source)
+        self.assertIn("std::memory_order_relaxed", source)
+        self.assertIn("g_prefixRollMaxUs.compare_exchange_weak", source)
+        self.assertIn('"nativePrefixDiagnostics"', debug)
+        self.assertIn("jsNativePrefixDiagnostics", debug)
+        self.assertNotIn("invokeManagedRecipe", source)
+        self.assertNotIn("invokeManagedShoot", source)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))

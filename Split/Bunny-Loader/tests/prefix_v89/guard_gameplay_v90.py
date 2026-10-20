@@ -31,6 +31,11 @@ assert "applyManagedItemPrefixAttributeDenials" in source
 assert "managedItemPrefixAttributeDenyView()" in game
 assert "PREFIX_CHANCE_STACK" in source
 assert "PREFIX_CHOOSE_STACK" in source
+assert "ManagedPrefixDiagnostics managedPrefixDiagnostics()" in game
+assert "g_prefixRestoredRolls.fetch_add" in game
+assert "g_prefixChosenRolls.fetch_add" in game
+assert "g_prefixWeightedRolls.fetch_add" in game
+assert "g_prefixVanillaFallbacks.fetch_add" in game
 assert "applyManagedItemPrefixChoices" in source
 assert "managedItemPrefixChoiceView()" in game
 assert "applyManagedItemPrefixStackChances" in source

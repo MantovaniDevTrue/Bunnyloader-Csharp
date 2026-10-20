@@ -190,6 +190,10 @@ int main() {
     g_originalRollable = vanillaRollable;
     g_originalRoll = vanillaRoll;
     g_hooksReady = true;
+    const auto freshDiagnostics = managedPrefixDiagnostics();
+    assert(freshDiagnostics.rollAttempts == 0);
+    assert(freshDiagnostics.restoredRolls == 0);
+    assert(freshDiagnostics.maxRollMicroseconds == 0);
     ManagedPrefixEntry guarded;
     guarded.name = "Guarded"; guarded.type = 98; guarded.category = 5;
     guarded.rollWeight = 1; guarded.accessoryDefense = 4;
@@ -903,6 +907,21 @@ int main() {
     api.runtime_class_init=nullptr;
     assert(!ensurePrefixTables(descriptors));
     api.runtime_class_init=saved;
+    g_hooksReady.store(false, std::memory_order_release);
+    int32_t forcedFallback = -1;
+    assert(hookRoll(&rejected.object, &randomObject, &forcedFallback, nullptr));
+    assert(forcedFallback == 71);
+    g_hooksReady.store(true, std::memory_order_release);
+    const auto metrics = managedPrefixDiagnostics();
+    assert(metrics.rollAttempts >= 12);
+    assert(metrics.restoredRolls >= 1);
+    assert(metrics.chosenItemRolls >= 2);
+    assert(metrics.weightedRolls >= 3);
+    assert(metrics.vanillaFallbacks >= 1);
+    assert(metrics.rollAttempts >=
+           metrics.restoredRolls + metrics.chosenItemRolls +
+           metrics.preferredRolls + metrics.weightedRolls);
+    assert(metrics.totalRollMicroseconds >= metrics.maxRollMicroseconds);
     for(void* p : allocations) std::free(p);
-    std::cout << "cold tables, warm tables, prefix restoration and two inventory tooltip lines: PASS\n";
+    std::cout << "cold tables, native prefix diagnostics, save restoration and tooltips: PASS\n";
 }

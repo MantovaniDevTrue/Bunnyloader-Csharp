@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <mutex>
 #include <cmath>
 #include <cstdint>
@@ -89,6 +90,35 @@ InventoryTooltipFn g_originalInventoryTooltip = nullptr;
 std::atomic<bool> g_inventoryTooltipReady{false};
 std::atomic<bool> g_reforgeTooltipReady{false};
 std::atomic<int> g_reforgeDiagnostics{0};
+std::atomic<uint64_t> g_prefixRollAttempts{0};
+std::atomic<uint64_t> g_prefixRestoredRolls{0};
+std::atomic<uint64_t> g_prefixChosenRolls{0};
+std::atomic<uint64_t> g_prefixPreferredRolls{0};
+std::atomic<uint64_t> g_prefixWeightedRolls{0};
+std::atomic<uint64_t> g_prefixVanillaFallbacks{0};
+std::atomic<uint64_t> g_prefixRejectedRolls{0};
+std::atomic<uint64_t> g_prefixRollTotalUs{0};
+std::atomic<uint64_t> g_prefixRollMaxUs{0};
+
+struct PrefixRollDuration {
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    ~PrefixRollDuration() {
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - start).count();
+        const uint64_t us = elapsed > 0 ? static_cast<uint64_t>(elapsed) : 0;
+        g_prefixRollTotalUs.fetch_add(us, std::memory_order_relaxed);
+        uint64_t previous = g_prefixRollMaxUs.load(std::memory_order_relaxed);
+        while (previous < us && !g_prefixRollMaxUs.compare_exchange_weak(
+            previous, us, std::memory_order_relaxed)) {}
+    }
+};
+
+bool nativeRollFallback(Il2CppObject* item, Il2CppObject* random,
+                        int32_t* rolled, const MethodInfo* method) {
+    g_prefixVanillaFallbacks.fetch_add(1, std::memory_order_relaxed);
+    return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+}
+
 struct RestoreRoll {
     Il2CppObject* item = nullptr;
     int prefix = 0;
@@ -512,10 +542,12 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
 
 bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
               const MethodInfo* method) {
+    PrefixRollDuration duration;
+    g_prefixRollAttempts.fetch_add(1, std::memory_order_relaxed);
     if (!g_hooksReady.load(std::memory_order_acquire) ||
         !item || !random || !rolled || !g_refs.rollableMethod ||
         !g_refs.nextDoubleMethod)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+        return nativeRollFallback(item, random, rolled, method);
 
     const auto descriptors = managedPrefixView();
     if (g_restoreRoll.item == item && g_restoreRoll.prefix > 0) {
@@ -523,6 +555,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             if (restoreCompatible(item, *target) && ensurePrefixTables(*descriptors)) {
                 *rolled = target->type;
                 g_restoreRoll.used = true;
+                g_prefixRestoredRolls.fetch_add(1, std::memory_order_relaxed);
                 return true;
             }
         }
@@ -566,6 +599,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
                         : g_originalCanRoll && g_originalCanRoll(item, choice, nullptr);
                     if (allowed) {
                         *rolled = choice;
+                        g_prefixChosenRolls.fetch_add(1, std::memory_order_relaxed);
                         return true;
                     }
                 }
@@ -573,7 +607,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
         }
     }
     if (descriptors->empty() && !hasDeny)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+        return nativeRollFallback(item, random, rolled, method);
     if (g_restoreRoll.item != item && g_refs.type >= 0) {
         const int type = bl::runtime::field<int32_t>(item, g_refs.type);
         for (const auto& policy : *descriptors) {
@@ -581,6 +615,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
                 eligible(item, policy, true) &&
                 ensurePrefixTables(*descriptors)) {
                 *rolled = policy.type;
+                g_prefixPreferredRolls.fetch_add(1, std::memory_order_relaxed);
                 return true;
             }
         }
@@ -595,7 +630,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     g_failedRollableItem = nullptr;
     if (error || !list || list->length == 0 || list->length > 512)
         return (hasDeny || managedCandidateFailure) ? false :
-            (g_originalRoll ? g_originalRoll(item, random, rolled, method) : false);
+            (nativeRollFallback(item, random, rolled, method));
 
     const auto* values = static_cast<const int32_t*>(arrayData(list));
     bool hasManaged = false;
@@ -605,7 +640,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             break;
         }
     if (!hasManaged && !hasDeny)
-        return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
+        return nativeRollFallback(item, random, rolled, method);
 
     error = nullptr;
     Il2CppObject* boxed = api.runtime_invoke(
@@ -620,8 +655,12 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
 
     const int chosen = weightedPrefixCandidate(
         values, static_cast<size_t>(list->length), chance);
-    if (chosen < 0) return false;
+    if (chosen < 0) {
+        g_prefixRejectedRolls.fetch_add(1, std::memory_order_relaxed);
+        return false;
+    }
     *rolled = chosen;
+    g_prefixWeightedRolls.fetch_add(1, std::memory_order_relaxed);
     const int reported = g_reforgeDiagnostics.fetch_add(1, std::memory_order_relaxed);
     if (reported < 8)
         BL_INFO("csharp prefix: RollAPrefix selecionou %d de %zu candidatos (%d gerenciados)",
@@ -1007,6 +1046,20 @@ bool applyManagedPrefixStatFallback(Il2CppObject* item, int prefix, std::string*
         static_cast<int32_t>(std::round(scaledValue));
     bl::runtime::field<uint8_t>(item, g_refs.prefix) = static_cast<uint8_t>(prefix);
     return true;
+}
+
+ManagedPrefixDiagnostics managedPrefixDiagnostics() {
+    ManagedPrefixDiagnostics out;
+    out.rollAttempts = g_prefixRollAttempts.load(std::memory_order_relaxed);
+    out.restoredRolls = g_prefixRestoredRolls.load(std::memory_order_relaxed);
+    out.chosenItemRolls = g_prefixChosenRolls.load(std::memory_order_relaxed);
+    out.preferredRolls = g_prefixPreferredRolls.load(std::memory_order_relaxed);
+    out.weightedRolls = g_prefixWeightedRolls.load(std::memory_order_relaxed);
+    out.vanillaFallbacks = g_prefixVanillaFallbacks.load(std::memory_order_relaxed);
+    out.rejectedRolls = g_prefixRejectedRolls.load(std::memory_order_relaxed);
+    out.totalRollMicroseconds = g_prefixRollTotalUs.load(std::memory_order_relaxed);
+    out.maxRollMicroseconds = g_prefixRollMaxUs.load(std::memory_order_relaxed);
+    return out;
 }
 
 bool managedPrefixGameplayReady() {
