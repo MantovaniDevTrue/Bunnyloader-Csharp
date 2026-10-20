@@ -18,6 +18,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -103,6 +104,12 @@ struct CampfireSceneBinding {
     FieldInfo* scanHeight=nullptr;
 };
 CampfireSceneBinding g_campfireScene{};
+struct CampfireSoundBinding {
+    const MethodInfo* play=nullptr;
+    FieldInfo* mech=nullptr;
+    bool ready=false;
+};
+CampfireSoundBinding g_campfireSound{};
 
 using AnimateFn = void (*)(const MethodInfo*);
 AnimateFn g_originalAnimate = nullptr;
@@ -790,6 +797,54 @@ void hkCampfireSceneScan(Il2CppObject* scene,const void* settings,const MethodIn
         }
     }
 }
+bool setupNativeCampfireSound() {
+    if(g_campfireSound.ready)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||!a.method_get_return_type||
+       !a.method_is_instance||!a.class_from_il2cpp_type||!a.class_value_size||
+       !a.class_is_valuetype||!a.field_static_get_value||!a.runtime_invoke)return false;
+    auto* id=il2cpp::findClass({"Terraria.ID","SoundID",{}});
+    auto* engine=il2cpp::findClass({"Terraria.Audio","SoundEngine",{}});
+    const auto* play=engine?il2cpp::findMethodBySignature(engine,il2cpp::parseSignature(
+        "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)")):nullptr;
+    if(!play||a.method_is_instance(play)||a.method_get_param_count(play)!=4||
+       !nameOf(a.method_get_param(play,0),"Terraria.Audio.LegacySoundStyle")||
+       !nameOf(a.method_get_param(play,1),"Microsoft.Xna.Framework.Vector2")||
+       !nameOf(a.method_get_param(play,2),"System.Single")||
+       !nameOf(a.method_get_param(play,3),"System.Single")||
+       !il2cpp::methodPointer(play))return false;
+    auto* vector=a.class_from_il2cpp_type(a.method_get_param(play,1));
+    uint32_t align=0;
+    if(!vector||!a.class_is_valuetype(vector)||a.class_value_size(vector,&align)!=8)return false;
+    FieldInfo* mech=nullptr;
+    std::string error;
+    if(!il2cpp::nativeFieldContract(id,"Mech","Terraria.Audio.LegacySoundStyle",
+           true,sizeof(void*),&mech,nullptr,&error)) {
+        BL_ERROR("[CSharp][CampfireSound] Stage=BindMech Result=Rejected Reason=%s",error.c_str());
+        return false;
+    }
+    if(a.runtime_class_init)a.runtime_class_init(id);
+    Il2CppObject* sound=nullptr;
+    a.field_static_get_value(mech,&sound);
+    if(!sound)return false;
+    g_campfireSound={play,mech,true};
+    return true;
+}
+bool playNativeCampfireClick(int x,int y) {
+    if(!g_campfireSound.ready)return false;
+    auto& a=il2cpp::api();
+    Il2CppObject* sound=nullptr;
+    a.field_static_get_value(g_campfireSound.mech,&sound);
+    if(!sound)return false;
+    float position[2]{};
+    if(!tile_campfire::soundPosition(x,y,&position[0],&position[1]))return false;
+    float pitch=0.0f,volume=1.0f;
+    void* args[]={&sound,position,&pitch,&volume};
+    Il2CppObject* exception=nullptr;
+    a.runtime_invoke(g_campfireSound.play,nullptr,args,&exception);
+    return exception==nullptr;
+}
+
 bool setupNativeCampfireSceneHook() {
     if(g_campfireScene.ready)return true;
     auto& a=il2cpp::api();
@@ -994,6 +1049,8 @@ void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method
     if(!fresh)return;
     if(tile_toggle::allowsRightClick(it->second.spec.frameToggle)&&
        toggleNativeFrame(it->second.spec,x,y)) {
+        if(it->second.spec.campfire&&!playNativeCampfireClick(x,y))
+            BL_WARN("[CSharp][CampfireSound] Stage=Play Result=Unavailable");
         reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
         return;
     }
@@ -1337,6 +1394,12 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if ((!spec.allowBreaking || (spec.callbackMask&1)) && !setupCanKillTileHook()) {
         BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
                  spec.mod.c_str(), spec.name.c_str());
+        return false;
+    }
+    if(spec.campfire&&tile_toggle::allowsRightClick(spec.frameToggle)&&
+       !setupNativeCampfireSound()) {
+        BL_ERROR("[CSharp][CampfireSound] Mod=%s Class=%s Stage=BindSoundEngine Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
         return false;
     }
     if(spec.campfire&&!setupNativeCampfireSceneHook()) {

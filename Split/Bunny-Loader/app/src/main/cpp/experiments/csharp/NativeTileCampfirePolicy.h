@@ -17,4 +17,10 @@ inline Bounds area(float centerX,float centerY,int scanWidth,int scanHeight,int 
     return {x0,y0,std::max(x0,x1),std::max(y0,y1)};
 }
 inline bool lit(bool active,int frameY) {return active&&frameY>=0&&frameY<36;}
+inline bool soundPosition(int x,int y,float* outX,float* outY) {
+    if(!outX||!outY||x<0||y<0||x>100000||y>100000)return false;
+    *outX=static_cast<float>(x)*16.f;
+    *outY=static_cast<float>(y)*16.f;
+    return true;
+}
 }

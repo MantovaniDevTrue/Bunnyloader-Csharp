@@ -26,3 +26,7 @@ A declaração `BunnyTileFlags.Campfire` publica `TileID.Sets.Campfires`, `Inter
 O hook nativo `SceneMetrics.Scan` executa a função original antes de consultar a área centrada em `BiomeScanCenterPositionInWorld`, usando `Main.buffScanAreaWidth` e `Main.buffScanAreaHeight` com limite de 256 células por dimensão. Para os tiles C# marcados como fogueira, o frame Y de 0 ou 18 ativa `HasCampfire` na instância de `SceneMetrics`; 36 ou 54 não ativam. A varredura é nativa e encerra no primeiro tile válido. A assinatura, o layout e os tipos dos campos IL2CPP são exigidos antes da instalação; um contrato incompatível recusa o registro em vez de executar com endereço presumido. Não chama JavaScript.
 
 Esse código ainda exige teste no Android real para confirmar compatibilidade ABI, aplicação e remoção do buff, funcionamento com fogueiras JavaScript simultâneas e comportamento em multiplayer. O som `SoundID.Mech` ainda não foi integrado ao clique C#. Nenhum desses resultados pode ser inferido somente pelo CI.
+
+## Áudio de clique
+
+A fogueira 3×2 C# usa o `SoundID.Mech` original através de `SoundEngine.PlaySound(LegacySoundStyle,Vector2,float,float)`. O host confere a assinatura nativa, `SoundID.Mech` e o layout de `Vector2` no registro, e invoca o som somente após o clique completar a alternância. Fios não tocam o som. O runtime não consulta QuickJS. A emissão de áudio real e os diagnósticos de ABI ainda requerem teste no Android; incompatibilidade rejeita o registro em vez de inventar um ID de som.

@@ -16,6 +16,11 @@ int main(){
     assert(invalid.right==0&&invalid.bottom==0);
     assert(area(0,0,257,10,50,50).right==0);
     assert(area(0,0,10,300,50,50).right==0);
+    float px=-1.f,py=-1.f;
+    assert(soundPosition(12,9,&px,&py)&&px==192.f&&py==144.f);
+    assert(!soundPosition(-1,0,&px,&py)&&!soundPosition(0,-1,&px,&py));
+    assert(!soundPosition(100001,0,&px,&py)&&!soundPosition(0,100001,&px,&py));
+    assert(!soundPosition(0,0,nullptr,&py)&&!soundPosition(0,0,&px,nullptr));
     assert(lit(true,0)&&lit(true,18)&&lit(true,35));
     assert(!lit(true,36)&&!lit(true,54)&&!lit(false,0)&&!lit(true,-1));
     std::cout<<"CSHARP_CAMPFIRE_SCENE_BOUNDS_AND_STATE=PASS\n";
