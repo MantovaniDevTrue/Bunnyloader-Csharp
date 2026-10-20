@@ -671,6 +671,7 @@ bool applyManagedSourceDefaults(
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
     std::set<int> seenItemPrefixCallbacks;
+    std::vector<std::pair<int, std::string>> itemPrefixCallbacks;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
     std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>> prefixAttributeDenials;
@@ -705,6 +706,7 @@ bool applyManagedSourceDefaults(
                 *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Decode Reason=InvalidItemOrMask";
                 return false;
             }
+            itemPrefixCallbacks.emplace_back(registered->second, fields[1]);
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_DENY") {
@@ -1832,6 +1834,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedItemPrefixEffects(prefixEffects)) {
         *error = "Politicas ApplyPrefix C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixCallbackBindings(modId, itemPrefixCallbacks)) {
+        *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Publish Reason=InvalidBinding";
         return false;
     }
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {

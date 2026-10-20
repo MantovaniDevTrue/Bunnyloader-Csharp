@@ -51,6 +51,16 @@ struct ManagedPrefixEntry {
     std::vector<std::string> tooltipItemLines;
 };
 
+struct ManagedItemPrefixCallbackBinding {
+    std::string modId;
+    std::string owner;
+};
+
+bool applyManagedItemPrefixCallbackBindings(
+    const std::string& modId, const std::vector<std::pair<int, std::string>>& items);
+std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>>
+managedItemPrefixCallbackView();
+
 struct ManagedItemPrefixApply {
     int damageBonus = 0;
     int valueBonus = 0;

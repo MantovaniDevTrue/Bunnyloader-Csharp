@@ -25,6 +25,8 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
 std::shared_ptr<const std::map<std::string,std::string>> g_callbackAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
+std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> g_itemCallbackView =
+    std::make_shared<const std::map<int, ManagedItemPrefixCallbackBinding>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> g_itemStackChanceView =
@@ -131,6 +133,40 @@ bool valid(const ManagedPrefixEntry& p) {
     return true;
 }
 
+}
+
+bool applyManagedItemPrefixCallbackBindings(
+    const std::string& modId, const std::vector<std::pair<int, std::string>>& items) {
+    if (modId.empty() || modId.size() > 128 || items.size() > 4096) return false;
+    std::map<int, ManagedItemPrefixCallbackBinding> staged;
+    for (const auto& [type, owner] : items) {
+        if (type < 1 || type > 32767 || owner.empty() || owner.size() > 64 ||
+            !((owner[0] >= 'A' && owner[0] <= 'Z') ||
+              (owner[0] >= 'a' && owner[0] <= 'z') || owner[0] == '_') ||
+            !std::all_of(owner.begin(), owner.end(), [](unsigned char ch) {
+                return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+                       (ch >= '0' && ch <= '9') || ch == '_';
+            }) || bl::runtime::modItemTypeByKey(modId + "/" + owner) != type ||
+            !staged.emplace(type, ManagedItemPrefixCallbackBinding{modId, owner}).second)
+            return false;
+    }
+    if (staged.empty()) return true;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    const auto previous = std::atomic_load_explicit(&g_itemCallbackView,
+                                                    std::memory_order_acquire);
+    for (const auto& entry : staged)
+        if (previous->contains(entry.first)) return false;
+    auto updated = std::make_shared<std::map<int, ManagedItemPrefixCallbackBinding>>(*previous);
+    updated->insert(staged.begin(), staged.end());
+    std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> published = updated;
+    std::atomic_store_explicit(&g_itemCallbackView, std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>>
+managedItemPrefixCallbackView() {
+    return std::atomic_load_explicit(&g_itemCallbackView, std::memory_order_acquire);
 }
 
 bool applyManagedItemPrefixDenials(

@@ -43,6 +43,21 @@ int main() {
     auto first = managedPrefixView();
     assert(first && first->empty());
     assert(registeredManagedPrefixCount() == 0);
+    assert(managedItemPrefixCallbackView()->empty());
+    assert(!applyManagedItemPrefixCallbackBindings("", {{6207, "ExampleBlade"}}));
+    assert(!applyManagedItemPrefixCallbackBindings("test", {{6207, "Missing"}}));
+    assert(!applyManagedItemPrefixCallbackBindings("test",
+        {{6207, "ExampleBlade"}, {6207, "ExampleBlade"}}));
+    assert(managedItemPrefixCallbackView()->empty());
+    assert(applyManagedItemPrefixCallbackBindings("test", {{6207, "ExampleBlade"}}));
+    auto firstCallbacks = managedItemPrefixCallbackView();
+    assert(firstCallbacks->at(6207).modId == "test");
+    assert(firstCallbacks->at(6207).owner == "ExampleBlade");
+    assert(!applyManagedItemPrefixCallbackBindings("test", {{6207, "ExampleBlade"}}));
+    assert(managedItemPrefixCallbackView() == firstCallbacks);
+    assert(applyManagedItemPrefixCallbackBindings("test", {{6208, "ExampleCharm"}}));
+    assert(managedItemPrefixCallbackView()->at(6208).owner == "ExampleCharm");
+    assert(firstCallbacks->size() == 1);
     assert(managedItemPrefixChanceView()->empty());
     assert(!applyManagedItemPrefixChances({{6207, false}, {6207, true}}));
     assert(managedItemPrefixChanceView()->empty());
