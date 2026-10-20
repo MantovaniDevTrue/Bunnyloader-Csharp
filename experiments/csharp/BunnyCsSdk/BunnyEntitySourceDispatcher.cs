@@ -35,6 +35,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyItem> ItemUsers = new(StringComparer.Ordinal);
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
+        public readonly List<BunnyInvasionSystem> InvasionOrder = new();
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress)> SavedInvasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
@@ -97,6 +98,7 @@ public static class BunnyEntitySourceDispatcher
                         ?? throw new InvalidOperationException("Invalid invasion system " + type.Name);
                     if (context.Invasions.Count >= 16 || !context.Invasions.TryAdd(system.Id, system))
                         throw new InvalidOperationException("Duplicate invasion ID or too many invasion systems: " + system.Id);
+                    context.InvasionOrder.Add(system);
                 }
             }
             Contexts.Add(context);
@@ -211,7 +213,7 @@ public static class BunnyEntitySourceDispatcher
                 system.Tick(true, elapsedFrames, true);
             SaveInvasionIfChanged(context);
             if (context.Invasions.Count == 0) return received + used;
-            BunnyInvasionSystem[] systems = context.Invasions.Values.ToArray();
+            List<BunnyInvasionSystem> systems = context.InvasionOrder;
             for (int iteration = 0; iteration < systems.Length; iteration++)
             {
                 int index = (context.NextInvasionIndex + iteration) % systems.Length;
