@@ -138,6 +138,37 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
             -o "$RUNNER_TEMP/angler_fishing_il2cpp_test"
           "$RUNNER_TEMP/angler_fishing_il2cpp_test"
+  arm64-android-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross-compile AnglerQuest and Mono bridge against Android NDK arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [[ -n "${ANDROID_NDK_HOME:-}" && -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++" ]]; then
+            ndk="${ANDROID_NDK_HOME}"
+          else
+            if [[ ! -d "$root/ndk" ]]; then
+              echo "Android NDK unavailable on runner" >&2
+              exit 1
+            fi
+            ndk="$(find "$root/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          test -x "$clang"
+          "$clang" --version | head -n 1
+          "$clang" -std=c++20 -Wall -Wextra -Werror -pedantic -pthread -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
+            app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+
   managed-host:
     runs-on: ubuntu-latest
     timeout-minutes: 12
