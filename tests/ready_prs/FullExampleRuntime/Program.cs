@@ -50,6 +50,26 @@ try
         throw new InvalidOperationException("Full ExampleMod native handoff is incomplete");
 
     Console.WriteLine("FULL_EXAMPLE_ROSLYN_AND_EXECUTION=PASS classes=" + verified);
+    string compact = Path.Combine(framework, "compiler-references");
+    Directory.CreateDirectory(compact);
+    foreach (string name in references)
+    {
+        if (name == "System.Private.CoreLib.dll") continue;
+        File.Copy(Path.Combine(framework, name), Path.Combine(compact, name));
+    }
+    File.Copy(Path.Combine(framework, "BunnySourceSdk.dll"),
+        Path.Combine(compact, "BunnySourceSdk.dll"));
+    string compactOutput = Path.Combine(work, "compiled", "FullExampleCompact.dll");
+    string compactDiagnostics = Path.Combine(work, "compact-diagnostics.txt");
+    int compactCompiled = Compiler.Compile(root, compactOutput, framework, compactDiagnostics);
+    if (compactCompiled != 1)
+        throw new InvalidOperationException("Android-style compact Roslyn returned " + compactCompiled +
+            "\n" + File.ReadAllText(compactDiagnostics));
+    int compactVerified = CompiledAssemblyProbe.Verify(compactOutput, compactDiagnostics, root);
+    if (compactVerified != verified)
+        throw new InvalidOperationException("Android-style compact DLL validation returned " +
+            compactVerified + "\n" + File.ReadAllText(compactDiagnostics));
+    Console.WriteLine("FULL_EXAMPLE_ANDROID_COMPACT_REFERENCES=PASS classes=" + compactVerified);
 }
 finally
 {
