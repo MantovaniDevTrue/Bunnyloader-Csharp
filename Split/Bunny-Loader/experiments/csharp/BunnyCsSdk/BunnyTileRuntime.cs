@@ -30,7 +30,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles),
         nameof(BunnyTile.HasSmartInteract), nameof(BunnyTile.TileFrame),
         nameof(BunnyTile.KillTile), nameof(BunnyTile.KillMultiTile),
-        nameof(BunnyTile.NumDust), nameof(BunnyTile.CreateDust)
+        nameof(BunnyTile.NumDust), nameof(BunnyTile.CreateDust),
+        nameof(BunnyTile.KillSound)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -67,7 +68,7 @@ public static class BunnyTileRuntime {
                 if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (15 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            int expected = index == 11 || index == 25 ? 3 : index == 13 ? 12 :
+            int expected = index == 11 || index == 25 || index == 26 ? 3 : index == 13 ? 12 :
                 index == 21 || index == 23 || index == 24 ? 4 : index == 22 ? 5 : 2;
             if (fields.Length != (index == 20 ? 6 : expected) && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
@@ -181,6 +182,10 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 26:
+                    if(fields[2]!="0"&&fields[2]!="1")
+                        return "ERROR|Stage=DecodeTileKillSound Reason=InvalidFail";
+                    return tile.KillSound(x,y,fields[2]=="1") ? "1" : "0";
                 case 24:
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileDustCount Reason=InvalidFail";

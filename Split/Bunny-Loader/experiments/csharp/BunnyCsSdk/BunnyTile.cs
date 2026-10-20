@@ -89,6 +89,7 @@ public abstract class BunnyTile {
     public virtual int NumDust(bool fail) => fail ? 1 : 3;
     public virtual void NumDust(int x,int y,bool fail,ref int num) { }
     public virtual bool CreateDust(int x,int y,ref int type) => true;
+    public virtual bool KillSound(int x,int y,bool fail) => true;
     public virtual bool CanKillTile(int x, int y) => true;
     public virtual bool CanDrop(int x, int y) => true;
     public virtual void HitWire(int x, int y) { }
@@ -128,7 +129,7 @@ public abstract class BunnyTile {
                 nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
                 nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles),
                 nameof(HasSmartInteract), nameof(TileFrame), nameof(KillTile), nameof(KillMultiTile),
-                nameof(NumDust), nameof(CreateDust)
+                nameof(NumDust), nameof(CreateDust), nameof(KillSound)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
