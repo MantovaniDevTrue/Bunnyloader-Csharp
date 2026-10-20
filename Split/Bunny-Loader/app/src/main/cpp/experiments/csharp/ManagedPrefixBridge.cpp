@@ -138,21 +138,28 @@ bool valid(const ManagedPrefixEntry& p) {
 }
 
 bool applyManagedItemPrefixCallbackBindings(
-    const std::string& modId, const std::vector<std::pair<int, std::string>>& items) {
-    if (modId.empty() || modId.size() > 128 || items.size() > 4096) return false;
+    const std::string& modId, const std::vector<std::pair<int, std::string>>& items,
+    const std::map<int,int>& masks) {
+    if (modId.empty() || modId.size() > 128 || items.size() > 4096 ||
+        masks.size()>items.size()) return false;
     std::map<int, ManagedItemPrefixCallbackBinding> staged;
     for (const auto& [type, owner] : items) {
-        if (type < 1 || type > 32767 || owner.empty() || owner.size() > 64 ||
+        const auto mask=masks.find(type);
+        const int bits=mask==masks.end()?1:mask->second;
+        if (bits<1 || bits>15 || type < 1 || type > 32767 ||
+            owner.empty() || owner.size() > 64 ||
             !((owner[0] >= 'A' && owner[0] <= 'Z') ||
               (owner[0] >= 'a' && owner[0] <= 'z') || owner[0] == '_') ||
             !std::all_of(owner.begin(), owner.end(), [](unsigned char ch) {
                 return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
                        (ch >= '0' && ch <= '9') || ch == '_';
             }) || bl::runtime::modItemTypeByKey(modId + "/" + owner) != type ||
-            !staged.emplace(type, ManagedItemPrefixCallbackBinding{modId, owner}).second)
+            !staged.emplace(type, ManagedItemPrefixCallbackBinding{modId, owner, bits}).second)
             return false;
     }
     if (staged.empty()) return true;
+    for (const auto& [type,mask] : masks)
+        if (!staged.contains(type) || mask<1 || mask>15) return false;
     if (!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())
         return false;
     std::lock_guard<std::mutex> guard(g_prefixMutex);
