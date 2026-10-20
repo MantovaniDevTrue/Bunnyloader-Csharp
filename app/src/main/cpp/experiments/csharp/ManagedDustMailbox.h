@@ -198,16 +198,6 @@ public:
                 return true;
             }
         }
-        if (slot.pending) {
-            slot.pending = false;
-            requests_.erase(std::remove_if(requests_.begin(), requests_.end(),
-                [&](const Request& request) {
-                    return request.synchronous && request.session == session &&
-                        request.binding == binding && request.phase == phase &&
-                        request.frame == frame &&
-                        managedDustSameInstance(request.state, original);
-                }), requests_.end());
-        }
         return false;
     }
 
