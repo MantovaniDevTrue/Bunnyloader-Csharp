@@ -65,6 +65,24 @@ jobs:
           test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
           grep -a -q BunnySounds /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
           grep -a -q BunnySoundPlayback /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          mkdir -p /tmp/bunny-sound-example
+          cat > /tmp/bunny-sound-example/SoundExample.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs" />
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-example/SoundExample.csproj -c Release
           echo 'CSHARP_SOUNDLOADER_MANAGED_SDK_COMPILE_PASS'
       - uses: actions/upload-artifact@v4
         with:
