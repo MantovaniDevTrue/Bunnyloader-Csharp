@@ -1,5 +1,6 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedDustLifecycle.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
@@ -269,6 +270,7 @@ GetAlphaValueFn g_origGetAlphaValue = nullptr;
 
 int g_frame = 0;
 std::array<int, kDustSlots> g_dustGenerations{};
+csharp::ManagedDustLifecycle g_dustLifecycle;
 Scan g_scan;
 std::vector<Il2CppObject*> g_list;
 std::vector<bool> g_flags;
@@ -402,6 +404,21 @@ struct ManagedDustCached {
 };
 std::array<ManagedDustCached, kDustSlots * csharp::ManagedDustMailbox::kPhases> g_dustCached{};
 
+void sweepManagedDustLifecycle(Il2CppArray* dusts) {
+    if (!dusts || dusts->length < static_cast<uintptr_t>(kDustSlots)) return;
+    auto** all = dustSlots(dusts);
+    g_dustLifecycle.sweep([&](int slot, int type, int generation) {
+        Il2CppObject* dust = all[slot];
+        return dust && activeOf(dust) && typeOf(dust) == type &&
+               g_dustGenerations[static_cast<size_t>(slot)] == generation;
+    });
+    g_dustLifecycle.flush(24, [&](const csharp::ManagedDustState& state) {
+        if (!csharp::hasManagedDustType(state.type)) return true;
+        return csharp::queueManagedDustCallback(
+            state.type, 5, state, static_cast<std::uint64_t>(g_frame));
+    });
+}
+
 bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
                       std::uint32_t* argColor = nullptr) {
     if (!dust || !activeOf(dust) || phase < 0 ||
@@ -433,6 +450,7 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
     }
     if (activeOf(dust)) {
         auto state = captureManagedDust(dust, slot, generation);
+        g_dustLifecycle.observe(state);
         if (argColor) state.color = *argColor;
         csharp::queueManagedDustCallback(state.type, phase, state,
                                           static_cast<std::uint64_t>(g_frame));
@@ -457,6 +475,7 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
         if (free < g_minFree) g_minFree = free;
     }
     if (type < kVanillaDustCount || index < 0 || index >= kDustSlots) return index;
+    g_dustLifecycle.retire(index);
     int& instance = g_dustGenerations[static_cast<size_t>(index)];
     if (instance <= 0 || instance == INT32_MAX) instance = 1;
     else ++instance;
@@ -492,14 +511,20 @@ void hkUpdateDust(const MethodInfo* m) {
             scanDusts(dusts, 0, g_scan, false);
             checkPool(dusts, g_scan.active);
         }
-        return g_origUpdateDust(m);
+        g_origUpdateDust(m);
+        sweepManagedDustLifecycle(dusts);
+        return;
     }
 
     Timed timed(g_updateNs);
     ++g_updates;
     scanDusts(dusts, scanLimit(), g_scan, true);
     checkPool(dusts, g_scan.active);
-    if (g_scan.mods.empty()) return g_origUpdateDust(m);
+    if (g_scan.mods.empty()) {
+        g_origUpdateDust(m);
+        sweepManagedDustLifecycle(dusts);
+        return;
+    }
 
     // ModDust.Update: false tira a poeira do laco do jogo neste quadro.
     g_list.clear();
@@ -589,6 +614,7 @@ void hkUpdateDust(const MethodInfo* m) {
                 field<Vec2>(d, refs().velocity).x /= 0.99f;
         }
     }
+    sweepManagedDustLifecycle(dusts);
 }
 
 void swapTexture(Il2CppObject* asset) {
@@ -929,6 +955,12 @@ DustPoolStats dustPoolStats() {
     s.groupPasses = g_groupPasses;
     s.groupDusts = g_groupDusts;
     return s;
+}
+
+void resetManagedDustLifecycle() {
+    g_dustLifecycle.reset();
+    g_dustGenerations.fill(0);
+    g_dustCached.fill({});
 }
 
 bool repairDustPool() {
