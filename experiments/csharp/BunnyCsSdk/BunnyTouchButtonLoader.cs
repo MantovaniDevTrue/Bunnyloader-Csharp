@@ -139,9 +139,15 @@ public static class BunnyTouchButtonLoader
         lock (Gate)
         {
             if (gameUpdateCount <= lastTick) return 0;
-            var heldMap = ToMap(held);
-            var tapMap = ToMap(tapped);
-            var boundMap = ToMap(bound);
+            Span<bool> heldMap = stackalloc bool[MaxButtons];
+            Span<bool> tapMap = stackalloc bool[MaxButtons];
+            Span<bool> boundMap = stackalloc bool[MaxButtons];
+            heldMap.Clear();
+            tapMap.Clear();
+            boundMap.Clear();
+            ToMap(held, heldMap);
+            ToMap(tapped, tapMap);
+            ToMap(bound, boundMap);
             bool retroAllowed = inGame && !chatOpen && !npcDialogOpen && !signOpen;
             int transitions = 0;
             for (int i = 0; i < Entries.Count; i++)
@@ -188,13 +194,11 @@ public static class BunnyTouchButtonLoader
         }
     }
 
-    private static bool[] ToMap(int[] indices)
+    private static void ToMap(int[] indices, Span<bool> map)
     {
-        var map = new bool[MaxButtons];
         foreach (int index in indices)
             if (index >= 0 && index < Entries.Count && Entries[index] is not null)
                 map[index] = true;
-        return map;
     }
 
     private static void ValidatePart(string value, string param)
