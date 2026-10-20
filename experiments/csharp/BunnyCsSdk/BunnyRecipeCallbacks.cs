@@ -176,8 +176,22 @@ public static class BunnyQuestRuntime
                 Type[] types=assembly.GetTypes().Where(type=>type.Name==owner&&type.IsClass&&
                     !type.IsAbstract&&!type.ContainsGenericParameters&&typeof(BunnyItem).IsAssignableFrom(type)).ToArray();
                 if(types.Length!=1)throw new InvalidOperationException("Quest owner identity mismatch");
-                var item=(BunnyItem)Activator.CreateInstance(types[0])!;
+                Type type=types[0];
+                var declaration=type.GetCustomAttribute<BunnyContentAttribute>(false);
+                if(declaration==null&&type.BaseType!=typeof(BunnyItem))
+                    throw new InvalidOperationException("Inherited quest owner requires BunnyContent declaration");
+                if(declaration!=null&&declaration.Kind!=BunnyContentKind.Item)
+                    throw new InvalidOperationException("Quest owner declaration must be Item");
+                var item=(BunnyItem)Activator.CreateInstance(type)!;
+                if(declaration!=null)
+                {
+                    item.DisplayName=declaration.DisplayName;
+                    item.Texture=declaration.Texture;
+                }
                 item.SetDefaults();
+                if(declaration!=null&&(item.DisplayName!=declaration.DisplayName||
+                    item.Texture!=declaration.Texture))
+                    throw new InvalidOperationException("Quest owner changed declared content identity");
                 if(!item.QuestFish)throw new InvalidOperationException("Quest owner must declare QuestFish");
                 handler=new Handler{Path=assemblyPath,Item=item};
                 handlers[key]=handler;
