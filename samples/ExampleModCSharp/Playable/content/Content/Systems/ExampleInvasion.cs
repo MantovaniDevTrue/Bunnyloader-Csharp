@@ -24,20 +24,24 @@ public static class ExampleInvasion
 
     public static bool NativeSpawnCreated(bool serverAuthority, int epoch,
         int ticket, int npcSlot, long nativeIdentity) =>
+        Pipeline.TryGetReservedClass(epoch, ticket, out string npcClass) &&
         Pipeline.ReportCreated(serverAuthority, epoch, ticket,
-            nameof(ExampleSlimeNPC), npcSlot, nativeIdentity);
+            npcClass, npcSlot, nativeIdentity);
 
     public static bool NativeSpawnFailed(bool serverAuthority, int epoch, int ticket) =>
         Pipeline.ReportFailed(serverAuthority, epoch, ticket);
 
-    public static bool ConfirmFirstTick(bool serverAuthority, ref BunnyNpcAiState state) =>
-        Pipeline.PendingCount != 0 &&
+    public static bool ConfirmFirstTick(bool serverAuthority,
+        string npcClass, ref BunnyNpcAiState state) =>
+        Pipeline.MatchesPendingNpc(npcClass, state.Slot, state.NativeIdentity) &&
         Pipeline.ConfirmFirstTick(serverAuthority, Controller.Snapshot().Epoch,
-            nameof(ExampleSlimeNPC), state.Slot, state.Generation, state.NativeIdentity);
+            npcClass, state.Slot, state.Generation, state.NativeIdentity);
 
     public static bool EnemyKilled(bool serverAuthority, int npcSlot, int npcGeneration) =>
         Controller.ReportKill(serverAuthority, npcSlot, npcGeneration,
-            nameof(ExampleSlimeNPC));
+            nameof(ExampleSlimeNPC)) ||
+        Controller.ReportKill(serverAuthority, npcSlot, npcGeneration,
+            nameof(ExampleInvasionEliteSlimeNPC));
 
     public static bool EnemyDespawned(bool serverAuthority, int npcSlot, int npcGeneration) =>
         Controller.ReportDespawn(serverAuthority, npcSlot, npcGeneration);
