@@ -32,6 +32,8 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyProjectile> NamedProjectiles = new(StringComparer.Ordinal);
         public readonly Dictionary<int, BunnyNPC> Npcs = new();
         public readonly Dictionary<int, BunnyProjectile> Projectiles = new();
+        public readonly Dictionary<string, BunnyItem> ItemUsers = new(StringComparer.Ordinal);
+        public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public BunnyInvasionSystem? Invasion;
         public long NativeWorldSession;
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
@@ -71,6 +73,16 @@ public static class BunnyEntitySourceDispatcher
                     if (Activator.CreateInstance(type) is BunnyProjectile projectile &&
                         !context.NamedProjectiles.TryAdd(type.Name, projectile))
                         throw new InvalidOperationException("Duplicated projectile class " + type.Name);
+                }
+                else if (typeof(BunnyItem).IsAssignableFrom(type))
+                {
+                    MethodInfo? use = type.GetMethod(nameof(BunnyItem.OnUse), new[] { typeof(int) });
+                    if (use?.DeclaringType != typeof(BunnyItem) &&
+                        Activator.CreateInstance(type) is BunnyItem item)
+                    {
+                        if (!context.ItemUsers.TryAdd(type.Name, item))
+                            throw new InvalidOperationException("Duplicate item use class " + type.Name);
+                    }
                 }
                 else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
                 {
@@ -115,17 +127,33 @@ public static class BunnyEntitySourceDispatcher
             elapsedFrames < 1 || elapsedFrames > 60) return 0;
         Context context = Contexts[modSlot];
         BunnyInvasionSystem? invasion = context.Invasion;
-        if (invasion == null) return -2;
+        if (invasion == null && context.ItemUsers.Count == 0) return -2;
         bool authoritative = mode == 0 || mode == 2 || mode == 3;
         if (context.NativeWorldSession != worldSession)
         {
-            invasion.OnWorldExit();
+            invasion?.OnWorldExit();
+            context.RegisteredItemUses.Clear();
             context.NativeWorldSession = worldSession;
         }
         if (!authoritative || playerIndex < 0 ||
             !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
         try
         {
+            int used = 0;
+            foreach (var pair in context.ItemUsers)
+            {
+                if (!context.RegisteredItemUses.Contains(pair.Key) &&
+                    BunnyNativeItemUse.Bind(worldSession, context.Mod, pair.Key))
+                    context.RegisteredItemUses.Add(pair.Key);
+                if (!context.RegisteredItemUses.Contains(pair.Key)) continue;
+                for (int n = 0; n < 8 && BunnyNativeItemUse.TryPoll(
+                    worldSession, context.Mod, pair.Key, out int usingPlayer); n++)
+                {
+                    pair.Value.OnUse(usingPlayer);
+                    used++;
+                }
+            }
+            if (invasion == null) return used;
             int received = 0;
             while (received < 8 && BunnyInvasionNativeTransport.TryPoll(
                 worldSession, context.Mod, out BunnyNativeInvasionReply result))
