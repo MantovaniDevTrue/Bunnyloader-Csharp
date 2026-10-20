@@ -24,6 +24,11 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.cpp
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp
+      - app/src/main/cpp/experiments/csharp/InvasionSaveFile.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionWorldPersistence.cs
       - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
@@ -58,10 +63,14 @@ jobs:
         run: dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release
       - name: Audit native NPC identity handoff and verified spawn admission
         run: python3 tests/invasion/check_native_identity_bridge.py
+      - name: Test atomic per-world invasion sidecars and session isolation
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSaveStoreTest.cpp app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp -o /tmp/bunny-invasion-save
+          /tmp/bunny-invasion-save
       - name: Simulate CSharp-to-native-to-CSharp invasion round trip
         run: |
           mkdir -p /tmp/bunny-invasion-test
-          g++ -std=c++20 -shared -fPIC -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-test/libbunny.so
+          g++ -std=c++20 -shared -fPIC -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp -o /tmp/bunny-invasion-test/libbunny.so
           LD_LIBRARY_PATH=/tmp/bunny-invasion-test dotnet run --project tests/invasion/TransportIntegration.csproj --configuration Release
       - name: Audit world-ready host and autonomous MonoVM invasion integration
         run: python3 tests/invasion/check_world_host_contract.py
@@ -99,6 +108,11 @@ jobs:
           NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
           test -n "$NDK"
           "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeCSharpItemUse.cpp
+      - name: Syntax-check native world path and save bridge with Android NDK
+        run: |
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - name: Validate CSharp NPC world authority in native C++
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
