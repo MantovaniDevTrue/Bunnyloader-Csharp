@@ -10,6 +10,8 @@ int main() {
     request.modId = "examplemodcsharp";
     request.npcClass = "ExampleSlimeNPC";
     request.worldReady = true;
+    request.epoch = 1;
+    request.ticket = 1;
     request.playerIndex = 1;
     request.x = 1600.f;
     request.y = 1800.f;
@@ -32,6 +34,12 @@ int main() {
     request.playerIndex = 255;
     assert(!canDispatchInvasionSpawn(request, 0));
     request.playerIndex = 0;
+    request.epoch = 0;
+    assert(!canDispatchInvasionSpawn(request, 0));
+    request.epoch = 1;
+    request.ticket = 0;
+    assert(!canDispatchInvasionSpawn(request, 0));
+    request.ticket = 1;
     request.x = 0.f;
     assert(!canDispatchInvasionSpawn(request, 0));
     request.x = std::numeric_limits<float>::quiet_NaN();
