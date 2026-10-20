@@ -1,6 +1,7 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedDustLifecycle.h"
+#include "experiments/csharp/ManagedDustSlotLookup.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
@@ -271,6 +272,7 @@ GetAlphaValueFn g_origGetAlphaValue = nullptr;
 int g_frame = 0;
 std::array<int, kDustSlots> g_dustGenerations{};
 csharp::ManagedDustLifecycle g_dustLifecycle;
+csharp::ManagedDustSlotLookup<Il2CppObject, kDustSlots> g_dustSlotLookup;
 Scan g_scan;
 std::vector<Il2CppObject*> g_list;
 std::vector<bool> g_flags;
@@ -333,11 +335,11 @@ void endKillTracking(const std::vector<Il2CppObject*>& list) {
 // a calculou pela posicao do tipo na folha) e o OnSpawn.
 bool managedFieldsReady() {
     const Refs& r = refs();
-    return r.dustIndex > 0 && r.position > 0 && r.scale > 0 &&
+    return r.position > 0 && r.scale > 0 &&
            r.rotation > 0 && r.alpha > 0 && r.color > 0;
 }
 
-int managedIndex(Il2CppObject* dust) {
+int managedIndex(Il2CppObject* dust, int knownSlot = -1) {
     if (!dust) return -1;
     if (!managedFieldsReady()) {
         static bool reported = false;
@@ -347,8 +349,23 @@ int managedIndex(Il2CppObject* dust) {
         }
         return -1;
     }
-    const int index = field<int32_t>(dust, refs().dustIndex);
-    return index >= 0 && index < kDustSlots ? index : -1;
+    Il2CppArray* array = readStatic<Il2CppArray*>(refs().mainDust);
+    if (!array || array->length < static_cast<uintptr_t>(kDustSlots))
+        return -1;
+    const int offset = refs().dustIndex;
+    int hinted = knownSlot;
+    if (hinted < 0 && offset > 0)
+        hinted = field<int32_t>(dust, offset);
+    const int index = g_dustSlotLookup.resolve(
+        dustSlots(array), static_cast<size_t>(array->length), dust, hinted);
+    if (index >= 0 && hinted != index) {
+        static bool reportedFallback = false;
+        if (!reportedFallback) {
+            reportedFallback = true;
+            BL_WARN("[CSharp][DustLoader] Stage=ResolveFields Result=FallbackToMainDustSlots");
+        }
+    }
+    return index;
 }
 
 csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int generation) {
@@ -379,8 +396,8 @@ csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int ge
 void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& before,
                       const csharp::ManagedDustState& state, bool updateColor = true) {
     if (!activeOf(dust)) return;
-    const int slot = managedIndex(dust);
-    if (slot < 0) return;
+    const int slot = managedIndex(dust, before.slot);
+    if (slot < 0 || slot != before.slot) return;
     const auto live = captureManagedDust(dust, slot, state.generation);
     csharp::ManagedDustState merged{};
     if (!csharp::mergeManagedDustDelta(live, before, state, &merged, updateColor))
@@ -975,6 +992,7 @@ DustPoolStats dustPoolStats() {
 
 void resetManagedDustLifecycle() {
     g_dustLifecycle.reset();
+    g_dustSlotLookup.reset();
     g_dustGenerations.fill(0);
     g_dustCached.fill({});
 }
