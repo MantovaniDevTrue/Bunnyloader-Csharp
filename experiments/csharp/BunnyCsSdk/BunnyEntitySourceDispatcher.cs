@@ -279,6 +279,8 @@ public static class BunnyEntitySourceDispatcher
                 };
                 try { previousNpc.OnDespawn(ref previousState); }
                 catch (Exception error) { Fault(context, previousNpc.GetType().Name + ".OnDespawn", error); }
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportDespawn(true, slot, instance.Generation);
             }
             instance = new NpcInstance { Generation = generation, Type = type };
         }
@@ -489,6 +491,8 @@ public static class BunnyEntitySourceDispatcher
                 };
                 try { npc.OnDespawn(ref state); }
                 catch (Exception error) { Fault(context, npc.GetType().Name + ".ResetWorld", error); }
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportDespawn(true, i, current.Generation);
             }
             for (int i = 0; i < context.ProjectileSlots.Length; i++)
             {
