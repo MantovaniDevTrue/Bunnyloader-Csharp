@@ -1,3 +1,5 @@
+#include <atomic>
+#include <cstring>
 #include "../../app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h"
 #include "../../app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h"
 
@@ -24,4 +26,31 @@ extern "C" void bunny_invasion_test_world(int ready, int64_t session) {
 
 extern "C" void bunny_invasion_test_pump() {
     bl::csharp::pumpNativeInvasionSpawnsOnGameThread();
+}
+
+namespace {
+std::atomic<int> pendingUse{-1};
+}
+
+extern "C" int bunny_item_use_bind(int64_t session, const char* mod,
+                                    const char* itemName) {
+    return session > 0 && mod && itemName &&
+        std::strcmp(mod, "mod-a") == 0 &&
+        std::strcmp(itemName, "ExampleInvasionBeacon") == 0 ? 1 : 0;
+}
+
+extern "C" int bunny_item_use_poll(int64_t session, const char* mod,
+                                    const char* itemName, int* playerIndex) {
+    if (!session || !mod || !itemName || !playerIndex ||
+        std::strcmp(mod, "mod-a") != 0 ||
+        std::strcmp(itemName, "ExampleInvasionBeacon") != 0)
+        return 0;
+    const int pending = pendingUse.exchange(-1);
+    if (pending < 0) return 0;
+    *playerIndex = pending;
+    return 1;
+}
+
+extern "C" void bunny_item_use_test_inject(int playerIndex) {
+    pendingUse.store(playerIndex);
 }
