@@ -115,7 +115,7 @@ public static class BunnyEntitySourceDispatcher
             elapsedFrames < 1 || elapsedFrames > 60) return 0;
         Context context = Contexts[modSlot];
         BunnyInvasionSystem? invasion = context.Invasion;
-        if (invasion == null) return 0;
+        if (invasion == null) return -2;
         bool authoritative = mode == 0 || mode == 2 || mode == 3;
         if (context.NativeWorldSession != worldSession)
         {
