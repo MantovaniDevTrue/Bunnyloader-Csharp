@@ -1137,6 +1137,7 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `BunnyTileDrop[] GetItemDrops(int x, int y)` | managed_helper |
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
 | `bool CreateDust(int x, int y, ref int type)` | managed_helper |
@@ -1188,6 +1189,16 @@ int ParticleCount { get; }
 | `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
 | `void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)` | managed_helper |
 | `void RequestSpecialDraw()` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileDrop
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTileDrop(int itemType, int stack)
+int ItemType { get; }
+int Stack { get; }
+```
 
 ## BunnyLoader.Source.BunnyTileFlags
 

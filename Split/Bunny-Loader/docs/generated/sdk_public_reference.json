@@ -2026,6 +2026,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "BunnyTileDrop[] GetItemDrops(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool CanDrop(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2192,6 +2196,20 @@
           "execution": "managed_helper"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileDrop",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTileDrop(int itemType, int stack)"
+      ],
+      "properties": [
+        "int ItemType { get; }",
+        "int Stack { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyTileFlags",

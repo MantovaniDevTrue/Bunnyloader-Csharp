@@ -58,3 +58,7 @@ O contrato `ModTile.HasSmartInteract(i,j,settings)` agora aceita um override C# 
 ## KillSound nativo
 
 `BunnyTile.KillSound(int x,int y,bool fail)` foi associado a `WorldGen.KillTile_PlaySounds` pelo ABI exato de quatro argumentos (`Tile` de quatro bytes). Retorna `false` para suprimir o som; `true` mantém a função original. Só instala o hook quando o callback C# foi sobrescrito, usa orçamento de 650 µs e executa o som original em caso de worker ocupado ou resposta inválida. `HitSound` com estilo próprio continua pendente; validação Android também.
+
+## GetItemDrops tipado C#
+
+`BunnyTile.GetItemDrops(int x,int y)` retorna até dois `BunnyTileDrop` (ItemType e Stack), array vazio para não dropar e `null` para preservar o default. O wire `DROPS|0/1/2|type,stack` é validado pela política C++ nativa (IDs 1..65535, stack 1..9999). O callback roda somente com override e worker pré-aquecido, com orçamento 900 µs. Em erro ou fila ocupada, mantém o comportamento anterior de drop. Nenhum scan de mundo ou QuickJS. `RegisterItemDrop` por estilo ainda não foi incorporado.
