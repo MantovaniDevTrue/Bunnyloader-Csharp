@@ -130,8 +130,12 @@ void pumpNativeItemUseBindingsOnGameThread() {
             binding = std::move(g_requests.front());
             g_requests.pop_front();
         }
-        if (binding.session != g_session.load(std::memory_order_acquire) ||
-            !runtime::modItemsSettled()) continue;
+        if (binding.session != g_session.load(std::memory_order_acquire)) continue;
+        if (!runtime::modItemsSettled()) {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            g_requests.push_front(std::move(binding));
+            return;
+        }
         const int type = runtime::modItemTypeByKey(binding.mod + "/" + binding.name);
         if (type < runtime::kVanillaItemCount || !installItemUseHook()) continue;
         g_installed[type] = std::move(binding);
