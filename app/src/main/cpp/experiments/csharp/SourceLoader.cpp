@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/ManagedGoreDiscovery.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
