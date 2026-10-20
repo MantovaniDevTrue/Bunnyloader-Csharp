@@ -10,6 +10,7 @@
 #include "experiments/csharp/NativeTileDropPolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTileSaplingPolicy.h"
+#include "experiments/csharp/NativeTileSaplingSwapPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -168,6 +169,10 @@ const MethodInfo* g_saplingLos=nullptr;
 const MethodInfo* g_saplingFx=nullptr;
 FieldInfo* g_saplingNetMode=nullptr;
 bool g_saplingInstalled=false;
+using SaplingSetTypeFn=void (*)(int32_t,uint16_t,const MethodInfo*);
+SaplingSetTypeFn g_saplingSetType=nullptr;
+const MethodInfo* g_saplingSetTypeMethod=nullptr;
+thread_local bool g_saplingSwapActive=false;
 FrameFn g_origFrame = nullptr;
 TileFrameFn g_originalTileFrame=nullptr;
 bool g_tileFrameCallbackInstalled=false;
@@ -1633,11 +1638,79 @@ bool saplingInvokeBool(const MethodInfo* method,void** args,bool* value) {
     return true;
 }
 
+bool bindSaplingSetType() {
+    if(g_saplingSetType&&g_saplingSetTypeMethod)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_param||!a.method_get_return_type)return false;
+    auto* data=il2cpp::findClass({"Terraria","TileData",{}});
+    const auto* method=data?a.class_get_method_from_name(data,"SetType",2):nullptr;
+    if(!method||a.method_is_instance(method)||a.method_get_param_count(method)!=2||
+       !nameOf(a.method_get_param(method,0),"System.Int32")||
+       !nameOf(a.method_get_param(method,1),"System.UInt16")||
+       !nameOf(a.method_get_return_type(method),"System.Void")||
+       !il2cpp::methodPointer(method))return false;
+    g_saplingSetType=reinterpret_cast<SaplingSetTypeFn>(il2cpp::methodPointer(method));
+    g_saplingSetTypeMethod=method;
+    return true;
+}
+
+bool saplingGrowWithSafeSwap(const NativeTileGameplaySpec& spec,
+                             int x,int y,int addon,bool ignoreWalls,bool* grew) {
+    if(!grew||spec.shape!=4||!g_saplingSetType||
+       !g_saplingSetTypeMethod||g_saplingSwapActive)return false;
+    runtime::TileArrays world;
+    if(!runtime::tileArrays(&world)||x<0||y<0||x>=world.width||y>=world.height)return false;
+    const int64_t index=static_cast<int64_t>(y)*world.width+x;
+    const uint32_t def=world.lookup[index];
+    tile_sapling::SwapPlan plan;
+    if(!tile_sapling::swapPlan(x,y,spec.type,world.frameX[def],world.frameY[def],
+                              world.width,world.height,&plan))return false;
+    if(runtime::tileTypeAt(x,plan.top)!=spec.type||
+       runtime::tileTypeAt(x,plan.bottom)!=spec.type)return false;
+    const uint32_t upper=world.lookup[static_cast<int64_t>(plan.top)*world.width+x];
+    const uint32_t lower=world.lookup[static_cast<int64_t>(plan.bottom)*world.width+x];
+    if(!tile_sapling::matchingFrames(plan,world.frameX[def],world.frameY[def],
+             world.frameX[upper],world.frameY[upper],
+             world.frameX[lower],world.frameY[lower]))return false;
+    const int ground=runtime::tileTypeAt(x,plan.bottom+1);
+    if((spec.saplingGroundType<0||ground!=spec.saplingGroundType)&&
+       (spec.saplingVanillaGroundType<0||ground!=spec.saplingVanillaGroundType))
+        return false;
+    g_saplingSwapActive=true;
+    const auto change=[&](int yy,int nextType) {
+        const int old=runtime::tileTypeAt(x,yy);
+        if(old!=spec.type&&old!=20)return false;
+        const int64_t offset=static_cast<int64_t>(yy)*world.width+x;
+        if(offset>INT32_MAX)return false;
+        g_saplingSetType(static_cast<int32_t>(offset),
+                         static_cast<uint16_t>(nextType),g_saplingSetTypeMethod);
+        return runtime::tileTypeAt(x,yy)==nextType;
+    };
+    bool changedTop=change(plan.top,20);
+    bool changedBottom=changedTop&&change(plan.bottom,20);
+    bool result=false,called=false;
+    if(changedTop&&changedBottom) {
+        int32_t nx=x,ny=y,na=addon;
+        bool nw=ignoreWalls;
+        void* args[]={&nx,&ny,&na,&nw};
+        called=saplingInvokeBool(g_saplingGrow,args,&result);
+    }
+    if(!called||!result) {
+        if(runtime::tileTypeAt(x,plan.bottom)==20)change(plan.bottom,spec.type);
+        if(runtime::tileTypeAt(x,plan.top)==20)change(plan.top,spec.type);
+    }
+    g_saplingSwapActive=false;
+    *grew=called&&result;
+    return called;
+}
+
 bool hkGrowSapling(int32_t x,int32_t y,bool underground,int32_t addon,
                    bool ignoreWalls,const MethodInfo* method) {
     if(!g_origSaplingAttempt)return false;
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<28))==0)
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<28))==0&&
+        it->second.spec.shape!=4))
         return g_origSaplingAttempt(x,y,underground,addon,ignoreWalls,method);
     const auto& spec=it->second.spec;
     if(!tile_sapling::validInput(x,y,addon))return false;
@@ -1646,21 +1719,29 @@ bool hkGrowSapling(int32_t x,int32_t y,bool underground,int32_t addon,
     if(!g_saplingNetMode||!a.field_static_get_value)return false;
     a.field_static_get_value(g_saplingNetMode,&mode);
     if(mode==1||mode<0||mode>3)return false;
-    if(!managedTileReady(spec,28))return false;
-    std::string reply;
-    bool allow=false;
-    if(!invokeManagedTileSapling(spec.mod,spec.assembly,spec.name,x,y,
-        underground,addon,ignoreWalls,&reply,850)||
-       !tile_sapling::parseReply(reply,&allow)) {
-        reportTileCallbackFailure(spec,28,reply);
-        return false;
+    bool allow=true;
+    if(spec.callbackMask&(1<<28)) {
+        if(!managedTileReady(spec,28))return false;
+        std::string reply;
+        if(!invokeManagedTileSapling(spec.mod,spec.assembly,spec.name,x,y,
+            underground,addon,ignoreWalls,&reply,850)||
+           !tile_sapling::parseReply(reply,&allow)) {
+            reportTileCallbackFailure(spec,28,reply);
+            return false;
+        }
     }
     if(!allow)return false;
-    int32_t nativeX=x,nativeY=y,nativeAddon=addon;
-    bool nativeWalls=ignoreWalls;
-    void* growArgs[]={&nativeX,&nativeY,&nativeAddon,&nativeWalls};
     bool grew=false;
-    if(!saplingInvokeBool(g_saplingGrow,growArgs,&grew)||!grew)return false;
+    if(spec.shape==4) {
+        if(!saplingGrowWithSafeSwap(spec,x,y,addon,ignoreWalls,&grew)||!grew)
+            return false;
+    } else {
+        int32_t nx=x,ny=y,na=addon;
+        bool nw=ignoreWalls;
+        void* growArgs[]={&nx,&ny,&na,&nw};
+        if(!saplingInvokeBool(g_saplingGrow,growArgs,&grew)||!grew)return false;
+    }
+    int32_t nativeX=x,nativeY=y;
     void* fxArgs[]={&nativeX,&nativeY};
     bool playerLos=false;
     if(saplingInvokeBool(g_saplingLos,fxArgs,&playerLos)&&playerLos) {
@@ -1903,7 +1984,12 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if((spec.callbackMask&(1<<21))&&!setupTileFrameCallbackHook())return false;
     if((spec.callbackMask&(1<<26))&&!setupNativeTileKillSoundHook())return false;
-    if((spec.callbackMask&(1<<28))&&!setupNativeTileSaplingHook()) {
+    if(spec.shape==4&&!bindSaplingSetType()) {
+        BL_ERROR("[CSharp][TreeLoader] Mod=%s Class=%s Stage=BindTileDataSetType Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
+    if((spec.shape==4||(spec.callbackMask&(1<<28)))&&!setupNativeTileSaplingHook()) {
         BL_ERROR("[CSharp][GrowSapling] Mod=%s Class=%s Stage=BindNativeABI Result=Rejected",
                  spec.mod.c_str(),spec.name.c_str());
         return false;

@@ -27,3 +27,8 @@ Esses comportamentos ainda aguardam teste no Terraria Android nesta revisão. Te
 `BunnyTileShape.Sapling1x2` registra um tile de 1x2 com frames 16/18, origem (0,1), âncora sólida inferior, sprite espelhado e três estilos por padrão. Defina `SaplingGroundTile = "ExampleTile"`, `SaplingVanillaGroundTile = 8`, `SaplingStyleRange = 3` e as seis flags do perfil (FrameImportant, NoAttach, LavaDeath, TreeSapling, CommonSapling, SwaysInWindBasic) no `SetStaticDefaults`. A origem do nome do bloco deve ser o **mesmo mod**. A descrição segue o ExampleSapling original do Bunny e não autoriza chamar código tModLoader nem JS no novo mod C#.
 
 Esse formato de objeto **ainda não** torna o `ExampleTree` jogável em C#: falta registrar árvore, tronco e integrar `GrowTree` com a substituição temporária dos IDs. O teste da geometria no Android permanece necessário.
+
+
+## Crescimento do `Sapling1x2` (etapa de troca nativa)
+
+A tentativa de crescimento valida duas células e solo antes de chamar `WorldGen.GrowTree`. A muda é convertida **temporariamente** no tipo vanilla 20 por `TileData.SetType` (não por escrita direta no array internado); em falha, restaura as células. Um override `BunnyTile.GrowSapling` pode vetar; sem override, a autorização padrão é verdadeira. Ainda depende dos futuros hooks de terreno e do registro completo do `TreeLoader` para realmente produzir a árvore do ExampleModBunny no Android.

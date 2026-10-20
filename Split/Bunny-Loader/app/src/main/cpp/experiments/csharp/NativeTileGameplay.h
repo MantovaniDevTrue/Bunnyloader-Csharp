@@ -26,6 +26,8 @@ struct NativeTileGameplaySpec {
     std::vector<tile_drop::Rule> registeredDrops;
     int minPick = 0;
     float mineResist = 1.f;
+    int saplingGroundType = -1;
+    int saplingVanillaGroundType = -1;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

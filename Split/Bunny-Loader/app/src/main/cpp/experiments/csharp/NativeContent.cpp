@@ -2383,7 +2383,10 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.allowBreaking, entry.allowDrops, entry.callbackMask,
                                         entry.cacheDrawData, {},entry.frameToggle,
                                         (entry.flags & 65536)!=0,entry.registeredDrops,
-                                         entry.minPick,entry.mineResist});
+                                         entry.minPick,entry.mineResist,
+                                         entry.saplingGroundTile.empty()?-1:
+                                           runtime::modTileTypeByKey(mod+"/"+entry.saplingGroundTile),
+                                         entry.saplingVanillaGroundTile});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)

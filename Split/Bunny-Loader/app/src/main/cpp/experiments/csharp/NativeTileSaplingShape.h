@@ -122,8 +122,8 @@ bool applyNativeSaplingShape(const std::string& mod,int type,const ManagedTileEn
     if(!set(width,&w)||!set(height,&h)||
        !set(origin,reinterpret_cast<char*>(boxedPoint)+sizeof(Il2CppObject))||
        !set(bottom,reinterpret_cast<char*>(boxedAnchor)+sizeof(Il2CppObject))||
-       !set(custom,&enabled)||!set(heights,coordinateHeights)||
-       !set(coordWidth,&coordW)||!set(padding,&pad)||!set(anchors,validAnchors)||
+       !set(custom,&enabled)||!set(heights,&coordinateHeights)||
+       !set(coordWidth,&coordW)||!set(padding,&pad)||!set(anchors,&validAnchors)||
        !set(horizontal,&enabled)||!set(flip,&enabled)||!set(lava,&enabled)||
        !set(random,&range)||!set(multiplier,&range))return false;
     int32_t id=type;
