@@ -460,6 +460,37 @@ try {
     Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
   }
  });
+ Check("tree.examplemod-csharp-original-gore-assets-and-types",()=>{
+  const string pc="samples/ExampleMod/content/Content";
+  const string cs="samples/ExampleModCSharp/Playable/content";
+  string[] sprites={"Tiles/Plants/ExampleSapling.png","Tiles/Plants/ExampleTree.png",
+    "Tiles/Plants/ExampleTree_Tops.png","Tiles/Plants/ExampleTree_Branches.png",
+    "Gores/ExampleTree_Leaf.png"};
+  foreach(string sprite in sprites) {
+    string original=Path.Combine(pc,sprite),ported=Path.Combine(cs,"Content",sprite);
+    Equal(true,File.Exists(original));
+    Equal(true,File.Exists(ported));
+    Equal(true,File.ReadAllBytes(original).SequenceEqual(File.ReadAllBytes(ported)));
+  }
+  string project=Path.Combine(scratch,"tree-gore-original");
+  Directory.CreateDirectory(Path.Combine(project,"content"));
+  string[] scripts={"Content/Tiles/Plants/ExampleSapling.cs",
+    "Content/Tiles/Plants/ExampleTree.cs","Content/Gores/ExampleTree_Leaf.cs"};
+  foreach(string path in scripts) {
+    string source=Path.Combine(cs,path);
+    Equal(true,File.Exists(source));
+    File.Copy(source,Path.Combine(project,"content",Path.GetFileName(path)),true);
+  }
+  string output=Path.Combine(scratch,"tree-gore-original.dll");
+  string diag=Path.Combine(scratch,"tree-gore-original.log");
+  Equal(1,Compiler.Compile(project,output,runtime,diag));
+  Equal(3,CompiledAssemblyProbe.Verify(output,diag));
+  string[] wire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(4,wire.Length);
+  Equal(true,wire.Any(row=>row.StartsWith("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1")));
+  Equal(true,wire.Any(row=>row.StartsWith("TREE\tExampleTree\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\t")));
+  Equal(true,wire.Any(row=>row.EndsWith("\tExampleTree_Leaf")));
+ });
  Check("tiles.sapling-1x2-native-descriptor",()=>{
   string root=Path.Combine(scratch,"sapling1x2-source");
   Directory.CreateDirectory(Path.Combine(root,"content"));
