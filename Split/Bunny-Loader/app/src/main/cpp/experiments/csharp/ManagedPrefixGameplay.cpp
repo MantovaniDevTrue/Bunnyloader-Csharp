@@ -63,6 +63,7 @@ struct Refs {
     int playerLife = -1;
     int playerLifeMax = -1;
     Il2CppClass* intClass = nullptr;
+    std::array<Il2CppArray*,6> vanillaPrefixGroups{};
     FieldInfo* names = nullptr;
     FieldInfo* chances = nullptr;
     FieldInfo* tooltipSuffixes = nullptr;
@@ -131,6 +132,7 @@ struct RestoreRoll {
 thread_local RestoreRoll g_restoreRoll{};
 thread_local Il2CppObject* g_failedRollableItem = nullptr;
 thread_local Il2CppObject* g_itemPrefixFilteredItem = nullptr;
+thread_local Il2CppObject* g_extendedVanillaItem = nullptr;
 
 struct AppliedItemPrefixState {
     Il2CppObject* item = nullptr;
@@ -192,6 +194,62 @@ bool weaponCandidate(Il2CppObject* item, bool vanillaHasRollable) {
         bl::runtime::field<int32_t>(item, r.ammo) != 0 ||
         bl::runtime::field<uint8_t>(item, r.consumable)) return false;
     return vanillaHasRollable || bl::runtime::isModItem(type);
+}
+
+std::array<Il2CppArray*,6> resolveVanillaPrefixGroups() {
+    std::array<Il2CppArray*,6> groups{};
+    auto* legacy=bl::il2cpp::findClass({"Terraria.GameContent.Prefixes","PrefixLegacy",{}});
+    auto* prefixes=legacy?bl::il2cpp::findNested(legacy,"Prefixes"):nullptr;
+    auto& api=bl::il2cpp::api();
+    if (!prefixes || !api.field_static_get_value || !api.runtime_class_init) return groups;
+    api.runtime_class_init(prefixes);
+    static constexpr std::array<const char*,6> names={
+        "PrefixesForSwords","PrefixesForGunsBows","PrefixesForMagic",
+        "PrefixesForSummons","PrefixesForSpears","PrefixesForAccessories"
+    };
+    for (size_t i=0;i<names.size();++i) {
+        FieldInfo* field=bl::il2cpp::findField(prefixes,names[i]);
+        if (field) api.field_static_get_value(field,&groups[i]);
+        if (groups[i] && groups[i]->length>256) groups[i]=nullptr;
+    }
+    return groups;
+}
+
+std::vector<int32_t> vanillaItemCandidates(Il2CppObject* item,const Il2CppArray* base) {
+    std::vector<int32_t> candidates;
+    if (base && base->length<=512) {
+        const auto* values=static_cast<const int32_t*>(arrayData(base));
+        candidates.assign(values,values+base->length);
+    }
+    if (!item || g_refs.type<0 ||
+        !bl::runtime::isModItem(bl::runtime::field<int32_t>(item,g_refs.type)))
+        return candidates;
+    const bool weapon=weaponCandidate(item,!candidates.empty());
+    const auto& r=g_refs;
+    const std::array<bool,6> groups={
+        weapon && r.melee>=0 && bl::runtime::field<uint8_t>(item,r.melee)!=0,
+        weapon && r.ranged>=0 && bl::runtime::field<uint8_t>(item,r.ranged)!=0,
+        weapon && r.magic>=0 && bl::runtime::field<uint8_t>(item,r.magic)!=0,
+        weapon && r.summon>=0 && bl::runtime::field<uint8_t>(item,r.summon)!=0,
+        weapon,
+        r.accessory>=0 && bl::runtime::field<uint8_t>(item,r.accessory)!=0
+    };
+    std::array<bool,256> seen{};
+    for (int32_t prefix:candidates)
+        if (prefix>0 && prefix<256) seen[static_cast<size_t>(prefix)]=true;
+    for(size_t i=0;i<groups.size();++i) {
+        const auto* values=g_refs.vanillaPrefixGroups[i];
+        if (!groups[i] || !values || values->length>256) continue;
+        const auto* types=static_cast<const int32_t*>(arrayData(values));
+        for(uintptr_t index=0;index<values->length;++index) {
+            const int32_t prefix=types[index];
+            if(prefix<1 || prefix>=256 || seen[static_cast<size_t>(prefix)])continue;
+            if(candidates.size()>=512)return candidates;
+            seen[static_cast<size_t>(prefix)]=true;
+            candidates.push_back(prefix);
+        }
+    }
+    return candidates;
 }
 
 struct PrefixRpcScope {
@@ -875,10 +933,12 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         return !attributeDenied(item, prefix, attributes) && itemAllowsPrefix(item,prefix);
     };
     const bool tablesReady = descriptors->empty() || ensurePrefixTables(*descriptors);
-    const bool vanillaHasRollable = base && base->length > 0;
-    const uintptr_t oldCount = base ? base->length : 0;
-    const auto* oldValues = oldCount ?
-        static_cast<const int32_t*>(arrayData(base)) : nullptr;
+    const auto vanilla=vanillaItemCandidates(item,base);
+    const uintptr_t oldCount = vanilla.size();
+    const uintptr_t originalCount = base ? base->length : 0;
+    const bool vanillaHasRollable = oldCount>0;
+    const auto* oldValues = oldCount ? vanilla.data() : nullptr;
+    if (oldCount>originalCount) g_extendedVanillaItem=item;
     primeItemPrefixCandidates(item,oldValues,oldCount,*descriptors);
     if (!tablesReady) {
         for (const auto& p : *descriptors) {
@@ -898,7 +958,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         if (tablesReady && p.category != 6 && allowed(p.type) &&
             eligible(item, p, vanillaHasRollable))
             extra += itemRollWeight(item, p);
-    if (retained == oldCount && extra == 0) {
+    if (retained == oldCount && extra == 0 && oldCount == originalCount) {
         if (!base && dynamicItemCallback && !descriptors->empty())
             g_failedRollableItem=item;
         return base;
@@ -1036,13 +1096,16 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     auto& api = bl::il2cpp::api();
     g_failedRollableItem = nullptr;
     g_itemPrefixFilteredItem = nullptr;
+    g_extendedVanillaItem = nullptr;
     Il2CppObject* error = nullptr;
     auto* list = reinterpret_cast<Il2CppArray*>(
         api.runtime_invoke(g_refs.rollableMethod, item, nullptr, &error));
     const bool managedCandidateFailure = g_failedRollableItem == item;
     const bool filteredByItemCallback = g_itemPrefixFilteredItem == item;
+    const bool extendedVanilla = g_extendedVanillaItem == item;
     g_failedRollableItem = nullptr;
     g_itemPrefixFilteredItem = nullptr;
+    g_extendedVanillaItem = nullptr;
     if (error || !list || list->length == 0 || list->length > 512)
         return (hasDeny || managedCandidateFailure) ? false :
             (nativeRollFallback(item, random, rolled, method));
@@ -1054,7 +1117,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             hasManaged = true;
             break;
         }
-    if (!hasManaged && !hasDeny && (!hasItemWorker || !filteredByItemCallback))
+    if (!hasManaged && !hasDeny && !extendedVanilla && (!hasItemWorker || !filteredByItemCallback))
         return nativeRollFallback(item, random, rolled, method);
 
     error = nullptr;
@@ -1651,6 +1714,7 @@ bool installManagedPrefixGameplayHooks() {
         BL_ERROR("csharp prefix: assinaturas de reforja ou equipamento ausentes");
         return false;
     }
+    r.vanillaPrefixGroups=resolveVanillaPrefixGroups();
     g_refs = r;
     if (!bl::hook::install(rollable, hookRollable, &g_originalRollable) ||
         !bl::hook::install(rolling, hookRoll, &g_originalRoll) ||
