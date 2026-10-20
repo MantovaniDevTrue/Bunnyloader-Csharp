@@ -10,7 +10,8 @@ public static class ExampleInvasion
             30,
             8,
             120,
-            new BunnyInvasionEnemy(nameof(ExampleSlimeNPC), 1, 1)));
+            new BunnyInvasionEnemy(nameof(ExampleSlimeNPC), 3, 1),
+            new BunnyInvasionEnemy(nameof(ExampleInvasionEliteSlimeNPC), 1, 3, 10)));
 
     public static readonly BunnyInvasionSpawnPipeline Pipeline = new(Controller);
 
