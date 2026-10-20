@@ -11,6 +11,7 @@
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
@@ -863,7 +864,8 @@ void run() {
             bindNativeRecipeAssembly(mod.id,assembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if(hasManagedRecipeCallbacks(mod.id)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id))&&
+               !g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -1191,6 +1193,7 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
@@ -1232,6 +1235,7 @@ void noteAutoGameUpdate() {
     }
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
+    angler::pumpOnGameThread();
     pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
@@ -1277,6 +1281,7 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
+        angler::invalidateWorldSession();
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);

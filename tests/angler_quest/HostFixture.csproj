@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+    <Compile Include="HostFixture.cs" />
+    <Compile Include="UniversalHookLifecycleFixture.cs" />
+    <Compile Include="CollectibleUnloadProbe.cs" />
+    <Compile Include="DynamicQuestFish.cs" />
+    <Compile Include="AttributedQuestFish.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFishingPlayer.cs" Link="ExampleFishingPlayer.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Quests/ExampleQuestFish.cs" Link="ExampleQuestFish.cs" />
+  </ItemGroup>
+</Project>

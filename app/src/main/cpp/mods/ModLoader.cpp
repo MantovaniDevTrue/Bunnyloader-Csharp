@@ -98,6 +98,7 @@ void readManifest(LoadedMod* mod) {
 
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     runtime::configureTexturePacks(modsDir, enabled);
+    bl::csharp::resetCSharpSourceModSession();
     registry().clear();
     dirsById().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());

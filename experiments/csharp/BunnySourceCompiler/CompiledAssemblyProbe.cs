@@ -531,6 +531,7 @@ public static class CompiledAssemblyProbe
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
+        var questFishNames = new HashSet<string>(StringComparer.Ordinal);
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
@@ -552,6 +553,61 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             if(!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
             lines.Add(BasicItemWriter.Write(item));
+            if (Value<bool>(item, "QuestFish"))
+            {
+                questFishNames.Add(name);
+                if (Value<int>(item, "MaxStack") != 1)
+                    throw new InvalidOperationException("Quest fish must have MaxStack=1: " + name);
+                bool pre = Value<bool>(item, "QuestAvailableInPreHardmode");
+                bool hard = Value<bool>(item, "QuestAvailableInHardmode");
+                if (!pre && !hard)
+                    throw new InvalidOperationException("Quest fish cannot be unavailable in both world phases: " + name);
+                string description = Value<string>(item, "QuestDescription") ?? "";
+                string location = Value<string>(item, "QuestCatchLocation") ?? "";
+                foreach (string value in new[] { description, location })
+                {
+                    if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                        value.Any(c => c == '\0' || c == '\r' || c == '\t' || c == (char)127))
+                        throw new InvalidOperationException("Invalid angler quest chat text: " + name);
+                }
+                static string EncodeQuestText(string value) =>
+                    value.Length == 0 ? "-" : Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(value));
+                int rules = Convert.ToInt32(Value<object>(item, "QuestCatchRules"), CultureInfo.InvariantCulture);
+                if ((rules & ~3) != 0)
+                    throw new InvalidOperationException("Unknown quest catch requirements: " + name);
+                lines.Add(string.Join("\t", "QUEST_FISH", name,
+                    pre ? "1" : "0", hard ? "1" : "0",
+                    EncodeQuestText(description), EncodeQuestText(location),
+                    rules.ToString(CultureInfo.InvariantCulture)));
+                int callbackMask=(item.GetType().GetProperty("QuestAvailableWhen")?.GetValue(item) is Delegate?1:0) |
+                    (item.GetType().GetProperty("QuestCanCatchWhen")?.GetValue(item) is Delegate?2:0);
+                if(callbackMask!=0)
+                    lines.Add(string.Join("\t","QUEST_CALLBACK",name,callbackMask.ToString(CultureInfo.InvariantCulture)));
+                var descriptions = Value<Dictionary<string,string>>(item, "QuestDescriptionTranslations");
+                var locations = Value<Dictionary<string,string>>(item, "QuestCatchLocationTranslations");
+                var cultures = descriptions.Keys.Concat(locations.Keys)
+                    .Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                if (cultures.Length > 8)
+                    throw new InvalidOperationException("Too many quest dialogue cultures: " + name);
+                foreach (string culture in cultures)
+                {
+                    if (culture.Length < 2 || culture.Length > 20 ||
+                        culture.Any(ch => !((ch >= 'A' && ch <= 'Z') ||
+                                            (ch >= 'a' && ch <= 'z') ||
+                                            (ch >= '0' && ch <= '9') || ch == '-')))
+                        throw new InvalidOperationException("Invalid quest dialogue culture: " + name);
+                    string translatedDescription = descriptions.TryGetValue(culture, out var d) ? d : "";
+                    string translatedLocation = locations.TryGetValue(culture, out var l) ? l : "";
+                    if (translatedDescription.Length == 0 && translatedLocation.Length == 0)
+                        throw new InvalidOperationException("Empty quest dialogue translation: " + name);
+                    foreach (string value in new[] { translatedDescription, translatedLocation })
+                        if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                            value.Any(ch => ch == '\0' || ch == '\r' || ch == '\t' || ch == (char)127))
+                            throw new InvalidOperationException("Invalid translated quest dialogue: " + name);
+                    lines.Add(string.Join("\t", "QUEST_LOCALE", name, culture,
+                        EncodeQuestText(translatedDescription), EncodeQuestText(translatedLocation)));
+                }
+            }
         }
         foreach (object projectile in projectiles)
         {
@@ -835,6 +891,18 @@ public static class CompiledAssemblyProbe
                 deadMessage.Length == 0 ? "-" : deadMessage,
                 lifeRegen.ToString(CultureInfo.InvariantCulture),
                 manaRegen.ToString(CultureInfo.InvariantCulture)));
+            string questFishName = Value<string>(player, "FishingQuestFishName") ?? "";
+            int catchRules = Convert.ToInt32(Value<object>(player, "FishingCatchRules"), CultureInfo.InvariantCulture);
+            if (questFishName.Length == 0 && catchRules != 0)
+                throw new InvalidOperationException("FishingCatchRules requires FishingQuestFishName: " + name);
+            if (questFishName.Length != 0)
+            {
+                CheckName(questFishName);
+                if (!questFishNames.Contains(questFishName) || (catchRules & ~3) != 0)
+                    throw new InvalidOperationException("FishingQuestFish must reference an owned quest BunnyItem: " + name);
+                lines.Add(string.Join("\t", "QUEST_CATCH", name, questFishName,
+                    catchRules.ToString(CultureInfo.InvariantCulture)));
+            }
         }
         foreach (object npc in npcs)
         {

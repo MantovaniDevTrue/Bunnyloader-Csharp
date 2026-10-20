@@ -7,6 +7,9 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeAnglerQuestRegistry.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/items/ModItems.h"
@@ -459,19 +462,36 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     for (const auto& def : defs) {
         if (def.base != "BunnyPlayer") continue;
         const auto link = def.properties.find("Accessory");
-        if (link == def.properties.end()) {
-            if (!def.properties.empty()) {
-                status->error = def.name + ": BunnyPlayer global deve ter SetDefaults vazio";
-                return false;
+        bool validFishing = true;
+        bool hasFishingName = false;
+        bool hasFishingRules = false;
+        for(const auto& [property,value]:def.properties) {
+            if(property=="Accessory")continue;
+            if(property=="FishingQuestFishName") {
+                hasFishingName=!value.empty();
+                continue;
             }
-        } else {
+            if(property=="FishingCatchRules") {
+                hasFishingRules=true;
+                validFishing=validFishing &&
+                    (value=="None"||value=="InvertedGravity"||
+                     value=="Uncommon"||value=="InvertedGravityAndUncommon");
+                continue;
+            }
+            validFishing=false;
+        }
+        if(!validFishing||(hasFishingRules&&!hasFishingName)) {
+            status->error=def.name+": propriedades BunnyPlayer nao suportadas para pesca";
+            return false;
+        }
+        if (link != def.properties.end()) {
             bool valid = false;
             for (const auto& other : defs)
                 if (other.base == "BunnyAccessory" && other.name == link->second &&
                     typed.contains(sourceIdentityForBase("BunnyAccessory", link->second)) &&
                     typed[sourceIdentityForBase("BunnyAccessory", link->second)] >= 0)
                     valid = true;
-            if (!valid || def.properties.size() != 1) {
+            if (!valid) {
                 status->error = def.name + ": acessorio C# inexistente ou propriedades invalidas";
                 return false;
             }
@@ -591,7 +611,25 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 }
 
+void resetCSharpSourceModSession() {
+    for (const auto& mod : g_statuses) {
+        angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedLiveSourceMod(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
+    }
+    g_statuses.clear();
+}
+
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
+    auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
+        [&](const SourceModStatus& entry) { return entry.id == mod.id; });
+    if (previous != g_statuses.end()) {
+        angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedLiveSourceMod(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
+    }
     SourceModStatus status;
     status.id = mod.id;
     status.directory = mod.dir;
@@ -602,6 +640,10 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 status.projectiles, status.buffs, status.potions, status.npcs);
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
+    }
+    if (previous != g_statuses.end()) {
+        *previous = std::move(status);
+        return previous->loaded;
     }
     g_statuses.push_back(std::move(status));
     return g_statuses.back().loaded;
@@ -640,6 +682,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
+    std::vector<angler::Quest> anglerQuests;
+    std::map<std::string, bool> anglerPlayerRules;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
     std::vector<useSounds::Entry> useSounds;
@@ -679,6 +723,112 @@ bool applyManagedSourceDefaults(
             owner.type=type->second;owner.source=source->second;
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_FISH") {
+            if(fields.size()!=6&&fields.size()!=7) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=InvalidFieldCount";
+                return false;
+            }
+            const auto key=sourceIdentityForWire("ITEM",fields[1]);
+            const auto owner=mod->registeredKindTypes.find(key);
+            const auto base=mod->registeredBases.find(key);
+            int pre=-1, hard=-1, catchRules=0;
+            if(fields.size()==7&&(!integer(fields[6],&catchRules)||catchRules<0||catchRules>3)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=InvalidCatchRules";
+                return false;
+            }
+            std::string description, location;
+            if(owner==mod->registeredKindTypes.end()||base==mod->registeredBases.end()||
+               base->second!="BunnyItem"||!isBasicItem(owner->second)||
+               !integer(fields[2],&pre)||!integer(fields[3],&hard)||
+               (pre!=0&&pre!=1)||(hard!=0&&hard!=1)||
+               !angler::decodeHex(fields[4],&description)||
+               !angler::decodeHex(fields[5],&location)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=OwnerOrQuestDescriptorInvalid";
+                return false;
+            }
+            angler::Quest quest{modId,fields[1],owner->second,pre==1,hard==1,
+                                std::move(description),std::move(location),catchRules};
+            if(std::any_of(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& previous) {
+                    return previous.type==quest.type||previous.name==quest.name;
+                })) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=Decode Reason=DuplicateQuest";
+                return false;
+            }
+            if(anglerQuests.size()>=kSourceMaxCategory) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Stage=Decode Reason=CapacityExceeded";
+                return false;
+            }
+            quest.catchEnabled = quest.catchRules != 0;
+            anglerQuests.push_back(std::move(quest));
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_LOCALE") {
+            if(fields.size()!=5 || !angler::validCulture(fields[2])) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeLocale Reason=InvalidCultureOrFieldCount";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& q) { return q.name==fields[1]; });
+            std::string description, location;
+            if(quest==anglerQuests.end()||
+               !angler::decodeHex(fields[3],&description) ||
+               !angler::decodeHex(fields[4],&location) ||
+               (description.empty()&&location.empty()) ||
+               quest->locales.size()>=8 ||
+               !quest->locales.emplace(fields[2],std::make_pair(
+                    std::move(description),std::move(location))).second) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=DecodeLocale Reason=InvalidTranslationOrDuplicate";
+                return false;
+            }
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_CALLBACK") {
+            int mask=0;
+            if(fields.size()!=3 || !integer(fields[2],&mask) ||
+               mask<1 || mask>3) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeCallback Reason=InvalidDescriptor";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& entry) { return entry.name==fields[1]; });
+            if(quest==anglerQuests.end() || quest->callbackMask!=0) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=DecodeCallback Reason=InvalidOwnerOrDuplicate";
+                return false;
+            }
+            quest->callbackMask=mask;
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="QUEST_CATCH") {
+            int rules = -1;
+            if(fields.size()!=4 ||
+               std::find(mod->playerClasses.begin(),mod->playerClasses.end(),
+                         fields.size()>1?fields[1]:"") == mod->playerClasses.end() ||
+               !integer(fields[3],&rules) || rules<0 || rules>3 ||
+               !anglerPlayerRules.emplace(fields[2],true).second) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+                    " Stage=ResolveFishingPlayer Reason=InvalidPlayerOrDuplicateCatchRule";
+                return false;
+            }
+            auto quest=std::find_if(anglerQuests.begin(),anglerQuests.end(),
+                [&](const angler::Quest& q) { return q.name==fields[2]; });
+            if(quest==anglerQuests.end() ||
+               (quest->catchRules!=0&&quest->catchRules!=rules)) {
+                *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+fields[1]+
+                    " Stage=ResolveFishingPlayer Reason=QuestFishMissingOrConflictingPolicy";
+                return false;
+            }
+            quest->catchRules=rules;
+            quest->catchEnabled=true;
             continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
@@ -1160,6 +1310,16 @@ bool applyManagedSourceDefaults(
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
+    for(const auto& quest:anglerQuests) {
+        if(std::none_of(basicItems.begin(),basicItems.end(),
+            [&](const BasicItemEntry& item) {
+                return item.type==quest.type&&item.name==quest.name;
+            })) {
+            *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+" Class="+quest.name+
+                " Stage=Publish Reason=PrimaryItemDefaultsMissing";
+            return false;
+        }
+    }
     if(!enqueueOwnedSourceRecipes(modId,recipeOwners,error))return false;
     for(const auto& request:nativeDefaults)if(!seen.contains(sourceIdentityForWire(request.projectile?"PROJECTILE":"ITEM",request.name))) {
         *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+request.name+" Stage=Publish Result=Rejected Reason=PrimaryDefaultsMissing";return false;
@@ -1171,6 +1331,11 @@ bool applyManagedSourceDefaults(
         }))return false;
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
+    }
+    if(!angler::registry().publish(modId,anglerQuests,error)) {
+        *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
+            " Stage=Publish Reason="+*error;
+        return false;
     }
     mod->runtimeApplied = true;
     return true;

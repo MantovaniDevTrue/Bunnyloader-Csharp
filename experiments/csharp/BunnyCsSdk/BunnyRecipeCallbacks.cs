@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 
 namespace BunnyLoader.Source;
@@ -52,21 +53,82 @@ public static class BunnyRecipeLoader
     {
         public string Path="";
         public Assembly Assembly=null!;
+        public AssemblyLoadContext Context=null!;
         public Dictionary<string,List<BunnyRecipe>> Recipes=new(StringComparer.Ordinal);
+    }
+
+    private sealed class ModContext : AssemblyLoadContext
+    {
+        internal ModContext(string modId) : base("BunnyMod:"+modId,isCollectible:true) { }
+
+        protected override Assembly? Load(AssemblyName name)
+        {
+            Assembly shared=typeof(BunnyRecipeLoader).Assembly;
+            if(name.Name==shared.GetName().Name)return shared;
+            return Default.Assemblies.FirstOrDefault(candidate=>
+                string.Equals(candidate.GetName().Name,name.Name,StringComparison.Ordinal));
+        }
+    }
+
+    private static void Evict(string modId,Mod mod)
+    {
+        mods.Remove(modId);
+        BunnyQuestRuntime.EvictMod(modId);
+        mod.Recipes.Clear();
+        mod.Context.Unload();
     }
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
     [ThreadStatic] private static List<BunnyRecipe>? capture;
     internal static void Capture(BunnyRecipe recipe) { capture?.Add(recipe); }
+    internal static Assembly LoadAssembly(string modId,string assemblyPath)
+    {
+        const string marker="|bunny-revision=";
+        int suffix=assemblyPath.LastIndexOf(marker,StringComparison.Ordinal);
+        string filePath=assemblyPath;
+        if(suffix>=0)
+        {
+            string revision=assemblyPath[(suffix+marker.Length)..];
+            if(revision.Length<1||revision.Length>20||
+                revision.Any(ch=>ch<'0'||ch>'9'))
+                throw new InvalidOperationException("Invalid managed assembly revision");
+            filePath=assemblyPath[..suffix];
+        }
+        if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
+        {
+            if(mod!=null)Evict(modId,mod);
+            var context=new ModContext(modId);
+            try
+            {
+                using var bytes=new MemoryStream(File.ReadAllBytes(filePath),writable:false);
+                var loaded=context.LoadFromStream(bytes);
+                mod=new Mod{Path=assemblyPath,Assembly=loaded,Context=context};
+                mods[modId]=mod;
+            }
+            catch
+            {
+                context.Unload();
+                throw;
+            }
+        }
+        return mod.Assembly;
+    }
     public static string Dispatch(string modId,string assemblyPath,string owner,int index,int kind,string snapshot)
     {
         try
         {
-            if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
+            if(kind==6)
             {
-                Assembly assembly=Assembly.Load(File.ReadAllBytes(assemblyPath));
-                mod=new Mod{Path=assemblyPath,Assembly=assembly};
-                mods[modId]=mod;
+                if(index!=0||owner!="__unload__"||snapshot.Length!=0)
+                    throw new ArgumentException("Invalid managed unload request");
+                if(!mods.TryGetValue(modId,out Mod? previous)||previous.Path!=assemblyPath)
+                    return "PENDING|Stage=Unload Reason=BindingNotFoundOrReplaced";
+                Evict(modId,previous);
+                return "CLEARED";
             }
+            if(kind==4||kind==5)
+                return BunnyQuestRuntime.Dispatch(modId,assemblyPath,owner,kind,snapshot);
+            LoadAssembly(modId,assemblyPath);
+            Mod mod=mods[modId];
             if(!mod.Recipes.TryGetValue(owner,out var recipes))
             {
                     var candidates=mod.Assembly.GetTypes().Where(t=>t.Name==owner&&t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyRecipeSource).IsAssignableFrom(t)).ToArray();
@@ -120,6 +182,85 @@ public static class BunnyRecipeLoader
         {
             return "ERROR|[CSharp][ERROR][RecipeCallback] Mod="+modId+" Class="+owner+" File="+assemblyPath+
                 " RecipeIndex="+index+" Stage=Invoke Kind="+kind+" Reason=ManagedException Result=Rejected Exception="+error;
+        }
+    }
+}
+
+public static class BunnyQuestRuntime
+{
+    private sealed class Handler
+    {
+        public string Path="";
+        public BunnyItem Item=null!;
+    }
+    private static readonly Dictionary<string,Handler> handlers=new(StringComparer.Ordinal);
+
+    internal static void EvictMod(string modId)
+    {
+        string prefix=modId+"\n";
+        foreach(string key in handlers.Keys.Where(key=>key.StartsWith(prefix,StringComparison.Ordinal)).ToArray())
+            handlers.Remove(key);
+    }
+
+    public static string Dispatch(string modId,string assemblyPath,string owner,int kind,string snapshot)
+    {
+        try
+        {
+            if(kind!=4&&kind!=5)throw new ArgumentOutOfRangeException(nameof(kind));
+            if(snapshot.Length>128)throw new ArgumentException("Quest snapshot too large");
+            string[] parts=snapshot.Split(',');
+            if(kind==4?parts.Length!=2:parts.Length!=3&&parts.Length!=4)
+                throw new ArgumentException("Invalid quest snapshot width");
+            var numbers=new int[parts.Length];
+            for(int i=0;i<parts.Length;++i)
+                if(!int.TryParse(parts[i],NumberStyles.None,CultureInfo.InvariantCulture,out numbers[i]))
+                    throw new ArgumentException("Invalid quest snapshot field");
+            int fishType=numbers[^1];
+            if(fishType<0||fishType>=65536||
+                numbers.Take(kind==4?1:2).Any(value=>value!=0&&value!=1)||
+                (kind==5&&parts.Length==4&&(numbers[2]<0||numbers[2]>255)))
+                throw new ArgumentException("Quest snapshot outside supported bounds");
+            Assembly assembly=BunnyRecipeLoader.LoadAssembly(modId,assemblyPath);
+            string key=modId+"\n"+owner;
+            if(!handlers.TryGetValue(key,out Handler? handler)||handler.Path!=assemblyPath)
+            {
+                Type[] types=assembly.GetTypes().Where(type=>type.Name==owner&&type.IsClass&&
+                    !type.IsAbstract&&!type.ContainsGenericParameters&&typeof(BunnyItem).IsAssignableFrom(type)).ToArray();
+                if(types.Length!=1)throw new InvalidOperationException("Quest owner identity mismatch");
+                Type type=types[0];
+                var declaration=type.GetCustomAttribute<BunnyContentAttribute>(false);
+                if(declaration==null&&type.BaseType!=typeof(BunnyItem))
+                    throw new InvalidOperationException("Inherited quest owner requires BunnyContent declaration");
+                if(declaration!=null&&declaration.Kind!=BunnyContentKind.Item)
+                    throw new InvalidOperationException("Quest owner declaration must be Item");
+                var item=(BunnyItem)Activator.CreateInstance(type)!;
+                if(declaration!=null)
+                {
+                    item.DisplayName=declaration.DisplayName;
+                    item.Texture=declaration.Texture;
+                }
+                item.SetDefaults();
+                if(declaration!=null&&(item.DisplayName!=declaration.DisplayName||
+                    item.Texture!=declaration.Texture))
+                    throw new InvalidOperationException("Quest owner changed declared content identity");
+                if(!item.QuestFish)throw new InvalidOperationException("Quest owner must declare QuestFish");
+                handler=new Handler{Path=assemblyPath,Item=item};
+                handlers[key]=handler;
+            }
+            var context=new BunnyQuestContext{FishType=fishType,
+                PlayerIndex=kind==5&&parts.Length==4?numbers[2]:-1,
+                Hardmode=kind==4&&numbers[0]!=0,
+                InvertedGravity=kind==5&&numbers[0]!=0,
+                Uncommon=kind==5&&numbers[1]!=0};
+            Func<BunnyQuestContext,bool>? predicate=kind==4?
+                handler.Item.QuestAvailableWhen:handler.Item.QuestCanCatchWhen;
+            if(predicate==null)throw new InvalidOperationException("Undeclared quest callback");
+            return predicate(context)?"1":"0";
+        }
+        catch(Exception error)
+        {
+            return "ERROR|[CSharp][AnglerQuest] Mod="+modId+" Class="+owner+
+                " Kind="+kind+" Stage=ManagedCallback Reason="+error.GetType().Name;
         }
     }
 }
