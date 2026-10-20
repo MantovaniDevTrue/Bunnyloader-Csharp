@@ -10,6 +10,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "menu/Powers.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
+#include "experiments/csharp/NativeInvasionNetwork.h"
 #include <cstdio>
 #include <array>
 #include <chrono>
@@ -76,6 +77,15 @@ void hkProcessIncomingMessage(Il2CppObject* self, Il2CppObject* message, int32_t
  * conferido contra a contagem real (jogo + mods) antes de chegar ao jogo.
  */
 void run(const Request& r) {
+    if (r.command.rfind("invjoin ", 0) == 0) {
+        unsigned long long nonce = 0;
+        char extra = 0;
+        if (std::sscanf(r.command.c_str(), "invjoin %llu %c", &nonce, &extra) == 1 &&
+            nonce != 0 && r.client >= 0 && r.client < 255)
+            bl::csharp::registerNativeInvasionClient(
+                r.client, static_cast<uint64_t>(nonce));
+        return;
+    }
     if (r.command.rfind("invuse ", 0) == 0) {
         char mod[129] = {}, itemName[129] = {}, extra[2] = {};
         const int count = std::sscanf(r.command.c_str(),
