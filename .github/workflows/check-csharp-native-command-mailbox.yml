@@ -9,6 +9,8 @@ on:
       - 'tests/commands/native_mailbox_test.cpp'
       - 'tests/commands/native_command_source_parser_test.cpp'
       - 'tests/commands/native_command_manifest_test.cpp'
+      - 'tests/commands/native_command_clock_test.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandClock.h'
       - 'tests/commands/native_command_result_test.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeCommandResult.h'
       - 'app/src/main/cpp/experiments/csharp/NativeCommandManifest.h'
@@ -67,3 +69,11 @@ jobs:
             -o /tmp/bunny-command-test/result
       - name: Verify replies, errors and immutable recipient
         run: /tmp/bunny-command-test/result
+      - name: Compile native world-clock contract
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_clock_test.cpp \
+            -o /tmp/bunny-command-test/clock
+      - name: Verify day/night rollover, negative delta and bounds
+        run: /tmp/bunny-command-test/clock
