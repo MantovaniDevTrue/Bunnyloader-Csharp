@@ -1,32 +1,37 @@
-# DustLoader C# — desenvolvimento isolado, sem APK
+# DustLoader C# — implementação em andamento
 
-## Origem
+Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integração C# baseada somente nas fontes Bunny e na SDK do projeto; sem adaptar APIs tModLoader ou executar callbacks pelo QuickJS.
 
-Branch `feat/csharp-dust-loader-20261019`, base `v1.0`. O motor `content/dusts/ModDusts.h/.cpp` veio da fonte do Bunny Loader original `JonataOliveiraa/Bunny-Loader`. O caminho C# não usa QuickJS nem código do tModLoader.
+## Código implementado
 
-## Implementado e validado em CI
+- `BunnyDust`, `BunnyDustRegistry` e `BunnyDustState` com ABI validada de 64 bytes, registro por nome/ID, geração de slots e proteção contra falhas repetidas.
+- `BunnyDustSourceDispatcher`: descoberta das classes da assembly, vínculo de IDs nativos e callbacks separados por fase `Spawn`, `Update`, `MidUpdate`, `Alpha`, `PreDraw` e `Release`.
+- `SourceParser`, `SourceLoader` e Roslyn: domínio `DUST`, verificação do caminho PNG, `UpdateType`, máscara de hooks e exportação gerenciada de defaults.
+- `ManagedRuntime`: registro C# no worker MonoVM residente; fila de resultados por fase; marshal exclusivamente de `ManagedDustState` (nunca ponteiros de objetos IL2CPP para worker).
+- `ManagedDustMailbox`: até 128 jobs enfileirados, armazenamento separado por fase e slot, prazo máximo de 3 frames, verificação de mod, geração, fase, sessão e frame; respostas inválidas são rejeitadas.
+- `ModDusts.cpp`: hooks nativos `NewDust`, `UpdateDust`, `MidUpdate`, `DrawDust` e `GetAlpha` encaminham C# pelo worker quando o tipo pertence à categoria gerenciada; seguem usando `SetNotActive` para devolver as vagas ao pool.
+- `mergeManagedDustDelta`: aplica apenas mudanças retornadas pelo C#, em vez de restaurar o snapshot antigo e causar saltos visuais; teste de finitude e identidade de partícula.
+- Atualização do registro de máscaras no thread do jogo, inclusive instalação tardia de GetAlpha, sem instalar hooks duplos.
+- `noteAutoWorldTilesLoaded` solicita reset da sessão, fila e estado gerenciado quando um mundo é carregado.
+- Exemplo `ExampleSparkDust` isolado em `DustLoaderPreview`. Foi retirado de `Playable` porque a feature ainda está bloqueada e não pode comprometer o ExampleMod C# estável.
 
-- Registro nativo antecipado `BunnyDust` no `SourceParser` e `SourceLoader`, propriedade `BunnyContentKind.Dust`, domínio `DUST`, IDs por mod e verificação de caminhos e existência do PNG.
-- Motor Dust do Bunny original importado, `tickModDusts` habilitado e incluído na barreira `contentSettled` antes do mundo.
-- Compilador Roslyn reconhece classes `BunnyDust`, chama `SetStaticDefaults` e exporta `DUST\tClassName\tUpdateType\tHookMask\tTexture` para o host, com validação de identidade e bounds.
-- `BunnyDust.cs`: estados de 64 bytes, registro, máscaras de métodos sobrescritos, lifecycle por tipo/slot/generation, rollback, isolamento de falhas e reset.
-- `BunnyDustSourceDispatcher.cs`: registra assemblies gerenciadas, faz bind dos tipos e executa callbacks a partir do ponteiro de estado nativo, sem JavaScript. O dispatcher funciona nos smoke tests isolados; **ainda não foi conectado ao worker do jogo**.
-- `ManagedDustMailbox.h`: fila limitada a 128 registros, sem espera na thread do jogo, rejeição de respostas antigas e limitação de idade a 3 frames. Ainda precisa ser ligada ao ciclo real do MonoVM.
-- Exemplo `ExampleSparkDust` no ExampleMod C#, com `TrailblazerSpark.png` reaproveitado da fonte do sample.
-- Testes de contrato C#/C++ e smoke real de Roslyn e exportação do descritor foram aprovados; compilação ARM64 C++ do projeto Android passou sem gerar pacote instalável.
+## Validações concluídas
 
-## Bloqueadores reais antes de release
+- Verificações de contrato C# e C++ e teste da ABI de 64 bytes.
+- Smoke da compilação de fonte via Roslyn, exportação do registro DUST e execução dos callbacks por ponteiro em C#.
+- Testes da mailbox para concorrência entre fases, expiração, troca de mundo, reincidência, descarte e reuso da vaga.
+- Testes matemáticos do merge de delta: posição, escala, alpha, cor, cancelamento e NaN.
+- Compilação nativa ARM64 em CI sem empacotamento de APK, com execuções aprovadas; a última execução após alterações adicionais deve ser avaliada separadamente.
+- As DLLs `BunnySourceSdk.dll` e `BunnySourceCompiler.dll` são montadas pelo pipeline C# sem APK, e os hashes correspondentes são reescritos em `framework.sha256` no mesmo commit.
 
-1. Vincular `BunnyDustSourceDispatcher` à thread MonoVM residente, registrando as DLLs e os IDs dos tipos no worker. O mecanismo nativo deve rejeitar chamadas a mods não vinculados.
-2. Integrar `ManagedDustMailbox` ao hook Dust com capturas em lote, geração de spawn, retornos assíncronos e aplicação dos resultados na thread do jogo. Não transferir ponteiros de objetos IL2CPP para o worker.
-3. Aplicar sem perda os retornos de `Update`, `MidUpdate`, `GetAlpha`, `PreDraw`, `OnSpawn`, inclusive kill / `SetNotActive` sem quebrar a pilha de 6000 slots.
-4. Validar concorrência, descarte de lotes e deadlines, respostas em atraso, proteção de geração, coexistência de mods, menus e troca de mundo.
-5. Validar texturas personalizadas, frames, alpha e render no Android/Terraria; corrigir qualquer diferença do ExampleModBunny.
-6. Verificar desempenho, estabilidade, integração completa com QuickJS existente e todas as fontes nativas/gerenciadas em CI.
-7. Só depois de **todos** os gates, considerar uma build de teste. Nunca gerar APK de um lote incompleto.
+## Bloqueios antes de considerar completo
 
-## Segurança de desenvolvimento
+1. **A barreira `managedDustCallbacksConnected()` continua em `false`.** Mods C# que sobrescrevem callbacks Dust continuam recusados com `MonoDustBridgeNotConnected`. Isso evita anunciar funcionalidade não validada e mantém o ExampleMod estável.
+2. Ainda falta executar o fluxo completo em Terraria Android com IL2CPP e MonoVM juntos, conferindo campos nativos como `dustIndex`, `position`, `scale`, `rotation`, `alpha`, `color` e `frame`.
+3. Validar em jogo a fidelidade do primeiro `OnSpawn`, de `PreDraw`, do `GetAlpha`, do retorno `Update=false`, da morte e devolução de slots. O worker assíncrono aplica resultados em frames posteriores (até 3); é necessário avaliar e ajustar esse atraso visual.
+4. Medir desempenho, consumo de memória, limite de 128 jobs, estabilidade em grandes lotes, comportamento com QuickJS + vários mods C# e recarregamento de mundos.
+5. A versão compilada das DLLs precisa ter seu hash e build nativa revalidados na versão final do commit. Nenhuma falha de compilação ou regressão em mods existentes pode ser aceita.
 
-`managedDustCallbacksConnected()` retorna `false` enquanto a ponte com o worker não existe. O host **rejeita** mod C# de Dust que exija hooks personalizados nesse estágio, com `MonoDustBridgeNotConnected`. Dust sem callbacks pode seguir o caminho nativo. Isso impede declarar falsamente que todos os efeitos funcionam.
+## Regra permanente de release
 
-A PR fica em draft e não deve ser mesclada como feature funcional enquanto os bloqueadores persistirem.
+**Não gerar APK, não mesclar a PR draft e não anunciar o DustLoader como completo até fechar todos os bloqueadores.** Os pipelines permitidos geram apenas objetos nativos temporários e DLLs gerenciadas. A checagem de UI/Android não foi executada nesta etapa.
