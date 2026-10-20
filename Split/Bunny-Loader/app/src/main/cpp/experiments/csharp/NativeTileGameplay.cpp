@@ -47,6 +47,7 @@ struct TileBehavior {
     NativeTileGameplaySpec spec;
     int itemType = -1;
     int dustType = -1;
+    std::map<int,int> styleDrops;
 };
 std::map<int, TileBehavior> g_tiles;
 std::unordered_set<int> g_campfireTiles;
@@ -78,6 +79,7 @@ FieldInfo* g_gameUpdateField=nullptr;
 std::map<Il2CppObject*,uint64_t> g_lastUseFrames;
 bool g_installed = false;
 bool g_dropInstalled = false;
+const MethodInfo* g_tileStyleMethod=nullptr;
 bool g_dustInstalled = false;
 bool g_killInstalled = false;
 bool g_makeDustInstalled = false;
@@ -207,6 +209,34 @@ bool safeTile(const MethodInfo* method, unsigned argument, unsigned total) {
     if (!tile) return false;
     uint32_t align = 0;
     return a.class_value_size(tile, &align) == 4;
+}
+
+bool bindTileStyleLookup() {
+    if(g_tileStyleMethod)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||!a.method_get_return_type||
+       !a.method_is_instance||!a.object_unbox||!a.runtime_invoke)return false;
+    auto* cls=il2cpp::findClass({"Terraria.ObjectData","TileObjectData",{}});
+    const auto* method=cls?a.class_get_method_from_name(cls,"GetTileStyle",1):nullptr;
+    if(!method||a.method_is_instance(method)||!safeTile(method,0,1)||
+       !nameOf(a.method_get_return_type(method),"System.Int32")||
+       !il2cpp::methodPointer(method))return false;
+    g_tileStyleMethod=method;
+    return true;
+}
+int readNativeTileStyle(uint32_t tile) {
+    if(!g_tileStyleMethod)return -1;
+    auto& a=il2cpp::api();
+    int32_t offset=static_cast<int32_t>(tile);
+    void* arguments[]={&offset};
+    Il2CppObject* exception=nullptr;
+    Il2CppObject* result=a.runtime_invoke(g_tileStyleMethod,nullptr,arguments,&exception);
+    if(exception||!result)return -1;
+    const void* payload=a.object_unbox(result);
+    if(!payload)return -1;
+    int32_t style=-1;
+    std::memcpy(&style,payload,sizeof(style));
+    return style>=0&&style<=4095?style:-1;
 }
 
 bool supports(int x, int y, const runtime::TileArrays& world) {
@@ -344,6 +374,17 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
                 return;
             }
         } else reportTileCallbackFailure(behavior.spec,27,reply);
+    }
+    if(!behavior.styleDrops.empty()) {
+        const int style=behavior.spec.shape==0?0:readNativeTileStyle(tile);
+        auto registered=style>=0?behavior.styleDrops.find(style):behavior.styleDrops.end();
+        if(registered==behavior.styleDrops.end())
+            registered=behavior.styleDrops.find(-1);
+        if(registered!=behavior.styleDrops.end()) {
+            *drop=registered->second;*stack=1;*extra=0;*extraStack=0;
+            return;
+        }
+        if(style<0)return;
     }
     int itemType = behavior.itemType;
     if (itemType <= 0)
@@ -1660,6 +1701,23 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if(assembly!=g_assemblyByMod.end())behavior.spec.assembly=assembly->second;
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
+    if(spec.registeredDrops.size()>16)return false;
+    bool needStyle=false;
+    for(const auto& entry:spec.registeredDrops) {
+        if(entry.style< -1||entry.style>4095||
+           behavior.styleDrops.contains(entry.style))return false;
+        int item=entry.itemType;
+        if(item==0&&!entry.itemName.empty())
+            item=runtime::modItemTypeByKey(spec.mod+"/"+entry.itemName);
+        if(item<1||item>65535)return false;
+        behavior.styleDrops.emplace(entry.style,item);
+        needStyle|=entry.style>=0&&spec.shape!=0;
+    }
+    if(needStyle&&!bindTileStyleLookup()) {
+        BL_ERROR("[CSharp][TileDrop] Mod=%s Class=%s Stage=BindTileStyle Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     if (!setupHooks()) return false;
     if ((spec.animationFrames > 1 || (spec.callbackMask & ((1 << 6)|(1 << 11)|(1 << 12)))) &&
         !setupNativeTileAnimation()) return false;
