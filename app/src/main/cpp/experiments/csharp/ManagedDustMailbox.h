@@ -37,14 +37,38 @@ public:
 
     bool offer(std::int32_t binding, std::int32_t phase,
                const ManagedDustState& state, std::uint64_t frame) {
-        if (binding < 0 || phase < 0 || phase > 5 ||
-            !managedDustStateValid(state)) return false;
+        if (binding < 0 || phase < 0 || phase >= static_cast<int>(kPhases) ||
+            !managedDustStateValid(state) ||
+            (phase == 5 ? state.active != 0 : state.active != 1))
+            return false;
         std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
-        if (!lock || requests_.size() >= kPendingLimit) {
+        if (!lock) {
             ++drops_;
             return false;
         }
-        Slot& slot = slots_[static_cast<std::size_t>(state.slot) * kPhases + static_cast<size_t>(phase)];
+        const std::size_t slotIndex = static_cast<std::size_t>(state.slot);
+        if (phase == 5) {
+            if (state.generation < retired_[slotIndex]) return false;
+            retired_[slotIndex] = state.generation;
+            for (std::size_t i = 0; i < kPhases - 1; ++i) {
+                Slot& old = slots_[slotIndex * kPhases + i];
+                if (old.generation == state.generation &&
+                    old.type == state.type && old.binding == binding)
+                    old = {};
+            }
+            requests_.erase(std::remove_if(requests_.begin(), requests_.end(),
+                [&](const Request& pending) {
+                    return pending.phase != 5 && pending.binding == binding &&
+                        managedDustSameInstance(pending.state, state);
+                }), requests_.end());
+        } else if (state.generation <= retired_[slotIndex]) {
+            return false;
+        }
+        if (requests_.size() >= kPendingLimit) {
+            ++drops_;
+            return false;
+        }
+        Slot& slot = slots_[slotIndex * kPhases + static_cast<size_t>(phase)];
         if (slot.pending && slot.type == state.type &&
             slot.generation == state.generation &&
             frame >= slot.frame && frame - slot.frame <= kMaxResultAgeFrames)
@@ -63,13 +87,23 @@ public:
         return true;
     }
 
+    bool current(const Request& request) const {
+        if (request.binding < 0 || request.phase < 0 ||
+            request.phase >= static_cast<int>(kPhases) ||
+            !managedDustStateValid(request.state)) return false;
+        std::lock_guard<std::mutex> lock(mutex_);
+        return currentLocked(request);
+    }
+
     std::size_t take(Request* output, std::size_t max) {
         if (!output || max == 0) return 0;
         std::lock_guard<std::mutex> lock(mutex_);
         std::size_t count = 0;
         while (count < max && !requests_.empty()) {
-            output[count++] = requests_.front();
+            Request request = requests_.front();
             requests_.pop_front();
+            if (currentLocked(request))
+                output[count++] = request;
         }
         return count;
     }
@@ -78,7 +112,7 @@ public:
                   std::uint32_t flags) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (request.session != session_ || request.phase < 0 || request.phase > 5 ||
-            !managedDustStateValid(state) ||
+            !currentLocked(request) || !managedDustStateValid(state) ||
             !managedDustSameInstance(request.state, state) ||
             (flags & ~63u) != 0u ||
             (((flags & 32u) != 0u) != (state.active != 0))) return false;
@@ -136,6 +170,7 @@ public:
         if (session_ == 0) ++session_;
         requests_.clear();
         slots_.fill({});
+        retired_.fill(0);
     }
 
     std::uint64_t session() const {
@@ -149,6 +184,20 @@ public:
     }
 
 private:
+    bool currentLocked(const Request& request) const {
+        if (request.session != session_ ||
+            (request.phase != 5 &&
+             request.state.generation <=
+                retired_[static_cast<std::size_t>(request.state.slot)]))
+            return false;
+        const Slot& slot = slots_[static_cast<std::size_t>(request.state.slot) *
+            kPhases + static_cast<std::size_t>(request.phase)];
+        return slot.pending && slot.binding == request.binding &&
+               slot.phase == request.phase && slot.type == request.state.type &&
+               slot.generation == request.state.generation &&
+               slot.frame == request.frame;
+    }
+
     struct Slot {
         std::int32_t type = -1;
         std::int32_t generation = 0;
@@ -164,6 +213,7 @@ private:
     std::uint64_t session_ = 1;
     std::uint64_t drops_ = 0;
     std::array<Slot, kSlots * kPhases> slots_{};
+    std::array<std::int32_t, kSlots> retired_{};
     std::deque<Request> requests_;
 };
 
