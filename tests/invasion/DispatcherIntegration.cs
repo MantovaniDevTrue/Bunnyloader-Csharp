@@ -47,8 +47,10 @@ static class InvasionDispatcherTest
                 ExampleInvasion.Controller.Progress == 1,
                 "unadmitted NPC excluded");
 
+            for (int tick = 0; tick < 120; tick++)
+                ExampleInvasion.Controller.Tick(true, true);
             Check(ExampleInvasion.TrySpawn(true, 0, out var next),
-                "second wave reserved") ;
+                "second wave reserved");
             Check(ExampleInvasion.SpawnFailed(true, next.Ticket),
                 "failed spawn reclaimed");
 
