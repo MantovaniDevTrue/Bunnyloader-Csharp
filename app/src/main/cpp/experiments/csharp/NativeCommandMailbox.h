@@ -281,4 +281,11 @@ private:
     std::map<uint64_t, int> inFlight_;
 };
 
+// Registro compartilhado entre o loader de fontes, os hooks e o worker Mono.
+// Inicialização local evita ordem de construção entre unidades C++.
+inline NativeCommandMailbox& nativeCommandMailbox() {
+    static NativeCommandMailbox mailbox;
+    return mailbox;
+}
+
 } // namespace bl::csharp
