@@ -8,27 +8,29 @@ Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integra�
 - `BunnyDustSourceDispatcher`: descoberta das classes da assembly, vínculo de IDs nativos e callbacks separados por fase `Spawn`, `Update`, `MidUpdate`, `Alpha`, `PreDraw` e `Release`.
 - `SourceParser`, `SourceLoader` e Roslyn: domínio `DUST`, verificação do caminho PNG, `UpdateType`, máscara de hooks e exportação gerenciada de defaults.
 - `ManagedRuntime`: registro C# no worker MonoVM residente; fila de resultados por fase; marshal exclusivamente de `ManagedDustState` (nunca ponteiros de objetos IL2CPP para worker).
-- `ManagedDustMailbox`: até 128 jobs enfileirados, armazenamento separado por fase e slot, prazo máximo de 3 frames, verificação de mod, geração, fase, sessão e frame; respostas inválidas são rejeitadas.
+- `ManagedDustMailbox`: até 128 jobs enfileirados, armazenamento separado por fase e slot, prazo máximo de 3 frames, verificação de mod, geração, fase, sessão e frame; respostas inválidas são rejeitadas. `Release` cancela pedidos antigos da geração, inclusive os já capturados pelo worker, e os demais não podem executar se a instância foi invalidada. Sob saturação, um pedido visual mais antigo é descartado para aceitar a liberação prioritária.
 - `ModDusts.cpp`: hooks nativos `NewDust`, `UpdateDust`, `MidUpdate`, `DrawDust` e `GetAlpha` encaminham C# pelo worker quando o tipo pertence à categoria gerenciada; seguem usando `SetNotActive` para devolver as vagas ao pool.
 - `mergeManagedDustDelta`: aplica apenas mudanças retornadas pelo C#, em vez de restaurar o snapshot antigo e causar saltos visuais; teste de finitude e identidade de partícula.
 - Atualização do registro de máscaras no thread do jogo, inclusive instalação tardia de GetAlpha, sem instalar hooks duplos.
 - `ManagedDustLifecycle`: rastreia gerações e slots observados, envia `Release` na morte, mudança de tipo ou reutilização, retém liberações para nova tentativa quando a fila está ocupada e prioriza a fase 5. O backlog é limitado a 12.000 liberações; ultrapassar o limite produz erro explícito no log em vez de perda silenciosa.
 - `noteAutoWorldTilesLoaded` e a saída de mundo reinicializam o rastreio nativo, o contador de gerações, o cache de respostas, a sessão da mailbox e a instância do dispatcher no MonoVM.
-- `BunnyDustSourceDispatcher` impede repetir uma exceção em `OnSpawn` durante a mesma geração; utiliza fallback vanilla e rearma o callback somente em nova geração. `Bind` aceita IDs globais abaixo de 32768 mesmo que o mod tenha registrado poucos tipos localmente.
+- `BunnyDustSourceDispatcher` impede repetir uma exceção em `OnSpawn` durante a mesma geração; utiliza fallback vanilla e rearma o callback somente em nova geração. `Bind` aceita IDs globais abaixo de 32768 mesmo que o mod tenha registrado poucos tipos localmente. A faixa `332..32767` foi alinhada entre a ABI C++ e o dispatcher C#.
 - Estados inativos com `Scale=0` são válidos para encerrar corretamente a partícula. Escala zero enquanto ativa permanece inválida e aciona rollback.
 - `noteAutoWorldTilesLoaded` solicita reset da sessão, fila e estado gerenciado quando um mundo é carregado.
+- Dusts com máscara de callbacks zero permanecem 100% no caminho nativo, sem acordar o MonoVM; somente mods com callbacks Dust armam o worker residente. A inicialização não se declara concluída se faltar o arquivo de probe.
+- O workflow de DLLs recompila SDK e compilador, confere os testes e atualiza `framework.sha256` sem gerar APK. Se a branch receber novos commits, o push é reconciliado somente quando as fontes gerenciadas não mudaram; senão o build antigo encerra como substituído.
 - Exemplo `ExampleSparkDust` isolado em `DustLoaderPreview`. Foi retirado de `Playable` porque a feature ainda está bloqueada e não pode comprometer o ExampleMod C# estável.
 
 ## Validações concluídas
 
 - Verificações de contrato C# e C++ e teste da ABI de 64 bytes.
 - Smoke da compilação de fonte via Roslyn, exportação do registro DUST e execução dos callbacks por ponteiro em C#.
-- Testes da mailbox para concorrência entre fases, expiração, troca de mundo, reincidência, descarte e reuso da vaga.
+- Testes da mailbox para concorrência entre fases, expiração, troca de mundo, reincidência, descarte e reuso da vaga, invalidação de jobs em voo após `Release`, prioridade sob fila saturada e reaproveitamento seguro da vaga cancelada.
 - Testes matemáticos do merge de delta: posição, escala, alpha, cor, cancelamento e NaN.
 - Testes novos de `ManagedDustLifecycle`: morte, troca de tipo, reuso de slot, reentrada no mundo, retries, priorização de `Release`, overflows limitados a 12.000 e proteção de gerações.
 - Smoke Roslyn com um `BrokenSpawnDust` confirma que `OnSpawn` defeituoso é chamado apenas uma vez por instância/geração; um novo spawn rearma a chamada.
 - Contrato de escala zero valida que somente uma poeira inativa pode terminar com `Scale=0`.
-- Compilação nativa ARM64 em CI sem empacotamento de APK, com execuções aprovadas; a última execução após alterações adicionais deve ser avaliada separadamente.
+- Compilação nativa ARM64 em CI sem empacotamento de APK, com execução de referência aprovada no commit `51bcf290`. Verificar novamente o commit final após as novas mudanças.
 - As DLLs `BunnySourceSdk.dll` e `BunnySourceCompiler.dll` são montadas pelo pipeline C# sem APK, e os hashes correspondentes são reescritos em `framework.sha256` no mesmo commit.
 
 ## Bloqueios antes de considerar completo
