@@ -141,6 +141,18 @@ void initPlayers() {
     static_cast<Il2CppObject**>(arrayData(players))[0]=&player.object;
 }
 }
+namespace bl::csharp {
+bool gManagedAllowed = true;
+bool gManagedReady = true;
+int gManagedCalls = 0;
+bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
+                                      int,int,int,int,bool* allowed) {
+    ++gManagedCalls;
+    if (!gManagedReady) return false;
+    *allowed = gManagedAllowed;
+    return true;
+}
+}
 namespace bl::il2cpp {
 Api& api(){static Api value;return value;}
 Il2CppClass* findClass(const TypeRef& type) {
@@ -209,6 +221,19 @@ int main() {
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
     projectile.owner=0;
+    quests[0].callbackMask=2;
+    bl::csharp::gManagedAllowed=false;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    bl::csharp::gManagedReady=false;
+    bl::csharp::gManagedAllowed=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    bl::csharp::gManagedReady=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==850);
+    quests[0].callbackMask=0;
+    assert(bl::csharp::gManagedCalls==3);
     quests[0].catchRules=0;
     quests[0].catchEnabled=false;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
@@ -219,6 +244,6 @@ int main() {
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==8);
+    assert(vanillaCalls==11);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
