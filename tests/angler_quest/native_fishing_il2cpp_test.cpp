@@ -144,6 +144,7 @@ void initPlayers() {
 namespace bl::csharp {
 bool gManagedAllowed = true;
 bool gManagedReady = true;
+bool gUnloadDuringCall = false;
 int gManagedCalls = 0;
 int gLastPlayerIndex = -999;
 bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
@@ -151,6 +152,7 @@ bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
     ++gManagedCalls;
     gLastPlayerIndex = playerIndex;
     if (!gManagedReady) return false;
+    if (gUnloadDuringCall) bl::csharp::angler::registry().unload("examplemodcsharp");
     *allowed = gManagedAllowed;
     return true;
 }
@@ -257,12 +259,19 @@ int main() {
         active.generation(),std::memory_order_release);
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
-    active.unload("examplemodcsharp");
+    quests[0].callbackMask=2;
+    assert(active.publish("examplemodcsharp",quests,&error));
+    bl::csharp::angler::activeGeneration().store(
+        active.generation(),std::memory_order_release);
+    bl::csharp::gUnloadDuringCall=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    bl::csharp::gUnloadDuringCall=false;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==14);
+    assert(vanillaCalls==15);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
