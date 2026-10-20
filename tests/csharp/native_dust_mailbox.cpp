@@ -148,4 +148,22 @@ int main() {
     queue.resetWorld();
     for(const auto& request:batch)
         assert(!queue.complete(request,request.state,1u | 32u));
+    assert(queue.offer(0,1,sample(1200),1000));
+    assert(queue.offer(0,0,sample(1201),1000));
+    auto retired = sample(1202);
+    retired.active = 0;
+    assert(queue.offer(0,5,retired,1000));
+    ManagedDustMailbox::Request ordered[3]{};
+    assert(queue.take(ordered,3)==3);
+    assert(ordered[0].phase==5 && ordered[1].phase==0 &&
+           ordered[2].phase==1);
+    queue.resetWorld();
+    for(int i=0;i<128;i++)
+        assert(queue.offer(0,3,sample(1300+i),1500));
+    assert(queue.offer(0,0,sample(1500),1500,&wake) && wake);
+    assert(queue.take(&first,1)==1 && first.phase==0);
+    assert(queue.current(first));
+    queue.discard(first);
+    assert(queue.take(batch,128)==127);
+    queue.resetWorld();
 }
