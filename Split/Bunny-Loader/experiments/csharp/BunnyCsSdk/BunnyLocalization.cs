@@ -67,6 +67,18 @@ public sealed partial class BunnyLocalizationCatalog
     public int Revision => Volatile.Read(ref current).Revision;
     public int Count => Volatile.Read(ref current).Entries.Count;
 
+    internal int WireRowCount
+    {
+        get
+        {
+            State snapshot = Volatile.Read(ref current);
+            int count = 0;
+            foreach (TextEntry entry in snapshot.Entries.Values)
+                count += entry.Cultures.Count;
+            return count;
+        }
+    }
+
     public void SetCulture(string culture)
     {
         ValidateCulture(culture);
