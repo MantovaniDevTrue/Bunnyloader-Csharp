@@ -136,3 +136,44 @@ As quatro famílias `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPot
 O `BunnyItemPrefixRuntime.Dispatch` recebe os seis campos suportados de `BunnyPrefixItemSnapshot` e o prefixo ID 1–255 no worker MonoVM. Os hooks de `GetRollablePrefixes`, `CanRollPrefix`, `RollAPrefix`, `Item.Prefix` e `TryGetPrefixStatMultipliersForItem` consultam o worker somente depois do warmup. Filtros nativos declarativos têm prioridade. Uma transação permite até quatro RPCs, em até 2,5 ms totais, com prazo de 650 µs cada; decisões repetidas são armazenadas por prefixo e assinatura do item na transação. Timeout, fila indisponível e saída inválida preservam as políticas nativas, sem usar resposta tardia. Sem veto real nem candidato C# a seleção original do Terraria e seu RNG são mantidos.
 
 A restauração gerenciada com escopo próprio ignora o callback; a preservação universal de prefixos vanilla por todos os caminhos de carregamento requer QA no dispositivo. Testes host C#, C++ e compilação ARM64 validam contrato, segurança e hooks simulados, mas não FPS, saves reais, clones, multiplayer nem uma APK do Terraria em execução. Esta API de snapshot não é paridade integral com `ModItem/GlobalItem.AllowPrefix(item,prefix)` do Bunny JavaScript.
+
+## BunnyGlobalItem — filtros globais de prefixo por snapshot
+
+`BunnyGlobalItem` permite aplicar a mesma política a itens vanilla e de outros mods, sem possuir um item próprio. Diferentemente de `BunnyWeapon` e `BunnyItem`, não precisa de `SetDefaults`, imagem ou registro de item. Um mod que contém **somente** uma classe global é aceito pelo parser e pelo compilador nativo, com `GLOBAL_PREFIX_CALLBACK` e identidade verificada no carregador.
+
+```csharp
+using BunnyLoader.Source;
+
+namespace MyPrefixMod;
+
+public sealed class PrefixRules : BunnyGlobalItem
+{
+    public override bool AppliesTo(BunnyPrefixItemSnapshot item)
+        => item.Damage >= 10;
+
+    public override bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)
+        => prefix != 80;
+
+    public override int ChoosePrefix(BunnyPrefixItemSnapshot item)
+        => item.Stack == 3 ? 74 : -1;
+
+    public override bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)
+        => request == -1 ? false : null;
+
+    public override void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix,
+                                     ref BunnyPrefixApplyStats effects)
+    {
+        if (prefix == 73)
+        {
+            effects.DamageBonus = 2;
+            effects.ValueBonus = 5;
+        }
+    }
+}
+```
+
+Os callbacks são opcionais e o compilador codifica somente os overrides presentes na máscara `1/2/4/8`. `AppliesTo` verifica a elegibilidade no worker. O host publica uma lista imutável de políticas globais, incluindo mods diferentes; **qualquer veto a AllowPrefix prevalece**, a primeira escolha válida é usada, **false vence true** para `DecidePrefixChance`, e os bônus pós-aplicação validados são somados. O limite compartilhado continua sendo quatro solicitações síncronas por operação, com 650 µs por chamada e 2,5 ms no total. Onde o resultado não chega dentro do orçamento, o host preserva a política nativa.
+
+Para itens de mods, a lista de candidatos também incorpora, sem repetir IDs, os prefixos vanilla dos grupos `PrefixLegacy.Prefixes` disponíveis no Terraria: espada, ranged, magic, summon, armas genéricas e acessórios. Itens vanilla seguem o caminho original quando nenhuma regra altera a rolagem; não há varredura de todos os itens por reforja.
+
+**Limitações:** a implementação de C# usa snapshots imutáveis, não recebe `Item`, `Player` ou `UnifiedRandom` reais; não substitui o ciclo de vida completo de `GlobalItem` JavaScript, nem expõe mutações arbitrárias de itens. A compilação e os fixtures host não comprovam funcionamento, persistência, multiplayer ou FPS no Android. A PR segue em draft até essa validação.
