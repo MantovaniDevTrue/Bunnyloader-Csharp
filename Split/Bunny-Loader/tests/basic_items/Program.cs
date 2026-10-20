@@ -294,6 +294,12 @@ try {
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
   Equal("0",blockTile[7]);Equal("200",blockTile[8]);Equal("255",blockTile[9]);
   Equal(22,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
+  var campfireTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleCampfireVisualProbe\t",StringComparison.Ordinal)).Split('\t');
+  var lampTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleLampVisualProbe\t",StringComparison.Ordinal)).Split('\t');
+  Equal(22,campfireTile.Length);Equal("2",campfireTile[3]);Equal("1",campfireTile[21]);
+  Equal(22,lampTile.Length);Equal("3",lampTile[3]);Equal("2",lampTile[21]);
+  if(int.Parse(campfireTile[19])<65536||int.Parse(lampTile[19])<65536)
+    throw new Exception("C# tile visual callbacks were truncated to 16 bits");
   var blockItem=blockRows.Single(row=>row.StartsWith("ITEM\tExampleTileItem\t",StringComparison.Ordinal)).Split('\t');
   Equal("12",blockItem[2]);Equal("12",blockItem[3]);
   Equal("10,18,mExampleItem:1",blockItem[19]);Equal("mExampleTile:0",blockItem[21]);

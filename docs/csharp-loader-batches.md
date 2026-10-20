@@ -219,3 +219,7 @@ A limpeza nativa de suportes de móveis usa footprint de até 3×3, frames de 18
 ### TileLoader C# — declaração de alternância (revisão 37)
 
 A propriedade `BunnyTile.FrameToggle` recebe `None`, `CampfireVertical` (somente forma 3×2) ou `LampHorizontal` (somente 1×3). O registro `TILE` ganha um 22º campo. Pacotes com 13/14/16/17/19/20/21 campos seguem válidos e usam `None`; compilador e nativo rejeitam combinações de modo/forma inválidas. A etapa de integração dos setters de frames nativos permanece separada e sujeita a ABI validada.
+
+### TileLoader C# — iluminação ligada/desligada e regressão de máscaras
+
+O runtime aplica a política nativa de iluminação do frame antes de pedir `ModifyLight`, e remove entradas antigas da cache quando o móvel é desligado. Fogueira em frames Y 0/18 emite; Y 36/54 não. Luminária com frameX=0 emite; frameX=18 não. A alternância limpa a cache inteira para não manter luz antiga. O teste C++ valida estados e frames; o pacote C# compilado tem teste que exige shape e `FrameToggle` reais, com callbacks gráficos acima de 16 bits.

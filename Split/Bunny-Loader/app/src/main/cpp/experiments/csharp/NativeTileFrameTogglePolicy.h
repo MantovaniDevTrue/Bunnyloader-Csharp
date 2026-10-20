@@ -31,4 +31,10 @@ inline bool plan(int shape,int mode,int x,int y,int frameX,int frameY,Plan* out)
     *out=result;
     return true;
 }
+inline bool lit(int mode,int frameX,int frameY) {
+    if(mode==0)return true;
+    if(mode==1)return frameY>=0&&frameY<36;
+    if(mode==2)return frameX==0;
+    return false;
+}
 }

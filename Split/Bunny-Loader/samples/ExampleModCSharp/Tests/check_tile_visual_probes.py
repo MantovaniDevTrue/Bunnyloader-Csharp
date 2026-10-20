@@ -18,6 +18,8 @@ for probe, original in TILES.items():
             else "Shape=BunnyTileShape.Style1x3;") in body
     assert "DrawFlameTexture(" in body
     assert "EmitDustStyled(" in body
+    assert ("FrameToggle=BunnyTileFrameToggle.CampfireVertical;" if "Campfire" in probe
+            else "FrameToggle=BunnyTileFrameToggle.LampHorizontal;") in body
     assert "ModifyLight(" in body
     for extension in (".png", "_Flame.png"):
         target = PLAYABLE / f"Content/Tiles/VisualProbes/{probe}{extension}"

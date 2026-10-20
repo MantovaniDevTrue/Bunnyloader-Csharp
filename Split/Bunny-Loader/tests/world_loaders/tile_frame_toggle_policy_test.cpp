@@ -19,5 +19,10 @@ int main() {
     assert(!plan(3,2,20,14,36,36,&p));
     assert(!plan(2,1,0,0,-1,0,&p));
     assert(!plan(2,1,0,0,36,18,&p));
+    assert(lit(0,999,999));
+    assert(lit(1,0,0)&&lit(1,36,18));
+    assert(!lit(1,0,36)&&!lit(1,36,54));
+    assert(lit(2,0,0)&&!lit(2,18,0));
+    assert(!lit(2,36,0)&&!lit(3,0,0));
     std::cout<<"CSHARP_TILE_FRAME_TOGGLE_PLAN=PASS\n";
 }

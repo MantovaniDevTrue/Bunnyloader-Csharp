@@ -547,6 +547,13 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
     cursor=tile_scan::nextCursor(first,visited,total);
     if(g_tileNearbyEvents.size()>2048)g_tileNearbyEvents.clear();
 }
+bool nativeTileLit(const runtime::TileArrays& world,int x,int y,int toggle) {
+    if(!toggle)return true;
+    if(!world.lookup||!world.frameX||!world.frameY||
+       x<0||y<0||x>=world.width||y>=world.height)return false;
+    const uint32_t id=world.lookup[static_cast<size_t>(y)*world.width+x];
+    return tile_toggle::lit(toggle,world.frameX[id],world.frameY[id]);
+}
 void scanTileLighting(const runtime::TileArrays& world) {
     const TileRect region=tileScreenRect(world,false);
     const size_t total=static_cast<size_t>(region.width)*region.height;
@@ -563,6 +570,10 @@ void scanTileLighting(const runtime::TileArrays& world) {
         const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
         if(it==g_tiles.end()||!managedTileReady(it->second.spec,6))continue;
         const uint64_t key=tile_scan::cellKey(x,y);
+        if(!nativeTileLit(world,x,y,it->second.spec.frameToggle)) {
+            g_tileLightCache.erase(key);
+            continue;
+        }
         const auto cached=g_tileLightCache.find(key);
         if(cached!=g_tileLightCache.end()&&g_tileScanTick-cached->second.frame<3)continue;
         evaluated++;
@@ -581,7 +592,9 @@ void scanTileLighting(const runtime::TileArrays& world) {
         if(g_tileScanTick-entry.frame>180||entry.x<region.left||
            entry.y<region.top||entry.x>=region.left+region.width||
            entry.y>=region.top+region.height||
-           runtime::tileTypeAt(entry.x,entry.y)!=entry.type) {
+           runtime::tileTypeAt(entry.x,entry.y)!=entry.type||
+           (g_tiles.find(entry.type)!=g_tiles.end()&&
+            !nativeTileLit(world,entry.x,entry.y,g_tiles.at(entry.type).spec.frameToggle))) {
             it=g_tileLightCache.erase(it);continue;
         }
         if(entry.r||entry.g||entry.b) {
@@ -797,6 +810,7 @@ bool toggleNativeFrame(const NativeTileGameplaySpec& spec,int x,int y) {
         else
             g_frameToggle.setX(&offset,static_cast<int16_t>(cell.toX),g_frameToggle.x);
     }
+    g_tileLightCache.clear();
     runtime::invalidateManagedTileDrawCache();
     return true;
 }
