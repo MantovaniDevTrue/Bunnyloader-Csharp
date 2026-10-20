@@ -119,10 +119,10 @@ internal static class TransportIntegration
             "old world queued spawn discarded");
         SetWorldRestore(1, 20, "/tmp/bunny-invasion-ci-11.wld");
         Tick(mod, 20);
-        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running &&
-            ExampleInvasion.Controller.Progress == 1 &&
+        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Completed &&
+            ExampleInvasion.Controller.Progress == ExampleInvasion.Controller.Definition.Goal &&
             ExampleInvasion.Controller.ActiveCount == 0,
-            "re-entered original world restores progress but discards stale NPC membership");
+            "re-entered original world restores completion and never reuses NPC membership");
         SetWorld(0, 21);
         foreach (int id in new[] { 11, 12, 13 })
             System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
