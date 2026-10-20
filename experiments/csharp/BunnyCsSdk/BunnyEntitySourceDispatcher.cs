@@ -88,8 +88,12 @@ public static class BunnyEntitySourceDispatcher
                 }
                 else if (typeof(BunnyItem).IsAssignableFrom(type))
                 {
-                    MethodInfo? use = type.GetMethod(nameof(BunnyItem.OnUse), new[] { typeof(int) });
-                    if (use?.DeclaringType != typeof(BunnyItem) &&
+                    MethodInfo? use = type.GetMethod(nameof(BunnyItem.OnUse),
+                        new[] { typeof(int) });
+                    MethodInfo? contextual = type.GetMethod(nameof(BunnyItem.OnUse),
+                        new[] { typeof(int), typeof(BunnyUseContext) });
+                    if ((use?.DeclaringType != typeof(BunnyItem) ||
+                         contextual?.DeclaringType != typeof(BunnyItem)) &&
                         Activator.CreateInstance(type) is BunnyItem item)
                     {
                         if (!context.ItemUsers.TryAdd(type.Name, item))
@@ -222,11 +226,12 @@ public static class BunnyEntitySourceDispatcher
                         context.RegisteredItemUses.Add(pair.Key);
                 }
                 if (!context.RegisteredItemUses.Contains(pair.Key)) continue;
-                for (int n = 0; n < 8 && BunnyNativeItemUse.TryPoll(
-                    worldSession, context.Mod, pair.Key, out int usingPlayer); n++)
+                for (int n = 0; n < 8 && BunnyNativeItemUse.TryPollContext(
+                    worldSession, context.Mod, pair.Key, out int usingPlayer,
+                    out BunnyUseContext useContext); n++)
                 {
                     context.RewardPlayer = usingPlayer;
-                    pair.Value.OnUse(usingPlayer);
+                    pair.Value.OnUse(usingPlayer, useContext);
                     used++;
                     SaveInvasionIfChanged(context);
                 }
