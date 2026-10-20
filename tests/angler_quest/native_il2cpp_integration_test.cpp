@@ -466,5 +466,23 @@ int main() {
     bl::csharp::angler::invalidateWorldSession();
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11}));
+    assert(reg.publish("examplemodcsharp",{quest},&error));
+    bl::csharp::angler::pumpOnGameThread();
+    const auto preservedIds=ids();
+    auto* preservedArray=gIds;
+    gSelected=999;
+    bl::csharp::angler::invalidateWorldSession();
+    bl::csharp::angler::pumpOnGameThread();
+    assert(gSelected==0 && gIds==preservedArray && ids()==preservedIds);
+    gSelected=-17;
+    bl::csharp::angler::invalidateWorldSession();
+    bl::csharp::angler::pumpOnGameThread();
+    assert(gSelected==0 && gIds==preservedArray && ids()==preservedIds);
+    gSelected=2;
+    bl::csharp::angler::invalidateWorldSession();
+    bl::csharp::angler::pumpOnGameThread();
+    assert(gSelected==2 && gIds==preservedArray && ids()==preservedIds);
+    reg.unload("examplemodcsharp");
+    bl::csharp::angler::pumpOnGameThread();
     std::cout<<"ANGLER_QUEST_IL2CPP_HOST_INTEGRATION_OK\n";
 }
