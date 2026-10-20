@@ -211,4 +211,81 @@ bool discover(const std::string& modDirectory, std::vector<Source>* out,
     return true;
 }
 
+
+bool readOwnedPng(const Source& source, std::vector<unsigned char>* bytes,
+                  std::string* error) {
+    if (!bytes || !error) return false;
+    error->clear();
+    const std::string suffix = "/" + source.relativePath;
+    if (source.relativePath.empty() || source.absolutePath.size() <= suffix.size() ||
+        source.absolutePath.compare(source.absolutePath.size() - suffix.size(),
+                                    suffix.size(), suffix) != 0) {
+        *error = "caminho de gore inconsistente";
+        return false;
+    }
+    const std::string root = source.absolutePath.substr(
+        0, source.absolutePath.size() - suffix.size());
+    const int rootFd = open(root.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_DIRECTORY);
+    if (rootFd < 0) {
+        *error = "raiz content do mod inacessivel";
+        return false;
+    }
+    int current = rootFd;
+    const std::string& path = source.relativePath;
+    size_t start = 0;
+    while (start < path.size()) {
+        const size_t slash = path.find('/', start);
+        const bool last = slash == std::string::npos;
+        const std::string component = path.substr(
+            start, last ? std::string::npos : slash - start);
+        if (component.empty() || component == "." || component == ".." ||
+            component.find('\\') != std::string::npos) {
+            *error = "componente inseguro em " + path;
+            close(current);
+            return false;
+        }
+        const int next = openat(current, component.c_str(), O_RDONLY | O_CLOEXEC |
+                                O_NOFOLLOW | (last ? 0 : O_DIRECTORY));
+        close(current);
+        if (next < 0) {
+            *error = "gore alterada ou link simbolico: " + path;
+            return false;
+        }
+        current = next;
+        if (last) break;
+        start = slash + 1;
+    }
+    struct stat metadata {};
+    const bool valid = fstat(current, &metadata) == 0 && S_ISREG(metadata.st_mode) &&
+                       metadata.st_size >= 33 &&
+                       static_cast<uint64_t>(metadata.st_size) == source.byteCount &&
+                       static_cast<uint64_t>(metadata.st_size) <= kMaximumFileBytes;
+    if (!valid) {
+        close(current);
+        *error = "arquivo de gore alterado desde descoberta: " + path;
+        return false;
+    }
+    std::vector<unsigned char> staged(static_cast<size_t>(metadata.st_size));
+    size_t offset = 0;
+    while (offset < staged.size()) {
+        const ssize_t got = read(current, staged.data() + offset, staged.size() - offset);
+        if (got < 0 && errno == EINTR) continue;
+        if (got <= 0) break;
+        offset += static_cast<size_t>(got);
+    }
+    close(current);
+    constexpr unsigned char signature[] = {137, 80, 78, 71, 13, 10, 26, 10};
+    if (offset != staged.size() ||
+        !std::equal(std::begin(signature), std::end(signature), staged.begin()) ||
+        readBigEndian(staged.data() + 8) != 13 ||
+        std::memcmp(staged.data() + 12, "IHDR", 4) != 0 ||
+        readBigEndian(staged.data() + 16) != source.width ||
+        readBigEndian(staged.data() + 20) != source.height) {
+        *error = "PNG de gore modificado durante carregamento: " + path;
+        return false;
+    }
+    *bytes = std::move(staged);
+    return true;
+}
+
 }
