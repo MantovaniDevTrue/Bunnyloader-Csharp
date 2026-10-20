@@ -40,6 +40,8 @@ Il2CppClass kInt{"System","Int32"};
 Il2CppClass kBool{"System","Boolean"};
 Il2CppClass kFloat{"System","Single"};
 Il2CppClass kPlayersArray{"Terraria","Player[]",&kPlayer};
+Il2CppClass kFakePlayersArray{"System","Int32[]",&kInt};
+Il2CppClass kWrongPlayer{"Terraria","NPC"};
 Il2CppType tInt{"System.Int32",&kInt};
 Il2CppType tBool{"System.Boolean",&kBool};
 Il2CppType tFloat{"System.Single",&kFloat};
@@ -130,6 +132,9 @@ void configure() {
     };
     api.object_get_class=[](Il2CppObject* object){return object->klass;};
     api.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
+    api.class_get_rank=[](const Il2CppClass* cls)->int {
+        return cls==&kPlayersArray || cls==&kFakePlayersArray ? 1 : 0;
+    };
 }
 void initPlayers() {
     players=static_cast<Il2CppArray*>(std::calloc(
@@ -252,6 +257,20 @@ int main() {
     quests[0].catchEnabled=true;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
+    players->obj.klass=&kFakePlayersArray;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    players->obj.klass=&kPlayersArray;
+    player.object.klass=&kWrongPlayer;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    player.object.klass=&kPlayer;
+    players->length=257;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    players->length=2;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==850);
     std::string error;
     auto& active=bl::csharp::angler::registry();
     assert(active.publish("examplemodcsharp",quests,&error));
@@ -272,6 +291,6 @@ int main() {
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==15);
+    assert(vanillaCalls==19);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
