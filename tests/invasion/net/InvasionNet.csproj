@@ -9,5 +9,6 @@
   <ItemGroup>
     <Compile Include="../../../experiments/csharp/BunnyCsSdk/BunnyInvasion.cs" Link="BunnyInvasion.cs" />
     <Compile Include="../../../experiments/csharp/BunnyCsSdk/BunnyInvasionWire.cs" Link="BunnyInvasionWire.cs" />
+    <Compile Include="../../../experiments/csharp/BunnyCsSdk/BunnyUseContext.cs" Link="BunnyUseContext.cs" />
   </ItemGroup>
 </Project>
