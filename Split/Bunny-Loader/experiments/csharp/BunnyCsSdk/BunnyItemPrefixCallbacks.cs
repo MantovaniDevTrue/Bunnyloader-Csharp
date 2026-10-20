@@ -31,6 +31,12 @@ public static class BunnyItemPrefixRuntime
                   (kind == 0 && index >= 1 && index <= 255 &&
                    snapshot.Length > 0 && snapshot.Length <= 512) ||
                   (kind == 1 && index == 0 &&
+                   snapshot.Length > 0 && snapshot.Length <= 512) ||
+                  (kind == 3 && index == 0 &&
+                   snapshot.Length > 0 && snapshot.Length <= 512) ||
+                  (kind == 4 && (index == 1 || index == 2) &&
+                   snapshot.Length > 0 && snapshot.Length <= 512) ||
+                  (kind == 5 && index >= 1 && index <= 255 &&
                    snapshot.Length > 0 && snapshot.Length <= 512)))
                 throw new ArgumentException("Invalid item prefix callback transport");
 
@@ -106,6 +112,49 @@ public static class BunnyItemPrefixRuntime
                 return new string(results);
             }
             var state = BunnyPrefixRuntime.ReadItem(snapshot);
+            if (kind == 3)
+            {
+                int chosen = item switch
+                {
+                    BunnyItem basic => basic.ChoosePrefix(state),
+                    BunnyWeapon weapon => weapon.ChoosePrefix(state),
+                    BunnyAccessory accessory => accessory.ChoosePrefix(state),
+                    BunnyBuffPotion potion => potion.ChoosePrefix(state),
+                    _ => throw new InvalidOperationException("Invalid item prefix owner")
+                };
+                if (chosen != -1 && (chosen < 1 || chosen > 255))
+                    throw new ArgumentOutOfRangeException(nameof(chosen));
+                return chosen.ToString(CultureInfo.InvariantCulture);
+            }
+            if (kind == 4)
+            {
+                bool? chance = item switch
+                {
+                    BunnyItem basic => basic.DecidePrefixChance(state, -index),
+                    BunnyWeapon weapon => weapon.DecidePrefixChance(state, -index),
+                    BunnyAccessory accessory => accessory.DecidePrefixChance(state, -index),
+                    BunnyBuffPotion potion => potion.DecidePrefixChance(state, -index),
+                    _ => throw new InvalidOperationException("Invalid item prefix owner")
+                };
+                return chance.HasValue ? (chance.Value ? "1" : "0") : "N";
+            }
+            if (kind == 5)
+            {
+                BunnyPrefixApplyStats effect = new();
+                switch (item)
+                {
+                    case BunnyItem basic: basic.ApplyPrefix(state, index, ref effect); break;
+                    case BunnyWeapon weapon: weapon.ApplyPrefix(state, index, ref effect); break;
+                    case BunnyAccessory accessory: accessory.ApplyPrefix(state, index, ref effect); break;
+                    case BunnyBuffPotion potion: potion.ApplyPrefix(state, index, ref effect); break;
+                    default: throw new InvalidOperationException("Invalid item prefix owner");
+                }
+                if (effect.DamageBonus < 0 || effect.DamageBonus > 1000 ||
+                    effect.ValueBonus < 0 || effect.ValueBonus > 100000)
+                    throw new InvalidOperationException("Dynamic item prefix effects out of range");
+                return effect.DamageBonus.ToString(CultureInfo.InvariantCulture) + "," +
+                    effect.ValueBonus.ToString(CultureInfo.InvariantCulture);
+            }
             bool allow = item switch
             {
                 BunnyItem basic => basic.AllowPrefix(state, index),
