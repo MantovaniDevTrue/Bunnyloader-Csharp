@@ -12,6 +12,8 @@ on:
       - experiments/csharp/BunnySourceSdk/**
       - samples/ExampleModCSharp/Playable/content/**
       - tests/summon_lifecycle/managed_sound_loader_test.cpp
+      - tests/summon_lifecycle/managed_sound_pinvoke_mock.cpp
+      - tests/summon_lifecycle/ManagedSoundPInvokeTest.cs
       - tests/summon_lifecycle/sound_router_test.cpp
       - .github/workflows/check-csharp-soundloader.yml
   workflow_dispatch:
@@ -40,6 +42,17 @@ jobs:
           set -euo pipefail
           g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/managed_sound_loader_test.cpp             -o /tmp/bunny_csharp_soundloader_test
           /tmp/bunny_csharp_soundloader_test
+      - name: Verify native SoundLoader with ASan and UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_loader_test.cpp \
+            -o /tmp/bunny_sound_sanitizers
+          ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+            UBSAN_OPTIONS=halt_on_error=1 /tmp/bunny_sound_sanitizers
+
       - name: Existing native sound router test (no Android)
         shell: bash
         run: |
@@ -131,6 +144,30 @@ jobs:
           </Project>
           EOF
           dotnet build /tmp/bunny-sound-example/SoundExample.csproj -c Release
+          mkdir -p /tmp/bunny-sound-pinvoke
+          g++ -std=c++20 -O1 -fPIC -shared -fvisibility=hidden -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_pinvoke_mock.cpp \
+            -o /tmp/bunny-sound-pinvoke/libbunny.so
+          cat > /tmp/bunny-sound-pinvoke/PInvokeTest.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/tests/summon_lifecycle/ManagedSoundPInvokeTest.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-pinvoke/PInvokeTest.csproj -c Release
+          LD_LIBRARY_PATH=/tmp/bunny-sound-pinvoke \
+            dotnet /tmp/bunny-sound-pinvoke/bin/Release/net8.0/PInvokeTest.dll
           echo 'CSHARP_SOUNDLOADER_MANAGED_SDK_COMPILE_PASS'
       - uses: actions/upload-artifact@v4
         with:
