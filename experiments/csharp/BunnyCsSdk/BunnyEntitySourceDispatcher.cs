@@ -38,6 +38,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly List<BunnyInvasionSystem> InvasionOrder = new();
         public readonly Dictionary<string, BunnyInvasionClientView> ClientViews = new(StringComparer.Ordinal);
         public readonly Dictionary<string, int> NetRevisions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> HudRevisions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress, int Cooldown)> SavedInvasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
@@ -148,6 +149,7 @@ public static class BunnyEntitySourceDispatcher
             context.NotifiedInvasions.Clear();
             context.ClientViews.Clear();
             context.NetRevisions.Clear();
+            context.HudRevisions.Clear();
             context.WorldStateInitialized = false;
             context.PendingRewards.Clear();
             context.RewardPlayer = -1;
@@ -175,6 +177,7 @@ public static class BunnyEntitySourceDispatcher
                     if (view.ReceiveRemoteFromHost(state, worldSession, context.Mod,
                         state.InvasionId))
                     {
+                        BunnyInvasionHud.Publish(worldSession, state);
                         bool significant = !hadState || previous.Phase != state.Phase ||
                             previous.Progress * 10 / previous.Goal !=
                             state.Progress * 10 / state.Goal;
@@ -298,6 +301,13 @@ public static class BunnyEntitySourceDispatcher
         {
             BunnyInvasionController controller = system.Pipeline.Controller;
             BunnyInvasionSnapshot state = controller.Snapshot();
+            if (!context.HudRevisions.TryGetValue(system.Id, out int lastHudRevision) ||
+                lastHudRevision != state.Revision)
+            {
+                if (BunnyInvasionHud.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.HudRevisions[system.Id] = state.Revision;
+            }
             if (!context.NetRevisions.TryGetValue(system.Id, out int lastNetRevision) ||
                 lastNetRevision != state.Revision)
             {
