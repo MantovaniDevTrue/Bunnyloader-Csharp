@@ -223,3 +223,11 @@ A propriedade `BunnyTile.FrameToggle` recebe `None`, `CampfireVertical` (somente
 ### TileLoader C# — iluminação ligada/desligada e regressão de máscaras
 
 O runtime aplica a política nativa de iluminação do frame antes de pedir `ModifyLight`, e remove entradas antigas da cache quando o móvel é desligado. Fogueira em frames Y 0/18 emite; Y 36/54 não. Luminária com frameX=0 emite; frameX=18 não. A alternância limpa a cache inteira para não manter luz antiga. O teste C++ valida estados e frames; o pacote C# compilado tem teste que exige shape e `FrameToggle` reais, com callbacks gráficos acima de 16 bits.
+
+## TileLoader C# — RegisterItemDrop por estilo (20/10)
+
+A API `BunnyTile.RegisterItemDrop(string itemName, params int[] styles)` e o overload de item numérico replicam a tabela de estilo do `ModTile.js` do ExampleModBunny: sem estilo, regra geral; com estilos, override por estilo; duplicatas usam a última declaração. O C# serializa o mapa ordenado em campo 23 do `TILE` (22 e anteriores seguem aceitos); a ponte nativa valida nomes, IDs, cardinalidade e duplicatas antes de registrar. Itens próprios são resolvidos por `mod/item`, sem QuickJS. `GetItemDrops` gerenciado mantém prioridade e o fallback de item colocável continua quando não há regra correspondente.
+
+Em tiles com `TileObjectData`, a consulta de estilo usa a assinatura exata `GetTileStyle(Terraria.Tile)`, validada por IL2CPP apenas na instalação de regras por estilo; em tiles simples, o estilo padrão é 0, como no loader de origem. ABI ausente ou item não registrado rejeita a vinculação em vez de inventar ID/estilo. Há testes host para regras válidas e inválidas, sobreposições e serialization no smoke Roslyn.
+
+**Não certificado completo:** falta a validação do drop efetivo no Terraria Android, diferentes estilos de móveis e portas, multiplayer, save/reload e a bateria integral de TileLoader. Manter PR draft e sem distribuição APK/.bmod; Wall/Tree não liberados.
