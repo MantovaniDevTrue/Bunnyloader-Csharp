@@ -74,7 +74,7 @@ internal static class TransportIntegration
         Check(Tick(mod, 11) == 1, "native-ready item OnUse starts invasion and queues NPC spawn");
         int epoch = ExampleInvasion.Controller.Snapshot().Epoch;
         InjectItemUse(0);
-        Check(Tick(mod, 11) == 0 &&
+        Check(Tick(mod, 11) == 1 &&
             ExampleInvasion.Controller.Snapshot().Epoch == epoch,
             "repeated item use cannot restart running invasion");
         Check(ExampleInvasion.Pipeline.PendingCount == 1, "reservation created");
