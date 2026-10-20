@@ -7,6 +7,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
@@ -1209,6 +1210,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
+    runtime::resetManagedDustLifecycle();
     resetManagedDustSourceWorld();
     pauseManagedScreenSceneCallbacks();
     resetManagedSourceNpcSlots();
@@ -1303,7 +1305,9 @@ void noteAutoGameUpdate() {
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
-    resetManagedSourceNpcSlots();
+        runtime::resetManagedDustLifecycle();
+        resetManagedDustSourceWorld();
+        resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
         {
             std::lock_guard<std::mutex> guard(g_lock);
