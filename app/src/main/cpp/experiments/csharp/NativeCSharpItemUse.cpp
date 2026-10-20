@@ -10,6 +10,7 @@
 #include "content/common/GameRefs.h"
 
 #include <algorithm>
+#include <cmath>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -35,6 +36,7 @@ struct ItemUseEvent {
     std::string mod;
     std::string name;
     int player = -1;
+    int flags = 0;
 };
 
 std::mutex g_mutex;
@@ -68,13 +70,56 @@ bool sameBinding(const ItemBinding& a, const ItemBinding& b) {
     return a.session == b.session && a.mod == b.mod && a.name == b.name;
 }
 
+int startFlags(Il2CppObject* player) {
+    if (!player || !runtime::resolveGameRefs()) return 0;
+    static FieldInfo* day = nullptr;
+    static FieldInfo* surface = nullptr;
+    static FieldInfo* invasion = nullptr;
+    static FieldInfo* menu = nullptr;
+    static int health = -1;
+    if (!day || !surface || !invasion || !menu || health < 0) {
+        auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+        auto* klass = il2cpp::findClass({"Terraria", "Player", {}});
+        if (!main || !klass) return 0;
+        day = il2cpp::findField(main, "dayTime");
+        surface = il2cpp::findField(main, "worldSurface");
+        invasion = il2cpp::findField(main, "invasionType");
+        menu = il2cpp::findField(main, "gameMenu");
+        health = il2cpp::fieldOffset(klass, "statLife");
+    }
+    if (!day || !surface || !invasion || !menu || health < 0) return 0;
+    auto& api = il2cpp::api();
+    uint8_t daytime = 0, gameMenu = 1;
+    double surfaceY = 0;
+    int invasionType = -1;
+    api.field_static_get_value(day, &daytime);
+    api.field_static_get_value(surface, &surfaceY);
+    api.field_static_get_value(invasion, &invasionType);
+    api.field_static_get_value(menu, &gameMenu);
+    struct Point {float x, y;};
+    const Point playerPos = runtime::field<Point>(
+        player, runtime::game().entity.position);
+    int flags = 0;
+    if (daytime != 0) flags |= 1;
+    if (std::isfinite(surfaceY) && std::isfinite(playerPos.y) &&
+        playerPos.y < static_cast<float>(surfaceY * 16.0 + 32.0))
+        flags |= 2;
+    if (invasionType == 0) flags |= 4;
+    if (runtime::field<int32_t>(player, health) > 0) flags |= 8;
+    if (gameMenu == 0) flags |= 16;
+    return flags;
+}
+
 void onActualUse(Il2CppObject* player, Il2CppObject* item, const MethodInfo* method) {
     int itemType = -1;
     int playerIndex = -1;
+    int flags = 0;
     if (player && item && g_ready.load(std::memory_order_acquire) &&
         g_playerIndexOffset >= 0 && g_itemTypeOffset >= 0) {
         itemType = runtime::field<int32_t>(item, g_itemTypeOffset);
         playerIndex = runtime::field<int32_t>(player, g_playerIndexOffset);
+        if (g_installed.find(itemType) != g_installed.end())
+            flags = startFlags(player);
     }
     if (g_originalUse) g_originalUse(player, item, method);
     if (itemType < 0 || playerIndex < 0 || playerIndex >= 255 ||
@@ -94,7 +139,7 @@ void onActualUse(Il2CppObject* player, Il2CppObject* item, const MethodInfo* met
         return;
     }
     g_events.push_back({binding->second.session, binding->second.mod,
-                        binding->second.name, playerIndex});
+                        binding->second.name, playerIndex, flags});
 }
 
 bool installItemUseHook() {
@@ -154,7 +199,7 @@ bool enqueueVerifiedRemoteItemUse(int playerIndex, const std::string& mod,
     if (!g_ready.load(std::memory_order_acquire) ||
         g_events.size() >= kEventsLimit) return false;
     g_events.push_back({g_session.load(std::memory_order_acquire), mod,
-                        itemName, playerIndex});
+                        itemName, playerIndex, startFlags(player)});
     return true;
 }
 
@@ -228,6 +273,29 @@ int bunny_item_use_ready(int64_t session, const char* mod, const char* itemName)
     for (const auto& entry : g_installed)
         if (sameBinding(entry.second, target)) return 1;
     return 0;
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_item_use_poll_context(int64_t session, const char* mod,
+                                const char* itemName, int* playerIndex,
+                                int* flags) {
+    using namespace bl::csharp;
+    if (session <= 0 || !validName(mod, 128) ||
+        !validName(itemName, 128) || !playerIndex || !flags) return 0;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_ready.load(std::memory_order_acquire) ||
+        g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
+        return 0;
+    const auto it = std::find_if(g_events.begin(), g_events.end(),
+        [&](const ItemUseEvent& value) {
+            return value.session == static_cast<uint64_t>(session) &&
+                value.mod == mod && value.name == itemName;
+        });
+    if (it == g_events.end()) return 0;
+    *playerIndex = it->player;
+    *flags = it->flags;
+    g_events.erase(it);
+    return 1;
 }
 
 extern "C" __attribute__((visibility("default")))
