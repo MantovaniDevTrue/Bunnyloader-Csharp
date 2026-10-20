@@ -31,6 +31,8 @@ constexpr int clearanceHeight = 6;
 constexpr int groundHalfWidth = 1;
 constexpr int horizontalOffsets[] = {0, -8, 8, -16, 16, -24, 24, -32, 32};
 constexpr int16_t activeFlag = 0x20;
+constexpr uint16_t invalidFloorShape = 0x7400;
+constexpr int templeSpikes = 232;
 
 inline bool occupied(const InvasionTileView& view, int x, int y, int* type) {
     if (!view.lookup || !view.headers || !view.type ||
@@ -48,7 +50,10 @@ inline bool ground(const InvasionTileView& view, int x, int y) {
         static_cast<uintptr_t>(type) >= view.solidCount ||
         static_cast<uintptr_t>(type) >= view.solidTopCount)
         return false;
-    return view.solid[type] != 0 && view.solidTop[type] == 0;
+    const uint32_t definition = view.lookup[static_cast<int64_t>(y) * view.width + x];
+    const uint16_t header = static_cast<uint16_t>(view.headers[definition]);
+    return view.solid[type] != 0 && view.solidTop[type] == 0 &&
+        type != templeSpikes && (header & invalidFloorShape) == 0;
 }
 
 inline bool clear(const InvasionTileView& view, int x, int groundY) {

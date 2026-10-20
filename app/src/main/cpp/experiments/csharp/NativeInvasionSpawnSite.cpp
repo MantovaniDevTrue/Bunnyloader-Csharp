@@ -44,14 +44,23 @@ bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
     view.solidCount = solid->length;
     view.solidTopCount = solidTop->length;
     static const MethodInfo* collisionMethod = nullptr;
-    if (!collisionMethod) {
+    static const MethodInfo* wetMethod = nullptr;
+    static const MethodInfo* lavaMethod = nullptr;
+    if (!collisionMethod || !wetMethod || !lavaMethod) {
         auto* collision = il2cpp::findClass({"Terraria", "Collision", {}});
-        if (collision)
+        if (collision) {
             collisionMethod = il2cpp::findMethodBySignature(collision,
                 il2cpp::parseSignature(
                     "bool SolidCollision(Vector2 Position, int Width, int Height)"));
+            wetMethod = il2cpp::findMethodBySignature(collision,
+                il2cpp::parseSignature(
+                    "bool WetCollision(Vector2 Position, int Width, int Height)"));
+            lavaMethod = il2cpp::findMethodBySignature(collision,
+                il2cpp::parseSignature(
+                    "bool LavaCollision(Vector2 Position, int Width, int Height)"));
+        }
     }
-    if (!collisionMethod) return false;
+    if (!collisionMethod || !wetMethod || !lavaMethod) return false;
     struct Vec2 { float x, y; };
     *result = findInvasionSpawnSiteChecked(view, preferredX, preferredY,
         [&](int x, int groundY) {
@@ -60,12 +69,15 @@ bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
             int width = 80;
             int height = 88;
             void* args[] = {&position, &width, &height};
-            Il2CppObject* exception = nullptr;
-            Il2CppObject* boxed = a.runtime_invoke(
-                collisionMethod, nullptr, args, &exception);
-            if (exception || !boxed) return false;
-            const auto* bytes = reinterpret_cast<const uint8_t*>(boxed);
-            return bytes[sizeof(Il2CppObject)] == 0;
+            for (const MethodInfo* collision : {collisionMethod, wetMethod, lavaMethod}) {
+                Il2CppObject* exception = nullptr;
+                Il2CppObject* boxed = a.runtime_invoke(
+                    collision, nullptr, args, &exception);
+                if (exception || !boxed) return false;
+                const auto* bytes = reinterpret_cast<const uint8_t*>(boxed);
+                if (bytes[sizeof(Il2CppObject)] != 0) return false;
+            }
+            return true;
         });
     return result->valid;
 }

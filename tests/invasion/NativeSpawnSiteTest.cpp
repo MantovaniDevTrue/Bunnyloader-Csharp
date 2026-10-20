@@ -12,14 +12,21 @@ struct TestWorld {
     static constexpr int width = 260;
     static constexpr int height = 210;
     std::vector<uint32_t> lookup = std::vector<uint32_t>(width * height);
-    uint16_t type[3] = {0, 1, 2};
-    int16_t headers[3] = {0, 0x20, 0x20};
-    uint8_t solid[3] = {0, 1, 1};
-    uint8_t solidTop[3] = {0, 0, 1};
+    uint16_t type[6] = {0, 1, 2, 232, 1, 1};
+    int16_t headers[6] = {0, 0x20, 0x20, 0x20, 0x1020, 0x0420};
+    std::vector<uint8_t> solid = std::vector<uint8_t>(233, 0);
+    std::vector<uint8_t> solidTop = std::vector<uint8_t>(233, 0);
+
+    TestWorld() {
+        solid[1] = 1;
+        solid[2] = 1;
+        solid[232] = 1;
+        solidTop[2] = 1;
+    }
 
     InvasionTileView view() const {
         return {width, height, lookup.data(), type, headers,
-                solid, solidTop, 3, 3};
+                solid.data(), solidTop.data(), solid.size(), solidTop.size()};
     }
 
     void fill(int startY, uint32_t definition) {
@@ -70,6 +77,14 @@ int main() {
     bad = world.view();
     bad.solidCount = 1;
     assert(!findInvasionSpawnSite(bad, 90 * 16, 80 * 16).valid);
+
+    world.fill(100, 4);
+    assert(!findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16).valid);
+    world.fill(100, 5);
+    assert(!findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16).valid);
+    world.fill(100, 3);
+    assert(!findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16).valid);
+    world.fill(100, 1);
 
     world.set(90, 99, 1);
     placement = findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16);
