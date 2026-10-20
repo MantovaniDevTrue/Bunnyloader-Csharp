@@ -736,6 +736,19 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string killWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),22,0,"2,4,0,0,0");
+    string killReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),22,0,"2,4,2,0,0");
+    string multiWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),23,0,"4,5,54,36");
+    string multiReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),23,0,"4,5,-18,36");
+    if((new TileKillSmoke().TileCallbackMask&((1<<22)|(1<<23)))!=((1<<22)|(1<<23))||
+       killWire!="KILL|1|0|1"||killReject!="ERROR|Stage=DecodeTileKill Reason=InvalidBooleans"||
+       multiWire!="1"||multiReject!="ERROR|Stage=DecodeTileMultiKill Reason=InvalidFrames")
+        throw new InvalidOperationException("KillTile callbacks wire regression: "+
+            killWire+" / "+killReject+" / "+multiWire+" / "+multiReject);
     string f0=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,1,0");
     string f1=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"3,4,0,1");
     string f2=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,2,0");
@@ -981,5 +994,15 @@ sealed class TileFrameSmoke : BunnyLoader.Source.BunnyTile {
     public override bool TileFrame(int x,int y,ref bool resetFrame,ref bool noBreak) {
         resetFrame=false;noBreak=true;
         return x!=3;
+    }
+}
+
+sealed class TileKillSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override void KillTile(int x,int y,ref bool fail,ref bool effectOnly,ref bool noItem) {
+        fail=true;effectOnly=false;noItem=true;
+    }
+    public override void KillMultiTile(int x,int y,int frameX,int frameY) {
+        if(frameX!=54||frameY!=36)throw new InvalidOperationException("Frame coordinates changed");
     }
 }

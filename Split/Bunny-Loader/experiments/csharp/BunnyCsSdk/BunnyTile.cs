@@ -106,6 +106,8 @@ public abstract class BunnyTile {
     public virtual void MouseOverFar(int x, int y) { }
     public virtual bool HasSmartInteract(int x,int y,BunnyTileSmartInteractSettings settings) => false;
     public virtual bool TileFrame(int x,int y,ref bool resetFrame,ref bool noBreak) => true;
+    public virtual void KillTile(int x,int y,ref bool fail,ref bool effectOnly,ref bool noItem) { }
+    public virtual void KillMultiTile(int x,int y,int frameX,int frameY) { }
     public virtual void NearbyEffects(int x, int y, bool closer) { }
     public virtual void AnimateTile(ref int frame, ref int frameCounter) { }
     public virtual void SetDrawPositions(int x, int y, ref int width, ref int top,
@@ -123,7 +125,7 @@ public abstract class BunnyTile {
                 nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile),
                 nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
                 nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles),
-                nameof(HasSmartInteract), nameof(TileFrame)
+                nameof(HasSmartInteract), nameof(TileFrame), nameof(KillTile), nameof(KillMultiTile)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
