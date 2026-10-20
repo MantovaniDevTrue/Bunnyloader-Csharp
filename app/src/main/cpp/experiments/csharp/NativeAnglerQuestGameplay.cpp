@@ -195,7 +195,9 @@ bool findContracts() {
     if (!g_swapHooked) g_swapHooked = hook::install(swap, +[](const MethodInfo* mi) {
         if (!g_originalSwap) return;
         g_originalSwap(mi);
-        if (g_active.empty()) return;
+        if (g_active.empty() ||
+            activeGeneration().load(std::memory_order_acquire) != registry().generation())
+            return;
         auto& api = il2cpp::api();
         int32_t mode = 0;
         api.field_static_get_value(g_netMode, &mode);
@@ -232,7 +234,9 @@ bool findContracts() {
     }, &g_originalSwap);
     if (!g_chatHooked) g_chatHooked = hook::install(chat, +[](uint8_t turnIn, const MethodInfo* mi) -> Il2CppString* {
         if (!g_originalChat) return nullptr;
-        if (turnIn || g_active.empty()) return g_originalChat(turnIn, mi);
+        if (turnIn || g_active.empty() ||
+            activeGeneration().load(std::memory_order_acquire) != registry().generation())
+            return g_originalChat(turnIn, mi);
         auto& api = il2cpp::api();
         uint8_t finished = 0;
         int32_t index = -1;
@@ -393,6 +397,7 @@ void pumpOnGameThread() {
     g_resolveFailures = 0;
     g_appliedGeneration = revision;
     g_active = quests;
+    activeGeneration().store(revision, std::memory_order_release);
     if (!quests.empty() && !installFishingOnGameThread(&g_active)) {
         if (!g_fishingWarning)
             BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
@@ -404,6 +409,7 @@ void pumpOnGameThread() {
 }
 
 void invalidateWorldSession() {
+    activeGeneration().store(std::numeric_limits<uint64_t>::max(), std::memory_order_release);
     g_appliedGeneration = std::numeric_limits<uint64_t>::max();
     g_poll = 0;
 }
