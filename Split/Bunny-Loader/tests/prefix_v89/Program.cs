@@ -38,7 +38,7 @@ try
         throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
     if (data.Count(row => row == "PREFIX_CALLBACK\tTestMightyPrefix\t8") != 1)
         throw new InvalidOperationException("Managed prefix Apply callback mask missing");
-    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t23") != 1)
+    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t55") != 1)
         throw new InvalidOperationException("Managed prefix override mask missing");
     if (data.Count(row => row == "PREFIX_ATTRIBUTE_WEIGHT\tTestGuardedPrefix\tM\t0\t8\t4") != 1)
         throw new InvalidOperationException("Per-instance mana RollChance descriptor missing");
