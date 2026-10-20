@@ -1,0 +1,32 @@
+name: Keybind CSharp contract (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-native-keybind-loader-20261020
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
+      - tests/keybind_loader/**
+      - .github/workflows/keybind-csharp-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build managed SDK and run Keybind contract
+        run: dotnet run --project tests/keybind_loader/KeybindLoaderTests.csproj --configuration Release
+      - name: Verify no JavaScript adapter in CSharp Keybind SDK
+        shell: bash
+        run: |
+          ! grep -En 'QuickJS|CSharpItemBehaviorLoader|CSharpArmorPolicy|CSharpWingPolicy' experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
