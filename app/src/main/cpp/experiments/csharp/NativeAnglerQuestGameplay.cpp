@@ -349,8 +349,8 @@ bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
             static_cast<uintptr_t>(former) >= next->length) continue;
         const auto before = plan->previous.find(former);
         if (before != plan->previous.end()) {
-            if (values[former] != static_cast<uint8_t>(before->second))
-                plan->writes[former] = before->second ? 1 : 0;
+            if (!before->second && values[former])
+                plan->writes[former] = 0;
             plan->previous.erase(before);
         }
     }
