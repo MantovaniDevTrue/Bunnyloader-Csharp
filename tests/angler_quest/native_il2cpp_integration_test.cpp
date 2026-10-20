@@ -482,7 +482,11 @@ int main() {
     bl::csharp::angler::invalidateWorldSession();
     bl::csharp::angler::pumpOnGameThread();
     assert(gSelected==2 && gIds==preservedArray && ids()==preservedIds);
+    static_cast<uint8_t*>(arrayData(gFlags))[850]=0;
+    static_cast<uint8_t*>(arrayData(gRack))[850]=0;
     reg.unload("examplemodcsharp");
     bl::csharp::angler::pumpOnGameThread();
+    assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==0);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==0);
     std::cout<<"ANGLER_QUEST_IL2CPP_HOST_INTEGRATION_OK\n";
 }
