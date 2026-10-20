@@ -2378,7 +2378,7 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.animationFrameTicks,
                                         entry.allowBreaking, entry.allowDrops, entry.callbackMask,
                                         entry.cacheDrawData, {},entry.frameToggle,
-                                        (entry.flags & 65536)!=0});
+                                        (entry.flags & 65536)!=0,entry.registeredDrops});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
