@@ -24,6 +24,10 @@ const MethodInfo* g_textGetter = nullptr;
 const MethodInfo* g_consume = nullptr;
 const MethodInfo* g_newText = nullptr;
 const MethodInfo* g_myPlayer = nullptr;
+const MethodInfo* g_networkLiteral = nullptr;
+const MethodInfo* g_sendClient = nullptr;
+const MethodInfo* g_colorConstructor = nullptr;
+Il2CppClass* g_colorClass = nullptr;
 FieldInfo* g_netMode = nullptr;
 FieldInfo* g_gameMenu = nullptr;
 std::atomic<bool> g_incomingInstalled{false};
@@ -105,7 +109,7 @@ bool readContext(int* mode, int* localPlayer) {
     if (exception || !boxed) return false;
     std::memcpy(localPlayer, reinterpret_cast<const char*>(boxed) + sizeof(Il2CppObject),
                 sizeof(*localPlayer));
-    return *localPlayer >= 0 && *localPlayer < 255;
+    return *localPlayer >= 0 && *localPlayer <= 255;
 }
 
 bool consume(Il2CppObject* message) {
@@ -126,6 +130,34 @@ void writeLocal(const std::string& message, uint8_t red, uint8_t green, uint8_t 
     api.runtime_invoke(g_newText, nullptr, args, &exception);
 }
 
+bool writeNetwork(const std::string& message, int playerIndex,
+                  uint8_t red, uint8_t green, uint8_t blue) {
+    if (!g_networkLiteral || !g_sendClient || !g_colorConstructor ||
+        !g_colorClass || playerIndex < 0 || playerIndex >= 255) return false;
+    auto& api = il2cpp::api();
+    Il2CppString* text = api.string_new(message.c_str());
+    if (!text) return false;
+    void* makeTextArgs[] = {text};
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* network = api.runtime_invoke(
+        g_networkLiteral, nullptr, makeTextArgs, &exception);
+    if (exception || !network) return false;
+    Il2CppObject* color = api.object_new(g_colorClass);
+    if (!color) return false;
+    uint8_t alpha = 255;
+    void* colorArgs[] = {&red, &green, &blue, &alpha};
+    exception = nullptr;
+    api.runtime_invoke(g_colorConstructor, color, colorArgs, &exception);
+    if (exception) return false;
+    uint32_t rgba = 0;
+    std::memcpy(&rgba, reinterpret_cast<const char*>(color) + sizeof(Il2CppObject),
+                sizeof(rgba));
+    void* sendArgs[] = {network, &rgba, &playerIndex};
+    exception = nullptr;
+    api.runtime_invoke(g_sendClient, nullptr, sendArgs, &exception);
+    return !exception;
+}
+
 NativeCommandSubmit dispatchLocal(Il2CppObject* message, int netMode,
                                    int localPlayer, NativeCommandRoute route) {
     std::string input;
@@ -144,14 +176,27 @@ NativeCommandSubmit dispatchLocal(Il2CppObject* message, int netMode,
     return status;
 }
 
+NativeCommandSubmit dispatchRemote(Il2CppObject* message, int netMode, int playerIndex) {
+    if (playerIndex < 0 || playerIndex >= 255) return NativeCommandSubmit::Vanilla;
+    std::string input;
+    if (!readText(message, &input)) return NativeCommandSubmit::Vanilla;
+    const auto result = nativeCommandMailbox().submit(
+        input, playerIndex, netMode, NativeCommandRoute::Server);
+    if (result != NativeCommandSubmit::Vanilla) {
+        consume(message);
+        if (result == NativeCommandSubmit::Busy)
+            writeNetwork("Fila de comandos C# ocupada", playerIndex, 255, 25, 25);
+        else
+            notifyManagedCommandWorker();
+    }
+    return result;
+}
+
 void hkIncoming(Il2CppObject* self, Il2CppObject* message,
                 int clientId, const MethodInfo* method) {
     int mode = -1, localPlayer = -1;
     if (g_metadataReady.load(std::memory_order_acquire) && message &&
         readContext(&mode, &localPlayer) && mode != 1) {
-        // No servidor dedicado e para outros jogadores no host, ainda e
-        // necessario o transporte de respostas NetworkText. Fail closed:
-        // comandos nativos nao interceptam chat remoto nesta fase.
         if (mode == 0 || (mode == 3 && clientId == localPlayer)) {
             auto result = dispatchLocal(message, mode, localPlayer,
                                         NativeCommandRoute::Chat);
@@ -159,7 +204,9 @@ void hkIncoming(Il2CppObject* self, Il2CppObject* message,
                 result = dispatchLocal(message, mode, localPlayer,
                                        NativeCommandRoute::Server);
             if (result != NativeCommandSubmit::Vanilla) return;
-        }
+        } else if ((mode & 2) != 0 &&
+                   dispatchRemote(message, mode, clientId) !=
+                       NativeCommandSubmit::Vanilla) return;
     }
     if (g_incomingOriginal) g_incomingOriginal(self, message, clientId, method);
 }
@@ -196,6 +243,17 @@ bool installNativeCommandChatHooks() {
     const auto* consumeMethod = api.class_get_method_from_name(message, "Consume", 0);
     const auto* newText = api.class_get_method_from_name(main, "NewText", 5);
     const auto* myPlayer = api.class_get_method_from_name(main, "get_myPlayer", 0);
+    auto* networkText = il2cpp::findClassQuiet("Terraria.Localization", "NetworkText");
+    auto* color = il2cpp::findClassQuiet("Microsoft.Xna.Framework", "Color");
+    const auto* literal = networkText ? api.class_get_method_from_name(
+        networkText, "FromLiteral", 1) : nullptr;
+    const auto* send = api.class_get_method_from_name(
+        chatHelper, "SendChatMessageToClient", 3);
+    const auto* colorConstructor = color ? api.class_get_method_from_name(
+        color, ".ctor", 4) : nullptr;
+    uint32_t alignment = 0;
+    const bool validColor = color && api.class_value_size && api.object_new &&
+        api.class_value_size(color, &alignment) == 4;
     const auto* netMode = il2cpp::findField(main, "netMode");
     const auto* menu = il2cpp::findField(main, "gameMenu");
     if (!hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"}) ||
@@ -204,13 +262,22 @@ bool installNativeCommandChatHooks() {
         !hasSignature(consumeMethod, true, {}) ||
         !hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"}) ||
         !hasSignature(myPlayer, false, {}) ||
-        !netMode || !menu)
+        !hasSignature(literal, false, {"System.String"}) ||
+        !hasSignature(send, false, {"Terraria.Localization.NetworkText",
+                                    "Microsoft.Xna.Framework.Color", "System.Int32"}) ||
+        !hasSignature(colorConstructor, true,
+                      {"System.Byte", "System.Byte", "System.Byte", "System.Byte"}) ||
+        !validColor || !netMode || !menu)
         return false;
 
     g_textGetter = text;
     g_consume = consumeMethod;
     g_newText = newText;
     g_myPlayer = myPlayer;
+    g_networkLiteral = literal;
+    g_sendClient = send;
+    g_colorConstructor = colorConstructor;
+    g_colorClass = color;
     g_netMode = const_cast<FieldInfo*>(netMode);
     g_gameMenu = const_cast<FieldInfo*>(menu);
     if (!g_incomingInstalled.load(std::memory_order_acquire) &&
@@ -228,8 +295,18 @@ bool installNativeCommandChatHooks() {
 
 void pumpNativeCommandRepliesOnGameThread() {
     if (!g_metadataReady.load(std::memory_order_acquire)) return;
-    for (const auto& message : nativeCommandMailbox().takeReplies(8))
-        writeLocal(message.text, message.red, message.green, message.blue);
+    int mode = -1, localPlayer = -1;
+    if (!readContext(&mode, &localPlayer)) return;
+    for (const auto& message : nativeCommandMailbox().takeReplies(8)) {
+        if (mode & 2) {
+            if (mode == 3 && message.playerIndex == localPlayer)
+                writeLocal(message.text, message.red, message.green, message.blue);
+            else
+                writeNetwork(message.text, message.playerIndex,
+                             message.red, message.green, message.blue);
+        } else
+            writeLocal(message.text, message.red, message.green, message.blue);
+    }
 }
 
 bool nativeCommandChatHookInstalled() {
