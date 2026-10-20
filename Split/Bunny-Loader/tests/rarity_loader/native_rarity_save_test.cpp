@@ -192,6 +192,19 @@ int main() {
         "inventory\t0\t1\t0\t0\tmod/Original\tmod/Rarity\n");
     assert(!read(missingDataColumn, protectedRecords));
 
+    std::stringstream v3MissingNewline("bunnyloader itens 3\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity");
+    assert(!read(v3MissingNewline, protectedRecords));
+    assert(protectedRecords.size() == 1);
+    assert(protectedRecords[0].rarityKey == "rarity/Original");
+    std::stringstream v3HeaderWithoutNewline("bunnyloader itens 3");
+    assert(!read(v3HeaderWithoutNewline, protectedRecords));
+    std::stringstream v2WithoutNewline("bunnyloader itens 2\n"
+        "inventory\t0\t1\t0\t0\tmod/Original\t{}");
+    std::vector<SavedItem> legacyWithoutTerminator;
+    assert(read(v2WithoutNewline, legacyWithoutTerminator));
+    assert(legacyWithoutTerminator.size() == 1);
+
     std::stringstream truncatedV3("bunnyloader itens 3\n"
         "inventory\t0\t1\t0\t0\tmod/Original\t{}\tmod/Rarity\n"
         "inventory\t1\tone\t0\t0\tmod/Broken\t{}\tmod/Rarity\n");
