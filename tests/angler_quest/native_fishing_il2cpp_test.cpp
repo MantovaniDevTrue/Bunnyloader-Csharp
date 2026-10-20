@@ -65,6 +65,9 @@ using Roll = void (*)(Il2CppObject*,void*,const MethodInfo*);
 Roll hookedRoll=nullptr;
 int vanillaCalls=0;
 bool badPlayersStatic=false;
+bool badFishingSize=false;
+bool badFishingParameter=false;
+bool badQuestFieldType=false;
 
 template<typename T>
 void put(std::array<unsigned char,92>* data,size_t offset,T value) {
@@ -89,7 +92,7 @@ void configure() {
     };
     api.method_get_param_count=[](const MethodInfo*)->uint32_t{return 1;};
     api.method_get_param=[](const MethodInfo*,uint32_t)->const Il2CppType*{
-        return &tFishingRef;
+        return badFishingParameter ? &tInt : &tFishingRef;
     };
     api.method_get_return_type=[](const MethodInfo*)->const Il2CppType*{
         return &tVoid;
@@ -102,7 +105,7 @@ void configure() {
     };
     api.class_value_size=[](Il2CppClass* cls,uint32_t* alignment)->int32_t {
         if(alignment)*alignment=4;
-        if(cls==&kFishing)return 92;
+        if(cls==&kFishing)return badFishingSize ? 88 : 92;
         if(cls==&kBool)return 1;
         return 4;
     };
@@ -117,7 +120,9 @@ void configure() {
     api.field_get_flags=[](FieldInfo* field)->uint32_t{
         return field->isStatic && !(badPlayersStatic && field==&fPlayers)?0x10u:0u;
     };
-    api.field_get_type=[](FieldInfo* field){return field->type;};
+    api.field_get_type=[](FieldInfo* field){
+        return badQuestFieldType && field==&fQuest ? &tBool : field->type;
+    };
     api.field_get_offset=[](FieldInfo* field){return field->offset;};
     api.class_from_il2cpp_type=[](const Il2CppType* type){return type->cls;};
     api.class_get_namespace=[](Il2CppClass* cls){return cls->ns;};
@@ -211,7 +216,29 @@ int main() {
     assert(!bl::csharp::angler::fishingInstalled());
     assert(!hookedRoll);
     badPlayersStatic=false;
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedPlayerArrayContract")==0);
+    badFishingSize=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedFishingAttemptLayout")==0);
+    badFishingSize=false;
+    badFishingParameter=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedFishingMethodSignature")==0);
+    badFishingParameter=false;
+    badQuestFieldType=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedFishingFieldLayout")==0);
+    badQuestFieldType=false;
     assert(bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "Installed")==0);
     assert(bl::csharp::angler::fishingInstalled());
     assert(hookedRoll);
     std::array<unsigned char,92> attempt{};
