@@ -5,6 +5,7 @@
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
 #include "experiments/csharp/NativeInvasionRewards.h"
+#include "experiments/csharp/NativeInvasionNotifications.h"
 #include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/NativeInvasionPersistence.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
@@ -1209,6 +1210,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldSessionReady.store(false, std::memory_order_release);
     setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
@@ -1239,8 +1241,10 @@ void noteAutoGameUpdate() {
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionNoticeWorld(invasionWorldReady, invasionWorldEpoch);
     pumpNativeInvasionSpawnsOnGameThread();
     pumpNativeInvasionRewardsOnGameThread();
+    pumpNativeInvasionNoticesOnGameThread();
     pumpReliableNpcKillsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
     static uint64_t lastSaveWorldSession = 0;
@@ -1362,6 +1366,7 @@ void noteAutoGameUpdate() {
         g_worldSessionReady.store(false, std::memory_order_release);
         setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
