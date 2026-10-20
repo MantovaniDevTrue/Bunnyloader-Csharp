@@ -59,7 +59,9 @@ string Mode(Type type, MethodInfo method)
         return "worker_dispatcher";
     if ((type == typeof(BunnyItem) || type == typeof(BunnyWeapon) ||
          type == typeof(BunnyAccessory) || type == typeof(BunnyBuffPotion)) &&
-        method.Name == "AllowPrefix") return "worker_callback_isolated";
+        (method.Name is "AllowPrefix" or "ChoosePrefix" or "DecidePrefixChance" ||
+         (method.Name == "ApplyPrefix" && method.GetParameters().Length == 3)))
+        return "worker_callback_isolated";
     if (type == typeof(BunnyPrefix) || type == typeof(BunnyPrefixRollRules) ||
         type == typeof(BunnyItemPrefixRules) ||
         type == typeof(BunnyPrefixItemConditions)) return "compile_policy";
