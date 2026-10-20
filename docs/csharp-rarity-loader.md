@@ -198,3 +198,14 @@ dotnet run --project Split/Bunny-Loader/tests/rarity_loader/RarityLoaderHost.csp
 ```
 
 Nenhum benchmark de host substitui a validação no Terraria Android.
+
+
+## Gate ARM64 Android — compilação de fontes sem APK (19/10)
+
+A PR #102 agora executa também `.github/workflows/check-csharp-rarity-arm64.yml` com NDK 27.2.12479018, alvo `aarch64-linux-android26` e `-Wall -Wextra -Werror -fsyntax-only`. O teste compila os arquivos nativos reais `NativeRarityGameplay.cpp`, `ModItemSave.cpp`, `SourceLoader.cpp` e `AutoSourceRuntime.cpp`, sem empacotar binários, APKs ou mods.
+
+- O primeiro workflow falhou por depender de `android-actions/setup-android@v3`, que tentou instalar o pacote SDK descontinuado `tools`. Foi substituído pela chamada ao `sdkmanager` já presente no runner.
+- [ARM64 compile-only #39348230840](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39348230840): **aprovado**, commit `b812f8d5e60d5eba9b7dd0ba4d11563ef43996a2`.
+- [Host RarityLoader #39348041745](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39348041745): **aprovado**, incluindo as guardas de metadados nulos de `Vector2` e `SpriteEffects`.
+
+**Limite técnico:** `-fsyntax-only` garante compatibilidade de compilação com os cabeçalhos/ABI de destino ARM64, não confirma linkedição, carregamento da biblioteca no processo Terraria, assinaturas IL2CPP na build real nem execução de hooks. Permanecem obrigatórios os testes presenciais no Android de `ItemRarity.Initialize`, `Item.Prefix`, popup, tooltip, nome no chão, reentrada, Disco, JS+C# misto, inventário, equipamentos, baús/cofres, backup/rollback de sidecars `.bl`, mudança da ordem dos mods, multiplayer e 60 FPS. Usar apenas saves e mundos descartáveis quando for autorizada uma build de QA. PR segue draft; sem APK/`.bmod` e sem declarar paridade final.
