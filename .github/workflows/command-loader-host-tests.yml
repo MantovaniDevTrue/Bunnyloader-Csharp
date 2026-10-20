@@ -8,6 +8,11 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - tests/commands/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h
       - .github/workflows/command-loader-host-tests.yml
   pull_request:
     paths:
@@ -30,3 +35,5 @@ jobs:
           dotnet-version: 8.0.x
       - name: Compile SDK and execute CSharp command tests
         run: dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
+      - name: Verify Roslyn command descriptors and command-only assemblies
+        run: dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
