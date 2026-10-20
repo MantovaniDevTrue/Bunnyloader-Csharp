@@ -39,6 +39,9 @@ bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
 bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,size_t count,
     std::string* output,int budgetMicroseconds=650);
+bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds=650);
 bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
                                   const std::string& owner);
 int managedItemPrefixWarmupState(const std::string& mod,const std::string& assembly,
