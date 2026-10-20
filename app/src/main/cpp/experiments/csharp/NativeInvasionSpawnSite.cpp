@@ -87,9 +87,9 @@ bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
     if (!solidField || !topField) return false;
     Il2CppArray* solid = nullptr;
     Il2CppArray* solidTop = nullptr;
-    auto& api = api();
-    api.field_static_get_value(solidField, &solid);
-    api.field_static_get_value(topField, &solidTop);
+    auto& a = il2cpp::api();
+    a.field_static_get_value(solidField, &solid);
+    a.field_static_get_value(topField, &solidTop);
     if (!solid || !solidTop) return false;
     InvasionTileView view;
     view.width = world.width;
