@@ -165,3 +165,15 @@ O padrão já utilizado nas fontes do Bunny Loader é `content::makeLocalizedTex
 - O `LocalizationLoader.js` original usa `LanguageManager.LoadLanguageFromFileText` nas recargas e `ItemTooltip.InvalidateTooltips` para invalidar as linhas de tooltip. A ponte C# utiliza o mesmo caminho de publicação e a invalidação existente, sem varreduras por quadro nem APIs de cache inventadas.
 
 Como consequência, os caches que **mantêm essa mesma referência** devem observar as alterações de `LocalizedText.Value` feitas pelo `LanguageManager`. Ainda é obrigatório verificar no jogo que `LoadLanguageFromFileText` preserva a identidade desses objetos no Terraria 1.4.5.8.6, inclusive durante unload e recarga; não se pode presumir isso apenas pelos testes de host. Strings copiadas por outros subsistemas não têm atualização genérica comprovada.
+
+
+## Continuação — registro durante a execução, fora de `OnLocalizationsLoaded`
+
+- O contrato `BunnyLocalizationRuntime.Register(key, culture, value)` e a sobrecarga de mapa agora aceitam chamadas posteriores ao callback. Durante `OnLocalizationsLoaded` continuam trabalhando num catálogo temporário transacional; fora dele, utilizam o catálogo persistente do mod cuja montagem C# chamou a função.
+- O proprietário é identificado por `Assembly.GetCallingAssembly()` com a entrada pública sem inlining; o SDK só aceita uma correspondência exata de instância da montagem já vinculada ao `BunnyLocalizationRuntime.Dispatch`. Se a mesma montagem for vinculada a dois IDs ativos, rejeita o registro ambíguo. Continua proibido registrar `Mods.<outroMod>.*`. `Unload` descarta o catálogo persistente.
+- `BunnyLocalizationRuntime.Drain(modId, assemblyPath, culture)` é uma operação do worker MonoVM: devolve `UNCHANGED` sem serializar traduções quando nenhuma alteração aconteceu. Havendo mudanças, envia o snapshot completo do catálogo do callback mais o overlay persistente, com precedência para o registro tardio, pelo mesmo `BUNNY_DYNAMIC_LOCALES_V1`.
+- O `ManagedRuntime` mantém as montagens que receberam notificação de idioma numa tabela por mod/geração e, enquanto o Mono estiver pronto, verifica um mod a cada **250 ms** na thread fixa. O acesso não acontece no render nem a cada quadro. Ao descarregar, a montagem sai da tabela imediatamente; a proteção de geração continua rejeitando resultados antigos.
+- `BunnyLocalizationCatalog.WireRowCount`, interno ao SDK, conta entradas sem produzir strings hex em cada `Register`. A serialização completa só acontece numa publicação realmente alterada.
+- A suíte de host foi ampliada para chamadas fora do callback, mudanças de cultura, `UNCHANGED`, proteção de proprietário, colisão de duas montagens com a mesma identidade, descarregamento e novo registro após reativação.
+
+**Limitações e critérios de aceite:** a publicação é assíncrona, não instantânea como o `LocalizationLoader.Put` do JavaScript; com muitos mods ativos, cada mod recebe sua vez no worker. Ainda faltam comprovação da chamada MonoVM de `Drain`, ABI IL2CPP ARM64, identidade dos objetos `LocalizedText` e testes de latência/FPS no Android. O lote não dá permissão para APK nem `.bmod` de entrega.
