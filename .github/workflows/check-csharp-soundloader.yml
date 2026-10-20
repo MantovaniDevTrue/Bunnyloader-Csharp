@@ -6,6 +6,7 @@ on:
       - feat/csharp-soundloader-native-complete
     paths:
       - app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h
+      - app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/content/sounds/NativeSoundRouter.*
       - experiments/csharp/BunnyCsSdk/**
@@ -31,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'bunny_csharp_sound_register' app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h
+          grep -q 'bunny_csharp_sound_register' app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp
           grep -q 'managedSound::pump()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
           grep -q 'managedSound::worldExit()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
           grep -q 'stopAllSoundStyleInstances' app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
@@ -63,10 +64,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s\n' '#include "experiments/csharp/ManagedSoundLoader.h"' > /tmp/bunny_sound_exports.cpp
           g++ -std=c++20 -fPIC -shared -fvisibility=hidden \
             -Iapp/src/main/cpp -Itests/basic_items/include \
-            /tmp/bunny_sound_exports.cpp -o /tmp/libbunny_sound_exports.so
+            app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp \
+            -o /tmp/libbunny_sound_exports.so
           for api in register state play playback find_active stop duration unload; do
             nm -D --defined-only /tmp/libbunny_sound_exports.so | grep -q "bunny_csharp_sound_${api}$"
           done
@@ -90,9 +91,9 @@ jobs:
           test -x "$CXX"
           mkdir -p /tmp/bunny-sound-arm64
           for mode in 0 1; do
-            for name in AutoSourceRuntime NativeSoundRouter; do
-              if test "$name" = AutoSourceRuntime; then
-                SRC=app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+            for name in AutoSourceRuntime NativeSoundRouter ManagedSoundLoader; do
+              if test "$name" = AutoSourceRuntime || test "$name" = ManagedSoundLoader; then
+                SRC="app/src/main/cpp/experiments/csharp/${name}.cpp"
               else
                 SRC=app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
               fi
@@ -104,7 +105,7 @@ jobs:
             done
           done
           "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm" -g \
-            /tmp/bunny-sound-arm64/AutoSourceRuntime-qjs0.o | grep 'bunny_csharp_sound_register'
+            /tmp/bunny-sound-arm64/ManagedSoundLoader-qjs0.o | grep 'bunny_csharp_sound_register'
           echo 'CSHARP_SOUNDLOADER_ANDROID_ARM64_NATIVE_OBJECT_COMPILE_PASS_NO_APK'
 
   managed-sdk:
