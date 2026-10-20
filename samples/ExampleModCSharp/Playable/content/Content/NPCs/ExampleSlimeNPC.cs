@@ -19,6 +19,11 @@ public sealed class ExampleSlimeNPC : BunnyNPC
         Frames = 2;
     }
 
+    public override void OnSpawn(ref BunnyNpcAiState state)
+    {
+        ExampleInvasion.ConfirmFirstTick(true, ref state);
+    }
+
     public override bool AI(ref BunnyNpcAiState state)
     {
         float direction = state.PlayerX - state.X;
