@@ -116,6 +116,12 @@ public static class BunnyEntitySourceDispatcher
 
     public static long TickNpc(int modSlot, int type, int slot, int generation,
         int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)
+        => TickNpc(modSlot, type, slot, generation,
+            life, lifeMax, x, y, vx, vy, playerX, playerY, 0L);
+
+    public static long TickNpc(int modSlot, int type, int slot, int generation,
+        int life, int lifeMax, float x, float y, float vx, float vy,
+        float playerX, float playerY, long nativeIdentity)
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 512u || generation < 1 ||
             life <= 0 || !float.IsFinite(x) || !float.IsFinite(y)) return -1;
@@ -141,7 +147,7 @@ public static class BunnyEntitySourceDispatcher
         var state = new BunnyNpcAiState {
             Slot = slot, Type = type, Generation = generation, Life = life, LifeMax = lifeMax,
             Age = instance.Age, X = x, Y = y, VelocityX = vx, VelocityY = vy,
-            PlayerX = playerX, PlayerY = playerY
+            PlayerX = playerX, PlayerY = playerY, NativeIdentity = nativeIdentity
         };
         try
         {
