@@ -14,6 +14,11 @@ namespace bl::csharp {
 bool managedRecipeRuntimeReady();
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
+bool invokeManagedTileKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,bool effectOnly,bool noItem,
+    std::string* output,int budgetMicroseconds=1100);
+bool queueManagedTileMultiKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int frameX,int frameY);
 bool invokeManagedTileFrame(const std::string& mod,const std::string& assembly,
     const std::string& owner,int x,int y,bool reset,bool noBreak,
     std::string* output,int budgetMicroseconds=650);

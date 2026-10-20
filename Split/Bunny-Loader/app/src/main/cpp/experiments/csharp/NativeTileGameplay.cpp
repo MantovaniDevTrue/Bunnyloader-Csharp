@@ -5,6 +5,7 @@
 #include "experiments/csharp/NativeTileCampfirePolicy.h"
 #include "experiments/csharp/NativeTileSmartInteractPolicy.h"
 #include "experiments/csharp/NativeTileFramePolicy.h"
+#include "experiments/csharp/NativeTileKillPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -344,6 +345,15 @@ void hkKillTile(int32_t x, int32_t y, bool fail, bool effectOnly,
         g_origKill(x, y, fail, effectOnly, noItem, method);
         return;
     }
+    if((it->second.spec.callbackMask&(1<<22))&&managedTileReady(it->second.spec,22)) {
+        std::string response;
+        bool nextFail=fail,nextEffectOnly=effectOnly,nextNoItem=noItem;
+        if(invokeManagedTileKill(it->second.spec.mod,it->second.spec.assembly,
+              it->second.spec.name,x,y,fail,effectOnly,noItem,&response,1100)&&
+           tile_kill::parseReply(response,&nextFail,&nextEffectOnly,&nextNoItem)) {
+            fail=nextFail;effectOnly=nextEffectOnly;noItem=nextNoItem;
+        } else reportTileCallbackFailure(it->second.spec,22,response);
+    }
     const int lastOwner = g_dustOwner, lastBudget = g_dustBudget;
     g_dustOwner = it->first;
     g_dustBudget = tile_policy::dustBudget(fail, it->second.spec.failDust,
@@ -454,6 +464,13 @@ void hkTileFrame(int32_t x, int32_t y, int32_t type, uint32_t tile,
         }
     }
     g_frameCleanup=false;
+    if((it->second.spec.callbackMask&(1<<23))&&managedTileReady(it->second.spec,23)) {
+        const int objectFrameX=frameX-(frameX%shape.frameWidth);
+        const int objectFrameY=frameY-(frameY%shape.frameHeight);
+        if(!queueManagedTileMultiKill(it->second.spec.mod,it->second.spec.assembly,
+             it->second.spec.name,left,top,objectFrameX,objectFrameY))
+            reportTileCallbackFailure(it->second.spec,23,"Reason=MultiTileEventQueueRejected");
+    }
 }
 
 int resolveDustId(const std::string& name) {

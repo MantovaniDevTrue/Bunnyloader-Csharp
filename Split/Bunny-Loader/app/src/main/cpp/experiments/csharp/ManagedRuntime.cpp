@@ -2326,7 +2326,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds,bool tile=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=(tile?22:16)||kind<0||kind>3||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=(tile?24:16)||kind<0||kind>3||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -2362,6 +2362,33 @@ bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     }
     return invokeManagedCallback(false,mod,assembly,owner,callback,0,
         std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
+}
+bool invokeManagedTileKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,bool effectOnly,bool noItem,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileKill Reason=InvalidCoordinates";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,22,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (fail?"1":"0")+","+(effectOnly?"1":"0")+","+(noItem?"1":"0"),
+        output,budgetMicroseconds,true);
+}
+bool queueManagedTileMultiKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int frameX,int frameY) {
+    if(assembly.empty()||x<0||y<0||x>100000||y>100000||
+       frameX<0||frameY<0||frameX>32767||frameY>32767)return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,
+        std::to_string(x)+","+std::to_string(y)+","+
+        std::to_string(frameX)+","+std::to_string(frameY),
+        23,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),
+        result,false,true});
+    g_pinnedWake.notify_one();
+    return true;
 }
 bool invokeManagedTileFrame(const std::string& mod,const std::string& assembly,
     const std::string& owner,int x,int y,bool reset,bool noBreak,
