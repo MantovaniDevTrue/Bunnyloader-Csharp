@@ -26,12 +26,14 @@ static class InvasionDispatcherTest
 
             Check(ExampleInvasion.TrySpawn(true, 0, out var requested),
                 "spawn reserved");
-            Check(ExampleInvasion.ConfirmSpawn(true, requested.Ticket, 11, 42),
-                "spawn bound to real slot generation");
+            Check(ExampleInvasion.NativeSpawnCreated(true, requested.Epoch,
+                requested.Ticket, 11, 98765L), "native ticket associated with slot");
             long velocity = BunnyEntitySourceDispatcher.TickNpc(
                 modSlot, npcType, 11, 42, 25, 25, 100f, 100f,
-                0f, 0f, 200f, 100f);
-            Check(velocity >= -1 && ExampleInvasion.Controller.Progress == 0, "real NPC tick");
+                0f, 0f, 200f, 100f, 98765L);
+            Check(velocity >= -1 && ExampleInvasion.Controller.Progress == 0 &&
+                ExampleInvasion.Controller.ActiveCount == 1 &&
+                ExampleInvasion.Pipeline.PendingCount == 0, "native OnSpawn confirms identity and generation");
 
             int before = ExampleSlimeNPC.KillEvents;
             Check(BunnyEntitySourceDispatcher.KillNpc(modSlot, npcType, 11, 42),
@@ -48,10 +50,10 @@ static class InvasionDispatcherTest
                 "unadmitted NPC excluded");
 
             for (int tick = 0; tick < 120; tick++)
-                ExampleInvasion.Controller.Tick(true, true);
+                ExampleInvasion.Pipeline.Tick(true, true);
             Check(ExampleInvasion.TrySpawn(true, 0, out var next),
                 "second wave reserved");
-            Check(ExampleInvasion.SpawnFailed(true, next.Ticket),
+            Check(ExampleInvasion.NativeSpawnFailed(true, next.Epoch, next.Ticket),
                 "failed spawn reclaimed");
 
             BunnyEntitySourceDispatcher.TickNpc(
