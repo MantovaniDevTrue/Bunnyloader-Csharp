@@ -29,6 +29,33 @@ int main() {
     assert(bindings.current("mod") == "/tmp/mod.dll|bunny-revision=3");
     assert(!bindings.isCurrent("mod", first));
     assert(!bindings.isCurrent("mod", second));
+    assert(!bindings.unbindIfCurrent("mod", first));
+    assert(!bindings.unbindIfCurrent("mod", second));
+    assert(!bindings.unbindIfCurrent("mod", ""));
+    assert(bindings.isCurrent("mod", bindings.current("mod")));
+    bindings.bind("race", "/tmp/reloaded.dll");
+    const auto stale=bindings.current("race");
+    std::atomic<int> rebindStage{0};
+    std::thread lateUnload([&] {
+        const auto captured=bindings.current("race");
+        assert(captured==stale);
+        rebindStage.store(1,std::memory_order_release);
+        while(rebindStage.load(std::memory_order_acquire)!=2)
+            std::this_thread::yield();
+        assert(!bindings.unbindIfCurrent("race",captured));
+    });
+    while(rebindStage.load(std::memory_order_acquire)!=1)
+        std::this_thread::yield();
+    bindings.bind("race", "/tmp/reloaded.dll");
+    const auto newer=bindings.current("race");
+    assert(newer!=stale);
+    rebindStage.store(2,std::memory_order_release);
+    lateUnload.join();
+    assert(bindings.isCurrent("race",newer));
+    assert(!bindings.unbindIfCurrent("race",stale));
+    assert(bindings.unbindIfCurrent("race",newer));
+    assert(bindings.current("race").empty());
+    assert(bindings.isCurrent("other",other));
     bindings.bind("", "/tmp/invalid.dll");
     bindings.bind("invalid", "");
     assert(bindings.current("").empty());
