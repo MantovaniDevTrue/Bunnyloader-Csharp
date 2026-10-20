@@ -7,6 +7,7 @@ on:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
       - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
+      - samples/ExampleModCSharp/Experimental/CommandLoader/**
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - tests/commands/**
       - experiments/csharp/BunnySourceCompiler/**
@@ -38,3 +39,5 @@ jobs:
         run: dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
       - name: Verify Roslyn command descriptors and command-only assemblies
         run: dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
+      - name: Verify native game action semantics in original Bunny CSharp examples
+        run: dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
