@@ -12,7 +12,7 @@
 #include <deque>
 #include <map>
 #include <mutex>
-#include <random>
+#include <sys/random.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -195,9 +195,10 @@ void pumpNativeInvasionNetworkOnGameThread() {
         {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (g_nonce == 0) {
-                std::random_device device;
-                uint64_t next = (static_cast<uint64_t>(device()) << 32) ^ device();
-                g_nonce = next != 0 ? next : 1;
+                uint64_t next = 0;
+                if (getrandom(&next, sizeof(next), 0) !=
+                    static_cast<ssize_t>(sizeof(next)) || next == 0) return;
+                g_nonce = next;
             }
             if (++g_joinTimer < 300) return;
             g_joinTimer = 0;
