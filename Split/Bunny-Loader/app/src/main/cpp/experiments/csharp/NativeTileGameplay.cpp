@@ -80,6 +80,7 @@ std::map<Il2CppObject*,uint64_t> g_lastUseFrames;
 bool g_installed = false;
 bool g_dropInstalled = false;
 const MethodInfo* g_tileStyleMethod=nullptr;
+Il2CppClass* g_tileStyleReturnClass=nullptr;
 bool g_dustInstalled = false;
 bool g_killInstalled = false;
 bool g_makeDustInstalled = false;
@@ -215,27 +216,34 @@ bool bindTileStyleLookup() {
     if(g_tileStyleMethod)return true;
     auto& a=il2cpp::api();
     if(!a.method_get_param_count||!a.method_get_param||!a.method_get_return_type||
-       !a.method_is_instance||!a.object_unbox||!a.runtime_invoke)return false;
+       !a.method_is_instance||!a.class_from_il2cpp_type||
+       !a.class_is_valuetype||!a.class_value_size||!a.class_instance_size||
+       !a.object_get_class||!a.runtime_invoke)return false;
     auto* cls=il2cpp::findClass({"Terraria.ObjectData","TileObjectData",{}});
     const auto* method=cls?a.class_get_method_from_name(cls,"GetTileStyle",1):nullptr;
     if(!method||a.method_is_instance(method)||!safeTile(method,0,1)||
        !nameOf(a.method_get_return_type(method),"System.Int32")||
        !il2cpp::methodPointer(method))return false;
+    auto* resultClass=a.class_from_il2cpp_type(a.method_get_return_type(method));
+    uint32_t alignment=0;
+    if(!resultClass||!a.class_is_valuetype(resultClass)||
+       a.class_value_size(resultClass,&alignment)!=static_cast<int>(sizeof(int32_t))||
+       a.class_instance_size(resultClass)<sizeof(Il2CppObject)+sizeof(int32_t))
+        return false;
+    g_tileStyleReturnClass=resultClass;
     g_tileStyleMethod=method;
     return true;
 }
 int readNativeTileStyle(uint32_t tile) {
-    if(!g_tileStyleMethod)return -1;
+    if(!g_tileStyleMethod||!g_tileStyleReturnClass)return -1;
     auto& a=il2cpp::api();
     int32_t offset=static_cast<int32_t>(tile);
     void* arguments[]={&offset};
     Il2CppObject* exception=nullptr;
     Il2CppObject* result=a.runtime_invoke(g_tileStyleMethod,nullptr,arguments,&exception);
-    if(exception||!result)return -1;
-    const void* payload=a.object_unbox(result);
-    if(!payload)return -1;
+    if(exception||!result||a.object_get_class(result)!=g_tileStyleReturnClass)return -1;
     int32_t style=-1;
-    std::memcpy(&style,payload,sizeof(style));
+    std::memcpy(&style,reinterpret_cast<const char*>(result)+sizeof(Il2CppObject),sizeof(style));
     return style>=0&&style<=4095?style:-1;
 }
 
