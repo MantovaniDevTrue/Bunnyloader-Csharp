@@ -1,6 +1,7 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedDustLifecycle.h"
+#include "experiments/csharp/ManagedDustDecision.h"
 #include "experiments/csharp/ManagedDustSlotLookup.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
@@ -425,6 +426,7 @@ struct ManagedDustCached {
     std::uint64_t frame = 0;
     std::uint32_t flags = 0;
     std::uint32_t color = 0;
+    std::uint32_t requestColor = 0;
     bool ready = false;
 };
 std::array<ManagedDustCached, kDustSlots * csharp::ManagedDustMailbox::kPhases> g_dustCached{};
@@ -471,9 +473,10 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
         applyManagedDust(dust, response.before, response.state, phase != 3);
         cache.generation = generation;
         cache.type = response.state.type;
-        cache.frame = static_cast<std::uint64_t>(g_frame);
+        cache.frame = response.frame;
         cache.flags = response.flags;
         cache.color = response.state.color;
+        cache.requestColor = response.before.color;
         cache.ready = true;
     }
     if (phase == 0 && cache.ready &&
@@ -490,9 +493,9 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
     }
     const bool valid = cache.ready &&
         cache.generation == generation && cache.type == typeOf(dust) &&
-        static_cast<uint64_t>(g_frame) >= cache.frame &&
-        static_cast<uint64_t>(g_frame) - cache.frame <=
-            csharp::ManagedDustMailbox::kMaxResultAgeFrames;
+        csharp::managedDustDecisionCurrent(
+            phase, static_cast<std::uint64_t>(g_frame), cache.frame,
+            cache.requestColor, argColor ? *argColor : 0u);
     if (valid) {
         if (flags) *flags = cache.flags;
         if (argColor && (cache.flags & 8u) != 0u) *argColor = cache.color;
