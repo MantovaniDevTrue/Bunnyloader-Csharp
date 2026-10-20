@@ -70,7 +70,8 @@ bool registerManagedEntitySourceMod(const std::string& modId,
 bool hasManagedEntityNpcType(int type);
 bool hasManagedEntityProjectileType(int type);
 bool managedEntitySourceModsRegistered();
-void scheduleManagedInvasionWorldTicks(uint64_t worldSession);
+void scheduleManagedInvasionWorldTicks(uint64_t worldSession, int mode,
+                                       int playerIndex, float playerX, float playerY);
 void pauseManagedEntitySourceCallbacks();
 bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int generation,
                                    int owner, uintptr_t identity, int damage, int targetIndex);
