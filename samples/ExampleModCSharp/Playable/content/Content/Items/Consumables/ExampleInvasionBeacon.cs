@@ -21,8 +21,10 @@ public sealed class ExampleInvasionBeacon : BunnyItem
         Consumable = false;
     }
 
-    public override bool OnUse(int playerIndex) =>
-        ExampleInvasion.Start(true);
+    public override bool OnUse(int playerIndex) => false;
+
+    public override bool OnUse(int playerIndex, BunnyUseContext context) =>
+        context.CanStartSurfaceInvasion && ExampleInvasion.Start(true);
 
     public override void AddRecipes()
     {
