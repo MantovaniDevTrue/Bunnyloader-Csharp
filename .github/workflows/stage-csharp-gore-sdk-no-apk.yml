@@ -68,8 +68,10 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin feature/csharp-gore-loader
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/feature/csharp-gore-loader)" ||
-            { echo "Feature branch advanced; retry only on a fresh workflow checkout"; exit 1; }
+          git diff --quiet HEAD origin/feature/csharp-gore-loader -- \
+            experiments/csharp/BunnyCsSdk/BunnyGore.cs \
+            experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj ||
+            { echo "SDK sources changed during build; retry with the new sources"; exit 1; }
           git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
           test -z "$(git diff --cached --name-only | grep -v -E '^app/src/main/assets/managed/(BunnySourceSdk.dll|framework.sha256)$' || true)"
           if git diff --cached --quiet; then
@@ -79,4 +81,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "runtime(csharp): stage native Gore SDK DLL and exact hash (no APK)"
+          git rebase origin/feature/csharp-gore-loader
           git push origin HEAD:feature/csharp-gore-loader
