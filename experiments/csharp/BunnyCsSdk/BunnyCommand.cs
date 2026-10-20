@@ -22,6 +22,11 @@ public enum BunnyCommandCallerKind
 /// <summary>Resposta sem referencias IL2CPP: somente texto e RGB atravessam a ponte nativa.</summary>
 public readonly record struct BunnyCommandReply(string Text, byte Red = 255, byte Green = 240, byte Blue = 20);
 
+public enum BunnyCommandActionKind { Heal = 1, AdvanceWorldTime = 2 }
+
+/// <summary>Pedido sem ponteiros do jogo; somente a thread nativa aplica os efeitos.</summary>
+public readonly record struct BunnyCommandAction(BunnyCommandActionKind Kind, int Amount);
+
 public sealed class BunnyUsageException : Exception
 {
     public BunnyUsageException(string message = "") : base(message) { }
@@ -34,13 +39,15 @@ public sealed class BunnyUsageException : Exception
 public sealed class BunnyCommandCaller
 {
     private readonly Action<BunnyCommandReply> reply;
+    private readonly Action<BunnyCommandAction>? requestAction;
+    private bool actionRequested;
 
     public int PlayerIndex { get; }
     public int NetworkMode { get; }
     public BunnyCommandCallerKind Kind { get; }
 
     public BunnyCommandCaller(int playerIndex, int networkMode, BunnyCommandCallerKind kind,
-        Action<BunnyCommandReply> reply)
+        Action<BunnyCommandReply> reply, Action<BunnyCommandAction>? requestAction = null)
     {
         if (playerIndex < -1 || playerIndex > 255)
             throw new ArgumentOutOfRangeException(nameof(playerIndex));
@@ -49,9 +56,44 @@ public sealed class BunnyCommandCaller
         if (kind != BunnyCommandCallerKind.Chat && kind != BunnyCommandCallerKind.Server)
             throw new ArgumentOutOfRangeException(nameof(kind));
         this.reply = reply ?? throw new ArgumentNullException(nameof(reply));
+        this.requestAction = requestAction;
         PlayerIndex = playerIndex;
         NetworkMode = networkMode;
         Kind = kind;
+    }
+
+    /// <summary>
+    /// Cura quem executou o comando. O valor real restaurado e informado pelo
+    /// Terraria depois de processar o pedido na thread do jogo.
+    /// </summary>
+    public void Heal(int amount)
+    {
+        if (amount <= 0 || amount > 1000000)
+            throw new BunnyUsageException("Quantidade de cura invalida");
+        Request(new BunnyCommandAction(BunnyCommandActionKind.Heal, amount));
+    }
+
+    /// <summary>
+    /// Avanca ou retrocede o relogio do mundo. Em multiplayer, somente o
+    /// servidor autoritativo aplica e distribui os novos dados do mundo.
+    /// </summary>
+    public void AdvanceWorldTime(int ticks)
+    {
+        if (ticks < -86400000 || ticks > 86400000)
+            throw new BunnyUsageException("Ticks fora do limite");
+        if (NetworkMode != 0 && ((NetworkMode & 2) == 0 || Kind != BunnyCommandCallerKind.Server))
+            throw new BunnyUsageException("Alteracao de tempo requer o servidor");
+        Request(new BunnyCommandAction(BunnyCommandActionKind.AdvanceWorldTime, ticks));
+    }
+
+    private void Request(BunnyCommandAction action)
+    {
+        if (requestAction == null)
+            throw new InvalidOperationException("Acoes de mundo precisam do worker nativo");
+        if (actionRequested)
+            throw new InvalidOperationException("Um comando so pode solicitar uma acao de mundo");
+        actionRequested = true;
+        requestAction(action);
     }
 
     public void Reply(string message, byte red = 255, byte green = 240, byte blue = 20)
