@@ -77,6 +77,37 @@ O dispatcher gerenciado agora dispõe de um overload `TickNpc` de
 `ManagedEntityJob`. O caminho nativo usa a assinatura de 13 argumentos,
 enquanto o overload antigo de 12 permanece disponível a chamadas C#.
 
+## Uso nativo de item C# (lote 6)
+
+`BunnyItem.OnUse(int playerIndex)` é um callback opt-in. O dispatcher
+descobre por reflexão somente os `BunnyItem` que sobrescrevem esse
+método, registra o nome local do item por P/Invoke e consulta uma
+fila limitada no tick MonoVM. Não há chamada Mono por frame de item.
+
+`NativeCSharpItemUse.cpp` registra um único hook verificado na assinatura
+`Player.ItemCheck_StartActualUse(Item)`, já usada pelo Bunny.
+O método original do jogo roda normalmente; antes dele, o hook
+captura o tipo do item e o índice do jogador. A implementação
+identifica o item por `modItemTypeByKey(mod + "/" + name)`,
+admitindo apenas tipos realmente registrados pelo mod.
+A fila suporta até 64 bindings e 64 usos; sessões do mundo antigas
+não são reaproveitadas. Somente modos autoritativos 0/2/3 registram
+o evento. Itens que não sobrescrevem `OnUse` são ignorados.
+
+O novo `ExampleInvasionBeacon` é um `BunnyItem` não consumível com
+receita na bancada de trabalho usando 10 `ExampleItem`.
+`OnUse` chama `ExampleInvasion.Start(true)`. Chamadas repetidas
+durante a invasão não reiniciam o progresso, como os testes
+de ida e volta C# → C++ → C# demonstram. A textura atual é
+reutilizada do `ExampleItem`; arte final permanece pendente.
+
+**Limites:** o modo cliente 1 ainda precisa de solicitação confiável
+ao host. A invocação não está validada em Terraria Android real.
+Mods que possuem apenas itens, sem NPC ou projétil C# no registro
+do `BunnyEntitySourceDispatcher`, ainda precisam de integração
+de descoberta própria; portanto a API genérica não está concluída.
+Não substituir testes Android por simulações.
+
 ## Procura nativa de terreno (lote 5)
 
 `NativeInvasionSpawnSite.h/.cpp` usa o `TileAccess` **já existente no
@@ -127,8 +158,9 @@ O host móvel admite singleplayer (0) e host com jogador (3).
 O modo 2 ainda exige seleção de jogador válida em servidor dedicado;
 não há validação real no Android ou protocolo de multiplayer da invasão.
 
-**Pendências obrigatórias:** acionamento por item/receita e regras
-de início, geração em solo real sem prender inimigos, tratamento de
+**Pendências obrigatórias:** validação Android do item de invocação,
+regras de início e sincronização cliente→servidor, geração em solo
+real sem prender inimigos, tratamento de
 eventos perdidos por fila de morte sob carga, persistência por mundo,
 sincronização host/cliente e entrada tardia, UI/avisos, efeitos,
 balanceamento, QA Android/host/cliente e revisão final de release.
@@ -148,6 +180,7 @@ python3 tests/invasion/native_spawn_contract.py
 g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSpawnSiteTest.cpp -o /tmp/bunny-invasion-terrain
 /tmp/bunny-invasion-terrain
 python3 tests/invasion/check_world_host_contract.py
+python3 tests/invasion/check_item_use_contract.py
 g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
 /tmp/bunny-invasion-authority
 ```
