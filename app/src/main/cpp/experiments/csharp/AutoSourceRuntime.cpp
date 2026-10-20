@@ -1253,8 +1253,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
-    if (nativeCommandMailbox().hasCommands() &&
-        !nativeCommandChatHookInstalled())
+    if (nativeCommandMailbox().hasCommands())
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
