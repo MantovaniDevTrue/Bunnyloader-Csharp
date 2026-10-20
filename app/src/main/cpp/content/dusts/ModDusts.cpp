@@ -275,6 +275,8 @@ int g_frame = 0;
 std::array<int, kDustSlots> g_dustGenerations{};
 csharp::ManagedDustLifecycle g_dustLifecycle;
 csharp::ManagedDustFrameBudget g_dustFrameBudget;
+int64_t g_dustSyncAttempts = 0, g_dustSyncReady = 0, g_dustSyncMissed = 0;
+int64_t g_dustSyncWaitNs = 0;
 csharp::ManagedDustSlotLookup<Il2CppObject, kDustSlots> g_dustSlotLookup;
 Scan g_scan;
 std::vector<Il2CppObject*> g_list;
@@ -508,13 +510,21 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
                 g_dustFrameBudget.deadline(static_cast<std::uint64_t>(g_frame), &deadline)) {
                 attempted = true;
                 csharp::ManagedDustMailbox::Response immediate{};
+                const auto started = std::chrono::steady_clock::now();
                 const bool ready = csharp::invokeManagedDustSameFrame(
                     state.type, phase, state, static_cast<std::uint64_t>(g_frame),
                     deadline, &immediate);
                 g_dustFrameBudget.finish();
+                ++g_dustSyncAttempts;
+                g_dustSyncWaitNs +=
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::steady_clock::now() - started).count();
                 if (ready) {
+                    ++g_dustSyncReady;
                     applyResponse(immediate);
                     valid = validDecision();
+                } else {
+                    ++g_dustSyncMissed;
                 }
             }
             if (!attempted)
@@ -1019,12 +1029,20 @@ DustPoolStats dustPoolStats() {
     s.draws = g_draws;
     s.groupPasses = g_groupPasses;
     s.groupDusts = g_groupDusts;
+    s.managedSyncAttempts = g_dustSyncAttempts;
+    s.managedSyncReady = g_dustSyncReady;
+    s.managedSyncMissed = g_dustSyncMissed;
+    s.managedSyncWaitNs = g_dustSyncWaitNs;
     return s;
 }
 
 void resetManagedDustLifecycle() {
     g_dustLifecycle.reset();
     g_dustFrameBudget.reset();
+    g_dustSyncAttempts = 0;
+    g_dustSyncReady = 0;
+    g_dustSyncMissed = 0;
+    g_dustSyncWaitNs = 0;
     g_dustSlotLookup.reset();
     g_dustGenerations.fill(0);
     g_dustCached.fill({});
