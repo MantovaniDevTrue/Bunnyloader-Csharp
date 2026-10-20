@@ -297,20 +297,39 @@ bool compile(const std::string& root, const std::string& id,
              const SourceModStatus& mod, const std::string& workDir,
              std::string* defaults, std::string* curves,
              std::string* combat, std::string* error) {
+    std::remove((workDir + "source-compile-status-" + id + ".txt").c_str());
     std::remove((workDir + "source-compile-status.txt").c_str());
     std::remove((workDir + "source-runtime-values.txt").c_str());
     std::remove((workDir + "source-projectile-turns.txt").c_str());
     std::remove((workDir + "source-combat-policies.txt").c_str());
     if (!requestIsolatedMonoCompile(root, id, *error)) return false;
-    const std::string path = workDir + "source-compile-status.txt";
+    const std::string path = workDir + "source-compile-status-" + id + ".txt";
     const auto started = std::chrono::steady_clock::now();
     const auto deadline = started + std::chrono::seconds(180);
     for (; std::chrono::steady_clock::now() < deadline;) {
         const std::string status = readText(path, 8192);
         if (status.find("state=failed\n") != std::string::npos &&
-            (status.find("modId=" + id + "\n") != std::string::npos ||
-             status.find("modId=") == std::string::npos)) {
-            *error = "Roslyn/MonoVM falhou; verifique sourceCompileStatus";
+            status.find("modId=" + id + "\n") != std::string::npos) {
+            const auto valueOf = [&](const std::string& key) {
+                const size_t found = status.find("\n" + key + "=");
+                if (found == std::string::npos) return std::string{};
+                const size_t begin = found + key.size() + 2;
+                const size_t end = status.find('\n', begin);
+                return status.substr(begin, std::min<size_t>(
+                    end == std::string::npos ? status.size() - begin : end - begin, 180));
+            };
+            *error = "Roslyn/MonoVM: " + valueOf("phase");
+            const auto detail = valueOf("error");
+            if (!detail.empty()) *error += " " + detail;
+            const std::string diagnostic = readText(
+                workDir + "source-compile-diagnostics-" + id + ".txt", 4096);
+            if (!diagnostic.empty()) {
+                std::string excerpt = diagnostic.substr(0, 700);
+                std::replace(excerpt.begin(), excerpt.end(), '\n', ' ');
+                *error += " | " + excerpt;
+            }
+            if (error->size() < 18)
+                *error = "Roslyn/MonoVM falhou no mod " + id;
             return false;
         }
         if (status.find("state=finished\n") != std::string::npos &&
