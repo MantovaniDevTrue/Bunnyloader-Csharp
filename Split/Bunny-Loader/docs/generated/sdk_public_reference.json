@@ -2133,6 +2133,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "int AnimationFrame { get; }",
         "int Count { get; }",
         "int ParticleCount { get; }"
       ],

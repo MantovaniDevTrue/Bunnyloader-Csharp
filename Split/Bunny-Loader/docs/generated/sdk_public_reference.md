@@ -1168,6 +1168,7 @@ string Texture { get; set; }
 class; base: `System.Object`.
 
 ```csharp
+int AnimationFrame { get; }
 int Count { get; }
 int ParticleCount { get; }
 ```
