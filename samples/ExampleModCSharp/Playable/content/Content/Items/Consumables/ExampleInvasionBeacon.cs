@@ -7,8 +7,8 @@ public sealed class ExampleInvasionBeacon : BunnyItem
     public override void SetDefaults()
     {
         DisplayName = "Example Invasion Beacon";
-        Tooltip = "Starts the Example Invasion";
-        TooltipTranslations["pt-BR"] = "Inicia a invasão de exemplo";
+        Tooltip = "Starts the Example Invasion during daytime at the surface";
+        TooltipTranslations["pt-BR"] = "Inicia a invasão de exemplo durante o dia na superfície";
         Texture = "Content/Items/ExampleItem.png";
         Width = 24;
         Height = 28;
