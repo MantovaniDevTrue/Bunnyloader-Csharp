@@ -28,15 +28,19 @@ uint64_t ticks = 0;
 bool enumCount(Il2CppClass* owner, const char* nested, int* value) {
     auto& api = il2cpp::api();
     if (!owner || !api.field_static_get_value || !api.field_get_flags ||
-        !api.field_get_type || !api.type_get_name || !api.il2cpp_free)
+        !api.field_get_type || !api.class_from_il2cpp_type ||
+        !api.class_is_enum || !api.class_enum_basetype ||
+        !api.type_get_name || !api.il2cpp_free)
         return false;
     Il2CppClass* type = il2cpp::findNested(owner, nested);
     FieldInfo* field = type ? il2cpp::findField(type, "Count") : nullptr;
     if (!field || !(api.field_get_flags(field) & 0x10u)) return false;
-    char* name = api.type_get_name(api.field_get_type(field));
-    bool validType = name && (std::strcmp(name, "System.Int32") == 0 ||
-                              std::strcmp(name, "System.UInt32") == 0 ||
-                              std::strcmp(name, "System.Int16") == 0);
+    const Il2CppType* fieldType = api.field_get_type(field);
+    Il2CppClass* enumType = fieldType ? api.class_from_il2cpp_type(fieldType) : nullptr;
+    if (!enumType || !api.class_is_enum(enumType)) return false;
+    char* name = api.type_get_name(api.class_enum_basetype(enumType));
+    const bool validType = name && (std::strcmp(name, "System.Int32") == 0 ||
+                                    std::strcmp(name, "System.UInt32") == 0);
     if (name) api.il2cpp_free(name);
     if (!validType) return false;
     int count = -1;
