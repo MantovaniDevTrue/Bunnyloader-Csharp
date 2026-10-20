@@ -17,12 +17,15 @@ bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
     runtime::TileArrays world;
     if (!runtime::tileArrays(&world)) return false;
 
-    using namespace il2cpp;
-    auto* main = findClass({"Terraria", "Main", {}});
-    if (!main) return false;
-    auto* solidField = findField(main, "tileSolid");
-    auto* topField = findField(main, "tileSolidTop");
-    if (!solidField || !topField) return false;
+    static FieldInfo* solidField = nullptr;
+    static FieldInfo* topField = nullptr;
+    if (!solidField || !topField) {
+        auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+        if (!main) return false;
+        solidField = il2cpp::findField(main, "tileSolid");
+        topField = il2cpp::findField(main, "tileSolidTop");
+        if (!solidField || !topField) return false;
+    }
     Il2CppArray* solid = nullptr;
     Il2CppArray* solidTop = nullptr;
     auto& a = il2cpp::api();
