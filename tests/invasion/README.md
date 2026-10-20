@@ -9,8 +9,9 @@ mantém progresso, limite de criaturas, cooldown e deduplicação de mortes.
 
 **Ainda não é uma invasão jogável completa.** O canal host ⇄ MonoVM,
 a fila limitada de spawn, o agendamento periódico e o adaptador nativo
-estão implementados e passam na CI. Ainda faltam a invocação por item,
-persistência, estados de rede, conteúdo visual e validação no aparelho.
+estão implementados e passam na CI. O item invocador e a persistência
+local por mundo também estão implementados. Ainda faltam sincronização
+multiplayer, suporte a saves em nuvem, conteúdo visual e QA no aparelho.
 Nenhum APK deve ser gerado antes do fechamento integral.
 
 ## Contrato obrigatório do host
@@ -34,9 +35,9 @@ Nenhum APK deve ser gerado antes do fechamento integral.
 4. Mudança/saída de mundo, unload e troca de personagem chamam
    `WorldExit`. Não transportar contadores nem membros de outro mundo.
 5. Incluir sincronização servidor → clientes de início, progresso e
-   conclusão, entrada tardia, UI/avisos, condições de vitória, salvamento
-   real por mundo e falhas de reconexão. Os snapshots atuais servem
-   para persistência lógica, não são um protocolo de rede.
+   conclusão, entrada tardia, UI/avisos, condições de vitória e
+   falhas de reconexão. O salvamento local por mundo usa sidecar
+   nativo, mas os snapshots não constituem protocolo de rede.
 6. Incluir efeitos/recursos visuais finais, item de invocação, receitas,
    teste em Android e teste com host/cliente antes de qualquer APK.
 
@@ -203,8 +204,8 @@ não há validação real no Android ou protocolo de multiplayer da invasão.
 **Pendências obrigatórias:** validação Android do item de invocação,
 regras de início e sincronização cliente→servidor, geração em solo
 real sem prender inimigos, tratamento de
-eventos perdidos por fila de morte sob carga, persistência por mundo,
-sincronização host/cliente e entrada tardia, UI/avisos, efeitos,
+eventos perdidos por fila de morte sob carga, verificação do save
+Android/nuvem, sincronização host/cliente e entrada tardia, UI/avisos, efeitos,
 balanceamento, QA Android/host/cliente e revisão final de release.
 
 Atualmente cada mod C# aceita um `BunnyInvasionSystem`. Suporte a
