@@ -51,3 +51,41 @@ Regressão de contrato: tests/keybind_loader/KeybindLoaderTests.csproj.
 Gate: nenhum APK e nenhum .bmod são publicados enquanto estes itens
 estiverem abertos. Compilar apenas a biblioteca/testes C# não equivale a
 funcionamento dos controles dentro do Terraria.
+
+
+## Implementação complementar — 20/10/2026
+
+- NativeTouchInput.h/.cpp: registro nativo por identidade, estados em máscara,
+  captura de toques curtos, reset por mundo e unload sem reciclar IDs.
+- BunnyTouchNativeHost.cs: DllImport direto na libbunny, sem QuickJS.
+  BunnyTouchButtonLoader.TryBindNativeHost só ativa a leitura nativa após o
+  host informar bunny_csharp_touch_host_ready() == 1.
+- NativeTouchGameAbi.h/.cpp: auditoria de assinaturas nativas, layout dos
+  arrays Boolean[]/Single[], classes de controles, editor e persistência.
+  O código recusa ABI ausente e não instala hooks especulativos.
+- Por segurança, host_ready é **0 nesta etapa**. Os métodos nativos estão
+  compiláveis e testados, mas os controles do Terraria ainda não são ligados.
+- CI no commit e654d2b: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39514749006
+  Sucesso: contrato C#; teste C++ com ASan/UBSan; sintaxe e tipos
+  C++ do auditor de ABI. Não foi executado Android/Terraria nem gerado APK.
+
+### Próxima implementação obrigatória
+
+1. Na thread do jogo, validar o resultado real de inspectNativeTouchAbi()
+   contra Terraria 1.4.5.8.6 antes de instalar o primeiro hook.
+2. Instalar com assinatura exata Controller.Update e HandleTouchCursorDown,
+   estender arrays apenas se classes/tamanhos originais forem conferidos.
+3. Adicionar o ID de cada botão nativo às tabelas do editor, mantendo ícones,
+   nomes localizados, grupos e ações vanilla intactos.
+4. Persistir por perfil e SlotId: salvar à parte, remover IDs C# durante a
+   gravação vanilla e restaurar os nomes dos mods que voltarem.
+5. Só informar host_ready=1 após editor, toque, layouts, flags
+   e transições reais funcionarem em conjunto.
+6. Após código completo e CI, executar QA Android de todas as operações
+   e multiplayer. Nenhum APK intermediário é permitido.
+
+### Não confundir
+
+"Native ABI compile PASS" valida que o C++ compila contra os headers do
+repositório. Não valida offsets ou assinaturas no libil2cpp do telefone.
+"Managed test PASS" valida lógica de snapshots simulados, não um botão real.
