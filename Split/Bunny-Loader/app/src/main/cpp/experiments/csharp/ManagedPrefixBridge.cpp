@@ -153,6 +153,8 @@ bool applyManagedItemPrefixCallbackBindings(
             return false;
     }
     if (staged.empty()) return true;
+    if (!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())
+        return false;
     std::lock_guard<std::mutex> guard(g_prefixMutex);
     const auto previous = std::atomic_load_explicit(&g_itemCallbackView,
                                                     std::memory_order_acquire);
