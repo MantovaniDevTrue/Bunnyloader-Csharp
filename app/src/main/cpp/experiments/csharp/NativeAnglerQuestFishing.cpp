@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeAnglerQuestFishing.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/ValueLayout.h"
@@ -83,6 +84,13 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     float gravity = 1.f;
     std::memcpy(&gravity, reinterpret_cast<const char*>(player) + g_gravity, sizeof(gravity));
     if (!Registry::canCatch(*found, gravity < 0.f, uncommon != 0)) return;
+    if ((found->callbackMask & 2) != 0) {
+        bool allowed = false;
+        if (!bl::csharp::invokeManagedAnglerQuestCallback(
+            found->mod, found->name, 5, gravity < 0.f ? 1 : 0,
+            uncommon != 0 ? 1 : 0, questId, &allowed) || !allowed)
+            return;
+    }
     const int32_t result = questId;
     std::memcpy(static_cast<char*>(attempt) + g_rolledItem, &result, sizeof(result));
 }
