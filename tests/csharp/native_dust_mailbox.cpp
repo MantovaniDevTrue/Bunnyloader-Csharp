@@ -127,6 +127,20 @@ int main() {
     assert(!queue.complete(inFlight,inFlight.state,1u | 32u));
     assert(queue.offer(0,1,aging,1));
     queue.resetWorld();
+    for (int i = 0; i < 128; ++i)
+        assert(queue.offer(0,1,sample(1000+i),100));
+    auto oldestSlot = sample(1127);
+    assert(queue.offer(0,5,dead,101));
+    assert(!queue.offer(0,1,oldestSlot,102));
+    assert(queue.take(&first,1)==1 && first.phase==5);
+    assert(queue.current(first));
+    queue.discard(first);
+    assert(queue.take(batch,128)==127);
+    for (const auto& request:batch) {
+        if (request.state.slot == 1127)
+            assert(!queue.current(request));
+    }
+    queue.resetWorld();
     for(const auto& request:batch)
         assert(!queue.complete(request,request.state,1u | 32u));
 }
