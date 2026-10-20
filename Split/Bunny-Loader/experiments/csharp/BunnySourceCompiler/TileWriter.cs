@@ -44,9 +44,9 @@ internal static class TileWriter {
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         int normal = (int)(type.GetMethod("NumDust",new[] {typeof(bool)})?.Invoke(tile, new object[] {false})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
-        if ((flags & ~131071) != 0)
+        if ((flags & ~1048575) != 0)
             throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
-                " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0x1FFFF Actual=" +
+                " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFFF Actual=" +
                 flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
         if (shape < 0 || shape > 3 || toggle < 0 || toggle > 2 ||
             (toggle == 1 && shape != 2) || (toggle == 2 && shape != 3) ||

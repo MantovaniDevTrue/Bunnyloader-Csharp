@@ -6,7 +6,7 @@
 #include <string>
 
 namespace bl::csharp::tile_flags {
-inline constexpr int supportedMask = 131071;
+inline constexpr int supportedMask = 1048575;
 
 using Resize = Il2CppArray* (*)(Il2CppArray*, uintptr_t);
 inline bool appendHousing(int type, Il2CppClass* room, Resize resize, std::string* error) {
@@ -71,7 +71,9 @@ inline bool apply(int type, int flags, std::string* error) {
         {32768,"Main","tileCut"},
         {65536,"Sets","Campfires"}, {65536,"Sets","InteractableByNPCs"},
         {65536,"Wiring","IsAMechanism"},
-        {65536,"Wiring","IgnoreWhenValidatingTraps"}
+        {65536,"Wiring","IgnoreWhenValidatingTraps"},
+        {131072,"Sets","TreeSapling"}, {262144,"Sets","CommonSapling"},
+        {524288,"Sets","SwaysInWindBasic"}
     };
     // CountsAsTable (256) is an integer list in RoomNeeds, not a bool indexed
     // by tile ID. Its registration remains in appendNativeHousingTable.

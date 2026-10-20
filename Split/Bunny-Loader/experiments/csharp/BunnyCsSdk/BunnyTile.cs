@@ -28,7 +28,10 @@ public enum BunnyTileFlags {
     /// <summary>Inclui o tile na verificação nativa de junção com vizinhos.</summary>
     ChecksForMerge = 16384,
     Cut = 32768,
-    Campfire = 65536
+    Campfire = 65536,
+    TreeSapling = 131072,
+    CommonSapling = 262144,
+    SwaysInWindBasic = 524288
 }
 
 public enum BunnyTileShape {

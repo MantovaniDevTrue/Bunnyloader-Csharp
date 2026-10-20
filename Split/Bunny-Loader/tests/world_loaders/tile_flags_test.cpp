@@ -46,7 +46,7 @@ int main(int argc,char** argv) {
  fixture.class_get_element_class=[](Il2CppClass* c){return c->element;};
  fixture.field_static_get_value=[](FieldInfo* f,void* p){std::memcpy(p,&f->data,sizeof(f->data));};
  for(const char* n:{"tileTable","tileSolidTop","tileNoAttach","tileLavaDeath","tileObsidianKill","tileFrameImportant","tileSolid","tileNoSunLight","tileBlockLight","tileMergeDirt","tileLighted","tileWaterDeath","tileCut"})fields[&mainClass][n]={{&boolArray},0x10,allocate()};
- for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge","Campfires","InteractableByNPCs"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
+ for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge","Campfires","InteractableByNPCs","TreeSapling","CommonSapling","SwaysInWindBasic"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
  for(const char* n:{"IsAMechanism","IgnoreWhenValidatingTraps"})fields[&wiringClass][n]={{&boolArray},0x10,allocate()};
  std::string error;
  assert(apply(2195,supportedMask,&error));
@@ -79,6 +79,14 @@ int main(int argc,char** argv) {
   assert(static_cast<uint8_t*>(arrayData(fields[&wiringClass][n].data))[2195]==1);
  assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileSolid"].data))[2195]==0);
  clear();
+ assert(apply(2195,131072|262144|524288,&error));
+ for(const char* n:{"TreeSapling","CommonSapling","SwaysInWindBasic"})
+  assert(static_cast<uint8_t*>(arrayData(fields[&setsClass][n].data))[2195]==1);
+ clear();
+ auto saplingFlag=fields[&setsClass].extract("CommonSapling");
+ assert(!apply(2195,131072|262144,&error)&&error.find("CommonSapling")!=std::string::npos&&allZero());
+ fields[&setsClass].insert(std::move(saplingFlag));
+ clear();
  auto mechanism=fields[&wiringClass].extract("IsAMechanism");
  assert(!apply(2195,65536,&error)&&error.find("IsAMechanism")!=std::string::npos&&allZero());
  fields[&wiringClass].insert(std::move(mechanism));
@@ -86,8 +94,8 @@ int main(int argc,char** argv) {
  trapField.flags=0;
  assert(!apply(2195,65536,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());
  trapField.flags=0x10;
- assert(!apply(2195,131072,&error)&&allZero());
- assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,131072,&error)&&allZero());
+ assert(!apply(2195,1048576,&error)&&allZero());
+ assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,1048576,&error)&&allZero());
  auto& last=fields[&setsClass]["ChecksForMerge"];
  last.flags=0;assert(!apply(2195,512|16384,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());last.flags=0x10;
  last.type.cls=&integer;assert(!apply(2195,512|16384,&error)&&error.find("System.Int32")!=std::string::npos&&allZero());last.type.cls=&boolArray;

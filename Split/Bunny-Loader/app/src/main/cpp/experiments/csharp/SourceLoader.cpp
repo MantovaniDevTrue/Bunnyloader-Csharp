@@ -757,12 +757,12 @@ bool applyManagedSourceDefaults(
             ManagedTileEntry tile;
             tile.name = fields[1]; tile.type = it->second;
             const bool flagsEncoded = integer(fields[2], &tile.flags);
-            if (!flagsEncoded || tile.flags < 0 || tile.flags > 131071) {
+            if (!flagsEncoded || tile.flags < 0 || tile.flags > 1048575) {
                 const auto source = mod->sourcePaths.find(identity);
                 *error = "[CSharp][ERROR][TileDefaults] Mod=" + modId + " Class=" + fields[1] +
                     " File=" + (source == mod->sourcePaths.end() ? "<unavailable>" : source->second) +
                     " API=BunnyTile.Flags Field=Flags ContentId=" + std::to_string(tile.type) +
-                    " Stage=Decode Expected=Int32:KnownMask0x1FFFF Actual=" + fields[2] +
+                    " Stage=Decode Expected=Int32:KnownMask0xFFFFF Actual=" + fields[2] +
                     " Result=Rejected Reason=" + (flagsEncoded ? "UnknownFlagBits" : "InvalidInt32");
                 return false;
             }

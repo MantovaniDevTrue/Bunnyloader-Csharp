@@ -2250,7 +2250,10 @@
         "WaterDeath",
         "ChecksForMerge",
         "Cut",
-        "Campfire"
+        "Campfire",
+        "TreeSapling",
+        "CommonSapling",
+        "SwaysInWindBasic"
       ],
       "methods": []
     },
