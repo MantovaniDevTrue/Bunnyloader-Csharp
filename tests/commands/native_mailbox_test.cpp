@@ -27,6 +27,18 @@ int main() {
     assert(!mailbox.registerMod("invalid mod", {{"other", 1}}, &error));
     assert(!mailbox.registerMod("badalias", {{"ok", 1}, {"OK", 1}}, &error));
     assert(mailbox.pending() == 0);
+    NativeCommandMailbox deferred;
+    assert(deferred.registerMod("pending", {{"later", 1}}, nullptr, false));
+    assert(deferred.submit("/later", 0, 0, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Vanilla);
+    assert(deferred.setModReady("pending", true));
+    assert(deferred.submit("/later", 0, 0, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Queued);
+    assert(deferred.setModReady("pending", false));
+    assert(deferred.submit("/later", 0, 0, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Vanilla);
+    deferred.newWorld(true);
+    assert(!deferred.setModReady("pending", true));
 
     assert(mailbox.submit("/vanillahelp", 0, 0, NativeCommandRoute::Chat) ==
            NativeCommandSubmit::Vanilla);
