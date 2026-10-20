@@ -464,7 +464,8 @@ void pumpOnGameThread() {
     activeGeneration().store(appliedRevision, std::memory_order_release);
     if (!quests.empty() && !installFishingOnGameThread(&g_active)) {
         if (!g_fishingWarning)
-            BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
+            BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=%s",
+                    fishingInstallDiagnostic());
         g_fishingWarning = true;
     } else g_fishingWarning = false;
     if (pending)
