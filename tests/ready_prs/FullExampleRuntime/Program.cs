@@ -84,6 +84,28 @@ try
         .Contains("referenceMode=Runtime", StringComparison.Ordinal))
         throw new InvalidOperationException("Runtime references not selected after stale-pack invalidation");
     Console.WriteLine("FULL_EXAMPLE_STALE_COMPACT_FALLBACK=PASS classes=" + staleVerified);
+    string packaged = Path.Combine(work, "apk-android-runtime");
+    Directory.CreateDirectory(packaged);
+    string repoAssets = Path.GetFullPath("app/src/main/assets/managed");
+    foreach (string name in references)
+    {
+        string from = Path.Combine(repoAssets, name);
+        if (!File.Exists(from))
+            throw new InvalidOperationException("Android packaged CLR reference missing: " + name);
+        File.Copy(from, Path.Combine(packaged, name));
+    }
+    File.Copy(typeof(BunnyItem).Assembly.Location, Path.Combine(packaged, "BunnySourceSdk.dll"));
+    string packagedOutput = Path.Combine(work, "compiled", "FullExamplePackagedAndroid.dll");
+    string packagedDiagnostics = Path.Combine(work, "packaged-diagnostics.txt");
+    int packagedCompiled = Compiler.Compile(root, packagedOutput, packaged, packagedDiagnostics);
+    if (packagedCompiled != 1)
+        throw new InvalidOperationException("Android packaged CLR Roslyn returned " + packagedCompiled +
+            "\n" + File.ReadAllText(packagedDiagnostics));
+    int packagedVerified = CompiledAssemblyProbe.Verify(packagedOutput, packagedDiagnostics, root);
+    if (packagedVerified != verified)
+        throw new InvalidOperationException("Android packaged CLR validation returned " +
+            packagedVerified + "\n" + File.ReadAllText(packagedDiagnostics));
+    Console.WriteLine("FULL_EXAMPLE_PACKAGED_ANDROID_CLR=PASS classes=" + packagedVerified);
 }
 finally
 {
