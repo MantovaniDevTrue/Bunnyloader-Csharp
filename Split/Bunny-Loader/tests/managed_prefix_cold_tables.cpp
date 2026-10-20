@@ -50,6 +50,11 @@ int itemWorkerWarmup = 0;
 int itemWorkerCalls = 0;
 int itemWorkerDenied = 99;
 bool itemWorkerFails = false;
+int itemChoice = -1;
+int itemChance = -1;
+int itemPostDamage = 0;
+int itemPostValue = 0;
+int itemDecisionCalls = 0;
 std::shared_ptr<const std::map<std::string,std::string>> prefixAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
 int prefixWorkerWarmup = 0;
@@ -201,6 +206,21 @@ std::shared_ptr<const std::map<std::string,std::string>> managedItemPrefixCallba
 }
 int managedItemPrefixWarmupState(const std::string&,const std::string&,const std::string&) {
     return itemWorkerWarmup;
+}
+bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,
+    std::string* output,int budget) {
+    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
+           (owner=="TestWand" || owner=="TestCharm") &&
+           (kind==3 || kind==4 || kind==5) &&
+           !snapshot.empty() && budget>=1 && budget<=650);
+    ++itemDecisionCalls;
+    if(itemWorkerFails)return false;
+    if(kind==3) *output=std::to_string(itemChoice);
+    if(kind==4) *output=itemChance<0?"N":itemChance==0?"0":"1";
+    if(kind==5) *output=std::to_string(itemPostDamage)+","+
+                         std::to_string(itemPostValue);
+    return true;
 }
 bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,size_t count,
@@ -1160,6 +1180,23 @@ int main() {
     itemWorkerWarmup=1;
     itemWorkerCalls=0;
     itemWorkerDenied=99;
+    itemDecisionCalls=0;
+    itemChoice=73;
+    itemChance=1;
+    itemPostDamage=3;
+    itemPostValue=15;
+    {
+        PrefixRpcScope scope;
+        std::string output;
+        assert(queryItemPrefixDecision(&weapon.object,0,3,&output) && output=="73");
+        assert(queryItemPrefixDecision(&weapon.object,1,4,&output) && output=="1");
+        assert(queryItemPrefixDecision(&weapon.object,72,5,&output) && output=="3,15");
+        assert(itemDecisionCalls==3);
+    }
+    itemChoice=-1;
+    itemChance=-1;
+    itemPostDamage=0;
+    itemPostValue=0;
     weapon.type=6199;
     weapon.damage=12;
     weapon.mana=0;
