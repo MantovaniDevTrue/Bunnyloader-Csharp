@@ -736,6 +736,19 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string dustCount=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),24,0,"2,3,1,3");
+    string dustCountInvalid=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),24,0,"2,3,2,3");
+    string dustCreate=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),25,0,"2,3,31");
+    string dustDenied=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),25,0,"3,3,31");
+    if((new TileDynamicDustSmoke().TileCallbackMask&((1<<24)|(1<<25)))!=((1<<24)|(1<<25))||
+       dustCount!="DUST|7"||dustCountInvalid!="ERROR|Stage=DecodeTileDustCount Reason=InvalidFail"||
+       dustCreate!="CREATE|1|57"||dustDenied!="CREATE|0|57")
+        throw new InvalidOperationException("Dynamic dust wire regression: "+
+            dustCount+" / "+dustCountInvalid+" / "+dustCreate+" / "+dustDenied);
     string killWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
         tileSmokeAssembly,nameof(TileKillSmoke),22,0,"2,4,0,0,0");
     string killReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
@@ -1005,4 +1018,10 @@ sealed class TileKillSmoke : BunnyLoader.Source.BunnyTile {
     public override void KillMultiTile(int x,int y,int frameX,int frameY) {
         if(frameX!=54||frameY!=36)throw new InvalidOperationException("Frame coordinates changed");
     }
+}
+
+sealed class TileDynamicDustSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override void NumDust(int x,int y,bool fail,ref int num) {num=fail?7:4;}
+    public override bool CreateDust(int x,int y,ref int type) {type=57;return x!=3;}
 }

@@ -29,7 +29,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.PostDraw), nameof(BunnyTile.DrawEffects),
         nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles),
         nameof(BunnyTile.HasSmartInteract), nameof(BunnyTile.TileFrame),
-        nameof(BunnyTile.KillTile), nameof(BunnyTile.KillMultiTile)
+        nameof(BunnyTile.KillTile), nameof(BunnyTile.KillMultiTile),
+        nameof(BunnyTile.NumDust), nameof(BunnyTile.CreateDust)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -66,7 +67,8 @@ public static class BunnyTileRuntime {
                 if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (15 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            int expected = index == 11 ? 3 : index == 13 ? 12 : index == 21 || index == 23 ? 4 : index == 22 ? 5 : 2;
+            int expected = index == 11 || index == 25 ? 3 : index == 13 ? 12 :
+                index == 21 || index == 23 || index == 24 ? 4 : index == 22 ? 5 : 2;
             if (fields.Length != (index == 20 ? 6 : expected) && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
@@ -179,6 +181,24 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 24:
+                    if(fields[2]!="0"&&fields[2]!="1")
+                        return "ERROR|Stage=DecodeTileDustCount Reason=InvalidFail";
+                    int dustCount=int.Parse(fields[3],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    if(dustCount<0||dustCount>20)
+                        return "ERROR|Stage=DecodeTileDustCount Reason=CountOutOfBounds";
+                    tile.NumDust(x,y,fields[2]=="1",ref dustCount);
+                    if(dustCount<0||dustCount>20)
+                        return "ERROR|Stage=ValidateTileDustCount Reason=CountOutOfBounds";
+                    return "DUST|"+dustCount.ToString(CultureInfo.InvariantCulture);
+                case 25:
+                    int dustType=int.Parse(fields[2],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    if(dustType< -1||dustType>1999)
+                        return "ERROR|Stage=DecodeTileDust Reason=InvalidDustType";
+                    bool create=tile.CreateDust(x,y,ref dustType);
+                    if(dustType< -1||dustType>1999)
+                        return "ERROR|Stage=ValidateTileDust Reason=InvalidDustType";
+                    return "CREATE|"+(create?"1":"0")+"|"+dustType.ToString(CultureInfo.InvariantCulture);
                 case 22:
                     if ((fields[2] != "0" && fields[2] != "1") ||
                         (fields[3] != "0" && fields[3] != "1") ||

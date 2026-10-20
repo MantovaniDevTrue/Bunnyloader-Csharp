@@ -87,6 +87,8 @@ public abstract class BunnyTile {
     }
     public abstract void SetStaticDefaults();
     public virtual int NumDust(bool fail) => fail ? 1 : 3;
+    public virtual void NumDust(int x,int y,bool fail,ref int num) { }
+    public virtual bool CreateDust(int x,int y,ref int type) => true;
     public virtual bool CanKillTile(int x, int y) => true;
     public virtual bool CanDrop(int x, int y) => true;
     public virtual void HitWire(int x, int y) { }
@@ -125,7 +127,8 @@ public abstract class BunnyTile {
                 nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile),
                 nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
                 nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles),
-                nameof(HasSmartInteract), nameof(TileFrame), nameof(KillTile), nameof(KillMultiTile)
+                nameof(HasSmartInteract), nameof(TileFrame), nameof(KillTile), nameof(KillMultiTile),
+                nameof(NumDust), nameof(CreateDust)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {
@@ -138,6 +141,14 @@ public abstract class BunnyTile {
                         throw new InvalidOperationException(type.FullName + ": invalid callback " + methods[i]);
                     if (legacyDraw.DeclaringType != typeof(BunnyTile) ||
                         contextDraw.DeclaringType != typeof(BunnyTile)) mask |= 1 << i;
+                    continue;
+                }
+                if(i==24) {
+                    var handler=type.GetMethod(nameof(NumDust),new[]{typeof(int),typeof(int),
+                        typeof(bool),typeof(int).MakeByRefType()});
+                    if(handler==null||handler.GetBaseDefinition().DeclaringType!=typeof(BunnyTile))
+                        throw new InvalidOperationException(type.FullName+": invalid callback NumDust");
+                    if(handler.DeclaringType!=typeof(BunnyTile))mask|=1<<i;
                     continue;
                 }
                 if (i == 14) {

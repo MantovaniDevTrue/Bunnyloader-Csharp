@@ -37,9 +37,9 @@ internal static class TileWriter {
         string adjacentList = sortedAliases.Length == 0 ? "-" :
             string.Join(",", Array.ConvertAll(sortedAliases,
                 value => value.ToString(CultureInfo.InvariantCulture)));
-        int fail = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {true})
+        int fail = (int)(type.GetMethod("NumDust",new[] {typeof(bool)})?.Invoke(tile, new object[] {true})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
-        int normal = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {false})
+        int normal = (int)(type.GetMethod("NumDust",new[] {typeof(bool)})?.Invoke(tile, new object[] {false})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         if ((flags & ~131071) != 0)
             throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
