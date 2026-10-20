@@ -322,7 +322,7 @@ bool compile(const std::string& root, const std::string& id,
             const auto detail = valueOf("error");
             if (!detail.empty()) *error += " " + detail;
             const std::string diagnostic = readText(
-                workDir + "source-compile-diagnostics-" + id + ".txt", 4096);
+                workDir + "source-compile-diagnostics-" + id + ".txt", 16384);
             if (!diagnostic.empty()) {
                 std::string excerpt = diagnostic.substr(0, 700);
                 std::replace(excerpt.begin(), excerpt.end(), '\n', ' ');
