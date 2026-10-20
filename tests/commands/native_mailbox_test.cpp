@@ -23,6 +23,7 @@ int main() {
         {"heal", 1}, {"curar", 1}, {"addtime", 4}}, &error));
     assert(mailbox.registerMod("second", {{"heal", 1}}, &error));
     assert(!mailbox.registerMod("examplemod", {{"other", 1}}, &error));
+    assert(!mailbox.registerMod("ExampleMod", {{"same-owner", 1}}, &error));
     assert(!mailbox.registerMod("invalid mod", {{"other", 1}}, &error));
     assert(!mailbox.registerMod("badalias", {{"ok", 1}, {"OK", 1}}, &error));
     assert(mailbox.pending() == 0);
@@ -31,9 +32,9 @@ int main() {
            NativeCommandSubmit::Vanilla);
     assert(mailbox.submit("not a command", 0, 0, NativeCommandRoute::Chat) ==
            NativeCommandSubmit::Vanilla);
-    assert(mailbox.submit("/curar 7", 0, 0, NativeCommandRoute::Chat) ==
+    assert(mailbox.submit("   /curar 7", 0, 0, NativeCommandRoute::Chat) ==
            NativeCommandSubmit::Queued);
-    assert(mailbox.submit("/second:heal 7", 0, 0, NativeCommandRoute::Chat) ==
+    assert(mailbox.submit("/SECOND:HEAL 7", 0, 0, NativeCommandRoute::Chat) ==
            NativeCommandSubmit::Queued);
     assert(mailbox.submit("/unknown:heal 7", 0, 0, NativeCommandRoute::Chat) ==
            NativeCommandSubmit::Queued);
@@ -107,6 +108,8 @@ int main() {
     assert(limited.size() == 1);
     assert(!bounded.deliver(limited[0].epoch, limited[0].sequence,
         {{std::string(NativeCommandMailbox::MaxLineBytes + 1, 'a'), 0}}));
+    assert(!bounded.deliver(limited[0].epoch, limited[0].sequence,
+        {{"wrong recipient", 1}}));
     assert(bounded.deliver(limited[0].epoch, limited[0].sequence, {}));
 
     // Dois threads exercitam somente o mailbox, sem chamar IL2CPP ou Mono.
