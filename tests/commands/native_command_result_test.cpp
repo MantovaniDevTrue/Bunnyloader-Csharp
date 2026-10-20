@@ -17,6 +17,16 @@ int main() {
     assert(handled && replies.size() == 1);
     assert(replies[0].playerIndex == 14 && replies[0].text == "ok:7");
     assert(replies[0].red == 255 && replies[0].green == 240);
+    assert(decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nREPLY\t255\t240\t20\t\n",
+        14, &handled, &replies, &error));
+    assert(replies.size() == 1 && replies[0].text.empty());
+    assert(!decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nREPLY\t255\t240\t20\n",
+        14, &handled, &replies, &error));
+    assert(decodeNativeCommandResult(
+        "BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\nREPLY\t255\t240\t20\t6F6B3A37\n",
+        14, &handled, &replies, &error));
     NativeCommandMailbox mailbox;
     assert(mailbox.registerMod("sample", {{"echo", 1}}));
     assert(mailbox.submit("/echo", 14, 0, NativeCommandRoute::Chat) == NativeCommandSubmit::Queued);
