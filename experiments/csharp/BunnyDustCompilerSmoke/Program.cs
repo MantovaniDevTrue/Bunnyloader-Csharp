@@ -119,10 +119,12 @@ public sealed class BrokenSpawnDust : BunnyDust
             BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
         int second = BunnyDustSourceDispatcher.Invoke(modSlot,
             BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
-        if ((first & BunnyDustSourceDispatcher.Accepted) == 0 ||
-            (second & BunnyDustSourceDispatcher.Accepted) == 0 ||
+        if (first != (BunnyDustSourceDispatcher.Accepted |
+                       BunnyDustSourceDispatcher.Active) ||
+            second != (BunnyDustSourceDispatcher.Accepted |
+                        BunnyDustSourceDispatcher.Active) ||
             (int)attempts.GetValue(null)! != 1)
-            throw new Exception("OnSpawn fault was repeatedly invoked on same slot/generation");
+            throw new Exception("OnSpawn fault flags invalid or callback repeated on same generation");
         failed.Generation = 2;
         BunnyDustSourceDispatcher.Invoke(modSlot,
             BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
