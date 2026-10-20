@@ -214,16 +214,16 @@ public static class BunnyEntitySourceDispatcher
             SaveInvasionIfChanged(context);
             if (context.Invasions.Count == 0) return received + used;
             List<BunnyInvasionSystem> systems = context.InvasionOrder;
-            for (int iteration = 0; iteration < systems.Length; iteration++)
+            for (int iteration = 0; iteration < systems.Count; iteration++)
             {
-                int index = (context.NextInvasionIndex + iteration) % systems.Length;
+                int index = (context.NextInvasionIndex + iteration) % systems.Count;
                 BunnyInvasionSystem system = systems[index];
                 if (system.Pipeline.PendingCount >= 2 ||
                     !system.Pipeline.Controller.CanSpawn) continue;
                 int roll = HashCode.Combine(worldSession, elapsedFrames,
                     system.Id, system.Pipeline.Controller.Snapshot().Revision);
                 if (!system.TryReserve(true, roll, out BunnyInvasionSpawn spawn)) continue;
-                context.NextInvasionIndex = (index + 1) % systems.Length;
+                context.NextInvasionIndex = (index + 1) % systems.Count;
                 float x = Math.Clamp(playerX + 320f, 640f, 10000000f);
                 float y = Math.Clamp(playerY - 160f, 640f, 10000000f);
                 if (!BunnyInvasionNativeTransport.Submit(worldSession, spawn,
