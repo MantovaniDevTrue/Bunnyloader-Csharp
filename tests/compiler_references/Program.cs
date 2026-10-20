@@ -10,6 +10,12 @@ string results = Path.GetFullPath(args[3]); Directory.CreateDirectory(results);
 string referenceRoot = Path.Combine(runtime, "compiler-references");
 string hidden = referenceRoot + ".test-hidden";
 if (mode == "runtime") Directory.Move(referenceRoot, hidden);
+if (mode == "compact")
+{
+    const string identity = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    File.WriteAllText(Path.Combine(runtime, "framework-version.txt"), identity);
+    File.WriteAllText(Path.Combine(runtime, "compiler-references.approved"), identity);
+}
 try
 {
     string output = Path.Combine(results, mode + ".dll");
