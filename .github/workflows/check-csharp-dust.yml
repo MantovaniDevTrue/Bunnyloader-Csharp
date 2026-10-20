@@ -37,8 +37,28 @@ on:
       - experiments/csharp/BunnySourceSdk/**
       - experiments/csharp/BunnySourceCompiler/**
       - experiments/csharp/BunnyDustTests/**
+      - experiments/csharp/BunnyDustCompilerSmoke/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
       - tests/csharp/native_dust_contract.cpp
+      - tests/csharp/native_dust_mailbox.cpp
+      - tests/csharp/native_dust_lifecycle.cpp
+      - tests/csharp/native_dust_binding_selection.cpp
+      - tests/csharp/native_dust_slot_lookup.cpp
+      - tests/csharp/native_dust_decision.cpp
+      - tests/csharp/native_dust_flags.cpp
+      - tests/csharp/native_dust_sync.cpp
+      - tests/csharp/native_dust_parser.cpp
+      - .github/workflows/check-csharp-dust.yml
 
 concurrency:
   group: csharp-dust-contracts-${{ github.ref }}
@@ -61,6 +81,8 @@ jobs:
         run: |
           c++ -std=c++17 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
           "$RUNNER_TEMP/dust_contract"
+          c++ -std=c++17 -Wall -Wextra -Werror -DBUNNY_CSHARP_DUST_PREVIEW=1 -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract_preview"
+          "$RUNNER_TEMP/dust_contract_preview"
       - name: Verify Roslyn source compiler assembly
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Verify DustLoader source parser
