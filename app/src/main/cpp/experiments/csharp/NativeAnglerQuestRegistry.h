@@ -231,6 +231,11 @@ private:
     std::atomic<uint64_t> generation_{0};
 };
 
+inline std::atomic<uint64_t>& activeGeneration() {
+    static std::atomic<uint64_t> generation{0};
+    return generation;
+}
+
 inline Registry& registry() {
     static Registry value;
     return value;
