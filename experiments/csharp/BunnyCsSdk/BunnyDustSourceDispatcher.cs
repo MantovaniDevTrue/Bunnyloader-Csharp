@@ -120,7 +120,7 @@ public static class BunnyDustSourceDispatcher
                 context.Generations[slot] = state.Generation;
             }
             if (!spawned)
-                return Accepted | VanillaUpdate | Draw |
+                return Accepted | (phase == Spawn ? 0 : VanillaUpdate | Draw) |
                     (state.Active != 0 ? Active : 0);
         }
         if (phase == Spawn)
