@@ -289,7 +289,15 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('if (kind == 0) return *output == "0" || *output == "1";', runtime)
         self.assertIn('return weight >= 0 && weight <= 20;', runtime)
         self.assertIn('if (!success) return false;', runtime)
-        self.assertNotIn("invokeManagedPrefix(", gameplay)
+        self.assertIn("invokeManagedPrefix(", gameplay)
+        self.assertIn("PrefixRpcScope prefixCallbacks;", gameplay)
+        self.assertIn("managedPrefixWarmupState(", gameplay)
+        self.assertIn("prefix.callbackMask = callback->second;", (
+            ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
+        ).read_text(encoding="utf-8"))
+        self.assertIn('PREFIX_CALLBACK', (
+            ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"
+        ).read_text(encoding="utf-8"))
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))

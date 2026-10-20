@@ -40,7 +40,7 @@ O `ExampleMightyPrefix` também demonstra `OverrideRollWeightWhenStackBetween(3,
 
 O Bunny Loader C# dispõe de `BunnyPrefix.CanRoll(BunnyPrefixItemSnapshot item)` e `BunnyPrefix.RollChance(BunnyPrefixItemSnapshot item)`, com métodos executáveis exclusivamente pelo novo `BunnyPrefixRuntime.Dispatch`. O snapshot imutável inclui tipo, dano, mana, quantidade, prefixo atual e flags de acessório, consumível e distância. O endpoint `invokeManagedPrefix` reutiliza a fila MonoVM existente: limite de fila, espera de no máximo 3 ms (padrão 1,5 ms), cancelamento por prazo e descarte de resultados tardios. As instâncias C# são preparadas no worker antes das chamadas. O `ExampleGuardedPrefix` mostra duas implementações.
 
-**Importante:** nesta fase a passagem de retorno nativa está pronta para testes e o contrato gerenciado é verificado em fixture; `hookRoll` e `hookCanRoll` continuam com as regras nativas declarativas anteriores. Os callbacks gerenciados ainda não participam da reforja no Terraria. Sem validação real do game thread, não alegar paridade completa. Não se envia nenhum objeto IL2CPP para a MonoVM.
+**Importante:** nesta fase `hookRoll` e `hookCanRoll` integram os overrides C# opt-in, somente após warmup antecipado. O intervalo máximo por tentativa é 2,5 ms, até quatro RPCs distintas, com limite de 650 µs cada e cache por prefixo; problemas de fila, timeout e resultados inválidos mantêm as regras declarativas originais, sem passar ponteiros IL2CPP para a MonoVM. A restauração de prefixos salvos não executa callbacks. O CI não substitui gameplay no Android, FPS ou multiplayer.
 
 ## Peso de prefixo por dano ou mana atuais
 

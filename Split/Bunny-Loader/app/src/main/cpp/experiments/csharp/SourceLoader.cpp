@@ -665,6 +665,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, std::vector<std::string>> prefixTooltipPolicies;
     std::map<std::string, std::vector<std::string>> prefixItemTooltipPolicies;
     std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
+    std::map<std::string, int> prefixCallbackMasks;
     std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
     std::map<std::string, ManagedPrefixEntry> prefixAttributeWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
@@ -925,6 +926,20 @@ bool applyManagedSourceDefaults(
                 rule.weightInsideStackRange > 20 ||
                 !prefixStackWeights.emplace(fields[1], rule).second) {
                 *error = "[CSharp][ERROR][PrefixStackWeight] InvalidPrefixOrBounds";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CALLBACK") {
+            const auto key = fields.size()>1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            int mask=0;
+            if (fields.size()!=3 || registered==mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId+"/"+fields[1])!=registered->second ||
+                !integer(fields[2],&mask) || mask<1 || mask>3 ||
+                !prefixCallbackMasks.emplace(fields[1],mask).second) {
+                *error="[CSharp][ERROR][PrefixCallback] InvalidPrefixOrMask";
                 return false;
             }
             continue;
@@ -1449,6 +1464,7 @@ bool applyManagedSourceDefaults(
             accessories.push_back(std::move(record));
         } else if (fields[0] == "PREFIX" && (fields.size() == 16 || fields.size() == 17)) {
             ManagedPrefixEntry record;
+            record.modId = modId;
             record.name = fields[1];
             record.displayName = fields[15];
             record.type = registered->second;
@@ -1666,6 +1682,11 @@ bool applyManagedSourceDefaults(
             prefix.maxItemStack = condition->second.maxItemStack;
             prefixItemConditions.erase(condition);
         }
+        const auto callback = prefixCallbackMasks.find(prefix.name);
+        if (callback!=prefixCallbackMasks.end()) {
+            prefix.callbackMask = callback->second;
+            prefixCallbackMasks.erase(callback);
+        }
         const auto stackWeight = prefixStackWeights.find(prefix.name);
         if (stackWeight != prefixStackWeights.end()) {
             prefix.hasStackRollWeight = true;
@@ -1705,6 +1726,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixStackWeights.empty()) {
         *error = "PREFIX_STACK_WEIGHT sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixCallbackMasks.empty()) {
+        *error = "PREFIX_CALLBACK sem descritor de prefixo correspondente";
         return false;
     }
     if (!prefixAttributeWeights.empty()) {

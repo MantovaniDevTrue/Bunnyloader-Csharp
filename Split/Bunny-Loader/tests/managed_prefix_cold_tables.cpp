@@ -163,6 +163,12 @@ std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyVie
 std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttributeDenyView() {
     return attributeDeniedView;
 }
+std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
+    return std::make_shared<const std::map<std::string,std::string>>();
+}
+int managedPrefixWarmupState(const std::string&,const std::string&,const std::string&) { return 0; }
+bool invokeManagedPrefix(const std::string&,const std::string&,const std::string&,
+                         int,const std::string&,std::string*,int) { return false; }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }

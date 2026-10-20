@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedPrefixTooltipTemplate.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedPrefixRollSelection.h"
@@ -189,7 +190,74 @@ bool weaponCandidate(Il2CppObject* item, bool vanillaHasRollable) {
     return vanillaHasRollable || bl::runtime::isModItem(type);
 }
 
-int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
+struct PrefixRpcScope {
+    PrefixRpcScope* previous = nullptr;
+    std::chrono::steady_clock::time_point end;
+    std::array<int,256> can{}, weight{};
+    int requests = 0;
+    static thread_local PrefixRpcScope* current;
+    PrefixRpcScope() {
+        previous=current;
+        if (!previous) {
+            can.fill(-1);
+            weight.fill(-1);
+            end=std::chrono::steady_clock::now()+std::chrono::microseconds(2500);
+            current=this;
+        }
+    }
+    ~PrefixRpcScope() { if (!previous) current=nullptr; }
+};
+thread_local PrefixRpcScope* PrefixRpcScope::current=nullptr;
+
+int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
+    auto* scope=PrefixRpcScope::current;
+    if (!scope || !item || p.type<1 || p.type>255 ||
+        !(p.callbackMask & (kind==0?1:2))) return -2;
+    auto& cache=kind==0?scope->can[static_cast<size_t>(p.type)]:
+                         scope->weight[static_cast<size_t>(p.type)];
+    if (cache!=-1) return cache;
+    cache=-2;
+    if (scope->requests>=4 || g_refs.type<0 || g_refs.damage<0 ||
+        g_refs.mana<0 || g_refs.stack<0 || g_refs.prefix<0) return cache;
+    const auto bind=managedPrefixCallbackAssemblies();
+    const auto assembly=bind->find(p.modId);
+    if (assembly==bind->end() ||
+        managedPrefixWarmupState(p.modId,assembly->second,p.name)!=1) return cache;
+    const auto now=std::chrono::steady_clock::now();
+    if (now>=scope->end) return cache;
+    const int micros=static_cast<int>(
+        std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+    if (micros<1) return cache;
+    const int flags=(g_refs.accessory>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.accessory)?1:0) |
+                    (g_refs.consumable>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.consumable)?2:0) |
+                    (g_refs.ranged>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.ranged)?4:0);
+    const std::string snapshot=
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.type))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.damage))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.mana))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.stack))+","+
+        std::to_string(bl::runtime::field<uint8_t>(item,g_refs.prefix))+","+
+        std::to_string(flags);
+    ++scope->requests;
+    std::string answer;
+    if (!invokeManagedPrefix(p.modId,assembly->second,p.name,kind,snapshot,
+                             &answer,std::min(micros,650))) return cache;
+    if (kind==0 && (answer=="0" || answer=="1")) cache=answer=="1"?1:0;
+    else if (kind==1 && !answer.empty() && answer.size()<=2 &&
+             std::all_of(answer.begin(),answer.end(),[](unsigned char ch) {
+                 return ch>='0' && ch<='9';
+             })) {
+        const int value=answer.size()==1?answer[0]-'0':
+            (answer[0]-'0')*10+answer[1]-'0';
+        if (value<=20) cache=value;
+    }
+    return cache;
+}
+
+int nativeItemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
     if (!item || g_refs.type < 0) return 0;
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
     const auto rule = p.itemWeights.find(itemType);
@@ -210,6 +278,12 @@ int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
             ? p.weightInsideAttributeRange : baseWeight;
     }
     return baseWeight;
+}
+
+int itemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
+    const int native=nativeItemRollWeight(item,p);
+    const int managed=queryPrefixWorker(item,p,1);
+    return managed<0?native:managed;
 }
 
 bool itemCanRoll(Il2CppObject* item, const ManagedPrefixEntry& p) {
@@ -258,7 +332,7 @@ bool isPrefixDenied(Il2CppObject* item, int prefix) {
         attributeDenied(item, prefix, &attributeItem->second);
 }
 
-bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
+bool eligibleNative(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
     const auto& r = g_refs;
     if (!item || !itemCanRoll(item, p)) return false;
     if (p.minItemDamage != 0 || p.maxItemDamage != 100000) {
@@ -289,6 +363,11 @@ bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRo
                p.category == 2 ? r.magic :
                p.category == 3 ? r.summon : -1;
     return flag >= 0 && bl::runtime::field<uint8_t>(item, flag) != 0;
+}
+
+bool eligible(Il2CppObject* item, const ManagedPrefixEntry& p, bool vanillaHasRollable) {
+    if (!eligibleNative(item,p,vanillaHasRollable)) return false;
+    return queryPrefixWorker(item,p,0)!=0;
 }
 
 bool restoreCompatible(Il2CppObject* item, const ManagedPrefixEntry& p) {
@@ -584,6 +663,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
                     break;
                 }
     }
+    PrefixRpcScope prefixCallbacks;
     if (g_restoreRoll.item != item && currentItemType > 0) {
         const auto choices = managedItemPrefixChoiceView();
         const auto selected = choices->find(currentItemType);
@@ -674,10 +754,12 @@ bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
         isPrefixDenied(item, prefix)) return false;
     if (g_hooksReady) {
         const auto list = managedPrefixView();
-        if (const auto* p = byType(*list, prefix))
-            return (((g_restoreRoll.item == item && g_restoreRoll.prefix == prefix) &&
-                     restoreCompatible(item, *p)) ||
-                    eligible(item, *p, true)) && ensurePrefixTables(*list);
+        if (const auto* p = byType(*list, prefix)) {
+            if (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix)
+                return restoreCompatible(item,*p) && ensurePrefixTables(*list);
+            PrefixRpcScope prefixCallbacks;
+            return eligible(item,*p,true) && ensurePrefixTables(*list);
+        }
     }
     return g_originalCanRoll ? g_originalCanRoll(item, prefix, method) : false;
 }

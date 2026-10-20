@@ -298,6 +298,7 @@ void* g_shootDispatchMethod=nullptr;
 void* g_tileDispatchMethod=nullptr;
 void* g_prefixDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_prefixWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
@@ -2388,6 +2389,33 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     int weight=0;
     for (char ch : *output) weight=weight*10+(ch-'0');
     return weight >= 0 && weight <= 20;
+}
+
+bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,
+                              const std::string& owner) {
+    if (mod.empty() || mod.size()>128 || assembly.empty() || assembly.size()>4096 ||
+        owner.empty() || owner.size()>64) return false;
+    const std::string key=mod+"|"+assembly+"|"+owner;
+    std::lock_guard lock(g_pinnedMutex);
+    if (g_prefixWarmups.contains(key)) return true;
+    if (g_prefixWarmups.size()>=4096 || g_recipeRpcQueue.size()>=4096) return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_prefixWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),
+        completion,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                             const std::string& owner) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if (!lock.owns_lock()) return 0;
+    const auto found=g_prefixWarmups.find(mod+"|"+assembly+"|"+owner);
+    if (found==g_prefixWarmups.end()) return -1;
+    if (!found->second->done) return 0;
+    return found->second->output=="READY" ? 1 : -1;
 }
 
 bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,

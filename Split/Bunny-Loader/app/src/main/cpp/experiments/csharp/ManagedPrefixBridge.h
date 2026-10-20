@@ -9,6 +9,8 @@
 namespace bl::csharp {
 
 struct ManagedPrefixEntry {
+    std::string modId;
+    int callbackMask = 0;
     std::string name;
     std::string displayName;
     int type = -1;
@@ -139,4 +141,7 @@ bool managedPrefixDescriptorReady(int type);
 int registeredManagedPrefixCount();
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes();
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView();
+
+bool bindManagedPrefixCallbackAssembly(const std::string& modId,const std::string& assembly);
+std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies();
 }

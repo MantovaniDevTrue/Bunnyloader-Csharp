@@ -31,6 +31,9 @@ int modItemTypeByKey(const std::string& key) {
 namespace bl::csharp {
 bool installManagedPrefixGameplayHooks() { return true; }
 bool installManagedPrefixChanceHook() { return true; }
+bool queueManagedPrefixWarmup(const std::string&,const std::string&,const std::string&) {
+    return true;
+}
 }
 
 #include "../../app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"

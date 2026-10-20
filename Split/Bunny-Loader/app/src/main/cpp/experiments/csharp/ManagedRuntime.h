@@ -32,6 +32,10 @@ bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
 bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds=1500);
+bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,
+                              const std::string& owner);
+int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                             const std::string& owner);
 struct ManagedScreenLightResult {
     float sunX = 0, sunY = 0, clock = 0, strength = 0;
     float shadowThreshold = 0;

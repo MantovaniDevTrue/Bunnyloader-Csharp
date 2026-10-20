@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedPrefixTooltipTemplate.h"
 #include "content/items/ModPrefixes.h"
 #include "content/items/ModItems.h"
@@ -22,6 +23,8 @@ std::map<int, ManagedPrefixEntry> g_descriptors;
 std::set<int> g_reservedManagedPrefixTypes;
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
+std::shared_ptr<const std::map<std::string,std::string>> g_callbackAssemblies =
+    std::make_shared<const std::map<std::string,std::string>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> g_itemStackChanceView =
@@ -38,7 +41,9 @@ std::shared_ptr<const ManagedPrefixAttributeDenyTable> g_itemAttributeDenyView =
     std::make_shared<const ManagedPrefixAttributeDenyTable>();
 
 bool valid(const ManagedPrefixEntry& p) {
-    if (p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
+    if (p.callbackMask<0 || p.callbackMask>3 ||
+        (p.callbackMask && (p.modId.empty() || p.modId.size()>128)) ||
+        p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
         p.displayName.size() > 80 ||
         std::any_of(p.displayName.begin(), p.displayName.end(),
                     [](unsigned char ch) { return ch < 32; }) ||
@@ -506,6 +511,29 @@ bool applyManagedPrefixDescriptors(
     BL_INFO("csharp prefix: %zu descritores gerenciados registrados para %s; hooks de gameplay instalados",
             staged.size(), modId.c_str());
     return true;
+}
+
+bool bindManagedPrefixCallbackAssembly(
+    const std::string& modId,const std::string& assembly) {
+    if (modId.empty() || modId.size()>128 || assembly.empty() || assembly.size()>4096)
+        return false;
+    const auto prefixes=managedPrefixView();
+    for (const auto& prefix:*prefixes)
+        if (prefix.modId==modId && prefix.callbackMask!=0 &&
+            !queueManagedPrefixWarmup(modId,assembly,prefix.name)) return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    const auto old=std::atomic_load_explicit(&g_callbackAssemblies,std::memory_order_acquire);
+    if (old->contains(modId)) return old->at(modId)==assembly;
+    auto updated=std::make_shared<std::map<std::string,std::string>>(*old);
+    updated->emplace(modId,assembly);
+    std::shared_ptr<const std::map<std::string,std::string>> published=updated;
+    std::atomic_store_explicit(&g_callbackAssemblies,std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
+    return std::atomic_load_explicit(&g_callbackAssemblies,std::memory_order_acquire);
 }
 
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() {

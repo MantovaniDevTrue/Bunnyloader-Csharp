@@ -872,6 +872,20 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             if (!names.Add("PREFIX:" + name))
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
+            int callbackMask = 0;
+            foreach (var (methodName, bit) in new[] { ("CanRoll", 1), ("RollChance", 2) })
+            {
+                MethodInfo callback = type.GetMethod(methodName,
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null, new[] { type.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                        ?? throw new InvalidOperationException("Missing prefix item snapshot") }, null)
+                    ?? throw new InvalidOperationException("Missing prefix callback: " + methodName);
+                if (callback.DeclaringType == type)
+                    callbackMask |= bit;
+            }
+            if (callbackMask != 0)
+                lines.Add(string.Join("\t", "PREFIX_CALLBACK", name,
+                    callbackMask.ToString(CultureInfo.InvariantCulture)));
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");
             if (category < 0 || category > 6 || !float.IsFinite(weight) ||

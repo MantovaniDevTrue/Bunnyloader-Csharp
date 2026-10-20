@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 19 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 20 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -36,6 +36,8 @@ try
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_STACK_WEIGHT\tTestMightyPrefix\t3\t5\t6") != 1)
         throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
+    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t3") != 1)
+        throw new InvalidOperationException("Managed prefix override mask missing");
     if (data.Count(row => row == "PREFIX_ATTRIBUTE_WEIGHT\tTestGuardedPrefix\tM\t0\t8\t4") != 1)
         throw new InvalidOperationException("Per-instance mana RollChance descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
@@ -57,6 +59,7 @@ try
                                           !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_ATTRIBUTE_WEIGHT\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&
