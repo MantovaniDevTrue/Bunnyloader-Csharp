@@ -195,6 +195,23 @@ std::shared_ptr<const std::map<std::string,std::string>> managedItemPrefixCallba
 int managedItemPrefixWarmupState(const std::string&,const std::string&,const std::string&) {
     return itemWorkerWarmup;
 }
+bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,size_t count,
+    std::string* response,int budget) {
+    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
+           (owner=="TestWand" || owner=="TestCharm") &&
+           count>=1 && count<=128 && budget>0 && budget<=650);
+    const auto pos=snapshot.find('|');
+    assert(pos!=std::string::npos && snapshot.size()-pos-1==count*2);
+    ++itemWorkerCalls;
+    if (itemWorkerFails) return false;
+    response->clear();
+    for(size_t i=0;i<count;++i) {
+        const int value=std::stoi(snapshot.substr(pos+1+i*2,2),nullptr,16);
+        response->push_back(value==itemWorkerDenied?'0':'1');
+    }
+    return true;
+}
 bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
                              const std::string& owner,int prefix,const std::string& snapshot,
                              std::string* result,int budget) {
