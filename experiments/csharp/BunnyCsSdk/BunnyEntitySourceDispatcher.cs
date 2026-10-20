@@ -32,6 +32,8 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyProjectile> NamedProjectiles = new(StringComparer.Ordinal);
         public readonly Dictionary<int, BunnyNPC> Npcs = new();
         public readonly Dictionary<int, BunnyProjectile> Projectiles = new();
+        public BunnyInvasionSystem? Invasion;
+        public long NativeWorldSession;
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
@@ -70,6 +72,13 @@ public static class BunnyEntitySourceDispatcher
                         !context.NamedProjectiles.TryAdd(type.Name, projectile))
                         throw new InvalidOperationException("Duplicated projectile class " + type.Name);
                 }
+                else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
+                {
+                    if (context.Invasion != null)
+                        throw new InvalidOperationException("Only one invasion system per mod is currently supported");
+                    context.Invasion = Activator.CreateInstance(type) as BunnyInvasionSystem
+                        ?? throw new InvalidOperationException("Invalid invasion system " + type.Name);
+                }
             }
             Contexts.Add(context);
             return Contexts.Count - 1;
@@ -97,6 +106,56 @@ public static class BunnyEntitySourceDispatcher
             return true;
         }
         return false;
+    }
+
+    public static int TickWorld(int modSlot, int mode, int elapsedFrames,
+        long worldSession, int playerIndex, float playerX, float playerY)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || worldSession <= 0 ||
+            elapsedFrames < 1 || elapsedFrames > 60) return 0;
+        Context context = Contexts[modSlot];
+        BunnyInvasionSystem? invasion = context.Invasion;
+        if (invasion == null) return 0;
+        bool authoritative = mode == 0 || mode == 2 || mode == 3;
+        if (context.NativeWorldSession != worldSession)
+        {
+            invasion.OnWorldExit();
+            context.NativeWorldSession = worldSession;
+        }
+        if (!authoritative || playerIndex < 0 ||
+            !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
+        try
+        {
+            int received = 0;
+            while (received < 8 && BunnyInvasionNativeTransport.TryPoll(
+                worldSession, context.Mod, out BunnyNativeInvasionReply result))
+            {
+                received++;
+                if (result.Success)
+                    invasion.OnNativeCreated(true, new BunnyInvasionSpawn(
+                        result.Ticket, invasion.Pipeline.Controller.Definition.Enemies[0].NpcClass)
+                        { Epoch = result.Epoch }, result.Slot, result.Identity);
+                else
+                    invasion.OnNativeFailed(true, result.Epoch, result.Ticket);
+            }
+            invasion.Tick(true, elapsedFrames, true);
+            if (invasion.Pipeline.PendingCount >= 2 ||
+                !invasion.Pipeline.Controller.CanSpawn) return received;
+            int roll = HashCode.Combine(worldSession, elapsedFrames,
+                invasion.Pipeline.Controller.Snapshot().Revision);
+            if (!invasion.TryReserve(true, roll, out BunnyInvasionSpawn spawn)) return received;
+            float x = Math.Clamp(playerX + 320f, 640f, 10000000f);
+            float y = Math.Clamp(playerY - 160f, 640f, 10000000f);
+            if (!BunnyInvasionNativeTransport.Submit(worldSession, spawn,
+                context.Mod, playerIndex, x, y))
+                invasion.OnNativeFailed(true, spawn.Epoch, spawn.Ticket);
+            return received + 1;
+        }
+        catch (Exception error)
+        {
+            context.LastError = "TickWorld: " + error.GetType().Name + ": " + error.Message;
+            return -1;
+        }
     }
 
     private static long Encode(float x, float y)
