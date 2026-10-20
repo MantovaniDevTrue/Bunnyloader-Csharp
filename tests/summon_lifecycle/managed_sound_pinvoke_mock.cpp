@@ -1,4 +1,4 @@
-#include "experiments/csharp/ManagedSoundLoader.h"
+#include "experiments/csharp/ManagedSoundLoader.cpp"
 #include <cassert>
 #include <set>
 #include <string>
