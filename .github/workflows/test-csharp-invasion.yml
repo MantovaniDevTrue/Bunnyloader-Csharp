@@ -14,6 +14,9 @@ on:
       - app/src/main/cpp/experiments/csharp/WorldAuthority.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
       - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs
       - tests/invasion/**
@@ -52,8 +55,12 @@ jobs:
           python3 tests/invasion/native_spawn_contract.py
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/NativeSpawnPolicyTest.cpp -o /tmp/bunny-spawn-policy
           /tmp/bunny-spawn-policy
+      - name: Run game-thread native mailbox policy and world epoch tests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxTest.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-mailbox
+          /tmp/bunny-invasion-mailbox
       - name: Syntax-check native invasion host against real Bunny headers
-        run: g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
+        run: g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp
       - name: Validate CSharp NPC world authority in native C++
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
