@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTileFrameTogglePolicy.h"
 #include "experiments/csharp/NativeTileCampfirePolicy.h"
 #include "experiments/csharp/NativeTileSmartInteractPolicy.h"
+#include "experiments/csharp/NativeTileFramePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -139,12 +140,15 @@ using DropFn = void (*)(int32_t, int32_t, uint32_t, int32_t*, int32_t*,
 using KillFn = void (*)(int32_t, int32_t, bool, bool, bool, const MethodInfo*);
 using DustFn = int32_t (*)(int32_t, int32_t, uint32_t, const MethodInfo*);
 using FrameFn = void (*)(int32_t, int32_t, int32_t, uint32_t, bool, const MethodInfo*);
+using TileFrameFn = void (*)(int32_t,int32_t,bool,bool,const MethodInfo*);
 using CanKillFn = bool (*)(int32_t, int32_t, bool*, const MethodInfo*);
 using LargeDropFn = void (*)(int32_t, int32_t, uint32_t, bool, const MethodInfo*);
 DropFn g_origDrop = nullptr;
 KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
 FrameFn g_origFrame = nullptr;
+TileFrameFn g_originalTileFrame=nullptr;
+bool g_tileFrameCallbackInstalled=false;
 using WireFn=void (*)(int32_t,int32_t,const MethodInfo*);
 using RandomFn=void (*)(int32_t,int32_t,bool,int32_t,const MethodInfo*);
 WireFn g_origWire=nullptr;
@@ -1417,6 +1421,44 @@ bool setupTileMouseOverHooks(bool near,bool far) {
     g_mouseFrame=frame;
     return true;
 }
+void hkTileFrameCallback(int32_t x,int32_t y,bool reset,bool noBreak,const MethodInfo* method) {
+    if(!g_originalTileFrame)return;
+    const auto it=g_frameCleanup?g_tiles.end():g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<21))==0||
+       !managedTileReady(it->second.spec,21)) {
+        g_originalTileFrame(x,y,reset,noBreak,method);
+        return;
+    }
+    std::string response;
+    bool runOriginal=true,nextReset=reset,nextNoBreak=noBreak;
+    if(!invokeManagedTileFrame(it->second.spec.mod,it->second.spec.assembly,
+         it->second.spec.name,x,y,reset,noBreak,&response,650)||
+       !tile_frame::parseReply(response,&runOriginal,&nextReset,&nextNoBreak)) {
+        reportTileCallbackFailure(it->second.spec,21,response);
+        g_originalTileFrame(x,y,reset,noBreak,method);
+        return;
+    }
+    if(runOriginal)g_originalTileFrame(x,y,nextReset,nextNoBreak,method);
+}
+bool setupTileFrameCallbackHook() {
+    if(g_tileFrameCallbackInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||!a.method_is_instance)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* frame=world?a.class_get_method_from_name(world,"TileFrame",4):nullptr;
+    if(!frame||a.method_is_instance(frame)||a.method_get_param_count(frame)!=4||
+       !nameOf(a.method_get_return_type(frame),"System.Void")||
+       !nameOf(a.method_get_param(frame,0),"System.Int32")||
+       !nameOf(a.method_get_param(frame,1),"System.Int32")||
+       !nameOf(a.method_get_param(frame,2),"System.Boolean")||
+       !nameOf(a.method_get_param(frame,3),"System.Boolean")||
+       !il2cpp::methodPointer(frame)||
+       !hook::install(frame,hkTileFrameCallback,&g_originalTileFrame))return false;
+    g_tileFrameCallbackInstalled=true;
+    return true;
+}
+
 bool setupHooks() {
     if (g_installed) return true;
     auto& a = il2cpp::api();
@@ -1559,6 +1601,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         BL_WARN("[CSharp][TileSmart] Stage=Bind CandidateProviderABI=Unavailable Result=MobileCursorFallback");
     }
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
+    if((spec.callbackMask&(1<<21))&&!setupTileFrameCallbackHook())return false;
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
                                  tile_toggle::allowsRightClick(spec.frameToggle),
                                 (spec.callbackMask&(1<<10))!=0))return false;
