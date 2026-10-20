@@ -734,7 +734,7 @@ bool applyManagedSourceDefaults(
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
-        if((fields.size()==5||fields.size()==7) && fields[0]=="TREE") {
+        if((fields.size()==5||fields.size()==7||fields.size()==9) && fields[0]=="TREE") {
             const auto key=sourceIdentityForWire("TREE",fields[1]);
             const auto declared=mod->registeredBases.find(key);
             const auto source=mod->sourcePaths.find(key);
@@ -749,7 +749,7 @@ bool applyManagedSourceDefaults(
                source==mod->sourcePaths.end()||!seen.emplace(key,true).second||
                !safeName(fields[1])||!safeName(fields[2])||!safeName(fields[3])||
                !tree_texture::validStem(fields[4])||
-               (fields.size()==7&&((fields[6]!="0"&&fields[6]!="1") ||
+               (fields.size()>=7&&((fields[6]!="0"&&fields[6]!="1") ||
                  (fields[5]!="-"&&!safeName(fields[5]))))) {
                 *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
                        " Stage=Decode Result=Rejected Reason=DescriptorOrIdentityInvalid";
@@ -758,9 +758,19 @@ bool applyManagedSourceDefaults(
             ManagedTreeEntry entry{};
             entry.name=fields[1];entry.groundTile=fields[2];
             entry.saplingTile=fields[3];entry.texture=fields[4];
-            if(fields.size()==7) {
+            if(fields.size()>=7) {
                 entry.woodItem=fields[5]=="-"?"":fields[5];
                 entry.canDropAcorn=fields[6]=="1";
+            }
+            if(fields.size()==9) {
+                if(!integer(fields[7],&entry.leafGoreType)||
+                   !integer(fields[8],&entry.dustType)||
+                   entry.leafGoreType< -1||entry.leafGoreType>=32768||
+                   entry.dustType<0||entry.dustType>1999) {
+                    *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
+                           " Stage=DecodeEffects Result=Rejected";
+                    return false;
+                }
             }
             trees.push_back(std::move(entry));
             if(trees.size()>255) {

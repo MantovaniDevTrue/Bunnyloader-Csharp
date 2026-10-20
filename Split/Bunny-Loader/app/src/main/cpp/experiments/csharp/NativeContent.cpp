@@ -2496,6 +2496,8 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         return fail("BindTreeDrops","MissingNativeDropsAcornOrRandomABI");
     if(!runtime::prepareModTreePlanting())
         return fail("BindSaplingPlanting","MissingTileObjectCanPlaceABI");
+    if(!runtime::prepareModTreeEffects())
+        return fail("BindTreeEffects","MissingGetTreeLeafABI");
     std::map<int,bool> uniqueGround;
     struct Ready {
         int ground=-1;
@@ -2564,7 +2566,9 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style)||
            !runtime::configureModTreeSapling(ready[i].ground,ready[i].sapling)||
            !runtime::configureModTreeDrops(ready[i].ground,trees[i].woodItemType,
-                                            trees[i].canDropAcorn))
+                                            trees[i].canDropAcorn)||
+           !runtime::configureModTreeEffects(ready[i].ground,trees[i].leafGoreType,
+                                              trees[i].dustType))
             return fail("Publish","TreeRegistrationOrDropsFailed:"+trees[i].name);
     }
     BL_INFO("[CSharp][TreeLoader] Mod=%s Trees=%zu Stage=Publish Result=Ready",

@@ -3,6 +3,7 @@
 #include "content/tiles/TileAccess.h"
 #include "experiments/csharp/NativeTreeDropPolicy.h"
 #include "experiments/csharp/NativeTreePlantPolicy.h"
+#include "experiments/csharp/NativeTreeEffectsPolicy.h"
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -31,6 +32,9 @@ struct Tree {
     std::atomic<int> woodItem{-1};
     std::atomic<bool> allowAcorn{true};
     std::atomic<int> saplingType{-1};
+    std::atomic<int> leafGoreType{-1};
+    std::atomic<int> dustType{7};
+    std::atomic<bool> managedEffects{false};
 };
 
 // O chão -> 1 + índice em g_trees (0 = árvore do jogo).
@@ -456,6 +460,88 @@ bool configureModTreeSapling(int groundType,int saplingType) {
     if(!tree||!bl::csharp::tree_plant::valid(groundType,saplingType)||
        !g_treePlantHooked)return false;
     tree->saplingType.store(saplingType,std::memory_order_release);
+    return true;
+}
+
+
+using TreeLeafFn=void (*)(int32_t,uint32_t,uint32_t,int32_t*,int32_t*,int32_t*,const MethodInfo*);
+TreeLeafFn g_origTreeLeaf=nullptr;
+bool g_treeLeafInstalled=false;
+
+void hkGetTreeLeaf(int32_t x,uint32_t topTile,uint32_t groundTile,int32_t* height,
+                   int32_t* frame,int32_t* passStyle,const MethodInfo* method) {
+    if(g_origTreeLeaf)
+        g_origTreeLeaf(x,topTile,groundTile,height,frame,passStyle,method);
+    if(!passStyle||groundTile>INT32_MAX)return;
+    const int ground=tileTypeAtOffset(static_cast<int32_t>(groundTile));
+    const Tree* tree=treeOfGround(ground);
+    if(tree&&tree->managedEffects.load(std::memory_order_acquire)&&
+       bl::csharp::tree_effect::acceptLeaf(
+           ground,true,tree->leafGoreType.load(std::memory_order_relaxed)))
+        *passStyle=tree->leafGoreType.load(std::memory_order_relaxed);
+}
+
+bool prepareModTreeEffects() {
+    if(g_treeLeafInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_is_instance||!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||!a.class_from_il2cpp_type||
+       !a.class_value_size||!a.class_is_valuetype||!a.type_get_name)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* method=world?a.class_get_method_from_name(world,"GetTreeLeaf",6):nullptr;
+    if(!method||a.method_is_instance(method)||a.method_get_param_count(method)!=6||
+       !paramIs(method,0,"System.Int32",true)||
+       !paramIs(method,1,"Terraria.Tile",true)||
+       !paramIs(method,2,"Terraria.Tile",true)||
+       !paramIs(method,3,"System.Int32&",true)||
+       !paramIs(method,4,"System.Int32&",true)||
+       !paramIs(method,5,"System.Int32&",true)||
+       !il2cpp::methodPointer(method))return false;
+    char* returnName=a.type_get_name(a.method_get_return_type(method));
+    const bool returnsVoid=returnName&&std::strcmp(returnName,"System.Void")==0;
+    if(returnName)std::free(returnName);
+    auto* tileClass=a.class_from_il2cpp_type(a.method_get_param(method,1));
+    uint32_t alignment=0;
+    if(!returnsVoid||!tileClass||!a.class_is_valuetype(tileClass)||
+       a.class_value_size(tileClass,&alignment)!=4)return false;
+    if(!hook::install(method,hkGetTreeLeaf,&g_origTreeLeaf))return false;
+    g_treeLeafInstalled=true;
+    return true;
+}
+
+bool configureModTreeEffects(int groundType,int leafGore,int dustType) {
+    Tree* tree=const_cast<Tree*>(treeOfGround(groundType));
+    if(!tree||!g_treeLeafInstalled||
+       !bl::csharp::tree_effect::valid(leafGore,dustType))return false;
+    if(leafGore>=0) {
+        auto& a=il2cpp::api();
+        auto* assets=il2cpp::findClass({"Terraria.GameContent","TextureAssets",{}});
+        auto* field=assets?il2cpp::findField(assets,"Gore"):nullptr;
+        if(!field||!a.field_static_get_value)return false;
+        Il2CppArray* values=nullptr;
+        a.field_static_get_value(field,&values);
+        if(!values||static_cast<uintptr_t>(leafGore)>=values->length)return false;
+    }
+    tree->leafGoreType.store(leafGore,std::memory_order_relaxed);
+    tree->dustType.store(dustType,std::memory_order_relaxed);
+    tree->managedEffects.store(true,std::memory_order_release);
+    return true;
+}
+
+bool queryModTreeDust(int x,int y,int type,int* dustType) {
+    if(!dustType||type!=kTreeType||g_treeCount.load(std::memory_order_relaxed)==0)
+        return false;
+    TileArrays t;
+    if(!tileArrays(&t)||x<0||y<0||x>=t.width||y>=t.height)return false;
+    const int64_t offset=static_cast<int64_t>(y)*t.width+x;
+    const uint32_t def=t.lookup[offset];
+    const int trunk=trunkColumn(x,t.frameX[def],t.frameY[def]);
+    if(trunk<0||trunk>=t.width)return false;
+    const Tree* tree=treeOfGround(groundBelow(t,trunk,y,nullptr));
+    if(!tree||!tree->managedEffects.load(std::memory_order_acquire))return false;
+    const int dust=tree->dustType.load(std::memory_order_relaxed);
+    if(!bl::csharp::tree_effect::acceptDust(type,dust))return false;
+    *dustType=dust;
     return true;
 }
 

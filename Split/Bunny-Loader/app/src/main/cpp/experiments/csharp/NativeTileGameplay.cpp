@@ -23,6 +23,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -485,8 +486,15 @@ int32_t spawnDust(int32_t x, int32_t y, int32_t id) {
 
 int32_t hkMakeDust(int32_t x, int32_t y, uint32_t tile, const MethodInfo* method) {
     const auto it = g_tiles.find(runtime::tileTypeAt(x, y));
-    if (it == g_tiles.end() || !g_dustInstalled)
+    if (it == g_tiles.end() || !g_dustInstalled) {
+        int treeDust=-1;
+        if(g_dustInstalled&&runtime::queryModTreeDust(
+             x,y,runtime::tileTypeAt(x,y),&treeDust)) {
+            const int result=spawnDust(x,y,treeDust);
+            if(result>=0)return result;
+        }
         return g_origDust ? g_origDust(x, y, tile, method) : 6000;
+    }
     if (g_dustOwner == it->first) {
         if (g_dustBudget == 0) return 6000;
         if (g_dustBudget > 0) --g_dustBudget;

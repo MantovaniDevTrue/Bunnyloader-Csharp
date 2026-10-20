@@ -1253,7 +1253,9 @@ abstract class; base: `System.Object`.
 
 ```csharp
 bool CanDropAcorn { get; set; }
+int DustType { get; set; }
 string GrowsOnTile { get; set; }
+int LeafGoreType { get; set; }
 string SaplingTile { get; set; }
 string Texture { get; set; }
 string WoodItem { get; set; }

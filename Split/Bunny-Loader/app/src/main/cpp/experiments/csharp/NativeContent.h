@@ -101,6 +101,8 @@ struct ManagedTreeEntry {
     std::string woodItem;
     bool canDropAcorn=true;
     int woodItemType=-1;
+    int leafGoreType=-1;
+    int dustType=7;
 };
 bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
     const std::vector<ManagedTreeEntry>& trees,std::string* error);

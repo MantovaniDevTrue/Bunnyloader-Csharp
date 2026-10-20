@@ -26,6 +26,9 @@ bool hasModTree(int groundType);
 bool prepareModTreeDrops(bool needAcorn);
 bool configureModTreeDrops(int groundType,int woodItem,bool allowAcorn);
 bool prepareModTreePlanting();
+bool prepareModTreeEffects();
+bool configureModTreeEffects(int groundType,int leafGore,int dustType);
+bool queryModTreeDust(int x,int y,int type,int* dustType);
 bool configureModTreeSapling(int groundType,int saplingType);
 int modTreeCount();
 
