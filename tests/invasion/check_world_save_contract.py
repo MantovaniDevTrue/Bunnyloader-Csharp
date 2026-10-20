@@ -28,6 +28,6 @@ assert 'updateNativeInvasionWorldPath(false, g_worldEpoch.load(' in auto
 assert 'BunnyInvasionWorldPersistence.TryRestore(' in dispatcher
 assert 'SaveInvasionIfChanged(context);' in dispatcher
 assert 'BunnyInvasionWorldPersistence.Save(' in dispatcher
-assert 'state.Phase == context.SavedPhase' in dispatcher
-assert 'state.Progress == context.SavedProgress' in dispatcher
+assert 'context.SavedInvasions.TryGetValue(system.Id' in dispatcher
+assert 'state.Progress == saved.Progress' in dispatcher
 print("Native CSharp per-world invasion save contract: OK")
