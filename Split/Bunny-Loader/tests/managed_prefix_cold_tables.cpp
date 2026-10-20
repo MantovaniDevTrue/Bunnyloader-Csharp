@@ -42,6 +42,14 @@ std::shared_ptr<const bl::csharp::ManagedPrefixStackDenyTable> stackDeniedView =
     std::make_shared<const bl::csharp::ManagedPrefixStackDenyTable>();
 std::shared_ptr<const bl::csharp::ManagedPrefixAttributeDenyTable> attributeDeniedView =
     std::make_shared<const bl::csharp::ManagedPrefixAttributeDenyTable>();
+std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixCallbackBinding>> itemCallbackView =
+    std::make_shared<const std::map<int, bl::csharp::ManagedItemPrefixCallbackBinding>>();
+std::shared_ptr<const std::map<std::string,std::string>> itemCallbackAssemblies =
+    std::make_shared<const std::map<std::string,std::string>>();
+int itemWorkerWarmup = 0;
+int itemWorkerCalls = 0;
+int itemWorkerDenied = 99;
+bool itemWorkerFails = false;
 std::shared_ptr<const std::map<std::string,std::string>> prefixAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
 int prefixWorkerWarmup = 0;
@@ -177,6 +185,26 @@ std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() 
 std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView() { return stackDeniedView; }
 std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttributeDenyView() {
     return attributeDeniedView;
+}
+std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> managedItemPrefixCallbackView() {
+    return itemCallbackView;
+}
+std::shared_ptr<const std::map<std::string,std::string>> managedItemPrefixCallbackAssemblies() {
+    return itemCallbackAssemblies;
+}
+int managedItemPrefixWarmupState(const std::string&,const std::string&,const std::string&) {
+    return itemWorkerWarmup;
+}
+bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
+                             const std::string& owner,int prefix,const std::string& snapshot,
+                             std::string* result,int budget) {
+    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
+           owner=="TestWand" && prefix>=1 && prefix<=255 &&
+           snapshot.rfind("6199,",0)==0 && budget>0 && budget<=650);
+    ++itemWorkerCalls;
+    if (itemWorkerFails) return false;
+    *result=prefix==itemWorkerDenied ? "0" : "1";
+    return true;
 }
 std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
     return prefixAssemblies;
@@ -1076,6 +1104,64 @@ int main() {
     hookGrant(&livePlayer.object,&accessory.object,nullptr);
     assert(livePlayer.defense==14 && prefixWorkerCalls==beforeAccessory+3);
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
+    itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>(
+        std::map<int,ManagedItemPrefixCallbackBinding>{{6199,{"test","TestWand"}}});
+    itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>(
+        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
+    itemWorkerWarmup=1;
+    itemWorkerCalls=0;
+    itemWorkerDenied=99;
+    weapon.type=6199;
+    weapon.damage=12;
+    weapon.mana=0;
+    weapon.stack=1;
+    weapon.prefix=0;
+    weapon.accessory=0;
+    weapon.ranged=1;
+    weapon.consumable=0;
+    {
+        PrefixRpcScope scope;
+        assert(!itemAllowsPrefix(&weapon.object,99));
+        assert(!itemAllowsPrefix(&weapon.object,99));
+        assert(itemWorkerCalls==1);
+        weapon.damage=13;
+        assert(!itemAllowsPrefix(&weapon.object,99));
+        assert(itemWorkerCalls==2);
+        assert(itemAllowsPrefix(&weapon.object,98));
+        assert(itemWorkerCalls==3);
+    }
+    weapon.damage=12;
+    const int nativeRollsBeforeItemWorker=nativeRolls;
+    assert(hookRollable(&weapon.object,nullptr)==nullptr);
+    int32_t deniedRoll=-1;
+    assert(!hookRoll(&weapon.object,&randomObject,&deniedRoll,nullptr));
+    assert(nativeRolls==nativeRollsBeforeItemWorker);
+    const int beforeDeniedItemApply=chanceOriginalCalls;
+    assert(!hookItemPrefixChance(&weapon.object,99,&chanceTier,nullptr));
+    assert(chanceOriginalCalls==beforeDeniedItemApply);
+    g_restoreRoll={&weapon.object,99,false};
+    assert(hookItemPrefixChance(&weapon.object,99,&chanceTier,nullptr));
+    assert(chanceOriginalCalls==beforeDeniedItemApply+1);
+    g_restoreRoll={};
+    weapon.prefix=0;
+    itemWorkerFails=true;
+    assert(itemAllowsPrefix(&weapon.object,99));
+    assert(hookRollable(&weapon.object,nullptr)!=nullptr);
+    itemWorkerFails=false;
+    itemWorkerWarmup=0;
+    assert(itemAllowsPrefix(&weapon.object,99));
+    assert(hookRollable(&weapon.object,nullptr)!=nullptr);
+    itemWorkerWarmup=1;
+    itemWorkerDenied=71;
+    {
+        PrefixRpcScope scope;
+        for (int index=70;index<=73;++index) assert(itemAllowsPrefix(&weapon.object,index)==(index!=71));
+        const int count=itemWorkerCalls;
+        assert(itemAllowsPrefix(&weapon.object,74));
+        assert(itemWorkerCalls==count);
+    }
+    itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
+    itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
     assert(metrics.rollAttempts >= 12);
     assert(metrics.restoredRolls >= 1);
