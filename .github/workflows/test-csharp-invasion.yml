@@ -7,6 +7,8 @@ on:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
       - experiments/csharp/BunnyCsSdk/BunnyInvasionSpawnPipeline.cs
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionSystem.cs
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionNativeTransport.cs
       - experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs
       - experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
@@ -19,6 +21,7 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
       - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs
+      - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs
       - tests/invasion/**
       - .github/workflows/test-csharp-invasion.yml
   workflow_dispatch:
@@ -48,6 +51,11 @@ jobs:
         run: dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release
       - name: Audit native NPC identity handoff and verified spawn admission
         run: python3 tests/invasion/check_native_identity_bridge.py
+      - name: Simulate CSharp-to-native-to-CSharp invasion round trip
+        run: |
+          mkdir -p /tmp/bunny-invasion-test
+          g++ -std=c++20 -shared -fPIC -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-test/libbunny.so
+          LD_LIBRARY_PATH=/tmp/bunny-invasion-test dotnet run --project tests/invasion/TransportIntegration.csproj --configuration Release
       - name: Verify real Terraria NPC hook authority and kill ingress
         run: python3 tests/invasion/test_npc_hook_contract.py
       - name: Verify pure native spawn policy and source contracts
