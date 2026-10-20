@@ -19,6 +19,9 @@ int main() {
     assert(registry.publish("examplemodcsharp", {fish}, &error));
     assert(registry.generation() == 1);
     assert(registry.snapshot().size() == 1);
+    auto [capturedRevision, capturedQuests] = registry.snapshotVersion();
+    assert(capturedRevision == registry.generation());
+    assert(capturedQuests == registry.snapshot());
     assert(!Registry::available(fish, false));
     assert(Registry::available(fish, true));
     Quest catchFish = fish;
@@ -137,6 +140,9 @@ int main() {
     assert(registry.snapshot().front().mod == "secondmod");
     registry.unload("secondmod");
     assert(registry.snapshot().empty());
+    auto [clearedRevision, clearedQuests] = registry.snapshotVersion();
+    assert(clearedRevision == registry.generation());
+    assert(clearedRevision > capturedRevision && clearedQuests.empty());
 
     std::string decoded = "unchanged";
     assert(decodeHex("48656C6C6F20C3A9", &decoded));
