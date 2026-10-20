@@ -6,6 +6,7 @@ on:
       - feat/csharp-command-loader-20261020
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
+      - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - tests/commands/**
       - experiments/csharp/BunnySourceCompiler/**
