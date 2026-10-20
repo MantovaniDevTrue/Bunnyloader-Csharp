@@ -10,8 +10,8 @@ inline bool bounds(int lx,int ly,int hx,int hy,int worldWidth,int worldHeight,Bo
     const int64_t height=static_cast<int64_t>(hy)-ly+1;
     if(width<=0||height<=0||width>64||height>64||width*height>4096)return false;
     Bounds b{std::clamp(lx,0,worldWidth),std::clamp(ly,0,worldHeight),
-             std::clamp(static_cast<int64_t>(hx)+1,static_cast<int64_t>(0),static_cast<int64_t>(worldWidth)),
-             std::clamp(static_cast<int64_t>(hy)+1,static_cast<int64_t>(0),static_cast<int64_t>(worldHeight))};
+             static_cast<int>(std::clamp(static_cast<int64_t>(hx)+1,static_cast<int64_t>(0),static_cast<int64_t>(worldWidth))),
+             static_cast<int>(std::clamp(static_cast<int64_t>(hy)+1,static_cast<int64_t>(0),static_cast<int64_t>(worldHeight)))};
     if(b.right<=b.left||b.bottom<=b.top)return false;
     *out=b;return true;
 }
