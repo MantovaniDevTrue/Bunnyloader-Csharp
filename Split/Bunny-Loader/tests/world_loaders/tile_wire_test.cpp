@@ -11,7 +11,7 @@ int main() {
         assert(hasAdjacencies(n)==(n==17||n==19||n==20||n==21||n==22||n==23));
         assert(hasBreakPolicy(n)==(n==19||n==20||n==21||n==22||n==23));
         assert(hasCallbacks(n)==(n==20||n==21||n==22||n==23));
-        assert(hasDrawCachePolicy(n)==(n==21||n==22));
+        assert(hasDrawCachePolicy(n)==(n==21||n==22||n==23));
         assert(hasFrameToggle(n)==(n==22||n==23));
         assert(hasRegisteredDrops(n)==(n==23));
     }
