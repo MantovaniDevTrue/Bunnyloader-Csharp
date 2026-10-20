@@ -85,6 +85,16 @@ static class DustTests
         }
     }
 
+    private sealed class InvalidActiveScaleDust : BunnyDust
+    {
+        public override void SetStaticDefaults() { }
+
+        public override void OnSpawn(ref BunnyDustState state)
+        {
+            state.Scale = 0f;
+        }
+    }
+
     private sealed class InvalidTextureDust : BunnyDust
     {
         public override void SetStaticDefaults() => Texture = "../escaped.png";
@@ -194,9 +204,12 @@ static class DustTests
         Check(zero.OnSpawn(ref dying) && dying.Active == 0 && dying.Scale == 0f,
             "allow zero scale when killed by OnSpawn");
         Check(zero.ActiveCount == 0, "release instance killed during spawn");
-        dying = SpawnState(332, 100, 2);
-        dying.Scale = 0f;
-        Check(!zero.OnSpawn(ref dying), "reject zero scale while active");
+        zero.Register("InvalidActive", new InvalidActiveScaleDust());
+        Check(zero.Bind(333, "InvalidActive"), "bind invalid live scale Dust");
+        dying = SpawnState(333, 101);
+        Check(!zero.OnSpawn(ref dying) && dying.Active == 1 &&
+            dying.Scale == 1f && zero.FaultCount == 1,
+            "reject zero scale while active and roll back state");
 
         registry.ResetWorld();
         Check(registry.ActiveCount == 0 && registry.BoundCount == 3, "world reset preserves registered types");
