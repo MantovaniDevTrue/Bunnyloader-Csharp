@@ -304,6 +304,13 @@ int main() {
     assert(bl::csharp::gManagedCalls>=3);
     assert(reg.publish("examplemodcsharp",{quest},&error));
     bl::csharp::angler::pumpOnGameThread();
+    bl::csharp::angler::invalidateWorldSession();
+    gHard=0;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==1 && gSelected==3);
+    bl::csharp::angler::pumpOnGameThread();
     gHard=0;
     for (const int mode : {0, 1, 2, 3}) {
         gNetMode=mode;
@@ -333,6 +340,12 @@ int main() {
     assert(stringAscii(hookedChat(0,&kChat))=="The upside-down fish\n\n(Anywhere)");
 
     reg.unload("examplemodcsharp");
+    gHard=0;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==1 && gSelected==3);
+    assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11}));
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==0);
