@@ -21,7 +21,7 @@ with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
     assert any(n.startswith('assets/bin/Data/') for n in names)
     for line in z.read('assets/managed/framework.sha256').decode().splitlines():
         name,digest=line.split('\t');assert hashlib.sha256(z.read('assets/managed/'+name)).hexdigest()==digest,name
-    for name in ['NativeDustEmission','Localization','Rarity','AnglerQuest','Invasion']:
+    for name in ['bunny_dust_emit','Localization','Rarity','AnglerQuest','Invasion']:
         assert name.encode() in z.read('lib/arm64-v8a/libbunny.so'),name
 PY
 mkdir -p build/ready-delivery

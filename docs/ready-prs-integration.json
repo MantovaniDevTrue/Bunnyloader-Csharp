@@ -62,7 +62,8 @@
     "Shared callback dispatch retains recipe generations without blocking independent tile/shoot/rarity domains",
     "Rarity prefix lookup uses registered UID instead of manifest slug",
     "Bundled managed framework rebuilt from integrated sources",
-    "Dust test item and bounded game-thread emission API; no QuickJS dependency"
+    "Dust test item and bounded game-thread emission API; no QuickJS dependency",
+    "Fully qualify shared tile draw cache namespace in ModTiles (caught by actual ARM64 compile)"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }
