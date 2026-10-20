@@ -329,7 +329,7 @@ public sealed class BunnyDustRegistry
         state.Generation == original.Generation &&
         float.IsFinite(state.X) && float.IsFinite(state.Y) &&
         float.IsFinite(state.VelocityX) && float.IsFinite(state.VelocityY) &&
-        float.IsFinite(state.Scale) && state.Scale > 0f &&
+        float.IsFinite(state.Scale) && (state.Active == 0 || state.Scale > 0f) &&
         float.IsFinite(state.Rotation) &&
         state.Alpha >= 0 && state.Alpha <= 255 &&
         state.FrameX >= 0 && state.FrameY >= 0 &&
