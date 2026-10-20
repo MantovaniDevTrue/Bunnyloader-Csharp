@@ -58,6 +58,15 @@ static class Tests
         Check(!view.HasState &&
             view.ReceiveFromHost(state with { WorldSession = 22 }, 22, "my_mod", "invasion-a"),
             "world reset releases stale epoch");
+        var other = new BunnyInvasionClientView();
+        Check(other.ReceiveRemoteFromHost(state with { WorldSession = 1099 }, 22,
+            "my_mod", "invasion-a"), "remote host session need not equal local world session");
+        Check(!other.ReceiveRemoteFromHost(state with { WorldSession = 1100 }, 22,
+            "my_mod", "invasion-a"), "session hijack ignored in same local world");
+        Check(other.ReceiveRemoteFromHost(state with { WorldSession = 1100 }, 23,
+            "my_mod", "invasion-a"), "new local world permits new host session");
+        Check(!other.ReceiveRemoteFromHost(state with { WorldSession = 1099 }, 23,
+            "my_mod", "invasion-a"), "old server session ignored after rejoin");
         var malformed = state with { Phase = BunnyInvasionPhase.Completed };
         Check(!malformed.IsValid(), "cannot broadcast incomplete finish");
         Console.WriteLine("Invasion host/client replication protocol: " + passed + " checks OK");
