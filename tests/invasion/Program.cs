@@ -113,6 +113,33 @@ static class InvasionTest
             0, 0, BunnyInvasionPhase.Running, 5, 0, 0, 0)),
             "reject impossible running progress");
 
+        Invalid(() => new BunnyInvasionDefinition("test", 5, 2, 1,
+            new BunnyInvasionEnemy("Late", 1, 1, 3)),
+            "first wave requires starting enemy");
+        Invalid(() => new BunnyInvasionDefinition("test", 5, 2, 1,
+            new BunnyInvasionEnemy("Scout", 1, 1),
+            new BunnyInvasionEnemy("Late", 1, 1, 5)),
+            "late enemy must unlock before victory");
+        var waves = new BunnyInvasionController(new BunnyInvasionDefinition(
+            "progression", 5, 2, 1,
+            new BunnyInvasionEnemy("Scout", 1, 3),
+            new BunnyInvasionEnemy("Elite", 1, 2, 3)));
+        Check(waves.Start(true), "wave start");
+        Check(waves.TryReserveSpawn(true, 1, out var basic) &&
+            basic.NpcClass == "Scout", "elite unavailable before threshold");
+        Check(waves.CommitSpawn(true, basic.Ticket, "Scout", 22, 100),
+            "first wave admitted");
+        Check(waves.ReportKill(true, 22, 100, "Scout") &&
+            waves.Progress == 3, "first wave threshold reached");
+        waves.Tick(true, true);
+        Check(waves.TryReserveSpawn(true, 1, out var advanced) &&
+            advanced.NpcClass == "Elite", "elite unlocked after threshold");
+        Check(waves.CommitSpawn(true, advanced.Ticket, "Elite", 22, 101),
+            "second wave admission");
+        Check(waves.ReportKill(true, 22, 101, "Elite") &&
+            waves.IsComplete && waves.Progress == 5,
+            "waves complete without overcounting");
+
         Console.WriteLine("BunnyInvasion: " + passed + " checks OK");
     }
 
