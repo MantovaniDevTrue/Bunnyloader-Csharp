@@ -41,6 +41,13 @@ public sealed class ExampleWaveBolt : BunnyProjectile
     public override void OnKill(ref BunnyProjectileAiState state)
     {
         KillEvents++;
+        // Exemplo do PNG original ExampleDroplet em Content/Gores.
+        // O centro da bala e o impulso para cima reproduzem um fragmento
+        // fisico do Terraria; nao desenhamos um sprite falso no MonoVM.
+        // Nao varrer NPCs nem criar efeito no AI a cada tick.
+        BunnyGore.TrySpawn("examplemodcsharp", "ExampleDroplet",
+            state.X + Width * 0.5f, state.Y + Height * 0.5f,
+            state.VelocityX * 0.4f, -1.5f, 0.8f);
     }
 
 }
