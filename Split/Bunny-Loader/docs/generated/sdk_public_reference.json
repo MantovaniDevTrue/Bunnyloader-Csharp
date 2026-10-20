@@ -578,6 +578,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
           "execution": "worker_callback_isolated"
         },
@@ -587,10 +591,6 @@
         },
         {
           "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
-          "execution": "worker_callback_isolated"
-        },
-        {
-          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
           "execution": "worker_callback_isolated"
         },
         {
