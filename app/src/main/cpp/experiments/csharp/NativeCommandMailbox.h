@@ -220,6 +220,11 @@ public:
         return epoch_;
     }
 
+    bool hasCommands() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return registeredNames_ != 0;
+    }
+
     size_t pending() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return requests_.size();
