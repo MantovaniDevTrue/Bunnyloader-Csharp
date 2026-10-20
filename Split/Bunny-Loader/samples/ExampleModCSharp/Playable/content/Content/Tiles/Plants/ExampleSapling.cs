@@ -16,6 +16,6 @@ public sealed class ExampleSapling : BunnyTile
         SaplingVanillaGroundTile = 8;
         SaplingStyleRange = 3;
         AdjacentTile = 20;
-        AddMapEntry(200, 200, 200, "MapObject.Sapling");
+        AddMapEntry(200, 200, 200, "Sapling");
     }
 }
