@@ -56,7 +56,10 @@ public:
         slot.binding = binding;
         slot.phase = phase;
         slot.frame = frame;
-        requests_.push_back({state, session_, frame, binding, phase});
+        if (phase == 5)
+            requests_.push_front({state, session_, frame, binding, phase});
+        else
+            requests_.push_back({state, session_, frame, binding, phase});
         return true;
     }
 
