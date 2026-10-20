@@ -58,6 +58,7 @@ Il2CppArray* gFlags=nullptr;
 Il2CppArray* gRack=nullptr;
 int32_t gSelected=0;
 int32_t gCorner=0;
+int32_t gNetMode=0;
 uint8_t gFinished=0, gHard=0;
 bool gBadStaticField=false;
 int gSwapCalls=0;
@@ -69,6 +70,7 @@ FieldInfo fIndex{"anglerQuest",&kIntType,&gSelected,sizeof(gSelected)};
 FieldInfo fCorner{"npcChatCornerItem",&kIntType,&gCorner,sizeof(gCorner)};
 FieldInfo fFinished{"anglerQuestFinished",&kBoolType,&gFinished,sizeof(gFinished)};
 FieldInfo fHard{"hardMode",&kBoolType,&gHard,sizeof(gHard)};
+FieldInfo fNetMode{"netMode",&kIntType,&gNetMode,sizeof(gNetMode)};
 Il2CppObject kCultureObject{&kCultureClass,nullptr};
 using Swap = void (*)(const MethodInfo*);
 using Chat = Il2CppString* (*)(uint8_t,const MethodInfo*);
@@ -102,7 +104,7 @@ const MethodInfo* findMethod(Il2CppClass* cls,const char* name,int count) {
     return nullptr;
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
-    FieldInfo* fields[]={&fIds,&fFlags,&fRack,&fIndex,&fCorner,&fFinished,&fHard};
+    FieldInfo* fields[]={&fIds,&fFlags,&fRack,&fIndex,&fCorner,&fFinished,&fHard,&fNetMode};
     for(auto* f:fields)if(name==f->name &&
         ((cls==&kMain && f!=&fFlags)||(cls==&kSets && (f==&fFlags || f==&fRack))))
             return f;
@@ -231,13 +233,21 @@ int main() {
     assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
     assert(hookedSwap && hookedChat);
 
-    gSelected=3;
     gHard=0;
-    gSwapCalls=0;
-    hookedSwap(&kSwap);
-    assert(gSwapCalls==1);
-    assert(gSelected==0);
-
+    for (const int mode : {0, 1, 2, 3}) {
+        gNetMode=mode;
+        gSelected=2;
+        gSwapCalls=0;
+        hookedSwap(&kSwap);
+        if (mode == 1) {
+            assert(gSwapCalls==1);
+            assert(gSelected==3);
+        } else {
+            assert(gSwapCalls==2);
+            assert(gSelected==0);
+        }
+    }
+    gNetMode=0;
     gSelected=3;
     gHard=1;
     gSwapCalls=0;
