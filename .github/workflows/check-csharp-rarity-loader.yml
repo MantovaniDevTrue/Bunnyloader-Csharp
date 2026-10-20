@@ -50,6 +50,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Compile complete playable ExampleMod with current Bunny SDK
+        run: dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
       - name: Test CSharp rarity contracts without APK or game
         run: dotnet run --project tests/rarity_loader/RarityLoaderHost.csproj --configuration Release
       - name: Compile playable ExampleModCSharp native rarity examples
