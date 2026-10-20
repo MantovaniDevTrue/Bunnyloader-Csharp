@@ -1,0 +1,47 @@
+name: CSharp CommandLoader Android syntax (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-command-loader-20261020
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommand*.h'
+      - '.github/workflows/check-csharp-command-android-syntax.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-cpp-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Android NDK only
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_HOME="${ANDROID_HOME}/ndk"
+          if [ ! -d "$NDK_HOME" ] || [ -z "$(find "$NDK_HOME" -mindepth 1 -maxdepth 1 -type d -print -quit)" ]; then
+            yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.2.12479018"
+          fi
+          find "$NDK_HOME" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1 > "$RUNNER_TEMP/bunny-ndk-path"
+      - name: Syntax-check ARM64 native command integration without linking or packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$(cat "$RUNNER_TEMP/bunny-ndk-path")"
+          CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
+          test -x "$CXX"
+          for file in SourceParser SourceLoader AutoSourceRuntime; do
+            "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti \
+              -D__ANDROID__ -DANDROID -D_GNU_SOURCE \
+              -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs \
+              "app/src/main/cpp/experiments/csharp/$file.cpp"
+          done
+          echo "BUNNY_CSHARP_COMMAND_ANDROID_SYNTAX=PASS"
