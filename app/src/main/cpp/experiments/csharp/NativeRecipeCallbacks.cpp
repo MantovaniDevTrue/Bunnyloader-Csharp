@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "content/items/ModItems.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Signature.h"
 #include "il2cpp/ValueLayout.h"
@@ -197,6 +198,32 @@ void hkCraft(Il2CppObject* recipe,Il2CppObject* result,bool quick,const MethodIn
 }
 } // namespace
 void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){std::lock_guard lock(assemblyMutex);assemblies[mod]=assembly;}
+bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
+    const auto quests=angler::registry().snapshot();
+    return std::any_of(quests.begin(),quests.end(),
+        [&](const angler::Quest& q) { return q.mod==mod&&q.callbackMask!=0; });
+}
+bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& owner,
+                                      int kind,int first,int second,int itemType,bool* allowed) {
+    if (!allowed || (kind!=4&&kind!=5) || first<0 || first>1 ||
+        second<0 || second>1 || itemType<0 || itemType>=65536 ||
+        !managedRecipeRuntimeReady()) return false;
+    std::string assembly;
+    {
+        std::lock_guard lock(assemblyMutex);
+        auto it=assemblies.find(mod);
+        if(it==assemblies.end())return false;
+        assembly=it->second;
+    }
+    const std::string input=kind==4?
+        std::to_string(first)+","+std::to_string(itemType):
+        std::to_string(first)+","+std::to_string(second)+","+std::to_string(itemType);
+    std::string output;
+    if(!invokeManagedRecipe(mod,assembly,owner,0,kind,input,&output,1500) ||
+       (output!="1"&&output!="0"))return false;
+    *allowed=output=="1";
+    return true;
+}
 bool prepareNativeRecipeCallbacks(int mask,std::string* error){
     if(!mask)return true;
     if(mask<0||mask>7){*error="Reason=InvalidRecipeCallbackMask";return false;}
