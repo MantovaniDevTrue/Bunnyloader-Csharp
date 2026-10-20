@@ -198,6 +198,7 @@ void hkCraft(Il2CppObject* recipe,Il2CppObject* result,bool quick,const MethodIn
 }
 } // namespace
 void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){std::lock_guard lock(assemblyMutex);assemblies[mod]=assembly;}
+void unbindNativeRecipeAssembly(const std::string& mod){std::lock_guard lock(assemblyMutex);assemblies.erase(mod);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
     return std::any_of(quests.begin(),quests.end(),
