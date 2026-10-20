@@ -65,6 +65,22 @@ public:
         } else if (state.generation <= retired_[slotIndex]) {
             return false;
         }
+        if (requests_.size() >= kPendingLimit && phase == 5) {
+            const auto evict = std::find_if(requests_.rbegin(), requests_.rend(),
+                [](const Request& queued) { return queued.phase != 5; });
+            if (evict != requests_.rend()) {
+                const Request abandoned = *evict;
+                Slot& previous = slots_[static_cast<std::size_t>(abandoned.state.slot) *
+                    kPhases + static_cast<std::size_t>(abandoned.phase)];
+                if (previous.pending && previous.binding == abandoned.binding &&
+                    previous.type == abandoned.state.type &&
+                    previous.generation == abandoned.state.generation &&
+                    previous.frame == abandoned.frame)
+                    previous.pending = false;
+                requests_.erase(std::next(evict).base());
+                ++drops_;
+            }
+        }
         if (requests_.size() >= kPendingLimit) {
             ++drops_;
             return false;
