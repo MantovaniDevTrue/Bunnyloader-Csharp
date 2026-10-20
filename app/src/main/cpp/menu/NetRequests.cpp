@@ -200,7 +200,8 @@ bool sendToServer(const std::string& command) {
     void* args[1] = { msg };
     a.runtime_invoke(g_sendFromClient, nullptr, args, &exc);
     if (exc) { BL_ERROR("rede: SendChatMessageFromClient lancou excecao"); return false; }
-    BL_INFO("rede: pedido ao servidor: %s", command.c_str());
+    if (command.rfind("invjoin ", 0) != 0)
+        BL_INFO("rede: pedido ao servidor: %s", command.c_str());
     return true;
 }
 
@@ -211,7 +212,8 @@ void tickNetRequests() {
         batch.swap(g_queue);
     }
     for (const Request& r : batch) {
-        BL_INFO("rede: pedido do jogador %d: %s", r.client, r.command.c_str());
+        if (r.command.rfind("invjoin ", 0) != 0)
+            BL_INFO("rede: pedido do jogador %d: %s", r.client, r.command.c_str());
         run(r);
     }
 }
