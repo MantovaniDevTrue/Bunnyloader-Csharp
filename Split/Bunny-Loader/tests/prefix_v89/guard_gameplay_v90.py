@@ -16,7 +16,7 @@ assert "TypeTables::resizedCopy" in game
 assert "content::makeLocalizedText" in game
 assert "registeredManagedPrefixCount" in bridge
 assert "installManagedPrefixGameplayHooks()" in bridge
-assert "snapshotManagedPrefixes()" in game
+assert "managedPrefixView()" in game
 assert "std::nearbyint" in game
 assert "PREFIX_STACK_WEIGHT" in source
 assert "PREFIX_ATTRIBUTE_WEIGHT" in source
