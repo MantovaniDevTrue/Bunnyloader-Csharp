@@ -42,6 +42,16 @@ public enum BunnyTileFrameToggle {
     LampHorizontal = 2
 }
 
+public readonly struct BunnyTileDrop {
+    public int ItemType { get; }
+    public int Stack { get; }
+    public BunnyTileDrop(int itemType,int stack=1) {
+        if(itemType<1||itemType>65535||stack<1||stack>9999)
+            throw new ArgumentOutOfRangeException(nameof(itemType));
+        ItemType=itemType;Stack=stack;
+    }
+}
+
 public readonly struct BunnyTileSmartInteractSettings {
     public int LX { get; }
     public int LY { get; }
@@ -90,6 +100,7 @@ public abstract class BunnyTile {
     public virtual void NumDust(int x,int y,bool fail,ref int num) { }
     public virtual bool CreateDust(int x,int y,ref int type) => true;
     public virtual bool KillSound(int x,int y,bool fail) => true;
+    public virtual BunnyTileDrop[]? GetItemDrops(int x,int y) => null;
     public virtual bool CanKillTile(int x, int y) => true;
     public virtual bool CanDrop(int x, int y) => true;
     public virtual void HitWire(int x, int y) { }
@@ -129,7 +140,7 @@ public abstract class BunnyTile {
                 nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
                 nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles),
                 nameof(HasSmartInteract), nameof(TileFrame), nameof(KillTile), nameof(KillMultiTile),
-                nameof(NumDust), nameof(CreateDust), nameof(KillSound)
+                nameof(NumDust), nameof(CreateDust), nameof(KillSound), nameof(GetItemDrops)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {

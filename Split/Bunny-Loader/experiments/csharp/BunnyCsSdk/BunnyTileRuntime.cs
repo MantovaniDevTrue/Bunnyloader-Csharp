@@ -31,7 +31,7 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.HasSmartInteract), nameof(BunnyTile.TileFrame),
         nameof(BunnyTile.KillTile), nameof(BunnyTile.KillMultiTile),
         nameof(BunnyTile.NumDust), nameof(BunnyTile.CreateDust),
-        nameof(BunnyTile.KillSound)
+        nameof(BunnyTile.KillSound), nameof(BunnyTile.GetItemDrops)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -182,6 +182,19 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 27:
+                    var drops=tile.GetItemDrops(x,y);
+                    if(drops==null)return "DEFAULT";
+                    if(drops.Length>2)return "ERROR|Stage=ValidateTileDrops Reason=TooMany";
+                    var wire="DROPS|"+drops.Length.ToString(CultureInfo.InvariantCulture);
+                    for(int i=0;i<drops.Length;i++) {
+                        var d=drops[i];
+                        if(d.ItemType<1||d.ItemType>65535||d.Stack<1||d.Stack>9999)
+                            return "ERROR|Stage=ValidateTileDrops Reason=InvalidEntry";
+                        wire+="|"+d.ItemType.ToString(CultureInfo.InvariantCulture)+","+
+                              d.Stack.ToString(CultureInfo.InvariantCulture);
+                    }
+                    return wire;
                 case 26:
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileKillSound Reason=InvalidFail";

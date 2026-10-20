@@ -736,6 +736,16 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string dropsTwo=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"1,4");
+    string dropsDefault=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"2,4");
+    string dropsEmpty=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"3,4");
+    if((new TileDropsSmoke().TileCallbackMask&(1<<27))==0||
+       dropsTwo!="DROPS|2|40,1|41,5"||dropsDefault!="DEFAULT"||dropsEmpty!="DROPS|0")
+        throw new InvalidOperationException("Tile custom drops wire mismatch: "+
+            dropsTwo+" / "+dropsDefault+" / "+dropsEmpty);
     string soundYes=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-sound",
         tileSmokeAssembly,nameof(TileKillSoundSmoke),26,0,"2,3,0");
     string soundNo=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-sound",
@@ -1039,4 +1049,11 @@ sealed class TileDynamicDustSmoke : BunnyLoader.Source.BunnyTile {
 sealed class TileKillSoundSmoke : BunnyLoader.Source.BunnyTile {
     public override void SetStaticDefaults() {}
     public override bool KillSound(int x,int y,bool fail) => !fail;
+}
+
+sealed class TileDropsSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override BunnyLoader.Source.BunnyTileDrop[]? GetItemDrops(int x,int y) =>
+        x==2 ? null : x==3 ? Array.Empty<BunnyLoader.Source.BunnyTileDrop>() :
+        new[]{new BunnyLoader.Source.BunnyTileDrop(40),new BunnyLoader.Source.BunnyTileDrop(41,5)};
 }
