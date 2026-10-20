@@ -338,7 +338,15 @@ bool managedFieldsReady() {
 }
 
 int managedIndex(Il2CppObject* dust) {
-    if (!dust || !managedFieldsReady()) return -1;
+    if (!dust) return -1;
+    if (!managedFieldsReady()) {
+        static bool reported = false;
+        if (!reported) {
+            reported = true;
+            BL_ERROR("[CSharp][DustLoader] Stage=ResolveFields Result=Rejected Reason=MissingNativeDustOffsets");
+        }
+        return -1;
+    }
     const int index = field<int32_t>(dust, refs().dustIndex);
     return index >= 0 && index < kDustSlots ? index : -1;
 }
