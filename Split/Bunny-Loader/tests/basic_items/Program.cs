@@ -449,7 +449,7 @@ try {
   File.WriteAllText(goreSrc,"using BunnyLoader.Source;public sealed class ExampleTree_Leaf:BunnyGore{public override void SetDefaults(){Texture=\"Content/Gores/ExampleTree_Leaf\";SpecialAI=3;SafeGore=true;}}");
   File.WriteAllText(src,valid);
   Equal(1,Compiler.Compile(root,output,runtime,diag));
-  Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(2,CompiledAssemblyProbe.Verify(output,diag));
   string[] rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   Equal(3,rows.Length);
   Equal("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1",rows[1]);
