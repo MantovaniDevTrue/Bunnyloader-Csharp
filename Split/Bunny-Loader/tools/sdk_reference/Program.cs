@@ -55,6 +55,10 @@ string Mode(Type type, MethodInfo method)
         type == typeof(BunnyPrefix) && method.Name == "Apply" && method.GetParameters().Length == 2 ||
         type == typeof(BunnyPrefix) && method.Name == "ApplyAccessoryEffects" && method.GetParameters().Length == 2)
         return "worker_callback_opt_in";
+    if (type == typeof(BunnyGlobalItem) &&
+        method.Name is "AppliesTo" or "AllowPrefix" or "ChoosePrefix" or
+                       "DecidePrefixChance" or "ApplyPrefix")
+        return "worker_callback_isolated";
     if (type == typeof(BunnyPrefixRuntime) || type == typeof(BunnyItemPrefixRuntime))
         return "worker_dispatcher";
     if ((type == typeof(BunnyItem) || type == typeof(BunnyWeapon) ||
