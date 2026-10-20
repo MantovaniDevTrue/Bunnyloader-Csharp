@@ -451,12 +451,14 @@ void pumpOnGameThread() {
     }
     const auto [appliedRevision, quests] = registry().snapshotVersion();
     pending = pending || appliedRevision != g_appliedGeneration;
+    const uint64_t previousListFingerprint = g_effectiveListFingerprint;
     if (!updateQuests(quests)) {
         if (++g_resolveFailures == 1 || g_resolveFailures == 120)
             BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=InvalidOrUnreadyTerrariaTables");
         return;
     }
     g_resolveFailures = 0;
+    pending = pending || previousListFingerprint != g_effectiveListFingerprint;
     g_appliedGeneration = appliedRevision;
     g_active = quests;
     activeGeneration().store(appliedRevision, std::memory_order_release);
