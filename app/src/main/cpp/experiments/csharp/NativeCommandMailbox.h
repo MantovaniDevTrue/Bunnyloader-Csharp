@@ -22,6 +22,8 @@ enum class NativeCommandRoute : uint8_t {
 struct NativeCommandSpec {
     std::string name;
     uint8_t routes = 1;
+    std::string description;
+    bool canonical = false;
 };
 
 struct NativeCommandRequest {
@@ -92,7 +94,12 @@ public:
                 if (error) *error = "InvalidOrDuplicateCommandName";
                 return false;
             }
-            proposal.push_back({ownerId, name, spec.routes});
+            if (spec.description.size() > 192 ||
+                std::any_of(spec.description.begin(), spec.description.end(),
+                    [](unsigned char ch) { return ch < 32 || ch == 127; }))
+                return false;
+            proposal.push_back({ownerId, name, spec.routes,
+                                spec.description, spec.canonical});
         }
         std::lock_guard<std::mutex> lock(mutex_);
         if (owners_.contains(ownerId) || owners_.size() >= MaxRegisteredMods ||
@@ -291,6 +298,29 @@ public:
         return epoch_;
     }
 
+    // Snapshot da ajuda, sem chamar MonoVM no hook ComposeMessage.
+    // Somente classes efetivamente registradas aparecem para o jogador.
+    std::vector<std::pair<std::string, std::string>> visibleHelp(int netMode) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::map<std::string, size_t> collisions;
+        for (const auto& [owner, entries] : owners_)
+            if (readyOwners_.contains(owner))
+                for (const auto& entry : entries)
+                    if (entry.canonical && helpRoute(entry.routes, netMode))
+                        ++collisions[entry.name];
+        std::vector<std::pair<std::string, std::string>> result;
+        for (const auto& [owner, entries] : owners_)
+            if (readyOwners_.contains(owner))
+                for (const auto& entry : entries)
+                    if (entry.canonical && helpRoute(entry.routes, netMode)) {
+                        const std::string name = collisions[entry.name] > 1
+                            ? owner + ":" + entry.name : entry.name;
+                        result.emplace_back(name, entry.description);
+                    }
+        std::sort(result.begin(), result.end());
+        return result;
+    }
+
     bool hasCommands() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return registeredNames_ != 0;
@@ -316,6 +346,8 @@ private:
         std::string owner;
         std::string name;
         uint8_t routes = 0;
+        std::string description;
+        bool canonical = false;
     };
 
     static bool validName(const std::string& name) {
@@ -333,6 +365,12 @@ private:
         for (char& ch : name)
             if (ch >= 'A' && ch <= 'Z') ch = char(ch - 'A' + 'a');
         return name;
+    }
+
+    static bool helpRoute(uint8_t routes, int netMode) {
+        return matches(routes, NativeCommandRoute::Chat, netMode) ||
+               ((netMode & 2) != 0 &&
+                matches(routes, NativeCommandRoute::Server, netMode));
     }
 
     static bool matches(uint8_t flags, NativeCommandRoute caller, int netMode) {
