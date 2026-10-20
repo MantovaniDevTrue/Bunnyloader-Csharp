@@ -20,5 +20,6 @@ int main() {
     assert(!bounds(1000,1000,1010,1010,100,100,&b));
     assert(eligible(1<<4,0)&&eligible(0,1)&&eligible(1<<4,1));
     assert(!eligible(0,0)&&!eligible(0,2)&&!eligible(1<<9,0));
+    assert(eligible(1<<20,0)&&eligible((1<<4)|(1<<20),0));
     std::cout<<"CSHARP_TILE_SMART_INTERACT_ORIGINAL_RANGE_AND_RIGHT_CLICK=PASS\n";
 }

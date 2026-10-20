@@ -27,7 +27,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.AnimateTile), nameof(BunnyTile.SetDrawPositions),
         nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects),
         nameof(BunnyTile.PostDraw), nameof(BunnyTile.DrawEffects),
-        nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles)
+        nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles),
+        nameof(BunnyTile.HasSmartInteract)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -65,7 +66,7 @@ public static class BunnyTileRuntime {
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
-            if (fields.Length != expected && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
+            if (fields.Length != (index == 20 ? 6 : expected) && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
             int y = int.Parse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
@@ -94,7 +95,7 @@ public static class BunnyTileRuntime {
                 if ((mod.Masks[owner] & (1 << 13)) != 0)
                     tile.SetDrawPositions(x, y, ref width, ref top, ref height, ref frameX, ref frameY);
                 if ((mod.Masks[owner] & (1 << 14)) != 0) {
-                    if (fields.Length == 12) {
+                    if (fields.Length >= 12) {
                         tile.AnimateIndividualTile(tileType, x, y, ref addFrameX, ref addFrameY);
                     } else {
                         tile.AnimateIndividualTile(x, y, ref addFrameX, ref addFrameY);
@@ -177,6 +178,12 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 20:
+                    int lx=int.Parse(fields[2],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    int ly=int.Parse(fields[3],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    int hx=int.Parse(fields[4],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    int hy=int.Parse(fields[5],NumberStyles.Integer,CultureInfo.InvariantCulture);
+                    return tile.HasSmartInteract(x,y,new BunnyTileSmartInteractSettings(lx,ly,hx,hy)) ? "1" : "0";
                 case 12:
                     int frame = x, counter = y;
                     tile.AnimateTile(ref frame, ref counter);

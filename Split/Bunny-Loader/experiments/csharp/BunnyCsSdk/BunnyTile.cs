@@ -42,6 +42,18 @@ public enum BunnyTileFrameToggle {
     LampHorizontal = 2
 }
 
+public readonly struct BunnyTileSmartInteractSettings {
+    public int LX { get; }
+    public int LY { get; }
+    public int HX { get; }
+    public int HY { get; }
+    public BunnyTileSmartInteractSettings(int lx,int ly,int hx,int hy) {
+        if(hx<lx||hy<ly||hx-(long)lx>=64||hy-(long)ly>=64)
+            throw new ArgumentOutOfRangeException(nameof(hx));
+        LX=lx;LY=ly;HX=hx;HY=hy;
+    }
+}
+
 public abstract class BunnyTile {
     public string Texture { get; set; } = "";
     public string DisplayName { get; set; } = "";
@@ -92,6 +104,7 @@ public abstract class BunnyTile {
     public virtual bool Slope(int x, int y) => true;
     public virtual void MouseOver(int x, int y) { }
     public virtual void MouseOverFar(int x, int y) { }
+    public virtual bool HasSmartInteract(int x,int y,BunnyTileSmartInteractSettings settings) => false;
     public virtual void NearbyEffects(int x, int y, bool closer) { }
     public virtual void AnimateTile(ref int frame, ref int frameCounter) { }
     public virtual void SetDrawPositions(int x, int y, ref int width, ref int top,
@@ -108,7 +121,8 @@ public abstract class BunnyTile {
                 nameof(RightClick), nameof(PreDraw), nameof(ModifyLight), nameof(PlaceInWorld),
                 nameof(Slope), nameof(MouseOver), nameof(MouseOverFar), nameof(NearbyEffects), nameof(AnimateTile),
                 nameof(SetDrawPositions), nameof(AnimateIndividualTile), nameof(SetSpriteEffects),
-                nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles)
+                nameof(PostDraw), nameof(DrawEffects), nameof(SpecialDraw), nameof(EmitParticles),
+                nameof(HasSmartInteract)
             };
             int mask = 0;
             for (int i = 0; i < methods.Length; ++i) {

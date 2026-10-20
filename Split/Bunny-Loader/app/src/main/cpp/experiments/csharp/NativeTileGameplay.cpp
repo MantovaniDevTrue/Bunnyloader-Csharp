@@ -1100,6 +1100,7 @@ void hkTileSmartInteract(Il2CppObject* provider,const void* settings,const Metho
     auto* list=*reinterpret_cast<Il2CppObject* const*>(
         reinterpret_cast<const uint8_t*>(provider)+g_smartInteract.targetsOffset);
     if(!list)return;
+    int customBudget=8;
     for(int y=range.top;y<range.bottom;++y)for(int x=range.left;x<range.right;++x) {
         const uint32_t def=world.lookup[static_cast<size_t>(y)*world.width+x];
         if((world.sHeader[def]&runtime::kTileActiveBit)==0)continue;
@@ -1107,6 +1108,21 @@ void hkTileSmartInteract(Il2CppObject* provider,const void* settings,const Metho
         if(it==g_tiles.end()||
            !tile_smart::eligible(it->second.spec.callbackMask,it->second.spec.frameToggle))
             continue;
+        const auto& spec=it->second.spec;
+        if((spec.callbackMask&(1<<20))!=0) {
+            if(customBudget<=0||!managedTileReady(spec,20))continue;
+            --customBudget;
+            std::string response;
+            if(!invokeManagedTileSmart(spec.mod,spec.assembly,spec.name,x,y,
+                 scan[0],scan[1],scan[2],scan[3],&response,450)) {
+                reportTileCallbackFailure(spec,20,response);
+                continue;
+            }
+            if(response!="1") {
+                if(response!="0")reportTileCallbackFailure(spec,20,"Expected=BooleanWire Actual="+response);
+                continue;
+            }
+        }
         int32_t px=x,py=y;
         void* joinArgs[]={&px,&py};
         Il2CppObject* error=nullptr;

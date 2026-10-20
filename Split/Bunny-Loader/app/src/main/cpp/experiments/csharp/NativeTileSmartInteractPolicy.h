@@ -16,6 +16,6 @@ inline bool bounds(int lx,int ly,int hx,int hy,int worldWidth,int worldHeight,Bo
     *out=b;return true;
 }
 inline bool eligible(int callbackMask,int frameToggle) {
-    return (callbackMask&(1<<4))!=0||frameToggle==1;
+    return (callbackMask&((1<<4)|(1<<20)))!=0||frameToggle==1;
 }
 }

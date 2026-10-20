@@ -716,6 +716,11 @@ public sealed class MinionStaff : BunnyWeapon
     string typedDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
         tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
         "4,5,0,0,16,16,0,0,0,0,0,755");
+    string typedAnimatedDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755,3");
+    if(typedAnimatedDraw != "DRAW|0|0|16|16|0|9|10|0")
+        throw new InvalidOperationException("13-field typed tile draw lost TileType: "+typedAnimatedDraw);
     string legacyDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-legacy-tile",
         tileSmokeAssembly, nameof(TileAnimatedLegacySmoke), 13, 0,
         "4,5,0,0,16,16,0,0,0,0,0,755");
@@ -731,6 +736,16 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string smartAllow=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"3,4,1,2,5,6");
+    string smartReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"9,4,1,2,5,6");
+    string smartInvalid=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"3,4,5,2,1,6");
+    if((new TileSmartInteractSmoke().TileCallbackMask&(1<<20))==0||
+       smartAllow!="1"||smartReject!="0"||!smartInvalid.StartsWith("ERROR|"))
+        throw new InvalidOperationException("SmartInteract managed transport failed: "+
+            smartAllow+" / "+smartReject+" / "+smartInvalid);
     string nativeFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
         tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
         "3,4,0,0,16,16,0,0,0,0,0,754,5");
@@ -947,4 +962,10 @@ sealed class TileNativeAnimatedSmoke : BunnyLoader.Source.BunnyTile
         if (draw.AnimationFrame >= 0)
             draw.DrawFlameTexture(0,draw.AnimationFrame*36,16,16);
     }
+}
+
+sealed class TileSmartInteractSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override bool HasSmartInteract(int x,int y,BunnyLoader.Source.BunnyTileSmartInteractSettings settings)
+        => x>=settings.LX && x<=settings.HX && y>=settings.LY && y<=settings.HY;
 }
