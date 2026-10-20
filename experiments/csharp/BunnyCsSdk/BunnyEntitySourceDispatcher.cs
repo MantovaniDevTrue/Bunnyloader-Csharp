@@ -36,6 +36,8 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly List<BunnyInvasionSystem> InvasionOrder = new();
+        public readonly Dictionary<string, BunnyInvasionClientView> ClientViews = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> NetRevisions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress, int Cooldown)> SavedInvasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
@@ -144,6 +146,8 @@ public static class BunnyEntitySourceDispatcher
             context.RegisteredItemUses.Clear();
             context.SavedInvasions.Clear();
             context.NotifiedInvasions.Clear();
+            context.ClientViews.Clear();
+            context.NetRevisions.Clear();
             context.WorldStateInitialized = false;
             context.PendingRewards.Clear();
             context.RewardPlayer = -1;
@@ -156,7 +160,31 @@ public static class BunnyEntitySourceDispatcher
         {
             foreach (string itemName in context.ItemUsers.Keys)
                 BunnyNativeItemUse.Bind(worldSession, context.Mod, itemName);
-            return 0;
+            try
+            {
+                int updates = 0;
+                while (updates < 8 && BunnyInvasionNativeNetwork.TryPoll(
+                    worldSession, context.Mod, out BunnyInvasionWireState state))
+                {
+                    updates++;
+                    if (!context.Invasions.ContainsKey(state.InvasionId)) continue;
+                    if (!context.ClientViews.TryGetValue(state.InvasionId, out var view))
+                        context.ClientViews[state.InvasionId] = view = new BunnyInvasionClientView();
+                    if (view.ReceiveRemoteFromHost(state, worldSession, context.Mod,
+                        state.InvasionId))
+                    {
+                        BunnyInvasionNotifications.Publish(worldSession, context.Mod,
+                            state);
+                    }
+                }
+                return updates;
+            }
+            catch (Exception error)
+            {
+                context.LastError = "TickWorld(client): " + error.GetType().Name +
+                    ": " + error.Message;
+                return -1;
+            }
         }
         if (!authoritative || playerIndex < 0 ||
             !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
@@ -246,6 +274,17 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
+    public static bool TryGetInvasionView(int modSlot, string invasionId,
+        out BunnyInvasionWireState state)
+    {
+        state = default;
+        if ((uint)modSlot >= (uint)Contexts.Count ||
+            string.IsNullOrEmpty(invasionId)) return false;
+        return Contexts[modSlot].ClientViews.TryGetValue(
+            invasionId, out BunnyInvasionClientView? view) &&
+            view.HasState && (state = view.Current).IsValid();
+    }
+
     private static void SaveInvasionIfChanged(Context context, bool periodicSave = false)
     {
         if (!context.WorldStateInitialized || context.NativeWorldSession <= 0) return;
@@ -253,6 +292,13 @@ public static class BunnyEntitySourceDispatcher
         {
             BunnyInvasionController controller = system.Pipeline.Controller;
             BunnyInvasionSnapshot state = controller.Snapshot();
+            if (!context.NetRevisions.TryGetValue(system.Id, out int lastNetRevision) ||
+                lastNetRevision != state.Revision)
+            {
+                if (BunnyInvasionNativeNetwork.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.NetRevisions[system.Id] = state.Revision;
+            }
             bool hasSaved = context.SavedInvasions.TryGetValue(system.Id, out var saved);
             int nextPercentStep = state.Progress * 10 / controller.Definition.Goal;
             if (!context.NotifiedInvasions.TryGetValue(system.Id, out var lastNotice) ||
