@@ -14,6 +14,12 @@ namespace bl::csharp {
 bool managedRecipeRuntimeReady();
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
+bool invokeManagedTileDustCount(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,int count,
+    std::string* output,int budgetMicroseconds=700);
+bool invokeManagedTileCreateDust(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int dustType,
+    std::string* output,int budgetMicroseconds=450);
 bool invokeManagedTileKill(const std::string& mod,const std::string& assembly,
     const std::string& owner,int x,int y,bool fail,bool effectOnly,bool noItem,
     std::string* output,int budgetMicroseconds=1100);

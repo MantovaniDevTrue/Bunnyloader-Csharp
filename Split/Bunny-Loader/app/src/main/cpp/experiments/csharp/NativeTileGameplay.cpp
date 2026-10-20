@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeTileSmartInteractPolicy.h"
 #include "experiments/csharp/NativeTileFramePolicy.h"
 #include "experiments/csharp/NativeTileKillPolicy.h"
+#include "experiments/csharp/NativeTileDustPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -358,6 +359,14 @@ void hkKillTile(int32_t x, int32_t y, bool fail, bool effectOnly,
     g_dustOwner = it->first;
     g_dustBudget = tile_policy::dustBudget(fail, it->second.spec.failDust,
                                            it->second.spec.normalDust);
+    if((it->second.spec.callbackMask&(1<<24))&&managedTileReady(it->second.spec,24)) {
+        std::string reply;
+        int value=g_dustBudget;
+        if(invokeManagedTileDustCount(it->second.spec.mod,it->second.spec.assembly,
+             it->second.spec.name,x,y,fail,value,&reply,700)&&
+           tile_dust::parseCount(reply,&value))g_dustBudget=value;
+        else reportTileCallbackFailure(it->second.spec,24,reply);
+    }
     g_origKill(x, y, fail, effectOnly, noItem, method);
     g_dustOwner = lastOwner;
     g_dustBudget = lastBudget;
@@ -390,7 +399,19 @@ int32_t hkMakeDust(int32_t x, int32_t y, uint32_t tile, const MethodInfo* method
         if (g_dustBudget == 0) return 6000;
         if (g_dustBudget > 0) --g_dustBudget;
     }
-    const int dust = spawnDust(x, y, it->second.dustType);
+    int dustId=it->second.dustType;
+    if((it->second.spec.callbackMask&(1<<25))&&managedTileReady(it->second.spec,25)) {
+        std::string reply;
+        int nextId=dustId;
+        bool create=true;
+        if(invokeManagedTileCreateDust(it->second.spec.mod,it->second.spec.assembly,
+             it->second.spec.name,x,y,dustId,&reply,450)&&
+           tile_dust::parseCreate(reply,&create,&nextId)) {
+            if(!create||nextId<0)return 6000;
+            dustId=nextId;
+        } else reportTileCallbackFailure(it->second.spec,25,reply);
+    }
+    const int dust = spawnDust(x, y, dustId);
     return dust >= 0 ? dust : (g_origDust ? g_origDust(x, y, tile, method) : 6000);
 }
 
