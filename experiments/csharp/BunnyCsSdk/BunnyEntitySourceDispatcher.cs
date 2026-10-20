@@ -142,9 +142,12 @@ public static class BunnyEntitySourceDispatcher
             int used = 0;
             foreach (var pair in context.ItemUsers)
             {
-                if (!context.RegisteredItemUses.Contains(pair.Key) &&
-                    BunnyNativeItemUse.Bind(worldSession, context.Mod, pair.Key))
-                    context.RegisteredItemUses.Add(pair.Key);
+                if (!context.RegisteredItemUses.Contains(pair.Key))
+                {
+                    BunnyNativeItemUse.Bind(worldSession, context.Mod, pair.Key);
+                    if (BunnyNativeItemUse.IsReady(worldSession, context.Mod, pair.Key))
+                        context.RegisteredItemUses.Add(pair.Key);
+                }
                 if (!context.RegisteredItemUses.Contains(pair.Key)) continue;
                 for (int n = 0; n < 8 && BunnyNativeItemUse.TryPoll(
                     worldSession, context.Mod, pair.Key, out int usingPlayer); n++)
