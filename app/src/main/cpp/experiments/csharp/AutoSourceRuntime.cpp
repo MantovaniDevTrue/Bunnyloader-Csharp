@@ -31,6 +31,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "experiments/csharp/NativeCommandManifest.h"
+#include "experiments/csharp/NativeCommandChatHooks.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "mods/ModLoader.h"
@@ -1251,6 +1252,10 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    if (nativeCommandMailbox().hasCommands() &&
+        !nativeCommandChatHookInstalled())
+        installNativeCommandChatHooks();
+    pumpNativeCommandRepliesOnGameThread();
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
