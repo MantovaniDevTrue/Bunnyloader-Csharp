@@ -1163,6 +1163,7 @@ string Texture { get; set; }
 | `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 | `void SpecialDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+| `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileDrawContext
 

@@ -37,10 +37,11 @@
             "tests/world_loaders/tile_wire_test.cpp",
             "tests/world_loaders/tile_break_policy_test.cpp",
             "tests/world_loaders/tile_scan_policy_test.cpp",
-            "tests/world_loaders/tile_smart_interact_policy_test.cpp"
+            "tests/world_loaders/tile_smart_interact_policy_test.cpp",
+            "tests/world_loaders/tile_frame_callback_test.cpp"
           ],
           "missing": [
-            "Completar hooks originais ainda ausentes de TileLoader/TileWorldLoader: TileFrame, KillTile/KillMultiTile, NumDust/CreateDust/KillSound, drops customizáveis, GrowSapling, resting, baús e PlaceInWorld com item.",
+            "Callback TileFrame C# implementado em WorldGen.TileFrame com cancelamento e ref flags; ainda faltam KillTile/KillMultiTile, NumDust/CreateDust/KillSound, drops customizáveis, GrowSapling, resting, baús e PlaceInWorld com item, além de validação Android.",
             "Completar paridade do contexto HasSmartInteract além de LX/LY/HX/HY e validar o orçamento de 8 callbacks por varredura, renderização, sincronização de frames, persistência e multiplayer no Terraria Android."
           ],
           "android": "pending",

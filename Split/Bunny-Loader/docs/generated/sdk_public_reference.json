@@ -2128,6 +2128,10 @@
         {
           "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
           "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)",
+          "execution": "managed_helper"
         }
       ]
     },
