@@ -442,6 +442,7 @@ Test("localization-module-without-static-json-emits-marker", () =>
             System.Reflection.Assembly.GetExecutingAssembly().Location, diagnostics, root));
         string[] wire = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"));
         Equal(true, wire.Contains("LOCALE_MODULES\t1"));
+        Equal(true, wire.Contains("LOCALE_RUNTIME\t1"));
         Equal(false, wire.Any(row => row.StartsWith("LOCALE\t", StringComparison.Ordinal)));
     }
     finally
@@ -575,8 +576,12 @@ Test("compiled-vanilla-register-uses-source-wire", () =>
 Test("live-register-outside-callback-drains-with-assembly-ownership", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1",
-        BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
+    string initial = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US");
+    Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", initial);
+    Equal(initial, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Equal(false, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", "OK|0\nBUNNY_DYNAMIC_LOCALES_V1"));
+    Equal(initial, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", initial));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
     BunnyLocalizationRuntime.Register("LegacyInterface.28",
         new Dictionary<string, string>
@@ -591,13 +596,22 @@ Test("live-register-outside-callback-drains-with-assembly-ownership", () =>
     Equal(5, rows.Length);
     Equal(true, rows.Skip(2).Any(row => System.Text.Encoding.UTF8.GetString(
         Convert.FromHexString(row.Split('\t')[2])) == "LegacyInterface.28"));
-    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Equal(wire, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
     Reject(() => BunnyLocalizationRuntime.Register("Mods.other.Common.Forbidden", "en-US", "No"));
+    Equal(wire, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", wire));
+    Equal(false, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", wire));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
     BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Live", "pt-BR", "Atualizado");
-    Equal(true, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US")
-        .Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Atualizado")), StringComparison.Ordinal));
-    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR").Split('\n')[0]);
+    string updated = BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US");
+    Equal(true, updated.Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Atualizado")), StringComparison.Ordinal));
+    Equal(false, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", wire));
+    Equal(updated, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    string brazil = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR");
+    Equal("OK|1", brazil.Split('\n')[0]);
+    Equal(false, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", updated));
+    Equal(brazil, BunnyLocalizationRuntime.Drain("examplemod", assembly, "pt-BR"));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "pt-BR", brazil));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "pt-BR"));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
@@ -608,15 +622,21 @@ Test("live-register-outside-callback-drains-with-assembly-ownership", () =>
 Test("assembly-identity-ambiguity-denies-live-registration", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("one", assembly, "en-US").Split('\n')[0]);
-    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("two", assembly, "en-US").Split('\n')[0]);
+    string one = BunnyLocalizationRuntime.Dispatch("one", assembly, "en-US");
+    string two = BunnyLocalizationRuntime.Dispatch("two", assembly, "en-US");
+    Equal("OK|1", one.Split('\n')[0]);
+    Equal("OK|1", two.Split('\n')[0]);
     Reject(() => BunnyLocalizationRuntime.Register("LegacyInterface.28", "en-US", "Ambiguous"));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("one", assembly, "en-US", one));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("two", assembly, "en-US", two));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("one", assembly, "en-US"));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("two", assembly, "en-US"));
     Equal(true, BunnyLocalizationRuntime.Unload("one"));
     BunnyLocalizationRuntime.Register("Mods.two.Common.Safe", "en-US", "Safe");
-    Equal(true, BunnyLocalizationRuntime.Drain("two", assembly, "en-US")
-        .Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Mods.two.Common.Safe")), StringComparison.Ordinal));
+    string pending = BunnyLocalizationRuntime.Drain("two", assembly, "en-US");
+    Equal(true, pending.Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Mods.two.Common.Safe")), StringComparison.Ordinal));
+    Equal(true, BunnyLocalizationRuntime.Acknowledge("two", assembly, "en-US", pending));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("two", assembly, "en-US"));
     Equal(true, BunnyLocalizationRuntime.Unload("two"));
 });
 
@@ -634,6 +654,8 @@ Test("combined-dynamic-localization-limit-is-atomic", () =>
         Equal(258, wire.Split('\n').Length);
         Equal(false, wire.Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(
             "Mods.examplemod.Common.Overflow")), StringComparison.Ordinal));
+        Equal(false, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", callback));
+        Equal(true, BunnyLocalizationRuntime.Acknowledge("examplemod", assembly, "en-US", wire));
         Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
     }
     finally
