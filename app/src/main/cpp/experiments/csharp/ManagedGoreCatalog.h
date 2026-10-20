@@ -41,7 +41,8 @@ public:
             return false;
         }
         std::map<std::pair<std::string, std::string>, size_t> pending = keys_;
-        for (const auto& source : sources) {
+        for (size_t i = 0; i < sources.size(); ++i) {
+            const auto& source = sources[i];
             if (source.name.empty() || source.name.size() > 180 ||
                 source.relativePath.empty() || source.absolutePath.empty() ||
                 source.byteCount == 0 || source.width == 0 || source.height == 0) {
@@ -49,7 +50,7 @@ public:
                 return false;
             }
             const auto id = std::make_pair(modId, source.name);
-            if (!pending.emplace(id, entries_.size()).second) {
+            if (!pending.emplace(id, entries_.size() + i).second) {
                 *error = "gore duplicado dentro do mod: " + modId + "/" + source.name;
                 return false;
             }
