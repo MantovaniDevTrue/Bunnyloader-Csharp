@@ -26,6 +26,7 @@ public sealed class ExampleSlimeNPC : BunnyNPC
 
     public override bool AI(ref BunnyNpcAiState state)
     {
+        ExampleInvasion.ConfirmFirstTick(true, ref state);
         float direction = state.PlayerX - state.X;
         if (!float.IsFinite(direction) || MathF.Abs(direction) < 12f)
             return false;
