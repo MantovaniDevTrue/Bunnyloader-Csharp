@@ -1176,7 +1176,7 @@ int main() {
     weapon.damage=12;
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>(
-        std::map<int,ManagedItemPrefixCallbackBinding>{{6199,{"test","TestWand"}}});
+        std::map<int,ManagedItemPrefixCallbackBinding>{{6199,{"test","TestWand",15}}});
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>(
         std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
     itemWorkerWarmup=1;
