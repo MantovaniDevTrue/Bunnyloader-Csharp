@@ -172,6 +172,22 @@ std::array<FieldInfo*, 6> fields() {
             g_tables.speedAlpha, g_tables.drip, g_tables.safe};
 }
 
+struct PinnedArrays {
+    std::array<uint32_t, 6> handles{};
+    ~PinnedArrays() {
+        auto& api = il2cpp::api();
+        for (uint32_t handle : handles)
+            if (handle) api.gchandle_free(handle);
+    }
+    bool pin(size_t index, Il2CppArray* array) {
+        if (!array) return false;
+        auto& api = il2cpp::api();
+        handles[index] = api.gchandle_new(
+            reinterpret_cast<Il2CppObject*>(array), false);
+        return handles[index] != 0;
+    }
+};
+
 void destroyUncommitted(const std::vector<uint32_t>& roots) {
     auto& a = il2cpp::api();
     for (auto handle : roots) {
@@ -204,6 +220,7 @@ bool repairOnGameThread() {
     if (!g_tables.ready || g_entries.empty()) return true;
     const auto f = fields();
     std::array<Il2CppArray*, 6> previous{}, candidate{};
+    PinnedArrays pins;
     bool changed = false;
     for (size_t i = 0; i < f.size(); ++i) {
         previous[i] = staticArray(f[i]);
@@ -212,7 +229,7 @@ bool repairOnGameThread() {
         if (previous[i]->length < static_cast<uintptr_t>(g_highWater)) {
             candidate[i] = runtime::TypeTables::resizedCopy(
                 previous[i], static_cast<uintptr_t>(g_highWater));
-            if (!candidate[i]) return false;
+            if (!candidate[i] || !pins.pin(i, candidate[i])) return false;
             changed = true;
         }
     }
@@ -266,6 +283,7 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
     if (!batch.stage(modId, sources, error)) return false;
     const auto f = fields();
     std::array<Il2CppArray*, 6> previous{}, expanded{};
+    PinnedArrays pins;
     int first = std::max(1, g_highWater);
     for (size_t i = 0; i < f.size(); ++i) {
         previous[i] = staticArray(f[i]);
@@ -287,8 +305,8 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
     for (size_t i = 0; i < f.size(); ++i) {
         expanded[i] = runtime::TypeTables::resizedCopy(previous[i],
             static_cast<uintptr_t>(end));
-        if (!expanded[i]) {
-            *error = "nao foi possivel aumentar array nativo de gore";
+        if (!expanded[i] || !pins.pin(i, expanded[i])) {
+            *error = "nao foi possivel aumentar/fixar array nativo de gore no GC";
             return false;
         }
     }
@@ -359,8 +377,11 @@ void worldReady() {
 
 void pumpOnGameThread() {
     if (!g_worldReady.load(std::memory_order_acquire)) return;
-    if (++g_frame % 120 == 0 && !repairOnGameThread())
-        BL_WARN("csharp GoreLoader: falha ao recuperar tabela nativa");
+    if (++g_frame % 20 == 0 && !repairOnGameThread()) {
+        static unsigned failures = 0;
+        if (failures++ < 3)
+            BL_WARN("csharp GoreLoader: falha ao recuperar tabela nativa");
+    }
     std::array<Spawn, kMaxSpawnPerFrame> requests{};
     size_t count = 0;
     {
