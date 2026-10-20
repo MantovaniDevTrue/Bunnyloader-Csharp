@@ -268,6 +268,23 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertNotIn("invokeManagedRecipe", source)
         self.assertNotIn("invokeManagedShoot", source)
 
+    def test_prefix_worker_transport_contract(self):
+        runtime = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text(encoding="utf-8")
+        header = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedRuntime.h").read_text(encoding="utf-8")
+        callbacks = (ROOT / "experiments/csharp/BunnyCsSdk/BunnyPrefixCallbacks.cs").read_text(encoding="utf-8")
+        sdk = (ROOT / "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn("bool invokeManagedPrefix(", runtime)
+        self.assertIn("bool invokeManagedPrefix(", header)
+        self.assertIn('job.prefix?"BunnyPrefixRuntime"', runtime)
+        self.assertIn("g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix})", runtime)
+        self.assertIn("completion->cancelled=true;", runtime)
+        self.assertIn("!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline", runtime)
+        self.assertIn("BunnyPrefixItemSnapshot", callbacks)
+        self.assertIn("RuntimeHelpers.PrepareMethod(callback.MethodHandle)", callbacks)
+        self.assertIn("BunnyPrefixCallbacks.cs", sdk)
+        self.assertNotIn("invokeManagedPrefix(", gameplay)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))

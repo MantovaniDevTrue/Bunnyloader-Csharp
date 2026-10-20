@@ -887,8 +887,10 @@ string ExtraTooltip { get; set; }
 
 | Method | Execution |
 | --- | --- |
-| `string SerializeTooltipLines()` | compile_policy |
+| `bool CanRoll(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
+| `int RollChance(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `string SerializeTooltipItemLines()` | compile_policy |
+| `string SerializeTooltipLines()` | compile_policy |
 | `void AddTooltipItemLine(string template)` | compile_policy |
 | `void AddTooltipLine(string text)` | compile_policy |
 | `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
@@ -940,6 +942,21 @@ int RollWeightMinStack { get; }
 | `void RequireManaBetween(int minimum, int maximum)` | compile_policy |
 | `void RequireStackBetween(int minimum, int maximum)` | compile_policy |
 
+## BunnyLoader.Source.BunnyPrefixItemSnapshot
+
+struct; base: `System.ValueType`.
+
+```csharp
+bool Accessory { get; }
+bool Consumable { get; }
+bool Ranged { get; }
+int CurrentPrefix { get; }
+int Damage { get; }
+int ItemType { get; }
+int Mana { get; }
+int Stack { get; }
+```
+
 ## BunnyLoader.Source.BunnyPrefixRollRules
 
 class; base: `System.Object`.
@@ -961,6 +978,14 @@ BunnyPrefixRollRules()
 | `void SetCanRoll(string itemName, bool allowed)` | compile_policy |
 | `void SetWeight(int itemType, int weight)` | compile_policy |
 | `void SetWeight(string itemName, int weight)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_dispatcher |
 
 ## BunnyLoader.Source.BunnyProjectile
 

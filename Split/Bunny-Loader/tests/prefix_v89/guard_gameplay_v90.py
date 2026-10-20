@@ -31,6 +31,18 @@ assert "applyManagedItemPrefixAttributeDenials" in source
 assert "managedItemPrefixAttributeDenyView()" in game
 assert "PREFIX_CHANCE_STACK" in source
 assert "PREFIX_CHOOSE_STACK" in source
+runtime = (cpp / "ManagedRuntime.cpp").read_text()
+runtime_header = (cpp / "ManagedRuntime.h").read_text()
+callbacks = (root / "experiments/csharp/BunnyCsSdk/BunnyPrefixCallbacks.cs").read_text()
+assert "bool invokeManagedPrefix(" in runtime
+assert "bool invokeManagedPrefix(" in runtime_header
+assert 'job.prefix?"BunnyPrefixRuntime"' in runtime
+assert "g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix})" in runtime
+assert "completion->cancelled=true;" in runtime
+assert "job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline" in runtime
+assert "BunnyPrefixItemSnapshot" in callbacks
+assert 'public static string Dispatch(string modId,string assemblyPath,string owner,' in callbacks
+assert "RuntimeHelpers.PrepareMethod(callback.MethodHandle)" in callbacks
 assert "ManagedPrefixDiagnostics managedPrefixDiagnostics()" in game
 assert "g_prefixRestoredRolls.fetch_add" in game
 assert "g_prefixChosenRolls.fetch_add" in game

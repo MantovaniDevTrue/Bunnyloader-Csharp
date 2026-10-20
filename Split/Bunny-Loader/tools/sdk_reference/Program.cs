@@ -50,6 +50,9 @@ string Mode(Type type, MethodInfo method)
         parameter.ParameterType == typeof(BunnyProjectileAiState).MakeByRefType()))
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
+    if (type == typeof(BunnyPrefix) &&
+        method.Name is "CanRoll" or "RollChance") return "worker_callback_opt_in";
+    if (type == typeof(BunnyPrefixRuntime)) return "worker_dispatcher";
     if (type == typeof(BunnyPrefix) || type == typeof(BunnyPrefixRollRules) ||
         type == typeof(BunnyItemPrefixRules) ||
         type == typeof(BunnyPrefixItemConditions)) return "compile_policy";

@@ -129,4 +129,10 @@ public sealed class TestGuardedPrefix : BunnyPrefix
     {
         conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);
     }
+
+    public override bool CanRoll(BunnyPrefixItemSnapshot item)
+        => item.Damage >= 20 && item.Stack > 0;
+
+    public override int RollChance(BunnyPrefixItemSnapshot item)
+        => item.Mana <= 8 ? 4 : 0;
 }

@@ -1372,13 +1372,13 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
-        if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        if((job.shooting||job.tile||job.prefix)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
     }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
-    } else if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled) {
+    } else if((job.shooting||job.tile||job.prefix)&&job.kind==2&&!job.completion->cancelled) {
         job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;

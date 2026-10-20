@@ -743,6 +743,9 @@ public abstract class BunnyPrefix
     public abstract void SetDefaults();
     public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
     public virtual void ConfigureItemConditions(BunnyPrefixItemConditions conditions) { }
+    public virtual bool CanRoll(BunnyPrefixItemSnapshot item) => true;
+    public virtual int RollChance(BunnyPrefixItemSnapshot item) =>
+        (int)System.MathF.Round(RollWeight);
     public virtual void SetStats(ref PrefixStats stats) { }
     public bool RequireEffectiveStats { get; set; } = true;
     public string ExtraTooltip { get; set; } = "";

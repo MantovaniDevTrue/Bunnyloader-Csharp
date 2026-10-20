@@ -1622,11 +1622,19 @@
       "values": [],
       "methods": [
         {
-          "signature": "string SerializeTooltipLines()",
-          "execution": "compile_policy"
+          "signature": "bool CanRoll(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "int RollChance(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
         },
         {
           "signature": "string SerializeTooltipItemLines()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeTooltipLines()",
           "execution": "compile_policy"
         },
         {
@@ -1732,6 +1740,24 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyPrefixItemSnapshot",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "bool Accessory { get; }",
+        "bool Consumable { get; }",
+        "bool Ranged { get; }",
+        "int CurrentPrefix { get; }",
+        "int Damage { get; }",
+        "int ItemType { get; }",
+        "int Mana { get; }",
+        "int Stack { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyPrefixRollRules",
       "kind": "class",
       "baseType": "System.Object",
@@ -1784,6 +1810,20 @@
         {
           "signature": "void SetWeight(string itemName, int weight)",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_dispatcher"
         }
       ]
     },
