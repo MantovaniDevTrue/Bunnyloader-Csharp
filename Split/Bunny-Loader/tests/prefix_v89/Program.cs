@@ -278,6 +278,29 @@ try
         throw new InvalidOperationException("Item prefix worker warmup failed: " + itemWarmup);
     const string itemState = "6207,22,4,1,98,4";
     if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 0, 3, itemState) != "-1" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 0, 3, "6207,22,4,2,98,4") != "73")
+        throw new InvalidOperationException("Dynamic item ChoosePrefix callback mismatch");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 1, 4, itemState) != "1" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 1, 4, "6207,12,4,1,98,4") != "0" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 2, 4, itemState) != "N")
+        throw new InvalidOperationException("Dynamic item PrefixChance tri-state mismatch");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 72, 5, itemState) != "3,15" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 74, 5, itemState) != "0,0")
+        throw new InvalidOperationException("Dynamic item ApplyPrefix result mismatch");
+    foreach (var invalid in new[] { (0,3,itemState), (3,4,itemState),
+                                    (0,5,itemState), (72,5,"bad") })
+        if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+            "prefix-fixture", args[0], "TestWand", invalid.Item1,
+            invalid.Item2, invalid.Item3).StartsWith("ERROR|"))
+            throw new InvalidOperationException("Malformed dynamic item callback accepted");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestWand", 0, 1, itemState + "|475063") != "011")
         throw new InvalidOperationException("Item prefix batch veto and allow mismatch");
     if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
