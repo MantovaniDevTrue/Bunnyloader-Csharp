@@ -68,9 +68,9 @@ public:
         } else if (state.generation <= retired_[slotIndex]) {
             return false;
         }
-        if (requests_.size() >= kPendingLimit && phase == 5) {
+        if (requests_.size() >= kPendingLimit && (phase == 5 || phase == 0)) {
             const auto evict = std::find_if(requests_.rbegin(), requests_.rend(),
-                [](const Request& queued) { return queued.phase != 5; });
+                [](const Request& queued) { return queued.phase != 5 && queued.phase != 0; });
             if (evict != requests_.rend()) {
                 const Request abandoned = *evict;
                 Slot& previous = slots_[static_cast<std::size_t>(abandoned.state.slot) *
@@ -101,11 +101,19 @@ public:
         slot.phase = phase;
         slot.frame = frame;
         const bool wasEmpty = requests_.empty();
-        if (phase == 5)
-            requests_.push_front({state, session_, frame, binding, phase});
-        else
-            requests_.push_back({state, session_, frame, binding, phase});
-        if (wake) *wake = wasEmpty || phase == 5;
+        Request request{state, session_, frame, binding, phase};
+        if (phase == 5) {
+            requests_.push_front(request);
+        } else if (phase == 0) {
+            const auto firstNormal = std::find_if(requests_.begin(), requests_.end(),
+                [](const Request& queued) {
+                    return queued.phase != 5 && queued.phase != 0;
+                });
+            requests_.insert(firstNormal, request);
+        } else {
+            requests_.push_back(request);
+        }
+        if (wake) *wake = wasEmpty || phase == 5 || phase == 0;
         return true;
     }
 
