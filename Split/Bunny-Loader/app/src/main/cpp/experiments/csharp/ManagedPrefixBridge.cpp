@@ -27,6 +27,8 @@ std::shared_ptr<const std::map<std::string,std::string>> g_callbackAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
 std::shared_ptr<const std::map<std::string,std::string>> g_itemCallbackAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
+std::shared_ptr<const std::vector<ManagedGlobalPrefixCallbackBinding>> g_globalCallbackView =
+    std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>();
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> g_itemCallbackView =
     std::make_shared<const std::map<int, ManagedItemPrefixCallbackBinding>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
@@ -203,6 +205,65 @@ bool bindManagedItemPrefixCallbackAssembly(
 std::shared_ptr<const std::map<std::string,std::string>>
 managedItemPrefixCallbackAssemblies() {
     return std::atomic_load_explicit(&g_itemCallbackAssemblies,std::memory_order_acquire);
+}
+
+bool applyManagedGlobalPrefixCallbackBindings(
+    const std::string& modId,
+    const std::vector<std::pair<std::string,int>>& policies) {
+    if (modId.empty() || modId.size()>128 || policies.size()>128) return false;
+    std::set<std::string> seen;
+    for (const auto& [owner, mask]:policies) {
+        if (owner.empty() || owner.size()>64 || mask<1 || mask>15 ||
+            !((owner[0]>='A'&&owner[0]<='Z') ||
+              (owner[0]>='a'&&owner[0]<='z') || owner[0]=='_') ||
+            !std::all_of(owner.begin(),owner.end(),[](unsigned char c) {
+                return (c>='A'&&c<='Z') || (c>='a'&&c<='z') ||
+                       (c>='0'&&c<='9') || c=='_';
+            }) || !seen.insert(owner).second) return false;
+    }
+    if(policies.empty())return true;
+    if(!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())
+        return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    const auto previous=std::atomic_load_explicit(&g_globalCallbackView,
+                                                   std::memory_order_acquire);
+    if(previous->size()+policies.size()>128)return false;
+    for(const auto& [owner,mask]:policies)
+        for(const auto& prior:*previous)
+            if(prior.modId==modId && prior.owner==owner)return false;
+    auto updated=std::make_shared<std::vector<ManagedGlobalPrefixCallbackBinding>>(*previous);
+    for(const auto& [owner,mask]:policies)
+        updated->push_back({modId,owner,mask});
+    std::shared_ptr<const std::vector<ManagedGlobalPrefixCallbackBinding>> published=updated;
+    std::atomic_store_explicit(&g_globalCallbackView,std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::vector<ManagedGlobalPrefixCallbackBinding>>
+managedGlobalPrefixCallbackView() {
+    return std::atomic_load_explicit(&g_globalCallbackView,std::memory_order_acquire);
+}
+
+bool bindManagedGlobalPrefixCallbackAssembly(const std::string& modId,
+                                              const std::string& assembly) {
+    if(modId.empty() || modId.size()>128 || assembly.empty() || assembly.size()>4096)
+        return false;
+    const auto globals=managedGlobalPrefixCallbackView();
+    for(const auto& owner:*globals)
+        if(owner.modId==modId &&
+           !queueManagedItemPrefixWarmup(modId,assembly,owner.owner))
+            return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    const auto previous=std::atomic_load_explicit(&g_itemCallbackAssemblies,
+                                                   std::memory_order_acquire);
+    if(previous->contains(modId))return previous->at(modId)==assembly;
+    auto updated=std::make_shared<std::map<std::string,std::string>>(*previous);
+    updated->emplace(modId,assembly);
+    std::shared_ptr<const std::map<std::string,std::string>> published=updated;
+    std::atomic_store_explicit(&g_itemCallbackAssemblies,std::move(published),
+                               std::memory_order_release);
+    return true;
 }
 
 bool applyManagedItemPrefixDenials(
