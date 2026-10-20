@@ -91,8 +91,11 @@ captura o tipo do item e o índice do jogador. A implementação
 identifica o item por `modItemTypeByKey(mod + "/" + name)`,
 admitindo apenas tipos realmente registrados pelo mod.
 A fila suporta até 64 bindings e 64 usos; sessões do mundo antigas
-não são reaproveitadas. Somente modos autoritativos 0/2/3 registram
-o evento. Itens que não sobrescrevem `OnUse` são ignorados.
+não são reaproveitadas. O host expõe `bunny_item_use_ready` para
+confirmar que o tipo de item foi resolvido e o hook instalado
+antes de o dispatcher C# começar a consumir eventos; testes cobrem
+respostas atrasadas de instalação. Somente modos autoritativos 0/2/3
+registram o evento. Itens que não sobrescrevem `OnUse` são ignorados.
 
 O novo `ExampleInvasionBeacon` é um `BunnyItem` não consumível com
 receita na bancada de trabalho usando 10 `ExampleItem`.
