@@ -30,6 +30,7 @@
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
+#include "experiments/csharp/NativeCommandManifest.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "mods/ModLoader.h"
@@ -784,6 +785,16 @@ void run() {
         std::string cacheReason=runtimeIdentity.empty()?"RuntimeIdentityUnavailable":"NotChecked";
         status.cached = !runtimeIdentity.empty() &&
             readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat, &cacheReason);
+        if (status.cached && mod.commands > 0) {
+            std::vector<NativeCommandSpec> cachedCommands;
+            std::string commandError;
+            if (!parseNativeCommandManifest(
+                    readText(assembly + ".commands", 96 * 1024), assembly,
+                    mod.commandClasses, &cachedCommands, &commandError)) {
+                status.cached = false;
+                cacheReason = "CommandManifest:" + commandError;
+            }
+        }
         std::string cacheWrite=status.cached?"NotNeeded":"Unavailable";
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         if (!status.cached) {
@@ -916,6 +927,19 @@ void run() {
         if (!parseCombat(mod.id, combat, mod, &effects)) {
             note(&status, "failed", "Tabela automatica OnHitNPC/OnKill invalida");
             continue;
+        }
+        if (mod.commands > 0) {
+            std::vector<NativeCommandSpec> commandSpecs;
+            std::string commandError;
+            if (!parseNativeCommandManifest(
+                    readText(assembly + ".commands", 96 * 1024), assembly,
+                    mod.commandClasses, &commandSpecs, &commandError) ||
+                !nativeCommandMailbox().registerMod(mod.id, commandSpecs, &commandError)) {
+                note(&status, "failed", "ModCommand: " + commandError);
+                continue;
+            }
+            BL_INFO("[CSharp][CommandLoader] Mod=%s Stage=Verified Commands=%d Names=%zu",
+                    mod.id.c_str(), mod.commands, commandSpecs.size());
         }
         status.curves = static_cast<int>(entries.size());
         for (const auto& effect : effects) {
@@ -1192,6 +1216,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    nativeCommandMailbox().newWorld();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1271,6 +1296,7 @@ void noteAutoGameUpdate() {
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        nativeCommandMailbox().newWorld();
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
