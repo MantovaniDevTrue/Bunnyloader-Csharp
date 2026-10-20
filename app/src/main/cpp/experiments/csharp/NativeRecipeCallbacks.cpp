@@ -204,7 +204,14 @@ void hkCraft(Il2CppObject* recipe,Il2CppObject* result,bool quick,const MethodIn
 void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){
     assemblyBindings.bind(mod,assembly);
 }
-void unbindNativeRecipeAssembly(const std::string& mod){assemblyBindings.unbind(mod);}
+void unbindNativeRecipeAssembly(const std::string& mod){
+    const std::string old=assemblyBindings.current(mod);
+    if(!old.empty() && managedRecipeRuntimeReady()) {
+        std::string response;
+        invokeManagedRecipe(mod,old,"__unload__",0,6,"",&response,1500);
+    }
+    assemblyBindings.unbind(mod);
+}
 bool isNativeRecipeAssemblyCurrent(const std::string& mod,const std::string& assembly){return currentManagedAssembly(mod,assembly);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
