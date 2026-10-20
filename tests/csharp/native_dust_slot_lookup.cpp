@@ -27,4 +27,14 @@ int main() {
     resolver.reset();
     assert(resolver.knownCount() == 0);
     assert(resolver.resolve(newWorld, 6, &value[6]) == 0);
+    resolver.reset();
+    resolver.remember(slots, 7, 4, &value[6]);
+    assert(resolver.knownCount() == 1);
+    assert(resolver.resolve(slots, 7, &value[6], -1) == 4);
+    int newDust = 9;
+    slots[4] = &newDust;
+    resolver.remember(slots, 7, 4, &newDust);
+    assert(resolver.knownCount() == 1);
+    assert(resolver.resolve(slots, 7, &newDust) == 4);
+    assert(resolver.resolve(slots, 7, &value[6]) == -1);
 }
