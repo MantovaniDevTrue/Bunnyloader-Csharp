@@ -87,7 +87,7 @@ int main(int argc,char** argv) {
  assert(!apply(2195,65536,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());
  trapField.flags=0x10;
  assert(!apply(2195,131072,&error)&&allZero());
- assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,65536,&error)&&allZero());
+ assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,131072,&error)&&allZero());
  auto& last=fields[&setsClass]["ChecksForMerge"];
  last.flags=0;assert(!apply(2195,512|16384,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());last.flags=0x10;
  last.type.cls=&integer;assert(!apply(2195,512|16384,&error)&&error.find("System.Int32")!=std::string::npos&&allZero());last.type.cls=&boolArray;
