@@ -118,7 +118,7 @@ public sealed class BunnyCommandRegistry
         ArgumentNullException.ThrowIfNull(assembly);
         Type[] types = assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
-                        typeof(BunnyCommand).IsAssignableFrom(t))
+                        (t.IsPublic || t.IsNestedPublic) && typeof(BunnyCommand).IsAssignableFrom(t))
             .OrderBy(t => t.FullName, StringComparer.Ordinal).ToArray();
         return RegisterTypes(modId, types);
     }
