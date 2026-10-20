@@ -303,6 +303,13 @@ int main() {
     assert((ids()==std::vector<int>{10,500,11,850}));
     assert(gFlags->length==851);
     gRack=correctRack;
+    auto& exports=bl::il2cpp::api();
+    const auto originalHandleNew=exports.gchandle_new;
+    exports.gchandle_new=nullptr;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851 && gRack->length==851 && gGcRoots.empty());
+    exports.gchandle_new=originalHandleNew;
     gFailIdsAllocation=true;
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11,850}));
