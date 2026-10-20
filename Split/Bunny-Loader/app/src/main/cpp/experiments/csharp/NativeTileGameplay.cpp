@@ -9,6 +9,7 @@
 #include "experiments/csharp/NativeTileDustPolicy.h"
 #include "experiments/csharp/NativeTileDropPolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeTileSaplingPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -160,6 +161,13 @@ bool g_killSoundInstalled=false;
 using PickaxeDamageFn=int32_t (*)(Il2CppObject*,int32_t,int32_t,int32_t,int32_t,uint32_t,const MethodInfo*);
 PickaxeDamageFn g_origPickaxeDamage=nullptr;
 bool g_miningInstalled=false;
+using SaplingAttemptFn=bool (*)(int32_t,int32_t,bool,int32_t,bool,const MethodInfo*);
+SaplingAttemptFn g_origSaplingAttempt=nullptr;
+const MethodInfo* g_saplingGrow=nullptr;
+const MethodInfo* g_saplingLos=nullptr;
+const MethodInfo* g_saplingFx=nullptr;
+FieldInfo* g_saplingNetMode=nullptr;
+bool g_saplingInstalled=false;
 FrameFn g_origFrame = nullptr;
 TileFrameFn g_originalTileFrame=nullptr;
 bool g_tileFrameCallbackInstalled=false;
@@ -1615,6 +1623,101 @@ bool setupNativeTileMiningHook() {
     return true;
 }
 
+bool saplingInvokeBool(const MethodInfo* method,void** args,bool* value) {
+    if(!method||!value)return false;
+    auto& a=il2cpp::api();
+    Il2CppObject* exc=nullptr;
+    Il2CppObject* result=a.runtime_invoke(method,nullptr,args,&exc);
+    if(exc||!result)return false;
+    *value=*reinterpret_cast<const uint8_t*>(reinterpret_cast<const char*>(result)+sizeof(Il2CppObject))!=0;
+    return true;
+}
+
+bool hkGrowSapling(int32_t x,int32_t y,bool underground,int32_t addon,
+                   bool ignoreWalls,const MethodInfo* method) {
+    if(!g_origSaplingAttempt)return false;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<28))==0)
+        return g_origSaplingAttempt(x,y,underground,addon,ignoreWalls,method);
+    const auto& spec=it->second.spec;
+    if(!tile_sapling::validInput(x,y,addon))return false;
+    auto& a=il2cpp::api();
+    int32_t mode=-1;
+    if(!g_saplingNetMode||!a.field_static_get_value)return false;
+    a.field_static_get_value(g_saplingNetMode,&mode);
+    if(mode==1||mode<0||mode>3)return false;
+    if(!managedTileReady(spec,28))return false;
+    std::string reply;
+    bool allow=false;
+    if(!invokeManagedTileSapling(spec.mod,spec.assembly,spec.name,x,y,
+        underground,addon,ignoreWalls,&reply,850)||
+       !tile_sapling::parseReply(reply,&allow)) {
+        reportTileCallbackFailure(spec,28,reply);
+        return false;
+    }
+    if(!allow)return false;
+    int32_t nativeX=x,nativeY=y,nativeAddon=addon;
+    bool nativeWalls=ignoreWalls;
+    void* growArgs[]={&nativeX,&nativeY,&nativeAddon,&nativeWalls};
+    bool grew=false;
+    if(!saplingInvokeBool(g_saplingGrow,growArgs,&grew)||!grew)return false;
+    void* fxArgs[]={&nativeX,&nativeY};
+    bool playerLos=false;
+    if(saplingInvokeBool(g_saplingLos,fxArgs,&playerLos)&&playerLos) {
+        Il2CppObject* exc=nullptr;
+        a.runtime_invoke(g_saplingFx,nullptr,fxArgs,&exc);
+        if(exc)reportTileCallbackFailure(spec,28,"Stage=TreeGrowFXCheck Exception=Native");
+    }
+    return true;
+}
+
+bool setupNativeTileSaplingHook() {
+    if(g_saplingInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.runtime_invoke||!a.field_static_get_value||
+       !a.method_get_param||!a.method_get_param_count||
+       !a.method_get_return_type||!a.method_is_instance||
+       !a.class_from_il2cpp_type||!a.class_is_valuetype||
+       !a.class_value_size)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    if(!world||!main)return false;
+    const auto* attempt=a.class_get_method_from_name(world,"AttemptToGrowTreeFromSapling",5);
+    const auto* grow=a.class_get_method_from_name(world,"GrowTree",4);
+    const auto* los=a.class_get_method_from_name(world,"PlayerLOS",2);
+    const auto* fx=a.class_get_method_from_name(world,"TreeGrowFXCheck",2);
+    const auto signature=[&](const MethodInfo* m,std::initializer_list<const char*> args,
+                             const char* result)->bool {
+        if(!m||a.method_is_instance(m)||a.method_get_param_count(m)!=args.size()||
+           !nameOf(a.method_get_return_type(m),result)||!il2cpp::methodPointer(m))
+           return false;
+        unsigned i=0;
+        for(const char* arg:args)
+            if(!nameOf(a.method_get_param(m,i++),arg))return false;
+        return true;
+    };
+    if(!signature(attempt,{"System.Int32","System.Int32","System.Boolean",
+                          "System.Int32","System.Boolean"},"System.Boolean")||
+       !signature(grow,{"System.Int32","System.Int32","System.Int32",
+                        "System.Boolean"},"System.Boolean")||
+       !signature(los,{"System.Int32","System.Int32"},"System.Boolean")||
+       !signature(fx,{"System.Int32","System.Int32"},"System.Void"))
+       return false;
+    std::string error;
+    FieldInfo* net=nullptr;
+    if(!il2cpp::nativeFieldContract(main,"netMode","System.Int32",true,4,
+                                     &net,nullptr,&error))return false;
+    for(const auto* method:{attempt,grow,los}) {
+        auto* cls=a.class_from_il2cpp_type(a.method_get_return_type(method));
+        uint32_t alignment=0;
+        if(!cls||!a.class_is_valuetype(cls)||a.class_value_size(cls,&alignment)!=1)return false;
+    }
+    g_saplingGrow=grow;g_saplingLos=los;g_saplingFx=fx;g_saplingNetMode=net;
+    if(!hook::install(attempt,hkGrowSapling,&g_origSaplingAttempt))return false;
+    g_saplingInstalled=true;
+    return true;
+}
+
 bool setupNativeTileKillSoundHook() {
     if(g_killSoundInstalled)return true;
     auto& a=il2cpp::api();
@@ -1800,6 +1903,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if((spec.callbackMask&(1<<21))&&!setupTileFrameCallbackHook())return false;
     if((spec.callbackMask&(1<<26))&&!setupNativeTileKillSoundHook())return false;
+    if((spec.callbackMask&(1<<28))&&!setupNativeTileSaplingHook()) {
+        BL_ERROR("[CSharp][GrowSapling] Mod=%s Class=%s Stage=BindNativeABI Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
                                  tile_toggle::allowsRightClick(spec.frameToggle),
                                 (spec.callbackMask&(1<<10))!=0))return false;

@@ -736,6 +736,21 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string growthYes = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,0,1,0");
+    string growthNo = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,1,1,0");
+    string growthBad = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,2,1,0");
+    string growthBounds = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,0,65,0");
+    if ((new TileSaplingSmoke().TileCallbackMask & (1 << 28)) == 0 ||
+        growthYes != "1" || growthNo != "0" ||
+        growthBad != "ERROR|Stage=DecodeGrowSapling Reason=InvalidBooleans" ||
+        growthBounds != "ERROR|Stage=DecodeGrowSapling Reason=TreeHeightOutOfBounds")
+        throw new InvalidOperationException("GrowSapling callback regression: " +
+            growthYes + " / " + growthNo + " / " + growthBad + " / " + growthBounds);
+    Console.WriteLine("BUNNY_CSHARP_GROW_SAPLING_TRANSPORT=PASS");
     var registeredDrop = new TileRegisteredDropSmoke();
     registeredDrop.SetStaticDefaults();
     if(registeredDrop.ItemDropDefinitions != "-1~ExampleTileItem;0~#40;1~ExampleChest" ||
@@ -908,6 +923,13 @@ finally
 }
 
 
+
+sealed class TileSaplingSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { }
+    public override bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)
+        => !underground && treeHeightAddon < 2 && !ignoreWalls;
+}
 
 sealed class TileRegisteredDropSmoke : BunnyLoader.Source.BunnyTile
 {

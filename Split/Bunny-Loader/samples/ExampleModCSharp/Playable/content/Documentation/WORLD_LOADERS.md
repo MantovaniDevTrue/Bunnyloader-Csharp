@@ -15,3 +15,8 @@ Roteiro Android, a executar somente quando o grupo for disponibilizado:
 5. Repetir com mods C#/JS habilitados juntos e ordem diferente de carregamento. Registrar versão, mod, ação, resultado e relatório.
 
 Esses comportamentos ainda aguardam teste no Terraria Android nesta revisão. Testes de host validam contratos e registro/serialização; não medem iluminação, frames ou FPS no telefone. Os roteiros dos outros quatro exemplos serão incluídos junto das implementações completas, sem testes substitutos com itens vanilla.
+
+
+## GrowSapling — callback parcial (não habilita árvores completas)
+
+`BunnyTile.GrowSapling(x, y, underground, treeHeightAddon, ignoreWalls)` recebe a tentativa de crescimento para um tile C# com override. Retornar `false` bloqueia; retornar `true` solicita o `WorldGen.GrowTree` nativo e só retorna sucesso do lado do jogo se ele realmente crescer. O SDK oferece o transporte e o hook somente com ABI validada, mas não configura automaticamente `TileObjectData` 1×2, terreno, `TreeSapling` ou o trunk do `TreeLoader`. Ainda não criar mods C# de árvores como se a fidelidade do ExampleSapling estivesse concluída.

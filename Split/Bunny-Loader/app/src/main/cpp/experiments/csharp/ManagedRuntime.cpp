@@ -2363,6 +2363,18 @@ bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     return invokeManagedCallback(false,mod,assembly,owner,callback,0,
         std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
 }
+bool invokeManagedTileSapling(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool underground,int addon,bool ignoreWalls,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000||addon< -64||addon>64) {
+        if(output)*output="ERROR|Stage=GrowSapling Reason=InvalidInput";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,28,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (underground?"1":"0")+","+std::to_string(addon)+","+
+        (ignoreWalls?"1":"0"),output,budgetMicroseconds,true);
+}
 bool invokeManagedTileDrops(const std::string& mod,const std::string& assembly,
     const std::string& owner,int x,int y,std::string* output,int budgetMicroseconds) {
     if(x<0||y<0||x>100000||y>100000) {

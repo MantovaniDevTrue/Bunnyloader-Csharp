@@ -2045,6 +2045,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)",
           "execution": "managed_helper"
         },

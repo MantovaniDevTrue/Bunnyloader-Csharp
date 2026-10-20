@@ -31,7 +31,8 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.HasSmartInteract), nameof(BunnyTile.TileFrame),
         nameof(BunnyTile.KillTile), nameof(BunnyTile.KillMultiTile),
         nameof(BunnyTile.NumDust), nameof(BunnyTile.CreateDust),
-        nameof(BunnyTile.KillSound), nameof(BunnyTile.GetItemDrops)
+        nameof(BunnyTile.KillSound), nameof(BunnyTile.GetItemDrops),
+        nameof(BunnyTile.GrowSapling)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -69,7 +70,7 @@ public static class BunnyTileRuntime {
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 || index == 25 || index == 26 ? 3 : index == 13 ? 12 :
-                index == 21 || index == 23 || index == 24 ? 4 : index == 22 ? 5 : 2;
+                index == 21 || index == 23 || index == 24 ? 4 : index == 22 || index == 28 ? 5 : 2;
             if (fields.Length != (index == 20 ? 6 : expected) && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
@@ -182,6 +183,14 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 28:
+                    if ((fields[2] != "0" && fields[2] != "1") ||
+                        (fields[4] != "0" && fields[4] != "1"))
+                        return "ERROR|Stage=DecodeGrowSapling Reason=InvalidBooleans";
+                    int saplingAddon = int.Parse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture);
+                    if (saplingAddon < -64 || saplingAddon > 64)
+                        return "ERROR|Stage=DecodeGrowSapling Reason=TreeHeightOutOfBounds";
+                    return tile.GrowSapling(x, y, fields[2] == "1", saplingAddon, fields[4] == "1") ? "1" : "0";
                 case 27:
                     var drops=tile.GetItemDrops(x,y);
                     if(drops==null)return "DEFAULT";

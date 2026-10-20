@@ -1144,6 +1144,7 @@ string Texture { get; set; }
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
 | `bool CreateDust(int x, int y, ref int type)` | managed_helper |
+| `bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)` | managed_helper |
 | `bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)` | managed_helper |
 | `bool KillSound(int x, int y, bool fail)` | managed_helper |
 | `bool PreDraw(int x, int y)` | managed_helper |
