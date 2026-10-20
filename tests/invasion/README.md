@@ -7,10 +7,11 @@ A fonte `Content/Systems/ExampleInvasion.cs` demonstra a API
 `ExampleSlimeNPC`, já existente no pacote. O controlador é testável e
 mantém progresso, limite de criaturas, cooldown e deduplicação de mortes.
 
-**Ainda não é uma invasão jogável.** O SDK e o adaptador nativo
-`NativeInvasionSpawn.cpp` já possuem implementação e testes separados,
-mas falta o canal de execução host ⇄ MonoVM e o ciclo automático
-de spawn. Nenhum arquivo deve virar APK antes do fechamento integral.
+**Ainda não é uma invasão jogável completa.** O canal host ⇄ MonoVM,
+a fila limitada de spawn, o agendamento periódico e o adaptador nativo
+estão implementados e passam na CI. Ainda faltam a invocação por item,
+persistência, estados de rede, conteúdo visual e validação no aparelho.
+Nenhum APK deve ser gerado antes do fechamento integral.
 
 ## Contrato obrigatório do host
 
@@ -76,10 +77,44 @@ O dispatcher gerenciado agora dispõe de um overload `TickNpc` de
 `ManagedEntityJob`. O caminho nativo usa a assinatura de 13 argumentos,
 enquanto o overload antigo de 12 permanece disponível a chamadas C#.
 
-**O canal host ⇄ MonoVM que conecta o pedido de spawn ao adaptador
-e devolve o resultado ainda falta.** A função nativa não está sendo
-invocada automaticamente. Também faltam item, UI, persistência e
-multiplayer verificado em aparelho.
+## Canal host ⇄ MonoVM (implementado)
+
+`BunnyInvasionSystem` é descoberto por reflexão no registro de NPCs
+do SDK. O `ExampleInvasionSystem` usa o controlador existente, sem
+JavaScript. A cada 30 quadros de mundo pronto, o host cria um job
+no worker MonoVM, que invoca `BunnyEntitySourceDispatcher.TickWorld`.
+Somente mods que possuem uma invasão continuam recebendo esses jobs:
+o retorno -2 remove permanentemente o polling desnecessário para
+mods sem invasão.
+
+O worker comunica com a biblioteca nativa por P/Invoke, usando
+`bunny_invasion_submit` e `bunny_invasion_poll`.
+`NativeInvasionMailbox.cpp` limita pedidos a 32 e respostas a 64,
+não transfere objetos IL2CPP entre threads, executa até dois spawns
+por atualização na thread do Terraria e limpa ambas as filas quando
+a sessão do mundo muda. O pedido leva `epoch`, `ticket` e
+`nativeWorldSession`; o resultado devolve `slot` e `nativeIdentity`.
+`ExampleSlimeNPC` tenta confirmar tanto no `OnSpawn` quanto nos
+ticks seguintes de IA, porque a resposta nativa pode chegar depois
+da primeira IA.
+
+A CI compila `ManagedRuntime.cpp` e `AutoSourceRuntime.cpp` com
+o compilador Android do NDK, **sem linkar aplicativo**, além de simular
+a cadeia C# → P/Invoke → C++ → P/Invoke → C# com uma biblioteca
+nativa de teste.
+
+O host móvel admite singleplayer (0) e host com jogador (3).
+O modo 2 ainda exige seleção de jogador válida em servidor dedicado;
+não há validação real no Android ou protocolo de multiplayer da invasão.
+
+**Pendências obrigatórias:** acionamento por item/receita e regras
+de início, geração em solo real sem prender inimigos, tratamento de
+eventos perdidos por fila de morte sob carga, persistência por mundo,
+sincronização host/cliente e entrada tardia, UI/avisos, efeitos,
+balanceamento, QA Android/host/cliente e revisão final de release.
+
+Atualmente cada mod C# aceita um `BunnyInvasionSystem`. Suporte a
+múltiplas invasões no mesmo mod continua pendente.
 
 ## Teste sem APK
 
@@ -90,10 +125,11 @@ dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration
 python3 tests/invasion/test_npc_hook_contract.py
 python3 tests/invasion/check_native_identity_bridge.py
 python3 tests/invasion/native_spawn_contract.py
+python3 tests/invasion/check_world_host_contract.py
 g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
 /tmp/bunny-invasion-authority
 ```
 
-A CI também compila o adaptador C++ contra os cabeçalhos reais do projeto.
-São testes estáticos/nativos e .NET; não executam Gradle, NDK nem
-empacotamento e não comprovam funcionamento no aparelho.
+A CI também compila os arquivos nativos contra os cabeçalhos reais e
+faz verificação de sintaxe Android com o NDK. Não executa Gradle,
+não gera APK e não comprova funcionamento no aparelho.
