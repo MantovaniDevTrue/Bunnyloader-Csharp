@@ -12,6 +12,9 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
         CacheDrawData=false;
         Shape=BunnyTileShape.Style3x2;
         FrameToggle=BunnyTileFrameToggle.CampfireVertical;
+        AnimationFrameHeight=36;
+        AnimationFrames=8;
+        AnimationFrameTicks=4;
         AddMapEntry(254,121,2,"Campfire Visual Probe");
     }
     public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b)
@@ -23,7 +26,8 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
                                      BunnyTileDrawContext draw)
     {
         if(frameY>=36)return;
-        int frame=(int)((Environment.TickCount64/68L)%8L);
+        int frame=draw.AnimationFrame;
+        if(frame<0)return;
         draw.DrawFlameTexture(frameX,frameY+frame*36,16,16,0,2,0x00ffffffu);
     }
     public override void EmitParticles(int x,int y,int frameX,int frameY,BunnyTileDrawContext draw)

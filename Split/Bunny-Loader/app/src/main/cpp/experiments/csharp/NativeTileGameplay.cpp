@@ -94,6 +94,7 @@ AnimateFn g_originalAnimate = nullptr;
 FieldInfo* g_frameArray = nullptr;
 FieldInfo* g_counterArray = nullptr;
 std::map<int, tile_animation::Policy> g_animatedTiles;
+std::array<std::atomic<int32_t>,65536> g_animatedDrawFrames{};
 thread_local int g_dustBudget = -1;
 thread_local int g_dustOwner = -1;
 thread_local bool g_frameCleanup = false;
@@ -218,10 +219,14 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
     const auto binding=g_managedDrawBindings.load(type);
     if(!binding || !managedTileReady(binding->spec,13))return false;
     const auto& spec=binding->spec;
+    int frameIndex=-1;
+    if(spec.animationFrames>1)
+        frameIndex=std::clamp(g_animatedDrawFrames[type].load(std::memory_order_relaxed),
+                              0,spec.animationFrames-1);
     char snapshot[192]{};
-    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+    const int length=std::snprintf(snapshot,sizeof(snapshot),"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
         x,y,data->frameX,data->frameY,data->width,data->height,
-        data->top,data->addFrX,data->addFrY,data->effects,special?1:0,type);
+        data->top,data->addFrX,data->addFrY,data->effects,special?1:0,type,frameIndex);
     if(length<=0||static_cast<size_t>(length)>=sizeof(snapshot))return false;
     std::string reply;
     if(!invokeManagedTileDraw(spec.mod,spec.assembly,spec.name,
@@ -653,12 +658,14 @@ void hkAnimateTiles(const MethodInfo* method) {
                        nextFrame>=0&&nextFrame<=127&&nextCounter>=0&&nextCounter<=600) {
                         frameValues[type]=nextFrame;
                         counterValues[type]=nextCounter;
+                        g_animatedDrawFrames[type].store(nextFrame,std::memory_order_relaxed);
                         continue;
                     }
                 }
             }
         }
         tile_animation::advance(frameValues[type], counterValues[type], policy);
+        g_animatedDrawFrames[type].store(frameValues[type],std::memory_order_relaxed);
     }
 }
 
@@ -1288,8 +1295,10 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     g_usesManagedLight|=(spec.callbackMask&(1<<6))!=0;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
         queueManagedTileWarmup(spec.mod,behavior.spec.assembly,spec.name);
-    if (spec.animationFrames > 1 || (spec.callbackMask & (1 << 12)))
+    if (spec.animationFrames > 1 || (spec.callbackMask & (1 << 12))) {
+        g_animatedDrawFrames[spec.type].store(0,std::memory_order_relaxed);
         g_animatedTiles[spec.type] = {spec.animationFrames, spec.animationFrameTicks};
+    }
     BL_DEBUG("[CSharp][Tile] %s/%s type=%d item=%d dust=%d shape=%d",
              spec.mod.c_str(), spec.name.c_str(), spec.type,
              behavior.itemType, behavior.dustType, spec.shape);

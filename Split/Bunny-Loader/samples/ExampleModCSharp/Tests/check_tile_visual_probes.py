@@ -36,6 +36,11 @@ for probe, original in TILES.items():
 
 camp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.cs").read_text()
 lamp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleLampVisualProbe.cs").read_text()
+assert "AnimationFrameHeight=36;" in camp
+assert "AnimationFrames=8;" in camp
+assert "AnimationFrameTicks=4;" in camp
+assert "int frame=draw.AnimationFrame;" in camp
+assert "Environment.TickCount64/68L" not in camp
 assert "DrawFlameTexture(frameX,frameY+frame*36" in camp
 assert "Random.Shared.Next(3)" in camp
 assert "DrawEffects(" in lamp and "RequestSpecialDraw()" in lamp

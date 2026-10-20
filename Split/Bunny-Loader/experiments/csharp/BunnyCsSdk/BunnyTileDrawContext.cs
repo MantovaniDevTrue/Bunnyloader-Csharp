@@ -14,6 +14,7 @@ public sealed class BunnyTileDrawContext {
     private int particleCount;
     private bool specialRequested;
     private bool specialPhase;
+    private int animationFrame=-1;
 
     private readonly struct Sprite {
         public readonly int FrameX, FrameY, Width, Height, OffsetX, OffsetY, Effects;
@@ -47,14 +48,18 @@ public sealed class BunnyTileDrawContext {
         Reset(tileType,cellX,cellY);
     }
 
-    internal void Reset(int tileType,int cellX,int cellY) {
+    internal void Reset(int tileType,int cellX,int cellY)
+        => Reset(tileType,cellX,cellY,-1);
+
+    internal void Reset(int tileType,int cellX,int cellY,int frame) {
         if(tileType < 754 || tileType > 65535 || cellX < 0 || cellY < 0 ||
-           cellX > 100000 || cellY > 100000)
+           cellX > 100000 || cellY > 100000 || frame < -1 || frame > 127)
             throw new ArgumentOutOfRangeException(nameof(tileType));
-        type=tileType; x=cellX; y=cellY; count=0;
+        type=tileType; x=cellX; y=cellY; count=0;animationFrame=frame;
         specialRequested=false; specialPhase=false;particleCount=0;
     }
 
+    public int AnimationFrame => animationFrame;
     public int Count => count;
     public int ParticleCount => particleCount;
 

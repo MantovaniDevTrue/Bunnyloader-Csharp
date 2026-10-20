@@ -65,7 +65,7 @@ public static class BunnyTileRuntime {
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
             int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
-            if (fields.Length != expected && !(index == 13 && fields.Length == 11))
+            if (fields.Length != expected && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
             int y = int.Parse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
@@ -83,8 +83,12 @@ public static class BunnyTileRuntime {
                 if (fields[10] != "0" && fields[10] != "1")
                     return "ERROR|Stage=DecodeTileDraw Reason=InvalidSpecialPass";
                 int sourceFrameX = frameX, sourceFrameY = frameY;
-                int tileType = fields.Length == 12
+                int tileType = fields.Length >= 12
                     ? int.Parse(fields[11], NumberStyles.Integer, CultureInfo.InvariantCulture) : -1;
+                int animationFrame = fields.Length == 13
+                    ? int.Parse(fields[12], NumberStyles.Integer, CultureInfo.InvariantCulture) : -1;
+                if (animationFrame < -1 || animationFrame > 127)
+                    return "ERROR|Stage=DecodeTileDraw Reason=InvalidAnimationFrame";
                 if (tileType != -1 && (tileType < 754 || tileType > 65535))
                     return "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType";
                 if ((mod.Masks[owner] & (1 << 13)) != 0)
@@ -110,7 +114,8 @@ public static class BunnyTileRuntime {
                         if (!mod.DrawContexts.TryGetValue(owner, out context)) {
                             context = new BunnyTileDrawContext(tileType, x, y);
                             mod.DrawContexts.Add(owner, context);
-                        } else context.Reset(tileType, x, y);
+                        }
+                        context.Reset(tileType, x, y, animationFrame);
                         if (hasPreDraw) drawDefault = tile.PreDraw(x, y, context);
                         if (hasDrawEffects) tile.DrawEffects(x, y, sourceFrameX, sourceFrameY, context);
                         if (hasParticles) tile.EmitParticles(x, y, sourceFrameX, sourceFrameY, context);
