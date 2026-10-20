@@ -104,6 +104,31 @@ Veja a [base para a API de modders](../../../../../docs/csharp-api-foundation-v7
 
 `ExampleGuardedPrefix` demonstra `ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)`. O snapshot imutável leva vida atual e vida máxima do jogador. O registro opt-in marca bit 32 em `PREFIX_CALLBACK`. O hook nativo mantém o bônus declarativo anterior e aplica o retorno gerenciado dentro de -100..100 quando o worker estiver pronto. O resultado é guardado por jogador/prefixo/vida durante no máximo 250 ms, com tentativa global limitada a uma a cada 150 ms por thread e espera individual de no máximo 650 µs. Indisponibilidade de campos, worker ocupado, timeout e payload inválido mantêm somente o bônus declarativo. Nenhum objeto `Player` IL2CPP é passado ao MonoVM. Ainda não há equivalência geral a `ApplyAccessoryEffects(player)` do Bunny JavaScript, nem validação de FPS ou multiplayer no aparelho.
 
+## Prefixo de item em C# — escolha, chance e efeitos dinâmicos
+
+As classes `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion` oferecem três novos métodos opt-in além de `AllowPrefix(BunnyPrefixItemSnapshot,int)`:
+
+```csharp
+public override int ChoosePrefix(BunnyPrefixItemSnapshot item)
+    => item.Stack == 2 ? 73 : -1;
+
+public override bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)
+    => request == -1 ? item.Damage >= 20 : null;
+
+public override void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)
+{
+    if (prefix == 72 && item.Damage >= 20)
+    {
+        effects.DamageBonus = 3;
+        effects.ValueBonus = 15;
+    }
+}
+```
+
+São exemplos do fixture C#; não alteram os valores dos itens jogáveis. O compilador reconhece overrides reais, registra `ITEM_PREFIX_CALLBACK` sem depender do JavaScript, o worker MonoVM resolve a classe e executa `ChoosePrefix` (tipo 3), `DecidePrefixChance` (tipo 4) e `ApplyPrefix` por instância (tipo 5). A integração nativa preserva o fluxo de reforja, vetos explícitos e o contador de RPC: até 4 por operação, prazo individual de 650 microssegundos, total de 2,5 ms.
+
+A escolha retorna -1 quando não há preferência; um valor positivo precisa estar entre 1 e 255 e passar por elegibilidade. A chance é `null` (decisão nativa), `false` (veto) ou `true` (forçar tentativa, sem ignorar filtros). O efeito soma somente bônus positivos validados de dano e valor após a aplicação do prefixo. O callback `ApplyPrefix(ref BunnyPrefixApplyStats)` continua como política estática compilada. O snapshot não contém RNG nativo, mundo ou objetos mutáveis: esta API **não** equivale a `GlobalItem` nem a todas as assinaturas do JavaScript original. Gameplay Android, persistência e FPS continuam sem certificação.
+
 ## Item AllowPrefix em C# — worker ligado aos hooks (experimental)
 
 As quatro famílias `BunnyItem`, `BunnyWeapon`, `BunnyAccessory` e `BunnyBuffPotion` oferecem `AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` como override opt-in. O exemplo jogável `ExampleWand` veta o prefixo vanilla 74 quando o dano atual é inferior a 20. O compilador emite `ITEM_PREFIX_CALLBACK` apenas quando encontra um override concreto. O loader valida o item, tipo, máscara e duplicatas; o bridge publica por snapshot imutável a identidade mod/classe, e o startup vincula o assembly e agenda warmup independente.
