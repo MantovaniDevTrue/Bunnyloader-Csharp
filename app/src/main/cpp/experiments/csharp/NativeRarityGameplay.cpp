@@ -889,10 +889,17 @@ void pumpNativeRarityGameplay() {
     }
     if (g_hookReady.load(std::memory_order_acquire) &&
         !g_groundTextHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+        static std::string previousGroundTextError;
         std::string error;
-        if (!installRarityGroundTextHook(&error) && g_tick % 600u == 0)
-            BL_WARN("[CSharp][RarityLoader] Stage=InstallGroundText Result=Pending Detail=%s",
-                error.c_str());
+        if (!installRarityGroundTextHook(&error)) {
+            if (error != previousGroundTextError) {
+                BL_WARN("[CSharp][RarityLoader] Stage=InstallGroundText Result=Pending Detail=%s",
+                    error.c_str());
+                previousGroundTextError = error;
+            }
+        } else {
+            previousGroundTextError.clear();
+        }
     }
     if (g_groundTextHookReady.load(std::memory_order_acquire) &&
         !g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
