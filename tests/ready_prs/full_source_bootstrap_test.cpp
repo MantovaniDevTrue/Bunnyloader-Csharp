@@ -23,6 +23,19 @@ int main(int argc, char** argv) {
         ++files;
     }
     assert(files >= 93);
+    assert(std::any_of(types.begin(), types.end(), [](const auto& type) {
+        return type.name == "ExampleHigherTierModRarity" && type.base == "BunnyRarity";
+    }));
+    std::ifstream registrationSource("app/src/main/cpp/experiments/csharp/SourceLoader.cpp");
+    assert(registrationSource.good());
+    const std::string registrationText((std::istreambuf_iterator<char>(registrationSource)), {});
+    const std::string rarityMarker = "++status->rarities;";
+    const size_t rarityOffset = registrationText.find(rarityMarker);
+    assert(rarityOffset != std::string::npos);
+    const size_t nextStatement = registrationText.find_first_not_of(" \t\r\n",
+        rarityOffset + rarityMarker.size());
+    assert(nextStatement != std::string::npos);
+    assert(registrationText.compare(nextStatement, 9, "continue;") == 0);
     size_t checked = 0;
     std::map<std::string, std::string> targets;
     for (const auto& type : types) {
