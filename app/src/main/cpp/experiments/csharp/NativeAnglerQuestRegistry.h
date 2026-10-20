@@ -197,9 +197,9 @@ public:
         return location.empty() ? description : description + "\n\n(" + location + ")";
     }
 
-    template<typename Swap, typename ReadType, typename Finished>
+    template<typename Swap, typename ReadType, typename Finished, typename Available>
     static int reroll(Swap&& swap, ReadType&& current, Finished&& finished,
-                      const std::vector<Quest>& quests, bool hardmode) {
+                      const std::vector<Quest>& quests, bool hardmode, Available&& available) {
         for (int retries = 0; retries < 50; ++retries) {
             if (finished()) break;
             const int type = current();
@@ -210,6 +210,14 @@ public:
             if (retries == 49) return 50;
         }
         return 0;
+    }
+
+    template<typename Swap, typename ReadType, typename Finished>
+    static int reroll(Swap&& swap, ReadType&& current, Finished&& finished,
+                      const std::vector<Quest>& quests, bool hardmode) {
+        return reroll(std::forward<Swap>(swap),std::forward<ReadType>(current),
+                      std::forward<Finished>(finished),quests,hardmode,
+                      [](const Quest& quest,bool mode) { return Registry::available(quest,mode); });
     }
 
 private:
