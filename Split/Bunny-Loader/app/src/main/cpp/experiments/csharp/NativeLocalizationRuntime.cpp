@@ -196,11 +196,12 @@ bool removeRetiredKeys(Il2CppObject* manager, const SessionSnapshot& current,
                        const std::set<std::string>& createdExternalKeys) {
     if (current.retired.empty()) return true;
     if (!safeToRetireAll(current, createdExternalKeys)) return false;
-    static bool unsupported=false;
-    if (unsupported) return true;
+    static bool warned=false;
     const auto disable=[]() {
-        unsupported=true;
-        BL_WARN("[CSharp][Localization] Stage=Unload Result=NeutralOnly Reason=MissingNativeRemove");
+        if (!warned) {
+            warned=true;
+            BL_WARN("[CSharp][Localization] Stage=Unload Result=NeutralOnly Reason=MissingNativeRemove");
+        }
         return true;
     };
     auto& api=il2cpp::api();
