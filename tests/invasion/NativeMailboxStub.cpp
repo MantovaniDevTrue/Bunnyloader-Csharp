@@ -102,3 +102,10 @@ extern "C" int bunny_invasion_net_poll(int64_t session, const char* mod,
     (void)capacity;
     return 0;
 }
+
+extern "C" int bunny_invasion_hud_publish(int64_t session, const char* mod,
+                                           const char* id, int phase,
+                                           int progress, int goal) {
+    return session > 0 && mod && id && phase >= 0 && phase <= 2 &&
+        goal > 0 && progress >= 0 && progress <= goal ? 1 : 0;
+}
