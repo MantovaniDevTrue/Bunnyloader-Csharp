@@ -43,7 +43,7 @@
             "tests/world_loaders/tile_dust_callback_test.cpp"
           ],
           "missing": [
-            "Callbacks TileFrame, KillTile, KillMultiTile, NumDust e CreateDust C# implementados; pendentes KillSound, drops customizados, GrowSapling, resting, baús e PlaceInWorld com item. Validar tudo no Terraria Android.",
+            "Hooks C# de TileFrame, KillTile, KillMultiTile, NumDust, CreateDust e KillSound implementados; ainda faltam drops customizados, GrowSapling, resting, baús e PlaceInWorld com item, além de ABI e gameplay no Android.",
             "Completar paridade do contexto HasSmartInteract além de LX/LY/HX/HY e validar o orçamento de 8 callbacks por varredura, renderização, sincronização de frames, persistência e multiplayer no Terraria Android."
           ],
           "android": "pending",

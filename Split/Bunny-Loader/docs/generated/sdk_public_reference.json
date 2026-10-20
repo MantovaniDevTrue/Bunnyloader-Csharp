@@ -2042,6 +2042,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool KillSound(int x, int y, bool fail)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool PreDraw(int x, int y)",
           "execution": "managed_helper"
         },

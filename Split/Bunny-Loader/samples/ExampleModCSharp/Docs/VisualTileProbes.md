@@ -54,3 +54,7 @@ O contrato `ModTile.HasSmartInteract(i,j,settings)` agora aceita um override C# 
 ## Dust de quebra C#
 
 `NumDust(int x,int y,bool fail,ref int num)` modifica a quantidade de poeira por quebra sem perder o default `NumDust(bool fail)` do compilador. `CreateDust(int x,int y,ref int type)` modifica o tipo ou cancela a poeira, exatamente como no exemplo original. A política valida quantidade entre 0 e 20 e `DustID` -1..1999; callbacks executam somente com override, worker preparado e deadline de 700/450 µs. Em timeout ou falha, o efeito nativo preexistente continua. Pendente teste Android.
+
+## KillSound nativo
+
+`BunnyTile.KillSound(int x,int y,bool fail)` foi associado a `WorldGen.KillTile_PlaySounds` pelo ABI exato de quatro argumentos (`Tile` de quatro bytes). Retorna `false` para suprimir o som; `true` mantém a função original. Só instala o hook quando o callback C# foi sobrescrito, usa orçamento de 650 µs e executa o som original em caso de worker ocupado ou resposta inválida. `HitSound` com estilo próprio continua pendente; validação Android também.
