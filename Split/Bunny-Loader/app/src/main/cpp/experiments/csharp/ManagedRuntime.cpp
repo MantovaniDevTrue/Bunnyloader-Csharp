@@ -307,6 +307,7 @@ std::chrono::steady_clock::time_point g_nextLocalizationPoll{};
 ManagedLocalizationEpochFence g_localizationEpochFence;
 void* g_localizationDispatchMethod = nullptr;
 void* g_localizationDrainMethod = nullptr;
+void* g_localizationAckMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
 std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
@@ -1445,7 +1446,7 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
         !g_api.findMethod || !g_api.newString || !g_api.invoke) return "PENDING|MonoNotReady";
     if (!g_api.attach(g_domain)) return "ERROR|MonoAttachFailed";
     if (!g_localizationDispatchMethod || !g_localizationUnloadMethod ||
-        !g_localizationDrainMethod) {
+        !g_localizationDrainMethod || !g_localizationAckMethod) {
         const auto slash = g_checkpointPath.find_last_of('/');
         if (slash == std::string::npos) return "ERROR|InvalidSdkPath";
         const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
@@ -1456,9 +1457,10 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
         if (!klass) return "ERROR|MissingLocalizationRuntime";
         g_localizationDispatchMethod = g_api.findMethod(klass, "Dispatch", 3);
         g_localizationDrainMethod = g_api.findMethod(klass, "Drain", 3);
+        g_localizationAckMethod = g_api.findMethod(klass, "Acknowledge", 4);
         g_localizationUnloadMethod = g_api.findMethod(klass, "Unload", 1);
         if (!g_localizationDispatchMethod || !g_localizationDrainMethod ||
-            !g_localizationUnloadMethod)
+            !g_localizationUnloadMethod || !g_localizationAckMethod)
             return "ERROR|MissingLocalizationMethods";
     }
     void* id = g_api.newString(g_domain, job.modId.c_str());
@@ -1487,6 +1489,23 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
     std::string result = length <= 262144 ? std::string(text, length) : "ERROR|ResponseTooLarge";
     release(text);
     return result;
+}
+
+bool acknowledgeManagedLocalizationOnWorker(const LocalizationJob& job,
+                                          const std::string& wire) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_api.attach || !g_api.newString || !g_api.invoke ||
+        !g_localizationAckMethod || !g_api.attach(g_domain)) return false;
+    void* args[] = {
+        g_api.newString(g_domain, job.modId.c_str()),
+        g_api.newString(g_domain, job.assemblyPath.c_str()),
+        g_api.newString(g_domain, job.culture.c_str()),
+        g_api.newString(g_domain, wire.c_str())
+    };
+    for (void* arg : args) if (!arg) return false;
+    void* exception = nullptr;
+    return g_api.invoke(g_localizationAckMethod, nullptr, args, &exception) != nullptr &&
+           exception == nullptr;
 }
 
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
@@ -1611,6 +1630,8 @@ void* pinnedMonoWorker(void*) {
                         if (!sink || !sink(job.modId, job.assemblyPath, job.culture,
                                            job.generation, result))
                             result = "ERROR|DynamicWireRejectedOrStale";
+                        else if (!acknowledgeManagedLocalizationOnWorker(job, result))
+                            result = "ERROR|DynamicWireAckFailed";
                     }
                     if (result.rfind("OK|", 0) != 0 && result != "UNCHANGED") {
 #ifdef __ANDROID__
