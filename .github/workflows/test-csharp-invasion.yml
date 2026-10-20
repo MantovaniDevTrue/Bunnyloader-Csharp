@@ -6,6 +6,10 @@ on:
       - feat/csharp-example-invasion-20261019
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
+      - app/src/main/cpp/experiments/csharp/NpcAiHost.cpp
+      - app/src/main/cpp/experiments/csharp/WorldAuthority.h
+      - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
+      - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs
       - tests/invasion/**
       - .github/workflows/test-csharp-invasion.yml
   workflow_dispatch:
@@ -29,3 +33,9 @@ jobs:
         run: dotnet run --project tests/invasion/Invasion.csproj --configuration Release
       - name: Compile ExampleInvasion source without Android toolchain
         run: dotnet build tests/invasion/SampleCompile.csproj --configuration Release
+      - name: Test actual Bunny NPC dispatcher and ExampleInvasion integration
+        run: dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release
+      - name: Validate CSharp NPC world authority in native C++
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
+          /tmp/bunny-invasion-authority
