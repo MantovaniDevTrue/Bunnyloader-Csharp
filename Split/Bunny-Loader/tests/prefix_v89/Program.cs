@@ -284,8 +284,15 @@ try
     if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestGuardedPrefix", 0, 1, "6207,22,9,1,98,1") != "0")
         throw new InvalidOperationException("Managed prefix RollChance mana rejection failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 1, "6207,-1,4,1,98,1") != "4")
+        throw new InvalidOperationException("Damage -1 accessory snapshot was rejected");
+    if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 0, "6207,-1,4,1,98,0")
+        .StartsWith("ERROR|"))
+        throw new InvalidOperationException("Damage -1 non-accessory was accepted");
     foreach (string bad in new[] { "6207,22,4,1,98", "6207,22,4,1,98,8",
-                                  "6207,-1,4,1,98,1", "6207,22,4,1,256,1" })
+                                  "6207,-2,4,1,98,1", "6207,22,4,1,256,1" })
         if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
             "prefix-fixture", args[0], "TestGuardedPrefix", 0, 0, bad).StartsWith("ERROR|"))
             throw new InvalidOperationException("Malformed managed prefix item snapshot accepted");

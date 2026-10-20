@@ -52,9 +52,13 @@ public static class BunnyPrefixRuntime
         if(fields.Length!=6)throw new ArgumentException("Expected six prefix item fields");
         Span<int> values=stackalloc int[6];
         for(int i=0;i<6;i++)
+        {
+            if(i==1&&fields[i]=="-1") { values[i]=-1;continue; }
             if(!int.TryParse(fields[i],NumberStyles.None,CultureInfo.InvariantCulture,out values[i]))
                 throw new ArgumentException("Invalid prefix item numeric field");
+        }
         if(values[0]<1||values[0]>1000000||values[1]>100000||
+           (values[1]<0&&(values[5]&1)==0)||
            values[2]>10000||values[3]>999999||values[4]>255||values[5]>7)
             throw new ArgumentException("Prefix item snapshot out of bounds");
         return new(values[0],values[1],values[2],values[3],values[4],values[5]);
