@@ -108,6 +108,33 @@ jobs:
             /tmp/bunny-sound-arm64/ManagedSoundLoader-qjs0.o | grep 'bunny_csharp_sound_register'
           echo 'CSHARP_SOUNDLOADER_ANDROID_ARM64_NATIVE_OBJECT_COMPILE_PASS_NO_APK'
 
+  native-android-link:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Link complete production native Android binaries only
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-34"
+          gradle :app:externalNativeBuildDebug --no-daemon -Pbl.uiOnly=true
+          find app/build -type f -name libbunny.so -size +0c | grep -q libbunny.so
+          if find app/build -name '*.apk' -print | grep -q .; then
+            echo "BLOQUEADO: build de APK detectado" >&2
+            exit 1
+          fi
+          echo 'CSHARP_SOUNDLOADER_FULL_ANDROID_NATIVE_LINK_PASS_NO_APK'
+
   managed-sdk:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -177,7 +204,7 @@ jobs:
           retention-days: 7
 
   stage-managed-sdk:
-    needs: [native-host, native-arm64-object, managed-sdk]
+    needs: [native-host, native-arm64-object, native-android-link, managed-sdk]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
