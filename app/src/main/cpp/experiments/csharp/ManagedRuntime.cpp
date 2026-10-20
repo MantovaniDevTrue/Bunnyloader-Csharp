@@ -1949,10 +1949,13 @@ void* pinnedMonoWorker(void*) {
                         uint32_t callbackFlags = 0;
                         const auto& job = dustJobs[i];
                         const uint64_t now = g_dustGameFrame.load(std::memory_order_acquire);
-                        if (now >= job.frame &&
-                            now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames &&
+                        const bool timely = job.phase == 5 ||
+                            (now >= job.frame &&
+                             now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames);
+                        const bool invoked = timely &&
                             executeManagedDustOnWorker(job.binding, &job,
-                                                       &updated, &callbackFlags)) {
+                                                       &updated, &callbackFlags);
+                        if (invoked && job.phase != 5) {
                             if (!g_dustMailbox.complete(job, updated, callbackFlags))
                                 g_dustMailbox.discard(job);
                         } else {
