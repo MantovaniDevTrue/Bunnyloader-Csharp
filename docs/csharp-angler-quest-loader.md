@@ -27,6 +27,7 @@ O sprite do peixe mantém o mesmo blob original.
 | Ordenação canônica dos peixes C# entre cliente/host | Ordem estável por mod/classe, inclusive com cargas invertidas e incrementais; host validado |
 | Ciclo `mods::loadAll` e substituição da fonte C# | Limpeza dos registros de quests da sessão anterior; testes de C# puro/misto |
 | `netMode` 0/1/2/3 | O cliente não refaz sorteio autoritativo; testes host aprovados |
+| Manifest de compatibilidade | Hash FNV-1a determinístico de mod, classe, tipo de peixe, fases e políticas; calculado no registro e registrado uma vez por atualização |
 | Multiplayer e persistência de missão em dispositivos reais | Ainda não validados |
 | Hot-unload de todos os tipos de conteúdo C# | Ainda não concluído |
 | Terraria Android, crash-free e 60 FPS | Ainda não testados |
@@ -48,7 +49,7 @@ Peixes sem `QUEST_CATCH`, sem `QuestCatchRules` e sem `QuestCanCatchWhen` não a
 
 A localização aceita até oito culturas por peixe com textos UTF-8 de até 512 bytes. A cultura ativa é resolvida via IL2CPP, com fallback por idioma e para inglês.
 
-As funções de sorteio, diálogo e pesca verificam a geração publicada do registro, recusando usar descritores antigos imediatamente após remover um mod ou invalidar um mundo. Durante a transição de mundo, as flags nativas são reavaliadas separadamente por tabela: se o Terraria substituiu a tabela por outra instância, a restauração passa a respeitar os valores que já existiam na nova tabela, e não os do mundo anterior.
+As funções de sorteio, diálogo e pesca verificam a geração publicada do registro, recusando usar descritores antigos imediatamente após remover um mod ou invalidar um mundo. O hook de pesca também valida a instância atual de `Main.player` como array de referências `Terraria.Player` de rank 1, no máximo 256 posições, e verifica o tipo concreto do jogador antes de ler `gravDir`. Durante a transição de mundo, as flags nativas são reavaliadas separadamente por tabela: se o Terraria substituiu a tabela por outra instância, a restauração passa a respeitar os valores que já existiam na nova tabela, e não os do mundo anterior.
 
 As tabelas nativas agora são conferidas com o validador original `il2cpp::nativeArrayContract` antes de ler os IDs da missão ou o diálogo e antes de atualizar `IsQuestFish` ou `CanBePlacedOnWeaponRacks`. O validador confirma tipo do elemento, rank do array, largura do valor e limite de entradas. Arrays incompatíveis são rejeitados sem mutação dos dados. A suíte host injeta tabelas `Boolean[]` no campo de IDs e `Int32[]` em flags para verificar essa proteção.
 
@@ -58,13 +59,15 @@ A atualização das tabelas possui **preparação antes do commit**: a lista de 
 
 ## Garantias e limites de multiplayer
 
-A lista de missões C# é ordenada por identidade do mod e nome da classe, independentemente da ordem em que cada compilação terminar. O reconciliador preserva as entradas vanilla e de mods JS na ordem em que o Terraria as fornece e remapeia a seleção pelo **tipo real do peixe**, evitando deslocamentos indevidos dos índices. O registro publica o conjunto de peixes junto à sua revisão sob o mesmo lock; após callbacks longos, os hooks confirmam novamente que a revisão ainda está válida. Esses mecanismos foram verificados no host, inclusive com mil publicações concorrentes e descarregamento durante callbacks.
+A lista de missões C# é ordenada por identidade do mod e nome da classe, independentemente da ordem em que cada compilação terminar. Durante troca de mundo, se `Main.anglerQuestItemNetIDs` for substituído pelo Terraria, o reconciliador não remove IDs da nova tabela usando propriedade da sessão anterior. Mantém a escolha pelo **tipo de peixe**, mesmo que o índice tenha mudado; os dados persistentes de missão continuam sendo os campos nativos do Terraria, não um salvamento paralelo C#. O reconciliador preserva as entradas vanilla e de mods JS na ordem em que o Terraria as fornece e remapeia a seleção pelo **tipo real do peixe**, evitando deslocamentos indevidos dos índices. O registro publica o conjunto de peixes junto à sua revisão sob o mesmo lock; após callbacks longos, os hooks confirmam novamente que a revisão ainda está válida. Esses mecanismos foram verificados no host, inclusive com mil publicações concorrentes e descarregamento durante callbacks.
+
+**Compatibilidade multiplayer:** a mensagem `Stage=Ready` inclui `Manifest=<hex>` com hash ordenado das identidades, IDs e regras de todos os peixes C# locais. Dois pares com manifest diferente têm configurações incompatíveis; o hash é apenas **diagnóstico**, não autenticação ou handshake. O hash igual também não confirma sozinho sincronização ou compatibilidade dos demais itens/NPCs do mod. A infraestrutura nativa encontrada não fornece handshake C# pronto, portanto nenhum pacote de rede novo ou API imaginária foi instalado.
 
 `Main.netMode` é campo obrigatório do hook nativo: 0 solo, 1 cliente, 2 servidor, 3 host. O cliente só chama o sorteio vanilla; servidor e host podem rejeitar peixes indisponíveis. A lista e o diálogo podem ser reconstruídos no cliente, mas **sincronização completa e persistência da quest em sessões multiplayer reais ainda precisam de teste e revisão**.
 
 Um novo `mods::loadAll` remove quests de fontes C# antigas e limpa seus registros de carregamento. O vínculo de callbacks nativos com o assembly também é removido; após o novo bind, o caminho do assembly recebe uma **revisão por mod** (`|bunny-revision=N`) para que o worker Mono reconheça uma compilação nova mesmo quando o arquivo continua no mesmo caminho. Os caches de receitas e predicados do Pescador são reconstruídos para a revisão seguinte. Isso foi verificado no host com revisões sucessivas e identificadores inválidos.
 
-O vínculo do assembly é confirmado **antes de o worker Mono iniciar a execução** e novamente **depois** de cada resposta gerenciada de receitas e condições do Pescador. Uma solicitação enfileirada para uma revisão antiga não deve executar o callback gerenciado. Se a revisão mudar durante a execução, a resposta antiga é descartada sem efeitos nativos. O registro de revisões está isolado em `ManagedAssemblyBindings.h`, com teste host que abrange recarga no mesmo caminho, remoção, dois mods independentes e mil ciclos concorrentes. Isso não interrompe uma chamada Mono que já esteja executando; a corrida de threads real no Android ainda requer QA.
+O vínculo do assembly é confirmado **antes de o worker Mono iniciar a execução** e novamente **depois** de cada resposta gerenciada de receitas e condições do Pescador. O descarregamento do mod tenta, em até 1500 µs, enviar um comando interno `kind=6` ao worker para limpar os caches de receitas e delegates dos peixes; o comando valida a revisão ativa, não limpa outros mods e rejeita requisições antigas ou malformadas. Se a limpeza não executar a tempo, o próximo bind força a expulsão dos handlers antigos. Isso não descarrega assemblies do domínio Mono. Uma solicitação enfileirada para uma revisão antiga não deve executar o callback gerenciado. Se a revisão mudar durante a execução, a resposta antiga é descartada sem efeitos nativos. O registro de revisões está isolado em `ManagedAssemblyBindings.h`, com teste host que abrange recarga no mesmo caminho, remoção, dois mods independentes e mil ciclos concorrentes. Isso não interrompe uma chamada Mono que já esteja executando; a corrida de threads real no Android ainda requer QA.
 
 Essa operação **não descarrega assemblies antigos da memória do Mono** nem remove automaticamente todos os itens, NPCs ou projéteis do mundo em execução. O hot-unload completo continua pendente.
 
@@ -76,12 +79,13 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador) e callbacks dinâmicos válidos/inválidos.
 - Testes de arrays IL2CPP falsos rejeitados antes de atualizar IDs/flags, e teste gerenciado de peixe herdado com `[BunnyContent]`.
 - Testes de GCHandle nativo: nenhuma publicação de array sem raiz; falha da API, falhas intermediárias, cleanup de todos os handles e retry bem-sucedido.
+- Testes de `Main.player` inválido, preservação de índice selecionado em uma nova tabela de mundo, fingerprints com ordem de mods invertida e limpeza de handlers C# sem interferir em outro mod.
 - Regressão de descarregamento com hook já instalado, transição de mundo com tabelas substituídas e teto de quatro chamadas gerenciadas por sorteio.
 - Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 - Compilação de sintaxe do próprio `ManagedRuntime.cpp` e teste host isolado de descarregamento/recarga de assemblies nativos com mil ciclos concorrentes.
 
-**CI completo aprovado:** [Actions #39355295077](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39355295077). Jobs `native-host` e `managed-host` concluídos com sucesso, incluindo os testes GCHandle, compilador, callbacks e regressões de ciclo de vida.
+**CI completo aprovado:** [Actions #39356898050](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39356898050). Jobs `native-host` e `managed-host` concluídos com sucesso, incluindo validação do array de jogadores, seleção da missão entre mundos, manifest de compatibilidade e limpeza explícita de caches C#.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
