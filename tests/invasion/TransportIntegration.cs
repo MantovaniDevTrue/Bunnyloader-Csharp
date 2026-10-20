@@ -10,6 +10,10 @@ internal static class TransportIntegration
     [DllImport("bunny", EntryPoint = "bunny_invasion_test_pump")]
     private static extern void PumpNative();
 
+    [DllImport("bunny", EntryPoint = "bunny_invasion_test_world_restore")]
+    private static extern void SetWorldRestore(int ready, long session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+
     [DllImport("bunny", EntryPoint = "bunny_item_use_test_inject")]
     private static extern void InjectItemUse(int playerIndex);
 
@@ -65,6 +69,8 @@ internal static class TransportIntegration
             ExampleInvasion.Pipeline.PendingCount == 0, "real NPC OnSpawn confirms identity");
         Check(BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50) &&
             ExampleInvasion.Controller.Progress == 1, "real kill scores once");
+        Check(System.IO.File.Exists("/tmp/bunny-invasion-ci-11.wld.invasions.bl"),
+            "real native sidecar written immediately on NPC kill");
         Check(!BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50),
             "double kill ignored");
 
@@ -81,6 +87,15 @@ internal static class TransportIntegration
         SetWorld(1, 13);
         Check(Tick(mod, 13) == 0 && ExampleInvasion.Pipeline.PendingCount == 0,
             "old world queued spawn discarded");
+        SetWorldRestore(1, 20, "/tmp/bunny-invasion-ci-11.wld");
+        Tick(mod, 20);
+        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running &&
+            ExampleInvasion.Controller.Progress == 1 &&
+            ExampleInvasion.Controller.ActiveCount == 0,
+            "re-entered original world restores progress but discards stale NPC membership");
+        SetWorld(0, 21);
+        foreach (int id in new[] { 11, 12, 13 })
+            System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
         Console.WriteLine("Managed-to-native-to-managed invasion bridge: " + checks + " checks OK");
         return 0;
     }
