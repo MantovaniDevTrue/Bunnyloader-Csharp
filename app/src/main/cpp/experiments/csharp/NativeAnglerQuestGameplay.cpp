@@ -412,12 +412,10 @@ bool updateQuests(const std::vector<Quest>& quests) {
         return false;
     applyFlags(fish);
     if (g_weaponRackFlag) applyFlags(rack);
-    if (update.changed) {
-        a.field_static_set_value(g_questItems, &nextIds);
-        if (selected != update.selected) {
-            int32_t next = update.selected;
-            a.field_static_set_value(g_questIndex, &next);
-        }
+    if (update.changed) a.field_static_set_value(g_questItems, &nextIds);
+    if (selected != update.selected) {
+        int32_t next = update.selected;
+        a.field_static_set_value(g_questIndex, &next);
     }
     g_lastQuestItems = update.changed ? nextIds : original;
     g_previousFlags = std::move(fish.previous);
