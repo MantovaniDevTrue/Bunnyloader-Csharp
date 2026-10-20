@@ -23,7 +23,7 @@ assert "if (!tablesReady)" in game
 assert "eligible(item, p, vanillaHasRollable) && itemRollWeight(item, p) > 0" in game
 assert "const bool managedCandidateFailure = g_failedRollableItem == item;" in game
 assert "return (hasDeny || managedCandidateFailure) ? false :" in game
-assert "if (!hasManaged && !hasDeny && (!hasItemWorker || !filteredByItemCallback))" in game
+assert "if (!hasManaged && !hasDeny && !extendedVanilla && (!hasItemWorker || !filteredByItemCallback))" in game
 assert "for (uintptr_t i = 0; i < list->length; ++i)" in game
 assert "g_originalRoll(item, random, rolled, method)" in game
 assert "std::isfinite(draw)" in header
