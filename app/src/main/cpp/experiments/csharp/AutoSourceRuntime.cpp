@@ -4,6 +4,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/NativeInvasionPersistence.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
 #include "experiments/csharp/WorldAuthority.h"
@@ -1210,6 +1211,7 @@ void noteAutoWorldTilesLoaded() {
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
+    resetReliableNpcKills();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1235,6 +1237,7 @@ void noteAutoGameUpdate() {
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
     pumpNativeInvasionSpawnsOnGameThread();
+    pumpReliableNpcKillsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
     static uint64_t lastSaveWorldSession = 0;
     if (!invasionWorldReady) {
@@ -1369,6 +1372,7 @@ void noteAutoGameUpdate() {
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
+    resetReliableNpcKills();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
         {
