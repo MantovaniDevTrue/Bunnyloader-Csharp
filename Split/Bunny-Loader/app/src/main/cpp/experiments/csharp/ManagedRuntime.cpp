@@ -2353,7 +2353,18 @@ bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
 bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     const std::string& owner,int kind,const std::string& snapshot,
     std::string* output,int budgetMicroseconds) {
-    if (!output || owner.empty() || owner.size() > 128 || kind < 0 || kind > 2 ||
+    const auto validOwner = [](const std::string& name) {
+        if (name.empty() || name.size() > 64 ||
+            !((name.front() >= 'A' && name.front() <= 'Z') ||
+              (name.front() >= 'a' && name.front() <= 'z') ||
+              name.front() == '_')) return false;
+        return std::all_of(name.begin(), name.end(), [](unsigned char ch) {
+            return (ch >= 'A' && ch <= 'Z') ||
+                   (ch >= 'a' && ch <= 'z') ||
+                   (ch >= '0' && ch <= '9') || ch == '_';
+        });
+    };
+    if (!output || !validOwner(owner) || kind < 0 || kind > 2 ||
         (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
         if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
         return false;
@@ -2367,7 +2378,16 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
             pos+=14;
         }
     }
-    return success;
+    if (!success) return false;
+    if (kind == 2) return *output == "READY";
+    if (kind == 0) return *output == "0" || *output == "1";
+    if (output->empty() || output->size() > 2 ||
+        !std::all_of(output->begin(), output->end(), [](unsigned char ch) {
+            return ch >= '0' && ch <= '9';
+        })) return false;
+    int weight=0;
+    for (char ch : *output) weight=weight*10+(ch-'0');
+    return weight >= 0 && weight <= 20;
 }
 
 bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,

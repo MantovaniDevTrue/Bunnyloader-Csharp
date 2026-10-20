@@ -285,6 +285,10 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("BunnyPrefixItemSnapshot", callbacks)
         self.assertIn("RuntimeHelpers.PrepareMethod(callback.MethodHandle)", callbacks)
         self.assertIn("BunnyPrefixCallbacks.cs", sdk)
+        self.assertIn('if (kind == 2) return *output == "READY";', runtime)
+        self.assertIn('if (kind == 0) return *output == "0" || *output == "1";', runtime)
+        self.assertIn('return weight >= 0 && weight <= 20;', runtime)
+        self.assertIn('if (!success) return false;', runtime)
         self.assertNotIn("invokeManagedPrefix(", gameplay)
 
     def test_report_render_is_stable_and_honest(self):
