@@ -572,6 +572,39 @@ Test("compiled-vanilla-register-uses-source-wire", () =>
     }
 });
 
+Test("live-register-outside-callback-drains-with-assembly-ownership", () =>
+{
+    string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1",
+        BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    BunnyLocalizationRuntime.Register("LegacyInterface.28",
+        new Dictionary<string, string>
+        {
+            ["en-US"] = "Dynamic vanilla",
+            ["pt-BR"] = "Vanilla em tempo real"
+        });
+    BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Live", "pt-BR", "Registrado depois");
+    string wire = BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US");
+    string[] rows = wire.Split('\n');
+    Equal("OK|1", rows[0]);
+    Equal(5, rows.Length);
+    Equal(true, rows.Skip(2).Any(row => System.Text.Encoding.UTF8.GetString(
+        Convert.FromHexString(row.Split('\t')[2])) == "LegacyInterface.28"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Reject(() => BunnyLocalizationRuntime.Register("Mods.other.Common.Forbidden", "en-US", "No"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Live", "pt-BR", "Atualizado");
+    Equal(true, BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US")
+        .Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Atualizado")), StringComparison.Ordinal));
+    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR").Split('\n')[0]);
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "pt-BR"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+    Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
+    Reject(() => BunnyLocalizationRuntime.Register("LegacyInterface.28", "en-US", "After unload"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
