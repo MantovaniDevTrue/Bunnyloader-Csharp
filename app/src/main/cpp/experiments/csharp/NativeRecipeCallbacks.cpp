@@ -27,6 +27,11 @@ std::map<int,uintptr_t> byIndex;
 std::mutex assemblyMutex;
 std::map<std::string,std::string> assemblies;
 std::map<std::string,uint64_t> assemblyRevisions;
+bool currentManagedAssembly(const std::string& mod,const std::string& captured) {
+    std::lock_guard lock(assemblyMutex);
+    const auto it=assemblies.find(mod);
+    return it!=assemblies.end() && it->second==captured;
+}
 struct Slot {FieldInfo* field=nullptr;const MethodInfo* get=nullptr;const MethodInfo* set=nullptr;};
 struct BoolValue {int offset=-1;const MethodInfo* getter=nullptr;};
 struct Refs {
@@ -127,6 +132,7 @@ bool call(const Policy& policy,int kind,Il2CppObject* player,int type,int amount
     if(assembly.empty()||!player){diagnose(policy,kind,"AssemblyOrPlayerNotReady");return false;}
     if(!csharp::invokeManagedRecipe(policy.request.mod,assembly,policy.request.name,policy.index,kind,
         snapshot(player,policy.request.result,type,amount,quick,available),output,budget)) {diagnose(policy,kind,output->empty()?"Stage=Invoke Reason=EmptyTransportResponse":*output);return false;}
+    if(!currentManagedAssembly(policy.request.mod,assembly))return false;
     if(output->rfind("ERROR|",0)==0||output->rfind("PENDING|",0)==0){diagnose(policy,kind,*output);return false;}return true;
 }
 void hkFind(bool delay,const MethodInfo* info){
@@ -231,6 +237,7 @@ bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& 
         std::to_string(playerIndex)+","+std::to_string(itemType);
     std::string output;
     if(!invokeManagedRecipe(mod,assembly,owner,0,kind,input,&output,1500) ||
+       !currentManagedAssembly(mod,assembly) ||
        (output!="1"&&output!="0"))return false;
     *allowed=output=="1";
     return true;
