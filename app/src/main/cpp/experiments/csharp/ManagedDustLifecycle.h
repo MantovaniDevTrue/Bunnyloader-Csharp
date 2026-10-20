@@ -37,6 +37,12 @@ public:
         if (!tracked.active) return;
         queueRetirement(tracked.state);
         tracked.active = false;
+        for (size_t i = 0; i < indices_.size(); ++i) {
+            if (indices_[i] != slot) continue;
+            indices_[i] = indices_.back();
+            indices_.pop_back();
+            break;
+        }
     }
 
     template <class Alive>
