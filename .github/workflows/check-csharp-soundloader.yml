@@ -58,6 +58,42 @@ jobs:
             nm -D --defined-only /tmp/libbunny_sound_exports.so | grep -q "bunny_csharp_sound_${api}$"
           done
           echo 'CSHARP_SOUNDLOADER_EIGHT_EXPORTED_P_INVOKE_SYMBOLS_PASS'
+  native-arm64-object:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile production SoundLoader integration for Android ARM64 without APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=27.2.12479018
+          NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if test ! -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
+          fi
+          CXX="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
+          test -x "$CXX"
+          mkdir -p /tmp/bunny-sound-arm64
+          for mode in 0 1; do
+            for name in AutoSourceRuntime NativeSoundRouter; do
+              if test "$name" = AutoSourceRuntime; then
+                SRC=app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+              else
+                SRC=app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
+              fi
+              "$CXX" -std=c++20 -O0 -fPIC -fno-exceptions -fno-rtti \
+                -DBL_HAVE_QUICKJS=$mode \
+                -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs \
+                -c "$SRC" -o "/tmp/bunny-sound-arm64/${name}-qjs${mode}.o"
+              test -s "/tmp/bunny-sound-arm64/${name}-qjs${mode}.o"
+            done
+          done
+          "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm" -g \
+            /tmp/bunny-sound-arm64/AutoSourceRuntime-qjs0.o | grep 'bunny_csharp_sound_register'
+          echo 'CSHARP_SOUNDLOADER_ANDROID_ARM64_NATIVE_OBJECT_COMPILE_PASS_NO_APK'
+
   managed-sdk:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -103,7 +139,7 @@ jobs:
           retention-days: 7
 
   stage-managed-sdk:
-    needs: [native-host, managed-sdk]
+    needs: [native-host, native-arm64-object, managed-sdk]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
