@@ -297,11 +297,16 @@ struct LocalizationJob {
     std::string culture;
     uint64_t generation = 0;
     bool unload = false;
+    bool drain = false;
 };
 std::deque<LocalizationJob> g_localizationQueue;
 std::deque<std::string> g_localizationUnloads;
+std::map<std::string, LocalizationJob> g_localizationLiveBindings;
+std::string g_lastLocalizationPollMod;
+std::chrono::steady_clock::time_point g_nextLocalizationPoll{};
 ManagedLocalizationEpochFence g_localizationEpochFence;
 void* g_localizationDispatchMethod = nullptr;
+void* g_localizationDrainMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
 std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
@@ -1439,7 +1444,8 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
         !g_api.openAssembly || !g_api.image || !g_api.findClass ||
         !g_api.findMethod || !g_api.newString || !g_api.invoke) return "PENDING|MonoNotReady";
     if (!g_api.attach(g_domain)) return "ERROR|MonoAttachFailed";
-    if (!g_localizationDispatchMethod || !g_localizationUnloadMethod) {
+    if (!g_localizationDispatchMethod || !g_localizationUnloadMethod ||
+        !g_localizationDrainMethod) {
         const auto slash = g_checkpointPath.find_last_of('/');
         if (slash == std::string::npos) return "ERROR|InvalidSdkPath";
         const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
@@ -1449,8 +1455,10 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
         void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLocalizationRuntime") : nullptr;
         if (!klass) return "ERROR|MissingLocalizationRuntime";
         g_localizationDispatchMethod = g_api.findMethod(klass, "Dispatch", 3);
+        g_localizationDrainMethod = g_api.findMethod(klass, "Drain", 3);
         g_localizationUnloadMethod = g_api.findMethod(klass, "Unload", 1);
-        if (!g_localizationDispatchMethod || !g_localizationUnloadMethod)
+        if (!g_localizationDispatchMethod || !g_localizationDrainMethod ||
+            !g_localizationUnloadMethod)
             return "ERROR|MissingLocalizationMethods";
     }
     void* id = g_api.newString(g_domain, job.modId.c_str());
@@ -1465,7 +1473,8 @@ std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
     void* culture = g_api.newString(g_domain, job.culture.c_str());
     if (!assembly || !culture) return "ERROR|MonoStringAllocation";
     void* args[] = {id, assembly, culture};
-    void* value = g_api.invoke(g_localizationDispatchMethod, nullptr, args, &exception);
+    void* value = g_api.invoke(job.drain ? g_localizationDrainMethod :
+                               g_localizationDispatchMethod, nullptr, args, &exception);
     if (exception || !value) return "ERROR|MonoDispatchException";
     using Utf8 = char* (*)(void*);
     using Release = void (*)(void*);
@@ -1567,16 +1576,31 @@ void* pinnedMonoWorker(void*) {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
-                if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
-                    (!g_localizationUnloads.empty() || !g_localizationQueue.empty())) {
+                const bool localizationReady =
+                    g_recipeRuntimeReady.load(std::memory_order_acquire);
+                const bool livePolling = localizationReady &&
+                    !g_localizationLiveBindings.empty() &&
+                    std::chrono::steady_clock::now() >= g_nextLocalizationPoll;
+                if (localizationReady &&
+                    (!g_localizationUnloads.empty() || !g_localizationQueue.empty() ||
+                     livePolling)) {
                     LocalizationJob job;
                     if (!g_localizationUnloads.empty()) {
                         job.modId = std::move(g_localizationUnloads.front());
                         g_localizationUnloads.pop_front();
                         job.unload = true;
-                    } else {
+                    } else if (!g_localizationQueue.empty()) {
                         job = std::move(g_localizationQueue.front());
                         g_localizationQueue.pop_front();
+                    } else {
+                        auto it = g_localizationLiveBindings.upper_bound(g_lastLocalizationPollMod);
+                        if (it == g_localizationLiveBindings.end())
+                            it = g_localizationLiveBindings.begin();
+                        job = it->second;
+                        job.drain = true;
+                        g_lastLocalizationPollMod = it->first;
+                        g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+                            std::chrono::milliseconds(250);
                     }
                     if (!job.unload && !g_localizationEpochFence.current(job.modId, job.generation))
                         continue;
@@ -1588,7 +1612,7 @@ void* pinnedMonoWorker(void*) {
                                            job.generation, result))
                             result = "ERROR|DynamicWireRejectedOrStale";
                     }
-                    if (result.rfind("OK|", 0) != 0) {
+                    if (result.rfind("OK|", 0) != 0 && result != "UNCHANGED") {
 #ifdef __ANDROID__
                         __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
                             "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s",
@@ -2010,15 +2034,21 @@ void* pinnedMonoWorker(void*) {
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                             !g_localizationLiveBindings.empty())
+                        g_pinnedWake.wait_until(lock, g_nextLocalizationPoll);
                     else
                         g_pinnedWake.wait(lock);
                     continue;
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                const auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
+                auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
+                if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                    !g_localizationLiveBindings.empty())
+                    deadline = std::min(deadline, g_nextLocalizationPoll);
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
@@ -2088,7 +2118,10 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
         }), g_localizationQueue.end());
     if (g_localizationQueue.size() >= 64) return false;
     g_localizationEpochFence.activate(modId, generation);
-    g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false});
+    g_localizationLiveBindings[modId] = {modId, assemblyPath, culture, generation, false, false};
+    g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(250);
+    g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false, false});
     g_pinnedWake.notify_one();
     return true;
 }
@@ -2101,6 +2134,7 @@ void unloadManagedLocalizationCallbacks(const std::string& modId) {
             return job.modId == modId;
         }), g_localizationQueue.end());
     g_localizationEpochFence.retire(modId);
+    g_localizationLiveBindings.erase(modId);
     if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
         == g_localizationUnloads.end())
         g_localizationUnloads.push_back(modId);
