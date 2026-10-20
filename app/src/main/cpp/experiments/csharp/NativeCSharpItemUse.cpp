@@ -7,6 +7,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "menu/NetRequests.h"
+#include "content/common/GameRefs.h"
 
 #include <algorithm>
 #include <atomic>
@@ -77,11 +78,16 @@ void onActualUse(Il2CppObject* player, Il2CppObject* item, const MethodInfo* met
     }
     if (g_originalUse) g_originalUse(player, item, method);
     if (itemType < 0 || playerIndex < 0 || playerIndex >= 255 ||
-        !g_ready.load(std::memory_order_acquire) ||
-        !worldIsAuthoritative(runtime::netMode())) return;
+        !g_ready.load(std::memory_order_acquire)) return;
     const auto binding = g_installed.find(itemType);
     if (binding == g_installed.end() ||
         binding->second.session != g_session.load(std::memory_order_acquire)) return;
+    const int mode = runtime::netMode();
+    if (mode == 1) {
+        runtime::sendToServer("invuse " + binding->second.mod + " " + binding->second.name);
+        return;
+    }
+    if (!worldIsAuthoritative(mode)) return;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (g_events.size() >= kEventsLimit) {
         g_dropped.fetch_add(1, std::memory_order_relaxed);
@@ -109,6 +115,47 @@ bool installItemUseHook() {
     return true;
 }
 
+}
+
+bool enqueueVerifiedRemoteItemUse(int playerIndex, const std::string& mod,
+                                  const std::string& itemName) {
+    if (!runtime::isNetHost() || !g_ready.load(std::memory_order_acquire) ||
+        !validName(mod.c_str(), 128) || !validName(itemName.c_str(), 128) ||
+        playerIndex < 0 || playerIndex >= 255) return false;
+    const int type = runtime::modItemTypeByKey(mod + "/" + itemName);
+    const auto bound = g_installed.find(type);
+    if (type < runtime::kVanillaItemCount || bound == g_installed.end() ||
+        bound->second.mod != mod || bound->second.name != itemName ||
+        bound->second.session != g_session.load(std::memory_order_acquire))
+        return false;
+
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* klass = il2cpp::findClass({"Terraria", "Player", {}});
+    if (!main || !klass) return false;
+    auto* playersField = il2cpp::findField(main, "player");
+    const int inventory = il2cpp::fieldOffset(klass, "inventory");
+    const int selected = il2cpp::fieldOffset(klass, "selectedItem");
+    const int active = il2cpp::fieldOffset(klass, "active");
+    if (!playersField || inventory < 0 || selected < 0 || active < 0) return false;
+    Il2CppArray* players = nullptr;
+    il2cpp::api().field_static_get_value(playersField, &players);
+    if (!players || static_cast<uintptr_t>(playerIndex) >= players->length) return false;
+    Il2CppObject* player = static_cast<Il2CppObject**>(arrayData(players))[playerIndex];
+    if (!player || runtime::field<uint8_t>(player, active) == 0) return false;
+    Il2CppArray* items = runtime::field<Il2CppArray*>(player, inventory);
+    const int selectedSlot = runtime::field<int32_t>(player, selected);
+    if (!items || selectedSlot < 0 ||
+        static_cast<uintptr_t>(selectedSlot) >= items->length) return false;
+    Il2CppObject* selectedItem =
+        static_cast<Il2CppObject**>(arrayData(items))[selectedSlot];
+    if (!selectedItem || g_itemTypeOffset < 0 ||
+        runtime::field<int32_t>(selectedItem, g_itemTypeOffset) != type) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_ready.load(std::memory_order_acquire) ||
+        g_events.size() >= kEventsLimit) return false;
+    g_events.push_back({g_session.load(std::memory_order_acquire), mod,
+                        itemName, playerIndex});
+    return true;
 }
 
 void setNativeItemUseWorldState(bool ready, uint64_t session) {
