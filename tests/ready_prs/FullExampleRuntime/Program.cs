@@ -51,6 +51,8 @@ try
 
     Console.WriteLine("FULL_EXAMPLE_ROSLYN_AND_EXECUTION=PASS classes=" + verified);
     string compact = Path.Combine(framework, "compiler-references");
+    File.WriteAllText(Path.Combine(framework, "framework-version.txt"), new string('a', 64));
+    File.WriteAllText(Path.Combine(framework, "compiler-references.approved"), new string('a', 64));
     Directory.CreateDirectory(compact);
     foreach (string name in references)
     {
@@ -70,6 +72,18 @@ try
         throw new InvalidOperationException("Android-style compact DLL validation returned " +
             compactVerified + "\n" + File.ReadAllText(compactDiagnostics));
     Console.WriteLine("FULL_EXAMPLE_ANDROID_COMPACT_REFERENCES=PASS classes=" + compactVerified);
+    File.Delete(Path.Combine(framework, "compiler-references.approved"));
+    string staleOutput = Path.Combine(work, "compiled", "FullExampleWithStaleCompact.dll");
+    string staleDiagnostics = Path.Combine(work, "stale-diagnostics.txt");
+    int staleCompiled = Compiler.Compile(root, staleOutput, framework, staleDiagnostics);
+    if (staleCompiled != 1)
+        throw new InvalidOperationException("Stale compact pack was not ignored: " +
+            staleCompiled + "\n" + File.ReadAllText(staleDiagnostics));
+    int staleVerified = CompiledAssemblyProbe.Verify(staleOutput, staleDiagnostics, root);
+    if (staleVerified != verified || !File.ReadAllText(staleDiagnostics + ".profile")
+        .Contains("referenceMode=Runtime", StringComparison.Ordinal))
+        throw new InvalidOperationException("Runtime references not selected after stale-pack invalidation");
+    Console.WriteLine("FULL_EXAMPLE_STALE_COMPACT_FALLBACK=PASS classes=" + staleVerified);
 }
 finally
 {
